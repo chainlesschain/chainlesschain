@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 const {
   projectMarketplaceInstalledPlugin,
   projectPluginPublicRecord,
+  projectPluginSettingDefinitions,
+  projectPluginSettings,
 } = require("../plugin-public-projection.js");
 
 describe("plugin public projection", () => {
@@ -91,5 +93,73 @@ describe("plugin public projection", () => {
     expect(sources[0]).not.toContain("path: installedPath");
     expect(sources[1]).not.toContain("installPath: pluginDir");
     expect(sources[2]).not.toContain("path: pluginsDir");
+  });
+
+  it("returns secret status without secret values or defaults", () => {
+    const secret = "plugin-setting-secret";
+    const definitions = [
+      {
+        key: "apiKey",
+        label: "API key",
+        type: "password",
+        is_secret: 1,
+        default: secret,
+      },
+      {
+        key: "theme",
+        label: "Theme",
+        type: "select",
+        options: ["dark", { label: "Light", value: "light", secret }],
+      },
+      { key: "advanced", type: "object" },
+    ];
+
+    expect(projectPluginSettingDefinitions(definitions)).toEqual([
+      {
+        key: "apiKey",
+        label: "API key",
+        description: "",
+        type: "password",
+        required: false,
+        secret: true,
+        options: [],
+      },
+      {
+        key: "theme",
+        label: "Theme",
+        description: "",
+        type: "select",
+        required: false,
+        secret: false,
+        options: [
+          { label: "dark", value: "dark" },
+          { label: "Light", value: "light" },
+        ],
+      },
+      {
+        key: "advanced",
+        label: "",
+        description: "",
+        type: "object",
+        required: false,
+        secret: false,
+        options: [],
+      },
+    ]);
+
+    const projected = projectPluginSettings(
+      {
+        apiKey: secret,
+        theme: "dark",
+        advanced: { secret },
+        undeclared: secret,
+      },
+      definitions,
+    );
+    expect(projected).toEqual({
+      apiKey: { configured: true, redacted: true },
+      theme: "dark",
+    });
+    expect(JSON.stringify(projected)).not.toContain(secret);
   });
 });

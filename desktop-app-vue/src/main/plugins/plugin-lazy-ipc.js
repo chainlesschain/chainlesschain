@@ -6,7 +6,11 @@
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
-const { projectPluginPublicRecord } = require("./plugin-public-projection");
+const {
+  projectPluginPublicRecord,
+  projectPluginSettingDefinitions,
+  projectPluginSettings,
+} = require("./plugin-public-projection");
 const { ipcMain } = require("electron");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginLazyIPC");
@@ -230,7 +234,10 @@ function registerLazyPluginIPC({
       const definitions =
         app.pluginManager.registry.getPluginSettingDefinitions?.(pluginId) ||
         [];
-      return { success: true, definitions };
+      return {
+        success: true,
+        definitions: projectPluginSettingDefinitions(definitions),
+      };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取设置定义失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -245,7 +252,13 @@ function registerLazyPluginIPC({
       }
       const settings =
         app.pluginManager.registry.getPluginSettings?.(pluginId) || {};
-      return { success: true, settings };
+      const definitions =
+        app.pluginManager.registry.getPluginSettingDefinitions?.(pluginId) ||
+        [];
+      return {
+        success: true,
+        settings: projectPluginSettings(settings, definitions),
+      };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件设置失败:", error);
       return createPluginIpcFailureResult("pluginLazy");

@@ -10,7 +10,11 @@ const {
   createPluginIpcFailureResult,
   createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
-const { projectPluginPublicRecord } = require("./plugin-public-projection");
+const {
+  projectPluginPublicRecord,
+  projectPluginSettingDefinitions,
+  projectPluginSettings,
+} = require("./plugin-public-projection");
 const path = require("path");
 const {
   getPermissionDialogManager,
@@ -550,7 +554,10 @@ function registerPluginIPC({
       ensureManager();
       const definitions =
         pluginManager.registry.getPluginSettingDefinitions?.(pluginId) || [];
-      return { success: true, definitions };
+      return {
+        success: true,
+        definitions: projectPluginSettingDefinitions(definitions),
+      };
     }),
   );
 
@@ -560,7 +567,12 @@ function registerPluginIPC({
       ensureManager();
       const settings =
         pluginManager.registry.getPluginSettings?.(pluginId) || {};
-      return { success: true, settings };
+      const definitions =
+        pluginManager.registry.getPluginSettingDefinitions?.(pluginId) || [];
+      return {
+        success: true,
+        settings: projectPluginSettings(settings, definitions),
+      };
     }),
   );
 

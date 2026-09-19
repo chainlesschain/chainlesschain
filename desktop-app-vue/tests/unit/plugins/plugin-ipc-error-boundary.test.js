@@ -237,7 +237,18 @@ describe("plugin IPC error boundary", () => {
         pluginId: "plugin-1",
         path: secret,
       }),
-      registry: { getExtensionsByPoint: () => [] },
+      registry: {
+        getExtensionsByPoint: () => [],
+        getPluginSettingDefinitions: () => [
+          { key: "apiKey", secret: true, default: secret },
+          { key: "theme", type: "string" },
+        ],
+        getPluginSettings: () => ({
+          apiKey: secret,
+          theme: "dark",
+          undeclared: secret,
+        }),
+      },
     };
     registerPluginIPC({
       pluginManager,
@@ -252,6 +263,7 @@ describe("plugin IPC error boundary", () => {
     const list = await handlers.get("plugin:get-plugins")({}, {});
     const detail = await handlers.get("plugin:get-plugin")({}, "plugin-1");
     const install = await handlers.get("plugin:install")({}, secret, {});
+    const settings = await handlers.get("plugin:get-settings")({}, "plugin-1");
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -261,7 +273,16 @@ describe("plugin IPC error boundary", () => {
     });
     expect(detail.plugin).toEqual(list.plugins[0]);
     expect(install).toEqual({ success: true, pluginId: "plugin-1" });
-    expect(JSON.stringify({ list, detail, install })).not.toContain(secret);
+    expect(settings).toEqual({
+      success: true,
+      settings: {
+        apiKey: { configured: true, redacted: true },
+        theme: "dark",
+      },
+    });
+    expect(JSON.stringify({ list, detail, install, settings })).not.toContain(
+      secret,
+    );
   });
 
   it("forbids dynamic caught error messages in plugin IPC payloads", () => {

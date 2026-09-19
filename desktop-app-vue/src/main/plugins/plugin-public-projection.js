@@ -68,7 +68,109 @@ function projectMarketplaceInstalledPlugin(plugin) {
   };
 }
 
+function projectSettingOptions(options) {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+  return options.slice(0, 128).flatMap((option) => {
+    if (typeof option === "string") {
+      const value = boundedString(option, 512);
+      return [{ label: value, value }];
+    }
+    if (!option || typeof option !== "object") {
+      return [];
+    }
+    return [
+      {
+        label: boundedString(option.label, 512),
+        value: boundedString(option.value, 512),
+      },
+    ];
+  });
+}
+
+function projectPluginSettingDefinitions(definitions) {
+  if (!Array.isArray(definitions)) {
+    return [];
+  }
+  return definitions.slice(0, 256).flatMap((definition) => {
+    if (!definition || typeof definition !== "object") {
+      return [];
+    }
+    const key = boundedString(definition.key ?? definition.id, 256);
+    if (!key) {
+      return [];
+    }
+    const secret =
+      definition.secret === true ||
+      definition.isSecret === true ||
+      definition.is_secret === true ||
+      definition.is_secret === 1;
+    return [
+      {
+        key,
+        label: boundedString(definition.label, 512),
+        description: boundedString(definition.description, 2048),
+        type: boundedString(definition.type, 64),
+        required: definition.required === true,
+        secret,
+        options: projectSettingOptions(definition.options),
+      },
+    ];
+  });
+}
+
+function projectSettingValue(value) {
+  if (value === null || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === "string") {
+    return boundedString(value, 4096);
+  }
+  if (Array.isArray(value)) {
+    const projected = value
+      .slice(0, 128)
+      .map(projectSettingValue)
+      .filter((entry) => entry !== undefined && !Array.isArray(entry));
+    return projected;
+  }
+  return undefined;
+}
+
+function projectPluginSettings(settings, definitions) {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return {};
+  }
+  const projectedDefinitions = projectPluginSettingDefinitions(definitions);
+  const result = {};
+
+  for (const definition of projectedDefinitions) {
+    if (!Object.prototype.hasOwnProperty.call(settings, definition.key)) {
+      continue;
+    }
+    const value = settings[definition.key];
+    if (definition.secret) {
+      result[definition.key] = {
+        configured: value !== null && value !== undefined && value !== "",
+        redacted: true,
+      };
+      continue;
+    }
+    const projected = projectSettingValue(value);
+    if (projected !== undefined) {
+      result[definition.key] = projected;
+    }
+  }
+
+  return result;
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginPublicRecord,
+  projectPluginSettingDefinitions,
+  projectPluginSettings,
 };

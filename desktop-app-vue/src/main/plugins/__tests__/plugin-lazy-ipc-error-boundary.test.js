@@ -65,6 +65,17 @@ describe("lazy plugin IPC error boundary", () => {
             pluginId: "plugin-1",
             path: secret,
           }),
+          registry: {
+            getPluginSettingDefinitions: vi.fn().mockReturnValue([
+              { key: "apiKey", is_secret: 1, default: secret },
+              { key: "theme", type: "string" },
+            ]),
+            getPluginSettings: vi.fn().mockReturnValue({
+              apiKey: secret,
+              theme: "dark",
+              undeclared: secret,
+            }),
+          },
         },
       },
       mainWindow: null,
@@ -74,6 +85,10 @@ describe("lazy plugin IPC error boundary", () => {
     const list = await ipc.handlers.get("plugin:get-plugins")({}, {});
     const detail = await ipc.handlers.get("plugin:get-plugin")({}, "plugin-1");
     const install = await ipc.handlers.get("plugin:install")({}, secret, {});
+    const settings = await ipc.handlers.get("plugin:get-settings")(
+      {},
+      "plugin-1",
+    );
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -83,7 +98,16 @@ describe("lazy plugin IPC error boundary", () => {
     });
     expect(detail).toEqual(list[0]);
     expect(install).toEqual({ success: true, pluginId: "plugin-1" });
-    expect(JSON.stringify({ list, detail, install })).not.toContain(secret);
+    expect(settings).toEqual({
+      success: true,
+      settings: {
+        apiKey: { configured: true, redacted: true },
+        theme: "dark",
+      },
+    });
+    expect(JSON.stringify({ list, detail, install, settings })).not.toContain(
+      secret,
+    );
   });
 
   it("has no raw caught-error rethrows", () => {
