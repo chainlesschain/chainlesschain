@@ -6,9 +6,11 @@
  * @since v0.30.0
  */
 
-const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../../utils/logger');
-const { StepType, LoopType, ConditionOperator } = require('./control-flow');
+const { v4: uuidv4 } = require("uuid");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
+const { StepType, LoopType, ConditionOperator } = require("./control-flow");
 
 /**
  * Workflow Builder for fluent workflow creation
@@ -17,14 +19,14 @@ class WorkflowBuilder {
   constructor(name) {
     this.workflow = {
       id: uuidv4(),
-      name: name || 'Untitled Workflow',
-      description: '',
+      name: name || "Untitled Workflow",
+      description: "",
       steps: [],
       variables: {},
       triggers: [],
       tags: [],
       isTemplate: false,
-      isEnabled: true
+      isEnabled: true,
     };
 
     // Step stack for nested structures
@@ -115,10 +117,10 @@ class WorkflowBuilder {
   navigate(url, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'navigate',
+      action: "navigate",
       url,
       description: options.description || `Navigate to ${url}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -132,10 +134,10 @@ class WorkflowBuilder {
   click(ref, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'click',
+      action: "click",
       ref,
       description: options.description || `Click ${ref}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -150,11 +152,11 @@ class WorkflowBuilder {
   type(ref, text, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'type',
+      action: "type",
       ref,
       text,
       description: options.description || `Type "${text}" into ${ref}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -169,11 +171,11 @@ class WorkflowBuilder {
   select(ref, value, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'select',
+      action: "select",
       ref,
       value,
       description: options.description || `Select "${value}" in ${ref}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -187,10 +189,10 @@ class WorkflowBuilder {
   hover(ref, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'hover',
+      action: "hover",
       ref,
       description: options.description || `Hover over ${ref}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -203,9 +205,9 @@ class WorkflowBuilder {
   screenshot(options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'screenshot',
-      description: options.description || 'Take screenshot',
-      ...options
+      action: "screenshot",
+      description: options.description || "Take screenshot",
+      ...options,
     });
     return this;
   }
@@ -218,9 +220,9 @@ class WorkflowBuilder {
   snapshot(options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'snapshot',
-      description: options.description || 'Take page snapshot',
-      ...options
+      action: "snapshot",
+      description: options.description || "Take page snapshot",
+      ...options,
     });
     return this;
   }
@@ -233,9 +235,10 @@ class WorkflowBuilder {
   scroll(options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'scroll',
-      description: options.description || `Scroll ${options.direction || 'down'}`,
-      ...options
+      action: "scroll",
+      description:
+        options.description || `Scroll ${options.direction || "down"}`,
+      ...options,
     });
     return this;
   }
@@ -249,10 +252,10 @@ class WorkflowBuilder {
   keyboard(keys, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'keyboard',
+      action: "keyboard",
       keys,
       description: options.description || `Press ${keys}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -266,10 +269,10 @@ class WorkflowBuilder {
   upload(files, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'upload',
+      action: "upload",
       files: Array.isArray(files) ? files : [files],
-      description: options.description || 'Upload files',
-      ...options
+      description: options.description || "Upload files",
+      ...options,
     });
     return this;
   }
@@ -284,12 +287,12 @@ class WorkflowBuilder {
   extract(selector, saveTo, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'extract',
+      action: "extract",
       selector,
       saveTo,
-      extractType: options.type || 'text',
+      extractType: options.type || "text",
       description: options.description || `Extract from ${selector}`,
-      ...options
+      ...options,
     });
     return this;
   }
@@ -303,10 +306,10 @@ class WorkflowBuilder {
   evaluate(script, options = {}) {
     this._addStep({
       type: StepType.ACTION,
-      action: 'evaluate',
+      action: "evaluate",
       script,
-      description: options.description || 'Run JavaScript',
-      ...options
+      description: options.description || "Run JavaScript",
+      ...options,
     });
     return this;
   }
@@ -320,20 +323,20 @@ class WorkflowBuilder {
    * @returns {WorkflowBuilder}
    */
   wait(conditionOrMs, options = {}) {
-    if (typeof conditionOrMs === 'number') {
+    if (typeof conditionOrMs === "number") {
       this._addStep({
         type: StepType.WAIT,
         condition: true, // Always true, just delay
         timeout: conditionOrMs,
         description: options.description || `Wait ${conditionOrMs}ms`,
-        ...options
+        ...options,
       });
     } else {
       this._addStep({
         type: StepType.WAIT,
         condition: conditionOrMs,
-        description: options.description || 'Wait for condition',
-        ...options
+        description: options.description || "Wait for condition",
+        ...options,
       });
     }
     return this;
@@ -349,7 +352,7 @@ class WorkflowBuilder {
       type: StepType.CONDITION,
       condition,
       then: [],
-      else: []
+      else: [],
     };
     this._addStep(ifStep);
     this._stepStack.push(ifStep.then);
@@ -386,15 +389,15 @@ class WorkflowBuilder {
    * @param {string} variable - Loop variable name
    * @returns {WorkflowBuilder}
    */
-  forEach(items, variable = 'item') {
+  forEach(items, variable = "item") {
     const loopStep = {
       type: StepType.LOOP,
       loop: {
         type: LoopType.FOR_EACH,
         items,
-        variable
+        variable,
       },
-      steps: []
+      steps: [],
     };
     this._addStep(loopStep);
     this._stepStack.push(loopStep.steps);
@@ -411,9 +414,9 @@ class WorkflowBuilder {
       type: StepType.LOOP,
       loop: {
         type: LoopType.FOR,
-        ...config
+        ...config,
       },
-      steps: []
+      steps: [],
     };
     this._addStep(loopStep);
     this._stepStack.push(loopStep.steps);
@@ -430,9 +433,9 @@ class WorkflowBuilder {
       type: StepType.LOOP,
       loop: {
         type: LoopType.WHILE,
-        condition
+        condition,
       },
-      steps: []
+      steps: [],
     };
     this._addStep(loopStep);
     this._stepStack.push(loopStep.steps);
@@ -457,7 +460,7 @@ class WorkflowBuilder {
       type: StepType.TRY_CATCH,
       try: [],
       catch: [],
-      finally: []
+      finally: [],
     };
     this._addStep(tryCatchStep);
     this._stepStack.push(tryCatchStep.try);
@@ -514,10 +517,10 @@ class WorkflowBuilder {
   set(name, value) {
     this._addStep({
       type: StepType.VARIABLE,
-      operation: 'set',
+      operation: "set",
       name,
       value,
-      description: `Set ${name}`
+      description: `Set ${name}`,
     });
     return this;
   }
@@ -531,10 +534,10 @@ class WorkflowBuilder {
   increment(name, amount = 1) {
     this._addStep({
       type: StepType.VARIABLE,
-      operation: 'increment',
+      operation: "increment",
       name,
       value: amount,
-      description: `Increment ${name}`
+      description: `Increment ${name}`,
     });
     return this;
   }
@@ -548,10 +551,10 @@ class WorkflowBuilder {
   append(name, value) {
     this._addStep({
       type: StepType.VARIABLE,
-      operation: 'append',
+      operation: "append",
       name,
       value,
-      description: `Append to ${name}`
+      description: `Append to ${name}`,
     });
     return this;
   }
@@ -570,7 +573,7 @@ class WorkflowBuilder {
       workflowId,
       variables: options.variables || {},
       outputVars: options.outputVars || {},
-      description: options.description || `Run sub-workflow ${workflowId}`
+      description: options.description || `Run sub-workflow ${workflowId}`,
     });
     return this;
   }
@@ -635,8 +638,8 @@ class WorkflowBuilder {
    */
   onSchedule(cron) {
     this.workflow.triggers.push({
-      type: 'schedule',
-      cron
+      type: "schedule",
+      cron,
     });
     return this;
   }
@@ -648,8 +651,8 @@ class WorkflowBuilder {
    */
   onUrl(pattern) {
     this.workflow.triggers.push({
-      type: 'url',
-      pattern
+      type: "url",
+      pattern,
     });
     return this;
   }
@@ -660,7 +663,7 @@ class WorkflowBuilder {
    */
   onManual() {
     this.workflow.triggers.push({
-      type: 'manual'
+      type: "manual",
     });
     return this;
   }
@@ -674,7 +677,7 @@ class WorkflowBuilder {
   build() {
     // Ensure stack is clean
     if (this._stepStack.length > 1) {
-      logger.warn('[WorkflowBuilder] Unclosed blocks detected');
+      logger.warn("[WorkflowBuilder] Unclosed blocks detected");
     }
 
     return { ...this.workflow };
@@ -743,5 +746,5 @@ module.exports = {
   condition,
   and,
   or,
-  not
+  not,
 };

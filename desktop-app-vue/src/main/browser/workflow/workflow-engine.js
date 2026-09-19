@@ -6,9 +6,13 @@
  * @since v0.30.0
  */
 
+/* global document, window */
+
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 const { VariableManager, VariableScope } = require("./workflow-variables");
 const { ControlFlowManager, StepType } = require("./control-flow");
 const {

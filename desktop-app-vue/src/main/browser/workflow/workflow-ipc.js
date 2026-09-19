@@ -7,7 +7,9 @@
  */
 
 const { ipcMain } = require("electron");
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 const { createIPCErrorHandler } = require("../../utils/ipc-error-handler");
 const { WorkflowEngine } = require("./workflow-engine");
 const { WorkflowStorage } = require("./workflow-storage");

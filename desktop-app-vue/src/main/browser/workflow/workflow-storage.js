@@ -7,18 +7,22 @@
  */
 
 const { v4: uuidv4 } = require("uuid");
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const { createBrowserLogRedactor } = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 const SqlSecurity = require("../../database/sql-security.js");
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
-function safeParse(raw, fallback) {
+function safeParse(raw, fallback, log = logger) {
   if (raw == null || raw === "") {
     return fallback;
   }
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(`[WorkflowStorage] Bad JSON column, fallback: ${err.message}`);
+    log.warn("[WorkflowStorage] Bad JSON column, using fallback", {
+      error: err,
+    });
     return fallback;
   }
 }
@@ -27,8 +31,9 @@ function safeParse(raw, fallback) {
  * Workflow Storage class for database operations
  */
 class WorkflowStorage {
-  constructor(db) {
+  constructor(db, { logSink } = {}) {
     this.db = db;
+    this.logger = logSink ? createBrowserLogRedactor(logSink) : logger;
   }
 
   // ==================== Workflow CRUD ====================
@@ -66,7 +71,7 @@ class WorkflowStorage {
 
     try {
       this.db.run(sql, params);
-      logger.info("[WorkflowStorage] Workflow created", {
+      this.logger.info("[WorkflowStorage] Workflow created", {
         id,
         name: workflow.name,
       });
@@ -86,7 +91,7 @@ class WorkflowStorage {
         updatedAt: now,
       };
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to create workflow", {
+      this.logger.error("[WorkflowStorage] Failed to create workflow", {
         error: error.message,
       });
       throw error;
@@ -110,7 +115,7 @@ class WorkflowStorage {
       stmt.free();
       return row ? this._deserializeWorkflow(row) : null;
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to get workflow", {
+      this.logger.error("[WorkflowStorage] Failed to get workflow", {
         id,
         error: error.message,
       });
@@ -190,7 +195,7 @@ class WorkflowStorage {
 
       return workflows;
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to list workflows", {
+      this.logger.error("[WorkflowStorage] Failed to list workflows", {
         error: error.message,
       });
       throw error;
@@ -245,10 +250,10 @@ class WorkflowStorage {
 
     try {
       this.db.run(sql, params);
-      logger.info("[WorkflowStorage] Workflow updated", { id });
+      this.logger.info("[WorkflowStorage] Workflow updated", { id });
       return this.getWorkflow(id);
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to update workflow", {
+      this.logger.error("[WorkflowStorage] Failed to update workflow", {
         id,
         error: error.message,
       });
@@ -266,10 +271,10 @@ class WorkflowStorage {
 
     try {
       this.db.run(sql, [id]);
-      logger.info("[WorkflowStorage] Workflow deleted", { id });
+      this.logger.info("[WorkflowStorage] Workflow deleted", { id });
       return true;
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to delete workflow", {
+      this.logger.error("[WorkflowStorage] Failed to delete workflow", {
         id,
         error: error.message,
       });
@@ -332,7 +337,7 @@ class WorkflowStorage {
 
     try {
       this.db.run(sql, params);
-      logger.info("[WorkflowStorage] Execution created", {
+      this.logger.info("[WorkflowStorage] Execution created", {
         id,
         workflowId: execution.workflowId,
       });
@@ -350,7 +355,7 @@ class WorkflowStorage {
         startedAt: now,
       };
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to create execution", {
+      this.logger.error("[WorkflowStorage] Failed to create execution", {
         error: error.message,
       });
       throw error;
@@ -426,7 +431,7 @@ class WorkflowStorage {
       this.db.run(sql, params);
       return this.getExecution(id);
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to update execution", {
+      this.logger.error("[WorkflowStorage] Failed to update execution", {
         id,
         error: error.message,
       });
@@ -448,7 +453,7 @@ class WorkflowStorage {
       stmt.free();
       return row ? this._deserializeExecution(row) : null;
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to get execution", {
+      this.logger.error("[WorkflowStorage] Failed to get execution", {
         id,
         error: error.message,
       });
@@ -489,7 +494,7 @@ class WorkflowStorage {
 
       return executions;
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to list executions", {
+      this.logger.error("[WorkflowStorage] Failed to list executions", {
         error: error.message,
       });
       throw error;
@@ -539,7 +544,7 @@ class WorkflowStorage {
         workflowId,
       ]);
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to update workflow stats", {
+      this.logger.error("[WorkflowStorage] Failed to update workflow stats", {
         workflowId,
         error: error.message,
       });
@@ -597,7 +602,7 @@ class WorkflowStorage {
         },
       };
     } catch (error) {
-      logger.error("[WorkflowStorage] Failed to get workflow stats", {
+      this.logger.error("[WorkflowStorage] Failed to get workflow stats", {
         workflowId,
         error: error.message,
       });
@@ -669,10 +674,10 @@ class WorkflowStorage {
       id: row.id,
       name: row.name,
       description: row.description,
-      steps: safeParse(row.steps, []),
-      variables: safeParse(row.variables, {}),
-      triggers: safeParse(row.triggers, []),
-      tags: safeParse(row.tags, []),
+      steps: safeParse(row.steps, [], this.logger),
+      variables: safeParse(row.variables, {}, this.logger),
+      triggers: safeParse(row.triggers, [], this.logger),
+      tags: safeParse(row.tags, [], this.logger),
       isTemplate: row.is_template === 1,
       isEnabled: row.is_enabled === 1,
       usageCount: row.usage_count || 0,
@@ -692,8 +697,8 @@ class WorkflowStorage {
       workflowName: row.workflow_name,
       targetId: row.target_id,
       status: row.status,
-      variablesSnapshot: safeParse(row.variables_snapshot, {}),
-      results: safeParse(row.results, []),
+      variablesSnapshot: safeParse(row.variables_snapshot, {}, this.logger),
+      results: safeParse(row.results, [], this.logger),
       currentStep: row.current_step || 0,
       totalSteps: row.total_steps || 0,
       errorMessage: row.error_message,
