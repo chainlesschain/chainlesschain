@@ -9,6 +9,8 @@ const {
 
 describe("browser log redaction", () => {
   it("removes URL, path, text, DID and signature values recursively", () => {
+    const logError = new Error("failed at /private/secret/file.txt");
+    logError.code = "code-secret";
     const raw = {
       targetId: "target-safe-1",
       url: "https://secret.example/private?q=token",
@@ -18,7 +20,7 @@ describe("browser log redaction", () => {
         operatorDid: "did:chainlesschain:secret-operator",
         signature: "base64-secret-signature",
       },
-      error: new Error("failed at /private/secret/file.txt"),
+      error: logError,
     };
     const sanitized = sanitizeBrowserLogData(raw);
     const serialized = JSON.stringify(sanitized);
@@ -30,6 +32,7 @@ describe("browser log redaction", () => {
       "secret-operator",
       "base64-secret-signature",
       "/private/secret/file.txt",
+      "code-secret",
     ])
       expect(serialized).not.toContain(secret);
     expect(sanitized.targetId).toMatchObject({
@@ -105,6 +108,19 @@ describe("browser log redaction", () => {
       message: { redacted: true },
     });
     expect(errorMessage).not.toHaveBeenCalled();
+  });
+
+  it("cannot be prototype-polluted by renderer field names", () => {
+    const value = { safe: true };
+    Object.defineProperty(value, "__proto__", {
+      enumerable: true,
+      value: { text: "prototype-secret" },
+    });
+
+    const sanitized = sanitizeBrowserLogData(value);
+    expect(Object.getPrototypeOf(sanitized)).toBeNull();
+    expect(JSON.stringify(sanitized)).not.toContain("prototype-secret");
+    expect(sanitized.__proto__).toMatchObject({ text: { redacted: true } });
   });
 
   it("uses domain-separated stable digests", () => {

@@ -12,38 +12,52 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
-const fs = require('fs').promises;
-const path = require('path');
+const { EventEmitter } = require("events");
+const fs = require("fs").promises;
+const path = require("path");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+  redactBrowserLogValue,
+  sanitizeBrowserLogData,
+} = require("../browser-log-redaction");
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 操作类型
  */
 const OperationType = {
-  MOUSE_CLICK: 'mouse_click',
-  MOUSE_MOVE: 'mouse_move',
-  MOUSE_DRAG: 'mouse_drag',
-  KEYBOARD_TYPE: 'keyboard_type',
-  KEYBOARD_KEY: 'keyboard_key',
-  SCROLL: 'scroll',
-  SCREENSHOT: 'screenshot',
-  NAVIGATION: 'navigation',
-  VISION_ANALYSIS: 'vision_analysis',
-  VISION_CLICK: 'vision_click',
-  NETWORK_INTERCEPT: 'network_intercept',
-  DESKTOP_CLICK: 'desktop_click',
-  DESKTOP_TYPE: 'desktop_type',
-  DESKTOP_SCREENSHOT: 'desktop_screenshot'
+  MOUSE_CLICK: "mouse_click",
+  MOUSE_MOVE: "mouse_move",
+  MOUSE_DRAG: "mouse_drag",
+  KEYBOARD_TYPE: "keyboard_type",
+  KEYBOARD_KEY: "keyboard_key",
+  SCROLL: "scroll",
+  SCREENSHOT: "screenshot",
+  NAVIGATION: "navigation",
+  VISION_ANALYSIS: "vision_analysis",
+  VISION_CLICK: "vision_click",
+  NETWORK_INTERCEPT: "network_intercept",
+  DESKTOP_CLICK: "desktop_click",
+  DESKTOP_TYPE: "desktop_type",
+  DESKTOP_SCREENSHOT: "desktop_screenshot",
+  UNKNOWN: "unknown",
 };
+
+const OPERATION_TYPES = new Set(Object.values(OperationType));
+
+function normalizeOperationType(value) {
+  return OPERATION_TYPES.has(value) ? value : OperationType.UNKNOWN;
+}
 
 /**
  * 风险级别
  */
 const RiskLevel = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  CRITICAL: 'critical'
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  CRITICAL: "critical",
 };
 
 /**
@@ -53,21 +67,31 @@ class AuditEntry {
   constructor(data) {
     this.id = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.timestamp = new Date().toISOString();
-    this.type = data.type;
-    this.action = data.action;
+    this.type = normalizeOperationType(data.type);
+    this.action = redactBrowserLogValue(
+      "audit-action",
+      data.action || "unknown",
+    );
     this.params = this._sanitizeParams(data.params);
-    this.result = data.result;
-    this.success = data.success;
-    this.error = data.error;
-    this.duration = data.duration;
+    this.result = sanitizeBrowserLogData(data.result);
+    this.success = data.success === true;
+    this.error =
+      data.error == null
+        ? null
+        : redactBrowserLogValue("audit-error", data.error);
+    this.duration =
+      Number.isFinite(data.duration) && data.duration >= 0
+        ? data.duration
+        : null;
     this.riskLevel = this._assessRisk(data);
-    this.context = {
+    this.context = sanitizeBrowserLogData({
       targetId: data.targetId,
       url: data.url,
       title: data.title,
-      userAgent: data.userAgent
-    };
-    this.metadata = data.metadata || {};
+      userAgent: data.userAgent,
+    });
+    this.metadata = sanitizeBrowserLogData(data.metadata || {});
+    Object.freeze(this);
   }
 
   /**
@@ -75,29 +99,7 @@ class AuditEntry {
    * @private
    */
   _sanitizeParams(params) {
-    if (!params) {return {};}
-
-    const sanitized = { ...params };
-
-    // 掩盖敏感字段
-    const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'credential'];
-    for (const field of sensitiveFields) {
-      if (sanitized[field]) {
-        sanitized[field] = '***REDACTED***';
-      }
-    }
-
-    // 截断过长的文本
-    if (sanitized.text && sanitized.text.length > 500) {
-      sanitized.text = sanitized.text.substring(0, 500) + '...[TRUNCATED]';
-    }
-
-    // 移除大型数据
-    if (sanitized.screenshot) {
-      sanitized.screenshot = `[BASE64_IMAGE: ${sanitized.screenshot.length} bytes]`;
-    }
-
-    return sanitized;
+    return sanitizeBrowserLogData(params || {});
   }
 
   /**
@@ -105,21 +107,34 @@ class AuditEntry {
    * @private
    */
   _assessRisk(data) {
-    const { type, action, params } = data;
+    const { type, params } = data;
 
     // 高风险操作
-    if (type === OperationType.DESKTOP_CLICK || type === OperationType.DESKTOP_TYPE) {
+    if (
+      type === OperationType.DESKTOP_CLICK ||
+      type === OperationType.DESKTOP_TYPE
+    ) {
       return RiskLevel.HIGH;
+    }
+
+    if (type === OperationType.KEYBOARD_TYPE) {
+      return RiskLevel.MEDIUM;
     }
 
     // 包含敏感关键词
     const sensitivePatterns = [
-      /password/i, /credential/i, /secret/i,
-      /bank/i, /payment/i, /credit/i,
-      /admin/i, /root/i, /sudo/i
+      /password/i,
+      /credential/i,
+      /secret/i,
+      /bank/i,
+      /payment/i,
+      /credit/i,
+      /admin/i,
+      /root/i,
+      /sudo/i,
     ];
 
-    const paramsStr = JSON.stringify(params || {});
+    const paramsStr = JSON.stringify(sanitizeBrowserLogData(params || {}));
     for (const pattern of sensitivePatterns) {
       if (pattern.test(paramsStr)) {
         return RiskLevel.MEDIUM;
@@ -147,7 +162,7 @@ class AuditEntry {
       duration: this.duration,
       riskLevel: this.riskLevel,
       context: this.context,
-      metadata: this.metadata
+      metadata: this.metadata,
     };
   }
 }
@@ -156,16 +171,20 @@ class AuditLogger extends EventEmitter {
   constructor(config = {}) {
     super();
 
+    this.fileSystem = config.fileSystem || fs;
+
     this.config = {
       enabled: config.enabled !== false,
       logToFile: config.logToFile !== false,
-      logDir: config.logDir || path.join(process.cwd(), '.chainlesschain', 'audit-logs'),
+      logDir:
+        config.logDir ||
+        path.join(process.cwd(), ".chainlesschain", "audit-logs"),
       maxEntriesInMemory: config.maxEntriesInMemory || 1000,
       maxLogFileSize: config.maxLogFileSize || 10 * 1024 * 1024, // 10MB
       rotateDaily: config.rotateDaily !== false,
       includeScreenshots: config.includeScreenshots || false,
       alertOnHighRisk: config.alertOnHighRisk !== false,
-      ...config
+      ...config,
     };
 
     // 内存中的日志条目
@@ -185,8 +204,8 @@ class AuditLogger extends EventEmitter {
         [RiskLevel.LOW]: 0,
         [RiskLevel.MEDIUM]: 0,
         [RiskLevel.HIGH]: 0,
-        [RiskLevel.CRITICAL]: 0
-      }
+        [RiskLevel.CRITICAL]: 0,
+      },
     };
 
     // 初始化日志目录
@@ -201,9 +220,9 @@ class AuditLogger extends EventEmitter {
    */
   async _initLogDir() {
     try {
-      await fs.mkdir(this.config.logDir, { recursive: true });
+      await this.fileSystem.mkdir(this.config.logDir, { recursive: true });
     } catch (error) {
-      console.error('[AuditLogger] Failed to create log directory:', error);
+      logger.error("[AuditLogger] Failed to create log directory", { error });
     }
   }
 
@@ -212,20 +231,20 @@ class AuditLogger extends EventEmitter {
    * @private
    */
   _getLogFilePath() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
 
     if (this.config.rotateDaily && this.currentLogDate !== today) {
       this.currentLogDate = today;
       this.currentLogFile = path.join(
         this.config.logDir,
-        `computer-use-audit-${today}.jsonl`
+        `computer-use-audit-${today}.jsonl`,
       );
     }
 
     if (!this.currentLogFile) {
       this.currentLogFile = path.join(
         this.config.logDir,
-        `computer-use-audit-${today}.jsonl`
+        `computer-use-audit-${today}.jsonl`,
       );
       this.currentLogDate = today;
     }
@@ -267,12 +286,15 @@ class AuditLogger extends EventEmitter {
     }
 
     // 高风险操作告警
-    if (this.config.alertOnHighRisk &&
-        (entry.riskLevel === RiskLevel.HIGH || entry.riskLevel === RiskLevel.CRITICAL)) {
-      this.emit('highRiskOperation', entry);
+    if (
+      this.config.alertOnHighRisk &&
+      (entry.riskLevel === RiskLevel.HIGH ||
+        entry.riskLevel === RiskLevel.CRITICAL)
+    ) {
+      this.emit("highRiskOperation", entry);
     }
 
-    this.emit('logged', entry);
+    this.emit("logged", entry);
 
     return entry;
   }
@@ -284,10 +306,10 @@ class AuditLogger extends EventEmitter {
   async _writeToFile(entry) {
     try {
       const logFile = this._getLogFilePath();
-      const line = JSON.stringify(entry.toJSON()) + '\n';
-      await fs.appendFile(logFile, line, 'utf-8');
+      const line = JSON.stringify(entry.toJSON()) + "\n";
+      await this.fileSystem.appendFile(logFile, line, "utf-8");
     } catch (error) {
-      console.error('[AuditLogger] Failed to write log:', error);
+      logger.error("[AuditLogger] Failed to write log", { error });
     }
   }
 
@@ -300,24 +322,30 @@ class AuditLogger extends EventEmitter {
     let results = [...this.entries];
 
     if (filter.type) {
-      results = results.filter(e => e.type === filter.type);
+      results = results.filter((e) => e.type === filter.type);
     }
     if (filter.riskLevel) {
-      results = results.filter(e => e.riskLevel === filter.riskLevel);
+      results = results.filter((e) => e.riskLevel === filter.riskLevel);
     }
     if (filter.success !== undefined) {
-      results = results.filter(e => e.success === filter.success);
+      results = results.filter((e) => e.success === filter.success);
     }
     if (filter.since) {
       const sinceDate = new Date(filter.since);
-      results = results.filter(e => new Date(e.timestamp) >= sinceDate);
+      results = results.filter((e) => new Date(e.timestamp) >= sinceDate);
     }
     if (filter.until) {
       const untilDate = new Date(filter.until);
-      results = results.filter(e => new Date(e.timestamp) <= untilDate);
+      results = results.filter((e) => new Date(e.timestamp) <= untilDate);
     }
     if (filter.targetId) {
-      results = results.filter(e => e.context.targetId === filter.targetId);
+      const targetIdDigest = redactBrowserLogValue(
+        "string",
+        filter.targetId,
+      ).valueDigest;
+      results = results.filter(
+        (e) => e.context.targetId?.valueDigest === targetIdDigest,
+      );
     }
     if (filter.limit) {
       results = results.slice(-filter.limit);
@@ -335,6 +363,8 @@ class AuditLogger extends EventEmitter {
       ...this.stats,
       entriesInMemory: this.entries.length,
       currentLogFile: this.currentLogFile
+        ? redactBrowserLogValue("audit-log-path", this.currentLogFile)
+        : null,
     };
   }
 
@@ -346,11 +376,13 @@ class AuditLogger extends EventEmitter {
   getHighRiskOperations(limit = 50) {
     return this.query({
       riskLevel: RiskLevel.HIGH,
-      limit
-    }).concat(this.query({
-      riskLevel: RiskLevel.CRITICAL,
-      limit
-    }));
+      limit,
+    }).concat(
+      this.query({
+        riskLevel: RiskLevel.CRITICAL,
+        limit,
+      }),
+    );
   }
 
   /**
@@ -361,7 +393,7 @@ class AuditLogger extends EventEmitter {
   getFailedOperations(limit = 50) {
     return this.query({
       success: false,
-      limit
+      limit,
     });
   }
 
@@ -371,24 +403,36 @@ class AuditLogger extends EventEmitter {
    * @param {Object} filter - 过滤条件
    * @returns {string}
    */
-  export(format = 'json', filter = {}) {
+  export(format = "json", filter = {}) {
     const entries = this.query(filter);
 
-    if (format === 'csv') {
-      const headers = ['id', 'timestamp', 'type', 'action', 'success', 'riskLevel', 'duration'];
-      const rows = entries.map(e => [
+    if (format === "csv") {
+      const headers = [
+        "id",
+        "timestamp",
+        "type",
+        "action",
+        "success",
+        "riskLevel",
+        "duration",
+      ];
+      const rows = entries.map((e) => [
         e.id,
         e.timestamp,
         e.type,
-        e.action,
+        e.action.valueDigest,
         e.success,
         e.riskLevel,
-        e.duration
+        e.duration,
       ]);
-      return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     }
 
-    return JSON.stringify(entries.map(e => e.toJSON()), null, 2);
+    return JSON.stringify(
+      entries.map((e) => e.toJSON()),
+      null,
+      2,
+    );
   }
 
   /**
@@ -396,7 +440,7 @@ class AuditLogger extends EventEmitter {
    */
   clear() {
     this.entries = [];
-    this.emit('cleared');
+    this.emit("cleared");
   }
 
   /**
@@ -422,12 +466,12 @@ class AuditLogger extends EventEmitter {
       } finally {
         await this.log({
           type,
-          action: operation.name || 'anonymous',
+          action: operation.name || "anonymous",
           params: args[0],
           result: success ? result : null,
           success,
           error,
-          duration: Date.now() - startTime
+          duration: Date.now() - startTime,
         });
       }
 
@@ -451,5 +495,5 @@ module.exports = {
   AuditEntry,
   OperationType,
   RiskLevel,
-  getAuditLogger
+  getAuditLogger,
 };

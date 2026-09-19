@@ -13,6 +13,41 @@
  */
 
 const { EventEmitter } = require("events");
+const {
+  redactBrowserLogValue,
+  sanitizeBrowserLogData,
+} = require("../browser-log-redaction");
+
+const HTTP_METHODS = new Set([
+  "GET",
+  "HEAD",
+  "POST",
+  "PUT",
+  "DELETE",
+  "CONNECT",
+  "OPTIONS",
+  "TRACE",
+  "PATCH",
+]);
+const RESOURCE_TYPES = new Set([
+  "document",
+  "stylesheet",
+  "image",
+  "media",
+  "font",
+  "script",
+  "texttrack",
+  "xhr",
+  "fetch",
+  "eventsource",
+  "websocket",
+  "manifest",
+  "other",
+]);
+
+function normalizeEnum(value, allowed) {
+  return typeof value === "string" && allowed.has(value) ? value : "unknown";
+}
 
 /**
  * 日志级别
@@ -25,6 +60,7 @@ const LogLevel = {
   DEBUG: "debug",
   TRACE: "trace",
 };
+const LOG_LEVELS = new Set(Object.values(LogLevel));
 
 /**
  * 日志来源
@@ -196,24 +232,28 @@ class ConsoleCapture extends EventEmitter {
    * @private
    */
   _handleConsoleMessage(targetId, msg) {
-    const level = msg.type();
+    const level = normalizeEnum(msg.type(), LOG_LEVELS);
 
     // 检查级别过滤
     if (this.config.filterLevels && !this.config.filterLevels.includes(level)) {
       return;
     }
 
+    const args = msg.args();
     const logEntry = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       level,
       source: LogSource.CONSOLE,
-      message: msg.text(),
-      location: msg.location(),
+      message: redactBrowserLogValue("captured-message", msg.text()),
+      location: sanitizeBrowserLogData(msg.location()),
       timestamp: this.config.includeTimestamp ? Date.now() : undefined,
-      args: msg.args().map((arg) => arg.toString()),
+      args: Object.freeze({
+        redacted: true,
+        itemCount: Array.isArray(args) ? args.length : 0,
+      }),
     };
 
-    this._addLog(targetId, logEntry);
+    this._addLog(targetId, Object.freeze(logEntry));
 
     // 更新统计
     this._updateStats(logEntry);
@@ -226,16 +266,19 @@ class ConsoleCapture extends EventEmitter {
    * @private
    */
   _handlePageError(targetId, error) {
+    const sanitizedError = sanitizeBrowserLogData(error);
     const logEntry = {
       id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       level: LogLevel.ERROR,
       source: LogSource.JAVASCRIPT,
-      message: error.message,
-      stack: this.config.includeStackTrace ? error.stack : undefined,
+      message:
+        sanitizedError?.message ??
+        redactBrowserLogValue("captured-message", "unknown page error"),
+      stack: this.config.includeStackTrace ? sanitizedError?.stack : undefined,
       timestamp: this.config.includeTimestamp ? Date.now() : undefined,
     };
 
-    this._addLog(targetId, logEntry);
+    this._addLog(targetId, Object.freeze(logEntry));
     this._updateStats(logEntry);
 
     // 更新错误计数
@@ -251,20 +294,23 @@ class ConsoleCapture extends EventEmitter {
    */
   _handleRequestFailed(targetId, request) {
     const failure = request.failure();
+    const url = request.url();
 
     const logEntry = {
       id: `net_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       level: LogLevel.ERROR,
       source: LogSource.NETWORK,
-      message: `Request failed: ${request.url()}`,
-      url: request.url(),
-      method: request.method(),
-      failureText: failure ? failure.errorText : "Unknown error",
-      resourceType: request.resourceType(),
+      message: redactBrowserLogValue("captured-message", "Request failed"),
+      url: redactBrowserLogValue("request-url", url),
+      method: normalizeEnum(request.method(), HTTP_METHODS),
+      failureText: failure
+        ? sanitizeBrowserLogData(failure).errorText
+        : redactBrowserLogValue("network-error", "Unknown error"),
+      resourceType: normalizeEnum(request.resourceType(), RESOURCE_TYPES),
       timestamp: this.config.includeTimestamp ? Date.now() : undefined,
     };
 
-    this._addLog(targetId, logEntry);
+    this._addLog(targetId, Object.freeze(logEntry));
     this._updateStats(logEntry);
 
     this.emit("networkError", { targetId, entry: logEntry });
@@ -329,8 +375,12 @@ class ConsoleCapture extends EventEmitter {
     }
 
     if (filter.search) {
-      const searchLower = filter.search.toLowerCase();
-      logs = logs.filter((l) => l.message.toLowerCase().includes(searchLower));
+      const digests = new Set(
+        ["captured-message", "error-message", "message"].map(
+          (label) => redactBrowserLogValue(label, filter.search).valueDigest,
+        ),
+      );
+      logs = logs.filter((l) => digests.has(l.message?.valueDigest));
     }
 
     if (filter.since) {
@@ -432,7 +482,7 @@ class ConsoleCapture extends EventEmitter {
     const text = logs
       .map((l) => {
         const time = l.timestamp ? new Date(l.timestamp).toISOString() : "";
-        return `[${time}] [${l.level.toUpperCase()}] [${l.source}] ${l.message}`;
+        return `[${time}] [${l.level.toUpperCase()}] [${l.source}] ${JSON.stringify(l.message)}`;
       })
       .join("\n");
 

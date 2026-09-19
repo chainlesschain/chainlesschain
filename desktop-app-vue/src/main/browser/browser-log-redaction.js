@@ -4,7 +4,7 @@ const { createHash } = require("node:crypto");
 const { types } = require("node:util");
 
 const SENSITIVE_KEY =
-  /(?:url|uri|path|file|name|title|text|input|prompt|content|body|query|cookie|header|authorization|signature|did|selector|ref|reasoning|message|stack)/iu;
+  /(?:url|uri|path|file|name|title|text|input|prompt|content|body|query|cookie|header|authorization|signature|did|selector|ref|reasoning|message|stack|password|token|secret|apikey|credential)/iu;
 const URL_TOKEN = /\b(?:https?|file|app):\/\/[^\s"'<>]+/giu;
 const WINDOWS_PATH_TOKEN = /\b[A-Za-z]:\\[^\s"'<>]+/gu;
 const POSIX_PATH_TOKEN = /(?:^|\s)(\/(?:[^\s"'<>/]+\/)*[^\s"'<>]*)/gu;
@@ -57,7 +57,7 @@ function digestSnapshot(value, seen = new WeakSet(), depth = 0) {
       .map((entry) => digestSnapshot(entry, seen, depth + 1));
   if (![Object.prototype, null].includes(Object.getPrototypeOf(value)))
     return "[NonPlainObject]";
-  const result = {};
+  const result = Object.create(null);
   for (const key of Object.keys(value).sort().slice(0, 64)) {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     result[key] =
@@ -76,7 +76,7 @@ function digestBrowserLogValue(label, value) {
     .digest("hex")}`;
 }
 
-function redacted(label, value) {
+function redactBrowserLogValue(label, value) {
   let byteLength = null;
   try {
     byteLength = Buffer.byteLength(canonical(digestSnapshot(value)), "utf8");
@@ -107,23 +107,27 @@ function sanitizeBrowserLogData(value, seen = new WeakSet(), depth = 0) {
   if (value === undefined) return undefined;
   if (value === null || typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") return redacted("string", value);
-  if (typeof value !== "object") return redacted("unsupported", String(value));
-  if (types.isProxy(value)) return redacted("proxy", "proxy");
+  if (typeof value === "string") return redactBrowserLogValue("string", value);
+  if (typeof value !== "object")
+    return redactBrowserLogValue("unsupported", String(value));
+  if (types.isProxy(value)) return redactBrowserLogValue("proxy", "proxy");
   if (value instanceof Error)
     return Object.freeze({
       name: "Error",
       code:
         typeof readOwnDataProperty(value, "code") === "string"
-          ? readOwnDataProperty(value, "code")
+          ? redactBrowserLogValue(
+              "error-code",
+              readOwnDataProperty(value, "code"),
+            )
           : null,
-      message: redacted(
+      message: redactBrowserLogValue(
         "error-message",
         readOwnDataProperty(value, "message", ""),
       ),
     });
   if (seen.has(value)) return "[Circular Reference]";
-  if (depth >= 6) return redacted("depth-limit", "depth-limit");
+  if (depth >= 6) return redactBrowserLogValue("depth-limit", "depth-limit");
   seen.add(value);
   if (Array.isArray(value)) {
     const items = value
@@ -136,17 +140,17 @@ function sanitizeBrowserLogData(value, seen = new WeakSet(), depth = 0) {
     });
   }
   if (![Object.prototype, null].includes(Object.getPrototypeOf(value)))
-    return redacted("non-plain-object", "non-plain-object");
-  const result = {};
+    return redactBrowserLogValue("non-plain-object", "non-plain-object");
+  const result = Object.create(null);
   for (const key of Object.keys(value).slice(0, 64)) {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (!descriptor || !("value" in descriptor)) {
-      result[key] = redacted("accessor", key);
+      result[key] = redactBrowserLogValue("accessor", key);
       continue;
     }
     const entry = descriptor.value;
     result[key] = SENSITIVE_KEY.test(key)
-      ? redacted(key.toLowerCase(), entry)
+      ? redactBrowserLogValue(key.toLowerCase(), entry)
       : sanitizeBrowserLogData(entry, seen, depth + 1);
   }
   if (Object.keys(value).length > 64) result.truncated = true;
@@ -172,6 +176,7 @@ function createBrowserLogRedactor(logger) {
 module.exports = {
   createBrowserLogRedactor,
   digestBrowserLogValue,
+  redactBrowserLogValue,
   sanitizeBrowserLogData,
   sanitizeBrowserLogMessage,
 };

@@ -184,7 +184,10 @@ describe("ConsoleCapture", () => {
       const logs = capture.getLogs("tab1");
       expect(logs.length).toBe(1);
       expect(logs[0].level).toBe("log");
-      expect(logs[0].message).toBe("Hello");
+      expect(logs[0].message).toMatchObject({
+        redacted: true,
+        valueDigest: expect.stringMatching(/^sha256:/u),
+      });
     });
 
     it("should capture console error", async () => {
@@ -283,7 +286,10 @@ describe("ConsoleCapture", () => {
       );
 
       const errors = capture.getNetworkErrors("tab1");
-      expect(errors[0].url).toBe("https://api.example.com/users");
+      expect(errors[0].url).toMatchObject({
+        redacted: true,
+        valueDigest: expect.stringMatching(/^sha256:/u),
+      });
       expect(errors[0].method).toBe("POST");
     });
   });
@@ -346,7 +352,7 @@ describe("ConsoleCapture", () => {
         createMockConsoleMessage("log", "Goodbye"),
       );
 
-      const logs = capture.getLogs("tab1", { search: "Hello" });
+      const logs = capture.getLogs("tab1", { search: "Hello World" });
       expect(logs.length).toBe(1);
     });
 
@@ -415,7 +421,8 @@ describe("ConsoleCapture", () => {
 
       expect(result.success).toBe(true);
       expect(result.format).toBe("json");
-      expect(result.data).toContain("Test");
+      expect(result.data).not.toContain("Test");
+      expect(result.data).toContain("valueDigest");
     });
 
     it("should export as text", async () => {
@@ -430,7 +437,49 @@ describe("ConsoleCapture", () => {
 
       expect(result.success).toBe(true);
       expect(result.format).toBe("text");
-      expect(result.data).toContain("Test");
+      expect(result.data).not.toContain("Test");
+      expect(result.data).toContain("valueDigest");
+    });
+
+    it("never exports captured page content or request details", async () => {
+      await capture.startCapture("tab1");
+      const argumentToString = vi.fn(() => "argument-secret");
+      const message = createMockConsoleMessage(
+        "error",
+        "console-secret https://secret.example/private",
+      );
+      message.location.mockReturnValue({
+        url: "https://secret.example/source.js",
+        lineNumber: 42,
+      });
+      message.args.mockReturnValue([{ toString: argumentToString }]);
+
+      capture._handleConsoleMessage("tab1", message);
+      capture._handlePageError(
+        "tab1",
+        createMockError("page-secret at C:\\private\\source.js"),
+      );
+      capture._handleRequestFailed(
+        "tab1",
+        createMockRequest("https://secret.example/api?token=network-secret"),
+      );
+
+      const serialized = JSON.stringify(capture.getLogs("tab1"));
+      const jsonExport = capture.exportLogs("tab1", "json").data;
+      const textExport = capture.exportLogs("tab1", "text").data;
+      for (const secret of [
+        "console-secret",
+        "secret.example",
+        "argument-secret",
+        "page-secret",
+        "private\\source.js",
+        "network-secret",
+      ]) {
+        expect(serialized).not.toContain(secret);
+        expect(jsonExport).not.toContain(secret);
+        expect(textExport).not.toContain(secret);
+      }
+      expect(argumentToString).not.toHaveBeenCalled();
     });
   });
 
