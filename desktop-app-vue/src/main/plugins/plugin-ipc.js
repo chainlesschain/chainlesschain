@@ -10,6 +10,7 @@ const {
   createPluginIpcFailureResult,
   createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
+const { projectPluginPublicRecord } = require("./plugin-public-projection");
 const path = require("path");
 const {
   getPermissionDialogManager,
@@ -68,7 +69,10 @@ function registerPluginIPC({
     safeInvoke(() => {
       ensureManager();
       const plugins = pluginManager.getPlugins(filters || {});
-      return { success: true, plugins };
+      return {
+        success: true,
+        plugins: plugins.map(projectPluginPublicRecord).filter(Boolean),
+      };
     }),
   );
 
@@ -79,7 +83,7 @@ function registerPluginIPC({
       if (!plugin) {
         throw new Error(`插件不存在: ${pluginId}`);
       }
-      return { success: true, plugin };
+      return { success: true, plugin: projectPluginPublicRecord(plugin) };
     }),
   );
 
@@ -87,7 +91,7 @@ function registerPluginIPC({
     safeInvoke(async () => {
       ensureManager();
       const result = await pluginManager.installPlugin(source, options);
-      return { success: true, ...result };
+      return { success: true, pluginId: result.pluginId };
     }),
   );
 
@@ -157,7 +161,7 @@ function registerPluginIPC({
         pluginManager.getPluginsDirectory() ||
         path.join(app.getPath("userData"), "plugins");
       await shell.openPath(pluginsDir);
-      return { success: true, path: pluginsDir };
+      return { success: true };
     }),
   );
 

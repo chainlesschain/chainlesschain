@@ -1,7 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("electron", () => ({
+  app: { getPath: vi.fn(() => "C:/mock-user-data") },
+  BrowserWindow: { getAllWindows: vi.fn(() => []) },
+  shell: { openPath: vi.fn().mockResolvedValue("") },
+}));
 
 const { parse } = require("espree");
 
@@ -209,6 +215,53 @@ describe("plugin IPC error boundary", () => {
       error: "Plugin operation failed",
       code: "PLUGIN_OPERATION_FAILED",
     });
+  });
+
+  it("projects regular plugin query and filesystem success payloads", async () => {
+    const secret = "C:/private/regular-plugin-secret";
+    const handlers = new Map();
+    const plugin = {
+      id: "plugin-1",
+      name: "Plugin",
+      version: "1.0.0",
+      enabled: 1,
+      state: "enabled",
+      path: secret,
+      manifest: { entry: secret },
+    };
+    const pluginManager = {
+      getPlugins: () => [plugin],
+      getPlugin: () => plugin,
+      installPlugin: async () => ({
+        success: true,
+        pluginId: "plugin-1",
+        path: secret,
+      }),
+      registry: { getExtensionsByPoint: () => [] },
+    };
+    registerPluginIPC({
+      pluginManager,
+      ipcMain: {
+        handle(channel, handler) {
+          handlers.set(channel, handler);
+        },
+      },
+      mainWindow: {},
+    });
+
+    const list = await handlers.get("plugin:get-plugins")({}, {});
+    const detail = await handlers.get("plugin:get-plugin")({}, "plugin-1");
+    const install = await handlers.get("plugin:install")({}, secret, {});
+
+    expect(list.plugins[0]).toMatchObject({
+      id: "plugin-1",
+      plugin_id: "plugin-1",
+      name: "Plugin",
+      enabled: true,
+    });
+    expect(detail.plugin).toEqual(list.plugins[0]);
+    expect(install).toEqual({ success: true, pluginId: "plugin-1" });
+    expect(JSON.stringify({ list, detail, install })).not.toContain(secret);
   });
 
   it("forbids dynamic caught error messages in plugin IPC payloads", () => {

@@ -393,7 +393,6 @@ class PluginInstaller {
       const result = {
         pluginId,
         version: targetVersion,
-        installPath: pluginDir,
         name: manifest.name || pluginId,
         author: manifest.author || "",
         installedAt: now,
@@ -615,7 +614,6 @@ class PluginInstaller {
           pluginId,
           fromVersion,
           toVersion: newVersion,
-          installPath: pluginDir,
         },
       };
     } catch (error) {

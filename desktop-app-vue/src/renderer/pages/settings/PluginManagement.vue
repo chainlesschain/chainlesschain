@@ -262,9 +262,6 @@
           <a-badge :status="currentPlugin.enabled ? 'success' : 'default'" />
           {{ currentPlugin.enabled ? "已启用" : "已禁用" }}
         </a-descriptions-item>
-        <a-descriptions-item label="安装路径">
-          {{ currentPlugin.installed_path }}
-        </a-descriptions-item>
         <a-descriptions-item label="安装时间">
           {{ formatDate(currentPlugin.installed_at) }}
         </a-descriptions-item>

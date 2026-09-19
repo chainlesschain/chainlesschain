@@ -13,22 +13,11 @@ const {
   createPluginIpcFailureResult,
   sanitizePluginPersistedError,
 } = require("../plugins/plugin-ipc-error-boundary");
+const {
+  projectMarketplaceInstalledPlugin,
+} = require("../plugins/plugin-public-projection");
 
 const logger = createPluginLogRedactor(pluginLogSink, "MarketplaceIPC");
-
-// Tolerate a corrupt metadata column so one malformed row doesn't throw out of
-// the installed-plugins .map and fail the whole marketplace:list-installed
-// response (the outer catch returns {success:false}).
-function safeParseColumn(raw, fallback) {
-  if (!raw) {
-    return fallback;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
-}
 
 /**
  * Register all marketplace IPC handlers.
@@ -366,19 +355,9 @@ function registerMarketplaceIPC(dependencies) {
       const rows = stmt.all(params);
       stmt.free();
 
-      const plugins = (rows || []).map((row) => ({
-        id: row.id,
-        pluginId: row.plugin_id,
-        name: row.name,
-        version: row.version,
-        author: row.author,
-        installPath: row.install_path,
-        installedAt: row.installed_at,
-        enabled: row.enabled === 1,
-        autoUpdate: row.auto_update === 1,
-        source: row.source,
-        metadata: safeParseColumn(row.metadata, null),
-      }));
+      const plugins = (rows || [])
+        .map(projectMarketplaceInstalledPlugin)
+        .filter(Boolean);
 
       return { success: true, data: plugins };
     } catch (error) {
@@ -415,17 +394,7 @@ function registerMarketplaceIPC(dependencies) {
         historyStmt.free();
 
         const plugin = {
-          id: row.id,
-          pluginId: row.plugin_id,
-          name: row.name,
-          version: row.version,
-          author: row.author,
-          installPath: row.install_path,
-          installedAt: row.installed_at,
-          enabled: row.enabled === 1,
-          autoUpdate: row.auto_update === 1,
-          source: row.source,
-          metadata: safeParseColumn(row.metadata, null),
+          ...projectMarketplaceInstalledPlugin(row),
           updateHistory: (historyRows || []).map((h) => ({
             id: h.id,
             fromVersion: h.from_version,

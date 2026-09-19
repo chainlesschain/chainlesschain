@@ -380,7 +380,6 @@ class PluginManager extends EventEmitter {
       return {
         success: true,
         pluginId: manifest.id,
-        path: installedPath,
       };
     } catch (error) {
       this.emit("plugin:install-failed", {

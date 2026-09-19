@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -38,7 +38,6 @@ export interface InstalledPlugin {
   name: string;
   version: string;
   author?: string;
-  install_path: string;
   installed_at: number;
   enabled: boolean;
   auto_update: boolean;
@@ -95,7 +94,7 @@ interface MarketplaceState {
 
 // ==================== Store ====================
 
-export const useMarketplaceStore = defineStore('marketplace', {
+export const useMarketplaceStore = defineStore("marketplace", {
   state: (): MarketplaceState => ({
     // ==========================================
     // 插件列表
@@ -147,10 +146,10 @@ export const useMarketplaceStore = defineStore('marketplace', {
     pageSize: 20,
 
     // 搜索关键词
-    searchKeyword: '',
+    searchKeyword: "",
 
     // 选中的分类
-    selectedCategory: '',
+    selectedCategory: "",
 
     // ==========================================
     // 状态
@@ -229,13 +228,13 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:list-plugins',
+          "marketplace:list-plugins",
           {
             page: this.currentPage,
             pageSize: this.pageSize,
             category: this.selectedCategory || undefined,
             ...filters,
-          }
+          },
         );
 
         if (result.success) {
@@ -245,7 +244,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取插件列表失败:', error);
+        console.error("[MarketplaceStore] 获取插件列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -256,20 +255,23 @@ export const useMarketplaceStore = defineStore('marketplace', {
     /**
      * 搜索插件
      */
-    async searchPlugins(keyword: string, filters?: Record<string, any>): Promise<any> {
+    async searchPlugins(
+      keyword: string,
+      filters?: Record<string, any>,
+    ): Promise<any> {
       this.loading = true;
       this.error = null;
       this.searchKeyword = keyword;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:search-plugins',
+          "marketplace:search-plugins",
           {
             keyword,
             page: this.currentPage,
             pageSize: this.pageSize,
             ...filters,
-          }
+          },
         );
 
         if (result.success) {
@@ -279,7 +281,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 搜索插件失败:', error);
+        console.error("[MarketplaceStore] 搜索插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -296,8 +298,8 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:get-plugin-detail',
-          { id }
+          "marketplace:get-plugin-detail",
+          { id },
         );
 
         if (result.success) {
@@ -306,7 +308,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取插件详情失败:', error);
+        console.error("[MarketplaceStore] 获取插件详情失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -323,7 +325,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:get-featured'
+          "marketplace:get-featured",
         );
 
         if (result.success) {
@@ -332,7 +334,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取精选插件失败:', error);
+        console.error("[MarketplaceStore] 获取精选插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -349,7 +351,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:get-popular'
+          "marketplace:get-popular",
         );
 
         if (result.success) {
@@ -358,7 +360,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取热门插件失败:', error);
+        console.error("[MarketplaceStore] 获取热门插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -375,7 +377,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:get-categories'
+          "marketplace:get-categories",
         );
 
         if (result.success) {
@@ -384,7 +386,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取分类列表失败:', error);
+        console.error("[MarketplaceStore] 获取分类列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -405,8 +407,8 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:install-plugin',
-          { pluginId, version }
+          "marketplace:install-plugin",
+          { pluginId, version },
         );
 
         if (result.success) {
@@ -416,7 +418,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 安装插件失败:', error);
+        console.error("[MarketplaceStore] 安装插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -433,19 +435,19 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:uninstall-plugin',
-          { pluginId }
+          "marketplace:uninstall-plugin",
+          { pluginId },
         );
 
         if (result.success) {
           this.installedPlugins = this.installedPlugins.filter(
-            (p) => p.plugin_id !== pluginId
+            (p) => p.plugin_id !== pluginId,
           );
         }
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 卸载插件失败:', error);
+        console.error("[MarketplaceStore] 卸载插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -462,14 +464,14 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:update-plugin',
-          { pluginId, version }
+          "marketplace:update-plugin",
+          { pluginId, version },
         );
 
         if (result.success) {
           // 更新本地已安装插件的版本
           const installed = this.installedPlugins.find(
-            (p) => p.plugin_id === pluginId
+            (p) => p.plugin_id === pluginId,
           );
           if (installed) {
             installed.version = version;
@@ -477,13 +479,13 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
           // 从可用更新中移除
           this.availableUpdates = this.availableUpdates.filter(
-            (u) => u.pluginId !== pluginId
+            (u) => u.pluginId !== pluginId,
           );
         }
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 更新插件失败:', error);
+        console.error("[MarketplaceStore] 更新插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -500,13 +502,13 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:enable-plugin',
-          { pluginId }
+          "marketplace:enable-plugin",
+          { pluginId },
         );
 
         if (result.success) {
           const plugin = this.installedPlugins.find(
-            (p) => p.plugin_id === pluginId
+            (p) => p.plugin_id === pluginId,
           );
           if (plugin) {
             plugin.enabled = true;
@@ -515,7 +517,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 启用插件失败:', error);
+        console.error("[MarketplaceStore] 启用插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -532,13 +534,13 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:disable-plugin',
-          { pluginId }
+          "marketplace:disable-plugin",
+          { pluginId },
         );
 
         if (result.success) {
           const plugin = this.installedPlugins.find(
-            (p) => p.plugin_id === pluginId
+            (p) => p.plugin_id === pluginId,
           );
           if (plugin) {
             plugin.enabled = false;
@@ -547,7 +549,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 禁用插件失败:', error);
+        console.error("[MarketplaceStore] 禁用插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -568,7 +570,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:check-updates'
+          "marketplace:check-updates",
         );
 
         if (result.success) {
@@ -577,7 +579,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 检查更新失败:', error);
+        console.error("[MarketplaceStore] 检查更新失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -598,7 +600,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:list-installed'
+          "marketplace:list-installed",
         );
 
         if (result.success) {
@@ -607,7 +609,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取已安装插件失败:', error);
+        console.error("[MarketplaceStore] 获取已安装插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -622,19 +624,23 @@ export const useMarketplaceStore = defineStore('marketplace', {
     /**
      * 评价插件
      */
-    async ratePlugin(pluginId: string, rating: number, comment: string): Promise<any> {
+    async ratePlugin(
+      pluginId: string,
+      rating: number,
+      comment: string,
+    ): Promise<any> {
       this.loading = true;
       this.error = null;
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:rate-plugin',
-          { pluginId, rating, comment }
+          "marketplace:rate-plugin",
+          { pluginId, rating, comment },
         );
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 评价插件失败:', error);
+        console.error("[MarketplaceStore] 评价插件失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {
@@ -651,8 +657,8 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
       try {
         const result = await (window as any).electronAPI.invoke(
-          'marketplace:get-ratings',
-          { pluginId }
+          "marketplace:get-ratings",
+          { pluginId },
         );
 
         if (result.success) {
@@ -661,7 +667,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
 
         return result;
       } catch (error) {
-        console.error('[MarketplaceStore] 获取评价列表失败:', error);
+        console.error("[MarketplaceStore] 获取评价列表失败:", error);
         this.error = (error as Error).message;
         throw error;
       } finally {

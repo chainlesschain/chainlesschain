@@ -187,17 +187,20 @@ describe("Marketplace IPC Handlers", () => {
         name: "Test",
         version: "1.0.0",
         author: "A",
-        install_path: "/p",
         installed_at: Date.now(),
         enabled: 1,
         auto_update: 0,
         source: "marketplace",
-        metadata: "{}",
+        install_path: "C:/private/list-secret",
+        metadata: '{"secret":"list-secret"}',
       },
     ]);
     const r = await handlers["marketplace:list-installed"]({}, {});
     expect(r.success).toBe(true);
     expect(r.data).toHaveLength(1);
+    expect(r.data[0]).not.toHaveProperty("installPath");
+    expect(r.data[0]).not.toHaveProperty("metadata");
+    expect(JSON.stringify(r)).not.toContain("list-secret");
   });
 
   it("marketplace:get-installed-detail redacts legacy history errors", async () => {
@@ -206,7 +209,8 @@ describe("Marketplace IPC Handlers", () => {
       plugin_id: "p1",
       name: "Test",
       version: "1.0.0",
-      metadata: "{}",
+      install_path: "C:/private/detail-secret",
+      metadata: '{"secret":"detail-secret"}',
     });
     mockStmt.all.mockReturnValue([
       {
@@ -223,6 +227,9 @@ describe("Marketplace IPC Handlers", () => {
       "Plugin marketplace operation failed",
     );
     expect(JSON.stringify(result)).not.toContain("legacy-ipc-history-secret");
+    expect(JSON.stringify(result)).not.toContain("detail-secret");
+    expect(result.data).not.toHaveProperty("installPath");
+    expect(result.data).not.toHaveProperty("metadata");
   });
 
   it("marketplace:export-list exports", async () => {

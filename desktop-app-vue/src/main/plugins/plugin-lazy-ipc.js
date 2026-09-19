@@ -6,6 +6,7 @@
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
+const { projectPluginPublicRecord } = require("./plugin-public-projection");
 const { ipcMain } = require("electron");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginLazyIPC");
@@ -49,7 +50,8 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getPlugins(filters);
+      const plugins = await app.pluginManager.getPlugins(filters);
+      return plugins.map(projectPluginPublicRecord).filter(Boolean);
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件列表失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -62,7 +64,9 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getPlugin(pluginId);
+      return projectPluginPublicRecord(
+        await app.pluginManager.getPlugin(pluginId),
+      );
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 获取插件详情失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
@@ -75,7 +79,8 @@ function registerLazyPluginIPC({
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.installPlugin(source, options);
+      const result = await app.pluginManager.installPlugin(source, options);
+      return { success: true, pluginId: result.pluginId };
     } catch (error) {
       logger.error("[Plugin Lazy IPC] 安装插件失败:", error);
       return createPluginIpcFailureResult("pluginLazy");
