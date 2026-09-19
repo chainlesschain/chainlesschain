@@ -171,6 +171,11 @@ describe("BrowserEngine governed navigation redirect guard", () => {
     expect(guarded.browser.newContext).toHaveBeenCalledWith(
       expect.objectContaining({ acceptDownloads: false }),
     );
+    const initScript = guarded.context.addInitScript.mock.calls[0]?.[0];
+    expect(String(initScript)).toContain(
+      'apply(matches, entry, ["a[download]"])',
+    );
+    expect(String(initScript)).toContain("stopImmediatePropagation");
     const downloadListener = page.on.mock.calls.find(
       ([event]) => event === "download",
     )?.[1];

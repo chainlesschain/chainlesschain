@@ -274,6 +274,37 @@ class BrowserEngine extends EventEmitter {
           parameters.name === "notifications"
             ? Promise.resolve({ state: Notification.permission })
             : originalQuery(parameters);
+
+        // Declarative downloads are never part of ordinary page navigation.
+        // Capture native intrinsics before page code can replace them, then
+        // stop <a download> activation before it reaches the network stack.
+        const apply = Reflect.apply;
+        const addEventListener = EventTarget.prototype.addEventListener;
+        const composedPath = Event.prototype.composedPath;
+        const some = Array.prototype.some;
+        const isPrototypeOf = Object.prototype.isPrototypeOf;
+        const elementPrototype = globalThis.Element.prototype;
+        const matches = globalThis.Element.prototype.matches;
+        const preventDefault = Event.prototype.preventDefault;
+        const stopImmediatePropagation =
+          Event.prototype.stopImmediatePropagation;
+        apply(addEventListener, globalThis.document, [
+          "click",
+          (event) => {
+            const path = apply(composedPath, event, []);
+            if (
+              !apply(some, path, [
+                (entry) =>
+                  apply(isPrototypeOf, elementPrototype, [entry]) &&
+                  apply(matches, entry, ["a[download]"]),
+              ])
+            )
+              return;
+            apply(preventDefault, event, []);
+            apply(stopImmediatePropagation, event, []);
+          },
+          true,
+        ]);
       });
 
       await this._installContextPageGuard(context, profileName);
