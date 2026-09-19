@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-const { logger } = require("../utils/logger.js");
+const { createProviderLogger } = require("./provider-log-privacy");
 const axios = require("axios");
 const EventEmitter = require("events");
 const fs = require("fs").promises;
@@ -43,6 +43,7 @@ class LLaVAClient extends EventEmitter {
     this.timeout = config.timeout || 300000; // 5分钟（视觉模型处理较慢）
     this.model = config.model || DEFAULT_VISION_MODEL;
     this.maxImageSize = config.maxImageSize || 5 * 1024 * 1024; // 5MB
+    this.providerLog = createProviderLogger("llava");
 
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -52,7 +53,7 @@ class LLaVAClient extends EventEmitter {
       },
     });
 
-    logger.info(`[LLaVAClient] 初始化完成，模型: ${this.model}`);
+    this.providerLog.success("initialize");
   }
 
   /**
@@ -124,7 +125,7 @@ class LLaVAClient extends EventEmitter {
       const imageBuffer = await fs.readFile(imagePath);
       return imageBuffer.toString("base64");
     } catch (error) {
-      logger.error("[LLaVAClient] 图片转换失败:", error);
+      this.providerLog.failure("image-read");
       throw error;
     }
   }
@@ -180,11 +181,11 @@ class LLaVAClient extends EventEmitter {
       };
 
       this.emit("analyze-complete", result);
-      logger.info("[LLaVAClient] 图片分析完成");
+      this.providerLog.success("image-analyze");
 
       return result;
     } catch (error) {
-      logger.error("[LLaVAClient] 图片分析失败:", error);
+      this.providerLog.failure("image-analyze");
       this.emit("analyze-error", { error, imagePath, prompt });
       throw error;
     }
@@ -285,7 +286,7 @@ class LLaVAClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error("[LLaVAClient] 流式图片分析失败:", error);
+      this.providerLog.failure("image-analyze-stream");
       throw error;
     }
   }
@@ -439,7 +440,7 @@ class LLaVAClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      logger.error("[LLaVAClient] 视觉聊天失败:", error);
+      this.providerLog.failure("chat");
       throw error;
     }
   }
@@ -452,7 +453,7 @@ class LLaVAClient extends EventEmitter {
    */
   async pullModel(modelName = DEFAULT_VISION_MODEL, onProgress) {
     try {
-      logger.info(`[LLaVAClient] 开始拉取模型: ${modelName}`);
+      this.providerLog.started("pull-model");
 
       const response = await this.client.post(
         "/api/pull",
@@ -478,7 +479,7 @@ class LLaVAClient extends EventEmitter {
               }
 
               if (data.status === "success") {
-                logger.info(`[LLaVAClient] 模型拉取成功: ${modelName}`);
+                this.providerLog.success("pull-model");
                 resolve(data);
               }
             } catch (e) {
@@ -492,7 +493,7 @@ class LLaVAClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error("[LLaVAClient] 拉取模型失败:", error);
+      this.providerLog.failure("pull-model");
       throw error;
     }
   }
@@ -519,7 +520,7 @@ class LLaVAClient extends EventEmitter {
         headers: { "Content-Type": "application/json" },
       });
     }
-    logger.info("[LLaVAClient] 配置已更新");
+    this.providerLog.success("configure");
   }
 }
 

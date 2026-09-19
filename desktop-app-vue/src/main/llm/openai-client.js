@@ -4,7 +4,7 @@
  * 支持: OpenAI, DeepSeek, 以及其他兼容OpenAI API的服务
  */
 
-const { logger } = require("../utils/logger.js");
+const { createProviderLogger } = require("./provider-log-privacy");
 
 function assertGovernedModelIngress() {
   const error = new Error(
@@ -34,6 +34,7 @@ class OpenAIClient extends EventEmitter {
     this.timeout = config.timeout || 300000; // 5 minutes default
     this.maxRetries = config.maxRetries || 2; // Retry up to 2 times on timeout
     this.organization = config.organization;
+    this.providerLog = createProviderLogger(config.providerId || "openai");
 
     // 创建axios实例
     this.client = axios.create({
@@ -88,10 +89,6 @@ class OpenAIClient extends EventEmitter {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        if (attempt > 0) {
-          logger.info(`[OpenAIClient] 重试第 ${attempt} 次...`);
-        }
-
         // 构建请求体
         const requestBody = {
           model: options.model || this.model,
@@ -152,9 +149,7 @@ class OpenAIClient extends EventEmitter {
 
         // Only retry on timeout or network errors
         if ((isTimeout || isNetworkError) && attempt < maxRetries) {
-          logger.warn(
-            `[OpenAIClient] 请求超时或网络错误，将重试: ${error.message}`,
-          );
+          this.providerLog.retry("chat", attempt + 1);
           // Wait before retry (exponential backoff: 2s, 4s)
           await new Promise((resolve) =>
             setTimeout(resolve, 2000 * Math.pow(2, attempt)),
@@ -162,7 +157,7 @@ class OpenAIClient extends EventEmitter {
           continue;
         }
 
-        logger.error("[OpenAIClient] 聊天失败:", error.response?.data || error);
+        this.providerLog.failure("chat");
         throw new Error(this._formatAPIError(error));
       }
     }
@@ -327,10 +322,7 @@ class OpenAIClient extends EventEmitter {
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      logger.error(
-        "[OpenAIClient] 流式聊天失败:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("chat-stream");
       throw new Error(this._formatAPIError(error));
     }
   }
@@ -368,7 +360,7 @@ class OpenAIClient extends EventEmitter {
       };
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error("[OpenAIClient] 补全失败:", error.response?.data || error);
+      this.providerLog.failure("complete");
       throw new Error(this._formatAPIError(error));
     }
   }
@@ -395,10 +387,7 @@ class OpenAIClient extends EventEmitter {
       }
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error(
-        "[OpenAIClient] 生成嵌入失败:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("embed");
       throw new Error(this._formatAPIError(error));
     }
   }
@@ -411,10 +400,7 @@ class OpenAIClient extends EventEmitter {
       const response = await this.client.get("/models");
       return response.data.data;
     } catch (error) {
-      logger.error(
-        "[OpenAIClient] 列出模型失败:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("list-models");
       throw new Error(this._formatAPIError(error));
     }
   }
@@ -428,10 +414,7 @@ class OpenAIClient extends EventEmitter {
       const response = await this.client.get(`/models/${modelId}`);
       return response.data;
     } catch (error) {
-      logger.error(
-        "[OpenAIClient] 获取模型信息失败:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("model-info");
       throw new Error(this._formatAPIError(error));
     }
   }
@@ -486,6 +469,7 @@ class DeepSeekClient extends OpenAIClient {
       ...config,
       baseURL: config.baseURL || "https://api.deepseek.com/v1",
       model: config.model || "deepseek-chat",
+      providerId: "deepseek",
     });
   }
 }

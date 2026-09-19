@@ -10,7 +10,7 @@
  */
 
 const axios = require("axios");
-const { logger } = require("../utils/logger.js");
+const { createProviderLogger } = require("./provider-log-privacy");
 
 function assertGovernedModelIngress() {
   const error = new Error(
@@ -66,6 +66,7 @@ class GeminiClient {
     this.model = config.model || "gemini-1.5-pro";
     this.embeddingModel = config.embeddingModel || "text-embedding-004";
     this.timeout = config.timeout || 300000;
+    this.providerLog = createProviderLogger("gemini");
 
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -87,7 +88,7 @@ class GeminiClient {
         displayName: response.data.displayName,
       };
     } catch (error) {
-      logger.error("[GeminiClient] 状态检查失败:", error.message);
+      this.providerLog.failure("status");
       return {
         available: false,
         error: this._extractError(error),
@@ -217,7 +218,7 @@ class GeminiClient {
       return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error("[GeminiClient] 聊天请求失败:", error.message);
+      this.providerLog.failure("chat");
       throw new Error(`Gemini API 错误: ${this._extractError(error)}`);
     }
   }
@@ -329,7 +330,7 @@ class GeminiClient {
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      logger.error("[GeminiClient] 流式聊天失败:", error.message);
+      this.providerLog.failure("chat-stream");
       throw new Error(`Gemini stream API 错误: ${this._extractError(error)}`);
     }
   }
@@ -358,7 +359,7 @@ class GeminiClient {
       };
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error("[GeminiClient] 嵌入请求失败:", error.message);
+      this.providerLog.failure("embed");
       throw new Error(`Gemini embedding 错误: ${this._extractError(error)}`);
     }
   }

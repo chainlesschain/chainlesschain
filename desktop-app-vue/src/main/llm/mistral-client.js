@@ -16,6 +16,7 @@ class MistralClient extends OpenAIClient {
       baseURL: config.baseURL || "https://api.mistral.ai/v1",
       model: config.model || "mistral-large-latest",
       embeddingModel: config.embeddingModel || "mistral-embed",
+      providerId: "mistral",
     });
   }
 }

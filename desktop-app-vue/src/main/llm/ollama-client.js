@@ -4,7 +4,7 @@
  * 支持本地Ollama服务
  */
 
-const { logger } = require("../utils/logger.js");
+const { createProviderLogger } = require("./provider-log-privacy");
 
 function assertGovernedModelIngress() {
   const error = new Error(
@@ -29,6 +29,7 @@ class OllamaClient extends EventEmitter {
     this.baseURL = config.baseURL || "http://localhost:11434";
     this.timeout = config.timeout || 300000; // 5分钟
     this.model = config.model || "llama2";
+    this.providerLog = createProviderLogger("ollama");
 
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -101,7 +102,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      logger.error("[OllamaClient] 生成失败:", error);
+      this.providerLog.failure("generate");
       throw error;
     }
   }
@@ -200,7 +201,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error("[OllamaClient] 流式生成失败:", error);
+      this.providerLog.failure("generate-stream");
       throw error;
     }
   }
@@ -245,7 +246,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      logger.error("[OllamaClient] 聊天失败:", error);
+      this.providerLog.failure("chat");
       throw error;
     }
   }
@@ -336,7 +337,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error("[OllamaClient] 流式聊天失败:", error);
+      this.providerLog.failure("chat-stream");
       throw error;
     }
   }
@@ -406,7 +407,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error("[OllamaClient] 拉取模型失败:", error);
+      this.providerLog.failure("pull-model");
       throw error;
     }
   }
@@ -425,7 +426,7 @@ class OllamaClient extends EventEmitter {
 
       return true;
     } catch (error) {
-      logger.error("[OllamaClient] 删除模型失败:", error);
+      this.providerLog.failure("delete-model");
       throw error;
     }
   }
@@ -442,7 +443,7 @@ class OllamaClient extends EventEmitter {
 
       return response.data;
     } catch (error) {
-      logger.error("[OllamaClient] 获取模型信息失败:", error);
+      this.providerLog.failure("model-info");
       throw error;
     }
   }
@@ -463,7 +464,7 @@ class OllamaClient extends EventEmitter {
       return response.data.embedding;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error("[OllamaClient] 生成嵌入失败:", error);
+      this.providerLog.failure("embed");
       throw error;
     }
   }

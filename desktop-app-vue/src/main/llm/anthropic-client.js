@@ -3,7 +3,7 @@
  * Supports chat and streaming via the Messages API.
  */
 
-const { logger } = require("../utils/logger.js");
+const { createProviderLogger } = require("./provider-log-privacy");
 const axios = require("axios");
 const EventEmitter = require("events");
 
@@ -70,6 +70,7 @@ class AnthropicClient extends EventEmitter {
     // the room. Callers can still override via config.maxTokens / options.max_tokens.
     this.maxTokens = config.maxTokens || 4096;
     this.anthropicVersion = config.anthropicVersion || "2023-06-01";
+    this.providerLog = createProviderLogger("anthropic");
 
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -250,10 +251,7 @@ class AnthropicClient extends EventEmitter {
       return result;
     } catch (error) {
       if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-      logger.error(
-        "[AnthropicClient] chat failed:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("chat");
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -431,10 +429,7 @@ class AnthropicClient extends EventEmitter {
         interrupted.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
         throw interrupted;
       }
-      logger.error(
-        "[AnthropicClient] stream chat failed:",
-        error.response?.data || error,
-      );
+      this.providerLog.failure("chat-stream");
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
