@@ -94,7 +94,100 @@ function historyPageFixture({
   return { page, routes, cdpSession };
 }
 
+function guardedContextFixture() {
+  let contextRoute = null;
+  let pageListener = null;
+  const context = {
+    addInitScript: vi.fn(async () => {}),
+    route: vi.fn(async (_pattern, handler) => {
+      contextRoute = handler;
+    }),
+    on: vi.fn((event, handler) => {
+      if (event === "page") pageListener = handler;
+    }),
+    newPage: vi.fn(),
+    close: vi.fn(async () => {}),
+  };
+  const browser = { newContext: vi.fn(async () => context) };
+  return {
+    browser,
+    context,
+    getContextRoute: () => contextRoute,
+    getPageListener: () => pageListener,
+  };
+}
+
 describe("BrowserEngine governed navigation redirect guard", () => {
+  it("tears down a context when its popup guard cannot be installed", async () => {
+    const context = {
+      addInitScript: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    const engine = new BrowserEngine();
+    engine.browser = { newContext: vi.fn(async () => context) };
+    engine.isRunning = true;
+
+    await expect(engine.createContext("default")).rejects.toThrow(
+      /popup guard is unavailable/u,
+    );
+    expect(context.close).toHaveBeenCalledOnce();
+    expect(engine.contexts.has("default")).toBe(false);
+  });
+
+  it("admits explicit engine pages through the context popup guard", async () => {
+    const guarded = guardedContextFixture();
+    const { page } = pageFixture(["https://example.test/start"]);
+    guarded.context.newPage.mockResolvedValue(page);
+    const engine = new BrowserEngine();
+    engine.browser = guarded.browser;
+    engine.isRunning = true;
+    await engine.createContext("default");
+    await engine.openTab("default", "https://example.test/start");
+
+    const route = {
+      request: () => ({
+        frame: () => ({ page: () => page }),
+        isNavigationRequest: () => true,
+      }),
+      abort: vi.fn(async () => {}),
+      continue: vi.fn(async () => {}),
+      fallback: vi.fn(async () => {}),
+    };
+    await guarded.getContextRoute()(route);
+    expect(route.fallback).toHaveBeenCalledOnce();
+    expect(route.abort).not.toHaveBeenCalled();
+  });
+
+  it("closes opener popups and aborts their main-frame navigation", async () => {
+    const guarded = guardedContextFixture();
+    const engine = new BrowserEngine();
+    engine.browser = guarded.browser;
+    engine.isRunning = true;
+    await engine.createContext("default");
+    const parent = {};
+    const popup = {
+      opener: vi.fn(async () => parent),
+      close: vi.fn(async () => {}),
+    };
+
+    guarded.getPageListener()(popup);
+    await vi.waitFor(() => expect(popup.close).toHaveBeenCalledOnce());
+
+    const route = {
+      request: () => ({
+        frame: () => ({ page: () => popup }),
+        isNavigationRequest: () => true,
+      }),
+      abort: vi.fn(async () => {}),
+      continue: vi.fn(async () => {}),
+      fallback: vi.fn(async () => {}),
+    };
+    await guarded.getContextRoute()(route);
+    expect(route.abort).toHaveBeenCalledWith("blockedbyclient");
+    expect(route.fallback).not.toHaveBeenCalled();
+    expect(popup.close).toHaveBeenCalledOnce();
+  });
+
   it("guards a new tab from its first request and removes the guard", async () => {
     const { page, routes } = pageFixture(
       ["https://example.test/start", "https://login.example.test/continue"],

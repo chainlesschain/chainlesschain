@@ -101,6 +101,7 @@ class BrowserEngine extends EventEmitter {
 
     this.browser = null;
     this.contexts = new Map(); // profileName => BrowserContext
+    this.contextPageGuards = new WeakMap(); // BrowserContext => popup guard state
     this.pages = new Map(); // targetId => Page
     this.nextTargetId = 1;
 
@@ -219,6 +220,7 @@ class BrowserEngine extends EventEmitter {
       };
     }
 
+    let context = null;
     try {
       const contextOptions = {
         viewport: options.viewport || this.config.defaultViewport,
@@ -230,7 +232,7 @@ class BrowserEngine extends EventEmitter {
         ...options,
       };
 
-      const context = await this.browser.newContext(contextOptions);
+      context = await this.browser.newContext(contextOptions);
 
       // 注入反检测脚本
       await context.addInitScript(() => {
@@ -255,6 +257,8 @@ class BrowserEngine extends EventEmitter {
             : originalQuery(parameters);
       });
 
+      await this._installContextPageGuard(context, profileName);
+
       this.contexts.set(profileName, context);
 
       this.emit("context:created", { profileName });
@@ -267,6 +271,7 @@ class BrowserEngine extends EventEmitter {
         exists: false,
       };
     } catch (error) {
+      if (context !== null) await context.close().catch(() => {});
       this.emit("context:error", { profileName, error: error.message });
       throw new Error(`Failed to create context: ${error.message}`);
     }
@@ -283,6 +288,83 @@ class BrowserEngine extends EventEmitter {
       throw new Error(`Context '${profileName}' not found`);
     }
     return context;
+  }
+
+  /**
+   * Deny page-initiated popup navigation at the BrowserContext boundary.
+   * Only pages returned by BrowserEngine.openTab() are admitted into the
+   * explicit page set. This prevents a governed click or key press from using
+   * target=_blank/window.open() to bypass the tab-open action contract.
+   *
+   * @param {BrowserContext} context - Playwright browser context
+   * @param {string} profileName - Context profile name
+   * @private
+   */
+  async _installContextPageGuard(context, profileName) {
+    if (
+      !context ||
+      typeof context.route !== "function" ||
+      typeof context.on !== "function"
+    ) {
+      throw new TypeError("Browser context popup guard is unavailable");
+    }
+    const approvedPages = new WeakSet();
+    const blockedPages = new WeakSet();
+    const blockPage = async (page, reason) => {
+      if (!page || blockedPages.has(page)) return;
+      blockedPages.add(page);
+      this.emit("tab:popup-blocked", { profileName, reason });
+      if (typeof page.close === "function") {
+        await page.close().catch(() => {});
+      }
+    };
+    const routeHandler = async (route) => {
+      const request = route.request();
+      if (request.isNavigationRequest()) {
+        let requestPage = null;
+        try {
+          requestPage = request.frame()?.page?.() ?? null;
+        } catch {
+          requestPage = null;
+        }
+        if (requestPage === null || !approvedPages.has(requestPage)) {
+          await route.abort("blockedbyclient");
+          if (requestPage !== null) {
+            await blockPage(requestPage, "unapproved-page-navigation");
+          } else {
+            this.emit("tab:popup-blocked", {
+              profileName,
+              reason: "unattributed-page-navigation",
+            });
+          }
+          return;
+        }
+      }
+      if (typeof route.fallback === "function") {
+        await route.fallback();
+      } else {
+        await route.continue();
+      }
+    };
+    await context.route("**/*", routeHandler);
+    context.on("page", (page) => {
+      void Promise.resolve()
+        .then(async () => {
+          if (typeof page?.opener !== "function") {
+            await blockPage(page, "unattributed-page");
+            return;
+          }
+          const opener = await page.opener();
+          if (opener !== null) {
+            await blockPage(page, "page-initiated-popup");
+          }
+        })
+        .catch(() => blockPage(page, "popup-attribution-failed"));
+    });
+    this.contextPageGuards.set(
+      context,
+      Object.freeze({ approvedPages, routeHandler }),
+    );
   }
 
   /**
@@ -309,6 +391,7 @@ class BrowserEngine extends EventEmitter {
         assertAllowedNavigationUrl(url, allowedOrigins);
       }
       page = await context.newPage();
+      this.contextPageGuards.get(context)?.approvedPages.add(page);
       targetId = `tab-${this.nextTargetId++}`;
 
       // 为页面添加 targetId 属性（用于快照引擎）
