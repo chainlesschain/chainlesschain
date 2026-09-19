@@ -262,6 +262,43 @@ describe("plugin IPC error boundary", () => {
         path: secret,
       }),
       triggerExtensionPoint: vi.fn().mockResolvedValue({ secret }),
+      getRegisteredPages: () => [
+        {
+          id: "page-1",
+          pluginId: "plugin-1",
+          path: "/plugin/plugin-1/main",
+          title: "Main",
+          icon: "HomeOutlined",
+          requireAuth: true,
+          component: { secret },
+          componentPath: secret,
+          meta: { secret },
+        },
+      ],
+      getRegisteredMenus: () => [
+        {
+          id: "menu-1",
+          pluginId: "plugin-1",
+          label: "Menu",
+          route: "/plugin/plugin-1/main",
+          position: "sidebar",
+          order: 1,
+          visible: true,
+          action: { secret },
+        },
+      ],
+      getRegisteredComponents: () => [
+        {
+          id: "component-1",
+          pluginId: "plugin-1",
+          name: "Widget",
+          slot: "header",
+          order: 2,
+          component: { secret },
+          componentPath: secret,
+          props: { secret },
+        },
+      ],
       sandboxes: new Map([["plugin-1", sandbox]]),
       registry: {
         getExtensionsByPoint: (point) => [
@@ -355,6 +392,21 @@ describe("plugin IPC error boundary", () => {
     const extensionExecution = await handlers.get(
       "plugin:trigger-extension-point",
     )({}, "custom.extension", { secret });
+    const runtimePages = await handlers.get("plugin:get-registered-pages")(
+      {},
+      "plugin-1",
+    );
+    const runtimeMenus = await handlers.get("plugin:get-registered-menus")(
+      {},
+      { pluginId: "plugin-1" },
+    );
+    const runtimeComponents = await handlers.get(
+      "plugin:get-registered-components",
+    )({}, { pluginId: "plugin-1" });
+    const runtimeUi = await handlers.get("plugin:get-all-registered-ui")(
+      {},
+      "plugin-1",
+    );
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -445,6 +497,28 @@ describe("plugin IPC error boundary", () => {
       "custom.extension",
       { secret },
     );
+    expect(runtimePages.pages[0]).toEqual({
+      id: "page-1",
+      pluginId: "plugin-1",
+      path: "/plugin/plugin-1/main",
+      title: "Main",
+      icon: "HomeOutlined",
+      requireAuth: true,
+    });
+    expect(runtimeMenus.menus[0]).toMatchObject({
+      id: "menu-1",
+      pluginId: "plugin-1",
+      label: "Menu",
+      route: "/plugin/plugin-1/main",
+    });
+    expect(runtimeComponents.components[0]).toEqual({
+      id: "component-1",
+      pluginId: "plugin-1",
+      name: "Widget",
+      slot: "header",
+      order: 2,
+    });
+    expect(Object.keys(runtimeUi.ui)).toEqual(["pages", "menus", "components"]);
     expect(
       JSON.stringify({
         list,
@@ -463,6 +537,10 @@ describe("plugin IPC error boundary", () => {
         exportExecution,
         methodExecution,
         extensionExecution,
+        runtimePages,
+        runtimeMenus,
+        runtimeComponents,
+        runtimeUi,
       }),
     ).not.toContain(secret);
   });

@@ -441,6 +441,80 @@ function projectPluginInvocationReceipt(invocation) {
   };
 }
 
+function projectRuntimeMenuChildren(children) {
+  if (!Array.isArray(children)) {
+    return [];
+  }
+  return children.slice(0, 64).flatMap((child) => {
+    if (!child || typeof child !== "object") {
+      return [];
+    }
+    return [
+      {
+        id: boundedString(child.id, 256),
+        label: boundedString(child.label, 512),
+        icon: boundedString(child.icon, 128),
+        route: projectRoutePath(child.route),
+      },
+    ];
+  });
+}
+
+function projectPluginRuntimeUiEntries(entries, kind) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries.slice(0, 1024).flatMap((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+    const common = {
+      id: boundedString(entry.id, 256),
+      pluginId: boundedString(entry.pluginId ?? entry.plugin_id, 256),
+    };
+    if (kind === "page") {
+      return [
+        {
+          ...common,
+          path: projectRoutePath(entry.path),
+          title: boundedString(entry.title, 512),
+          icon: boundedString(entry.icon, 128),
+          requireAuth: entry.requireAuth === true,
+        },
+      ];
+    }
+    if (kind === "menu") {
+      const order = Number.isSafeInteger(entry.order)
+        ? Math.max(-10000, Math.min(10000, entry.order))
+        : 100;
+      return [
+        {
+          ...common,
+          label: boundedString(entry.label, 512),
+          icon: boundedString(entry.icon, 128),
+          route: projectRoutePath(entry.route),
+          position: boundedString(entry.position, 64),
+          order,
+          parent: boundedString(entry.parent, 256),
+          children: projectRuntimeMenuChildren(entry.children),
+          visible: entry.visible !== false,
+        },
+      ];
+    }
+    const order = Number.isSafeInteger(entry.order)
+      ? Math.max(-10000, Math.min(10000, entry.order))
+      : 100;
+    return [
+      {
+        ...common,
+        name: boundedString(entry.name, 512),
+        slot: boundedString(entry.slot, 128),
+        order,
+      },
+    ];
+  });
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
@@ -448,6 +522,7 @@ module.exports = {
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
+  projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,
   projectPluginSettings,
   projectPluginSkillDefinitions,

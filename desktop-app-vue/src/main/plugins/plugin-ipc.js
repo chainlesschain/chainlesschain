@@ -12,6 +12,7 @@ const {
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
+  projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,
   projectPluginSettings,
   projectPluginSkillDefinitions,
@@ -282,7 +283,10 @@ function registerPluginIPC({
     safeInvoke(() => {
       ensureManager();
       const pages = pluginManager.getRegisteredPages(pluginId);
-      return { success: true, pages };
+      return {
+        success: true,
+        pages: projectPluginRuntimeUiEntries(pages, "page"),
+      };
     }),
   );
 
@@ -292,7 +296,10 @@ function registerPluginIPC({
       ensureManager();
       const { position = null, pluginId = null } = options;
       const menus = pluginManager.getRegisteredMenus(position, pluginId);
-      return { success: true, menus };
+      return {
+        success: true,
+        menus: projectPluginRuntimeUiEntries(menus, "menu"),
+      };
     }),
   );
 
@@ -302,7 +309,10 @@ function registerPluginIPC({
       ensureManager();
       const { slot = null, pluginId = null } = options;
       const components = pluginManager.getRegisteredComponents(slot, pluginId);
-      return { success: true, components };
+      return {
+        success: true,
+        components: projectPluginRuntimeUiEntries(components, "component"),
+      };
     }),
   );
 
@@ -313,21 +323,17 @@ function registerPluginIPC({
       return {
         success: true,
         ui: {
-          pages: pluginManager.getRegisteredPages(pluginId),
-          menus: pluginManager.getRegisteredMenus(null, pluginId),
-          components: pluginManager.getRegisteredComponents(null, pluginId),
-          spaces: pluginManager.getRegisteredSpaces(pluginId),
-          artifacts: pluginManager.getRegisteredArtifacts(pluginId),
-          slashCommands: pluginManager.getRegisteredSlashCommands(pluginId),
-          mentionSources: pluginManager.getRegisteredMentionSources(pluginId),
-          statusBarWidgets: pluginManager.getRegisteredStatusBarWidgets(
-            null,
-            pluginId,
+          pages: projectPluginRuntimeUiEntries(
+            pluginManager.getRegisteredPages(pluginId),
+            "page",
           ),
-          homeWidgets: pluginManager.getRegisteredHomeWidgets(pluginId),
-          composerSlots: pluginManager.getRegisteredComposerSlots(
-            null,
-            pluginId,
+          menus: projectPluginRuntimeUiEntries(
+            pluginManager.getRegisteredMenus(null, pluginId),
+            "menu",
+          ),
+          components: projectPluginRuntimeUiEntries(
+            pluginManager.getRegisteredComponents(null, pluginId),
+            "component",
           ),
         },
       };

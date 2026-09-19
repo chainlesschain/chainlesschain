@@ -9,6 +9,7 @@ const {
   projectPluginInvocationReceipt,
   projectPluginPageContent,
   projectPluginPublicRecord,
+  projectPluginRuntimeUiEntries,
   projectPluginSettingDefinitions,
   projectPluginSettings,
   projectPluginSkillDefinitions,
@@ -418,5 +419,88 @@ describe("plugin public projection", () => {
       executed: true,
       invocation: "extension",
     });
+  });
+
+  it("projects runtime UI entries without executable fields", () => {
+    const secret = "runtime-ui-secret";
+    const pages = projectPluginRuntimeUiEntries(
+      [
+        {
+          id: "page-1",
+          pluginId: "plugin-1",
+          path: "/plugin/plugin-1/main",
+          title: "Main",
+          icon: "HomeOutlined",
+          requireAuth: true,
+          component: { secret },
+          componentPath: secret,
+          meta: { secret },
+        },
+      ],
+      "page",
+    );
+    const menus = projectPluginRuntimeUiEntries(
+      [
+        {
+          id: "menu-1",
+          pluginId: "plugin-1",
+          label: "Menu",
+          route: "/plugin/plugin-1/main",
+          position: "sidebar",
+          order: 1,
+          visible: true,
+          action: { secret },
+          children: [
+            {
+              id: "child-1",
+              label: "Child",
+              route: "/plugin/plugin-1/child",
+              action: { secret },
+            },
+          ],
+        },
+      ],
+      "menu",
+    );
+    const components = projectPluginRuntimeUiEntries(
+      [
+        {
+          id: "component-1",
+          pluginId: "plugin-1",
+          name: "Widget",
+          slot: "header",
+          order: 2,
+          component: { secret },
+          componentPath: secret,
+          props: { secret },
+        },
+      ],
+      "component",
+    );
+
+    expect(pages[0]).toEqual({
+      id: "page-1",
+      pluginId: "plugin-1",
+      path: "/plugin/plugin-1/main",
+      title: "Main",
+      icon: "HomeOutlined",
+      requireAuth: true,
+    });
+    expect(menus[0].children).toEqual([
+      {
+        id: "child-1",
+        label: "Child",
+        icon: "",
+        route: "/plugin/plugin-1/child",
+      },
+    ]);
+    expect(components[0]).toEqual({
+      id: "component-1",
+      pluginId: "plugin-1",
+      name: "Widget",
+      slot: "header",
+      order: 2,
+    });
+    expect(JSON.stringify({ pages, menus, components })).not.toContain(secret);
   });
 });
