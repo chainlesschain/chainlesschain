@@ -13,34 +13,47 @@
  * @module remote/handlers/system-handler-enhanced
  */
 
-const { logger } = require('../../utils/logger');
-const os = require('os');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const EventEmitter = require('events');
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
+const os = require("os");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+const EventEmitter = require("events");
 
 const execAsync = promisify(exec);
+const logger = createBrowserLogRedactor(browserLogSink);
 
 // 动态导入可选依赖
 let screenshot, Notification, si;
 
 try {
-  screenshot = require('screenshot-desktop');
+  screenshot = require("screenshot-desktop");
 } catch (error) {
-  logger.warn('[SystemHandler] screenshot-desktop not available:', error.message);
+  logger.warn(
+    "[SystemHandler] screenshot-desktop not available:",
+    error.message,
+  );
 }
 
 try {
-  const electron = require('electron');
+  const electron = require("electron");
   Notification = electron.Notification;
 } catch (error) {
-  logger.warn('[SystemHandler] Electron Notification not available:', error.message);
+  logger.warn(
+    "[SystemHandler] Electron Notification not available:",
+    error.message,
+  );
 }
 
 try {
-  si = require('systeminformation');
+  si = require("systeminformation");
 } catch (error) {
-  logger.warn('[SystemHandler] systeminformation not available:', error.message);
+  logger.warn(
+    "[SystemHandler] systeminformation not available:",
+    error.message,
+  );
 }
 
 /**
@@ -53,11 +66,11 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     // 配置
     this.config = {
       screenshotQuality: 80,
-      screenshotFormat: 'png',
+      screenshotFormat: "png",
       maxCommandTimeout: 30000, // 30 秒
       maxCommandOutputSize: 1024 * 1024, // 1MB
       enableCommandWhitelist: true,
-      ...options
+      ...options,
     };
 
     // 命令白名单（安全的命令）
@@ -107,7 +120,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       // NPM/Yarn（只读）
       /^npm\s+list/,
       /^npm\s+ls/,
-      /^yarn\s+list/
+      /^yarn\s+list/,
     ];
 
     // 命令黑名单（危险的命令）
@@ -145,7 +158,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       /chown/,
       /kill\s+-9/,
       /pkill/,
-      /killall/
+      /killall/,
     ];
 
     // 性能指标
@@ -155,40 +168,40 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       failureCount: 0,
       screenshotCount: 0,
       notificationCount: 0,
-      commandExecutionCount: 0
+      commandExecutionCount: 0,
     };
 
-    logger.info('[SystemHandlerEnhanced] 系统命令处理器已初始化');
+    logger.info("[SystemHandlerEnhanced] 系统命令处理器已初始化");
   }
 
   /**
    * 处理命令（统一入口）
    */
   async handle(action, params, context) {
-    logger.debug(`[SystemHandlerEnhanced] 处理命令: ${action}`);
+    logger.debug("[SystemHandlerEnhanced] 处理命令", { action });
 
     try {
       this.metrics.totalRequests++;
 
       let result;
       switch (action) {
-        case 'screenshot':
+        case "screenshot":
           result = await this.screenshot(params, context);
           break;
 
-        case 'notify':
+        case "notify":
           result = await this.notify(params, context);
           break;
 
-        case 'getStatus':
+        case "getStatus":
           result = await this.getStatus(params, context);
           break;
 
-        case 'getInfo':
+        case "getInfo":
           result = await this.getInfo(params, context);
           break;
 
-        case 'execCommand':
+        case "execCommand":
           result = await this.execCommand(params, context);
           break;
 
@@ -199,22 +212,22 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       this.metrics.successCount++;
 
       // 发出成功事件
-      this.emit('command-success', {
+      this.emit("command-success", {
         action,
         did: context.did,
-        result
+        result,
       });
 
       return result;
     } catch (error) {
       this.metrics.failureCount++;
-      logger.error(`[SystemHandlerEnhanced] 命令失败: ${action}`, error);
+      logger.error("[SystemHandlerEnhanced] 命令失败", { action, error });
 
       // 发出失败事件
-      this.emit('command-failure', {
+      this.emit("command-failure", {
         action,
         did: context.did,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -230,23 +243,29 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     const {
       quality = this.config.screenshotQuality,
       format = this.config.screenshotFormat,
-      display = 'all',
-      filename
+      display = "all",
+      filename,
     } = params;
 
-    logger.info(`[SystemHandlerEnhanced] 截图请求 (quality: ${quality}, format: ${format}, display: ${display})`);
+    logger.info("[SystemHandlerEnhanced] 截图请求", {
+      quality,
+      format,
+      display,
+    });
 
     try {
       // 检查截图库是否可用
       if (!screenshot) {
-        throw new Error('Screenshot library not available. Please install screenshot-desktop.');
+        throw new Error(
+          "Screenshot library not available. Please install screenshot-desktop.",
+        );
       }
 
       // 捕获截图
       const imageBuffer = await screenshot({ format, display });
 
       // 转换为 Base64
-      const base64Image = imageBuffer.toString('base64');
+      const base64Image = imageBuffer.toString("base64");
 
       this.metrics.screenshotCount++;
 
@@ -259,11 +278,11 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         timestamp: Date.now(),
         metadata: {
           quality,
-          filename: filename || `screenshot-${Date.now()}.${format}`
-        }
+          filename: filename || `screenshot-${Date.now()}.${format}`,
+        },
       };
     } catch (error) {
-      logger.error('[SystemHandlerEnhanced] 截图失败:', error);
+      logger.error("[SystemHandlerEnhanced] 截图失败:", error);
       throw new Error(`Screenshot failed: ${error.message}`);
     }
   }
@@ -280,31 +299,33 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       icon,
       actions = [],
       sound = true,
-      urgency = 'normal'
+      urgency = "normal",
     } = params;
 
     // 参数验证
-    if (!title || typeof title !== 'string') {
+    if (!title || typeof title !== "string") {
       throw new Error('Parameter "title" is required and must be a string');
     }
 
-    if (!body || typeof body !== 'string') {
+    if (!body || typeof body !== "string") {
       throw new Error('Parameter "body" is required and must be a string');
     }
 
-    logger.info(`[SystemHandlerEnhanced] 发送通知: "${title}"`);
+    logger.info("[SystemHandlerEnhanced] 发送通知", { title });
 
     try {
       // 检查 Notification 是否可用
       if (!Notification) {
         // 如果 Electron Notification 不可用，返回模拟成功
-        logger.warn('[SystemHandlerEnhanced] Electron Notification not available, returning mock success');
+        logger.warn(
+          "[SystemHandlerEnhanced] Electron Notification not available, returning mock success",
+        );
         return {
           success: true,
           title,
           body,
           timestamp: Date.now(),
-          note: 'Notification sent (mock mode - Electron not available)'
+          note: "Notification sent (mock mode - Electron not available)",
         };
       }
 
@@ -314,18 +335,18 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         body,
         icon,
         silent: !sound,
-        urgency
+        urgency,
       });
 
       // 添加点击事件处理
-      notification.on('click', () => {
-        logger.info(`[SystemHandlerEnhanced] 通知被点击: "${title}"`);
-        this.emit('notification-clicked', { title, body, did: context.did });
+      notification.on("click", () => {
+        logger.info("[SystemHandlerEnhanced] 通知被点击", { title });
+        this.emit("notification-clicked", { title, body, did: context.did });
       });
 
       // 添加关闭事件处理
-      notification.on('close', () => {
-        logger.debug(`[SystemHandlerEnhanced] 通知已关闭: "${title}"`);
+      notification.on("close", () => {
+        logger.debug("[SystemHandlerEnhanced] 通知已关闭", { title });
       });
 
       // 显示通知
@@ -341,11 +362,11 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         metadata: {
           sound,
           urgency,
-          actionsCount: actions.length
-        }
+          actionsCount: actions.length,
+        },
       };
     } catch (error) {
-      logger.error('[SystemHandlerEnhanced] 发送通知失败:', error);
+      logger.error("[SystemHandlerEnhanced] 发送通知失败:", error);
       throw new Error(`Notify failed: ${error.message}`);
     }
   }
@@ -356,7 +377,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
    * CPU、内存、磁盘、网络状态
    */
   async getStatus(params, context) {
-    logger.info('[SystemHandlerEnhanced] 获取系统状态');
+    logger.info("[SystemHandlerEnhanced] 获取系统状态");
 
     try {
       const status = {
@@ -365,12 +386,12 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         disk: await this.getDiskStatus(),
         network: await this.getNetworkStatus(),
         uptime: os.uptime(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       return status;
     } catch (error) {
-      logger.error('[SystemHandlerEnhanced] 获取系统状态失败:', error);
+      logger.error("[SystemHandlerEnhanced] 获取系统状态失败:", error);
       throw new Error(`Get status failed: ${error.message}`);
     }
   }
@@ -381,7 +402,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
    * OS、硬件、应用版本等
    */
   async getInfo(params, context) {
-    logger.info('[SystemHandlerEnhanced] 获取系统信息');
+    logger.info("[SystemHandlerEnhanced] 获取系统信息");
 
     try {
       const info = {
@@ -393,12 +414,12 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         hostname: os.hostname(),
         platform: os.platform(),
         arch: os.arch(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       return info;
     } catch (error) {
-      logger.error('[SystemHandlerEnhanced] 获取系统信息失败:', error);
+      logger.error("[SystemHandlerEnhanced] 获取系统信息失败:", error);
       throw new Error(`Get info failed: ${error.message}`);
     }
   }
@@ -412,22 +433,24 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     const {
       command,
       timeout = this.config.maxCommandTimeout,
-      cwd = os.homedir()
+      cwd = os.homedir(),
     } = params;
 
     // 参数验证
-    if (!command || typeof command !== 'string') {
+    if (!command || typeof command !== "string") {
       throw new Error('Parameter "command" is required and must be a string');
     }
 
-    logger.info(`[SystemHandlerEnhanced] 执行命令: "${command}"`);
+    logger.info("[SystemHandlerEnhanced] 执行命令", { command });
 
     try {
       // 安全检查
       if (this.config.enableCommandWhitelist) {
         if (!this.isCommandSafe(command)) {
-          logger.warn(`[SystemHandlerEnhanced] 命令被拒绝: "${command}"`);
-          throw new Error('Command not allowed. Please check command whitelist/blacklist.');
+          logger.warn("[SystemHandlerEnhanced] 命令被拒绝", { command });
+          throw new Error(
+            "Command not allowed. Please check command whitelist/blacklist.",
+          );
         }
       }
 
@@ -435,7 +458,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       const { stdout, stderr } = await execAsync(command, {
         timeout,
         cwd,
-        maxBuffer: this.config.maxCommandOutputSize
+        maxBuffer: this.config.maxCommandOutputSize,
       });
 
       this.metrics.commandExecutionCount++;
@@ -446,19 +469,19 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         stdout: stdout.trim(),
         stderr: stderr.trim(),
         exitCode: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[SystemHandlerEnhanced] 执行命令失败:', error);
+      logger.error("[SystemHandlerEnhanced] 执行命令失败:", error);
 
       return {
         success: false,
         command,
         error: error.message,
-        stdout: error.stdout || '',
-        stderr: error.stderr || '',
+        stdout: error.stdout || "",
+        stderr: error.stderr || "",
         exitCode: error.code || 1,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -472,7 +495,9 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     // 检查黑名单
     for (const pattern of this.commandBlacklist) {
       if (pattern.test(command)) {
-        logger.warn(`[SystemHandlerEnhanced] 命令匹配黑名单: ${pattern}`);
+        logger.warn("[SystemHandlerEnhanced] 命令匹配黑名单", {
+          pattern: String(pattern),
+        });
         return false;
       }
     }
@@ -485,7 +510,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     }
 
     // 如果没有匹配白名单，拒绝
-    logger.warn(`[SystemHandlerEnhanced] 命令未匹配白名单: "${command}"`);
+    logger.warn("[SystemHandlerEnhanced] 命令未匹配白名单", { command });
     return false;
   }
 
@@ -499,10 +524,13 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
         return {
           usage: currentLoad.currentLoad.toFixed(2),
           cores: os.cpus().length,
-          loadAverage: os.loadavg()
+          loadAverage: os.loadavg(),
         };
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation CPU 获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation CPU 获取失败:",
+          error,
+        );
       }
     }
 
@@ -510,7 +538,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     return {
       cores: os.cpus().length,
       loadAverage: os.loadavg(),
-      usage: 'N/A'
+      usage: "N/A",
     };
   }
 
@@ -525,10 +553,13 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
           total: mem.total,
           used: mem.used,
           free: mem.free,
-          usage: ((mem.used / mem.total) * 100).toFixed(2)
+          usage: ((mem.used / mem.total) * 100).toFixed(2),
         };
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation 内存获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation 内存获取失败:",
+          error,
+        );
       }
     }
 
@@ -541,7 +572,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       total: totalMem,
       used: usedMem,
       free: freeMem,
-      usage: ((usedMem / totalMem) * 100).toFixed(2)
+      usage: ((usedMem / totalMem) * 100).toFixed(2),
     };
   }
 
@@ -552,16 +583,19 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     if (si) {
       try {
         const fsSize = await si.fsSize();
-        return fsSize.map(fs => ({
+        return fsSize.map((fs) => ({
           fs: fs.fs,
           type: fs.type,
           size: fs.size,
           used: fs.used,
           available: fs.available,
-          usage: fs.use
+          usage: fs.use,
         }));
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation 磁盘获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation 磁盘获取失败:",
+          error,
+        );
       }
     }
 
@@ -581,11 +615,14 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
           return {
             rx: primaryInterface.rx_sec || 0,
             tx: primaryInterface.tx_sec || 0,
-            interface: primaryInterface.iface
+            interface: primaryInterface.iface,
           };
         }
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation 网络获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation 网络获取失败:",
+          error,
+        );
       }
     }
 
@@ -594,7 +631,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     return {
       interfaces: Object.keys(networkInterfaces).length,
       rx: 0,
-      tx: 0
+      tx: 0,
     };
   }
 
@@ -610,10 +647,13 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
           distro: osInfo.distro,
           release: osInfo.release,
           arch: osInfo.arch,
-          kernel: osInfo.kernel
+          kernel: osInfo.kernel,
         };
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation OS 获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation OS 获取失败:",
+          error,
+        );
       }
     }
 
@@ -622,7 +662,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
       platform: os.platform(),
       release: os.release(),
       arch: os.arch(),
-      type: os.type()
+      type: os.type(),
     };
   }
 
@@ -638,19 +678,22 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
           brand: cpu.brand,
           cores: cpu.cores,
           speed: cpu.speed,
-          physicalCores: cpu.physicalCores
+          physicalCores: cpu.physicalCores,
         };
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation CPU 信息获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation CPU 信息获取失败:",
+          error,
+        );
       }
     }
 
     // Fallback: os.cpus()
     const cpus = os.cpus();
     return {
-      model: cpus[0]?.model || 'Unknown',
+      model: cpus[0]?.model || "Unknown",
       cores: cpus.length,
-      speed: cpus[0]?.speed || 0
+      speed: cpus[0]?.speed || 0,
     };
   }
 
@@ -664,7 +707,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     return {
       total: totalMem,
       free: freeMem,
-      used: totalMem - freeMem
+      used: totalMem - freeMem,
     };
   }
 
@@ -675,13 +718,16 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
     if (si) {
       try {
         const graphics = await si.graphics();
-        return graphics.controllers.map(g => ({
+        return graphics.controllers.map((g) => ({
           model: g.model,
           vendor: g.vendor,
-          vram: g.vram
+          vram: g.vram,
         }));
       } catch (error) {
-        logger.warn('[SystemHandlerEnhanced] systeminformation 显卡获取失败:', error);
+        logger.warn(
+          "[SystemHandlerEnhanced] systeminformation 显卡获取失败:",
+          error,
+        );
       }
     }
 
@@ -694,19 +740,19 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
    */
   getAppInfo() {
     try {
-      const packageJson = require('../../../package.json');
+      const packageJson = require("../../../package.json");
       return {
         name: packageJson.name,
         version: packageJson.version,
         electron: process.versions.electron,
         node: process.versions.node,
-        chrome: process.versions.chrome
+        chrome: process.versions.chrome,
       };
     } catch (error) {
-      logger.warn('[SystemHandlerEnhanced] 获取应用信息失败:', error);
+      logger.warn("[SystemHandlerEnhanced] 获取应用信息失败:", error);
       return {
         electron: process.versions.electron,
-        node: process.versions.node
+        node: process.versions.node,
       };
     }
   }
@@ -717,9 +763,13 @@ class SystemCommandHandlerEnhanced extends EventEmitter {
   getMetrics() {
     return {
       ...this.metrics,
-      successRate: this.metrics.totalRequests > 0
-        ? (this.metrics.successCount / this.metrics.totalRequests * 100).toFixed(2) + '%'
-        : '0%'
+      successRate:
+        this.metrics.totalRequests > 0
+          ? (
+              (this.metrics.successCount / this.metrics.totalRequests) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 }

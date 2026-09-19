@@ -11,11 +11,15 @@
  * @module remote/handlers/system-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
 const os = require("os");
 const { exec } = require("child_process");
 const { promisify } = require("util");
 const execAsync = promisify(exec);
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 系统命令处理器类
@@ -32,7 +36,7 @@ class SystemCommandHandler {
    * 处理命令（统一入口）
    */
   async handle(action, params, context) {
-    logger.debug(`[SystemHandler] 处理命令: ${action}`);
+    logger.debug("[SystemHandler] 处理命令", { action });
 
     switch (action) {
       case "getStatus":
@@ -145,9 +149,7 @@ class SystemCommandHandler {
       thumbnail = false,
     } = params;
 
-    logger.info(
-      `[SystemHandler] 截图请求 (display: ${display}, format: ${format})`,
-    );
+    logger.info("[SystemHandler] 截图请求", { display, format });
 
     try {
       const { desktopCapturer, screen } = require("electron");
@@ -207,9 +209,10 @@ class SystemCommandHandler {
 
       const imageSize = image.getSize();
 
-      logger.info(
-        `[SystemHandler] ✓ 截图成功: ${imageSize.width}x${imageSize.height}`,
-      );
+      logger.info("[SystemHandler] 截图成功", {
+        width: imageSize.width,
+        height: imageSize.height,
+      });
 
       return {
         format: format === "jpg" ? "jpeg" : format,
@@ -238,7 +241,7 @@ class SystemCommandHandler {
       throw new Error('Parameters "title" and "body" are required');
     }
 
-    logger.info(`[SystemHandler] 发送通知: ${title}`);
+    logger.info("[SystemHandler] 发送通知", { title });
 
     try {
       // 使用 Electron 的 Notification API
@@ -279,9 +282,10 @@ class SystemCommandHandler {
       throw new Error('Parameter "command" is required and must be a string');
     }
 
-    logger.warn(
-      `[SystemHandler] 执行 Shell 命令: ${command} (来自: ${context.did})`,
-    );
+    logger.warn("[SystemHandler] 执行 Shell 命令", {
+      command,
+      did: context.did,
+    });
 
     try {
       // 安全检查：禁止某些危险命令
