@@ -89,6 +89,35 @@ describe("SkillMarketplaceClient", () => {
       await client.initialize();
       expect(client.initialized).toBe(true);
     });
+
+    it("does not disclose database initialization errors", async () => {
+      const secret = "skill-marketplace-initialize-secret";
+      mockDb.db.exec.mockImplementation(() => {
+        throw new Error(secret);
+      });
+
+      const initialization = client.initialize();
+
+      await expect(initialization).rejects.toMatchObject({
+        message: "Skill service operation failed",
+        code: "SKILL_SERVICE_OPERATION_FAILED",
+      });
+      await expect(initialization).rejects.not.toThrow(secret);
+    });
+
+    it("has no raw caught-error rethrows", async () => {
+      const { readFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const source = await readFile(
+        resolve(
+          process.cwd(),
+          "src/main/marketplace/skill-marketplace-client.js",
+        ),
+        "utf8",
+      );
+
+      expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
+    });
   });
 
   // ── searchSkills ──────────────────────────────────────────────────────────────

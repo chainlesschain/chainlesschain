@@ -10,6 +10,9 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+const {
+  createPluginOperationError,
+} = require("../plugins/plugin-ipc-error-boundary");
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { types: utilTypes } = require("node:util");
@@ -19,6 +22,14 @@ const {
 const GOVERNED_HOSTS = new WeakMap();
 
 const logger = createPluginLogRedactor(pluginLogSink, "SkillMarketplaceClient");
+
+function createGovernedMarketplaceUnavailableError() {
+  const error = new Error(
+    "Governed Skill marketplace is unavailable: configure a signed Desktop deployment",
+  );
+  error.code = "CC_GOVERNED_MARKETPLACE_UNAVAILABLE";
+  return error;
+}
 
 function requestOptions(value, keys) {
   if (
@@ -104,7 +115,7 @@ class SkillMarketplaceClient extends EventEmitter {
       logger.info("[SkillMarketplace] 技能市场客户端初始化成功");
     } catch (error) {
       logger.error("[SkillMarketplace] 初始化失败:", error);
-      throw error;
+      throw createPluginOperationError("skillService");
     }
   }
 
@@ -208,11 +219,7 @@ class SkillMarketplaceClient extends EventEmitter {
   _governedHost() {
     const host = GOVERNED_HOSTS.get(this);
     if (!host) {
-      const error = new Error(
-        "Governed Skill marketplace is unavailable: configure a signed Desktop deployment",
-      );
-      error.code = "CC_GOVERNED_MARKETPLACE_UNAVAILABLE";
-      throw error;
+      throw createGovernedMarketplaceUnavailableError();
     }
     return host;
   }
