@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => "C:/unused") },
@@ -10,6 +10,11 @@ vi.mock("../../utils/logger.js", () => ({
 }));
 
 const PluginLoader = require("../plugin-loader.js");
+const originalFsp = PluginLoader._deps.fsp;
+
+afterEach(() => {
+  PluginLoader._deps.fsp = originalFsp;
+});
 
 function createProcess() {
   const process = new EventEmitter();
@@ -153,5 +158,64 @@ describe("PluginLoader process execution", () => {
       code: "PLUGIN_COMMAND_SPAWN_FAILED",
     });
     await expect(resultPromise).rejects.not.toThrow(secret);
+  });
+
+  it("does not disclose manifest read errors", async () => {
+    const secret = "plugin-manifest-read-secret";
+    PluginLoader._deps.fsp = {
+      ...originalFsp,
+      readFile: vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error(secret), { code: "EACCES" }),
+        ),
+    };
+    const loader = createLoader(vi.fn());
+
+    const loading = loader.loadManifest("C:/plugins/demo");
+
+    await expect(loading).rejects.toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+    await expect(loading).rejects.not.toThrow(secret);
+  });
+
+  it("does not disclose plugin entry read errors", async () => {
+    const secret = "plugin-entry-read-secret";
+    PluginLoader._deps.fsp = {
+      ...originalFsp,
+      readFile: vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error(secret), { code: "EACCES" }),
+        ),
+    };
+    const loader = createLoader(vi.fn());
+    loader.loadManifest = vi.fn().mockResolvedValue({
+      id: "demo",
+      name: "Demo",
+      version: "1.0.0",
+      main: "index.js",
+    });
+
+    const loading = loader.loadCode("C:/plugins/demo");
+
+    await expect(loading).rejects.toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+    await expect(loading).rejects.not.toThrow(secret);
+  });
+
+  it("has no raw caught-error rethrows", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const source = await readFile(
+      resolve(process.cwd(), "src/main/plugins/plugin-loader.js"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/throw\s+(?:error|err|err2|e)\s*;/u);
   });
 });

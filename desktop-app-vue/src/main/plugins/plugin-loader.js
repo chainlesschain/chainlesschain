@@ -9,10 +9,11 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
+const { createPluginOperationError } = require("./plugin-ipc-error-boundary");
 const { createHash } = require("node:crypto");
 const path = require("path");
 const fs = require("fs");
-const fsp = fs.promises;
+const _deps = { fsp: fs.promises };
 const { app } = require("electron");
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
 
@@ -105,7 +106,9 @@ class PluginLoader {
         path.join(this.pluginsDir, "custom"),
         this.tempDir,
       ];
-      await Promise.all(dirs.map((dir) => fsp.mkdir(dir, { recursive: true })));
+      await Promise.all(
+        dirs.map((dir) => _deps.fsp.mkdir(dir, { recursive: true })),
+      );
     })();
     return this._readyPromise;
   }
@@ -169,10 +172,11 @@ class PluginLoader {
 
     let content;
     try {
-      content = await fsp.readFile(manifestPath, "utf-8");
+      content = await _deps.fsp.readFile(manifestPath, "utf-8");
     } catch (err) {
       if (err.code !== "ENOENT") {
-        throw err;
+        logger.error("[PluginLoader] plugin.json 读取失败", err);
+        throw createPluginOperationError("plugin");
       }
       // 回退到 package.json
       const packagePath = path.join(pluginPath, "package.json");
@@ -182,7 +186,8 @@ class PluginLoader {
         if (err2.code === "ENOENT") {
           throw new Error("找不到 plugin.json 或 package.json");
         }
-        throw err2;
+        logger.error("[PluginLoader] package.json 读取失败", err2);
+        throw createPluginOperationError("plugin");
       }
     }
 
@@ -200,7 +205,7 @@ class PluginLoader {
    * @returns {Promise<Object>} manifest对象
    */
   async parsePackageJson(packagePath) {
-    const content = await fsp.readFile(packagePath, "utf-8");
+    const content = await _deps.fsp.readFile(packagePath, "utf-8");
     const pkg = JSON.parse(content);
 
     // 检查是否有chainlesschain配置节
@@ -344,12 +349,13 @@ class PluginLoader {
     // M2: 异步读取，避免启动期阻塞事件循环
     let code;
     try {
-      code = await fsp.readFile(entryPath, "utf-8");
+      code = await _deps.fsp.readFile(entryPath, "utf-8");
     } catch (err) {
       if (err.code === "ENOENT") {
         throw new Error(`插件入口文件不存在: ${entryPath}`);
       }
-      throw err;
+      logger.error("[PluginLoader] 插件入口文件读取失败", err);
+      throw createPluginOperationError("plugin");
     }
 
     return {
@@ -586,3 +592,4 @@ class PluginLoader {
 }
 
 module.exports = PluginLoader;
+module.exports._deps = _deps;
