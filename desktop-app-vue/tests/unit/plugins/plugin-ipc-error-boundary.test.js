@@ -211,6 +211,9 @@ describe("plugin IPC error boundary", () => {
 
   it("projects regular plugin query and filesystem success payloads", async () => {
     const secret = "C:/private/regular-plugin-secret";
+    const sandbox = {
+      callMethod: vi.fn().mockResolvedValue({ secret }),
+    };
     const handlers = new Map();
     const plugin = {
       id: "plugin-1",
@@ -258,6 +261,7 @@ describe("plugin IPC error boundary", () => {
         pluginId: "plugin-1",
         path: secret,
       }),
+      sandboxes: new Map([["plugin-1", sandbox]]),
       registry: {
         getExtensionsByPoint: (point) => [
           {
@@ -314,6 +318,12 @@ describe("plugin IPC error boundary", () => {
     );
     const tools = await handlers.get("plugin:get-tools")({}, "plugin-1");
     const skills = await handlers.get("plugin:get-skills")({}, "plugin-1");
+    const execution = await handlers.get("plugin:execute-tool")(
+      {},
+      "plugin-1",
+      "search",
+      { query: "public" },
+    );
 
     expect(list.plugins[0]).toMatchObject({
       id: "plugin-1",
@@ -362,6 +372,10 @@ describe("plugin IPC error boundary", () => {
       tags: ["research"],
       tools: ["search"],
     });
+    expect(execution).toEqual({ success: true, executed: true });
+    expect(sandbox.callMethod).toHaveBeenCalledWith("executeTool", "search", {
+      query: "public",
+    });
     expect(
       JSON.stringify({
         list,
@@ -373,6 +387,7 @@ describe("plugin IPC error boundary", () => {
         page,
         tools,
         skills,
+        execution,
       }),
     ).not.toContain(secret);
   });

@@ -10,6 +10,7 @@ const {
   projectPluginSettings,
   projectPluginSkillDefinitions,
   projectPluginToolDefinitions,
+  projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
 } = require("../plugin-public-projection.js");
 
@@ -337,5 +338,12 @@ describe("plugin public projection", () => {
       },
     ]);
     expect(JSON.stringify({ tools, skills })).not.toContain(secret);
+  });
+
+  it("returns a fixed plugin tool execution receipt", () => {
+    expect(projectPluginToolExecutionReceipt()).toEqual({
+      success: true,
+      executed: true,
+    });
   });
 });

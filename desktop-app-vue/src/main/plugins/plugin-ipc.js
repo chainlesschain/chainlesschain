@@ -13,6 +13,7 @@ const {
   projectPluginSettings,
   projectPluginSkillDefinitions,
   projectPluginToolDefinitions,
+  projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const path = require("path");
@@ -748,8 +749,8 @@ function registerPluginIPC({
       }
 
       // 调用工具执行方法
-      const result = await sandbox.callMethod("executeTool", toolId, params);
-      return { success: true, result };
+      await sandbox.callMethod("executeTool", toolId, params);
+      return projectPluginToolExecutionReceipt();
     }),
   );
 

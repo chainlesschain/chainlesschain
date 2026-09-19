@@ -375,6 +375,10 @@ function projectPluginSkillDefinitions(skills) {
   });
 }
 
+function projectPluginToolExecutionReceipt() {
+  return { success: true, executed: true };
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginPageContent,
@@ -383,5 +387,6 @@ module.exports = {
   projectPluginSettings,
   projectPluginSkillDefinitions,
   projectPluginToolDefinitions,
+  projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
 };

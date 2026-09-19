@@ -13,6 +13,7 @@ const {
   projectPluginSettings,
   projectPluginSkillDefinitions,
   projectPluginToolDefinitions,
+  projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
 } = require("./plugin-public-projection");
 const { ipcMain } = require("electron");
@@ -443,8 +444,8 @@ function registerLazyPluginIPC({
           throw new Error(`插件沙箱不存在: ${pluginId}`);
         }
         // 调用工具执行方法
-        const result = await sandbox.callMethod("executeTool", toolId, params);
-        return { success: true, result };
+        await sandbox.callMethod("executeTool", toolId, params);
+        return projectPluginToolExecutionReceipt();
       } catch (error) {
         logger.error("[Plugin Lazy IPC] 执行插件工具失败:", error);
         return createPluginIpcFailureResult("pluginLazy");

@@ -45,6 +45,9 @@ describe("lazy plugin IPC error boundary", () => {
 
   it("projects successful plugin queries and install receipts", async () => {
     const secret = "C:/private/lazy-plugin-secret";
+    const sandbox = {
+      callMethod: vi.fn().mockResolvedValue({ secret }),
+    };
     const plugin = {
       id: "plugin-1",
       name: "Plugin",
@@ -94,6 +97,7 @@ describe("lazy plugin IPC error boundary", () => {
             pluginId: "plugin-1",
             path: secret,
           }),
+          plugins: new Map([["plugin-1", { sandbox }]]),
           registry: {
             getExtensionsByPoint: vi.fn((point) => [
               {
@@ -148,6 +152,12 @@ describe("lazy plugin IPC error boundary", () => {
     );
     const tools = await ipc.handlers.get("plugin:get-tools")({}, "plugin-1");
     const skills = await ipc.handlers.get("plugin:get-skills")({}, "plugin-1");
+    const execution = await ipc.handlers.get("plugin:execute-tool")(
+      {},
+      "plugin-1",
+      "search",
+      { query: "public" },
+    );
 
     expect(list[0]).toMatchObject({
       id: "plugin-1",
@@ -196,6 +206,10 @@ describe("lazy plugin IPC error boundary", () => {
       tags: ["research"],
       tools: ["search"],
     });
+    expect(execution).toEqual({ success: true, executed: true });
+    expect(sandbox.callMethod).toHaveBeenCalledWith("executeTool", "search", {
+      query: "public",
+    });
     expect(
       JSON.stringify({
         list,
@@ -207,6 +221,7 @@ describe("lazy plugin IPC error boundary", () => {
         page,
         tools,
         skills,
+        execution,
       }),
     ).not.toContain(secret);
   });
