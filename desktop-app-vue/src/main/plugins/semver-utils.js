@@ -1,4 +1,7 @@
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
+
+const logger = createPluginLogRedactor(pluginLogSink, "SemverUtils");
 
 /**
  * 轻量级 Semver 版本检查工具

@@ -8,7 +8,8 @@
  * - 事件协调
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const EventEmitter = require("events");
 const path = require("path");
 const fs = require("fs");
@@ -16,6 +17,8 @@ const PluginRegistry = require("./plugin-registry");
 const PluginLoader = require("./plugin-loader");
 const PermissionChecker = require("./permission-checker");
 const PluginAPI = require("./plugin-api");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginManager");
 const PluginSandbox = require("./plugin-sandbox");
 const semver = require("./semver-utils");
 const { getPermissionDialogManager } = require("./permission-dialog-manager");

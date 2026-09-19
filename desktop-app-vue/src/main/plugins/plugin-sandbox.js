@@ -8,11 +8,14 @@
  * - 生命周期钩子调用
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { isWithinDir } = require("../utils/path-boundary.js");
 const vm = require("vm");
 const fs = require("fs");
 const EventEmitter = require("events");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginSandbox");
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)

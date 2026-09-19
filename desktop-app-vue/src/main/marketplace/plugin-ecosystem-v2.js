@@ -3,7 +3,10 @@
  * Phase 99: AI-driven plugin ecosystem - recommendation, dependency resolution, sandbox, AI review, revenue
  */
 const EventEmitter = require("events");
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginEcosystemV2");
 
 class PluginEcosystemV2 extends EventEmitter {
   constructor() {

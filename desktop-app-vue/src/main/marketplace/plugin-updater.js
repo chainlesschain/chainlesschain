@@ -7,9 +7,12 @@
  * @module marketplace/plugin-updater
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const { v4: uuidv4 } = require("uuid");
 const { EventEmitter } = require("events");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginUpdater");
 
 /**
  * Default marketplace settings

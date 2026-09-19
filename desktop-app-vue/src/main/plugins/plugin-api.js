@@ -1,5 +1,8 @@
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { isWithinDir } = require("../utils/path-boundary.js");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginAPI");
 
 function isKnownDirectModelProviderEndpoint(url) {
   const parsed = new URL(url);

@@ -5,11 +5,14 @@
  * 支持插件发现、下载、评分、评论等功能
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginMarketplaceAPI");
 
 class PluginMarketplaceAPI {
   constructor(config = {}) {

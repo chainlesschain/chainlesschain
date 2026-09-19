@@ -7,12 +7,15 @@
  * - 插件代码加载和安装
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
 const { app } = require("electron");
 const { spawnWithDesktopBroker } = require("../process/desktop-process-broker");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginLoader");
 
 class PluginLoader {
   constructor({

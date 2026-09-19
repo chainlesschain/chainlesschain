@@ -7,7 +7,10 @@
  * @module marketplace/marketplace-ipc
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
+
+const logger = createPluginLogRedactor(pluginLogSink, "MarketplaceIPC");
 
 // Tolerate a corrupt metadata column so one malformed row doesn't throw out of
 // the installed-plugins .map and fail the whole marketplace:list-installed

@@ -4,10 +4,13 @@
  * 处理前端与插件市场相关的IPC通信
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { ipcMain } = require("electron");
 const { getPluginMarketplaceAPI } = require("./marketplace-api");
 const PluginUpdateManager = require("./update-manager");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginMarketplaceIPC");
 
 /**
  * 注册插件市场IPC处理程序

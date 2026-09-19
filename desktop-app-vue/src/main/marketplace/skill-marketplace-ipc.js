@@ -2,8 +2,11 @@
 
 const { ipcMain } = require("electron");
 const { types: utilTypes } = require("node:util");
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const { validateSender } = require("../ipc/ipc-sender-guard");
+
+const logger = createPluginLogRedactor(pluginLogSink, "SkillMarketplaceIPC");
 
 function inputFields(value, fields) {
   if (

@@ -3,8 +3,11 @@
  * 在首次访问时才初始化插件系统，节省启动时间 2-3 秒
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { ipcMain } = require("electron");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginLazyIPC");
 
 /**
  * 确保插件系统已初始化

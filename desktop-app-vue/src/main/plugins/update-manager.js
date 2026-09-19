@@ -5,11 +5,14 @@
  * 支持自动更新和手动更新
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
 const { getPluginMarketplaceAPI } = require("./marketplace-api");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginUpdateManager");
 
 class PluginUpdateManager extends EventEmitter {
   constructor(pluginManager, config = {}) {

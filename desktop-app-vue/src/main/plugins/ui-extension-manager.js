@@ -7,9 +7,12 @@
  * - 提供扩展点查询接口
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const EventEmitter = require("events");
 const path = require("path");
+
+const logger = createPluginLogRedactor(pluginLogSink, "UIExtensionManager");
 
 class UIExtensionManager extends EventEmitter {
   constructor() {

@@ -8,10 +8,13 @@
  * @version 1.0.0
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs").promises;
+
+const logger = createPluginLogRedactor(pluginLogSink, "SkillPackager");
 
 const REQUIRED_FIELDS = ["name", "version", "description"];
 

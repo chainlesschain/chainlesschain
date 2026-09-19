@@ -8,7 +8,8 @@
  * @version 1.0.0
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { types: utilTypes } = require("node:util");
@@ -16,6 +17,8 @@ const {
   isDesktopGovernedSkillMarketplaceHost,
 } = require("./governed-skill-marketplace-host");
 const GOVERNED_HOSTS = new WeakMap();
+
+const logger = createPluginLogRedactor(pluginLogSink, "SkillMarketplaceClient");
 
 function requestOptions(value, keys) {
   if (

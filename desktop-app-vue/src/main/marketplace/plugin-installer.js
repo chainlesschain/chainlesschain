@@ -12,10 +12,13 @@
  *   updated_at, success, error_message)
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const SqlSecurity = require("../database/sql-security.js");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginInstaller");
 const fs = require("fs").promises;
 const crypto = require("crypto");
 

@@ -1,5 +1,8 @@
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const fs = require("fs");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginRegistry");
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)

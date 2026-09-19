@@ -7,8 +7,14 @@
  * - 维护待处理的权限请求队列
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const EventEmitter = require("events");
+
+const logger = createPluginLogRedactor(
+  pluginLogSink,
+  "PermissionDialogManager",
+);
 
 /**
  * 权限风险等级定义

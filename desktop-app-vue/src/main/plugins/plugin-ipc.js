@@ -3,7 +3,8 @@
  * 提供前端调用的插件管理接口
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const path = require("path");
 const {
   getPermissionDialogManager,
@@ -11,6 +12,8 @@ const {
   RISK_LEVELS,
   PERMISSION_DETAILS,
 } = require("./permission-dialog-manager");
+
+const logger = createPluginLogRedactor(pluginLogSink, "PluginIPC");
 
 function registerPluginIPC({
   pluginManager,

@@ -6,7 +6,7 @@ vi.mock("electron", () => ({
 }));
 
 vi.mock("../../utils/logger.js", () => ({
-  logger: { info: vi.fn(), error: vi.fn() },
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 const PluginLoader = require("../plugin-loader.js");

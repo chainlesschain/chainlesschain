@@ -9,8 +9,11 @@
  * Response format: { success: true, message: "...", data: {...}, timestamp: ... }
  */
 
-const { logger } = require("../utils/logger.js");
+const { logger: pluginLogSink } = require("../utils/logger.js");
+const { createPluginLogRedactor } = require("../plugins/plugin-log-redaction");
 const { v4: uuidv4 } = require("uuid");
+
+const logger = createPluginLogRedactor(pluginLogSink, "MarketplaceClient");
 
 let axios;
 try {
