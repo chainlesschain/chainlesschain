@@ -1,8 +1,10 @@
 import crypto from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   SKILL_INVOCATION_RECEIPT_SCHEMA,
+  buildSkillInvocationTraceProjection,
   startSkillInvocation,
   settleSkillInvocation,
   verifySkillInvocationReceipt,
@@ -50,6 +52,7 @@ function started(overrides = {}) {
       toolSetDigest: digest("b"),
       osSandboxPermissionPolicyDigest: digest("c"),
       taskCohort: "test",
+      environmentDigest: digest("e"),
       attributionRequired: true,
       ...overrides,
     },
@@ -117,6 +120,34 @@ describe("Skill invocation receipt structural verifier", () => {
     ).toThrow(/attribution is invalid/u);
   });
 
+  it("reads v1 receipts but keeps their missing environment binding ineligible", () => {
+    const current = settled();
+    const legacyCore = { ...current };
+    delete legacyCore.environmentDigest;
+    delete legacyCore.receiptDigest;
+    legacyCore.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+    const legacy = Object.freeze({
+      ...legacyCore,
+      receiptDigest: `sha256:${crypto
+        .createHash("sha256")
+        .update(
+          `${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonicalJson(legacyCore)}`,
+        )
+        .digest("hex")}`,
+    });
+
+    expect(verifySkillInvocationReceipt(legacy)).toBe(legacy);
+    expect(
+      buildSkillInvocationTraceProjection([legacy], "trace:test"),
+    ).toMatchObject({
+      complete: false,
+      environmentBound: false,
+      invocations: [
+        { environmentDigest: null, legacyEnvironmentUnbound: true },
+      ],
+    });
+  });
+
   it("refuses to settle a forged started receipt", () => {
     expect(() =>
       settleSkillInvocation(
@@ -124,6 +155,24 @@ describe("Skill invocation receipt structural verifier", () => {
         { executionStatus: "completed" },
       ),
     ).toThrow(/structure is invalid/u);
+  });
+
+  it("rejects accessor and proxy receipts without invoking their traps", () => {
+    const getter = vi.fn(() => SKILL_INVOCATION_RECEIPT_SCHEMA);
+    const accessor = { ...settled() };
+    Object.defineProperty(accessor, "schema", {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() => verifySkillInvocationReceipt(accessor)).toThrow(/structure/u);
+    expect(getter).not.toHaveBeenCalled();
+
+    const trap = vi.fn(() => {
+      throw new Error("proxy trap must not run");
+    });
+    const proxy = new Proxy({}, { get: trap });
+    expect(() => verifySkillInvocationReceipt(proxy)).toThrow(/structure/u);
+    expect(trap).not.toHaveBeenCalled();
   });
 
   it("enforces canonical monotonic time, integer tokens, and unique graders", () => {

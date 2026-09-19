@@ -826,6 +826,7 @@ class SkillRegistry extends EventEmitter {
       osSandboxPermissionPolicyDigest:
         executionContext.osSandboxPermissionPolicyDigest,
       taskCohort: executionContext.taskCohort,
+      environmentDigest: executionContext.environmentDigest,
     });
 
     return {

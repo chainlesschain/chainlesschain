@@ -1,5 +1,5 @@
 /**
- * Self-Improving Agent Skill Handler (v2.0)
+ * Self-Improving Agent Skill Handler (v4.0)
  *
  * Tracks errors, corrections, and patterns to enable continuous improvement.
  * Enhanced: confidence scoring, skill extraction (Claudeception pattern),
@@ -9,6 +9,7 @@
  */
 
 const { logger } = require("../../../../../utils/logger.js");
+const { createHash } = require("node:crypto");
 const path = require("path");
 const {
   requireBundledSkillEnvironmentBroker,
@@ -31,8 +32,13 @@ let history = {
 let learnings = {
   instincts: [],
   skills: [],
-  meta: { version: 2, totalExtractions: 0 },
+  meta: { version: 4, totalExtractions: 0 },
 };
+
+const CALLER_OBSERVATION_PROVENANCE_SCHEMA =
+  "chainlesschain.self-improving-caller-observation-provenance/v1";
+const CALLER_OBSERVATION_RECORD_DOMAIN =
+  "chainlesschain.self-improving-caller-observation-record/v1";
 
 function _resetState() {
   dataDir = null;
@@ -46,8 +52,183 @@ function _resetState() {
   learnings = {
     instincts: [],
     skills: [],
-    meta: { version: 2, totalExtractions: 0 },
+    meta: { version: 4, totalExtractions: 0 },
   };
+}
+
+function canonicalJson(value) {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+    .join(",")}}`;
+}
+
+function callerObservationProvenance(record, recordKind, sourceFormatVersion) {
+  const sourceRecord = JSON.parse(
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(record).filter(([key]) => key !== "provenance"),
+      ),
+    ),
+  );
+  const sourceRecordDigest = `sha256:${createHash("sha256")
+    .update(CALLER_OBSERVATION_RECORD_DOMAIN)
+    .update("\0")
+    .update(canonicalJson(sourceRecord))
+    .digest("hex")}`;
+  return {
+    schema: CALLER_OBSERVATION_PROVENANCE_SCHEMA,
+    origin: "self-improving-agent",
+    sourceFormatVersion:
+      Number.isSafeInteger(sourceFormatVersion) && sourceFormatVersion > 0
+        ? sourceFormatVersion
+        : 1,
+    recordKind,
+    recordId:
+      typeof record.id === "string" && record.id !== ""
+        ? record.id
+        : `digest-${sourceRecordDigest.slice(7, 23)}`,
+    sourceRecordDigest,
+    sourceEvidenceRef: `self-improving:${sourceRecordDigest}`,
+    sourceRecord,
+    callerVerificationClaim: record.verified === true,
+    legacyVerificationStatus:
+      typeof record.verificationStatus === "string"
+        ? record.verificationStatus
+        : null,
+    independentEvidenceRefs: [],
+  };
+}
+
+function attachCallerObservationProvenance(
+  record,
+  recordKind,
+  sourceFormatVersion,
+) {
+  if (record.provenance === undefined) {
+    record.provenance = callerObservationProvenance(
+      record,
+      recordKind,
+      sourceFormatVersion,
+    );
+    return true;
+  }
+  const provenance = record.provenance;
+  if (
+    !provenance ||
+    typeof provenance !== "object" ||
+    provenance.schema !== CALLER_OBSERVATION_PROVENANCE_SCHEMA ||
+    provenance.origin !== "self-improving-agent" ||
+    provenance.recordKind !== recordKind ||
+    !Number.isSafeInteger(provenance.sourceFormatVersion) ||
+    provenance.sourceFormatVersion < 1 ||
+    typeof provenance.recordId !== "string" ||
+    !provenance.sourceRecord ||
+    typeof provenance.sourceRecord !== "object" ||
+    Array.isArray(provenance.sourceRecord) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(provenance.sourceRecordDigest ?? "") ||
+    provenance.sourceRecordDigest !==
+      `sha256:${createHash("sha256")
+        .update(CALLER_OBSERVATION_RECORD_DOMAIN)
+        .update("\0")
+        .update(canonicalJson(provenance.sourceRecord))
+        .digest("hex")}` ||
+    provenance.sourceEvidenceRef !==
+      `self-improving:${provenance.sourceRecordDigest}` ||
+    typeof provenance.callerVerificationClaim !== "boolean" ||
+    !Array.isArray(provenance.independentEvidenceRefs) ||
+    provenance.independentEvidenceRefs.length !== 0
+  ) {
+    const error = new Error(
+      "Self-improving caller-observation provenance is invalid",
+    );
+    error.code = "SELF_IMPROVE_PROVENANCE_INVALID";
+    throw error;
+  }
+  return false;
+}
+
+function migrateLearningVerificationState() {
+  let changed = false;
+  if (!Array.isArray(learnings.instincts)) {
+    learnings.instincts = [];
+    changed = true;
+  }
+  if (!Array.isArray(learnings.skills)) {
+    learnings.skills = [];
+    changed = true;
+  }
+  if (!learnings.meta || typeof learnings.meta !== "object") {
+    learnings.meta = { version: 1, totalExtractions: 0 };
+    changed = true;
+  }
+  const sourceFormatVersion = learnings.meta.version;
+  if (learnings.meta.version !== 4) {
+    learnings.meta.version = 4;
+    changed = true;
+  }
+  if (!Number.isSafeInteger(learnings.meta.totalExtractions)) {
+    learnings.meta.totalExtractions =
+      learnings.instincts.length + learnings.skills.length;
+    changed = true;
+  }
+  for (const instinct of learnings.instincts) {
+    if (!instinct || typeof instinct !== "object") continue;
+    changed =
+      attachCallerObservationProvenance(
+        instinct,
+        "instinct",
+        sourceFormatVersion,
+      ) || changed;
+    if (
+      !["unchecked", "caller-check-passed", "caller-check-failed"].includes(
+        instinct.verificationStatus,
+      )
+    ) {
+      instinct.verificationStatus =
+        Number(instinct.successCount || 0) > 0
+          ? "caller-check-passed"
+          : Number(instinct.failureCount || 0) > 0
+            ? "caller-check-failed"
+            : "unchecked";
+      changed = true;
+    }
+    // Legacy caller-reported checks are useful observations, not independent
+    // Candidate/Eval/Review/Promotion evidence.
+    if (instinct.verified !== false) {
+      instinct.verified = false;
+      changed = true;
+    }
+    if (instinct.promotionEligible !== false) {
+      instinct.promotionEligible = false;
+      changed = true;
+    }
+    if (instinct.evidenceClass !== "caller-observation") {
+      instinct.evidenceClass = "caller-observation";
+      changed = true;
+    }
+  }
+  for (const skill of learnings.skills) {
+    if (!skill || typeof skill !== "object") continue;
+    changed =
+      attachCallerObservationProvenance(skill, "skill", sourceFormatVersion) ||
+      changed;
+    if (skill.lifecycleStatus !== "candidate-only") {
+      skill.lifecycleStatus = "candidate-only";
+      changed = true;
+    }
+    if (skill.promotionEligible !== false) {
+      skill.promotionEligible = false;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 function configureDataDir(context) {
@@ -108,13 +289,21 @@ function saveHistory() {
 
 function loadLearnings() {
   ensureDataDir();
+  let loaded = false;
   try {
     if (fs.existsSync(learningsPath)) {
       const raw = fs.readFileSync(learningsPath, "utf-8");
       learnings = JSON.parse(raw);
+      loaded = true;
     }
   } catch (err) {
     logger.warn("[SelfImprove] Failed to load learnings:", err.message);
+    return;
+  }
+  if (loaded && migrateLearningVerificationState()) {
+    // Migration is part of the trust boundary: do not expose an in-memory v4
+    // view while leaving an unverifiable legacy file on disk.
+    saveLearnings();
   }
 }
 
@@ -160,11 +349,6 @@ function restoreState(snapshot) {
 
 function calculateConfidence(instinct) {
   let score = 0.5; // Base
-
-  // Verification bonus
-  if (instinct.verified) {
-    score += 0.2;
-  }
 
   // Usage frequency bonus (capped at 0.2)
   const usageBonus = Math.min(0.2, (instinct.usageCount || 0) * 0.04);
@@ -217,6 +401,9 @@ function handleCaptureInstinct(description, trigger, solution) {
     solution: solution || null,
     confidence: 0.5,
     verified: false,
+    verificationStatus: "unchecked",
+    evidenceClass: "caller-observation",
+    promotionEligible: false,
     usageCount: 0,
     successCount: 0,
     failureCount: 0,
@@ -225,6 +412,7 @@ function handleCaptureInstinct(description, trigger, solution) {
       description + " " + (trigger || "") + " " + (solution || ""),
     ),
   };
+  attachCallerObservationProvenance(instinct, "instinct", 4);
 
   instinct.confidence = calculateConfidence(instinct);
   learnings.instincts.push(instinct);
@@ -251,7 +439,12 @@ function handleVerifyInstinct(instinctId, success) {
     };
   }
 
-  instinct.verified = true;
+  instinct.verified = false;
+  instinct.verificationStatus = success
+    ? "caller-check-passed"
+    : "caller-check-failed";
+  instinct.evidenceClass = "caller-observation";
+  instinct.promotionEligible = false;
   instinct.lastUsed = new Date().toISOString();
   instinct.usageCount++;
   if (success) {
@@ -266,7 +459,7 @@ function handleVerifyInstinct(instinctId, success) {
     success: true,
     action: "verify-instinct",
     result: { instinct },
-    message: `Instinct "${instinct.description.substring(0, 40)}" ${success ? "verified as successful" : "marked as failed"} (confidence: ${instinct.confidence})`,
+    message: `Instinct "${instinct.description.substring(0, 40)}" ${success ? "recorded a successful caller check" : "recorded a failed caller check"} (confidence: ${instinct.confidence}; candidate-only)`,
   };
 }
 
@@ -335,8 +528,9 @@ function handleExtractSkill(
     version: "1.0.0",
     tags: extractKeywords(description + " " + name),
     relatedInstincts: [],
+    lifecycleStatus: "candidate-only",
+    promotionEligible: false,
   };
-
   // Link related instincts by keyword overlap
   const skillKeywords = new Set(skill.tags);
   for (const instinct of learnings.instincts) {
@@ -347,6 +541,7 @@ function handleExtractSkill(
       skill.relatedInstincts.push(instinct.id);
     }
   }
+  attachCallerObservationProvenance(skill, "skill", 4);
 
   learnings.skills.push(skill);
   learnings.meta.totalExtractions++;
@@ -385,10 +580,24 @@ function handleExportLearnings() {
   loadHistory();
 
   const exported = {
-    version: 2,
+    version: 4,
     exportDate: new Date().toISOString(),
     instincts: learnings.instincts,
     skills: learnings.skills,
+    candidateSourceHints: learnings.skills.map((skill) => ({
+      skillId: skill.id,
+      skillName: skill.name,
+      lifecycleStatus: "candidate-only",
+      promotionEligible: false,
+      derivationMode: "manual-import",
+      sourceEvidenceRefs: [
+        {
+          ref: skill.provenance.sourceEvidenceRef,
+          digest: skill.provenance.sourceRecordDigest,
+        },
+      ],
+      independentEvidenceRefs: [],
+    })),
     errorHistory: history.errors.slice(-50),
     corrections: history.corrections.slice(-50),
     stats: {
@@ -465,12 +674,16 @@ function handleRecordError(errorDesc, fix) {
       solution: fix.substring(0, 200),
       confidence: 0.4,
       verified: false,
+      verificationStatus: "unchecked",
+      evidenceClass: "caller-observation",
+      promotionEligible: false,
       usageCount: 0,
       successCount: 0,
       failureCount: 0,
       lastUsed: null,
       tags: entry.keywords,
     };
+    attachCallerObservationProvenance(autoInstinct, "instinct", 4);
     learnings.instincts.push(autoInstinct);
     learnings.meta.totalExtractions++;
     saveLearnings();

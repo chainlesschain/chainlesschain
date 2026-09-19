@@ -3434,6 +3434,7 @@ describe("Evolution Eval Gate P0 foundation", () => {
     expect(harness.ports.executor.execute).not.toHaveBeenCalled();
     expect([...childEvidenceRecords.values()].map(({ kind }) => kind)).toEqual([
       "revocation",
+      "supervision",
     ]);
   }, 15_000);
 

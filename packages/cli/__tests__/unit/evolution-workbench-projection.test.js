@@ -210,6 +210,7 @@ function invocation(candidate) {
       toolSetDigest: D("tools"),
       osSandboxPermissionPolicyDigest: D("sandbox-policy"),
       taskCohort: "pilot:workbench",
+      environmentDigest: D("environment"),
       selectedSkillDigest: candidate.contentDigest,
       routerCandidates: [
         {

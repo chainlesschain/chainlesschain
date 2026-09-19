@@ -29,6 +29,7 @@ function completeContext(overrides = {}) {
     toolSetDigest: digest("tools:v1"),
     osSandboxPermissionPolicyDigest: digest("policy:v1"),
     taskCohort: "cohort:test",
+    environmentDigest: digest("environment:v1"),
     ...overrides,
   };
 }

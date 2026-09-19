@@ -19,6 +19,7 @@ export function settledSkillInvocationReceipt(overrides = {}) {
       toolSetDigest: sha256("b"),
       osSandboxPermissionPolicyDigest: sha256("c"),
       taskCohort: "test",
+      environmentDigest: sha256("d"),
       attributionRequired: true,
     },
     {

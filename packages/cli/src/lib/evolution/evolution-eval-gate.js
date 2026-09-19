@@ -1058,7 +1058,8 @@ export function buildEvolutionEvalAttestationDigest(value, purpose) {
 export function computeEvolutionEvalSignedEvidenceDigest(record, purpose) {
   if (
     purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetInvocation &&
-    purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation
+    purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.targetRevocation &&
+    purpose !== EVOLUTION_EVAL_ATTESTATION_PURPOSES.supervisor
   ) {
     throw evalError(
       EVOLUTION_EVAL_INVALID_CODE,

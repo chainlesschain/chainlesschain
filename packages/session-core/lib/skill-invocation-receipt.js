@@ -1,8 +1,11 @@
 const crypto = require("node:crypto");
+const { isProxy } = require("node:util").types;
 
-const SKILL_INVOCATION_RECEIPT_SCHEMA =
+const LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-invocation-receipt/v1";
-const REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
+const SKILL_INVOCATION_RECEIPT_SCHEMA =
+  "chainlesschain.skill-invocation-receipt/v2";
+const LEGACY_REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
   "evolutionRunId",
   "traceId",
   "trajectorySegmentId",
@@ -11,26 +14,34 @@ const REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
   "osSandboxPermissionPolicyDigest",
   "taskCohort",
 ]);
+const REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
+  ...LEGACY_REQUIRED_ATTRIBUTION_FIELDS,
+  "environmentDigest",
+]);
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-const RECEIPT_KEYS = Object.freeze(
-  [
-    "schema",
-    "receiptId",
-    ...REQUIRED_ATTRIBUTION_FIELDS,
-    "selectedSkillDigests",
-    "routerCandidates",
-    "attributionStatus",
-    "attributionEligible",
-    "missingAttribution",
-    "executionStatus",
-    "graderReceipts",
-    "userCorrectionRef",
-    "tokenCostLatency",
-    "startedAt",
-    "completedAt",
-    "receiptDigest",
-  ].sort(),
-);
+function receiptKeys(requiredAttributionFields) {
+  return Object.freeze(
+    [
+      "schema",
+      "receiptId",
+      ...requiredAttributionFields,
+      "selectedSkillDigests",
+      "routerCandidates",
+      "attributionStatus",
+      "attributionEligible",
+      "missingAttribution",
+      "executionStatus",
+      "graderReceipts",
+      "userCorrectionRef",
+      "tokenCostLatency",
+      "startedAt",
+      "completedAt",
+      "receiptDigest",
+    ].sort(),
+  );
+}
+const LEGACY_RECEIPT_KEYS = receiptKeys(LEGACY_REQUIRED_ATTRIBUTION_FIELDS);
+const RECEIPT_KEYS = receiptKeys(REQUIRED_ATTRIBUTION_FIELDS);
 
 function canonicalJson(value) {
   if (Array.isArray(value)) {
@@ -76,7 +87,12 @@ function nonNegative(value, field) {
 }
 
 function isPlainRecord(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    isProxy(value)
+  ) {
     return false;
   }
   const prototype = Object.getPrototypeOf(value);
@@ -84,12 +100,19 @@ function isPlainRecord(value) {
 }
 
 function hasExactKeys(value, keys) {
+  if (!isPlainRecord(value)) return false;
+  const actual = Reflect.ownKeys(value);
   return (
-    isPlainRecord(value) &&
-    Object.keys(value)
-      .sort()
-      .every((key, index) => key === keys[index]) &&
-    Object.keys(value).length === keys.length
+    actual.length === keys.length &&
+    actual.every((key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      return (
+        typeof key === "string" &&
+        keys.includes(key) &&
+        descriptor?.enumerable === true &&
+        "value" in descriptor
+      );
+    })
   );
 }
 
@@ -113,9 +136,22 @@ function isCanonicalInstant(value) {
 }
 
 function assertCommonReceiptStructure(value) {
+  const schemaDescriptor = isPlainRecord(value)
+    ? Object.getOwnPropertyDescriptor(value, "schema")
+    : null;
+  const legacy =
+    schemaDescriptor &&
+    "value" in schemaDescriptor &&
+    schemaDescriptor.value === LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  const requiredAttributionFields = legacy
+    ? LEGACY_REQUIRED_ATTRIBUTION_FIELDS
+    : REQUIRED_ATTRIBUTION_FIELDS;
   if (
-    !hasExactKeys(value, RECEIPT_KEYS) ||
-    value.schema !== SKILL_INVOCATION_RECEIPT_SCHEMA ||
+    !hasExactKeys(value, legacy ? LEGACY_RECEIPT_KEYS : RECEIPT_KEYS) ||
+    ![
+      LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
+      SKILL_INVOCATION_RECEIPT_SCHEMA,
+    ].includes(value.schema) ||
     !isBoundedString(value.receiptId) ||
     !Array.isArray(value.selectedSkillDigests) ||
     value.selectedSkillDigests.length !== 1 ||
@@ -140,10 +176,10 @@ function assertCommonReceiptStructure(value) {
     throw new TypeError("Skill invocation receipt structure is invalid");
   }
 
-  const missingAttribution = REQUIRED_ATTRIBUTION_FIELDS.filter(
+  const missingAttribution = requiredAttributionFields.filter(
     (field) => value[field] === null,
   );
-  for (const field of REQUIRED_ATTRIBUTION_FIELDS) {
+  for (const field of requiredAttributionFields) {
     if (value[field] !== null && !isBoundedString(value[field])) {
       throw new TypeError("Skill invocation receipt attribution is invalid");
     }
@@ -152,6 +188,9 @@ function assertCommonReceiptStructure(value) {
     (value.toolSetDigest !== null && !DIGEST.test(value.toolSetDigest)) ||
     (value.osSandboxPermissionPolicyDigest !== null &&
       !DIGEST.test(value.osSandboxPermissionPolicyDigest)) ||
+    (!legacy &&
+      value.environmentDigest !== null &&
+      !DIGEST.test(value.environmentDigest)) ||
     value.missingAttribution.length !== missingAttribution.length ||
     value.missingAttribution.some(
       (field, index) => field !== missingAttribution[index],
@@ -245,7 +284,11 @@ function startSkillInvocation(input, options = {}) {
         : null,
     ]),
   );
-  for (const field of ["toolSetDigest", "osSandboxPermissionPolicyDigest"]) {
+  for (const field of [
+    "toolSetDigest",
+    "osSandboxPermissionPolicyDigest",
+    "environmentDigest",
+  ]) {
     if (optionalAttribution[field] !== null) {
       optionalAttribution[field] = normalizeDigest(
         optionalAttribution[field],
@@ -343,9 +386,7 @@ function settleSkillInvocation(start, outcome, options = {}) {
   delete core.receiptDigest;
   return Object.freeze({
     ...core,
-    receiptDigest: digest(
-      `${SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonicalJson(core)}`,
-    ),
+    receiptDigest: digest(`${start.schema}\0${canonicalJson(core)}`),
   });
 }
 
@@ -353,9 +394,7 @@ function verifySkillInvocationReceipt(value) {
   assertSettledReceiptStructure(value);
   const core = { ...value };
   delete core.receiptDigest;
-  const expected = digest(
-    `${SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonicalJson(core)}`,
-  );
+  const expected = digest(`${value.schema}\0${canonicalJson(core)}`);
   if (value.receiptDigest !== expected) {
     throw new TypeError("Skill invocation receipt digest is invalid");
   }
@@ -382,9 +421,18 @@ function buildSkillInvocationTraceProjection(receipts, traceId) {
     { tokensInput: 0, tokensOutput: 0, costUsd: 0, latencyMs: 0 },
   );
   return Object.freeze({
-    schema: "chainlesschain.skill-invocation-trace-projection/v1",
+    schema: "chainlesschain.skill-invocation-trace-projection/v2",
     traceId: expectedTraceId,
-    complete: verified.every((receipt) => receipt.attributionEligible === true),
+    complete: verified.every(
+      (receipt) =>
+        receipt.schema === SKILL_INVOCATION_RECEIPT_SCHEMA &&
+        receipt.attributionEligible === true,
+    ),
+    environmentBound: verified.every(
+      (receipt) =>
+        receipt.schema === SKILL_INVOCATION_RECEIPT_SCHEMA &&
+        DIGEST.test(receipt.environmentDigest || ""),
+    ),
     receiptCount: verified.length,
     invocations: Object.freeze(
       verified.map((receipt) =>
@@ -398,6 +446,9 @@ function buildSkillInvocationTraceProjection(receipts, traceId) {
           toolSetDigest: receipt.toolSetDigest,
           osSandboxPermissionPolicyDigest:
             receipt.osSandboxPermissionPolicyDigest,
+          environmentDigest: receipt.environmentDigest ?? null,
+          legacyEnvironmentUnbound:
+            receipt.schema === LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
           taskCohort: receipt.taskCohort,
           executionStatus: receipt.executionStatus,
           graderReceipts: receipt.graderReceipts,
@@ -411,6 +462,7 @@ function buildSkillInvocationTraceProjection(receipts, traceId) {
 }
 
 module.exports = {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   SKILL_INVOCATION_RECEIPT_SCHEMA,
   REQUIRED_ATTRIBUTION_FIELDS,
   startSkillInvocation,

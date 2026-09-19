@@ -56,6 +56,7 @@ function receipt(runId, id, executionStatus, outcome = {}) {
       toolSetDigest: digest("b"),
       osSandboxPermissionPolicyDigest: digest("c"),
       taskCohort: "index-test",
+      environmentDigest: digest("e"),
     },
     { clock: () => "2026-09-03T00:00:00.000Z" },
   );

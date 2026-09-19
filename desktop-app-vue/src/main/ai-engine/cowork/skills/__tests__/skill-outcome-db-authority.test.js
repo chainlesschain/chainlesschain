@@ -54,6 +54,7 @@ function receipt(overrides = {}) {
       toolSetDigest: digest("b"),
       osSandboxPermissionPolicyDigest: digest("c"),
       taskCohort: "test",
+      environmentDigest: digest("e"),
       attributionRequired: true,
     },
     { clock: () => "2026-09-03T00:00:00.000Z" },

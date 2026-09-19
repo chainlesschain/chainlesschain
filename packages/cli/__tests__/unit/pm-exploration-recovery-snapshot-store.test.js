@@ -7,9 +7,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { replicaAuthority } from "../fixtures/skill-revocation-release-registry.js";
 import {
+  PM_EXPLORATION_RECOVERY_SET_ACK_SCHEMA,
+  PM_EXPLORATION_RECOVERY_SET_REQUEST_SCHEMA,
   PM_EXPLORATION_RECOVERY_SNAPSHOT_ACK_SCHEMA,
   PM_EXPLORATION_RECOVERY_SNAPSHOT_CORRUPT_CODE,
   PM_EXPLORATION_RECOVERY_SNAPSHOT_REQUEST_SCHEMA,
+  PM_EXPLORATION_RECOVERY_SNAPSHOT_RESOLUTION_SCHEMA,
   capturePmExplorationRecoverySnapshotStore,
   createPmExplorationRecoverySnapshotStore,
   verifyPmExplorationRecoverySnapshotAck,
@@ -86,12 +89,95 @@ function request(manifestDigest, bytes, transitionKind = "success") {
   };
 }
 
+function workspaceSeal(manifestDigest, bytes) {
+  const core = {
+    schema: "chainlesschain.desktop-pm-workspace-seal/v1",
+    manifestDigest,
+    workspaceRootDigest: sha("isolated-workspace-root"),
+    capturePolicyDigest: sha("workspace-policy"),
+    workspaceSnapshotDigest: hash(
+      "chainlesschain.desktop-pm-workspace-snapshot/v1",
+      bytes,
+    ),
+    workspaceSnapshotBytes: bytes.byteLength,
+    workspaceFileCount: 2,
+    snapshotMethod: "bounded-canonical-workspace-archive",
+  };
+  return Object.freeze({ ...core, sealDigest: hash(core.schema, core) });
+}
+
+function recoverySetRequest(manifestDigest, databaseBytes, workspaceBytes) {
+  return {
+    ...request(manifestDigest, databaseBytes),
+    schema: PM_EXPLORATION_RECOVERY_SET_REQUEST_SCHEMA,
+    workspaceSeal: workspaceSeal(manifestDigest, workspaceBytes),
+    workspaceBytes,
+  };
+}
+
 afterEach(() => {
   for (const root of roots.splice(0))
     fs.rmSync(root, { recursive: true, force: true });
 });
 
 describe("PM exploration recovery snapshot store", () => {
+  it("retains database and workspace bytes as one digest-bound recovery set", () => {
+    const fixture = resources();
+    const input = recoverySetRequest(
+      fixture.manifestDigest,
+      Buffer.from("sqlite-recovery-bytes"),
+      Buffer.from("workspace-recovery-bytes"),
+    );
+
+    const ack = fixture.create().retainTransitionSnapshot(input);
+
+    expect(ack).toMatchObject({
+      schema: PM_EXPLORATION_RECOVERY_SET_ACK_SCHEMA,
+      manifestDigest: fixture.manifestDigest,
+      sealDigest: input.seal.sealDigest,
+      workspaceSealDigest: input.workspaceSeal.sealDigest,
+      workspaceRootDigest: input.workspaceSeal.workspaceRootDigest,
+      workspaceSnapshotDigest: input.workspaceSeal.workspaceSnapshotDigest,
+      workspaceSnapshotBytes: input.workspaceBytes.byteLength,
+      workspaceFileCount: 2,
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+    });
+    expect(
+      verifyPmExplorationRecoverySnapshotAck(ack, {
+        manifestDigest: fixture.manifestDigest,
+        transitionKind: "success",
+        evidenceDigest: input.evidenceDigest,
+        sealDigest: input.seal.sealDigest,
+        workspaceSealDigest: input.workspaceSeal.sealDigest,
+      }),
+    ).toEqual(ack);
+    const resolution = fixture.create().resolveTransitionSnapshot(ack);
+    expect(resolution).toMatchObject({
+      schema: PM_EXPLORATION_RECOVERY_SNAPSHOT_RESOLUTION_SCHEMA,
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      manifestDigest: fixture.manifestDigest,
+      databaseSeal: input.seal,
+      workspaceSeal: input.workspaceSeal,
+      qualifiesForPromotion: false,
+    });
+    expect(resolution.databaseBytes.equals(input.bytes)).toBe(true);
+    expect(resolution.workspaceBytes.equals(input.workspaceBytes)).toBe(true);
+    expect(() =>
+      fixture.create().retainTransitionSnapshot({
+        ...input,
+        workspaceBytes: Buffer.from("substituted-workspace"),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: PM_EXPLORATION_RECOVERY_SNAPSHOT_CORRUPT_CODE,
+      }),
+    );
+  });
+
   it("retains and exactly reads back success and failure database snapshots", () => {
     const fixture = resources();
     const firstStore = fixture.create();
@@ -138,6 +224,11 @@ describe("PM exploration recovery snapshot store", () => {
 
     const reopened = fixture.create();
     expect(reopened.retainTransitionSnapshot(success)).toEqual(successAck);
+    const recovered = reopened.resolveTransitionSnapshot(failureAck);
+    expect(recovered.databaseSeal).toBeNull();
+    expect(recovered.workspaceSeal).toBeNull();
+    expect(recovered.workspaceBytes).toBeNull();
+    expect(recovered.databaseBytes.equals(failure.bytes)).toBe(true);
     expect(fs.readdirSync(path.join(fixture.root, "replica"))).toHaveLength(2);
   });
 
@@ -242,5 +333,32 @@ describe("PM exploration recovery snapshot store", () => {
       "invalid fields",
     );
     expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("rejects substituted bytes when resolving a retained recovery set", () => {
+    let resolveCalls = 0;
+    const fixture = resources((authority) => ({
+      id: authority.id,
+      retain: authority.retain,
+      resolve(input) {
+        resolveCalls += 1;
+        const resolved = authority.resolve(input);
+        return resolveCalls === 1
+          ? resolved
+          : { ...resolved, bytes: Buffer.from("forged-recovery-set") };
+      },
+    }));
+    const store = fixture.create();
+    const input = recoverySetRequest(
+      fixture.manifestDigest,
+      Buffer.from("database"),
+      Buffer.from("workspace"),
+    );
+    const acknowledgement = store.retainTransitionSnapshot(input);
+    expect(() => store.resolveTransitionSnapshot(acknowledgement)).toThrowError(
+      expect.objectContaining({
+        code: PM_EXPLORATION_RECOVERY_SNAPSHOT_CORRUPT_CODE,
+      }),
+    );
   });
 });

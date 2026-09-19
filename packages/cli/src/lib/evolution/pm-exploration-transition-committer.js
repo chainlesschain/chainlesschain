@@ -7,6 +7,8 @@ export const PM_EXPLORATION_SUCCESS_TRANSITION_SCHEMA =
   "chainlesschain.desktop-pm-state-transition-success/v1";
 export const PM_EXPLORATION_FAILED_TRANSITION_SCHEMA =
   "chainlesschain.desktop-pm-failed-execution-evidence/v1";
+export const PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA =
+  "chainlesschain.desktop-pm-clone-recovery-event/v1";
 export const PM_EXPLORATION_TRANSITION_DURABILITY_ACK_SCHEMA =
   "chainlesschain.pm-exploration-transition-durability-ack/v1";
 export const PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_DURABILITY_ACK_SCHEMA =
@@ -15,6 +17,8 @@ export const PM_EXPLORATION_TRANSITION_RECOVERY_REQUEST_SCHEMA =
   "chainlesschain.pm-exploration-transition-recovery-request/v1";
 export const PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA =
   "chainlesschain.pm-exploration-transition-recovery/v1";
+export const PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA =
+  "chainlesschain.pm-exploration-transition-recovery/v2";
 
 const DATABASE_SEAL_SCHEMA =
   "chainlesschain.desktop-pm-database-pre-run-seal/v1";
@@ -285,6 +289,106 @@ function failedTransition(value, expectedManifestDigest) {
   return deepFreeze({ ...core, evidenceDigest });
 }
 
+function cloneRecoveryEvent(value, expectedManifestDigest) {
+  exact(
+    value,
+    [
+      "schema",
+      "manifestDigest",
+      "cloneIdentityDigest",
+      "sourceTransitionRevision",
+      "sourceFailureEvidenceDigest",
+      "previousStateTransitionDigest",
+      "recoverySnapshotAckDigest",
+      "restoredDatabaseSealDigest",
+      "restoredWorkspaceSealDigest",
+      "switchReceiptDigest",
+      "authenticated",
+      "durable",
+      "qualifiesForPromotion",
+      "recoveryEventDigest",
+    ],
+    "PM clone recovery event",
+  );
+  if (
+    value.schema !== PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA ||
+    value.manifestDigest !== expectedManifestDigest ||
+    !Number.isSafeInteger(value.sourceTransitionRevision) ||
+    value.sourceTransitionRevision < 1 ||
+    value.authenticated !== false ||
+    value.durable !== false ||
+    value.qualifiesForPromotion !== false
+  ) {
+    throw new Error("PM clone recovery event fields are invalid");
+  }
+  const core = {
+    schema: value.schema,
+    manifestDigest: digest(value.manifestDigest, "manifestDigest"),
+    cloneIdentityDigest: digest(
+      value.cloneIdentityDigest,
+      "cloneIdentityDigest",
+    ),
+    sourceTransitionRevision: value.sourceTransitionRevision,
+    sourceFailureEvidenceDigest: digest(
+      value.sourceFailureEvidenceDigest,
+      "sourceFailureEvidenceDigest",
+    ),
+    previousStateTransitionDigest: optionalDigest(
+      value.previousStateTransitionDigest,
+      "previousStateTransitionDigest",
+    ),
+    recoverySnapshotAckDigest: digest(
+      value.recoverySnapshotAckDigest,
+      "recoverySnapshotAckDigest",
+    ),
+    restoredDatabaseSealDigest: digest(
+      value.restoredDatabaseSealDigest,
+      "restoredDatabaseSealDigest",
+    ),
+    restoredWorkspaceSealDigest: digest(
+      value.restoredWorkspaceSealDigest,
+      "restoredWorkspaceSealDigest",
+    ),
+    switchReceiptDigest: digest(
+      value.switchReceiptDigest,
+      "switchReceiptDigest",
+    ),
+    authenticated: false,
+    durable: false,
+    qualifiesForPromotion: false,
+  };
+  const recoveryEventDigest = digest(
+    value.recoveryEventDigest,
+    "recoveryEventDigest",
+  );
+  if (
+    recoveryEventDigest !==
+    hash(PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA, core)
+  ) {
+    throw new Error("PM clone recovery event digest mismatch");
+  }
+  return deepFreeze({ ...core, recoveryEventDigest });
+}
+
+function transitionBinding(evidence) {
+  if (evidence.schema === PM_EXPLORATION_SUCCESS_TRANSITION_SCHEMA) {
+    return Object.freeze({
+      transitionKind: "success",
+      evidenceDigest: evidence.stateTransitionDigest,
+    });
+  }
+  if (evidence.schema === PM_EXPLORATION_FAILED_TRANSITION_SCHEMA) {
+    return Object.freeze({
+      transitionKind: "failure",
+      evidenceDigest: evidence.evidenceDigest,
+    });
+  }
+  return Object.freeze({
+    transitionKind: "recovery",
+    evidenceDigest: evidence.recoveryEventDigest,
+  });
+}
+
 export function verifyPmExplorationTransitionEvidence(
   value,
   expectedManifestDigest,
@@ -305,6 +409,8 @@ export function verifyPmExplorationTransitionEvidence(
     return successTransition(value, manifestDigest);
   if (schema.value === PM_EXPLORATION_FAILED_TRANSITION_SCHEMA)
     return failedTransition(value, manifestDigest);
+  if (schema.value === PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA)
+    return cloneRecoveryEvent(value, manifestDigest);
   throw new TypeError("PM transition evidence schema is invalid");
 }
 
@@ -370,34 +476,67 @@ function durabilityAck(value, binding) {
 }
 
 function transitionRecovery(value, expectedManifestDigest) {
+  const schemaDescriptor =
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !isProxy(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+      ? Object.getOwnPropertyDescriptor(value, "schema")
+      : null;
+  const snapshotBound =
+    schemaDescriptor &&
+    "value" in schemaDescriptor &&
+    schemaDescriptor.value ===
+      PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA;
   exact(
     value,
-    [
-      "schema",
-      "authenticated",
-      "durable",
-      "readbackVerified",
-      "manifestDigest",
-      "revision",
-      "transitionKind",
-      "evidenceDigest",
-      "evidence",
-      "ledgerHeadDigest",
-      "ledgerEventDigest",
-      "durabilityReceiptDigest",
-      "qualifiesForPromotion",
-    ],
+    snapshotBound
+      ? [
+          "schema",
+          "authenticated",
+          "durable",
+          "readbackVerified",
+          "manifestDigest",
+          "revision",
+          "transitionKind",
+          "evidenceDigest",
+          "evidence",
+          "recoverySnapshot",
+          "ledgerHeadDigest",
+          "ledgerEventDigest",
+          "durabilityReceiptDigest",
+          "qualifiesForPromotion",
+        ]
+      : [
+          "schema",
+          "authenticated",
+          "durable",
+          "readbackVerified",
+          "manifestDigest",
+          "revision",
+          "transitionKind",
+          "evidenceDigest",
+          "evidence",
+          "ledgerHeadDigest",
+          "ledgerEventDigest",
+          "durabilityReceiptDigest",
+          "qualifiesForPromotion",
+        ],
     "PM transition recovery",
   );
   if (
-    value.schema !== PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA ||
+    ![
+      PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA,
+      PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA,
+    ].includes(value.schema) ||
     value.authenticated !== true ||
     value.durable !== true ||
     value.readbackVerified !== true ||
     value.manifestDigest !== expectedManifestDigest ||
     !Number.isSafeInteger(value.revision) ||
     value.revision < 0 ||
-    ![null, "success", "failure"].includes(value.transitionKind) ||
+    ![null, "success", "failure", "recovery"].includes(value.transitionKind) ||
     !DIGEST.test(value.ledgerHeadDigest ?? "") ||
     value.qualifiesForPromotion !== false
   ) {
@@ -405,6 +544,7 @@ function transitionRecovery(value, expectedManifestDigest) {
   }
   if (value.transitionKind === null) {
     if (
+      snapshotBound ||
       value.revision !== 0 ||
       value.evidenceDigest !== null ||
       value.evidence !== null ||
@@ -427,21 +567,34 @@ function transitionRecovery(value, expectedManifestDigest) {
     value.evidence,
     expectedManifestDigest,
   );
-  const transitionKind =
-    evidence.schema === PM_EXPLORATION_SUCCESS_TRANSITION_SCHEMA
-      ? "success"
-      : "failure";
-  const evidenceDigest =
-    transitionKind === "success"
-      ? evidence.stateTransitionDigest
-      : evidence.evidenceDigest;
+  const { transitionKind, evidenceDigest } = transitionBinding(evidence);
   if (
     value.transitionKind !== transitionKind ||
     value.evidenceDigest !== evidenceDigest
   ) {
     throw new Error("PM transition recovery evidence binding is invalid");
   }
-  return deepFreeze({ ...value, evidence });
+  if (snapshotBound && transitionKind === "recovery") {
+    throw new Error(
+      "PM clone recovery event cannot carry a transition recovery snapshot",
+    );
+  }
+  const recoverySnapshot = snapshotBound
+    ? verifyPmExplorationRecoverySnapshotAck(value.recoverySnapshot, {
+        manifestDigest: expectedManifestDigest,
+        transitionKind,
+        evidenceDigest,
+        sealDigest:
+          transitionKind === "success"
+            ? evidence.postRunSeal.sealDigest
+            : evidence.preRunSeal.sealDigest,
+      })
+    : null;
+  return deepFreeze({
+    ...value,
+    evidence,
+    ...(snapshotBound ? { recoverySnapshot } : {}),
+  });
 }
 
 export function createPmExplorationTransitionCommitter(input = {}) {
@@ -493,14 +646,12 @@ export function capturePmExplorationTransitionCommitter(value) {
         input,
         captured.manifestDigest,
       );
-      const transitionKind =
-        evidence.schema === PM_EXPLORATION_SUCCESS_TRANSITION_SCHEMA
-          ? "success"
-          : "failure";
-      const evidenceDigest =
-        transitionKind === "success"
-          ? evidence.stateTransitionDigest
-          : evidence.evidenceDigest;
+      const { transitionKind, evidenceDigest } = transitionBinding(evidence);
+      if (transitionKind === "recovery" && recoverySnapshotInput !== null) {
+        throw new Error(
+          "PM clone recovery event cannot retain another recovery snapshot",
+        );
+      }
       const recoverySnapshot =
         recoverySnapshotInput === null
           ? null

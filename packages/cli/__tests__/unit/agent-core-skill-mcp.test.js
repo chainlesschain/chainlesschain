@@ -265,7 +265,7 @@ describe("run_skill controlled execution boundary", () => {
       summary: "isolated:inspect src",
       toolsUsed: ["read_file"],
       invocationReceipt: {
-        schema: "chainlesschain.skill-invocation-receipt/v1",
+        schema: "chainlesschain.skill-invocation-receipt/v2",
         evolutionRunId: "session:skill-receipt",
         traceId: "trace:skill-receipt",
         trajectorySegmentId: "turn:skill-receipt:1",
@@ -276,6 +276,9 @@ describe("run_skill controlled execution boundary", () => {
         executionStatus: "completed",
       },
     });
+    expect(result.invocationReceipt.environmentDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
     expect(result.invocationReceipt.receiptDigest).toMatch(
       /^sha256:[a-f0-9]{64}$/u,
     );

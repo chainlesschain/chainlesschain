@@ -3,7 +3,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA,
   PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_DURABILITY_ACK_SCHEMA,
+  PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA,
   PM_EXPLORATION_FAILED_TRANSITION_SCHEMA,
   PM_EXPLORATION_SUCCESS_TRANSITION_SCHEMA,
   PM_EXPLORATION_TRANSITION_DURABILITY_ACK_SCHEMA,
@@ -100,6 +102,28 @@ function failureEvidence(manifestDigest) {
   };
 }
 
+function cloneRecoveryEvent(manifestDigest) {
+  const core = {
+    schema: PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA,
+    manifestDigest,
+    cloneIdentityDigest: sha("clone-identity"),
+    sourceTransitionRevision: 2,
+    sourceFailureEvidenceDigest: sha("source-failure"),
+    previousStateTransitionDigest: sha("previous-transition"),
+    recoverySnapshotAckDigest: sha("recovery-snapshot-ack"),
+    restoredDatabaseSealDigest: sha("restored-database-seal"),
+    restoredWorkspaceSealDigest: sha("restored-workspace-seal"),
+    switchReceiptDigest: sha("clone-switch-receipt"),
+    authenticated: false,
+    durable: false,
+    qualifiesForPromotion: false,
+  };
+  return {
+    ...core,
+    recoveryEventDigest: hash(PM_EXPLORATION_CLONE_RECOVERY_EVENT_SCHEMA, core),
+  };
+}
+
 function acknowledgement(manifestDigest, evidenceDigest, transitionKind) {
   return {
     schema: PM_EXPLORATION_TRANSITION_DURABILITY_ACK_SCHEMA,
@@ -155,6 +179,12 @@ function recoveredTransition(
   transitionKind,
   revision = 1,
 ) {
+  const evidenceDigest =
+    transitionKind === "success"
+      ? evidence.stateTransitionDigest
+      : transitionKind === "failure"
+        ? evidence.evidenceDigest
+        : evidence.recoveryEventDigest;
   return {
     schema: PM_EXPLORATION_TRANSITION_RECOVERY_SCHEMA,
     authenticated: true,
@@ -163,15 +193,29 @@ function recoveredTransition(
     manifestDigest,
     revision,
     transitionKind,
-    evidenceDigest:
-      transitionKind === "success"
-        ? evidence.stateTransitionDigest
-        : evidence.evidenceDigest,
+    evidenceDigest,
     evidence,
     ledgerHeadDigest: sha(`ledger-head-${revision}`),
     ledgerEventDigest: sha(`ledger-event-${revision}`),
     durabilityReceiptDigest: sha(`durability-${revision}`),
     qualifiesForPromotion: false,
+  };
+}
+
+function recoveredSnapshotTransition(
+  manifestDigest,
+  evidence,
+  transitionKind,
+  revision = 1,
+) {
+  return {
+    ...recoveredTransition(manifestDigest, evidence, transitionKind, revision),
+    schema: PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA,
+    recoverySnapshot: recoverySnapshotAcknowledgement(
+      manifestDigest,
+      evidence,
+      transitionKind,
+    ),
   };
 }
 
@@ -239,6 +283,49 @@ describe("PM exploration transition committer", () => {
       durable: true,
       readbackVerified: true,
     });
+    expect(commit).toHaveBeenCalledOnce();
+  });
+
+  it("commits and recovers a clone recovery event as the next authenticated head", async () => {
+    const manifestDigest = sha("manifest");
+    const evidence = cloneRecoveryEvent(manifestDigest);
+    const commit = vi.fn(async () =>
+      acknowledgement(manifestDigest, evidence.recoveryEventDigest, "recovery"),
+    );
+    const recover = vi.fn(async () =>
+      recoveredTransition(manifestDigest, evidence, "recovery", 3),
+    );
+    const port = capturePmExplorationTransitionCommitter(
+      createPmExplorationTransitionCommitter({
+        manifestDigest,
+        commit,
+        recover,
+      }),
+    );
+
+    await expect(port.commitTransition(evidence)).resolves.toMatchObject({
+      transitionKind: "recovery",
+      evidenceDigest: evidence.recoveryEventDigest,
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+    });
+    await expect(port.recoverTransition()).resolves.toMatchObject({
+      revision: 3,
+      transitionKind: "recovery",
+      evidence,
+    });
+    await expect(port.commitTransition(evidence, {})).rejects.toThrow(
+      "cannot retain another recovery snapshot",
+    );
+    expect(commit).toHaveBeenCalledOnce();
+
+    await expect(
+      port.commitTransition({
+        ...evidence,
+        restoredWorkspaceSealDigest: sha("substituted-workspace-seal"),
+      }),
+    ).rejects.toThrow("event digest mismatch");
     expect(commit).toHaveBeenCalledOnce();
   });
 
@@ -402,6 +489,46 @@ describe("PM exploration transition committer", () => {
       schema: PM_EXPLORATION_TRANSITION_RECOVERY_REQUEST_SCHEMA,
       manifestDigest,
     });
+  });
+
+  it("recovers and verifies the snapshot acknowledgement bound to a v2 head", async () => {
+    const manifestDigest = sha("manifest");
+    const failure = failureEvidence(manifestDigest);
+    const recovered = recoveredSnapshotTransition(
+      manifestDigest,
+      failure,
+      "failure",
+    );
+    const recover = vi.fn(async () => recovered);
+    const port = capturePmExplorationTransitionCommitter(
+      createPmExplorationTransitionCommitter({
+        manifestDigest,
+        commit: vi.fn(),
+        recover,
+      }),
+    );
+
+    await expect(port.recoverTransition()).resolves.toMatchObject({
+      schema: PM_EXPLORATION_SNAPSHOT_BOUND_TRANSITION_RECOVERY_SCHEMA,
+      transitionKind: "failure",
+      recoverySnapshot: recovered.recoverySnapshot,
+    });
+
+    const substituted = {
+      ...recovered,
+      recoverySnapshot: {
+        ...recovered.recoverySnapshot,
+        evidenceDigest: sha("substituted-evidence"),
+      },
+    };
+    const forgedPort = capturePmExplorationTransitionCommitter(
+      createPmExplorationTransitionCommitter({
+        manifestDigest,
+        commit: vi.fn(),
+        recover: vi.fn(async () => substituted),
+      }),
+    );
+    await expect(forgedPort.recoverTransition()).rejects.toThrow();
   });
 
   it("rejects substituted recovery evidence and accessor-backed recovery input", async () => {

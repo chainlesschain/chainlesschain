@@ -2,16 +2,20 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   assertPmExplorationTrainingSources,
+  buildPmExplorationEffectPlan,
+  buildPmExplorationEffectReport,
   buildPmExplorationLaunchProfile,
   buildPmExplorationRoundPlan,
   buildPmExplorationSuite,
   inspectPmExplorationEnvironment,
   projectPmExplorationTrainingView,
+  verifyPmExplorationEffectReport,
 } from "../../src/lib/evolution/pm-exploration-benchmark.js";
 import {
+  buildEvolutionEvalPolicy,
   buildEvolutionEvalSuite,
   computeEvolutionEvalTrainingPartitionDigest,
   verifyEvolutionEvalSuite,
@@ -20,6 +24,125 @@ import {
 const budget = { maxTokens: 10000, maxToolCalls: 40, maxWallClockMs: 60000 };
 const hash = (text) =>
   `sha256:${createHash("sha256").update(text).digest("hex")}`;
+
+function evalPolicy() {
+  return buildEvolutionEvalPolicy({
+    policyId: "pm-effect-v1",
+    minTrainingTasks: 30,
+    minValidationTasks: 20,
+    minTestTasks: 20,
+    seeds: [101, 202, 303],
+    minimumAbsoluteImprovement: 0.05,
+    minimumEfficiencyImprovement: 0.1,
+    confidenceZ: 1.96,
+    maxAverageTokens: 10_000,
+    maxAverageLatencyMs: 60_000,
+    maxAverageToolCalls: 100,
+    maxTotalTokens: 1_000_000,
+    maxTotalLatencyMs: 10_000_000,
+    maxTotalToolCalls: 100_000,
+    maxTotalCostMicrounits: 1_000_000,
+    maxExecutions: 240,
+    maxWallClockMs: 30_000,
+    portReceiptTtlMs: 60_000,
+    receiptTtlMs: 60_000,
+  });
+}
+
+function effectPlan(overrides = {}) {
+  return buildPmExplorationEffectPlan({
+    experimentId: "pm-equal-budget-v1",
+    suite: buildPmExplorationSuite(input()),
+    policy: evalPolicy(),
+    baselineVersion: {
+      id: "baseline-memory-v1",
+      artifactDigest: hash("baseline-memory-v1"),
+    },
+    candidateVersion: {
+      id: "candidate-memory-v2",
+      artifactDigest: hash("candidate-memory-v2"),
+    },
+    actorConfigDigest: hash("actor-config"),
+    modelConfigDigest: hash("model-config"),
+    toolPolicyDigest: hash("tool-policy"),
+    permissionPolicyDigest: hash("permission-policy"),
+    environmentDigest: hash("environment"),
+    resetProtocolDigest: hash("reset-protocol"),
+    seeds: [101, 202, 303],
+    budgetPerArmPerSeed: {
+      maxTokens: 10_000,
+      maxToolCalls: 100,
+      maxWallClockMs: 60_000,
+      maxCostMicrounits: 100_000,
+    },
+    minimumScoreDelta: 0.05,
+    ...overrides,
+  });
+}
+
+const zeroUsage = () => ({
+  receiptDigest: null,
+  tokens: 0,
+  toolCalls: 0,
+  wallClockMs: 0,
+  costMicrounits: 0,
+});
+
+const phases = (candidate = false) =>
+  [
+    "exploration",
+    "curriculum-planning",
+    "memory-distillation",
+    "failure-retry",
+    "environment-reset",
+  ].map((phase, index) => ({
+    phase,
+    usage:
+      candidate && index < 3
+        ? {
+            receiptDigest: hash(`${phase}-receipt`),
+            tokens: 10,
+            toolCalls: 1,
+            wallClockMs: 5,
+            costMicrounits: 2,
+          }
+        : zeroUsage(),
+  }));
+
+function arm(label, score, overrides = {}) {
+  return {
+    outcomeReceiptDigest: hash(`${label}-outcome`),
+    graderReceiptDigest: hash(`${label}-grader`),
+    score,
+    passed: score >= 0.5,
+    usage: {
+      receiptDigest: hash(`${label}-usage`),
+      tokens: 100,
+      toolCalls: 2,
+      wallClockMs: 50,
+      costMicrounits: 20,
+    },
+    securityViolations: 0,
+    permissionViolations: 0,
+    failureClass: "none",
+    ...overrides,
+  };
+}
+
+function effectRuns() {
+  return [101, 202, 303].map((seed) => ({
+    runId: `run-${seed}`,
+    seed,
+    phases: { baseline: phases(), candidate: phases(true) },
+    cases: [
+      {
+        taskId: "pm-test",
+        baseline: arm(`baseline-${seed}`, 0.5),
+        candidate: arm(`candidate-${seed}`, 0.75),
+      },
+    ],
+  }));
+}
 
 function input() {
   return {
@@ -227,6 +350,114 @@ describe("PM exploration suite", () => {
       }),
     });
     expect(() => projectPmExplorationTrainingView(foreign)).toThrow(/not a PM/);
+  });
+});
+
+describe("PM equal-budget effect evidence", () => {
+  it("freezes both versions, protocol digests, seeds and one equal arm budget", () => {
+    const plan = effectPlan();
+    expect(plan).toMatchObject({
+      testTaskIds: ["pm-test"],
+      seeds: [101, 202, 303],
+      equalBudget: true,
+      promotionAuthority: false,
+      bootstrapSamples: 1_000,
+    });
+    expect(Object.isFrozen(plan)).toBe(true);
+    expect(Object.isFrozen(plan.budgetPerArmPerSeed)).toBe(true);
+    expect(() => effectPlan({ seeds: [101, 202, 404] })).toThrow(
+      /policy seeds/,
+    );
+  });
+
+  it("recomputes paired outcomes and accounts for all preparation phases", () => {
+    const plan = effectPlan();
+    const report = buildPmExplorationEffectReport({
+      plan,
+      runs: effectRuns(),
+    });
+    expect(report).toMatchObject({
+      runCount: 3,
+      pairedObservationCount: 3,
+      evidenceDecision: "threshold-met",
+      budgetViolationCount: 0,
+      requiresIndependentPilotApproval: true,
+      qualifiesForPromotion: false,
+      baseline: {
+        meanScore: 0.5,
+        usage: { tokens: 300 },
+      },
+      candidate: {
+        meanScore: 0.75,
+        usage: { tokens: 390 },
+      },
+      pairedScoreDelta: {
+        mean: 0.25,
+        bootstrap95Ci: [0.25, 0.25],
+      },
+    });
+    expect(verifyPmExplorationEffectReport({ plan, report })).toEqual(report);
+    expect(Object.isFrozen(report.runs[0].cases[0].candidate)).toBe(true);
+  });
+
+  it("fails closed on safety regression or an exceeded arm budget", () => {
+    const plan = effectPlan();
+    const unsafe = effectRuns();
+    unsafe[1].cases[0].candidate.permissionViolations = 1;
+    expect(
+      buildPmExplorationEffectReport({ plan, runs: unsafe }).evidenceDecision,
+    ).toBe("threshold-not-met");
+
+    const overBudget = effectRuns();
+    overBudget[0].cases[0].candidate.usage.tokens = 10_001;
+    const report = buildPmExplorationEffectReport({
+      plan,
+      runs: overBudget,
+    });
+    expect(report.budgetViolationCount).toBe(1);
+    expect(report.evidenceDecision).toBe("threshold-not-met");
+  });
+
+  it("rejects incomplete pairs, duplicate seeds, phase omissions and tampering", () => {
+    const plan = effectPlan();
+    const missing = effectRuns();
+    missing[0].cases = [];
+    expect(() =>
+      buildPmExplorationEffectReport({ plan, runs: missing }),
+    ).toThrow(/every test task/);
+
+    const duplicateSeed = effectRuns();
+    duplicateSeed[1].seed = duplicateSeed[0].seed;
+    expect(() =>
+      buildPmExplorationEffectReport({ plan, runs: duplicateSeed }),
+    ).toThrow(/absent or duplicated/);
+
+    const omittedPhase = effectRuns();
+    omittedPhase[0].phases.candidate.pop();
+    expect(() =>
+      buildPmExplorationEffectReport({ plan, runs: omittedPhase }),
+    ).toThrow(/every cost phase/);
+
+    const report = structuredClone(
+      buildPmExplorationEffectReport({ plan, runs: effectRuns() }),
+    );
+    report.candidate.meanScore = 1;
+    expect(() => verifyPmExplorationEffectReport({ plan, report })).toThrow(
+      /digest mismatch/,
+    );
+
+    const accessorReport = structuredClone(
+      buildPmExplorationEffectReport({ plan, runs: effectRuns() }),
+    );
+    const getter = vi.fn(() => 1);
+    Object.defineProperty(accessorReport.candidate, "meanScore", {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() =>
+      verifyPmExplorationEffectReport({ plan, report: accessorReport }),
+    ).toThrow(/accessor/);
+    expect(getter).not.toHaveBeenCalled();
   });
 });
 

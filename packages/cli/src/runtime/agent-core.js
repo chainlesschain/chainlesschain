@@ -8259,6 +8259,22 @@ async function executeToolInner(
           }),
         )
         .digest("hex")}`;
+      const invocationEnvironmentDigest =
+        runtimeEligibility?.binding?.environmentDigest ||
+        `sha256:${createHash("sha256")
+          .update("chainlesschain.cli-skill-invocation-environment/v1\0")
+          .update(
+            JSON.stringify({
+              node: process.versions.node,
+              platform: process.platform,
+              arch: process.arch,
+              provider: llmOptions?.provider ?? null,
+              model: llmOptions?.model ?? null,
+              toolSetDigest,
+              policyDigest,
+            }),
+          )
+          .digest("hex")}`;
       const invocationStartedAt = Date.now();
       const invocationStart = startSkillInvocation({
         attributionRequired: ["automatic-candidate", "canary"].includes(
@@ -8282,6 +8298,7 @@ async function executeToolInner(
         toolSetDigest,
         osSandboxPermissionPolicyDigest: policyDigest,
         taskCohort: "cli:run_skill",
+        environmentDigest: invocationEnvironmentDigest,
       });
       const settleInvocation = (executionStatus, result = {}) =>
         settleSkillInvocation(invocationStart, {
