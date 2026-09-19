@@ -64,6 +64,9 @@ function makeFakePage(parentContext) {
 function makeFakeContext() {
   const ctx = {
     addInitScript: vi.fn().mockResolvedValue(undefined),
+    route: vi.fn().mockResolvedValue(undefined),
+    unroute: vi.fn().mockResolvedValue(undefined),
+    on: vi.fn(),
     close: vi.fn().mockResolvedValue(undefined),
   };
   ctx.newPage = vi
@@ -132,6 +135,37 @@ describe("BrowserEngine", () => {
       expect(result.cdpPort).toBe(18800);
       expect(result.pid).toBe(12345);
       expect(browserEngine.isRunning).toBe(true);
+    });
+
+    it("支持不暴露 process() 的当前 Playwright Browser API", async () => {
+      const browser = makeFakeBrowser();
+      delete browser.process;
+      _setChromiumForTesting({ launch: vi.fn(async () => browser) });
+
+      const result = await browserEngine.start();
+
+      expect(result).toMatchObject({ success: true, pid: undefined });
+      expect(browserEngine.getStatus()).toMatchObject({
+        isRunning: true,
+        pid: undefined,
+      });
+    });
+
+    it("启动完成后的初始化异常会关闭已启动的浏览器", async () => {
+      const browser = makeFakeBrowser();
+      _setChromiumForTesting({ launch: vi.fn(async () => browser) });
+      browserEngine.on("browser:started", () => {
+        throw new Error("initialization failed");
+      });
+
+      await expect(browserEngine.start()).rejects.toThrow(
+        "Failed to start browser: initialization failed",
+      );
+
+      expect(browser.close).toHaveBeenCalledOnce();
+      expect(browserEngine.browser).toBeNull();
+      expect(browserEngine.isRunning).toBe(false);
+      expect(browserEngine.startTime).toBeNull();
     });
 
     it("如果浏览器已运行，应该抛出错误", async () => {

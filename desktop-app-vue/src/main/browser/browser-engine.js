@@ -83,6 +83,16 @@ function createNavigationRouteHandler(page, allowedOrigins) {
   };
 }
 
+function browserProcessId(browser) {
+  if (typeof browser?.process !== "function") return undefined;
+  try {
+    const pid = Reflect.apply(browser.process, browser, [])?.pid;
+    return Number.isSafeInteger(pid) && pid > 0 ? pid : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * 浏览器引擎类
  * 提供浏览器启动、上下文管理、标签页控制等核心功能
@@ -92,8 +102,8 @@ class BrowserEngine extends EventEmitter {
     super();
 
     this.config = {
-      headless: config.headless || false,
-      cdpPort: config.cdpPort || 18800,
+      headless: config.headless ?? false,
+      cdpPort: config.cdpPort ?? 18800,
       profileDir: config.profileDir,
       defaultViewport: config.defaultViewport || { width: 1280, height: 720 },
       ...config,
@@ -153,10 +163,18 @@ class BrowserEngine extends EventEmitter {
       return {
         success: true,
         cdpPort: this.config.cdpPort,
-        pid: this.browser.process()?.pid,
+        pid: browserProcessId(this.browser),
       };
     } catch (error) {
+      const launchedBrowser = this.browser;
+      this.browser = null;
       this.isRunning = false;
+      this.startTime = null;
+      if (launchedBrowser) {
+        await Promise.resolve()
+          .then(() => launchedBrowser.close())
+          .catch(() => {});
+      }
       this.emit("browser:error", { error: error.message });
       throw new Error(`Failed to start browser: ${error.message}`);
     }
@@ -738,7 +756,7 @@ class BrowserEngine extends EventEmitter {
       cdpPort: this.config.cdpPort,
       contextsCount: this.contexts.size,
       tabsCount: this.pages.size,
-      pid: this.browser?.process()?.pid,
+      pid: browserProcessId(this.browser),
     };
   }
 
