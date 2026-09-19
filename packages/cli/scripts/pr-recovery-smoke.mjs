@@ -338,7 +338,7 @@ try {
     stderr: "",
   });
   const repeated = await run(async (context) => {
-    assert(++calls < 10);
+    assert(++calls < 11);
     if (calls === 5)
       assert(JSON.stringify(context).includes("Remote-read loop recovery"));
     return tool(commands[1], calls);
@@ -348,7 +348,7 @@ try {
     "CC_AGENT_REPEATED_REMOTE_READ",
     repeated.error?.stack,
   );
-  assert.equal(calls, 7);
+  assert.equal(calls, 10);
   assert(!repeated.events.some((event) => event.type === "response-complete"));
 
   calls = 0;
@@ -364,7 +364,7 @@ try {
     "CC_AGENT_REPEATED_REMOTE_READ",
     denied.error?.stack,
   );
-  assert.equal(calls, 6);
+  assert.equal(calls, 9);
   assert.equal(
     observed.length,
     beforePolicy,
