@@ -32,9 +32,15 @@ try {
 // imports remain explicitly stageable; this production boundary sets the
 // process-wide fence before any legacy Context/Memory module is required.
 require("./context-memory/authority.js").applyDesktopContextMemoryProductionDefault();
+const {
+  applyChromiumLoggingPrivacyBoundary,
+  clearChromiumLoggingEnvironment,
+} = require("./monitoring/chromium-log-privacy");
+clearChromiumLoggingEnvironment(process.env);
 
 console.log("[DEBUG] Starting Electron main process...");
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
+applyChromiumLoggingPrivacyBoundary(app.commandLine);
 // Route Desktop main-process child_process APIs through one provenance/audit
 // boundary while preserving Node's native execution behavior.
 const {
@@ -240,9 +246,9 @@ class ChainlessChainApp {
             ")",
         );
       }
-    } catch (err) {
+    } catch (_err) {
       // Never block app startup on recovery-init failure
-      console.warn("[gpu-recovery] init failed:", err && err.message);
+      console.warn("[gpu-recovery] init failed");
     }
 
     // 单实例锁
