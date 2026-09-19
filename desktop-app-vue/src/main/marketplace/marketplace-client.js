@@ -1034,7 +1034,6 @@ class MarketplaceClient {
         data: {
           status: "healthy",
           latency,
-          baseURL: this.baseURL,
         },
       };
     } catch (error) {
@@ -1044,7 +1043,6 @@ class MarketplaceClient {
         ...createPluginFailureDescriptor("marketplace"),
         data: {
           status: "unhealthy",
-          baseURL: this.baseURL,
         },
       };
     }

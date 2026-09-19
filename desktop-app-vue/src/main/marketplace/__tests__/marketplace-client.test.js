@@ -403,6 +403,7 @@ describe("MarketplaceClient", () => {
       const r = await client.checkHealth();
       expect(r.success).toBe(true);
       expect(r.data.status).toBe("healthy");
+      expect(r.data).not.toHaveProperty("baseURL");
     });
 
     it("should return unhealthy on failure", async () => {
@@ -411,6 +412,7 @@ describe("MarketplaceClient", () => {
       const r = await client.checkHealth();
       expect(r.success).toBe(false);
       expect(r.data.status).toBe("unhealthy");
+      expect(r.data).not.toHaveProperty("baseURL");
       expect(JSON.stringify(r)).not.toContain(secret);
     });
   });
