@@ -14,8 +14,13 @@
  * @module remote/handlers/workflow-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
 const SqlSecurity = require("../../database/sql-security.js");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -25,7 +30,7 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(`[WorkflowHandler] Bad JSON column, fallback: ${err.message}`);
+    logger.warn("[WorkflowHandler] Bad JSON column, fallback", { error: err });
     return fallback;
   }
 }
@@ -161,7 +166,7 @@ class WorkflowHandler {
    * 处理命令（统一入口）
    */
   async handle(action, params, context) {
-    logger.debug(`[WorkflowHandler] 处理命令: ${action}`);
+    logger.debug("[WorkflowHandler] 处理命令", { action });
 
     switch (action) {
       case "create":
@@ -214,7 +219,7 @@ class WorkflowHandler {
   async createWorkflow(params, context) {
     const { name, description, steps, variables, rollback, tags } = params;
 
-    logger.info(`[WorkflowHandler] 创建工作流: ${name}`);
+    logger.info("[WorkflowHandler] 创建工作流", { name });
 
     // 验证工作流定义
     const validation = this.engine.validateWorkflow({ steps });
@@ -276,9 +281,9 @@ class WorkflowHandler {
   async executeWorkflow(params, context) {
     const { id, workflowId, definition, variables } = params;
 
-    logger.info(
-      `[WorkflowHandler] 执行工作流: ${id || workflowId || "inline"}`,
-    );
+    logger.info("[WorkflowHandler] 执行工作流", {
+      workflowId: id || workflowId || "inline",
+    });
 
     let workflow;
 
@@ -382,7 +387,7 @@ class WorkflowHandler {
   async cancelWorkflow(params, context) {
     const { executionId } = params;
 
-    logger.info(`[WorkflowHandler] 取消工作流: ${executionId}`);
+    logger.info("[WorkflowHandler] 取消工作流", { executionId });
 
     const cancelled = this.engine.cancelWorkflow(executionId);
 
@@ -464,7 +469,7 @@ class WorkflowHandler {
   async getWorkflow(params, context) {
     const { id } = params;
 
-    logger.info(`[WorkflowHandler] 获取工作流: ${id}`);
+    logger.info("[WorkflowHandler] 获取工作流", { workflowId: id });
 
     const workflow = await this.loadWorkflow(id);
 
@@ -482,7 +487,7 @@ class WorkflowHandler {
     const { id, name, description, steps, variables, rollback, tags, enabled } =
       params;
 
-    logger.info(`[WorkflowHandler] 更新工作流: ${id}`);
+    logger.info("[WorkflowHandler] 更新工作流", { workflowId: id });
 
     const existing = await this.loadWorkflow(id);
     if (!existing) {
@@ -549,7 +554,7 @@ class WorkflowHandler {
   async deleteWorkflow(params, context) {
     const { id } = params;
 
-    logger.info(`[WorkflowHandler] 删除工作流: ${id}`);
+    logger.info("[WorkflowHandler] 删除工作流", { workflowId: id });
 
     try {
       if (this.database) {
@@ -671,7 +676,7 @@ class WorkflowHandler {
       return { success: false, error: "newName required" };
     }
 
-    logger.info(`[WorkflowHandler] 克隆工作流: ${workflowId} → ${newName}`);
+    logger.info("[WorkflowHandler] 克隆工作流", { workflowId, newName });
 
     try {
       const source = await this.loadWorkflow(workflowId);
@@ -739,7 +744,7 @@ class WorkflowHandler {
       return { success: false, error: "workflowId required" };
     }
 
-    logger.info(`[WorkflowHandler] 导出工作流: ${workflowId}`);
+    logger.info("[WorkflowHandler] 导出工作流", { workflowId });
 
     try {
       const workflow = await this.loadWorkflow(workflowId);
@@ -819,7 +824,7 @@ class WorkflowHandler {
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
     };
 
-    logger.info(`[WorkflowHandler] 导入工作流: ${effectiveName}`);
+    logger.info("[WorkflowHandler] 导入工作流", { effectiveName });
 
     try {
       if (this.database) {
@@ -869,7 +874,10 @@ class WorkflowHandler {
         return this.workflows.get(id);
       }
     } catch (error) {
-      logger.error(`[WorkflowHandler] 加载工作流失败: ${id}`, error);
+      logger.error("[WorkflowHandler] 加载工作流失败", {
+        workflowId: id,
+        error,
+      });
     }
 
     return null;

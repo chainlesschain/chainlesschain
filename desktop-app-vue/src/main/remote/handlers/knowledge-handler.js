@@ -2,8 +2,13 @@
  * 知识库命令处理器
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
 const SqlSecurity = require("../../database/sql-security.js");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /** Tolerant JSON column parse — a corrupt row must not abort a list-load loop. */
 function safeParse(raw, fallback) {
@@ -13,7 +18,9 @@ function safeParse(raw, fallback) {
   try {
     return JSON.parse(raw);
   } catch (err) {
-    logger.warn(`[KnowledgeHandler] Bad JSON column, fallback: ${err.message}`);
+    logger.warn("[KnowledgeHandler] Bad JSON column, fallback", {
+      error: err,
+    });
     return fallback;
   }
 }
@@ -109,7 +116,7 @@ class KnowledgeHandler {
   }
 
   async handle(action, params, context) {
-    logger.debug("[KnowledgeHandler] 处理命令: " + action);
+    logger.debug("[KnowledgeHandler] 处理命令", { action });
     await this._ensureSchema();
 
     switch (action) {
@@ -210,7 +217,7 @@ class KnowledgeHandler {
       throw new Error("Title and content are required");
     }
 
-    logger.info("[KnowledgeHandler] 创建笔记: " + title);
+    logger.info("[KnowledgeHandler] 创建笔记", { title });
 
     const result = await this.database.run(
       "INSERT INTO notes (title, content, tags, created_by_did, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -237,7 +244,7 @@ class KnowledgeHandler {
       throw new Error("Search query is required");
     }
 
-    logger.info("[KnowledgeHandler] 搜索笔记: " + query);
+    logger.info("[KnowledgeHandler] 搜索笔记", { query });
 
     const rows = await this.database.all(
       "SELECT id, title, content, tags FROM notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' LIMIT ?",
@@ -282,7 +289,7 @@ class KnowledgeHandler {
       throw new Error("Note ID is required");
     }
 
-    logger.info("[KnowledgeHandler] 更新笔记: " + noteId);
+    logger.info("[KnowledgeHandler] 更新笔记", { noteId });
 
     const existing = await this.database.get(
       "SELECT * FROM notes WHERE id = ?",
@@ -358,7 +365,7 @@ class KnowledgeHandler {
       throw new Error("Note ID is required");
     }
 
-    logger.info("[KnowledgeHandler] 删除笔记: " + noteId);
+    logger.info("[KnowledgeHandler] 删除笔记", { noteId });
 
     const result = await this.database.run("DELETE FROM notes WHERE id = ?", [
       noteId,
@@ -376,7 +383,7 @@ class KnowledgeHandler {
       throw new Error("Tag is required");
     }
 
-    logger.info("[KnowledgeHandler] 按标签搜索笔记: " + tag);
+    logger.info("[KnowledgeHandler] 按标签搜索笔记", { tag });
 
     const rows = await this.database.all(
       "SELECT id, title, content, tags, created_at FROM notes WHERE tags LIKE ? ESCAPE '\\' LIMIT ?",
@@ -405,7 +412,7 @@ class KnowledgeHandler {
       throw new Error("Note ID is required");
     }
 
-    logger.info("[KnowledgeHandler] 同步笔记到向量库: " + noteId);
+    logger.info("[KnowledgeHandler] 同步笔记到向量库", { noteId });
 
     const note = await this.database.get("SELECT * FROM notes WHERE id = ?", [
       noteId,
@@ -493,7 +500,7 @@ class KnowledgeHandler {
       "INSERT INTO knowledge_folders (id, name, parent_id, created_at) VALUES (?, ?, ?, ?)",
       [id, name, parentId || null, now],
     );
-    logger.info(`[KnowledgeHandler] createFolder: ${id} "${name}"`);
+    logger.info("[KnowledgeHandler] createFolder", { folderId: id, name });
     return { folderId: id, name, parentId: parentId || null, createdAt: now };
   }
 
@@ -510,7 +517,7 @@ class KnowledgeHandler {
     if (result.changes === 0) {
       throw new Error("Folder not found");
     }
-    logger.info(`[KnowledgeHandler] deleteFolder: ${folderId}`);
+    logger.info("[KnowledgeHandler] deleteFolder", { folderId });
     return { folderId, deleted: true };
   }
 
