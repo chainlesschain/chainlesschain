@@ -4,10 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 const {
   LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   SKILL_INVOCATION_RECEIPT_SCHEMA,
+  SKILL_INVOCATION_RECEIPT_CONSUMPTION,
   buildSkillInvocationTraceProjection,
+  inspectSkillInvocationReceiptCompatibility,
   startSkillInvocation,
   settleSkillInvocation,
   verifySkillInvocationReceipt,
+  verifySkillInvocationReceiptForConsumption,
 } = require("../lib/skill-invocation-receipt.js");
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
@@ -75,6 +78,22 @@ function settled() {
   );
 }
 
+function legacyReceipt(value = settled()) {
+  const legacyCore = { ...value };
+  delete legacyCore.environmentDigest;
+  delete legacyCore.receiptDigest;
+  legacyCore.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  return Object.freeze({
+    ...legacyCore,
+    receiptDigest: `sha256:${crypto
+      .createHash("sha256")
+      .update(
+        `${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonicalJson(legacyCore)}`,
+      )
+      .digest("hex")}`,
+  });
+}
+
 describe("Skill invocation receipt structural verifier", () => {
   it("accepts the exact canonical settled structure", () => {
     const value = settled();
@@ -121,20 +140,7 @@ describe("Skill invocation receipt structural verifier", () => {
   });
 
   it("reads v1 receipts but keeps their missing environment binding ineligible", () => {
-    const current = settled();
-    const legacyCore = { ...current };
-    delete legacyCore.environmentDigest;
-    delete legacyCore.receiptDigest;
-    legacyCore.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
-    const legacy = Object.freeze({
-      ...legacyCore,
-      receiptDigest: `sha256:${crypto
-        .createHash("sha256")
-        .update(
-          `${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonicalJson(legacyCore)}`,
-        )
-        .digest("hex")}`,
-    });
+    const legacy = legacyReceipt();
 
     expect(verifySkillInvocationReceipt(legacy)).toBe(legacy);
     expect(
@@ -146,6 +152,99 @@ describe("Skill invocation receipt structural verifier", () => {
         { environmentDigest: null, legacyEnvironmentUnbound: true },
       ],
     });
+  });
+
+  it("enforces the cross-version consumption and environment matrix", () => {
+    const current = settled();
+    const legacy = legacyReceipt(current);
+    const staleEnvironment = digest("f");
+
+    expect(inspectSkillInvocationReceiptCompatibility(legacy)).toMatchObject({
+      receiptSchema: LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
+      historicalReadable: true,
+      legacyEnvironmentUnbound: true,
+      environmentBoundAttributionEligible: false,
+      environmentStatus: "legacy-unbound",
+    });
+    expect(
+      verifySkillInvocationReceiptForConsumption(
+        legacy,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.HISTORICAL_READ,
+      ),
+    ).toBe(legacy);
+    expect(() =>
+      verifySkillInvocationReceiptForConsumption(
+        legacy,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.ENVIRONMENT_BOUND_ATTRIBUTION,
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SKILL_INVOCATION_RECEIPT_LEGACY_UNBOUND",
+      }),
+    );
+    expect(() =>
+      verifySkillInvocationReceiptForConsumption(
+        current,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.CURRENT_ENVIRONMENT_EVIDENCE,
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SKILL_INVOCATION_RECEIPT_ENVIRONMENT_REQUIRED",
+      }),
+    );
+    expect(() =>
+      verifySkillInvocationReceiptForConsumption(
+        current,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.CURRENT_ENVIRONMENT_EVIDENCE,
+        { expectedEnvironmentDigest: staleEnvironment },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SKILL_INVOCATION_RECEIPT_ENVIRONMENT_STALE",
+      }),
+    );
+    expect(
+      inspectSkillInvocationReceiptCompatibility(current, {
+        expectedEnvironmentDigest: digest("e"),
+      }),
+    ).toMatchObject({
+      environmentBoundAttributionEligible: true,
+      currentEnvironmentEligible: true,
+      environmentStatus: "current",
+    });
+    expect(
+      verifySkillInvocationReceiptForConsumption(
+        current,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.CURRENT_ENVIRONMENT_EVIDENCE,
+        { expectedEnvironmentDigest: digest("e") },
+      ),
+    ).toBe(current);
+  });
+
+  it("rejects incomplete v2 attribution for evidence consumption", () => {
+    const incomplete = settleSkillInvocation(
+      started({ environmentDigest: undefined, attributionRequired: false }),
+      { executionStatus: "completed" },
+      { clock: () => "2026-09-03T00:00:01.000Z" },
+    );
+    expect(
+      inspectSkillInvocationReceiptCompatibility(incomplete),
+    ).toMatchObject({
+      historicalReadable: true,
+      environmentBound: false,
+      environmentStatus: "missing",
+      environmentBoundAttributionEligible: false,
+    });
+    expect(() =>
+      verifySkillInvocationReceiptForConsumption(
+        incomplete,
+        SKILL_INVOCATION_RECEIPT_CONSUMPTION.ENVIRONMENT_BOUND_ATTRIBUTION,
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SKILL_INVOCATION_RECEIPT_ATTRIBUTION_INCOMPLETE",
+      }),
+    );
   });
 
   it("refuses to settle a forged started receipt", () => {
@@ -173,6 +272,26 @@ describe("Skill invocation receipt structural verifier", () => {
     const proxy = new Proxy({}, { get: trap });
     expect(() => verifySkillInvocationReceipt(proxy)).toThrow(/structure/u);
     expect(trap).not.toHaveBeenCalled();
+
+    const optionGetter = vi.fn(() => digest("e"));
+    const accessorOptions = {};
+    Object.defineProperty(accessorOptions, "expectedEnvironmentDigest", {
+      enumerable: true,
+      get: optionGetter,
+    });
+    expect(() =>
+      inspectSkillInvocationReceiptCompatibility(settled(), accessorOptions),
+    ).toThrow(/options are invalid/u);
+    expect(optionGetter).not.toHaveBeenCalled();
+
+    const optionTrap = vi.fn(() => {
+      throw new Error("option proxy trap must not run");
+    });
+    const proxyOptions = new Proxy({}, { get: optionTrap });
+    expect(() =>
+      inspectSkillInvocationReceiptCompatibility(settled(), proxyOptions),
+    ).toThrow(/options are invalid/u);
+    expect(optionTrap).not.toHaveBeenCalled();
   });
 
   it("enforces canonical monotonic time, integer tokens, and unique graders", () => {

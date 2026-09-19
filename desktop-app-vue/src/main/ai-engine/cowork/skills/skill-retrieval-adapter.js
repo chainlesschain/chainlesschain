@@ -182,13 +182,17 @@ async function routeDesktopSkills({
 
 async function routeDesktopSkillsWithOutcomeAuthority({
   database,
+  expectedEnvironmentDigest = null,
   buildOutcomeAuthority = buildDesktopSkillOutcomeAuthority,
   ...routingRequest
 } = {}) {
   validateDesktopRoutingRequest(routingRequest);
   let outcomeAuthority;
   try {
-    outcomeAuthority = await buildOutcomeAuthority({ database });
+    outcomeAuthority = await buildOutcomeAuthority({
+      database,
+      expectedEnvironmentDigest,
+    });
   } catch (error) {
     outcomeAuthority = unavailableDesktopSkillOutcomeAuthority(error);
   }

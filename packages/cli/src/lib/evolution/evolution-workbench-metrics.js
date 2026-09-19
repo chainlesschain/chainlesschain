@@ -3,7 +3,10 @@ import { types as utilTypes } from "node:util";
 
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 
-const { verifySkillInvocationReceipt } = skillInvocationReceipt;
+const {
+  inspectSkillInvocationReceiptCompatibility,
+  verifySkillInvocationReceipt,
+} = skillInvocationReceipt;
 
 export const EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
   "chainlesschain.evolution-workbench-metrics-snapshot/v1";
@@ -643,7 +646,8 @@ export class EvolutionWorkbenchMetricsOutcomeBackfiller {
       const verified = verifySkillInvocationReceipt(receipt);
       if (
         verified.evolutionRunId !== this.descriptor.evolutionRunId ||
-        verified.attributionEligible !== true ||
+        !inspectSkillInvocationReceiptCompatibility(verified)
+          .environmentBoundAttributionEligible ||
         Date.parse(verified.completedAt) > Date.parse(previous.throughAt)
       ) {
         throw new Error("Workbench metrics history lacks exact attribution");
@@ -834,7 +838,8 @@ export class EvolutionWorkbenchMetricsAggregator {
       const verified = verifySkillInvocationReceipt(receipt);
       if (
         verified.evolutionRunId !== this.descriptor.evolutionRunId ||
-        verified.attributionEligible !== true
+        !inspectSkillInvocationReceiptCompatibility(verified)
+          .environmentBoundAttributionEligible
       ) {
         throw new Error("Workbench metrics receipt lacks exact attribution");
       }

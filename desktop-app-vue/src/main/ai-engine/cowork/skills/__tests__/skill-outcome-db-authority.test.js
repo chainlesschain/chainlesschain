@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   startSkillInvocation,
   settleSkillInvocation,
 } = require("../skill-invocation-receipt.js");
@@ -54,7 +55,7 @@ function receipt(overrides = {}) {
       toolSetDigest: digest("b"),
       osSandboxPermissionPolicyDigest: digest("c"),
       taskCohort: "test",
-      environmentDigest: digest("e"),
+      environmentDigest: overrides.environmentDigest ?? digest("e"),
       attributionRequired: true,
     },
     { clock: () => "2026-09-03T00:00:00.000Z" },
@@ -72,6 +73,14 @@ function receipt(overrides = {}) {
     },
     { clock: () => "2026-09-03T00:00:01.000Z" },
   );
+}
+
+function legacyReceipt(overrides = {}) {
+  const core = { ...receipt(overrides) };
+  delete core.environmentDigest;
+  delete core.receiptDigest;
+  core.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  return redigestReceipt(core);
 }
 
 function row(id, value) {
@@ -145,6 +154,47 @@ describe("Desktop Skill outcome DB authority", () => {
     expect(authority.evidence).toMatchObject({
       attributionEligibleReceiptCount: 2,
       outcomeEligibleReceiptCount: 0,
+    });
+  });
+
+  it("excludes legacy and stale-environment history from live routing metrics", async () => {
+    const current = receipt({
+      receiptId: "desktop-receipt:current",
+      graderReceipts: [digest("d")],
+    });
+    const stale = receipt({
+      receiptId: "desktop-receipt:stale",
+      environmentDigest: digest("f"),
+      graderReceipts: [digest("d")],
+    });
+    const legacy = legacyReceipt({
+      receiptId: "desktop-receipt:legacy",
+      graderReceipts: [digest("d")],
+    });
+    const authority = await buildDesktopSkillOutcomeAuthority({
+      database: {
+        all: async () => [
+          row("current", current),
+          row("stale", stale),
+          row("legacy", legacy),
+        ],
+      },
+      expectedEnvironmentDigest: digest("e"),
+    });
+
+    expect(authority.metrics[digest("a")]).toMatchObject({
+      samples: 1,
+      successRate: 1,
+    });
+    expect(authority.evidence).toMatchObject({
+      receiptCount: 3,
+      uniqueReceiptCount: 3,
+      attributionEligibleReceiptCount: 1,
+      outcomeEligibleReceiptCount: 1,
+      legacyEnvironmentUnboundReceiptCount: 1,
+      staleEnvironmentReceiptCount: 1,
+      incompleteAttributionReceiptCount: 0,
+      environmentPolicy: "current",
     });
   });
 

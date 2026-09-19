@@ -7,10 +7,15 @@ import {
 } from "../harness/jsonl-session-store.js";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 
-const { verifySkillInvocationReceipt } = skillInvocationReceipt;
+const {
+  inspectSkillInvocationReceiptCompatibility,
+  verifySkillInvocationReceipt,
+} = skillInvocationReceipt;
 
-export const SKILL_OUTCOME_AUTHORITY_SCHEMA =
+export const LEGACY_SKILL_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-transcript-authority/v1";
+export const SKILL_OUTCOME_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-outcome-transcript-authority/v2";
 export const MAX_OUTCOME_AUTHORITY_SESSIONS = 128;
 export const MAX_OUTCOME_AUTHORITY_RECEIPTS = 10_000;
 
@@ -103,13 +108,16 @@ export function buildSkillOutcomeTranscriptAuthority(
     options.maxReceipts === undefined
       ? MAX_OUTCOME_AUTHORITY_RECEIPTS
       : Number(options.maxReceipts);
+  const expectedEnvironmentDigest = options.expectedEnvironmentDigest ?? null;
   if (
     !Number.isSafeInteger(maxSessions) ||
     maxSessions < 1 ||
     maxSessions > MAX_OUTCOME_AUTHORITY_SESSIONS ||
     !Number.isSafeInteger(maxReceipts) ||
     maxReceipts < 1 ||
-    maxReceipts > MAX_OUTCOME_AUTHORITY_RECEIPTS
+    maxReceipts > MAX_OUTCOME_AUTHORITY_RECEIPTS ||
+    (expectedEnvironmentDigest !== null &&
+      !DIGEST.test(expectedEnvironmentDigest))
   ) {
     throw new TypeError("Skill outcome authority bounds are invalid");
   }
@@ -170,8 +178,30 @@ export function buildSkillOutcomeTranscriptAuthority(
   const totals = new Map();
   let attributionEligibleReceiptCount = 0;
   let outcomeEligibleReceiptCount = 0;
+  let legacyEnvironmentUnboundReceiptCount = 0;
+  let staleEnvironmentReceiptCount = 0;
+  let incompleteAttributionReceiptCount = 0;
   for (const receipt of uniqueReceipts.values()) {
-    if (receipt.attributionEligible !== true) continue;
+    const compatibility = inspectSkillInvocationReceiptCompatibility(receipt, {
+      expectedEnvironmentDigest,
+    });
+    if (compatibility.legacyEnvironmentUnbound) {
+      legacyEnvironmentUnboundReceiptCount += 1;
+    } else if (!compatibility.environmentBoundAttributionEligible) {
+      incompleteAttributionReceiptCount += 1;
+    } else if (
+      expectedEnvironmentDigest !== null &&
+      !compatibility.currentEnvironmentEligible
+    ) {
+      staleEnvironmentReceiptCount += 1;
+    }
+    if (
+      !compatibility.environmentBoundAttributionEligible ||
+      (expectedEnvironmentDigest !== null &&
+        !compatibility.currentEnvironmentEligible)
+    ) {
+      continue;
+    }
     attributionEligibleReceiptCount += 1;
     const hasOutcomeEvidence =
       receipt.graderReceipts.length > 0 || receipt.userCorrectionRef !== null;
@@ -213,7 +243,12 @@ export function buildSkillOutcomeTranscriptAuthority(
     }))
     .sort((left, right) => left.sessionId.localeCompare(right.sessionId));
   const sourceDigest = `sha256:${createHash("sha256")
-    .update(`${SKILL_OUTCOME_AUTHORITY_SCHEMA}\0${canonicalJson(source)}`)
+    .update(
+      `${SKILL_OUTCOME_AUTHORITY_SCHEMA}\0${canonicalJson({
+        source,
+        expectedEnvironmentDigest,
+      })}`,
+    )
     .digest("hex")}`;
   return Object.freeze({
     schema: SKILL_OUTCOME_AUTHORITY_SCHEMA,
@@ -228,6 +263,11 @@ export function buildSkillOutcomeTranscriptAuthority(
       uniqueReceiptCount: uniqueReceipts.size,
       attributionEligibleReceiptCount,
       outcomeEligibleReceiptCount,
+      legacyEnvironmentUnboundReceiptCount,
+      staleEnvironmentReceiptCount,
+      incompleteAttributionReceiptCount,
+      environmentPolicy:
+        expectedEnvironmentDigest === null ? "bound" : "current",
       duplicateReceiptCount,
       maxSessions,
       maxReceipts,

@@ -312,6 +312,8 @@ function registerSkillsIPC(options = {}) {
         filters,
         hostTarget: options.skillRoutingTarget || { os: process.platform },
         database: registry.skillMetricsCollector?.database || null,
+        expectedEnvironmentDigest:
+          options.skillRoutingEnvironmentDigest ?? null,
         skillVectorAuthority: getSkillVectorAuthority(),
         skillRetrievalRevocationReader: getSkillRetrievalRevocationReader(),
         buildOutcomeAuthority: options.buildDesktopSkillOutcomeAuthority,

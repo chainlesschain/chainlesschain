@@ -1,10 +1,11 @@
 const crypto = require("node:crypto");
 const {
+  inspectSkillInvocationReceiptCompatibility,
   verifySkillInvocationReceipt,
 } = require("./skill-invocation-receipt.js");
 
 const DESKTOP_SKILL_OUTCOME_AUTHORITY_SCHEMA =
-  "chainlesschain.desktop-skill-outcome-db-authority/v1";
+  "chainlesschain.desktop-skill-outcome-db-authority/v2";
 const MAX_DESKTOP_OUTCOME_ROWS = 10_000;
 const MAX_CONTEXT_JSON_BYTES = 64 * 1024;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
@@ -57,13 +58,16 @@ function inspectReceipt(receipt) {
 async function buildDesktopSkillOutcomeAuthority({
   database,
   maxRows = MAX_DESKTOP_OUTCOME_ROWS,
+  expectedEnvironmentDigest = null,
 } = {}) {
   if (
     !database ||
     typeof database.all !== "function" ||
     !Number.isSafeInteger(maxRows) ||
     maxRows < 1 ||
-    maxRows > MAX_DESKTOP_OUTCOME_ROWS
+    maxRows > MAX_DESKTOP_OUTCOME_ROWS ||
+    (expectedEnvironmentDigest !== null &&
+      !DIGEST.test(expectedEnvironmentDigest))
   ) {
     throw new TypeError("Desktop Skill outcome database authority is required");
   }
@@ -134,8 +138,28 @@ async function buildDesktopSkillOutcomeAuthority({
   const totals = new Map();
   let attributionEligibleReceiptCount = 0;
   let outcomeEligibleReceiptCount = 0;
+  let legacyEnvironmentUnboundReceiptCount = 0;
+  let staleEnvironmentReceiptCount = 0;
+  let incompleteAttributionReceiptCount = 0;
   for (const receipt of uniqueReceipts.values()) {
-    if (receipt.attributionEligible !== true) {
+    const compatibility = inspectSkillInvocationReceiptCompatibility(receipt, {
+      expectedEnvironmentDigest,
+    });
+    if (compatibility.legacyEnvironmentUnbound) {
+      legacyEnvironmentUnboundReceiptCount += 1;
+    } else if (!compatibility.environmentBoundAttributionEligible) {
+      incompleteAttributionReceiptCount += 1;
+    } else if (
+      expectedEnvironmentDigest !== null &&
+      !compatibility.currentEnvironmentEligible
+    ) {
+      staleEnvironmentReceiptCount += 1;
+    }
+    if (
+      !compatibility.environmentBoundAttributionEligible ||
+      (expectedEnvironmentDigest !== null &&
+        !compatibility.currentEnvironmentEligible)
+    ) {
       continue;
     }
     attributionEligibleReceiptCount += 1;
@@ -178,7 +202,10 @@ async function buildDesktopSkillOutcomeAuthority({
   const sourceDigest = `sha256:${crypto
     .createHash("sha256")
     .update(
-      `${DESKTOP_SKILL_OUTCOME_AUTHORITY_SCHEMA}\0${canonicalJson(sourceRows)}`,
+      `${DESKTOP_SKILL_OUTCOME_AUTHORITY_SCHEMA}\0${canonicalJson({
+        sourceRows,
+        expectedEnvironmentDigest,
+      })}`,
     )
     .digest("hex")}`;
   return Object.freeze({
@@ -194,6 +221,11 @@ async function buildDesktopSkillOutcomeAuthority({
       uniqueReceiptCount: uniqueReceipts.size,
       attributionEligibleReceiptCount,
       outcomeEligibleReceiptCount,
+      legacyEnvironmentUnboundReceiptCount,
+      staleEnvironmentReceiptCount,
+      incompleteAttributionReceiptCount,
+      environmentPolicy:
+        expectedEnvironmentDigest === null ? "bound" : "current",
       duplicateReceiptCount,
       maxRows,
       antiRollbackWitness: false,

@@ -1,8 +1,25 @@
+import { createHash } from "node:crypto";
+
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 
-const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
+const {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
+  startSkillInvocation,
+  settleSkillInvocation,
+} = skillInvocationReceipt;
 
 const sha256 = (character) => `sha256:${character.repeat(64)}`;
+
+function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
 
 export function settledSkillInvocationReceipt(overrides = {}) {
   const started = startSkillInvocation(
@@ -19,7 +36,7 @@ export function settledSkillInvocationReceipt(overrides = {}) {
       toolSetDigest: sha256("b"),
       osSandboxPermissionPolicyDigest: sha256("c"),
       taskCohort: "test",
-      environmentDigest: sha256("d"),
+      environmentDigest: overrides.environmentDigest ?? sha256("d"),
       attributionRequired: true,
     },
     {
@@ -40,4 +57,18 @@ export function settledSkillInvocationReceipt(overrides = {}) {
     },
     { clock: () => "2026-09-03T00:00:01.000Z" },
   );
+}
+
+export function legacySkillInvocationReceipt(overrides = {}) {
+  const current = settledSkillInvocationReceipt(overrides);
+  const core = { ...current };
+  delete core.environmentDigest;
+  delete core.receiptDigest;
+  core.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  return Object.freeze({
+    ...core,
+    receiptDigest: `sha256:${createHash("sha256")
+      .update(`${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonical(core)}`)
+      .digest("hex")}`,
+  });
 }

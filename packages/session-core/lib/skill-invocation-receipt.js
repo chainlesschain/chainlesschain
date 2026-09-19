@@ -5,6 +5,13 @@ const LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-invocation-receipt/v1";
 const SKILL_INVOCATION_RECEIPT_SCHEMA =
   "chainlesschain.skill-invocation-receipt/v2";
+const SKILL_INVOCATION_RECEIPT_COMPATIBILITY_SCHEMA =
+  "chainlesschain.skill-invocation-receipt-compatibility/v1";
+const SKILL_INVOCATION_RECEIPT_CONSUMPTION = Object.freeze({
+  HISTORICAL_READ: "historical-read",
+  ENVIRONMENT_BOUND_ATTRIBUTION: "environment-bound-attribution",
+  CURRENT_ENVIRONMENT_EVIDENCE: "current-environment-evidence",
+});
 const LEGACY_REQUIRED_ATTRIBUTION_FIELDS = Object.freeze([
   "evolutionRunId",
   "traceId",
@@ -401,6 +408,114 @@ function verifySkillInvocationReceipt(value) {
   return value;
 }
 
+function skillInvocationReceiptCompatibilityError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function inspectSkillInvocationReceiptCompatibility(value, options = {}) {
+  const optionKeys = isPlainRecord(options) ? Reflect.ownKeys(options) : [];
+  if (
+    !isPlainRecord(options) ||
+    optionKeys.some(
+      (key) =>
+        key !== "expectedEnvironmentDigest" ||
+        !Object.prototype.hasOwnProperty.call(options, key) ||
+        !Object.getOwnPropertyDescriptor(options, key)?.enumerable ||
+        !("value" in Object.getOwnPropertyDescriptor(options, key)),
+    )
+  ) {
+    throw new TypeError(
+      "Skill invocation receipt compatibility options are invalid",
+    );
+  }
+  const expectedEnvironmentDescriptor = Object.getOwnPropertyDescriptor(
+    options,
+    "expectedEnvironmentDigest",
+  );
+  const expectedEnvironmentInput = expectedEnvironmentDescriptor?.value;
+  const receipt = verifySkillInvocationReceipt(value);
+  const expectedEnvironmentDigest =
+    expectedEnvironmentInput == null
+      ? null
+      : normalizeDigest(expectedEnvironmentInput, "expectedEnvironmentDigest");
+  const legacy = receipt.schema === LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  const environmentBound =
+    !legacy && DIGEST.test(receipt.environmentDigest || "");
+  const environmentBoundAttributionEligible =
+    environmentBound && receipt.attributionEligible === true;
+  const expectedEnvironmentChecked = expectedEnvironmentDigest !== null;
+  const environmentStatus = legacy
+    ? "legacy-unbound"
+    : !environmentBound
+      ? "missing"
+      : !expectedEnvironmentChecked
+        ? "bound-unchecked"
+        : receipt.environmentDigest === expectedEnvironmentDigest
+          ? "current"
+          : "stale";
+  return Object.freeze({
+    schema: SKILL_INVOCATION_RECEIPT_COMPATIBILITY_SCHEMA,
+    receiptSchema: receipt.schema,
+    historicalReadable: true,
+    legacyEnvironmentUnbound: legacy,
+    environmentBound,
+    environmentBoundAttributionEligible,
+    expectedEnvironmentChecked,
+    currentEnvironmentEligible:
+      environmentBoundAttributionEligible && environmentStatus === "current",
+    environmentStatus,
+  });
+}
+
+function verifySkillInvocationReceiptForConsumption(
+  value,
+  consumption,
+  options = {},
+) {
+  if (
+    !Object.values(SKILL_INVOCATION_RECEIPT_CONSUMPTION).includes(consumption)
+  ) {
+    throw new TypeError("Skill invocation receipt consumption is invalid");
+  }
+  const compatibility = inspectSkillInvocationReceiptCompatibility(
+    value,
+    options,
+  );
+  if (consumption === SKILL_INVOCATION_RECEIPT_CONSUMPTION.HISTORICAL_READ) {
+    return value;
+  }
+  if (!compatibility.environmentBoundAttributionEligible) {
+    throw skillInvocationReceiptCompatibilityError(
+      compatibility.legacyEnvironmentUnbound
+        ? "Legacy Skill invocation receipts are not environment-bound evidence"
+        : "Skill invocation receipt lacks complete environment-bound attribution",
+      compatibility.legacyEnvironmentUnbound
+        ? "CC_SKILL_INVOCATION_RECEIPT_LEGACY_UNBOUND"
+        : "CC_SKILL_INVOCATION_RECEIPT_ATTRIBUTION_INCOMPLETE",
+    );
+  }
+  if (
+    consumption ===
+    SKILL_INVOCATION_RECEIPT_CONSUMPTION.CURRENT_ENVIRONMENT_EVIDENCE
+  ) {
+    if (!compatibility.expectedEnvironmentChecked) {
+      throw skillInvocationReceiptCompatibilityError(
+        "Current-environment evidence requires an expected environment digest",
+        "CC_SKILL_INVOCATION_RECEIPT_ENVIRONMENT_REQUIRED",
+      );
+    }
+    if (!compatibility.currentEnvironmentEligible) {
+      throw skillInvocationReceiptCompatibilityError(
+        "Skill invocation receipt belongs to a stale environment",
+        "CC_SKILL_INVOCATION_RECEIPT_ENVIRONMENT_STALE",
+      );
+    }
+  }
+  return value;
+}
+
 function buildSkillInvocationTraceProjection(receipts, traceId) {
   const expectedTraceId = bounded(traceId, "traceId");
   const verified = (receipts || [])
@@ -464,9 +579,13 @@ function buildSkillInvocationTraceProjection(receipts, traceId) {
 module.exports = {
   LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   SKILL_INVOCATION_RECEIPT_SCHEMA,
+  SKILL_INVOCATION_RECEIPT_COMPATIBILITY_SCHEMA,
+  SKILL_INVOCATION_RECEIPT_CONSUMPTION,
   REQUIRED_ATTRIBUTION_FIELDS,
   startSkillInvocation,
   settleSkillInvocation,
   verifySkillInvocationReceipt,
+  inspectSkillInvocationReceiptCompatibility,
+  verifySkillInvocationReceiptForConsumption,
   buildSkillInvocationTraceProjection,
 };

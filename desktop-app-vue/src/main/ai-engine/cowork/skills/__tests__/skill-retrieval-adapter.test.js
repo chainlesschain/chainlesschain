@@ -232,7 +232,7 @@ describe("Desktop canonical Skill retrieval adapter", () => {
     const metrics = {
       [digest("a")]: { samples: 3, successRate: 1, correctionRate: 0 },
     };
-    const buildOutcomeAuthority = vi.fn(async ({ database }) => ({
+    const buildOutcomeAuthority = vi.fn(async () => ({
       status: "verified-local-db",
       metrics,
       evidence: {
@@ -246,6 +246,7 @@ describe("Desktop canonical Skill retrieval adapter", () => {
 
     const result = await routeDesktopSkillsWithOutcomeAuthority({
       database,
+      expectedEnvironmentDigest: digest("e"),
       buildOutcomeAuthority,
       skills: [skill()],
       query: "repair tests",
@@ -253,7 +254,10 @@ describe("Desktop canonical Skill retrieval adapter", () => {
       loadRouter: async () => ({ routeSkillDescriptors }),
     });
 
-    expect(buildOutcomeAuthority).toHaveBeenCalledWith({ database });
+    expect(buildOutcomeAuthority).toHaveBeenCalledWith({
+      database,
+      expectedEnvironmentDigest: digest("e"),
+    });
     expect(routeSkillDescriptors).toHaveBeenCalledWith(
       expect.objectContaining({ outcomeMetrics: metrics }),
     );

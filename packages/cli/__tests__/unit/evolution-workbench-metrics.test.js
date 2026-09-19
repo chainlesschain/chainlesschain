@@ -15,7 +15,11 @@ import {
   verifyEvolutionWorkbenchMetricsSnapshot,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 
-const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
+const {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
+  startSkillInvocation,
+  settleSkillInvocation,
+} = skillInvocationReceipt;
 const D = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
@@ -85,6 +89,19 @@ function receipt(
     },
     { clock: () => "2026-09-03T00:01:00.000Z" },
   );
+}
+
+function legacyReceipt(value) {
+  const core = { ...value };
+  delete core.environmentDigest;
+  delete core.receiptDigest;
+  core.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  return {
+    ...core,
+    receiptDigest: `sha256:${createHash("sha256")
+      .update(`${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonical(core)}`)
+      .digest("hex")}`,
+  };
 }
 
 function fixture(deltas, { hotReceiptLimit, retained = new Set() } = {}) {
@@ -480,6 +497,14 @@ describe("Evolution Workbench long-term metrics", () => {
     const h = fixture([
       [receipt("1", D("content:a"), "completed", "run:other")],
     ]);
+    await expect(h.open().aggregate()).rejects.toThrow("exact attribution");
+    expect(h.ports.commitSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("rejects readable v1 receipts as environment-unbound metric evidence", async () => {
+    const historical = legacyReceipt(receipt("v1", D("content:a")));
+    const h = fixture([[historical]]);
+
     await expect(h.open().aggregate()).rejects.toThrow("exact attribution");
     expect(h.ports.commitSnapshot).not.toHaveBeenCalled();
   });

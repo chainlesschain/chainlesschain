@@ -5,7 +5,10 @@ import {
   SKILL_OUTCOME_AUTHORITY_SCHEMA,
   unavailableSkillOutcomeTranscriptAuthority,
 } from "../../src/lib/skill-outcome-transcript-authority.js";
-import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
+import {
+  legacySkillInvocationReceipt,
+  settledSkillInvocationReceipt,
+} from "../helpers/skill-invocation-receipt.js";
 
 const selectedDigest = `sha256:${"a".repeat(64)}`;
 
@@ -126,6 +129,46 @@ describe("Skill outcome transcript authority", () => {
     expect(authority.evidence).toMatchObject({
       attributionEligibleReceiptCount: 2,
       outcomeEligibleReceiptCount: 0,
+    });
+  });
+
+  it("keeps legacy and stale-environment receipts readable but out of outcome metrics", () => {
+    const matching = settledSkillInvocationReceipt({
+      receiptId: "receipt:matching-environment",
+      graderReceipts: [`sha256:${"b".repeat(64)}`],
+    });
+    const stale = settledSkillInvocationReceipt({
+      receiptId: "receipt:stale-environment",
+      environmentDigest: `sha256:${"e".repeat(64)}`,
+      graderReceipts: [`sha256:${"c".repeat(64)}`],
+    });
+    const legacy = legacySkillInvocationReceipt({
+      receiptId: "receipt:legacy",
+      graderReceipts: [`sha256:${"f".repeat(64)}`],
+    });
+    const authority = buildSkillOutcomeTranscriptAuthority(
+      { expectedEnvironmentDigest: `sha256:${"d".repeat(64)}` },
+      {
+        listSessionAuthoritySummaries: () => [row("one")],
+        readVerifiedProjection: reader({
+          one: [toolEvent(matching), toolEvent(stale), toolEvent(legacy)],
+        }),
+      },
+    );
+
+    expect(authority.metrics[selectedDigest]).toMatchObject({
+      samples: 1,
+      successRate: 1,
+    });
+    expect(authority.evidence).toMatchObject({
+      receiptCount: 3,
+      uniqueReceiptCount: 3,
+      attributionEligibleReceiptCount: 1,
+      outcomeEligibleReceiptCount: 1,
+      legacyEnvironmentUnboundReceiptCount: 1,
+      staleEnvironmentReceiptCount: 1,
+      incompleteAttributionReceiptCount: 0,
+      environmentPolicy: "current",
     });
   });
 

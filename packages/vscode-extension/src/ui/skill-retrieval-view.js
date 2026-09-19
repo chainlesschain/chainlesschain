@@ -1,8 +1,10 @@
 "use strict";
 
 const SCHEMA = "chainlesschain.skill-retrieval-result/v1";
-const TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
+const LEGACY_TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-transcript-authority/v1";
+const TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA =
+  "chainlesschain.skill-outcome-transcript-authority/v2";
 const INDEX_OUTCOME_AUTHORITY_SCHEMA =
   "chainlesschain.skill-outcome-index-authority/v1";
 const VECTOR_AUTHORITY_SCHEMA = "chainlesschain.skill-vector-authority/v1";
@@ -122,6 +124,7 @@ function validateOutcomeAuthority(value) {
     !value ||
     typeof value !== "object" ||
     ![
+      LEGACY_TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA,
       TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA,
       INDEX_OUTCOME_AUTHORITY_SCHEMA,
     ].includes(value.schema)
@@ -203,6 +206,28 @@ function validateOutcomeAuthority(value) {
       value.receiptCount - value.uniqueReceiptCount
   ) {
     throw new Error("Skill retrieval returned invalid outcome authority");
+  }
+  if (value.schema === TRANSCRIPT_OUTCOME_AUTHORITY_SCHEMA) {
+    const compatibilityCounts = [
+      value.legacyEnvironmentUnboundReceiptCount,
+      value.staleEnvironmentReceiptCount,
+      value.incompleteAttributionReceiptCount,
+    ];
+    if (
+      compatibilityCounts.some(
+        (count) => !Number.isSafeInteger(count) || count < 0,
+      ) ||
+      !["bound", "current"].includes(value.environmentPolicy) ||
+      value.attributionEligibleReceiptCount +
+        value.legacyEnvironmentUnboundReceiptCount +
+        value.staleEnvironmentReceiptCount +
+        value.incompleteAttributionReceiptCount !==
+        value.uniqueReceiptCount ||
+      (value.environmentPolicy === "bound" &&
+        value.staleEnvironmentReceiptCount !== 0)
+    ) {
+      throw new Error("Skill retrieval returned invalid outcome authority");
+    }
   }
   return Object.freeze({ ...value });
 }

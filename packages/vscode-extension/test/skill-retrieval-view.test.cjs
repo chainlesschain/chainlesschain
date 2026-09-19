@@ -206,6 +206,49 @@ test("Skill Retrieval IDE rejects drift and duplicate candidate evidence", () =>
   );
 });
 
+test("Skill Retrieval IDE accepts v2 environment classifications and keeps v1 readable", () => {
+  const legacy = result();
+  assert.equal(
+    parseSkillRetrievalResult(JSON.stringify(legacy)).outcomeAuthority.schema,
+    "chainlesschain.skill-outcome-transcript-authority/v1",
+  );
+  const current = result({
+    outcomeAuthority: {
+      ...legacy.outcomeAuthority,
+      schema: "chainlesschain.skill-outcome-transcript-authority/v2",
+      attributionEligibleReceiptCount: 1,
+      outcomeEligibleReceiptCount: 1,
+      legacyEnvironmentUnboundReceiptCount: 1,
+      staleEnvironmentReceiptCount: 0,
+      incompleteAttributionReceiptCount: 0,
+      environmentPolicy: "current",
+    },
+  });
+  assert.equal(
+    parseSkillRetrievalResult(JSON.stringify(current)).outcomeAuthority
+      .environmentPolicy,
+    "current",
+  );
+  for (const outcomeAuthority of [
+    { ...current.outcomeAuthority, staleEnvironmentReceiptCount: 1 },
+    { ...current.outcomeAuthority, incompleteAttributionReceiptCount: -1 },
+    { ...current.outcomeAuthority, environmentPolicy: "ignored" },
+    {
+      ...current.outcomeAuthority,
+      environmentPolicy: "bound",
+      staleEnvironmentReceiptCount: 1,
+    },
+  ]) {
+    assert.throws(
+      () =>
+        parseSkillRetrievalResult(
+          JSON.stringify({ ...current, outcomeAuthority }),
+        ),
+      /invalid outcome authority/u,
+    );
+  }
+});
+
 test("Skill Retrieval IDE accepts only witnessed bounded outcome indexes", () => {
   const valid = result({
     outcomeAuthority: {
