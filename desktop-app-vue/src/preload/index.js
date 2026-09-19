@@ -121,6 +121,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:action:navigate",
   "browser:action:open-tab",
   "browser:action:vision",
+  "browser:operator:maintain-quarantine-lock",
   "browser:operator:revoke-quarantine-artifact",
   "browser:aiClearHistory",
   "browser:aiExecute",
@@ -4979,6 +4980,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Operator-only quarantine management. Identity, role and signature are
     // deliberately resolved by the main process; callers supply no actor data.
     operator: {
+      maintainQuarantineLock: (request) =>
+        ipcRenderer.invoke(
+          "browser:operator:maintain-quarantine-lock",
+          request,
+        ),
       revokeQuarantineArtifact: (request) =>
         ipcRenderer.invoke(
           "browser:operator:revoke-quarantine-artifact",

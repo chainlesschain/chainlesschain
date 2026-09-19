@@ -35,6 +35,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     desktopBrowserDownloadActionHost,
     desktopBrowserDownloadArtifactDisposalHost,
     desktopBrowserQuarantineOperatorRevocationHost,
+    desktopBrowserQuarantineLockMaintenanceHost,
     didManager,
   } = deps;
 
@@ -424,11 +425,13 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
           desktopBrowserDownloadArtifactDisposalHost || null,
         desktopBrowserQuarantineOperatorRevocationHost:
           desktopBrowserQuarantineOperatorRevocationHost || null,
+        desktopBrowserQuarantineLockMaintenanceHost:
+          desktopBrowserQuarantineLockMaintenanceHost || null,
         didManager: didManager || null,
         database: database || null,
       });
     },
-    handlers: 26,
+    handlers: 27,
     continueMessage: "Browser automation features will be disabled",
   });
 

@@ -117,6 +117,7 @@
     "browser:action:navigate",
     "browser:action:open-tab",
     "browser:action:vision",
+    "browser:operator:maintain-quarantine-lock",
     "browser:operator:revoke-quarantine-artifact",
     "browser:aiClearHistory",
     "browser:aiExecute",

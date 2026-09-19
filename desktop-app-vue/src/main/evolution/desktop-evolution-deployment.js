@@ -30,6 +30,9 @@ const {
   createDesktopBrowserQuarantineOperatorRevocationHost,
 } = require("./desktop-browser-quarantine-operator-revocation");
 const {
+  createDesktopBrowserQuarantineLockMaintenanceHost,
+} = require("./desktop-browser-quarantine-lock-maintenance");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -82,6 +85,8 @@ const DEV_BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-download-artifact-disposal-authority.js";
 const DEV_BROWSER_QUARANTINE_OPERATOR_REVOCATION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-quarantine-operator-revocation-authority.js";
+const DEV_BROWSER_QUARANTINE_LOCK_MAINTENANCE_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-quarantine-lock-maintenance-authority.js";
 const DEV_BROWSER_QUARANTINE_RETENTION_SCHEDULER_REL =
   "../../../../packages/cli/src/lib/evolution/browser-quarantine-retention-scheduler.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
@@ -771,6 +776,27 @@ function resolveBrowserQuarantineOperatorRevocationAuthorityPath({
   return path.resolve(
     __dirname,
     DEV_BROWSER_QUARANTINE_OPERATOR_REVOCATION_AUTHORITY_REL,
+  );
+}
+
+function resolveBrowserQuarantineLockMaintenanceAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser quarantine lock maintenance authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-quarantine-lock-maintenance-authority.js",
+    );
+  }
+  return path.resolve(
+    __dirname,
+    DEV_BROWSER_QUARANTINE_LOCK_MAINTENANCE_AUTHORITY_REL,
   );
 }
 
@@ -1468,6 +1494,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserDownloadArtifactDisposalAuthorityModule = (url) => import(url),
   importBrowserQuarantineOperatorRevocationAuthorityModule = (url) =>
     import(url),
+  importBrowserQuarantineLockMaintenanceAuthorityModule = (url) => import(url),
   importBrowserQuarantineRetentionSchedulerModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
@@ -1810,6 +1837,38 @@ async function loadDesktopEvolutionDependencies({
           authorityModule,
           "captureBrowserQuarantineOperatorRevocationAuthority",
           "browser quarantine operator revocation authority capture",
+        ),
+      );
+  }
+  const browserQuarantineLockMaintenanceAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(
+      result,
+      "browserQuarantineLockMaintenanceAuthority",
+    );
+  if (browserQuarantineLockMaintenanceAuthorityDescriptor) {
+    if (
+      !("value" in browserQuarantineLockMaintenanceAuthorityDescriptor) ||
+      browserQuarantineLockMaintenanceAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser quarantine lock maintenance authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserQuarantineLockMaintenanceAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule =
+      await importBrowserQuarantineLockMaintenanceAuthorityModule(
+        pathToFileURL(authorityPath).href,
+      );
+    desktopDependencies.desktopBrowserQuarantineLockMaintenanceHost =
+      createDesktopBrowserQuarantineLockMaintenanceHost(
+        browserQuarantineLockMaintenanceAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserQuarantineLockMaintenanceAuthority",
+          "browser quarantine lock maintenance authority capture",
         ),
       );
   }
@@ -2203,6 +2262,7 @@ module.exports = {
   resolveBrowserDownloadActionAuthorityPath,
   resolveBrowserDownloadArtifactDisposalAuthorityPath,
   resolveBrowserQuarantineOperatorRevocationAuthorityPath,
+  resolveBrowserQuarantineLockMaintenanceAuthorityPath,
   resolveBrowserQuarantineRetentionSchedulerPath,
   resolveLoaderPath,
 };

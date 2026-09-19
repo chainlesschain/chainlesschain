@@ -931,6 +931,38 @@ describe("desktop evolution deployment", () => {
     expect(revokeArtifact).not.toHaveBeenCalled();
   });
 
+  it("narrows a signed lock-maintenance authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-lock-maintenance",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("lock-maintenance-handler"),
+      approvalMode: "operator-signed",
+      auditMode: "authenticated-durable-readback",
+      effectMode: "orphan-lock-release",
+    });
+    const maintainLock = vi.fn();
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded authority");
+      return Object.freeze({ descriptor, maintainLock });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserQuarantineLockMaintenanceAuthority: authority,
+        }),
+      }),
+      importBrowserQuarantineLockMaintenanceAuthorityModule: async () => ({
+        captureBrowserQuarantineLockMaintenanceAuthority: capture,
+      }),
+    });
+    expect(
+      Object.keys(result.desktopBrowserQuarantineLockMaintenanceHost),
+    ).toEqual([]);
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(maintainLock).not.toHaveBeenCalled();
+  });
+
   it("starts a signed retention scheduler and exposes only lifecycle ports", async () => {
     const scheduler = Object.freeze({});
     const start = vi.fn(async () => ({ status: "started" }));

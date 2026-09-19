@@ -130,6 +130,9 @@ const {
 const {
   registerDesktopBrowserQuarantineOperatorRevocationIPC,
 } = require("../evolution/desktop-browser-quarantine-operator-revocation");
+const {
+  registerDesktopBrowserQuarantineLockMaintenanceIPC,
+} = require("../evolution/desktop-browser-quarantine-lock-maintenance");
 
 function registerBrowserIPC(deps = {}) {
   const _ipcMain = deps.ipcMain || ipcMain;
@@ -197,6 +200,12 @@ function registerBrowserIPC(deps = {}) {
   registerDesktopBrowserQuarantineOperatorRevocationIPC({
     ipcMain: _ipcMain,
     host: deps.desktopBrowserQuarantineOperatorRevocationHost ?? null,
+    didManager: deps.didManager ?? null,
+    database: deps.database ?? null,
+  });
+  registerDesktopBrowserQuarantineLockMaintenanceIPC({
+    ipcMain: _ipcMain,
+    host: deps.desktopBrowserQuarantineLockMaintenanceHost ?? null,
     didManager: deps.didManager ?? null,
     database: deps.database ?? null,
   });
