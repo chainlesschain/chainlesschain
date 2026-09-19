@@ -5,6 +5,15 @@
  * @module llm/llm-ipc-core
  */
 const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+
+function isGovernanceIngressFailure(error) {
+  try {
+    return error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+  } catch {
+    return false;
+  }
+}
 
 function registerCoreHandlers(ctx) {
   const getConfiguration =
@@ -27,6 +36,7 @@ function registerCoreHandlers(ctx) {
     agentOrchestrator,
     errorMonitor,
   } = ctx;
+  const privacy = ctx.llmPrivacy || createLlmIpcPrivacy("core");
 
   // ============================================================
   // 基础 LLM 服务
@@ -46,11 +56,8 @@ function registerCoreHandlers(ctx) {
       }
 
       return await managerRef.current.checkStatus();
-    } catch (error) {
-      return {
-        available: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.unavailable("check-status");
     }
   });
 
@@ -66,8 +73,10 @@ function registerCoreHandlers(ctx) {
 
       return await managerRef.current.query(prompt, options);
     } catch (error) {
-      logger.error("[LLM IPC] LLM查询失败:", error);
-      throw error;
+      if (isGovernanceIngressFailure(error)) {
+        throw privacy.governanceFailure("query");
+      }
+      throw privacy.failure("query");
     }
   });
 
@@ -154,9 +163,6 @@ function registerCoreHandlers(ctx) {
         // 🔥 0.1: ErrorMonitor 预检查（如果启用）
         if (enableErrorPrecheck && errorMonitor) {
           try {
-            // 检查系统状态，提前发现可能的问题
-            const prechecks = [];
-
             // 检查 LLM 服务是否暂停（预算超限）
             if (managerRef.current.paused) {
               throw new Error(
@@ -404,8 +410,6 @@ function registerCoreHandlers(ctx) {
         const toolsToUse = [];
         if (managerRef.current.provider === "volcengine" && !options.model) {
           try {
-            const TaskTypes = require("./volcengine-models").TaskTypes;
-
             // 分析对话场景，智能选择模型
             const scenario = {
               userBudget: options.userBudget || "medium",
@@ -982,33 +986,10 @@ function registerCoreHandlers(ctx) {
 
         return finalResponse;
       } catch (error) {
-        logger.error("[LLM IPC] LLM 聊天失败:", error);
-        if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-
-        // 🔥 使用 ErrorMonitor 进行错误分析（如果启用）
-        if (errorMonitor) {
-          try {
-            const analysis = await errorMonitor.analyzeError(error);
-            logger.info("[LLM IPC] ErrorMonitor 错误分析完成:", {
-              classification: analysis.classification,
-              severity: analysis.severity,
-              hasAIDiagnosis: !!analysis.aiDiagnosis,
-            });
-
-            // 如果有 AI 诊断，附加到错误信息
-            if (analysis.aiDiagnosis) {
-              error.aiDiagnosis = analysis.aiDiagnosis;
-              error.recommendations = analysis.recommendations;
-            }
-          } catch (analysisError) {
-            logger.warn(
-              "[LLM IPC] ErrorMonitor 分析失败:",
-              analysisError.message,
-            );
-          }
+        if (isGovernanceIngressFailure(error)) {
+          throw privacy.governanceFailure("chat");
         }
-
-        throw error;
+        throw privacy.failure("chat");
       }
     },
   );
@@ -1066,8 +1047,10 @@ function registerCoreHandlers(ctx) {
           options,
         );
       } catch (error) {
-        logger.error("[LLM IPC] 模板聊天失败:", error);
-        throw error;
+        if (isGovernanceIngressFailure(error)) {
+          throw privacy.governanceFailure("chat-with-template");
+        }
+        throw privacy.failure("chat-with-template");
       }
     },
   );
@@ -1099,8 +1082,10 @@ function registerCoreHandlers(ctx) {
 
       return result;
     } catch (error) {
-      logger.error("[LLM IPC] LLM流式查询失败:", error);
-      throw error;
+      if (isGovernanceIngressFailure(error)) {
+        throw privacy.governanceFailure("query-stream");
+      }
+      throw privacy.failure("query-stream");
     }
   });
 
@@ -1112,9 +1097,8 @@ function registerCoreHandlers(ctx) {
     try {
       const llmConfig = getConfiguration();
       return llmConfig.getAll();
-    } catch (error) {
-      logger.error("[LLM IPC] 获取LLM配置失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-config");
     }
   });
 
@@ -1180,9 +1164,8 @@ function registerCoreHandlers(ctx) {
       logger.info("[LLM IPC] LLM配置已更新并重新初始化");
 
       return true;
-    } catch (error) {
-      logger.error("[LLM IPC] 设置LLM配置失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("set-config");
     }
   });
 
@@ -1197,8 +1180,8 @@ function registerCoreHandlers(ctx) {
       }
 
       return await managerRef.current.listModels();
-    } catch (error) {
-      logger.error("[LLM IPC] 列出模型失败:", error);
+    } catch {
+      privacy.failure("list-models");
       return [];
     }
   });
@@ -1215,9 +1198,8 @@ function registerCoreHandlers(ctx) {
 
       managerRef.current.clearContext(conversationId);
       return true;
-    } catch (error) {
-      logger.error("[LLM IPC] 清除上下文失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("clear-context");
     }
   });
 
@@ -1233,8 +1215,10 @@ function registerCoreHandlers(ctx) {
 
       return await managerRef.current.embeddings(text);
     } catch (error) {
-      logger.error("[LLM IPC] 生成嵌入失败:", error);
-      throw error;
+      if (isGovernanceIngressFailure(error)) {
+        throw privacy.governanceFailure("embeddings");
+      }
+      throw privacy.failure("embeddings");
     }
   });
 }
