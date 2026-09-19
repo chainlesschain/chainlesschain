@@ -415,6 +415,7 @@ export function createBrowserQuarantinedDownloadExecutor({
             maxBytes: execution.maxBytes,
             contentType: network.contentType,
             networkReceiptDigest: network.networkReceiptDigest,
+            actionReceiptDigest: execution.actionReceiptDigest,
           }),
         ]),
       );

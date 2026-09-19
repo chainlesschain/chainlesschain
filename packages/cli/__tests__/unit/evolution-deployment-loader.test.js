@@ -42,6 +42,10 @@ import {
   isBrowserQuarantinedDownloadExecutor,
 } from "../../src/lib/evolution/browser-quarantined-download-executor.js";
 import {
+  BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
+  captureBrowserFilesystemQuarantineCustody,
+} from "../../src/lib/evolution/browser-filesystem-quarantine-custody.js";
+import {
   BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadArtifactDisposalAuthority,
 } from "../../src/lib/evolution/browser-download-artifact-disposal-authority.js";
@@ -1084,6 +1088,19 @@ describe("signed evolution deployment loader", () => {
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>
+            factories.createBrowserFilesystemQuarantineCustody({
+              descriptor: {
+                schema: BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
+                custodyId: "browser-download-custody",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                retentionMs: 60_000,
+                custodyMode: "exclusive-stream-fsync",
+              },
+              stateRoot: resolve("quarantine"),
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
             factories.createBrowserDownloadArtifactDisposalAuthority({
               descriptor: {
                 schema: BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
@@ -1213,6 +1230,18 @@ describe("signed evolution deployment loader", () => {
               scanArtifact: async () => null,
               completeArtifact: async () => null,
             });
+          const browserFilesystemQuarantineCustody =
+            factories.createBrowserFilesystemQuarantineCustody({
+              descriptor: {
+                schema: BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
+                custodyId: "browser-download-custody",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                retentionMs: 60_000,
+                custodyMode: "exclusive-stream-fsync",
+              },
+              stateRoot: resolve("quarantine"),
+            });
           const browserDownloadArtifactDisposalAuthority =
             factories.createBrowserDownloadArtifactDisposalAuthority({
               descriptor: {
@@ -1239,6 +1268,7 @@ describe("signed evolution deployment loader", () => {
             browserTabOpenActionAuthority,
             browserDownloadActionAuthority,
             browserQuarantinedDownloadExecutor,
+            browserFilesystemQuarantineCustody,
             browserDownloadArtifactDisposalAuthority,
           };
         },
@@ -1312,6 +1342,15 @@ describe("signed evolution deployment loader", () => {
         result.browserQuarantinedDownloadExecutor,
       ),
     ).toBe(true);
+    expect(
+      captureBrowserFilesystemQuarantineCustody(
+        result.browserFilesystemQuarantineCustody,
+      ).descriptor,
+    ).toMatchObject({
+      custodyId: "browser-download-custody",
+      custodyMode: "exclusive-stream-fsync",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
     expect(
       captureBrowserDownloadArtifactDisposalAuthority(
         result.browserDownloadArtifactDisposalAuthority,
