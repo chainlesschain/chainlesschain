@@ -50,9 +50,23 @@ const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
 const LOCK_OWNER_INIT_TIMEOUT_MS = 30_000;
-const LOCK_OPERATIONS = new Set(["write", "scan", "complete", "dispose"]);
+const LOCK_OPERATIONS = new Set([
+  "write",
+  "scan",
+  "complete",
+  "dispose",
+  "recover",
+]);
 const LOCK_TEMP_FILE =
   /^owner\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
+const OBJECT_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.(part|blob)$/u;
+const METADATA_TEMP_FILE =
+  /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
+const DELETION_FILE =
+  /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.(intent|deleted)\.json$/u;
+const DELETION_TEMP_FILE =
+  /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.(?:intent|deleted)\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/iu;
+const LOCK_DIRECTORY = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.lock$/u;
 const DISPOSAL_REASONS = new Set([
   "user-discard",
   "expired",
@@ -517,6 +531,241 @@ async function acquireArtifactLock(state, artifactId, operation) {
   throw lockError("filesystem quarantine artifact lock acquisition raced");
 }
 
+function assertRegularRecoveryEntry(entry, label) {
+  if (!entry.isFile() || entry.isSymbolicLink())
+    throw new Error(`filesystem quarantine ${label} entry is unsafe`);
+}
+
+async function discoverRecoveryState(state) {
+  const candidates = new Set();
+  const temporaryFiles = new Map();
+  const addTemporary = (artifactId, file) => {
+    candidates.add(artifactId);
+    let files = temporaryFiles.get(artifactId);
+    if (!files) {
+      files = new Set();
+      temporaryFiles.set(artifactId, files);
+    }
+    files.add(file);
+  };
+
+  const metadataIds = new Set();
+  for (const entry of await readdir(state.metadataRoot, {
+    withFileTypes: true,
+  })) {
+    assertRegularRecoveryEntry(entry, "metadata");
+    const metadataMatch = METADATA_FILE.exec(entry.name);
+    if (metadataMatch) {
+      metadataIds.add(metadataMatch[1]);
+      continue;
+    }
+    const temporaryMatch = METADATA_TEMP_FILE.exec(entry.name);
+    if (!temporaryMatch)
+      throw new Error("filesystem quarantine metadata entry is unknown");
+    addTemporary(temporaryMatch[1], path.join(state.metadataRoot, entry.name));
+  }
+
+  for (const entry of await readdir(state.objectsRoot, {
+    withFileTypes: true,
+  })) {
+    assertRegularRecoveryEntry(entry, "object");
+    const match = OBJECT_FILE.exec(entry.name);
+    if (!match)
+      throw new Error("filesystem quarantine object entry is unknown");
+    if (match[2] === "part" || !metadataIds.has(match[1]))
+      candidates.add(match[1]);
+  }
+
+  for (const entry of await readdir(state.deletionsRoot, {
+    withFileTypes: true,
+  })) {
+    assertRegularRecoveryEntry(entry, "deletion");
+    if (DELETION_FILE.test(entry.name)) continue;
+    const temporaryMatch = DELETION_TEMP_FILE.exec(entry.name);
+    if (!temporaryMatch)
+      throw new Error("filesystem quarantine deletion entry is unknown");
+    addTemporary(temporaryMatch[1], path.join(state.deletionsRoot, entry.name));
+  }
+
+  for (const entry of await readdir(state.locksRoot, {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory() || entry.isSymbolicLink())
+      throw new Error("filesystem quarantine lock entry is unsafe");
+    const match = LOCK_DIRECTORY.exec(entry.name);
+    if (!match) throw new Error("filesystem quarantine lock entry is unknown");
+    candidates.add(match[1]);
+  }
+  return Object.freeze({ candidates, temporaryFiles });
+}
+
+async function findArtifactTemporaryFiles(state, artifactId) {
+  const files = [];
+  for (const [directory, pattern] of [
+    [state.metadataRoot, METADATA_TEMP_FILE],
+    [state.deletionsRoot, DELETION_TEMP_FILE],
+  ]) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const match = pattern.exec(entry.name);
+      if (!match || match[1] !== artifactId) continue;
+      assertRegularRecoveryEntry(entry, "temporary");
+      files.push(path.join(directory, entry.name));
+    }
+  }
+  return files;
+}
+
+async function removeRecoveryTemporaryFiles(files) {
+  for (const file of files) {
+    let info;
+    try {
+      info = await lstat(file);
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw error;
+    }
+    if (!info.isFile() || info.isSymbolicLink())
+      throw new Error("filesystem quarantine temporary file is unsafe");
+    await unlink(file);
+    if (await exists(file))
+      throw new Error("filesystem quarantine temporary cleanup failed");
+  }
+}
+
+function normalizeRecoveryDeletionEvidence(value, state, kind) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error(
+      "filesystem quarantine recovery deletion evidence is invalid",
+    );
+  const descriptor = {
+    authorityId: value.authorityId,
+    tenantId: state.descriptor.tenantId,
+    handlerArtifactDigest: state.descriptor.handlerArtifactDigest,
+  };
+  const input = {
+    actionReceiptDigest: value.actionReceiptDigest,
+    requestDigest: value.requestDigest,
+    artifactRef: value.artifactRef,
+    artifactDigest: value.artifactDigest,
+    sourceActionReceiptDigest: value.sourceActionReceiptDigest,
+    reason: value.reason,
+  };
+  return kind === "intent"
+    ? normalizeDeletionIntent(value, state, descriptor, input)
+    : normalizeTombstone(value, state, descriptor, input);
+}
+
+function sameDeletionBinding(left, right) {
+  return [
+    "custodyId",
+    "tenantId",
+    "authorityId",
+    "handlerArtifactDigest",
+    "actionReceiptDigest",
+    "requestDigest",
+    "artifactRef",
+    "artifactDigest",
+    "sourceActionReceiptDigest",
+    "reason",
+  ].every((key) => left[key] === right[key]);
+}
+
+async function reconcileArtifactDebris(state, artifactId, temporaryFiles = []) {
+  const files = pathsFor(state.stateRoot, artifactId);
+  const [intentValue, tombstoneValue] = await Promise.all([
+    readJsonIfPresent(files.deletionIntent),
+    readJsonIfPresent(files.tombstone),
+  ]);
+  const intent =
+    intentValue === null
+      ? null
+      : normalizeRecoveryDeletionEvidence(intentValue, state, "intent");
+  const tombstone =
+    tombstoneValue === null
+      ? null
+      : normalizeRecoveryDeletionEvidence(tombstoneValue, state, "tombstone");
+  if (intent && tombstone && !sameDeletionBinding(intent, tombstone))
+    throw new Error(
+      "filesystem quarantine recovery deletion evidence conflicts",
+    );
+
+  if (tombstone) {
+    if (
+      (await exists(files.part)) ||
+      (await exists(files.blob)) ||
+      (await exists(files.metadata))
+    )
+      throw new Error("filesystem quarantine tombstone conflicts with debris");
+    await removeRecoveryTemporaryFiles(temporaryFiles);
+    return "tombstoned";
+  }
+  if (intent) {
+    await removeRecoveryTemporaryFiles(temporaryFiles);
+    return "pending-deletion";
+  }
+  if (await exists(files.metadata)) {
+    const persisted = await readMetadata(state, `quarantine:${artifactId}`);
+    await verifyBlob(persisted.files, persisted.metadata);
+    await unlinkIfPresent(files.part);
+    if (await exists(files.part))
+      throw new Error("filesystem quarantine partial cleanup failed");
+    await removeRecoveryTemporaryFiles(temporaryFiles);
+    return "verified-artifact";
+  }
+
+  await unlinkIfPresent(files.part);
+  await unlinkIfPresent(files.blob);
+  await removeRecoveryTemporaryFiles(temporaryFiles);
+  if ((await exists(files.part)) || (await exists(files.blob)))
+    throw new Error("filesystem quarantine orphan cleanup failed");
+  return "removed-orphan";
+}
+
+async function recoverInterruptedArtifacts(state) {
+  await prepare(state);
+  const discovered = await discoverRecoveryState(state);
+  let recoveredArtifacts = 0;
+  let activeArtifacts = 0;
+  for (const artifactId of [...discovered.candidates].sort()) {
+    let releaseLock;
+    try {
+      releaseLock = await acquireArtifactLock(state, artifactId, "recover");
+    } catch (error) {
+      if (error?.code === "BROWSER_FILESYSTEM_QUARANTINE_ARTIFACT_LOCKED") {
+        activeArtifacts += 1;
+        continue;
+      }
+      throw error;
+    }
+    try {
+      await reconcileArtifactDebris(state, artifactId, [
+        ...(discovered.temporaryFiles.get(artifactId) ?? []),
+      ]);
+      recoveredArtifacts += 1;
+    } finally {
+      await releaseLock();
+    }
+  }
+  return Object.freeze({ recoveredArtifacts, activeArtifacts });
+}
+
+async function ensureRecovered(state) {
+  await prepare(state);
+  if (!state.recoveryPromise) {
+    state.recoveryPromise = recoverInterruptedArtifacts(state).then(
+      (report) => {
+        if (report.activeArtifacts > 0) state.recoveryPromise = null;
+        return report;
+      },
+      (error) => {
+        state.recoveryPromise = null;
+        throw error;
+      },
+    );
+  }
+  return state.recoveryPromise;
+}
+
 async function readMetadata(state, artifactRef) {
   const artifactId = artifactIdFromRef(artifactRef);
   const files = pathsFor(state.stateRoot, artifactId);
@@ -568,7 +817,7 @@ function normalizeOpenInput(value, descriptor) {
 
 async function openQuarantine(state, value) {
   const input = normalizeOpenInput(value, state.descriptor);
-  await prepare(state);
+  await ensureRecovered(state);
   const releaseLock = await acquireArtifactLock(
     state,
     input.artifactId,
@@ -577,6 +826,11 @@ async function openQuarantine(state, value) {
   const files = pathsFor(state.stateRoot, input.artifactId);
   let handle;
   try {
+    await reconcileArtifactDebris(
+      state,
+      input.artifactId,
+      await findArtifactTemporaryFiles(state, input.artifactId),
+    );
     if (state.active.has(input.artifactId))
       throw new Error("filesystem quarantine artifact is already active");
     if (
@@ -765,7 +1019,7 @@ async function openArtifactForScan(state, value) {
     ],
     "filesystem quarantine scan request",
   );
-  await prepare(state);
+  await ensureRecovered(state);
   const persisted = await readMetadata(state, value.artifactRef);
   const metadata = persisted.metadata;
   if (
@@ -814,7 +1068,7 @@ async function completeArtifact(state, value) {
     !Number.isFinite(Date.parse(value.completedAt))
   )
     throw new TypeError("filesystem quarantine completion request is invalid");
-  await prepare(state);
+  await ensureRecovered(state);
   const artifactId = artifactIdFromRef(value.artifactRef);
   if (state.disposals.has(artifactId))
     throw new Error("filesystem quarantine artifact disposal is active");
@@ -883,7 +1137,7 @@ async function completeArtifact(state, value) {
 }
 
 async function inspectArtifact(state, artifactRef) {
-  await prepare(state);
+  await ensureRecovered(state);
   const persisted = await readMetadata(state, artifactRef);
   await verifyBlob(persisted.files, persisted.metadata);
   const { metadata } = persisted;
@@ -1034,7 +1288,7 @@ function normalizeExpiryPlanInput(value, retentionDescriptor, nowMs) {
 }
 
 async function planExpiredArtifacts(state, retentionDescriptor, value) {
-  await prepare(state);
+  await ensureRecovered(state);
   const nowMs = state.now();
   if (!Number.isFinite(nowMs))
     throw new Error("filesystem quarantine clock is invalid");
@@ -1129,7 +1383,7 @@ function normalizeExpiredDisposalInput(value) {
 }
 
 async function disposeExpiredArtifact(state, retentionDescriptor, input) {
-  await prepare(state);
+  await ensureRecovered(state);
   const nowMs = state.now();
   if (!Number.isFinite(nowMs) || input.cutoffMs > nowMs)
     throw new Error("filesystem quarantine expiry cutoff is not current");
@@ -1323,7 +1577,7 @@ function deletionAck(disposalDescriptor, tombstone) {
 
 async function disposeArtifact(state, disposalDescriptor, value) {
   const input = normalizeDisposalInput(value);
-  await prepare(state);
+  await ensureRecovered(state);
   const artifactId = artifactIdFromRef(input.artifactRef);
   if (state.disposals.has(artifactId))
     throw new Error(
@@ -1489,6 +1743,7 @@ export function createBrowserFilesystemQuarantineCustody({
     locksRoot: path.join(normalizedRoot, "locks"),
     now,
     preparePromise: null,
+    recoveryPromise: null,
     active: new Set(),
     readers: new Map(),
     disposals: new Set(),

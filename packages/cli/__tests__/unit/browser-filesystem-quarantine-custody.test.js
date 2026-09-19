@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -651,6 +651,115 @@ describe("browser filesystem quarantine custody", () => {
       bytesUnavailable: true,
       readbackVerified: true,
     });
+  });
+
+  it("recovers a crashed writer's part, orphan blob, and atomic temp files", async () => {
+    const { descriptorValue, port, stateRoot } = await fixture();
+    const moduleUrl = new URL(
+      "../../src/lib/evolution/browser-filesystem-quarantine-custody.js",
+      import.meta.url,
+    ).href;
+    const childSource = `
+      import { createHash } from "node:crypto";
+      import {
+        captureBrowserFilesystemQuarantineCustody,
+        createBrowserFilesystemQuarantineCustody,
+      } from ${JSON.stringify(moduleUrl)};
+      const descriptor = ${JSON.stringify(descriptorValue)};
+      const stateRoot = ${JSON.stringify(stateRoot)};
+      const sha = (value) => "sha256:" + createHash("sha256").update(value).digest("hex");
+      const port = captureBrowserFilesystemQuarantineCustody(
+        createBrowserFilesystemQuarantineCustody({
+          descriptor,
+          stateRoot,
+          now: () => ${NOW},
+        }),
+      );
+      const session = await port.openQuarantine({
+        artifactId: "artifact-1",
+        tenantId: "tenant-1",
+        maxBytes: 1024,
+        contentType: "application/pdf",
+        networkReceiptDigest: sha("network"),
+        actionReceiptDigest: sha("action"),
+      });
+      await session.writeChunk(Buffer.from("partial"));
+      process.stdout.write(JSON.stringify({ status: "writing" }) + "\\n");
+      setInterval(() => {}, 60_000);
+    `;
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "--eval", childSource],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    try {
+      await nextJsonLine(child.stdout);
+      await expect(port.openQuarantine(openInput())).rejects.toMatchObject({
+        code: "BROWSER_FILESYSTEM_QUARANTINE_ARTIFACT_LOCKED",
+      });
+      const exited = once(child, "exit");
+      child.kill();
+      await exited;
+
+      const metadataTemp = path.join(
+        stateRoot,
+        "metadata",
+        `artifact-1.json.${randomUUID()}.tmp`,
+      );
+      const deletionTemp = path.join(
+        stateRoot,
+        "deletions",
+        `artifact-1.intent.json.${randomUUID()}.tmp`,
+      );
+      const orphanBlob = path.join(stateRoot, "objects", "artifact-1.blob");
+      await Promise.all([
+        writeFile(metadataTemp, "incomplete metadata"),
+        writeFile(deletionTemp, "incomplete deletion"),
+        writeFile(orphanBlob, "orphan"),
+      ]);
+
+      const recovered = await port.openQuarantine(openInput());
+      await recovered.writeChunk(Buffer.from("fresh"));
+      await expect(
+        recovered.commitArtifact({
+          artifactDigest: digest("fresh"),
+          sizeBytes: 5,
+          contentType: "application/pdf",
+        }),
+      ).resolves.toMatchObject({
+        artifactRef: "quarantine:artifact-1",
+        artifactDigest: digest("fresh"),
+        readbackVerified: true,
+      });
+      for (const file of [metadataTemp, deletionTemp])
+        await expect(access(file)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        const exited = once(child, "exit");
+        child.kill();
+        await exited.catch(() => {});
+      }
+    }
+  });
+
+  it("fails closed without deleting unknown recovery entries", async () => {
+    const { descriptorValue, port, stateRoot } = await fixture();
+    const session = await port.openQuarantine(openInput());
+    await session.discardArtifact();
+    const unknown = path.join(stateRoot, "objects", "operator-notes.txt");
+    await writeFile(unknown, "do not sweep");
+    const reopened = captureBrowserFilesystemQuarantineCustody(
+      createBrowserFilesystemQuarantineCustody({
+        descriptor: descriptorValue,
+        stateRoot,
+        now: () => NOW + 1000,
+      }),
+    );
+
+    await expect(
+      reopened.openQuarantine(openInput({ artifactId: "artifact-2" })),
+    ).rejects.toThrow(/object entry is unknown/u);
+    await expect(access(unknown)).resolves.toBeUndefined();
   });
 
   it("blocks a second process and recovers the lock after its owner crashes", async () => {
