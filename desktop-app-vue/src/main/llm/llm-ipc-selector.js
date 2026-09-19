@@ -4,12 +4,13 @@
  *
  * @module llm/llm-ipc-selector
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerSelectorHandlers(ctx) {
   const getConfiguration =
     ctx.getLLMConfig || (() => require("./llm-config").getLLMConfig());
   const { ipcMain, managerRef, llmSelector, database, app } = ctx;
+  const privacy = ctx.llmPrivacy || createLlmIpcPrivacy("selector");
 
   // ============================================================
   // LLM 智能选择
@@ -29,9 +30,8 @@ function registerSelectorHandlers(ctx) {
         characteristics: llmSelector.getAllCharacteristics(),
         taskTypes: llmSelector.getTaskTypes(),
       };
-    } catch (error) {
-      logger.error("[LLM IPC] 获取LLM选择器信息失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-selector-info");
     }
   });
 
@@ -47,9 +47,8 @@ function registerSelectorHandlers(ctx) {
 
       const provider = llmSelector.selectBestLLM(options);
       return provider;
-    } catch (error) {
-      logger.error("[LLM IPC] 智能选择LLM失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("select-best");
     }
   });
 
@@ -64,9 +63,8 @@ function registerSelectorHandlers(ctx) {
       }
 
       return llmSelector.generateSelectionReport(taskType);
-    } catch (error) {
-      logger.error("[LLM IPC] 生成LLM选择报告失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("generate-report");
     }
   });
 
@@ -93,11 +91,6 @@ function registerSelectorHandlers(ctx) {
       const previousManager = managerRef.current;
 
       const managerConfig = llmConfig.getManagerConfig();
-      logger.info(`[LLM IPC] 切换到LLM提供商: ${provider}, 配置:`, {
-        model: managerConfig.model,
-        baseURL: managerConfig.baseURL,
-      });
-
       const newManager = createLLMManagerReplacement(
         previousManager,
         managerConfig,
@@ -117,11 +110,10 @@ function registerSelectorHandlers(ctx) {
         app.llmManager = newManager;
       }
 
-      logger.info(`[LLM IPC] 已切换到LLM提供商: ${provider}`);
+      privacy.success("switch-provider");
       return true;
-    } catch (error) {
-      logger.error("[LLM IPC] 切换LLM提供商失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("switch-provider");
     }
   });
 }
