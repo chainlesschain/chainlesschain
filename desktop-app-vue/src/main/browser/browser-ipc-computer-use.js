@@ -28,6 +28,11 @@ const {
   consumeDesktopBrowserTabOpenActionGrant,
   recordDesktopBrowserTabOpenActionOutcome,
 } = require("../evolution/desktop-browser-tab-open-action");
+const {
+  authorizeDesktopBrowserDownloadAction,
+  executeDesktopBrowserDownloadActionGrant,
+  recordDesktopBrowserDownloadActionOutcome,
+} = require("../evolution/desktop-browser-download-action");
 
 const READ_ONLY_VISION_TASKS = new Set([
   "analyze",
@@ -129,6 +134,7 @@ function registerComputerUseHandlers(ctx) {
     _getBrowserNavigationActionHost,
     _getBrowserKeyboardActionHost,
     _getBrowserTabOpenActionHost,
+    _getBrowserDownloadActionHost,
     withErrorHandler,
   } = ctx;
 
@@ -200,6 +206,66 @@ function registerComputerUseHandlers(ctx) {
         return { ...result, ...evidence };
       },
     ),
+  );
+
+  /**
+   * Execute one explicitly governed download through the signed quarantine and
+   * malware-scanning provider. No filesystem path or response URL crosses IPC.
+   */
+  _ipcMain.handle(
+    "browser:action:download-url",
+    withErrorHandler(async (event, targetId, destinationUrl, options = {}) => {
+      const grant = await authorizeDesktopBrowserDownloadAction(
+        _getBrowserDownloadActionHost?.() ?? null,
+        {
+          targetId,
+          destinationUrl,
+          options,
+          senderId: event?.sender?.id,
+          frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+          authorization: options.actionAuthorization ?? null,
+        },
+      );
+      const engine = _getBrowserEngine();
+      engine.getPage(targetId);
+      const execution = await executeDesktopBrowserDownloadActionGrant(
+        grant,
+        targetId,
+        destinationUrl,
+        options,
+      );
+      const actionAudit =
+        await recordDesktopBrowserDownloadActionOutcome(grant);
+      const evidence = {
+        authorizationReceiptDigest: actionAudit.actionReceiptDigest,
+        requestDigest: actionAudit.requestDigest,
+        resultDigest: actionAudit.resultDigest,
+        auditEventDigest: actionAudit.auditEventDigest,
+        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+      };
+      if (execution.status === "failed") {
+        return {
+          success: false,
+          error: `Download failed: ${execution.failureClass}`,
+          failureClass: execution.failureClass,
+          ...evidence,
+        };
+      }
+      return {
+        success: true,
+        artifactRef: execution.artifactRef,
+        artifactDigest: execution.artifactDigest,
+        sizeBytes: execution.sizeBytes,
+        contentType: execution.contentType,
+        finalUrlDigest: execution.finalUrlDigest,
+        redirectOriginsDigest: execution.redirectOriginsDigest,
+        scanEvidenceDigest: execution.scanEvidenceDigest,
+        quarantineReceiptDigest: execution.quarantineReceiptDigest,
+        completionReceiptDigest: execution.completionReceiptDigest,
+        completedAt: execution.completedAt,
+        ...evidence,
+      };
+    }),
   );
 
   /**

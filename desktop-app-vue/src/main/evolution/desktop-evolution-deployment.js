@@ -21,6 +21,9 @@ const {
   createDesktopBrowserTabOpenActionHost,
 } = require("./desktop-browser-tab-open-action");
 const {
+  createDesktopBrowserDownloadActionHost,
+} = require("./desktop-browser-download-action");
+const {
   createDesktopPmReadOnlyOutcomeReader,
 } = require("./desktop-pm-read-only-outcome-reader");
 const {
@@ -67,6 +70,8 @@ const DEV_BROWSER_KEYBOARD_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-keyboard-action-authority.js";
 const DEV_BROWSER_TAB_OPEN_ACTION_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-tab-open-action-authority.js";
+const DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/browser-download-action-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -697,6 +702,24 @@ function resolveBrowserTabOpenActionAuthorityPath({
   return path.resolve(__dirname, DEV_BROWSER_TAB_OPEN_ACTION_AUTHORITY_REL);
 }
 
+function resolveBrowserDownloadActionAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged browser download action authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/browser-download-action-authority.js",
+    );
+  }
+  return path.resolve(__dirname, DEV_BROWSER_DOWNLOAD_ACTION_AUTHORITY_REL);
+}
+
 function createDesktopPmExplorationStorageHost(store, captureStore) {
   if (typeof captureStore !== "function" || types.isProxy(captureStore)) {
     throw new TypeError("PM exploration ledger store capture is invalid");
@@ -1325,6 +1348,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserNavigationActionAuthorityModule = (url) => import(url),
   importBrowserKeyboardActionAuthorityModule = (url) => import(url),
   importBrowserTabOpenActionAuthorityModule = (url) => import(url),
+  importBrowserDownloadActionAuthorityModule = (url) => import(url),
   capturePmPreRunSeal = captureDesktopPmPreRunSeal,
   capturePmRecoverySnapshot = captureDesktopPmRecoverySnapshot,
 } = {}) {
@@ -1507,6 +1531,34 @@ async function loadDesktopEvolutionDependencies({
           authorityModule,
           "captureBrowserTabOpenActionAuthority",
           "browser tab open action authority capture",
+        ),
+      );
+  }
+  const browserDownloadActionAuthorityDescriptor =
+    Object.getOwnPropertyDescriptor(result, "browserDownloadActionAuthority");
+  if (browserDownloadActionAuthorityDescriptor) {
+    if (
+      !("value" in browserDownloadActionAuthorityDescriptor) ||
+      browserDownloadActionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop browser download action authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveBrowserDownloadActionAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule = await importBrowserDownloadActionAuthorityModule(
+      pathToFileURL(authorityPath).href,
+    );
+    desktopDependencies.desktopBrowserDownloadActionHost =
+      createDesktopBrowserDownloadActionHost(
+        browserDownloadActionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureBrowserDownloadActionAuthority",
+          "browser download action authority capture",
         ),
       );
   }
@@ -1918,5 +1970,6 @@ module.exports = {
   resolveBrowserNavigationActionAuthorityPath,
   resolveBrowserKeyboardActionAuthorityPath,
   resolveBrowserTabOpenActionAuthorityPath,
+  resolveBrowserDownloadActionAuthorityPath,
   resolveLoaderPath,
 };

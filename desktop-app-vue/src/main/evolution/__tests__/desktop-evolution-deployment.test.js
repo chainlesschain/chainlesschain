@@ -44,6 +44,9 @@ const {
 const {
   authorizeDesktopBrowserTabOpenAction,
 } = require("../desktop-browser-tab-open-action");
+const {
+  authorizeDesktopBrowserDownloadAction,
+} = require("../desktop-browser-download-action");
 
 function runtimeConfig(revision) {
   const allow = () => ({ decision: "allow", policyRevision: revision });
@@ -730,6 +733,86 @@ describe("desktop evolution deployment", () => {
           profileName: "default",
           destinationUrl: "https://example.test/path",
           options: { waitUntil: "networkidle" },
+          senderId: 21,
+          frameUrl: "app://desktop/index.html",
+        },
+      ),
+    ).resolves.toEqual({});
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed download authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      authorityId: "desktop-download",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("download-handler"),
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      artifactMode: "opaque-quarantine-clean-scan",
+    });
+    const authorizeAction = vi.fn(async (request) =>
+      Object.freeze({
+        schema: "chainlesschain.browser-download-action-receipt/v1",
+        authorityId: descriptor.authorityId,
+        tenantId: descriptor.tenantId,
+        handlerArtifactDigest: descriptor.handlerArtifactDigest,
+        approvalMode: descriptor.approvalMode,
+        artifactMode: descriptor.artifactMode,
+        requestId: request.requestId,
+        targetId: request.targetId,
+        operation: request.operation,
+        senderId: request.senderId,
+        frameUrlDigest: request.frameUrlDigest,
+        destinationDigest: domainDigest(
+          "chainlesschain.browser-download-action-destination/v1",
+          request.destinationUrl,
+        ),
+        redirectOriginsDigest: domainDigest(
+          "chainlesschain.browser-download-action-redirect-origins/v1",
+          request.allowedRedirectOrigins,
+        ),
+        contentTypesDigest: domainDigest(
+          "chainlesschain.browser-download-action-content-types/v1",
+          request.allowedContentTypes,
+        ),
+        maxBytes: request.maxBytes,
+        timeout: request.timeout,
+        inputDigest: request.inputDigest,
+        requestDigest: sha(`request:${request.requestId}`),
+        validUntil: new Date(Date.now() + 5000).toISOString(),
+        receiptDigest: sha(request.requestId),
+      }),
+    );
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded download");
+      return Object.freeze({
+        descriptor,
+        authorizeAction,
+        executeAuthorizedDownload: vi.fn(),
+        recordActionOutcome: vi.fn(),
+      });
+    });
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          browserDownloadActionAuthority: authority,
+        }),
+      }),
+      importBrowserDownloadActionAuthorityModule: async () => ({
+        captureBrowserDownloadActionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.desktopBrowserDownloadActionHost)).toEqual([]);
+    await expect(
+      authorizeDesktopBrowserDownloadAction(
+        result.desktopBrowserDownloadActionHost,
+        {
+          targetId: "tab-1",
+          destinationUrl: "https://example.test/report.pdf",
+          options: { allowedContentTypes: ["application/pdf"] },
           senderId: 21,
           frameUrl: "app://desktop/index.html",
         },

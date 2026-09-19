@@ -32,6 +32,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     desktopBrowserNavigationActionHost,
     desktopBrowserKeyboardActionHost,
     desktopBrowserTabOpenActionHost,
+    desktopBrowserDownloadActionHost,
   } = deps;
 
   // 获取 LLM 智能选择器（如果已初始化）
@@ -414,9 +415,11 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
           desktopBrowserKeyboardActionHost || null,
         desktopBrowserTabOpenActionHost:
           desktopBrowserTabOpenActionHost || null,
+        desktopBrowserDownloadActionHost:
+          desktopBrowserDownloadActionHost || null,
       });
     },
-    handlers: 24,
+    handlers: 25,
     continueMessage: "Browser automation features will be disabled",
   });
 

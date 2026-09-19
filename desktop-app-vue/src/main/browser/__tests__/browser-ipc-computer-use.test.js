@@ -14,6 +14,9 @@ const {
 const {
   createDesktopBrowserTabOpenActionHost,
 } = require("../../evolution/desktop-browser-tab-open-action");
+const {
+  createDesktopBrowserDownloadActionHost,
+} = require("../../evolution/desktop-browser-download-action");
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -241,12 +244,124 @@ function createTabOpenHost() {
   return { host, authorizeAction, recordActionOutcome };
 }
 
+function createDownloadHost({ failed = false } = {}) {
+  const authority = Object.freeze({});
+  const descriptor = Object.freeze({
+    authorityId: "ipc-download",
+    tenantId: "tenant-1",
+    handlerArtifactDigest: digest("download-handler"),
+    approvalMode: "interactive",
+    auditMode: "authenticated-durable-readback",
+    artifactMode: "opaque-quarantine-clean-scan",
+  });
+  const authorizeAction = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-download-action-receipt/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      approvalMode: descriptor.approvalMode,
+      artifactMode: descriptor.artifactMode,
+      requestId: request.requestId,
+      targetId: request.targetId,
+      operation: request.operation,
+      senderId: request.senderId,
+      frameUrlDigest: request.frameUrlDigest,
+      destinationDigest: domainDigest(
+        "chainlesschain.browser-download-action-destination/v1",
+        request.destinationUrl,
+      ),
+      redirectOriginsDigest: domainDigest(
+        "chainlesschain.browser-download-action-redirect-origins/v1",
+        request.allowedRedirectOrigins,
+      ),
+      contentTypesDigest: domainDigest(
+        "chainlesschain.browser-download-action-content-types/v1",
+        request.allowedContentTypes,
+      ),
+      maxBytes: request.maxBytes,
+      timeout: request.timeout,
+      inputDigest: request.inputDigest,
+      requestDigest: digest(`request:${request.requestId}`),
+      validUntil: new Date(Date.now() + 5000).toISOString(),
+      receiptDigest: digest(request.requestId),
+    }),
+  );
+  const executeAuthorizedDownload = vi.fn(async () =>
+    Object.freeze(
+      failed
+        ? {
+            status: "failed",
+            failureClass: "download-provider-failed",
+            artifactRef: null,
+            artifactDigest: null,
+            sizeBytes: null,
+            contentType: null,
+            finalUrlDigest: null,
+            redirectOriginsDigest: null,
+            scanEvidenceDigest: null,
+            quarantineReceiptDigest: null,
+            completionReceiptDigest: null,
+            completedAt: null,
+            resultDigest: digest("failed-result"),
+          }
+        : {
+            status: "succeeded",
+            failureClass: null,
+            artifactRef: "quarantine:artifact-1",
+            artifactDigest: digest("artifact"),
+            sizeBytes: 4096,
+            contentType: "application/pdf",
+            finalUrlDigest: digest("final-url"),
+            redirectOriginsDigest: digest("redirects"),
+            scanEvidenceDigest: digest("scan"),
+            quarantineReceiptDigest: digest("quarantine"),
+            completionReceiptDigest: digest("completion"),
+            completedAt: new Date().toISOString(),
+            resultDigest: digest("success-result"),
+          },
+    ),
+  );
+  const recordActionOutcome = vi.fn(async (request) =>
+    Object.freeze({
+      schema: "chainlesschain.browser-download-action-outcome-ack/v1",
+      authorityId: descriptor.authorityId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      actionReceiptDigest: request.actionReceiptDigest,
+      outcomeRequestDigest: domainDigest(request.schema, request),
+      auditEventDigest: digest(`audit:${request.resultDigest}`),
+      durabilityReceiptDigest: digest(`durable:${request.resultDigest}`),
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      qualifiesForPromotion: false,
+    }),
+  );
+  const host = createDesktopBrowserDownloadActionHost(authority, (value) => {
+    if (value !== authority) throw new TypeError("unbranded");
+    return Object.freeze({
+      descriptor,
+      authorizeAction,
+      executeAuthorizedDownload,
+      recordActionOutcome,
+    });
+  });
+  return {
+    authorizeAction,
+    executeAuthorizedDownload,
+    host,
+    recordActionOutcome,
+  };
+}
+
 function fixture({
   observationHost = null,
   actionHost = null,
   navigationHost = null,
   keyboardHost = null,
   tabOpenHost = null,
+  downloadHost = null,
   engine = null,
 } = {}) {
   const handlers = new Map();
@@ -262,6 +377,7 @@ function fixture({
     _getBrowserNavigationActionHost: vi.fn(() => navigationHost),
     _getBrowserKeyboardActionHost: vi.fn(() => keyboardHost),
     _getBrowserTabOpenActionHost: vi.fn(() => tabOpenHost),
+    _getBrowserDownloadActionHost: vi.fn(() => downloadHost),
     withErrorHandler: (handler) => handler,
   });
   return { handlers, getBrowserEngine };
@@ -664,5 +780,117 @@ describe("browser computer-use IPC", () => {
     ).rejects.toThrow(/input is invalid/u);
     expect(keyboard.authorizeAction).not.toHaveBeenCalled();
     expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("denies a download before browser-engine access without its action host", async () => {
+    const { handlers, getBrowserEngine } = fixture();
+    await expect(
+      handlers.get("browser:action:download-url")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        "https://example.test/report.pdf",
+        { allowedContentTypes: ["application/pdf"] },
+      ),
+    ).rejects.toThrow(/branded Desktop browser download host/u);
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("executes one quarantined download and returns only opaque evidence", async () => {
+    const download = createDownloadHost();
+    const engine = { getPage: vi.fn(() => ({ id: "page-1" })) };
+    const { handlers, getBrowserEngine } = fixture({
+      downloadHost: download.host,
+      engine,
+    });
+    const options = {
+      allowedRedirectOrigins: [
+        "https://cdn.example.test",
+        "https://example.test",
+      ],
+      allowedContentTypes: ["application/pdf"],
+      maxBytes: 1024 * 1024,
+      actionAuthorization: { approval: true },
+    };
+    const result = await handlers.get("browser:action:download-url")(
+      {
+        sender: { id: 17, getURL: () => "app://desktop/index.html" },
+        senderFrame: { url: "app://desktop/index.html" },
+      },
+      "tab-1",
+      "https://example.test/private/report.pdf",
+      options,
+    );
+    expect(result).toMatchObject({
+      success: true,
+      artifactRef: "quarantine:artifact-1",
+      artifactDigest: expect.stringMatching(/^sha256:/u),
+      scanEvidenceDigest: expect.stringMatching(/^sha256:/u),
+      authorizationReceiptDigest: expect.stringMatching(/^sha256:/u),
+      auditEventDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(JSON.stringify(result)).not.toContain("report.pdf");
+    expect(JSON.stringify(result)).not.toContain("https://");
+    expect(download.authorizeAction).toHaveBeenCalledBefore(getBrowserEngine);
+    expect(engine.getPage).toHaveBeenCalledWith("tab-1");
+    expect(download.executeAuthorizedDownload).toHaveBeenCalledWith({
+      receiptDigest: expect.stringMatching(/^sha256:/u),
+      requestDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(download.recordActionOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "succeeded" }),
+    );
+  });
+
+  it("rejects caller-controlled download paths before authority or engine access", async () => {
+    const download = createDownloadHost();
+    const { handlers, getBrowserEngine } = fixture({
+      downloadHost: download.host,
+      engine: { getPage: vi.fn() },
+    });
+    await expect(
+      handlers.get("browser:action:download-url")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        "https://example.test/report.pdf",
+        {
+          allowedContentTypes: ["application/pdf"],
+          savePath: "C:\\private\\report.pdf",
+        },
+      ),
+    ).rejects.toThrow(/input is invalid/u);
+    expect(download.authorizeAction).not.toHaveBeenCalled();
+    expect(getBrowserEngine).not.toHaveBeenCalled();
+  });
+
+  it("durably audits a fail-closed download provider result", async () => {
+    const download = createDownloadHost({ failed: true });
+    const { handlers } = fixture({
+      downloadHost: download.host,
+      engine: { getPage: vi.fn(() => ({})) },
+    });
+    await expect(
+      handlers.get("browser:action:download-url")(
+        {
+          sender: { id: 17, getURL: () => "app://desktop/index.html" },
+          senderFrame: { url: "app://desktop/index.html" },
+        },
+        "tab-1",
+        "https://example.test/report.pdf",
+        { allowedContentTypes: ["application/pdf"] },
+      ),
+    ).resolves.toMatchObject({
+      success: false,
+      failureClass: "download-provider-failed",
+      auditEventDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(download.recordActionOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" }),
+    );
   });
 });

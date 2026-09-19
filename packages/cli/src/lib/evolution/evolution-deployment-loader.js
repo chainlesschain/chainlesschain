@@ -272,6 +272,7 @@ async function loadBuiltInFactories(commandName) {
       browserNavigationAction,
       browserKeyboardAction,
       browserTabOpenAction,
+      browserDownloadAction,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -295,6 +296,7 @@ async function loadBuiltInFactories(commandName) {
       import("./browser-navigation-action-authority.js"),
       import("./browser-keyboard-action-authority.js"),
       import("./browser-tab-open-action-authority.js"),
+      import("./browser-download-action-authority.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -407,6 +409,8 @@ async function loadBuiltInFactories(commandName) {
         browserKeyboardAction.createBrowserKeyboardActionAuthority,
       createBrowserTabOpenActionAuthority:
         browserTabOpenAction.createBrowserTabOpenActionAuthority,
+      createBrowserDownloadActionAuthority:
+        browserDownloadAction.createBrowserDownloadActionAuthority,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -754,6 +758,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createBrowserNavigationActionAuthority",
     "createBrowserKeyboardActionAuthority",
     "createBrowserTabOpenActionAuthority",
+    "createBrowserDownloadActionAuthority",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

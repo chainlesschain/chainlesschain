@@ -33,6 +33,10 @@ import {
   BROWSER_TAB_OPEN_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
   captureBrowserTabOpenActionAuthority,
 } from "../../src/lib/evolution/browser-tab-open-action-authority.js";
+import {
+  BROWSER_DOWNLOAD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+  captureBrowserDownloadActionAuthority,
+} from "../../src/lib/evolution/browser-download-action-authority.js";
 
 function deploymentFixture({
   commands = ["evolution", "serve"],
@@ -832,6 +836,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserNavigationActionAuthority",
       "createBrowserKeyboardActionAuthority",
       "createBrowserTabOpenActionAuthority",
+      "createBrowserDownloadActionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1033,6 +1038,24 @@ describe("signed evolution deployment loader", () => {
               recordOutcome: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserDownloadActionAuthority({
+              descriptor: {
+                schema: BROWSER_DOWNLOAD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-download",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+                artifactMode: "opaque-quarantine-clean-scan",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              executeDownload: async () => null,
+              recordOutcome: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1113,6 +1136,23 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               recordOutcome: async () => null,
             });
+          const browserDownloadActionAuthority =
+            factories.createBrowserDownloadActionAuthority({
+              descriptor: {
+                schema: BROWSER_DOWNLOAD_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-download",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+                artifactMode: "opaque-quarantine-clean-scan",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              executeDownload: async () => null,
+              recordOutcome: async () => null,
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1121,6 +1161,7 @@ describe("signed evolution deployment loader", () => {
             browserNavigationActionAuthority,
             browserKeyboardActionAuthority,
             browserTabOpenActionAuthority,
+            browserDownloadActionAuthority,
           };
         },
       }),
@@ -1175,6 +1216,17 @@ describe("signed evolution deployment loader", () => {
       authorityId: "browser-tab-open",
       approvalMode: "interactive",
       auditMode: "authenticated-durable-readback",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserDownloadActionAuthority(
+        result.browserDownloadActionAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-download",
+      approvalMode: "interactive",
+      auditMode: "authenticated-durable-readback",
+      artifactMode: "opaque-quarantine-clean-scan",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });
