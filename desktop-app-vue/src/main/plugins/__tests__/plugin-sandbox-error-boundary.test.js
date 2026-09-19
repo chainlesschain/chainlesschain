@@ -9,6 +9,30 @@ vi.mock("../../utils/logger.js", () => ({
 const PluginSandbox = require("../plugin-sandbox.js");
 
 describe("PluginSandbox error boundary", () => {
+  it("uses a stable code when an optional plugin method is unavailable", async () => {
+    const sandbox = new PluginSandbox(
+      "plugin-id",
+      "C:/plugins/plugin-id",
+      {},
+      {},
+    );
+    sandbox.instance = {};
+
+    try {
+      await expect(sandbox.callMethod("secret-method-name")).rejects.toEqual(
+        expect.objectContaining({
+          message: "Plugin method unavailable",
+          code: "PLUGIN_METHOD_UNAVAILABLE",
+        }),
+      );
+      await expect(
+        sandbox.callMethod("another-secret-method-name"),
+      ).rejects.not.toThrow("another-secret-method-name");
+    } finally {
+      sandbox.destroy();
+    }
+  });
+
   it("does not disclose plugin entry read errors or emit them", async () => {
     const originalFsp = PluginSandbox._deps.fsp;
     const secret = "plugin-sandbox-entry-secret";

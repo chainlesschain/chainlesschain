@@ -5,13 +5,16 @@
 
 const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
-const { createPluginIpcFailureResult } = require("./plugin-ipc-error-boundary");
+const {
+  PLUGIN_METHOD_UNAVAILABLE_CODE,
+  createPluginIpcFailureResult,
+  createPluginOperationError,
+} = require("./plugin-ipc-error-boundary");
 const path = require("path");
 const {
   getPermissionDialogManager,
   PERMISSION_CATEGORIES,
   RISK_LEVELS,
-  PERMISSION_DETAILS,
 } = require("./permission-dialog-manager");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginIPC");
@@ -693,8 +696,8 @@ function registerPluginIPC({
               }
             } catch (err) {
               // 忽略方法不存在的错误
-              if (!err.message.includes("not a function")) {
-                throw err;
+              if (err?.code !== PLUGIN_METHOD_UNAVAILABLE_CODE) {
+                throw createPluginOperationError("plugin");
               }
             }
           }

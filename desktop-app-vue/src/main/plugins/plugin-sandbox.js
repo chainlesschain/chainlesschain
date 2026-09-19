@@ -12,6 +12,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
+  createPluginMethodUnavailableError,
   createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
 const { isWithinDir } = require("../utils/path-boundary.js");
@@ -445,7 +446,7 @@ class PluginSandbox extends EventEmitter {
     const method = this.instance[methodName];
 
     if (!method || typeof method !== "function") {
-      throw new Error(`插件方法不存在: ${methodName}`);
+      throw createPluginMethodUnavailableError();
     }
 
     logger.info(`[PluginSandbox] 调用方法: ${this.pluginId}.${methodName}`);

@@ -27,6 +27,8 @@ const FAILURES = Object.freeze({
   }),
 });
 
+const PLUGIN_METHOD_UNAVAILABLE_CODE = "PLUGIN_METHOD_UNAVAILABLE";
+
 function createPluginFailureDescriptor(kind) {
   const failure = FAILURES[kind];
   if (!failure) {
@@ -46,8 +48,16 @@ function createPluginOperationError(kind) {
   return error;
 }
 
+function createPluginMethodUnavailableError() {
+  const error = new Error("Plugin method unavailable");
+  error.code = PLUGIN_METHOD_UNAVAILABLE_CODE;
+  return error;
+}
+
 module.exports = {
+  PLUGIN_METHOD_UNAVAILABLE_CODE,
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  createPluginMethodUnavailableError,
   createPluginOperationError,
 };

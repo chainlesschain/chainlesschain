@@ -1,13 +1,106 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+const { parse } = require("espree");
+
 const {
+  PLUGIN_METHOD_UNAVAILABLE_CODE,
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  createPluginMethodUnavailableError,
   createPluginOperationError,
 } = require("../../../src/main/plugins/plugin-ipc-error-boundary");
+const { registerPluginIPC } = require("../../../src/main/plugins/plugin-ipc");
+
+function registerPageContentHandler(sandbox) {
+  const handlers = new Map();
+  const ipcMain = {
+    handle(channel, handler) {
+      handlers.set(channel, handler);
+    },
+  };
+  const pluginManager = {
+    getPlugin: () => ({ state: "enabled" }),
+    registry: {
+      getExtensionsByPoint: () => [],
+    },
+    sandboxes: new Map([["plugin-id", sandbox]]),
+  };
+
+  registerPluginIPC({ pluginManager, ipcMain, mainWindow: {} });
+  return handlers.get("plugin:get-page-content");
+}
+
+function collectJavaScriptFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = resolve(directory, entry.name);
+    if (entry.isDirectory()) {
+      return collectJavaScriptFiles(entryPath);
+    }
+    return entry.name.endsWith(".js") ? [entryPath] : [];
+  });
+}
+
+function findRawCaughtErrorPropagation(source, file) {
+  const ast = parse(source, {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    loc: true,
+  });
+  const findings = [];
+
+  function visit(node, caughtName = null) {
+    if (!node || typeof node !== "object") {
+      return;
+    }
+    if (node.type === "CatchClause") {
+      const nestedCaughtName =
+        node.param?.type === "Identifier" ? node.param.name : null;
+      visit(node.body, nestedCaughtName);
+      return;
+    }
+    if (
+      caughtName &&
+      node.type === "ThrowStatement" &&
+      node.argument?.type === "Identifier" &&
+      node.argument.name === caughtName
+    ) {
+      findings.push(`${file}:${node.loc.start.line}:throw`);
+    }
+    if (
+      caughtName &&
+      node.type === "CallExpression" &&
+      node.arguments[0]?.type === "Identifier" &&
+      node.arguments[0].name === caughtName
+    ) {
+      const isDirectReject =
+        node.callee.type === "Identifier" && node.callee.name === "reject";
+      const isPromiseReject =
+        node.callee.type === "MemberExpression" &&
+        !node.callee.computed &&
+        node.callee.object.type === "Identifier" &&
+        node.callee.object.name === "Promise" &&
+        node.callee.property.type === "Identifier" &&
+        node.callee.property.name === "reject";
+      if (isDirectReject || isPromiseReject) {
+        findings.push(`${file}:${node.loc.start.line}:reject`);
+      }
+    }
+
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) {
+        value.forEach((child) => visit(child, caughtName));
+      } else {
+        visit(value, caughtName);
+      }
+    }
+  }
+
+  visit(ast);
+  return findings;
+}
 
 const IPC_SOURCES = [
   "src/main/plugins/plugin-ipc.js",
@@ -74,6 +167,42 @@ describe("plugin IPC error boundary", () => {
     });
   });
 
+  it("creates a stable optional-method signal without method details", () => {
+    expect(PLUGIN_METHOD_UNAVAILABLE_CODE).toBe("PLUGIN_METHOD_UNAVAILABLE");
+    expect(createPluginMethodUnavailableError()).toMatchObject({
+      message: "Plugin method unavailable",
+      code: "PLUGIN_METHOD_UNAVAILABLE",
+    });
+  });
+
+  it("falls back only for the stable optional-method signal", async () => {
+    const missingMethodHandler = registerPageContentHandler({
+      callMethod: async () => {
+        throw createPluginMethodUnavailableError();
+      },
+    });
+    const executionFailureHandler = registerPageContentHandler({
+      callMethod: async () => {
+        throw new Error("plugin-page-secret");
+      },
+    });
+
+    await expect(
+      missingMethodHandler({}, "plugin-id", "main"),
+    ).resolves.toEqual({
+      success: true,
+      contentType: "component",
+      props: { pluginId: "plugin-id", pageId: "main" },
+    });
+    await expect(
+      executionFailureHandler({}, "plugin-id", "main"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+  });
+
   it("forbids dynamic caught error messages in plugin IPC payloads", () => {
     const dynamicError = /(?:error|message)\s*:\s*(?:error|err|e)\.message/u;
 
@@ -100,5 +229,31 @@ describe("plugin IPC error boundary", () => {
     );
 
     expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
+  });
+
+  it("forbids raw caught-error rethrows and message matching in plugin IPC", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/main/plugins/plugin-ipc.js"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
+    expect(source).not.toMatch(
+      /(?:error|err|e)\??\.message\.(?:includes|match)/u,
+    );
+  });
+
+  it("forbids raw caught-error propagation across production plugin trees", () => {
+    const roots = [
+      resolve(process.cwd(), "src/main/plugins"),
+      resolve(process.cwd(), "src/main/marketplace"),
+    ];
+    const findings = roots.flatMap((root) =>
+      collectJavaScriptFiles(root).flatMap((file) =>
+        findRawCaughtErrorPropagation(readFileSync(file, "utf8"), file),
+      ),
+    );
+
+    expect(findings).toEqual([]);
   });
 });
