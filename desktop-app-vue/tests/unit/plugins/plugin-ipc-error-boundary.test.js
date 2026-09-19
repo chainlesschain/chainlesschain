@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const {
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  createPluginOperationError,
 } = require("../../../src/main/plugins/plugin-ipc-error-boundary");
 
 const IPC_SOURCES = [
@@ -66,6 +67,13 @@ describe("plugin IPC error boundary", () => {
     });
   });
 
+  it("creates a stable operation error without dynamic details", () => {
+    expect(createPluginOperationError("plugin")).toMatchObject({
+      message: "Plugin operation failed",
+      code: "PLUGIN_OPERATION_FAILED",
+    });
+  });
+
   it("forbids dynamic caught error messages in plugin IPC payloads", () => {
     const dynamicError = /(?:error|message)\s*:\s*(?:error|err|e)\.message/u;
 
@@ -83,5 +91,14 @@ describe("plugin IPC error boundary", () => {
       const source = readFileSync(resolve(process.cwd(), relativePath), "utf8");
       expect(source, relativePath).not.toMatch(dynamicError);
     }
+  });
+
+  it("forbids raw caught-error rethrows in plugin manager", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/main/plugins/plugin-manager.js"),
+      "utf8",
+    );
+
+    expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
   });
 });

@@ -39,7 +39,15 @@ function createPluginIpcFailureResult(kind) {
   return { success: false, ...createPluginFailureDescriptor(kind) };
 }
 
+function createPluginOperationError(kind) {
+  const failure = createPluginFailureDescriptor(kind);
+  const error = new Error(failure.error);
+  error.code = failure.code;
+  return error;
+}
+
 module.exports = {
   createPluginFailureDescriptor,
   createPluginIpcFailureResult,
+  createPluginOperationError,
 };

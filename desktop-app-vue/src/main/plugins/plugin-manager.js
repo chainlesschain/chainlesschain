@@ -12,6 +12,7 @@ const { logger: pluginLogSink } = require("../utils/logger.js");
 const { createPluginLogRedactor } = require("./plugin-log-redaction");
 const {
   createPluginFailureDescriptor,
+  createPluginOperationError,
 } = require("./plugin-ipc-error-boundary");
 const EventEmitter = require("events");
 const path = require("path");
@@ -127,7 +128,7 @@ class PluginManager extends EventEmitter {
       logger.info("[PluginManager] 初始化完成");
     } catch (error) {
       logger.error("[PluginManager] 初始化失败:", error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -387,7 +388,7 @@ class PluginManager extends EventEmitter {
         ...createPluginFailureDescriptor("plugin"),
       });
       logger.error("[PluginManager] 安装插件失败:", error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -647,7 +648,7 @@ class PluginManager extends EventEmitter {
       });
       await this.registry.recordError(pluginId, error);
       logger.error(`[PluginManager] 插件加载失败: ${pluginId}`, error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -696,7 +697,7 @@ class PluginManager extends EventEmitter {
         ...createPluginFailureDescriptor("plugin"),
       });
       await this.registry.recordError(pluginId, error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -738,7 +739,7 @@ class PluginManager extends EventEmitter {
         ...createPluginFailureDescriptor("plugin"),
       });
       await this.registry.recordError(pluginId, error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -781,12 +782,12 @@ class PluginManager extends EventEmitter {
       this.emit("plugin:uninstalled", { pluginId });
 
       logger.info(`[PluginManager] 插件已卸载: ${pluginId}`);
-    } catch (error) {
+    } catch (_error) {
       this.emit("plugin:uninstall-failed", {
         pluginId,
         ...createPluginFailureDescriptor("plugin"),
       });
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
@@ -1769,7 +1770,7 @@ class PluginManager extends EventEmitter {
       logger.info("[PluginManager] AI工具扩展处理完成");
     } catch (error) {
       logger.error("[PluginManager] 处理AI工具扩展失败:", error);
-      throw error;
+      throw createPluginOperationError("plugin");
     }
   }
 
