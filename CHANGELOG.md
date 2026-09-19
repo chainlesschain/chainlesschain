@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.65: resume after bounded loop-recovery pauses
+
+- Stop synthetic `CC_TOOL_RECOVERY_PAUSED` results from feeding the same
+  repeated-read and remote-output retry counters that produced them, avoiding
+  self-sustaining recovery loops in IDE agent sessions.
+- Make remote recovery pauses expire after exactly one request, then admit
+  only the known repeated target or its next bounded page while unrelated
+  remote discovery remains paused.
+- Preserve the global no-progress ceiling and six-real-attempt failure cap so
+  genuinely stalled tasks still terminate with actionable recovery guidance.
+
 ### Fixed - cc CLI 0.166.64: admit bounded target-section reads during task recovery
 
 - Allow read_file with an explicit offset and a limit of at most 80 lines for a

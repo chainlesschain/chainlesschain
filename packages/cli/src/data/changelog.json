@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.65",
+      "cliVersions": ["0.166.65"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.65: resume after bounded loop-recovery pauses",
+          "body": "- Stop synthetic `CC_TOOL_RECOVERY_PAUSED` results from feeding the same\n  repeated-read and remote-output retry counters that produced them, avoiding\n  self-sustaining recovery loops in IDE agent sessions.\n- Make remote recovery pauses expire after exactly one request, then admit\n  only the known repeated target or its next bounded page while unrelated\n  remote discovery remains paused.\n- Preserve the global no-progress ceiling and six-real-attempt failure cap so\n  genuinely stalled tasks still terminate with actionable recovery guidance."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.64",
       "cliVersions": ["0.166.64"],
       "date": null,
