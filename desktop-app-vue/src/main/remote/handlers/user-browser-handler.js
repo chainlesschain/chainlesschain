@@ -27,7 +27,10 @@
  * @module remote/handlers/user-browser-handler
  */
 
-const { logger } = require("../../utils/logger");
+const { logger: browserLogSink } = require("../../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../../browser/browser-log-redaction");
 const { EventEmitter } = require("events");
 const http = require("http");
 const https = require("https");
@@ -36,6 +39,8 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const WebSocket = require("ws");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 支持的浏览器配置
@@ -155,7 +160,7 @@ class UserBrowserHandler extends EventEmitter {
    * 处理命令（统一入口）
    */
   async handle(action, params, context) {
-    logger.debug(`[UserBrowserHandler] 处理命令: ${action}`, { params });
+    logger.debug("[UserBrowserHandler] 处理命令", { action, params });
     this.stats.commandCount++;
     this.stats.lastCommand = { action, timestamp: Date.now() };
 
@@ -211,7 +216,7 @@ class UserBrowserHandler extends EventEmitter {
           throw new Error(`Unknown action: ${action}`);
       }
     } catch (error) {
-      logger.error(`[UserBrowserHandler] 命令执行失败: ${action}`, error);
+      logger.error("[UserBrowserHandler] 命令执行失败", { action, error });
       throw error;
     }
   }
@@ -247,7 +252,9 @@ class UserBrowserHandler extends EventEmitter {
       }
     }
 
-    logger.info(`[UserBrowserHandler] 找到 ${browsers.length} 个可用浏览器`);
+    logger.info("[UserBrowserHandler] 已查找到可用浏览器", {
+      browserCount: browsers.length,
+    });
     return { browsers };
   }
 
@@ -261,7 +268,7 @@ class UserBrowserHandler extends EventEmitter {
       autoLaunch = this.options.autoLaunch,
     } = params;
 
-    logger.info(`[UserBrowserHandler] 连接到 ${browserType} 浏览器...`);
+    logger.info("[UserBrowserHandler] 连接浏览器", { browserType });
 
     if (this.connected) {
       logger.info("[UserBrowserHandler] 已连接，先断开现有连接");
@@ -301,7 +308,9 @@ class UserBrowserHandler extends EventEmitter {
     // 刷新标签页列表
     await this.refreshTabs();
 
-    logger.info(`[UserBrowserHandler] ✅ 已连接到 ${config.name}`);
+    logger.info("[UserBrowserHandler] 已连接浏览器", {
+      browserName: config.name,
+    });
 
     return {
       success: true,
@@ -325,16 +334,16 @@ class UserBrowserHandler extends EventEmitter {
 
       this.wsEndpoint = version.webSocketDebuggerUrl;
 
-      logger.info(
-        `[UserBrowserHandler] 浏览器版本: ${version.Browser || "Unknown"}`,
-      );
+      logger.info("[UserBrowserHandler] 已取得浏览器版本", {
+        browserVersion: version.Browser || "Unknown",
+      });
 
       // 建立 WebSocket 连接
       await this.connectWebSocket();
 
       return true;
     } catch (error) {
-      logger.debug(`[UserBrowserHandler] 连接失败: ${error.message}`);
+      logger.debug("[UserBrowserHandler] 连接失败", { error });
       return false;
     }
   }
@@ -436,7 +445,7 @@ class UserBrowserHandler extends EventEmitter {
       "--remote-allow-origins=*",
     ];
 
-    logger.info(`[UserBrowserHandler] 启动浏览器: ${execPath}`);
+    logger.info("[UserBrowserHandler] 启动浏览器", { execPath });
 
     return new Promise((resolve, reject) => {
       try {
@@ -579,7 +588,7 @@ class UserBrowserHandler extends EventEmitter {
 
       this.tabs.set(target.id, tab);
 
-      logger.info(`[UserBrowserHandler] 创建新标签页: ${url}`);
+      logger.info("[UserBrowserHandler] 创建新标签页", { url });
 
       return { tab };
     } catch (error) {
@@ -607,7 +616,7 @@ class UserBrowserHandler extends EventEmitter {
       this.tabs.delete(tabId);
       this.cdpSessions.delete(tabId);
 
-      logger.info(`[UserBrowserHandler] 关闭标签页: ${tabId}`);
+      logger.info("[UserBrowserHandler] 关闭标签页", { tabId });
 
       return { success: true, tabId };
     } catch (error) {
@@ -632,7 +641,7 @@ class UserBrowserHandler extends EventEmitter {
         `http://127.0.0.1:${this.debugPort}/json/activate/${tabId}`,
       );
 
-      logger.info(`[UserBrowserHandler] 聚焦标签页: ${tabId}`);
+      logger.info("[UserBrowserHandler] 聚焦标签页", { tabId });
 
       return { success: true, tabId };
     } catch (error) {
@@ -662,7 +671,7 @@ class UserBrowserHandler extends EventEmitter {
     const session = await this.getTabSession(targetId);
     const result = await session.send("Page.navigate", { url });
 
-    logger.info(`[UserBrowserHandler] 导航到: ${url}`);
+    logger.info("[UserBrowserHandler] 导航页面", { url });
 
     return {
       success: true,
@@ -732,7 +741,7 @@ class UserBrowserHandler extends EventEmitter {
     const session = await this.getTabSession(targetId);
     await session.send("Page.reload", { ignoreCache });
 
-    logger.info(`[UserBrowserHandler] 刷新页面: ${targetId}`);
+    logger.info("[UserBrowserHandler] 刷新页面", { targetId });
 
     return { success: true, tabId: targetId };
   }
@@ -849,7 +858,7 @@ class UserBrowserHandler extends EventEmitter {
       captureBeyondViewport: fullPage,
     });
 
-    logger.info(`[UserBrowserHandler] 截图完成: ${targetId}`);
+    logger.info("[UserBrowserHandler] 截图完成", { targetId });
 
     return {
       success: true,
@@ -884,7 +893,9 @@ class UserBrowserHandler extends EventEmitter {
       const bookmarks = [];
       this.extractBookmarks(data.roots, bookmarks, folder, limit);
 
-      logger.info(`[UserBrowserHandler] 获取书签: ${bookmarks.length} 条`);
+      logger.info("[UserBrowserHandler] 获取书签完成", {
+        bookmarkCount: bookmarks.length,
+      });
 
       return { bookmarks };
     } catch (error) {
