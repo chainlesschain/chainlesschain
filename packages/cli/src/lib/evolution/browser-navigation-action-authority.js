@@ -4,9 +4,9 @@ import { types } from "node:util";
 export const BROWSER_NAVIGATION_ACTION_AUTHORITY_DESCRIPTOR_SCHEMA =
   "chainlesschain.browser-navigation-action-authority-descriptor/v1";
 export const BROWSER_NAVIGATION_ACTION_REQUEST_SCHEMA =
-  "chainlesschain.browser-navigation-action-request/v1";
+  "chainlesschain.browser-navigation-action-request/v2";
 export const BROWSER_NAVIGATION_ACTION_RECEIPT_SCHEMA =
-  "chainlesschain.browser-navigation-action-receipt/v1";
+  "chainlesschain.browser-navigation-action-receipt/v2";
 export const BROWSER_NAVIGATION_ACTION_OUTCOME_REQUEST_SCHEMA =
   "chainlesschain.browser-navigation-action-outcome-request/v1";
 export const BROWSER_NAVIGATION_ACTION_OUTCOME_ACK_SCHEMA =
@@ -115,6 +115,44 @@ function normalizeUrl(value) {
   return parsed.href;
 }
 
+function normalizeRedirectOrigins(value, destinationUrl) {
+  if (
+    !Array.isArray(value) ||
+    types.isProxy(value) ||
+    value.length < 1 ||
+    value.length > 16
+  ) {
+    throw new TypeError("browser navigation redirect origins are invalid");
+  }
+  const origins = value.map((entry) => {
+    if (typeof entry !== "string" || entry.length > 2048)
+      throw new TypeError("browser navigation redirect origins are invalid");
+    let parsed;
+    try {
+      parsed = new URL(entry);
+    } catch {
+      throw new TypeError("browser navigation redirect origins are invalid");
+    }
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.username !== "" ||
+      parsed.password !== "" ||
+      entry !== parsed.origin
+    ) {
+      throw new TypeError("browser navigation redirect origins are invalid");
+    }
+    return parsed.origin;
+  });
+  const normalized = [...new Set(origins)].sort();
+  if (
+    normalized.length !== origins.length ||
+    !normalized.includes(new URL(destinationUrl).origin)
+  ) {
+    throw new TypeError("browser navigation redirect origins are invalid");
+  }
+  return Object.freeze(normalized);
+}
+
 function normalizeDescriptor(value) {
   exactObject(
     value,
@@ -160,6 +198,7 @@ function normalizeRequest(value) {
       "senderId",
       "frameUrlDigest",
       "destinationUrl",
+      "allowedRedirectOrigins",
       "waitUntil",
       "timeout",
       "inputDigest",
@@ -169,11 +208,16 @@ function normalizeRequest(value) {
     "browser navigation action request",
   );
   const destinationUrl = normalizeUrl(value.destinationUrl);
+  const allowedRedirectOrigins = normalizeRedirectOrigins(
+    value.allowedRedirectOrigins,
+    destinationUrl,
+  );
   const requestedAtMs = Date.parse(value.requestedAt);
   const inputCore = Object.freeze({
     targetId: value.targetId,
     operation: value.operation,
     destinationUrl,
+    allowedRedirectOrigins,
     waitUntil: value.waitUntil,
     timeout: value.timeout,
   });
@@ -192,7 +236,7 @@ function normalizeRequest(value) {
     value.timeout < 1 ||
     value.timeout > 120_000 ||
     value.inputDigest !==
-      digest("chainlesschain.browser-navigation-action-input/v1", inputCore) ||
+      digest("chainlesschain.browser-navigation-action-input/v2", inputCore) ||
     !Number.isFinite(requestedAtMs)
   ) {
     throw new TypeError("browser navigation action request is invalid");
@@ -200,6 +244,7 @@ function normalizeRequest(value) {
   return Object.freeze({
     ...value,
     destinationUrl,
+    allowedRedirectOrigins,
     authorization: snapshotJson(
       value.authorization,
       "browser navigation action authorization",
@@ -225,6 +270,10 @@ function requestEvidence(request) {
       "chainlesschain.browser-navigation-action-destination/v1",
       request.destinationUrl,
     ),
+    redirectOriginsDigest: digest(
+      "chainlesschain.browser-navigation-action-redirect-origins/v1",
+      request.allowedRedirectOrigins,
+    ),
     waitUntil: request.waitUntil,
     timeout: request.timeout,
     inputDigest: request.inputDigest,
@@ -234,7 +283,7 @@ function requestEvidence(request) {
   return Object.freeze({
     ...core,
     requestDigest: digest(
-      "chainlesschain.browser-navigation-action-request/v1",
+      "chainlesschain.browser-navigation-action-request/v2",
       core,
     ),
   });
@@ -433,6 +482,7 @@ export function captureBrowserNavigationActionAuthority(value) {
         senderId: request.senderId,
         frameUrlDigest: request.frameUrlDigest,
         destinationDigest: evidence.destinationDigest,
+        redirectOriginsDigest: evidence.redirectOriginsDigest,
         waitUntil: request.waitUntil,
         timeout: request.timeout,
         inputDigest: request.inputDigest,
@@ -445,7 +495,7 @@ export function captureBrowserNavigationActionAuthority(value) {
       const receipt = Object.freeze({
         ...core,
         receiptDigest: digest(
-          "chainlesschain.browser-navigation-action-receipt/v1",
+          "chainlesschain.browser-navigation-action-receipt/v2",
           core,
         ),
       });

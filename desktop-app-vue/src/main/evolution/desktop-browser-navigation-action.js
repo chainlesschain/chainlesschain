@@ -3,8 +3,8 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types } = require("node:util");
 
-const REQUEST_SCHEMA = "chainlesschain.browser-navigation-action-request/v1";
-const RECEIPT_SCHEMA = "chainlesschain.browser-navigation-action-receipt/v1";
+const REQUEST_SCHEMA = "chainlesschain.browser-navigation-action-request/v2";
+const RECEIPT_SCHEMA = "chainlesschain.browser-navigation-action-receipt/v2";
 const OUTCOME_REQUEST_SCHEMA =
   "chainlesschain.browser-navigation-action-outcome-request/v1";
 const OUTCOME_ACK_SCHEMA =
@@ -91,6 +91,56 @@ function normalizeUrl(value, label) {
   return parsed.href;
 }
 
+function normalizeRedirectOrigins(value, destinationUrl) {
+  const destinationOrigin = new URL(destinationUrl).origin;
+  if (value === undefined) return Object.freeze([destinationOrigin]);
+  if (
+    !Array.isArray(value) ||
+    types.isProxy(value) ||
+    value.length < 1 ||
+    value.length > 16
+  ) {
+    throw new TypeError(
+      "Desktop browser navigation redirect origins are invalid",
+    );
+  }
+  const origins = value.map((entry) => {
+    if (typeof entry !== "string" || entry.length > 2048)
+      throw new TypeError(
+        "Desktop browser navigation redirect origins are invalid",
+      );
+    let parsed;
+    try {
+      parsed = new URL(entry);
+    } catch {
+      throw new TypeError(
+        "Desktop browser navigation redirect origins are invalid",
+      );
+    }
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.username !== "" ||
+      parsed.password !== "" ||
+      entry !== parsed.origin
+    ) {
+      throw new TypeError(
+        "Desktop browser navigation redirect origins are invalid",
+      );
+    }
+    return parsed.origin;
+  });
+  const normalized = [...new Set(origins)].sort();
+  if (
+    normalized.length !== origins.length ||
+    !normalized.includes(destinationOrigin)
+  ) {
+    throw new TypeError(
+      "Desktop browser navigation redirect origins are invalid",
+    );
+  }
+  return Object.freeze(normalized);
+}
+
 function inputCore(targetId, destinationUrl, options = {}) {
   if (
     typeof targetId !== "string" ||
@@ -106,6 +156,10 @@ function inputCore(targetId, destinationUrl, options = {}) {
   }
   const waitUntil = optionData(options, "waitUntil") ?? "domcontentloaded";
   const timeout = optionData(options, "timeout") ?? 30_000;
+  const destination = normalizeUrl(
+    destinationUrl,
+    "Desktop browser navigation destination",
+  );
   if (
     !WAIT_UNTIL.has(waitUntil) ||
     !Number.isSafeInteger(timeout) ||
@@ -117,9 +171,10 @@ function inputCore(targetId, destinationUrl, options = {}) {
   return Object.freeze({
     targetId,
     operation: "navigate",
-    destinationUrl: normalizeUrl(
-      destinationUrl,
-      "Desktop browser navigation destination",
+    destinationUrl: destination,
+    allowedRedirectOrigins: normalizeRedirectOrigins(
+      optionData(options, "allowedRedirectOrigins"),
+      destination,
     ),
     waitUntil,
     timeout,
@@ -127,7 +182,7 @@ function inputCore(targetId, destinationUrl, options = {}) {
 }
 
 function inputDigest(core) {
-  return digest("chainlesschain.browser-navigation-action-input/v1", core);
+  return digest("chainlesschain.browser-navigation-action-input/v2", core);
 }
 
 function validateReceipt(receipt, request, authorityDescriptor) {
@@ -147,6 +202,10 @@ function validateReceipt(receipt, request, authorityDescriptor) {
     destinationDigest: digest(
       "chainlesschain.browser-navigation-action-destination/v1",
       request.destinationUrl,
+    ),
+    redirectOriginsDigest: digest(
+      "chainlesschain.browser-navigation-action-redirect-origins/v1",
+      request.allowedRedirectOrigins,
     ),
     waitUntil: request.waitUntil,
     timeout: request.timeout,
@@ -257,6 +316,7 @@ async function authorizeDesktopBrowserNavigationAction(
       frameUrl,
     ),
     destinationUrl: core.destinationUrl,
+    allowedRedirectOrigins: core.allowedRedirectOrigins,
     waitUntil: core.waitUntil,
     timeout: core.timeout,
     inputDigest: inputDigest(core),
@@ -319,7 +379,10 @@ function consumeDesktopBrowserNavigationActionGrant(
 ) {
   const captured = validateGrant(grant, targetId, destinationUrl, options);
   captured.consumed = true;
-  return Object.freeze({ receiptDigest: captured.receiptDigest });
+  return Object.freeze({
+    receiptDigest: captured.receiptDigest,
+    allowedRedirectOrigins: captured.inputCore.allowedRedirectOrigins,
+  });
 }
 
 function normalizeOutcome(value) {

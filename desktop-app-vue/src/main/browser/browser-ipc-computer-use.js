@@ -165,11 +165,10 @@ function registerComputerUseHandlers(ctx) {
       let result = null;
       let mutationError = null;
       try {
-        result = await engine.navigate(
-          targetId,
-          destinationUrl,
-          stripNavigationAuthorization(options),
-        );
+        result = await engine.navigate(targetId, destinationUrl, {
+          ...stripNavigationAuthorization(options),
+          allowedRedirectOrigins: actionEvidence.allowedRedirectOrigins,
+        });
       } catch (error) {
         mutationError = error;
       }

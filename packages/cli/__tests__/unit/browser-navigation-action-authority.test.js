@@ -43,6 +43,7 @@ function request(overrides = {}) {
     targetId: "tab-1",
     operation: "navigate",
     destinationUrl: "https://example.test/path?private=value",
+    allowedRedirectOrigins: ["https://example.test"],
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   };
@@ -54,10 +55,11 @@ function request(overrides = {}) {
     senderId: 17,
     frameUrlDigest: digest("test", "frame"),
     destinationUrl: inputCore.destinationUrl,
+    allowedRedirectOrigins: inputCore.allowedRedirectOrigins,
     waitUntil: inputCore.waitUntil,
     timeout: inputCore.timeout,
     inputDigest: digest(
-      "chainlesschain.browser-navigation-action-input/v1",
+      "chainlesschain.browser-navigation-action-input/v2",
       inputCore,
     ),
     authorization: { approval: "interactive" },
@@ -158,6 +160,11 @@ describe("browser navigation action authority", () => {
     await expect(
       port.authorizeAction(request({ inputDigest: digest("test", "wrong") })),
     ).rejects.toThrow(/request/u);
+    await expect(
+      port.authorizeAction(
+        request({ allowedRedirectOrigins: ["https://different.test"] }),
+      ),
+    ).rejects.toThrow(/redirect origins/u);
     expect(authorize).not.toHaveBeenCalled();
   });
 

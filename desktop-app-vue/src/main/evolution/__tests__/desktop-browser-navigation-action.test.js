@@ -35,7 +35,7 @@ function fixture() {
   });
   const authorizeAction = vi.fn(async (request) =>
     Object.freeze({
-      schema: "chainlesschain.browser-navigation-action-receipt/v1",
+      schema: "chainlesschain.browser-navigation-action-receipt/v2",
       authorityId: descriptor.authorityId,
       tenantId: descriptor.tenantId,
       handlerArtifactDigest: descriptor.handlerArtifactDigest,
@@ -48,6 +48,10 @@ function fixture() {
       destinationDigest: digest(
         "chainlesschain.browser-navigation-action-destination/v1",
         request.destinationUrl,
+      ),
+      redirectOriginsDigest: digest(
+        "chainlesschain.browser-navigation-action-redirect-origins/v1",
+        request.allowedRedirectOrigins,
       ),
       waitUntil: request.waitUntil,
       timeout: request.timeout,
@@ -86,7 +90,14 @@ function fixture() {
 describe("Desktop browser navigation action host", () => {
   it("binds one navigation grant and redacts URLs from durable evidence", async () => {
     const destinationUrl = "https://example.test/path?private=value";
-    const options = { waitUntil: "networkidle", timeout: 45_000 };
+    const options = {
+      waitUntil: "networkidle",
+      timeout: 45_000,
+      allowedRedirectOrigins: [
+        "https://example.test",
+        "https://login.example.test",
+      ],
+    };
     const { host, authorizeAction, recordActionOutcome } = fixture();
     const grant = await authorizeDesktopBrowserNavigationAction(host, {
       targetId: "tab-1",
@@ -110,7 +121,25 @@ describe("Desktop browser navigation action host", () => {
         grant,
         "tab-1",
         "https://different.test/",
-        options,
+        {
+          ...options,
+          allowedRedirectOrigins: ["https://different.test"],
+        },
+      ),
+    ).toThrow(/interactive action grant/u);
+    expect(() =>
+      assertDesktopBrowserNavigationActionGrant(
+        grant,
+        "tab-1",
+        destinationUrl,
+        {
+          ...options,
+          allowedRedirectOrigins: [
+            "https://example.test",
+            "https://login.example.test",
+            "https://unapproved.example.test",
+          ],
+        },
       ),
     ).toThrow(/interactive action grant/u);
     expect(JSON.stringify(authorizeAction.mock.calls)).toContain(

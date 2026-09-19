@@ -6,6 +6,7 @@
  * @author ChainlessChain Team
  * @since v0.27.0
  */
+/* global Notification, window */
 
 // Lazy seam for tests: vi.mock cannot intercept this require() reliably
 // across CJS/ESM in Vitest. Tests inject a fake via _setChromiumForTesting.
@@ -15,6 +16,36 @@ const path = require("path");
 const fs = require("fs").promises;
 const { SnapshotEngine } = require("./snapshot-engine");
 const { ElementLocator } = require("./element-locator");
+
+function normalizeAllowedNavigationOrigins(value) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 16) {
+    throw new TypeError("Allowed navigation origins are invalid");
+  }
+  const normalized = value.map((entry) => {
+    if (typeof entry !== "string" || entry.length > 2048) {
+      throw new TypeError("Allowed navigation origins are invalid");
+    }
+    let parsed;
+    try {
+      parsed = new URL(entry);
+    } catch {
+      throw new TypeError("Allowed navigation origins are invalid");
+    }
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.username !== "" ||
+      parsed.password !== "" ||
+      entry !== parsed.origin
+    ) {
+      throw new TypeError("Allowed navigation origins are invalid");
+    }
+    return parsed.origin;
+  });
+  if (new Set(normalized).size !== normalized.length) {
+    throw new TypeError("Allowed navigation origins are invalid");
+  }
+  return new Set(normalized);
+}
 
 /**
  * 浏览器引擎类
@@ -366,8 +397,45 @@ class BrowserEngine extends EventEmitter {
    */
   async navigate(targetId, url, options = {}) {
     const page = this.getPage(targetId);
+    const allowedOrigins =
+      options.allowedRedirectOrigins === undefined
+        ? null
+        : normalizeAllowedNavigationOrigins(options.allowedRedirectOrigins);
+    const routeHandler =
+      allowedOrigins === null
+        ? null
+        : async (route) => {
+            const request = route.request();
+            if (
+              request.isNavigationRequest() &&
+              request.frame() === page.mainFrame()
+            ) {
+              let origin = null;
+              try {
+                origin = new URL(request.url()).origin;
+              } catch {
+                // Invalid main-frame navigation targets are blocked below.
+              }
+              if (origin === null || !allowedOrigins.has(origin)) {
+                await route.abort("blockedbyclient");
+                return;
+              }
+              await route.continue();
+              return;
+            }
+            if (typeof route.fallback === "function") {
+              await route.fallback();
+            } else {
+              await route.continue();
+            }
+          };
+    let routeInstalled = false;
 
     try {
+      if (routeHandler !== null) {
+        await page.route("**/*", routeHandler);
+        routeInstalled = true;
+      }
       await page.goto(url, {
         waitUntil: options.waitUntil || "domcontentloaded",
         timeout: options.timeout || 30000,
@@ -384,6 +452,10 @@ class BrowserEngine extends EventEmitter {
       };
     } catch (error) {
       throw new Error(`Failed to navigate: ${error.message}`);
+    } finally {
+      if (routeInstalled) {
+        await page.unroute("**/*", routeHandler).catch(() => {});
+      }
     }
   }
 

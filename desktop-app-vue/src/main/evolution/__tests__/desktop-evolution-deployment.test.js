@@ -528,7 +528,7 @@ describe("desktop evolution deployment", () => {
     });
     const authorizeAction = vi.fn(async (request) =>
       Object.freeze({
-        schema: "chainlesschain.browser-navigation-action-receipt/v1",
+        schema: "chainlesschain.browser-navigation-action-receipt/v2",
         authorityId: descriptor.authorityId,
         tenantId: descriptor.tenantId,
         handlerArtifactDigest: descriptor.handlerArtifactDigest,
@@ -541,6 +541,10 @@ describe("desktop evolution deployment", () => {
         destinationDigest: domainDigest(
           "chainlesschain.browser-navigation-action-destination/v1",
           request.destinationUrl,
+        ),
+        redirectOriginsDigest: domainDigest(
+          "chainlesschain.browser-navigation-action-redirect-origins/v1",
+          request.allowedRedirectOrigins,
         ),
         waitUntil: request.waitUntil,
         timeout: request.timeout,
