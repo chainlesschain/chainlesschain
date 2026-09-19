@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.65 / Open VSX 0.37.109 / JetBrains 0.4.130（2026-09-19）
+
+- **有界目标续读**：`0.166.64` 允许任务恢复阶段对已知目标使用显式 offset 与最多 80 行的小范围读取，不再要求重新输出整个文件。
+- **恢复暂停不自激**：`0.166.65` 将 `CC_TOOL_RECOVERY_PAUSED` 等合成控制结果排除在重复文件读取、远端相同大输出和失败重试计数之外，避免恢复提示本身触发同一个六批次无进展保护。
+- **失败闭合不放宽**：真实重复读取、无关远端发现、策略拒绝、全局无进展上限和六次真实尝试上限继续生效；审批、沙箱、执行和 promotion authority 不变。
+- **CLI 发布证据**：`v-npm-0-166-65@17509017a2` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35438409239)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35438410004)与 [npm OIDC 发布/公共安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35440962350)均成功。
+- **IDE 发布证据**：`0.37.109/0.4.130@063d491dab` 的 [IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35444203114)、[ARM64 门](https://github.com/chainlesschain/chainlesschain/actions/runs/35444203032)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35445857141)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35447194795)成功，两个公开 listing 均已回读。Microsoft Marketplace 回填在上传前因发布凭据未配置而停止，当前未发行。
+
 #### Released — CLI 0.166.63 / Open VSX 0.37.108 / JetBrains 0.4.129（2026-09-19）
 
 - **签名 PM 执行证据**：宿主强制 token/tool/墙钟预算，execution/grader/merge/evaluator 四角色使用独立 Ed25519 authority；Volcengine usage/费用 settlement 经外部 retain 与精确回读后绑定 execution receipt、evidence bundle 与 PM Ledger。

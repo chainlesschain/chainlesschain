@@ -20,7 +20,7 @@ CLI option.
 | Recommended CLI           | **`chainlesschain@0.166.65`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
-| Distribution              | Open VSX and Microsoft VS Code Marketplace                |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
 
 ### What's new in 0.37.109
 
@@ -171,8 +171,9 @@ CLI option.
   abstain result when evidence cannot select a safe Skill.
 
 > [!IMPORTANT]
-> Stock Microsoft VS Code does not query Open VSX. Install from the Microsoft
-> Marketplace once its listing exposes `0.37.109`; during propagation, download
+> Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
+> backfill stopped before upload because its publishing credential was not
+> configured, so no Microsoft listing is claimed. Download
 > the [0.37.109 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.109/file/chainlesschain.chainlesschain-ide-0.37.109.vsix)
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can install by extension ID.
@@ -247,13 +248,14 @@ The release package excludes local Extension Host evidence and diagnostics
 under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
-The reserved immutable publication tag for this unreleased extension is
+The immutable publication tag for this public Open VSX extension is
 [`ide-vscode-v0.37.109`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.109).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
-the public registry artifact back. A tag-bound manual backfill publishes the
-same verified VSIX to the Microsoft Marketplace and reads that artifact back as
-well. Registry availability can be checked on the [Open VSX listing](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide).
+the public registry artifact back. A tag-bound manual backfill can publish the
+same verified VSIX to the Microsoft Marketplace only when its repository
+credential is configured; the `0.37.109` backfill stopped before upload, so the
+Open VSX listing remains the public registry source.
 
 ## Highlights
 
@@ -330,13 +332,12 @@ above. Use `@latest` only when you intentionally want a newer published CLI.
 
 ### 2. Install the extension
 
-The extension is published on [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)
-and the Microsoft VS Code Marketplace.
+The extension is published on [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide).
+It is not currently published on the Microsoft VS Code Marketplace.
 
 - In VSCodium and other Open VSX-compatible editors, search for
   **ChainlessChain IDE** (`chainlesschain.chainlesschain-ide`).
-- In stock Microsoft VS Code, search the Marketplace for **ChainlessChain IDE**.
-  During version propagation, download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.109/file/chainlesschain.chainlesschain-ide-0.37.109.vsix)
+- In stock Microsoft VS Code, download the [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.109/file/chainlesschain.chainlesschain-ide-0.37.109.vsix)
   and run **Extensions: Install from VSIX...**.
 - JetBrains users can install the sibling plugin from the
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
@@ -476,8 +477,9 @@ Version `0.37.49` carries forward the release-host journey added across the
 - multi-root and multi-window tests require distinct Extension Host processes,
   bridge ports, and tokens, with both windows reachable at the same time; and
 - publication is tied to the exact tag and followed by Open VSX registry
-  readback. Microsoft Marketplace publishing remains a separate opt-in path
-  and has not been performed.
+  readback. Microsoft Marketplace publishing remains a separate opt-in path;
+  the `0.37.109` attempt failed preflight before upload because its credential
+  was not configured.
 - native ARM64 VS Code and JetBrains evidence is bound into the same exact
   11-cell aggregate before either paired version can be tagged.
 

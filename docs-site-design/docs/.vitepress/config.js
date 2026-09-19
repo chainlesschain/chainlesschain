@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.137 · CLI 0.166.63 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.108 · JetBrains 0.4.129｜PM 签名证据与 SQLite 恢复链";
+        "v5.0.3.137 · CLI 0.166.65 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.109 · JetBrains 0.4.130｜长任务有界恢复";
     }
   },
 

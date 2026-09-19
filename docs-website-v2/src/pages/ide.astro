@@ -51,7 +51,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['接力', '耐久任务记录与独立新会话', `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 配合 CLI ${CLI_VERSION}，将目标、文件证据、失败和下一步保存为权威检查点及有界 WORKLOG.md；接力不复制旧对话或临时权限。`],
-          ['持续执行', '有界网络读取与治理', `Open VSX ${VSCODE_VERSION} 配合 CLI ${CLI_VERSION}，可保留结构化网络错误和恢复建议；模型调用固定 provider/model 并校验流终态，大网页仍可从本地快照分块续读。`],
+          ['持续执行', '有界读取与循环恢复', `Open VSX ${VSCODE_VERSION} 配合 CLI ${CLI_VERSION}，允许恢复中的已知目标做有界续读；合成暂停不再污染重复读取/相同大输出计数，真实重复与无关远端发现仍失败闭合。`],
           ['感知', '选区随 prompt 注入', '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。'],
           ['自修', '诊断自动回喂', 'agent 改完文件，语言服务器的 error/warning 自动附回工具结果——同一循环内看到自己引入的报错并修掉。'],
           ['审批', '原生 diff 评审', '文件编辑确认升级为编辑器原生并排 diff：右侧可顺手改、Accept 替代执行、hunk 级"Pick hunks…"部分接受、"Request changes…"行内批注回喂 agent 修订；跨多文件改动走 openMultiDiff 整 changeset 一屏批量评审。Reject 永不写盘。'],
@@ -75,7 +75,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           ['上下文', '请求级 Context Center', `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 显示执行位置、workspace authority、会话、工作流与恢复身份，并配合 CLI ${CLI_VERSION} 使用实际主请求窗口和 input/output/cache 用量；子调用不污染主指示，回退估算明确标记。`],
           ['副作用', 'Side-effect Center', '双端汇总权限活动、作用域 grant 与 revoke 入口；所有变更继续通过 CLI 命令和精确上下文执行，IDE 不绕过权威存储。'],
           ['内联', '选区旁直接问与改', `Open VSX ${VSCODE_VERSION} 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已公开。`],
-          ['同步', 'CLI 版本对齐', `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI 与 Strict Sandbox 三系统门成功；OIDC 上传后的 registry 传播超时仍按 workflow failure 记录，当前 registry 已独立回读。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均推荐此 CLI。`],
+          ['同步', 'CLI 版本对齐', `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI、Strict Sandbox、OIDC provenance 与公共安装回读均成功。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均推荐此 CLI；Microsoft Marketplace 尚未发行。`],
           ['补全', '受治理自动 ghost-text', 'Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

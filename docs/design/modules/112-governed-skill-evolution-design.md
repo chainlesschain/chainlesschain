@@ -1,6 +1,6 @@
 # 112 受治理的 Skill 自进化设计
 
-> 2026-09-19 增量：公开 CLI 已升至 `0.166.63@f98797e8b5`，Open VSX `0.37.108@e39edecb7f` 与 JetBrains `0.4.129@b7978f4915` 已公开并推荐该 CLI。RSIAgent 第 9–23 批补齐宿主强制预算、四角色签名回执、provider settlement、独立 PM 业务 grader、Desktop 只读 SQLite 结果源、执行前后/失败 seal、tainted host、耐久迁移提交、认证链头恢复和 SQLite 恢复快照保留。代码仍固定 `readyForExecution:false` 与 `qualifiesForPromotion:false`；生产 authority、远端 durability、workspace snapshot、原子 restore、真实 Electron DID/RBAC PM E2E 和 automatic promotion 均未开放。
+> 2026-09-19 增量：公开 CLI 已升至 `0.166.65@17509017a2`，Open VSX `0.37.109@063d491dab` 与 JetBrains `0.4.130@063d491dab` 已公开并推荐该 CLI。`0.166.64–0.166.65` 将恢复控制结果与真实工具观察分开，允许已知目标的显式有界续读，并阻止合成暂停反向推进重复读取/相同大输出计数；真实重复、无关远端发现、策略拒绝和六次真实无进展仍失败闭合。本版继承 0.166.63 的宿主强制预算、四角色签名回执、provider settlement、独立 PM 业务 grader、Desktop SQLite 状态链与恢复快照；`readyForExecution:false`、`qualifiesForPromotion:false` 和 automatic promotion `HOLD` 不变。
 
 > 2026-09-15 增量：公开 CLI 已升至 `0.166.56@d55de4810e`，Open VSX `0.37.103` 与 JetBrains `0.4.124` 均已公开并推荐该 CLI。部署 profile v5 新增明确的 `managed/test` 模式和受约束的测试私钥路径；`init-test` 通过正常验签/原子写入链创建本机 TEST 环境，`replace-test` 以 root-rotation proof 轮换到正式 descriptor/trust root。TEST 身份不获得审核或发布权限，automatic active promotion 继续 `HOLD`。
 
@@ -11,6 +11,14 @@
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
 > 用户文档：[受治理的 Skill 自进化](https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html)
+
+### 2026-09-19 循环恢复语义
+
+恢复阶段的读取准入使用窄化条件：目标必须已经由诊断或索引确定，请求必须携带显式 offset，limit 不得超过 80 行。该路径只用于取回完成修改所需的局部证据，不允许重新扫描整文件，也不把未知路径发现包装成目标读取。
+
+`CC_TOOL_RECOVERY_PAUSED` 一类结果属于运行时控制帧，不是文件、命令或远端端点的新观察，因此不写入对应工具的 duplicate/failure counter。暂停在下一次模型请求后失效；顶层 task-progress tracker 仍计算无进展模型尝试，六次真实工具尝试和全局上限仍可终止停滞任务。远端恢复只放行已知目标并继续受更窄的 remote guard 约束，无关 discovery 与 policy rejection 不会借此绕过。
+
+发布证明绑定 `v-npm-0-166-65@17509017a2` 的三平台 CLI CI、Strict Sandbox 和 npm 公共安装回读。IDE 只消费这一 CLI-owned 语义；`0.37.109/0.4.130@063d491dab` 不获得新的执行、审批或 promotion authority。
 
 ## 1. 概述（背景与决策）
 

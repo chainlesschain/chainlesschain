@@ -14,14 +14,14 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Source candidate `0.4.130` pairs with CLI candidate `0.166.65`. It carries the
-CLI's bounded recovery for repeated reads and identical large outputs without
-moving execution or promotion authority into the IDE. It also
+Public Marketplace release `0.4.130` pairs with public CLI `0.166.65`. It
+carries the CLI's bounded recovery for repeated reads and identical large
+outputs without moving execution or promotion authority into the IDE. It also
 retains verified task-note handoff, stale-edit repair recovery, and bounded
 diagnostics for the next repair step. The bridge remains a bounded CLI
 client: trust, approval, publication, and command construction stay in the CLI
-host. Publication follows the exact-commit CLI matrices, npm child packages,
-the CLI main package, and a verified fresh public CLI installation.
+host. The exact-commit CLI and IDE matrices, public CLI installation, upload,
+Marketplace approval, listing, and artifact readback have completed.
 
 ### Retained web discovery and recovery
 
@@ -42,7 +42,7 @@ the CLI main package, and a verified fresh public CLI installation.
   `0.166.34` counts source inspection separately from implementation progress,
   then preserves task context while directing recovery toward focused edits and
   validation.
-- The paired CLI is public and registry-verified before this plugin candidate;
+- The paired CLI is public and registry-verified for this plugin release;
   older local installations receive the normal update guidance.
 
 - **Long-document tasks use focused reads and local counting.** CLI `0.166.34`
@@ -70,7 +70,7 @@ the CLI main package, and a verified fresh public CLI installation.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.130** is the current release candidate that re-certifies the read-only
+Plugin **0.4.130** is the current public release that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
