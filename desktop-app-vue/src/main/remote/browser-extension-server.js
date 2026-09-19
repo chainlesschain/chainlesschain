@@ -12,9 +12,14 @@
  * @module remote/browser-extension-server
  */
 
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../browser/browser-log-redaction");
 const { EventEmitter } = require("events");
 const WebSocket = require("ws");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 默认配置
@@ -80,9 +85,10 @@ class BrowserExtensionServer extends EventEmitter {
       return;
     }
 
-    logger.info(
-      `[BrowserExtensionServer] 启动服务器 ${this.options.host}:${this.options.port}...`,
-    );
+    logger.info("[BrowserExtensionServer] 启动服务器", {
+      host: this.options.host,
+      port: this.options.port,
+    });
 
     return new Promise((resolve, reject) => {
       try {
@@ -93,9 +99,10 @@ class BrowserExtensionServer extends EventEmitter {
         });
 
         this.wss.on("listening", () => {
-          logger.info(
-            `[BrowserExtensionServer] ✅ 服务器启动成功 ws://${this.options.host}:${this.options.port}`,
-          );
+          logger.info("[BrowserExtensionServer] 服务器启动成功", {
+            host: this.options.host,
+            port: this.options.port,
+          });
           this.stats.startTime = Date.now();
           this.startHeartbeat();
           this.emit("started");
@@ -125,9 +132,7 @@ class BrowserExtensionServer extends EventEmitter {
     const clientId = this.generateClientId();
     const clientIp = req.socket.remoteAddress;
 
-    logger.info(
-      `[BrowserExtensionServer] 新连接: ${clientId} from ${clientIp}`,
-    );
+    logger.info("[BrowserExtensionServer] 新连接", { clientId, clientIp });
 
     // 检查连接限制
     if (this.clients.size >= this.options.maxConnections) {
@@ -160,7 +165,10 @@ class BrowserExtensionServer extends EventEmitter {
     });
 
     ws.on("error", (error) => {
-      logger.error(`[BrowserExtensionServer] 客户端错误 ${clientId}:`, error);
+      logger.error("[BrowserExtensionServer] 客户端错误", {
+        clientId,
+        error,
+      });
     });
 
     ws.on("pong", () => {
@@ -191,10 +199,10 @@ class BrowserExtensionServer extends EventEmitter {
       // 处理注册消息
       if (message.type === "register") {
         client.info = message.data;
-        logger.info(
-          `[BrowserExtensionServer] 客户端注册: ${clientId}`,
-          message.data,
-        );
+        logger.info("[BrowserExtensionServer] 客户端注册", {
+          clientId,
+          info: message.data,
+        });
         this.emit("registered", { clientId, info: message.data });
         return;
       }
@@ -223,9 +231,14 @@ class BrowserExtensionServer extends EventEmitter {
       }
 
       // 未知消息类型
-      logger.debug(`[BrowserExtensionServer] 未知消息类型: ${message.type}`);
+      logger.debug("[BrowserExtensionServer] 未知消息类型", {
+        messageType: message.type,
+      });
     } catch (error) {
-      logger.error(`[BrowserExtensionServer] 解析消息失败 ${clientId}:`, error);
+      logger.error("[BrowserExtensionServer] 解析消息失败", {
+        clientId,
+        error,
+      });
     }
   }
 
@@ -238,7 +251,7 @@ class BrowserExtensionServer extends EventEmitter {
       return;
     }
 
-    logger.info(`[BrowserExtensionServer] 客户端断开: ${clientId}`);
+    logger.info("[BrowserExtensionServer] 客户端断开", { clientId });
 
     this.clients.delete(clientId);
     this.stats.currentConnections = this.clients.size;
@@ -364,7 +377,9 @@ class BrowserExtensionServer extends EventEmitter {
         if (client.ws.readyState === WebSocket.OPEN) {
           // 检查是否超时
           if (now - client.lastActivity > this.options.heartbeatInterval * 2) {
-            logger.warn(`[BrowserExtensionServer] 客户端心跳超时: ${clientId}`);
+            logger.warn("[BrowserExtensionServer] 客户端心跳超时", {
+              clientId,
+            });
             client.ws.terminate();
             continue;
           }
