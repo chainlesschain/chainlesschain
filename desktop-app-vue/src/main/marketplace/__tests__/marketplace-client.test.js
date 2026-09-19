@@ -104,10 +104,14 @@ describe("MarketplaceClient", () => {
   // ── Config / Stats ────────────────────────────────────────────────────
 
   describe("getConfig", () => {
-    it("should return config", () => {
+    it("should return config without the endpoint value", () => {
+      const secret = "marketplace-config-endpoint-secret";
+      client.setBaseURL(`https://${secret}.example/api`);
       const c = client.getConfig();
-      expect(c.baseURL).toBe("http://test:8090/api");
+      expect(c.hasBaseURL).toBe(true);
       expect(c.isAvailable).toBe(true);
+      expect(c).not.toHaveProperty("baseURL");
+      expect(JSON.stringify(c)).not.toContain(secret);
     });
   });
 

@@ -981,12 +981,12 @@ class MarketplaceClient {
   }
 
   /**
-   * Get current client configuration
-   * @returns {Object} Client configuration summary
+   * Get a non-sensitive client configuration summary
+   * @returns {Object} Client configuration summary without endpoint values
    */
   getConfig() {
     return {
-      baseURL: this.baseURL,
+      hasBaseURL: typeof this.baseURL === "string" && this.baseURL.length > 0,
       timeout: this.timeout,
       maxRetries: this.maxRetries,
       hasAuth: this.hasAuthToken(),
