@@ -75,5 +75,9 @@ describe("PluginAPI model egress boundary", () => {
     expect(source).not.toContain(
       "logAPICall(methodName, permission, false, 0, error.message)",
     );
+    expect(source).not.toMatch(
+      /logger\.(?:debug|info|warn|error)\([^;\n]*\.\.\.args/u,
+    );
+    expect(source).toContain('logPluginConsoleCall("info", args)');
   });
 });

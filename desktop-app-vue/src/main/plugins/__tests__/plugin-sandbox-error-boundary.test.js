@@ -9,6 +9,56 @@ vi.mock("../../utils/logger.js", () => ({
 const PluginSandbox = require("../plugin-sandbox.js");
 
 describe("PluginSandbox error boundary", () => {
+  it("redacts sandbox console arguments before forwarding", () => {
+    const secret = "plugin-sandbox-console-secret";
+    const utils = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const sandbox = new PluginSandbox(
+      "plugin-id",
+      "C:/plugins/plugin-id",
+      {},
+      { api: { utils }, getAPI: () => ({}) },
+    );
+
+    try {
+      const context = sandbox.createSandboxContext();
+      context.console.log(secret, { nested: secret });
+      context.console.warn(new Error(secret));
+      context.console.error(secret);
+
+      expect(utils.log).toHaveBeenCalledWith({
+        event: "plugin-console",
+        level: "log",
+        argumentCount: 2,
+        redacted: true,
+      });
+      expect(utils.warn).toHaveBeenCalledWith({
+        event: "plugin-console",
+        level: "warn",
+        argumentCount: 1,
+        redacted: true,
+      });
+      expect(utils.error).toHaveBeenCalledWith({
+        event: "plugin-console",
+        level: "error",
+        argumentCount: 1,
+        redacted: true,
+      });
+      expect(
+        JSON.stringify([
+          utils.log.mock.calls,
+          utils.warn.mock.calls,
+          utils.error.mock.calls,
+        ]),
+      ).not.toContain(secret);
+    } finally {
+      sandbox.destroy();
+    }
+  });
+
   it("uses a stable code when an optional plugin method is unavailable", async () => {
     const sandbox = new PluginSandbox(
       "plugin-id",

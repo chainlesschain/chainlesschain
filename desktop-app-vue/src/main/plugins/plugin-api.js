@@ -550,18 +550,27 @@ class PluginAPI {
    * 工具API
    */
   buildUtilsAPI() {
+    const logPluginConsoleCall = (level, args) => {
+      const argumentCount = Array.isArray(args) ? Math.min(args.length, 32) : 0;
+      logger[level]("[PluginAPI] Plugin console call", {
+        level,
+        argumentCount,
+        redacted: true,
+      });
+    };
+
     return {
       // 日志
       log: (...args) => {
-        logger.info(`[Plugin:${this.pluginId}]`, ...args);
+        logPluginConsoleCall("info", args);
       },
 
       warn: (...args) => {
-        logger.warn(`[Plugin:${this.pluginId}]`, ...args);
+        logPluginConsoleCall("warn", args);
       },
 
       error: (...args) => {
-        logger.error(`[Plugin:${this.pluginId}]`, ...args);
+        logPluginConsoleCall("error", args);
       },
 
       // 延迟

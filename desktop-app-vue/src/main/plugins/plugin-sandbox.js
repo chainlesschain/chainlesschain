@@ -167,13 +167,26 @@ class PluginSandbox extends EventEmitter {
    * @returns {Object} 沙箱上下文
    */
   createSandboxContext() {
+    const forwardConsoleCall = (level, args) => {
+      const sink = this.pluginAPI?.api?.utils?.[level];
+      if (typeof sink !== "function") {
+        return;
+      }
+      sink({
+        event: "plugin-console",
+        level,
+        argumentCount: Math.min(args.length, 32),
+        redacted: true,
+      });
+    };
+
     // 提供安全的全局对象
     const context = {
       // 标准JavaScript全局对象
       console: {
-        log: (...args) => this.pluginAPI.api.utils.log(...args),
-        warn: (...args) => this.pluginAPI.api.utils.warn(...args),
-        error: (...args) => this.pluginAPI.api.utils.error(...args),
+        log: (...args) => forwardConsoleCall("log", args),
+        warn: (...args) => forwardConsoleCall("warn", args),
+        error: (...args) => forwardConsoleCall("error", args),
       },
 
       // 定时器（带限制 + 句柄追踪，destroy() 时统一清理）
