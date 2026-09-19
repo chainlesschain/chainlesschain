@@ -1117,6 +1117,24 @@ describe("signed evolution deployment loader", () => {
               disposeArtifact: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserFilesystemQuarantineDisposalAuthority({
+              descriptor: {
+                schema: BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-download-disposal",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-byte-disposal",
+              },
+              custody: {},
+              authorize: async () => ({ decision: "deny" }),
+              now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1258,6 +1276,23 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               disposeArtifact: async () => null,
             });
+          const browserFilesystemQuarantineDisposalAuthority =
+            factories.createBrowserFilesystemQuarantineDisposalAuthority({
+              descriptor: {
+                schema: BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-filesystem-download-disposal",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "interactive",
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-byte-disposal",
+              },
+              custody: browserFilesystemQuarantineCustody,
+              authorize: async () => ({ decision: "deny" }),
+              now: () => Date.now(),
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1270,6 +1305,7 @@ describe("signed evolution deployment loader", () => {
             browserQuarantinedDownloadExecutor,
             browserFilesystemQuarantineCustody,
             browserDownloadArtifactDisposalAuthority,
+            browserFilesystemQuarantineDisposalAuthority,
           };
         },
       }),
@@ -1357,6 +1393,15 @@ describe("signed evolution deployment loader", () => {
       ).descriptor,
     ).toMatchObject({
       authorityId: "browser-download-disposal",
+      effectMode: "irreversible-byte-disposal",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserDownloadArtifactDisposalAuthority(
+        result.browserFilesystemQuarantineDisposalAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-filesystem-download-disposal",
       effectMode: "irreversible-byte-disposal",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
