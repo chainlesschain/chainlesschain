@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   EvolutionWorkbenchMetricsAggregator,
+  LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
   digestEvolutionWorkbenchMetricsDelta,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 import {
@@ -33,7 +34,7 @@ function redigestSnapshot(value) {
   return {
     ...core,
     snapshotDigest: `sha256:${createHash("sha256")
-      .update("chainlesschain.evolution-workbench-metrics-snapshot/v1")
+      .update(core.schema)
       .update("\0")
       .update(canonical(core))
       .digest("hex")}`,
@@ -191,17 +192,14 @@ describe("indexed Skill outcome authority", () => {
     expect(authority.evidence.sourceDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
   });
 
-  it("fails closed when legacy outcome history was not backfilled", async () => {
+  it("fails closed when a v1 snapshot claims complete outcome history", async () => {
     const value = await snapshot("run:legacy", [
       receipt("run:legacy", "legacy", "completed"),
     ]);
     const legacy = structuredClone(value);
-    delete legacy.outcomeHistoryComplete;
-    for (const version of legacy.versions) {
-      delete version.outcomeReceiptCount;
-      delete version.outcomeCompleted;
-      delete version.userCorrectionCount;
-    }
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     expect(() =>
       buildSkillOutcomeIndexAuthority(
         {
@@ -216,6 +214,9 @@ describe("indexed Skill outcome authority", () => {
   it("accepts an empty legacy snapshot because it has no history to backfill", async () => {
     const value = await snapshot("run:legacy-empty", []);
     const legacy = structuredClone(value);
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     delete legacy.outcomeHistoryComplete;
     const authority = buildSkillOutcomeIndexAuthority(
       {

@@ -26,14 +26,18 @@ import {
   EvolutionWorkbenchMetricsAggregator,
   EvolutionWorkbenchMetricsOutcomeBackfiller,
   EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
-  EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+  LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
   createEmptyEvolutionWorkbenchMetricsSnapshot,
   digestEvolutionWorkbenchMetricsDelta,
   digestEvolutionWorkbenchMetricsHistory,
 } from "../../src/lib/evolution/evolution-workbench-metrics.js";
 import { buildSkillOutcomeIndexAuthority } from "../../src/lib/evolution/skill-outcome-index-authority.js";
 
-const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
+const {
+  LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
+  startSkillInvocation,
+  settleSkillInvocation,
+} = skillInvocationReceipt;
 const D = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const canonical = (value) => {
@@ -210,6 +214,19 @@ function invocation(id, contentDigest, outcome = {}) {
   );
 }
 
+function legacyInvocation(value) {
+  const core = { ...value };
+  delete core.environmentDigest;
+  delete core.receiptDigest;
+  core.schema = LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA;
+  return {
+    ...core,
+    receiptDigest: D(
+      `${LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA}\0${canonical(core)}`,
+    ),
+  };
+}
+
 function backends() {
   const root = fs.mkdtempSync(
     path.join(fs.realpathSync.native(os.tmpdir()), "cc-workbench-metrics-"),
@@ -369,7 +386,9 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     const value = backends();
     const opened = adapter(value);
     const contentDigest = D("content:legacy-backfill");
-    const oldReceipt = invocation("legacy-old", contentDigest);
+    const oldReceipt = legacyInvocation(
+      invocation("legacy-old", contentDigest),
+    );
     const gradedReceipt = invocation("legacy-graded", contentDigest, {
       graderReceipts: [D("grader:legacy-graded")],
       userCorrectionRef: "correction:legacy-graded",
@@ -387,7 +406,7 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       descriptor.skillName,
     );
     const legacyCore = {
-      schema: EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+      schema: LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
       tenantId: descriptor.tenantId,
       evolutionRunId: descriptor.evolutionRunId,
       skillName: descriptor.skillName,
@@ -416,7 +435,7 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
     const legacy = {
       ...legacyCore,
       snapshotDigest: D(
-        `${EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA}\0${canonical(legacyCore)}`,
+        `${LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA}\0${canonical(legacyCore)}`,
       ),
     };
     opened.commitSnapshot({
@@ -455,10 +474,13 @@ describe("EvolutionWorkbenchMetricsLedgerAdapter", () => {
       receiptCount: 2,
       snapshot: {
         outcomeHistoryComplete: true,
+        excludedReceiptCount: 1,
+        receiptCompatibilityPolicy: "environment-bound-v2",
         retainedReceiptCount: 1,
         retentionRootDigest: retained.retentionRootDigest,
         versions: [
           {
+            receiptCount: 1,
             outcomeReceiptCount: 1,
             outcomeCompleted: 1,
             userCorrectionCount: 1,

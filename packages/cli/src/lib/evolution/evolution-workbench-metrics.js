@@ -8,8 +8,12 @@ const {
   verifySkillInvocationReceipt,
 } = skillInvocationReceipt;
 
-export const EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
+export const LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
   "chainlesschain.evolution-workbench-metrics-snapshot/v1";
+export const EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA =
+  "chainlesschain.evolution-workbench-metrics-snapshot/v2";
+export const EVOLUTION_WORKBENCH_RECEIPT_COMPATIBILITY_POLICY =
+  "environment-bound-v2";
 export const EVOLUTION_WORKBENCH_METRICS_MAX_RECEIPTS = 100_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_DELTA = 10_000;
 export const EVOLUTION_WORKBENCH_METRICS_MAX_HOT_RECEIPTS = 10_000;
@@ -41,6 +45,13 @@ const LEGACY_SNAPSHOT_KEYS = Object.freeze(
 );
 const OUTCOME_SNAPSHOT_KEYS = Object.freeze(
   [...RETENTION_SNAPSHOT_KEYS, "outcomeHistoryComplete"].sort(),
+);
+const COMPATIBILITY_SNAPSHOT_KEYS = Object.freeze(
+  [
+    ...OUTCOME_SNAPSHOT_KEYS,
+    "excludedReceiptCount",
+    "receiptCompatibilityPolicy",
+  ].sort(),
 );
 const LEGACY_VERSION_KEYS = Object.freeze(
   [
@@ -164,6 +175,9 @@ export function createEmptyEvolutionWorkbenchMetricsSnapshot(
     retainedReceiptCount: 0,
     retentionRootDigest: null,
     outcomeHistoryComplete: true,
+    excludedReceiptCount: 0,
+    receiptCompatibilityPolicy:
+      EVOLUTION_WORKBENCH_RECEIPT_COMPATIBILITY_POLICY,
     receiptDigests: [],
     versions: [],
   };
@@ -249,12 +263,17 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   value,
   { tenantId, evolutionRunId, skillName },
 ) {
+  const exactCompatibility = exactRecord(value, COMPATIBILITY_SNAPSHOT_KEYS);
   const exactOutcome = exactRecord(value, OUTCOME_SNAPSHOT_KEYS);
   const exactRetention = exactRecord(value, RETENTION_SNAPSHOT_KEYS);
   const exactLegacy = exactRecord(value, LEGACY_SNAPSHOT_KEYS);
+  const currentSchema =
+    value?.schema === EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+  const legacySchema =
+    value?.schema === LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
   if (
-    (!exactOutcome && !exactRetention && !exactLegacy) ||
-    value.schema !== EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA ||
+    ((!currentSchema || !exactCompatibility) &&
+      (!legacySchema || (!exactOutcome && !exactRetention && !exactLegacy))) ||
     !boundedString(value.tenantId) ||
     !boundedString(value.evolutionRunId) ||
     !boundedString(value.skillName) ||
@@ -283,6 +302,9 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   }
   const retainedReceiptCount = value.retainedReceiptCount ?? 0;
   const retentionRootDigest = value.retentionRootDigest ?? null;
+  const excludedReceiptCount = exactCompatibility
+    ? value.excludedReceiptCount
+    : 0;
   if (
     !safeCount(retainedReceiptCount) ||
     (retainedReceiptCount === 0 && retentionRootDigest !== null) ||
@@ -293,17 +315,26 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
   if (
     value.revision === 0 &&
     (retainedReceiptCount !== 0 ||
+      excludedReceiptCount !== 0 ||
       value.receiptDigests.length !== 0 ||
       value.versions.length !== 0)
   ) {
     throw new TypeError("Workbench metrics genesis snapshot is invalid");
   }
   if (
-    exactOutcome &&
+    (exactCompatibility || exactOutcome) &&
     (typeof value.outcomeHistoryComplete !== "boolean" ||
       (value.revision === 0 && value.outcomeHistoryComplete !== true))
   ) {
     throw new TypeError("Workbench metrics outcome coverage is invalid");
+  }
+  if (
+    exactCompatibility &&
+    (!safeCount(excludedReceiptCount) ||
+      value.receiptCompatibilityPolicy !==
+        EVOLUTION_WORKBENCH_RECEIPT_COMPATIBILITY_POLICY)
+  ) {
+    throw new TypeError("Workbench metrics receipt compatibility is invalid");
   }
   for (const receiptDigest of value.receiptDigests)
     digest(receiptDigest, "receipt digest");
@@ -381,23 +412,20 @@ export function verifyEvolutionWorkbenchMetricsSnapshot(
     }
   }
   if (
-    projectedReceiptCount !==
+    projectedReceiptCount + excludedReceiptCount !==
     retainedReceiptCount + value.receiptDigests.length
   ) {
     throw new Error("Workbench metrics receipt retention total is invalid");
   }
   if (
-    (exactOutcome && versionLayout === "legacy") ||
-    (!exactOutcome && versionLayout === "outcome")
+    ((exactCompatibility || exactOutcome) && versionLayout === "legacy") ||
+    (!exactCompatibility && !exactOutcome && versionLayout === "outcome")
   ) {
     throw new TypeError("Workbench metrics outcome layout is invalid");
   }
   const core = structuredClone(value);
   delete core.snapshotDigest;
-  if (
-    hash(EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA, core) !==
-    value.snapshotDigest
-  ) {
+  if (hash(value.schema, core) !== value.snapshotDigest) {
     throw new Error("Workbench metrics snapshot digest is invalid");
   }
   return freeze(structuredClone(value));
@@ -425,11 +453,19 @@ function nextSnapshot(previous, source, receipts, retention) {
   );
   const outcomeHistoryComplete =
     previous.outcomeHistoryComplete === true || previousReceiptCount === 0;
+  let excludedReceiptCount = previous.excludedReceiptCount;
   for (const receipt of receipts) {
     if (seen.has(receipt.receiptDigest)) {
       throw new Error("Workbench metrics source replayed a receipt");
     }
     seen.add(receipt.receiptDigest);
+    if (
+      !inspectSkillInvocationReceiptCompatibility(receipt)
+        .environmentBoundAttributionEligible
+    ) {
+      excludedReceiptCount += 1;
+      continue;
+    }
     for (const contentDigest of receipt.selectedSkillDigests) {
       const current = versions.get(contentDigest) ?? {
         contentDigest,
@@ -488,6 +524,9 @@ function nextSnapshot(previous, source, receipts, retention) {
     retainedReceiptCount: retention.retainedReceiptCount,
     retentionRootDigest: retention.retentionRootDigest,
     outcomeHistoryComplete,
+    excludedReceiptCount,
+    receiptCompatibilityPolicy:
+      EVOLUTION_WORKBENCH_RECEIPT_COMPATIBILITY_POLICY,
     receiptDigests: [...seen].sort(),
     versions: [...versions.values()].sort((left, right) =>
       left.contentDigest.localeCompare(right.contentDigest),
@@ -599,8 +638,8 @@ export class EvolutionWorkbenchMetricsOutcomeBackfiller {
       this.descriptor,
     );
     if (
-      previous.outcomeHistoryComplete === true ||
-      previous.versions.length === 0
+      previous.schema === EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA &&
+      previous.outcomeHistoryComplete === true
     ) {
       return freeze({ status: "already-complete", snapshot: previous });
     }
@@ -646,8 +685,6 @@ export class EvolutionWorkbenchMetricsOutcomeBackfiller {
       const verified = verifySkillInvocationReceipt(receipt);
       if (
         verified.evolutionRunId !== this.descriptor.evolutionRunId ||
-        !inspectSkillInvocationReceiptCompatibility(verified)
-          .environmentBoundAttributionEligible ||
         Date.parse(verified.completedAt) > Date.parse(previous.throughAt)
       ) {
         throw new Error("Workbench metrics history lacks exact attribution");
@@ -696,9 +733,19 @@ export class EvolutionWorkbenchMetricsOutcomeBackfiller {
         );
       }
     }
-    const versions = projectReceiptHistory(receipts);
+    const eligibleReceipts = receipts.filter(
+      (receipt) =>
+        inspectSkillInvocationReceiptCompatibility(receipt)
+          .environmentBoundAttributionEligible,
+    );
+    const versions = projectReceiptHistory(eligibleReceipts);
+    const reconciliationVersions = projectReceiptHistory(
+      previous.schema === LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA
+        ? receipts
+        : eligibleReceipts,
+    );
     if (
-      canonical(legacyProjection(versions)) !==
+      canonical(legacyProjection(reconciliationVersions)) !==
       canonical(legacyProjection(previous.versions))
     ) {
       throw new Error("Workbench metrics history does not reconcile");
@@ -715,6 +762,9 @@ export class EvolutionWorkbenchMetricsOutcomeBackfiller {
       retainedReceiptCount: previous.retainedReceiptCount ?? 0,
       retentionRootDigest: previous.retentionRootDigest ?? null,
       outcomeHistoryComplete: true,
+      excludedReceiptCount: receipts.length - eligibleReceipts.length,
+      receiptCompatibilityPolicy:
+        EVOLUTION_WORKBENCH_RECEIPT_COMPATIBILITY_POLICY,
       receiptDigests: previous.receiptDigests,
       versions,
     };
@@ -813,6 +863,15 @@ export class EvolutionWorkbenchMetricsAggregator {
         loaded.snapshot,
         this.descriptor,
       );
+      if (
+        previous.schema === LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA
+      ) {
+        const error = new Error(
+          "Workbench metrics snapshot requires receipt compatibility backfill",
+        );
+        error.code = "CC_WORKBENCH_METRICS_COMPATIBILITY_BACKFILL_REQUIRED";
+        throw error;
+      }
     } else {
       throw new Error("Workbench metrics snapshot load is not authoritative");
     }
@@ -836,11 +895,7 @@ export class EvolutionWorkbenchMetricsAggregator {
     }
     const receipts = source.receipts.map((receipt) => {
       const verified = verifySkillInvocationReceipt(receipt);
-      if (
-        verified.evolutionRunId !== this.descriptor.evolutionRunId ||
-        !inspectSkillInvocationReceiptCompatibility(verified)
-          .environmentBoundAttributionEligible
-      ) {
+      if (verified.evolutionRunId !== this.descriptor.evolutionRunId) {
         throw new Error("Workbench metrics receipt lacks exact attribution");
       }
       return verified;

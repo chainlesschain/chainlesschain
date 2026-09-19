@@ -18,7 +18,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
-import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
+import {
+  legacySkillInvocationReceipt,
+  settledSkillInvocationReceipt,
+} from "../helpers/skill-invocation-receipt.js";
 
 let tmpHome;
 let previousHome;
@@ -265,6 +268,76 @@ describe("REPL wrapper persists compact tool_call events", () => {
         receiptCount: 1,
         attributionEligibleReceiptCount: 1,
         outcomeEligibleReceiptCount: 1,
+      },
+    });
+  });
+
+  it("reopens mixed v1/v2 transcript history without restoring stale eligibility", async () => {
+    const store = await import("../../src/harness/jsonl-session-store.js");
+    const current = settledSkillInvocationReceipt({
+      receiptId: "receipt:reopen-current",
+      graderReceipts: [`sha256:${"b".repeat(64)}`],
+    });
+    const stale = settledSkillInvocationReceipt({
+      receiptId: "receipt:reopen-stale",
+      environmentDigest: `sha256:${"e".repeat(64)}`,
+      graderReceipts: [`sha256:${"c".repeat(64)}`],
+    });
+    const legacy = legacySkillInvocationReceipt({
+      receiptId: "receipt:reopen-legacy",
+      graderReceipts: [`sha256:${"f".repeat(64)}`],
+    });
+    store.startSession("s-mixed-reopen", { title: "mixed receipts" });
+    for (const invocationReceipt of [current, stale, legacy]) {
+      store.appendToolCallCompact("s-mixed-reopen", {
+        tool: "run_skill",
+        skill: "csv-clean",
+        invocationReceipt,
+      });
+    }
+
+    vi.resetModules();
+    mockPaths();
+    const { _registerTestScopedSessionAntiRollbackDirectory } =
+      await import("../../src/lib/session-anti-rollback-anchor.js");
+    _registerTestScopedSessionAntiRollbackDirectory({
+      homeDir: tmpHome,
+      anchorBase: `${tmpHome}-security-anchors`,
+    });
+    const reopenedStore =
+      await import("../../src/harness/jsonl-session-store.js");
+    const reopenedReceipts = reopenedStore
+      .readEvents("s-mixed-reopen")
+      .filter(({ type }) => type === "tool_call")
+      .map(({ data }) => data.skill_invocation_receipt);
+    expect(reopenedReceipts.map(({ schema }) => schema)).toEqual([
+      "chainlesschain.skill-invocation-receipt/v2",
+      "chainlesschain.skill-invocation-receipt/v2",
+      "chainlesschain.skill-invocation-receipt/v1",
+    ]);
+
+    const { buildSkillOutcomeTranscriptAuthority } =
+      await import("../../src/lib/skill-outcome-transcript-authority.js");
+    const outcomeAuthority = buildSkillOutcomeTranscriptAuthority({
+      expectedEnvironmentDigest: `sha256:${"d".repeat(64)}`,
+    });
+    expect(outcomeAuthority).toMatchObject({
+      schema: "chainlesschain.skill-outcome-transcript-authority/v2",
+      metrics: {
+        [`sha256:${"a".repeat(64)}`]: {
+          samples: 1,
+          successRate: 1,
+        },
+      },
+      evidence: {
+        receiptCount: 3,
+        uniqueReceiptCount: 3,
+        attributionEligibleReceiptCount: 1,
+        outcomeEligibleReceiptCount: 1,
+        legacyEnvironmentUnboundReceiptCount: 1,
+        staleEnvironmentReceiptCount: 1,
+        incompleteAttributionReceiptCount: 0,
+        environmentPolicy: "current",
       },
     });
   });

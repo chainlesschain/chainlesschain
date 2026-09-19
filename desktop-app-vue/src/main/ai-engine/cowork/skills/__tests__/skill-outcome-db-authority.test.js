@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
+const Database = require("better-sqlite3");
 const {
   LEGACY_SKILL_INVOCATION_RECEIPT_SCHEMA,
   startSkillInvocation,
@@ -196,6 +200,72 @@ describe("Desktop Skill outcome DB authority", () => {
       incompleteAttributionReceiptCount: 0,
       environmentPolicy: "current",
     });
+  });
+
+  it("reopens a real mixed-version SQLite history without restoring stale eligibility", async () => {
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "desktop-outcome-mixed-"),
+    );
+    const databasePath = path.join(root, "skills.sqlite");
+    let sqlite = new Database(databasePath);
+    try {
+      sqlite.exec(`CREATE TABLE skill_execution_metrics (
+        id TEXT PRIMARY KEY,
+        context_json TEXT,
+        completed_at TEXT NOT NULL
+      )`);
+      const insert = sqlite.prepare(
+        "INSERT INTO skill_execution_metrics (id, context_json, completed_at) VALUES (?, ?, ?)",
+      );
+      const current = receipt({
+        receiptId: "desktop-reopen:current",
+        graderReceipts: [digest("d")],
+      });
+      const stale = receipt({
+        receiptId: "desktop-reopen:stale",
+        environmentDigest: digest("f"),
+        graderReceipts: [digest("d")],
+      });
+      const legacy = legacyReceipt({
+        receiptId: "desktop-reopen:legacy",
+        graderReceipts: [digest("d")],
+      });
+      for (const [index, value] of [current, stale, legacy].entries()) {
+        insert.run(
+          `row-${index}`,
+          JSON.stringify({ invocationReceipt: value }),
+          `2026-09-03T00:00:0${index}.000Z`,
+        );
+      }
+      sqlite.close();
+
+      sqlite = new Database(databasePath, { readonly: true });
+      const authority = await buildDesktopSkillOutcomeAuthority({
+        database: {
+          all: async (sql, params) => sqlite.prepare(sql).all(...params),
+        },
+        expectedEnvironmentDigest: digest("e"),
+      });
+      expect(authority).toMatchObject({
+        schema: "chainlesschain.desktop-skill-outcome-db-authority/v2",
+        metrics: {
+          [digest("a")]: { samples: 1, successRate: 1 },
+        },
+        evidence: {
+          rowCount: 3,
+          receiptCount: 3,
+          uniqueReceiptCount: 3,
+          attributionEligibleReceiptCount: 1,
+          outcomeEligibleReceiptCount: 1,
+          legacyEnvironmentUnboundReceiptCount: 1,
+          staleEnvironmentReceiptCount: 1,
+          environmentPolicy: "current",
+        },
+      });
+    } finally {
+      if (sqlite.open) sqlite.close();
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("fails closed on receipt tamper, invalid context, and row overflow", async () => {

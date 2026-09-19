@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { verifyEvolutionWorkbenchMetricsSnapshot } from "./evolution-workbench-metrics.js";
+import {
+  EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+  verifyEvolutionWorkbenchMetricsSnapshot,
+} from "./evolution-workbench-metrics.js";
 import { isEvolutionWorkbenchMetricsOutcomeReader } from "./evolution-workbench-metrics-ledger-adapter.js";
 
 export const SKILL_OUTCOME_INDEX_AUTHORITY_SCHEMA =
@@ -96,8 +99,9 @@ function inspectSource(adapter) {
     descriptor,
   );
   if (
-    snapshot.outcomeHistoryComplete !== true &&
-    snapshot.versions.length !== 0
+    snapshot.versions.length !== 0 &&
+    (snapshot.schema !== EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA ||
+      snapshot.outcomeHistoryComplete !== true)
   ) {
     throw unavailable(
       "Skill outcome index requires a complete outcome backfill",

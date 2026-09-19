@@ -7,6 +7,7 @@ import {
   EvolutionWorkbenchMetricsAggregator,
   EvolutionWorkbenchMetricsOutcomeBackfiller,
   EVOLUTION_WORKBENCH_METRICS_HISTORY_SCHEMA,
+  LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
   createEmptyEvolutionWorkbenchMetricsSnapshot,
   digestEvolutionWorkbenchMetricsDelta,
   digestEvolutionWorkbenchMetricsHistory,
@@ -40,7 +41,7 @@ function redigestSnapshot(value) {
   return {
     ...core,
     snapshotDigest: `sha256:${createHash("sha256")
-      .update("chainlesschain.evolution-workbench-metrics-snapshot/v1")
+      .update(core.schema)
       .update("\0")
       .update(canonical(core))
       .digest("hex")}`,
@@ -226,6 +227,9 @@ describe("Evolution Workbench long-term metrics", () => {
       empty,
     );
     const legacy = structuredClone(empty);
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     delete legacy.retainedReceiptCount;
     delete legacy.retentionRootDigest;
     delete legacy.outcomeHistoryComplete;
@@ -238,6 +242,14 @@ describe("Evolution Workbench long-term metrics", () => {
     expect(() =>
       verifyEvolutionWorkbenchMetricsSnapshot(
         redigestSnapshot({ ...empty, injectedClaim: true }),
+        descriptor,
+      ),
+    ).toThrow(/snapshot is invalid/u);
+    const missingPolicy = structuredClone(empty);
+    delete missingPolicy.receiptCompatibilityPolicy;
+    expect(() =>
+      verifyEvolutionWorkbenchMetricsSnapshot(
+        redigestSnapshot(missingPolicy),
         descriptor,
       ),
     ).toThrow(/snapshot is invalid/u);
@@ -262,6 +274,15 @@ describe("Evolution Workbench long-term metrics", () => {
         expect(() =>
           verifyEvolutionWorkbenchMetricsSnapshot(
             redigestSnapshot(inconsistent),
+            descriptor,
+          ),
+        ).toThrow(/retention total is invalid/u);
+
+        const excludedMismatch = structuredClone(snapshot);
+        excludedMismatch.excludedReceiptCount = 1;
+        expect(() =>
+          verifyEvolutionWorkbenchMetricsSnapshot(
+            redigestSnapshot(excludedMismatch),
             descriptor,
           ),
         ).toThrow(/retention total is invalid/u);
@@ -314,38 +335,142 @@ describe("Evolution Workbench long-term metrics", () => {
     expect(snapshot.outcomeHistoryComplete).toBe(true);
   });
 
-  it("migrates legacy counts without claiming complete outcome history", async () => {
+  it("requires authenticated compatibility backfill before extending a v1 snapshot", async () => {
     const content = D("content:legacy");
-    const h = fixture([
-      [receipt("legacy", content)],
-      [
-        receipt("graded", content, "completed", "run:1", {
-          graderReceipts: [D("grader:graded")],
-        }),
-      ],
-    ]);
+    const historicalReceipt = receipt("legacy", content);
+    const h = fixture([[historicalReceipt]]);
     const first = await h.open().aggregate();
     const legacy = structuredClone(first);
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     delete legacy.outcomeHistoryComplete;
     for (const version of legacy.versions) {
       delete version.outcomeReceiptCount;
       delete version.outcomeCompleted;
       delete version.userCorrectionCount;
     }
-    h.state.snapshot = redigestSnapshot(legacy);
+    const legacySnapshot = redigestSnapshot(legacy);
+    h.state.snapshot = legacySnapshot;
 
-    const migrated = await h.open().aggregate();
-    expect(migrated).toMatchObject({
-      outcomeHistoryComplete: false,
+    await expect(h.open().aggregate()).rejects.toMatchObject({
+      code: "CC_WORKBENCH_METRICS_COMPATIBILITY_BACKFILL_REQUIRED",
+    });
+    expect(h.ports.readReceiptDelta).toHaveBeenCalledTimes(1);
+
+    const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+      ports: {
+        ...h.ports,
+        readReceiptHistory: async () =>
+          history(h.state.snapshot, [historicalReceipt]),
+      },
+    });
+    const migrated = await backfiller.backfill();
+    expect(migrated.snapshot).toMatchObject({
+      schema: "chainlesschain.evolution-workbench-metrics-snapshot/v2",
+      outcomeHistoryComplete: true,
+      excludedReceiptCount: 0,
+      receiptCompatibilityPolicy: "environment-bound-v2",
       versions: [
         {
-          receiptCount: 2,
-          outcomeReceiptCount: 1,
-          outcomeCompleted: 1,
+          receiptCount: 1,
+          outcomeReceiptCount: 0,
+          outcomeCompleted: 0,
           userCorrectionCount: 0,
         },
       ],
     });
+  });
+
+  it("migrates mixed v1/v2 history without promoting the legacy sample", async () => {
+    const content = D("content:mixed-history");
+    const current = receipt("mixed-current", content, "completed", "run:1", {
+      graderReceipts: [D("grader:mixed-current")],
+    });
+    const historical = legacyReceipt(
+      receipt("mixed-legacy", content, "completed", "run:1", {
+        graderReceipts: [D("grader:mixed-legacy")],
+      }),
+    );
+    const receiptDigests = [
+      current.receiptDigest,
+      historical.receiptDigest,
+    ].sort();
+    const legacyCore = {
+      schema: LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA,
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+      revision: 1,
+      priorSnapshotDigest: D("legacy-parent"),
+      sourceDigest: D("legacy-source"),
+      throughAt: "2026-09-03T01:00:00.000Z",
+      retainedReceiptCount: 0,
+      retentionRootDigest: null,
+      outcomeHistoryComplete: true,
+      receiptDigests,
+      versions: [
+        {
+          contentDigest: content,
+          receiptCount: 2,
+          completed: 2,
+          failed: 0,
+          blocked: 0,
+          outcomeReceiptCount: 2,
+          outcomeCompleted: 2,
+          userCorrectionCount: 0,
+          tokensInput: 20,
+          tokensOutput: 10,
+          costUsd: 0.5,
+          latencyMs: 200,
+          maxLatencyMs: 100,
+        },
+      ],
+    };
+    const legacySnapshot = redigestSnapshot(legacyCore);
+    const h = fixture([]);
+    h.state.snapshot = legacySnapshot;
+    const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
+      tenantId: "tenant:a",
+      evolutionRunId: "run:1",
+      skillName: "repair-tests",
+      ports: {
+        ...h.ports,
+        readReceiptHistory: async () =>
+          history(legacySnapshot, [historical, current]),
+      },
+    });
+
+    const migrated = await backfiller.backfill();
+    expect(migrated.snapshot).toMatchObject({
+      schema: "chainlesschain.evolution-workbench-metrics-snapshot/v2",
+      priorSnapshotDigest: legacySnapshot.snapshotDigest,
+      excludedReceiptCount: 1,
+      receiptCompatibilityPolicy: "environment-bound-v2",
+      receiptDigests,
+      versions: [
+        {
+          receiptCount: 1,
+          completed: 1,
+          outcomeReceiptCount: 1,
+          outcomeCompleted: 1,
+          tokensInput: 10,
+          tokensOutput: 5,
+          costUsd: 0.25,
+          latencyMs: 100,
+        },
+      ],
+    });
+    expect(
+      verifyEvolutionWorkbenchMetricsSnapshot(migrated.snapshot, {
+        tenantId: "tenant:a",
+        evolutionRunId: "run:1",
+        skillName: "repair-tests",
+      }),
+    ).toEqual(migrated.snapshot);
   });
 
   it("backfills complete historical outcomes and converges idempotently", async () => {
@@ -356,20 +481,23 @@ describe("Evolution Workbench long-term metrics", () => {
       userCorrectionRef: "correction:graded",
     });
     const h = fixture([[oldReceipt], [gradedReceipt]]);
-    const first = await h.open().aggregate();
-    const legacy = structuredClone(first);
+    await h.open().aggregate();
+    const second = await h.open().aggregate();
+    const legacy = structuredClone(second);
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     delete legacy.outcomeHistoryComplete;
     for (const version of legacy.versions) {
       delete version.outcomeReceiptCount;
       delete version.outcomeCompleted;
       delete version.userCorrectionCount;
     }
-    h.state.snapshot = redigestSnapshot(legacy);
-    const incomplete = await h.open().aggregate();
-    expect(incomplete.outcomeHistoryComplete).toBe(false);
+    const legacySnapshot = redigestSnapshot(legacy);
+    h.state.snapshot = legacySnapshot;
 
     const readReceiptHistory = vi.fn(async () =>
-      history(incomplete, [oldReceipt, gradedReceipt]),
+      history(h.state.snapshot, [oldReceipt, gradedReceipt]),
     );
     const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
       tenantId: "tenant:a",
@@ -383,8 +511,9 @@ describe("Evolution Workbench long-term metrics", () => {
       receiptCount: 2,
       snapshot: {
         revision: 3,
-        priorSnapshotDigest: incomplete.snapshotDigest,
+        priorSnapshotDigest: legacySnapshot.snapshotDigest,
         outcomeHistoryComplete: true,
+        excludedReceiptCount: 0,
         versions: [
           {
             receiptCount: 2,
@@ -405,9 +534,14 @@ describe("Evolution Workbench long-term metrics", () => {
   it("rejects an authenticated history that cannot reconcile legacy totals", async () => {
     const content = D("content:backfill-mismatch");
     const original = receipt("original", content);
-    const h = fixture([[original], [receipt("next", content)]]);
-    const first = await h.open().aggregate();
-    const legacy = structuredClone(first);
+    const next = receipt("next", content);
+    const h = fixture([[original], [next]]);
+    await h.open().aggregate();
+    const second = await h.open().aggregate();
+    const legacy = structuredClone(second);
+    legacy.schema = LEGACY_EVOLUTION_WORKBENCH_METRICS_SNAPSHOT_SCHEMA;
+    delete legacy.excludedReceiptCount;
+    delete legacy.receiptCompatibilityPolicy;
     delete legacy.outcomeHistoryComplete;
     for (const version of legacy.versions) {
       delete version.outcomeReceiptCount;
@@ -415,7 +549,6 @@ describe("Evolution Workbench long-term metrics", () => {
       delete version.userCorrectionCount;
     }
     h.state.snapshot = redigestSnapshot(legacy);
-    const incomplete = await h.open().aggregate();
     const substituted = receipt("substituted", content, "failed");
     const backfiller = new EvolutionWorkbenchMetricsOutcomeBackfiller({
       tenantId: "tenant:a",
@@ -424,7 +557,7 @@ describe("Evolution Workbench long-term metrics", () => {
       ports: {
         ...h.ports,
         readReceiptHistory: async () =>
-          history(incomplete, [substituted, receipt("next", content)]),
+          history(h.state.snapshot, [substituted, next]),
       },
     });
     await expect(backfiller.backfill()).rejects.toThrow(
@@ -501,12 +634,17 @@ describe("Evolution Workbench long-term metrics", () => {
     expect(h.ports.commitSnapshot).not.toHaveBeenCalled();
   });
 
-  it("rejects readable v1 receipts as environment-unbound metric evidence", async () => {
+  it("retains readable v1 receipts for replay defense but excludes their metrics", async () => {
     const historical = legacyReceipt(receipt("v1", D("content:a")));
     const h = fixture([[historical]]);
 
-    await expect(h.open().aggregate()).rejects.toThrow("exact attribution");
-    expect(h.ports.commitSnapshot).not.toHaveBeenCalled();
+    await expect(h.open().aggregate()).resolves.toMatchObject({
+      excludedReceiptCount: 1,
+      receiptCompatibilityPolicy: "environment-bound-v2",
+      receiptDigests: [historical.receiptDigest],
+      versions: [],
+    });
+    expect(h.ports.commitSnapshot).toHaveBeenCalledOnce();
   });
 
   it("rejects receipt substitution behind a copied source digest", async () => {
