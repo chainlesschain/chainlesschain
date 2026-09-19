@@ -18,10 +18,15 @@
  * @module remote/permission-gate
  */
 
-const { logger } = require("../utils/logger");
+const { logger: browserLogSink } = require("../utils/logger");
+const {
+  createBrowserLogRedactor,
+} = require("../browser/browser-log-redaction");
 const crypto = require("crypto");
 const naclUtil = require("tweetnacl-util");
 const nacl = require("tweetnacl");
+
+const logger = createBrowserLogRedactor(browserLogSink);
 
 /**
  * 权限级别常量
@@ -1149,9 +1154,7 @@ class PermissionGate {
       const now = Date.now();
       const timeDiff = Math.abs(now - auth.timestamp);
       if (timeDiff > this.options.timestampWindow) {
-        logger.warn(
-          `[PermissionGate] 验证失败: 时间戳过期 (差值: ${timeDiff}ms)`,
-        );
+        logger.warn("[PermissionGate] 验证失败: 时间戳过期", { timeDiff });
         await this.logAudit(auth.did, method, 0, false, "Timestamp expired");
         return false;
       }
@@ -1162,9 +1165,10 @@ class PermissionGate {
 
         // 先检查内存缓存（快速路径）
         if (this.nonceCache.has(nonceKey)) {
-          logger.warn(
-            `[PermissionGate] 验证失败: Nonce 已使用 (DID: ${auth.did.substring(0, 20)}...)`,
-          );
+          logger.warn("[PermissionGate] 验证失败: Nonce 已使用", {
+            did: auth.did,
+            nonceSource: "memory",
+          });
           await this.logAudit(auth.did, method, 0, false, "Nonce reused");
           return false;
         }
@@ -1175,9 +1179,10 @@ class PermissionGate {
           .get(nonceKey);
 
         if (existingNonce) {
-          logger.warn(
-            `[PermissionGate] 验证失败: Nonce 已使用 (持久化, DID: ${auth.did.substring(0, 20)}...)`,
-          );
+          logger.warn("[PermissionGate] 验证失败: Nonce 已使用", {
+            did: auth.did,
+            nonceSource: "database",
+          });
           await this.logAudit(
             auth.did,
             method,
@@ -1218,9 +1223,10 @@ class PermissionGate {
 
       // 7. 检查权限级别
       if (deviceLevel < requiredLevel) {
-        logger.warn(
-          `[PermissionGate] 验证失败: 权限不足 (需要: ${requiredLevel}, 当前: ${deviceLevel})`,
-        );
+        logger.warn("[PermissionGate] 验证失败: 权限不足", {
+          requiredLevel,
+          deviceLevel,
+        });
         await this.logAudit(
           auth.did,
           method,
@@ -1239,9 +1245,10 @@ class PermissionGate {
           requiredLevel,
         );
         if (!rateCheck.allowed) {
-          logger.warn(
-            `[PermissionGate] 验证失败: 频率限制 (${rateCheck.current}/${rateCheck.limit})`,
-          );
+          logger.warn("[PermissionGate] 验证失败: 频率限制", {
+            current: rateCheck.current,
+            limit: rateCheck.limit,
+          });
           await this.logAudit(
             auth.did,
             method,
@@ -1278,9 +1285,11 @@ class PermissionGate {
 
       // 11. 验证成功
       const duration = Date.now() - startTime;
-      logger.info(
-        `[PermissionGate] ✅ 验证成功: ${method} by ${auth.did} (${duration}ms)`,
-      );
+      logger.info("[PermissionGate] 验证成功", {
+        method,
+        did: auth.did,
+        duration,
+      });
       await this.logAudit(auth.did, method, requiredLevel, true, "Success");
 
       return true;
@@ -1312,7 +1321,7 @@ class PermissionGate {
       // 从 DID 获取公钥
       const identity = await this.didManager.cache.get(auth.did);
       if (!identity) {
-        logger.warn(`[PermissionGate] DID 不存在: ${auth.did}`);
+        logger.warn("[PermissionGate] DID 不存在", { did: auth.did });
         return false;
       }
 
@@ -1381,9 +1390,10 @@ class PermissionGate {
     }
 
     // 4. 默认权限级别
-    logger.debug(
-      `[PermissionGate] 命令 ${method} 未配置权限，使用默认级别: ${PERMISSION_LEVELS.NORMAL}`,
-    );
+    logger.debug("[PermissionGate] 命令未配置权限，使用默认级别", {
+      method,
+      permissionLevel: PERMISSION_LEVELS.NORMAL,
+    });
     return PERMISSION_LEVELS.NORMAL;
   }
 
@@ -1407,7 +1417,7 @@ class PermissionGate {
       if (row) {
         // 检查是否过期
         if (row.expires_at && row.expires_at < Date.now()) {
-          logger.warn(`[PermissionGate] 设备权限已过期: ${did}`);
+          logger.warn("[PermissionGate] 设备权限已过期", { did });
           return PERMISSION_LEVELS.PUBLIC;
         }
 
@@ -1420,9 +1430,10 @@ class PermissionGate {
     }
 
     // 3. 默认权限级别（新设备）
-    logger.info(
-      `[PermissionGate] 新设备使用默认权限: ${did} -> Level ${PERMISSION_LEVELS.PUBLIC}`,
-    );
+    logger.info("[PermissionGate] 新设备使用默认权限", {
+      did,
+      permissionLevel: PERMISSION_LEVELS.PUBLIC,
+    });
     return PERMISSION_LEVELS.PUBLIC;
   }
 
@@ -1455,7 +1466,7 @@ class PermissionGate {
       // 更新缓存
       this.devicePermissions.set(did, level);
 
-      logger.info(`[PermissionGate] 设置设备权限: ${did} -> Level ${level}`);
+      logger.info("[PermissionGate] 设置设备权限", { did, level });
 
       // 记录审计日志
       await this.logAudit(
@@ -1529,7 +1540,9 @@ class PermissionGate {
         this.devicePermissions.set(row.did, row.permission_level);
       }
 
-      logger.info(`[PermissionGate] 加载了 ${rows.length} 个设备权限`);
+      logger.info("[PermissionGate] 已加载设备权限", {
+        deviceCount: rows.length,
+      });
     } catch (error) {
       logger.error("[PermissionGate] 加载设备权限失败:", error);
     }
@@ -1596,7 +1609,7 @@ class PermissionGate {
    */
   registerCommandPermission(method, level) {
     this.commandPermissions[method] = level;
-    logger.info(`[PermissionGate] 注册命令权限: ${method} -> Level ${level}`);
+    logger.info("[PermissionGate] 注册命令权限", { method, level });
   }
 
   /**
@@ -1652,9 +1665,11 @@ class PermissionGate {
     }
 
     if (expiredNonces > 0 || dbExpiredNonces > 0 || cleanedRateLimits > 0) {
-      logger.debug(
-        `[PermissionGate] 清理: ${expiredNonces} memory nonces, ${dbExpiredNonces} db nonces, ${cleanedRateLimits} rate limits`,
-      );
+      logger.debug("[PermissionGate] 清理过期状态", {
+        expiredNonces,
+        dbExpiredNonces,
+        cleanedRateLimits,
+      });
     }
   }
 
@@ -1701,9 +1716,10 @@ class PermissionGate {
       this.checkInactiveDevices();
     }, this.options.autoRevokeCheckInterval);
 
-    logger.info(
-      `[PermissionGate] 设备自动撤销检查已启动 (间隔: ${this.options.autoRevokeCheckInterval / 1000}s, 阈值: ${this.options.inactivityThreshold / (24 * 60 * 60 * 1000)}天)`,
-    );
+    logger.info("[PermissionGate] 设备自动撤销检查已启动", {
+      checkInterval: this.options.autoRevokeCheckInterval,
+      inactivityThreshold: this.options.inactivityThreshold,
+    });
   }
 
   /**
@@ -1730,19 +1746,20 @@ class PermissionGate {
         return;
       }
 
-      logger.info(
-        `[PermissionGate] 发现 ${inactiveDevices.length} 个不活跃设备，正在降级...`,
-      );
+      logger.info("[PermissionGate] 发现不活跃设备，准备降级", {
+        deviceCount: inactiveDevices.length,
+      });
 
       for (const device of inactiveDevices) {
         const inactiveDays = device.last_activity
           ? Math.floor((now - device.last_activity) / (24 * 60 * 60 * 1000))
           : "未知";
 
-        logger.warn(
-          `[PermissionGate] 设备自动降级: ${device.did.substring(0, 30)}... ` +
-            `(原权限: ${device.permission_level}, 不活跃: ${inactiveDays}天)`,
-        );
+        logger.warn("[PermissionGate] 设备自动降级", {
+          did: device.did,
+          previousLevel: device.permission_level,
+          inactiveDays,
+        });
 
         // 降级到 PUBLIC
         this.database
@@ -1768,9 +1785,10 @@ class PermissionGate {
         );
       }
 
-      logger.info(
-        `[PermissionGate] 已降级 ${inactiveDevices.length} 个不活跃设备到 PUBLIC 权限`,
-      );
+      logger.info("[PermissionGate] 已降级不活跃设备", {
+        deviceCount: inactiveDevices.length,
+        permissionLevel: PERMISSION_LEVELS.PUBLIC,
+      });
     } catch (error) {
       logger.error("[PermissionGate] 检查不活跃设备失败:", error);
     }
@@ -1852,7 +1870,7 @@ class PermissionGate {
       // 记录审计日志
       await this.logAudit(did, "device.revoke", 0, true, reason);
 
-      logger.info(`[PermissionGate] 设备已撤销: ${did} (${reason})`);
+      logger.info("[PermissionGate] 设备已撤销", { did, reason });
       return { success: true };
     } catch (error) {
       logger.error("[PermissionGate] 撤销设备失败:", error);
