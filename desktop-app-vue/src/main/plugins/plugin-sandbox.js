@@ -21,6 +21,14 @@ const fs = require("fs");
 const EventEmitter = require("events");
 
 const logger = createPluginLogRedactor(pluginLogSink, "PluginSandbox");
+const MAX_SANDBOX_MODULES = 512;
+const MAX_SANDBOX_MODULE_BYTES = 4 * 1024 * 1024;
+
+function createSandboxModuleUnavailableError() {
+  const error = new Error("Plugin sandbox module unavailable");
+  error.code = "PLUGIN_SANDBOX_MODULE_UNAVAILABLE";
+  return error;
+}
 
 // M2: _deps injection so tests can mock fs.promises (vi.mock cannot
 // intercept fs.promises for inlined CJS modules)
@@ -55,6 +63,7 @@ class PluginSandbox extends EventEmitter {
     // 清除，否则插件的定时器回调会在沙箱销毁后继续运行（泄漏内存 + 销毁后仍执行
     // 插件代码）。
     this._activeTimers = new Set();
+    this._moduleCache = new Map();
   }
 
   /**
@@ -103,11 +112,15 @@ class PluginSandbox extends EventEmitter {
       const module = { exports: {} };
       const exports = module.exports;
 
-      // 创建require函数（限制只能require白名单模块）
-      const customRequire = this.createRequireFunction();
-
       // 在VM上下文中执行
       const vmContext = vm.createContext(this.context);
+
+      // 创建require函数。插件自有模块和依赖继续在同一VM上下文中执行，
+      // 禁止退回宿主CommonJS loader。
+      const customRequire = this.createRequireFunction(
+        vmContext,
+        path.dirname(entryPath),
+      );
 
       try {
         const fn = script.runInContext(vmContext, {
@@ -121,7 +134,7 @@ class PluginSandbox extends EventEmitter {
           module,
           exports,
           customRequire,
-          this.pluginPath,
+          path.dirname(entryPath),
           entryPath,
         );
       } catch (error) {
@@ -269,7 +282,11 @@ class PluginSandbox extends EventEmitter {
    * 创建受限的require函数
    * @returns {Function} require函数
    */
-  createRequireFunction() {
+  createRequireFunction(
+    vmContext,
+    parentDirectory = this.pluginPath,
+    moduleCache = this._moduleCache,
+  ) {
     // 允许的内置模块白名单
     const allowedModules = [
       "crypto",
@@ -286,30 +303,110 @@ class PluginSandbox extends EventEmitter {
         return require(moduleName);
       }
 
-      // 检查是否为相对路径（插件自己的模块）
-      if (moduleName.startsWith(".") || moduleName.startsWith("/")) {
-        const path = require("path");
-        const resolvedPath = path.resolve(this.pluginPath, moduleName);
-
-        // 确保在插件目录内（按分隔符判边界，防兄弟目录前缀绕过）
-        if (!isWithinDir(this.pluginPath, resolvedPath)) {
-          throw new Error(`不允许加载插件目录外的模块: ${moduleName}`);
-        }
-
-        return require(resolvedPath);
+      if (
+        typeof moduleName !== "string" ||
+        !vmContext ||
+        typeof vmContext !== "object"
+      ) {
+        throw createSandboxModuleUnavailableError();
       }
 
-      // 检查是否为插件的NPM依赖
       const path = require("path");
-      const modulePath = path.join(this.pluginPath, "node_modules", moduleName);
-
-      if (require("fs").existsSync(modulePath)) {
-        return require(modulePath);
+      let resolvedPath;
+      try {
+        if (moduleName.startsWith(".") || path.isAbsolute(moduleName)) {
+          resolvedPath = require.resolve(
+            path.resolve(parentDirectory, moduleName),
+          );
+        } else {
+          resolvedPath = require.resolve(moduleName, {
+            paths: [parentDirectory, this.pluginPath],
+          });
+        }
+      } catch (_error) {
+        throw createSandboxModuleUnavailableError();
       }
 
-      throw new Error(
-        `不允许加载模块: ${moduleName}。只能使用白名单模块或插件自己的依赖。`,
-      );
+      let pluginRoot;
+      let moduleRealPath;
+      try {
+        pluginRoot = fs.realpathSync(this.pluginPath);
+        moduleRealPath = fs.realpathSync(resolvedPath);
+      } catch (_error) {
+        throw createSandboxModuleUnavailableError();
+      }
+
+      if (!isWithinDir(pluginRoot, moduleRealPath)) {
+        throw createSandboxModuleUnavailableError();
+      }
+
+      if (moduleCache.has(moduleRealPath)) {
+        return moduleCache.get(moduleRealPath).exports;
+      }
+      if (moduleCache.size >= MAX_SANDBOX_MODULES) {
+        throw createSandboxModuleUnavailableError();
+      }
+
+      let source;
+      try {
+        const stats = fs.statSync(moduleRealPath);
+        if (
+          !stats.isFile() ||
+          stats.size < 0 ||
+          stats.size > MAX_SANDBOX_MODULE_BYTES
+        ) {
+          throw createSandboxModuleUnavailableError();
+        }
+        source = fs.readFileSync(moduleRealPath, "utf8");
+      } catch (_error) {
+        throw createSandboxModuleUnavailableError();
+      }
+
+      const extension = path.extname(moduleRealPath).toLowerCase();
+      if (extension === ".json") {
+        try {
+          const record = { exports: JSON.parse(source) };
+          moduleCache.set(moduleRealPath, record);
+          return record.exports;
+        } catch (_error) {
+          throw createSandboxModuleUnavailableError();
+        }
+      }
+      if (extension !== ".js" && extension !== ".cjs") {
+        throw createSandboxModuleUnavailableError();
+      }
+
+      const record = { exports: {} };
+      moduleCache.set(moduleRealPath, record);
+      try {
+        const factory = new vm.Script(
+          `(function(module, exports, require, __dirname, __filename) {\n${source}\n})`,
+          {
+            filename: moduleRealPath,
+            displayErrors: false,
+          },
+        ).runInContext(vmContext, {
+          timeout: this.timeouts.load,
+          displayErrors: false,
+        });
+        const localRequire = this.createRequireFunction(
+          vmContext,
+          path.dirname(moduleRealPath),
+          moduleCache,
+        );
+        factory.call(
+          record.exports,
+          record,
+          record.exports,
+          localRequire,
+          path.dirname(moduleRealPath),
+          moduleRealPath,
+        );
+        return record.exports;
+      } catch (_error) {
+        moduleCache.delete(moduleRealPath);
+        throw createSandboxModuleUnavailableError();
+      }
     };
   }
 
@@ -527,6 +624,7 @@ class PluginSandbox extends EventEmitter {
       clearInterval(id); // Node 的 Timeout 句柄可被任一方法清除，双清安全
     }
     this._activeTimers.clear();
+    this._moduleCache.clear();
 
     this.removeAllListeners();
     this.instance = null;

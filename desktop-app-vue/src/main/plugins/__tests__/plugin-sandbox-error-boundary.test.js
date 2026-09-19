@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import vm from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../utils/logger.js", () => ({
@@ -56,6 +58,82 @@ describe("PluginSandbox error boundary", () => {
       ).not.toContain(secret);
     } finally {
       sandbox.destroy();
+    }
+  });
+
+  it("loads plugin dependencies inside the sandbox log boundary", () => {
+    const secret = "third-party-dependency-log-secret";
+    const pluginPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "chainless-plugin-sandbox-"),
+    );
+    const dependencyPath = path.join(
+      pluginPath,
+      "node_modules",
+      "sandbox-dependency",
+    );
+    fs.mkdirSync(dependencyPath, { recursive: true });
+    fs.writeFileSync(
+      path.join(dependencyPath, "index.js"),
+      [
+        `console.log(${JSON.stringify(secret)});`,
+        'const helper = require("./helper");',
+        "module.exports = { value: helper.value };",
+      ].join("\n"),
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(dependencyPath, "helper.js"),
+      `console.warn(${JSON.stringify(secret)}); module.exports = { value: 42 };`,
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(pluginPath, "native.node"),
+      "not-native",
+      "utf8",
+    );
+
+    const utils = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const sandbox = new PluginSandbox(
+      "plugin-id",
+      pluginPath,
+      {},
+      {
+        api: { utils },
+        getAPI: () => ({}),
+      },
+    );
+
+    try {
+      const context = vm.createContext(sandbox.createSandboxContext());
+      const sandboxRequire = sandbox.createRequireFunction(context, pluginPath);
+      const dependency = sandboxRequire("sandbox-dependency");
+
+      expect(dependency).toEqual({ value: 42 });
+      expect(sandboxRequire("sandbox-dependency")).toBe(dependency);
+      expect(utils.log).toHaveBeenCalledTimes(1);
+      expect(utils.warn).toHaveBeenCalledTimes(1);
+      expect(
+        JSON.stringify([utils.log.mock.calls, utils.warn.mock.calls]),
+      ).not.toContain(secret);
+      expect(() => sandboxRequire("./native.node")).toThrow(
+        expect.objectContaining({
+          message: "Plugin sandbox module unavailable",
+          code: "PLUGIN_SANDBOX_MODULE_UNAVAILABLE",
+        }),
+      );
+      expect(() => sandboxRequire("../outside-secret.js")).toThrow(
+        expect.objectContaining({
+          message: "Plugin sandbox module unavailable",
+          code: "PLUGIN_SANDBOX_MODULE_UNAVAILABLE",
+        }),
+      );
+    } finally {
+      sandbox.destroy();
+      fs.rmSync(pluginPath, { recursive: true, force: true });
     }
   });
 
@@ -131,5 +209,7 @@ describe("PluginSandbox error boundary", () => {
 
     expect(source).not.toMatch(/throw\s+(?:error|err|e)\s*;/u);
     expect(source).not.toMatch(/\{[^}]*\berror\s*\}/u);
+    expect(source).not.toContain("return require(resolvedPath)");
+    expect(source).not.toContain("return require(modulePath)");
   });
 });
