@@ -24,9 +24,17 @@ const ignoredDirectories = new Set([
   "node_modules",
   "dist",
 ]);
-// Preserve these existing fixed lifecycle capabilities even when their callers
-// are composed dynamically. They still require an exact main registration.
-const retainedLifecycleChannels = [
+// Preserve these fixed governed capabilities even when their callers are
+// composed dynamically. They still require an exact main registration.
+const retainedGovernedChannels = [
+  "browser:action:cancel-download",
+  "browser:action:discard-download-artifact",
+  "browser:action:download-url",
+  "browser:action:history",
+  "browser:action:key-press",
+  "browser:action:navigate",
+  "browser:action:open-tab",
+  "browser:visualType",
   "evolution-artifact:promote",
   "evolution-artifact:revalidate",
 ];
@@ -154,8 +162,7 @@ function rendererBridgeChannels() {
 
 function expectedChannels() {
   const rendererChannels = channelsIn(rendererRoot);
-  for (const channel of retainedLifecycleChannels)
-    rendererChannels.add(channel);
+  for (const channel of retainedGovernedChannels) rendererChannels.add(channel);
   const mainChannels = mainAuthorityChannels();
   // A generic renderer call is useful only when the same exact channel is an
   // actual main-process registration/delivery point or an existing scoped

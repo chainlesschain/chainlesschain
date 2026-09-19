@@ -296,6 +296,71 @@ describe("browser download action authority", () => {
     expect(observedSignal?.aborted).toBe(true);
   });
 
+  it("cooperatively cancels only the exact active execution and audits failure", async () => {
+    let observedSignal = null;
+    let executionStarted;
+    const started = new Promise((resolve) => {
+      executionStarted = resolve;
+    });
+    const executeDownload = vi.fn((_execution, { signal }) => {
+      observedSignal = signal;
+      executionStarted();
+      return new Promise((resolve) => {
+        signal.addEventListener("abort", () => resolve(artifact()), {
+          once: true,
+        });
+      });
+    });
+    const { port, recordOutcome } = fixture({ executeDownload });
+    const receipt = await port.authorizeAction(request());
+    await expect(
+      port.cancelAuthorizedDownload({
+        receiptDigest: receipt.receiptDigest,
+        requestDigest: receipt.requestDigest,
+        reason: "user-request",
+      }),
+    ).rejects.toThrow(/not active/u);
+
+    const executionPromise = port.executeAuthorizedDownload({
+      receiptDigest: receipt.receiptDigest,
+      requestDigest: receipt.requestDigest,
+    });
+    await started;
+    await expect(
+      port.cancelAuthorizedDownload({
+        receiptDigest: receipt.receiptDigest,
+        requestDigest: digest("test", "substituted"),
+        reason: "user-request",
+      }),
+    ).rejects.toThrow(/not active/u);
+    expect(observedSignal?.aborted).toBe(false);
+    await expect(
+      port.cancelAuthorizedDownload({
+        receiptDigest: receipt.receiptDigest,
+        requestDigest: receipt.requestDigest,
+        reason: "user-request",
+      }),
+    ).resolves.toEqual({ accepted: true });
+    const execution = await executionPromise;
+    expect(observedSignal?.aborted).toBe(true);
+    expect(execution).toMatchObject({
+      status: "failed",
+      failureClass: "download-cancelled",
+      artifactRef: null,
+    });
+    await expect(
+      port.cancelAuthorizedDownload({
+        receiptDigest: receipt.receiptDigest,
+        requestDigest: receipt.requestDigest,
+        reason: "user-request",
+      }),
+    ).rejects.toThrow(/not active/u);
+    await expect(
+      port.recordActionOutcome(outcome(receipt, execution)),
+    ).resolves.toMatchObject({ durable: true, readbackVerified: true });
+    expect(recordOutcome).toHaveBeenCalledOnce();
+  });
+
   it("denies without exposing a download execution grant", async () => {
     const { executePort, port } = fixture({
       authorize: async () => ({

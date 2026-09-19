@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const {
   authorizeDesktopBrowserDownloadAction,
+  cancelDesktopBrowserDownloadActionGrant,
   createDesktopBrowserDownloadActionHost,
   executeDesktopBrowserDownloadActionGrant,
   recordDesktopBrowserDownloadActionOutcome,
@@ -23,7 +24,11 @@ const digest = (domain, value) =>
     .update(canonical(value))
     .digest("hex")}`;
 
-function fixture({ executionOverrides = {} } = {}) {
+function fixture({
+  executionOverrides = {},
+  executePort = null,
+  cancelPort = null,
+} = {}) {
   const authority = Object.freeze({});
   const descriptor = Object.freeze({
     authorityId: "download-test",
@@ -64,22 +69,26 @@ function fixture({ executionOverrides = {} } = {}) {
     validUntil: new Date(Date.now() + 5000).toISOString(),
     receiptDigest: digest("test", request.requestId),
   }));
-  const executeAuthorizedDownload = vi.fn(async () => ({
-    status: "succeeded",
-    failureClass: null,
-    artifactRef: "quarantine:artifact-1",
-    artifactDigest: digest("test", "artifact"),
-    sizeBytes: 4096,
-    contentType: "application/pdf",
-    finalUrlDigest: digest("test", "final-url"),
-    redirectOriginsDigest: digest("test", "redirects"),
-    scanEvidenceDigest: digest("test", "scan"),
-    quarantineReceiptDigest: digest("test", "quarantine"),
-    completionReceiptDigest: digest("test", "completion"),
-    completedAt: new Date().toISOString(),
-    resultDigest: digest("test", "result"),
-    ...executionOverrides,
-  }));
+  const executeAuthorizedDownload =
+    executePort ??
+    vi.fn(async () => ({
+      status: "succeeded",
+      failureClass: null,
+      artifactRef: "quarantine:artifact-1",
+      artifactDigest: digest("test", "artifact"),
+      sizeBytes: 4096,
+      contentType: "application/pdf",
+      finalUrlDigest: digest("test", "final-url"),
+      redirectOriginsDigest: digest("test", "redirects"),
+      scanEvidenceDigest: digest("test", "scan"),
+      quarantineReceiptDigest: digest("test", "quarantine"),
+      completionReceiptDigest: digest("test", "completion"),
+      completedAt: new Date().toISOString(),
+      resultDigest: digest("test", "result"),
+      ...executionOverrides,
+    }));
+  const cancelAuthorizedDownload =
+    cancelPort ?? vi.fn(async () => ({ accepted: true }));
   const recordActionOutcome = vi.fn(async (request) => ({
     schema: "chainlesschain.browser-download-action-outcome-ack/v1",
     authorityId: descriptor.authorityId,
@@ -99,12 +108,14 @@ function fixture({ executionOverrides = {} } = {}) {
     return Object.freeze({
       descriptor,
       authorizeAction,
+      cancelAuthorizedDownload,
       executeAuthorizedDownload,
       recordActionOutcome,
     });
   });
   return {
     authorizeAction,
+    cancelAuthorizedDownload,
     executeAuthorizedDownload,
     host,
     recordActionOutcome,
@@ -287,5 +298,61 @@ describe("Desktop browser download action host", () => {
     expect(recordActionOutcome).toHaveBeenCalledWith(
       expect.objectContaining({ status: "failed" }),
     );
+  });
+
+  it("requests cancellation only while the bound grant is executing", async () => {
+    let settleExecution;
+    const executePort = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          settleExecution = resolve;
+        }),
+    );
+    const cancelPort = vi.fn(async () => ({ accepted: true }));
+    const { host } = fixture({ executePort, cancelPort });
+    const optionValue = options();
+    const grant = await authorize(host, optionValue);
+    await expect(
+      cancelDesktopBrowserDownloadActionGrant(grant),
+    ).rejects.toThrow(/not active/u);
+
+    const executionPromise = executeDesktopBrowserDownloadActionGrant(
+      grant,
+      "tab-1",
+      "https://example.test/private/report.pdf",
+      optionValue,
+    );
+    await vi.waitFor(() => expect(executePort).toHaveBeenCalledOnce());
+    await expect(
+      cancelDesktopBrowserDownloadActionGrant(grant),
+    ).resolves.toEqual({ accepted: true });
+    expect(cancelPort).toHaveBeenCalledWith({
+      receiptDigest: expect.stringMatching(/^sha256:/u),
+      requestDigest: expect.stringMatching(/^sha256:/u),
+      reason: "user-request",
+    });
+
+    settleExecution({
+      status: "failed",
+      failureClass: "download-cancelled",
+      artifactRef: null,
+      artifactDigest: null,
+      sizeBytes: null,
+      contentType: null,
+      finalUrlDigest: null,
+      redirectOriginsDigest: null,
+      scanEvidenceDigest: null,
+      quarantineReceiptDigest: null,
+      completionReceiptDigest: null,
+      completedAt: null,
+      resultDigest: digest("test", "cancelled"),
+    });
+    await expect(executionPromise).resolves.toMatchObject({
+      status: "failed",
+      failureClass: "download-cancelled",
+    });
+    await expect(
+      cancelDesktopBrowserDownloadActionGrant(grant),
+    ).rejects.toThrow(/not active/u);
   });
 });

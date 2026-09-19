@@ -30,6 +30,7 @@ const {
 } = require("../evolution/desktop-browser-tab-open-action");
 const {
   authorizeDesktopBrowserDownloadAction,
+  cancelDesktopBrowserDownloadActionGrant,
   executeDesktopBrowserDownloadActionGrant,
   recordDesktopBrowserDownloadActionOutcome,
 } = require("../evolution/desktop-browser-download-action");
@@ -45,6 +46,18 @@ const READ_ONLY_VISION_TASKS = new Set([
   "describe",
   "ocr",
 ]);
+const DOWNLOAD_OPERATION_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+
+function downloadOperationKey(senderId, operationId) {
+  if (
+    !Number.isSafeInteger(senderId) ||
+    senderId < 1 ||
+    typeof operationId !== "string" ||
+    !DOWNLOAD_OPERATION_ID.test(operationId)
+  )
+    throw new TypeError("Browser download operation identifier is invalid");
+  return `${senderId}\0${operationId}`;
+}
 
 function stripObservationAuthorization(options) {
   const visionOptions = { ...options };
@@ -142,6 +155,7 @@ function registerComputerUseHandlers(ctx) {
     _getBrowserDownloadArtifactDisposalHost,
     withErrorHandler,
   } = ctx;
+  const activeDownloads = new Map();
 
   // ==================== Phase 6: Computer Use Capabilities (v0.33.0) ====================
 
@@ -219,56 +233,107 @@ function registerComputerUseHandlers(ctx) {
    */
   _ipcMain.handle(
     "browser:action:download-url",
-    withErrorHandler(async (event, targetId, destinationUrl, options = {}) => {
-      const grant = await authorizeDesktopBrowserDownloadAction(
-        _getBrowserDownloadActionHost?.() ?? null,
-        {
-          targetId,
-          destinationUrl,
-          options,
-          senderId: event?.sender?.id,
-          frameUrl: event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
-          authorization: options.actionAuthorization ?? null,
-        },
-      );
-      const engine = _getBrowserEngine();
-      engine.getPage(targetId);
-      const execution = await executeDesktopBrowserDownloadActionGrant(
-        grant,
+    withErrorHandler(
+      async (
+        event,
         targetId,
         destinationUrl,
-        options,
-      );
-      const actionAudit =
-        await recordDesktopBrowserDownloadActionOutcome(grant);
-      const evidence = {
-        authorizationReceiptDigest: actionAudit.actionReceiptDigest,
-        requestDigest: actionAudit.requestDigest,
-        resultDigest: actionAudit.resultDigest,
-        auditEventDigest: actionAudit.auditEventDigest,
-        durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
-      };
-      if (execution.status === "failed") {
-        return {
-          success: false,
-          error: `Download failed: ${execution.failureClass}`,
-          failureClass: execution.failureClass,
-          ...evidence,
-        };
-      }
+        options = {},
+        operationId = null,
+      ) => {
+        const senderId = event?.sender?.id;
+        const activeKey =
+          operationId === null
+            ? null
+            : downloadOperationKey(senderId, operationId);
+        if (activeKey !== null && activeDownloads.has(activeKey))
+          throw new Error("Browser download operation is already active");
+        const active = activeKey === null ? null : { grant: null };
+        if (activeKey !== null) activeDownloads.set(activeKey, active);
+        let grant;
+        try {
+          grant = await authorizeDesktopBrowserDownloadAction(
+            _getBrowserDownloadActionHost?.() ?? null,
+            {
+              targetId,
+              destinationUrl,
+              options,
+              senderId,
+              frameUrl:
+                event?.senderFrame?.url ?? event?.sender?.getURL?.() ?? "",
+              authorization: options.actionAuthorization ?? null,
+            },
+          );
+          const engine = _getBrowserEngine();
+          engine.getPage(targetId);
+          if (active !== null) active.grant = grant;
+        } catch (error) {
+          if (activeKey !== null && activeDownloads.get(activeKey) === active)
+            activeDownloads.delete(activeKey);
+          throw error;
+        }
+        try {
+          const execution = await executeDesktopBrowserDownloadActionGrant(
+            grant,
+            targetId,
+            destinationUrl,
+            options,
+          );
+          const actionAudit =
+            await recordDesktopBrowserDownloadActionOutcome(grant);
+          const evidence = {
+            authorizationReceiptDigest: actionAudit.actionReceiptDigest,
+            requestDigest: actionAudit.requestDigest,
+            resultDigest: actionAudit.resultDigest,
+            auditEventDigest: actionAudit.auditEventDigest,
+            durabilityReceiptDigest: actionAudit.durabilityReceiptDigest,
+          };
+          if (execution.status === "failed") {
+            return {
+              success: false,
+              error: `Download failed: ${execution.failureClass}`,
+              failureClass: execution.failureClass,
+              ...evidence,
+            };
+          }
+          return {
+            success: true,
+            artifactRef: execution.artifactRef,
+            artifactDigest: execution.artifactDigest,
+            sizeBytes: execution.sizeBytes,
+            contentType: execution.contentType,
+            finalUrlDigest: execution.finalUrlDigest,
+            redirectOriginsDigest: execution.redirectOriginsDigest,
+            scanEvidenceDigest: execution.scanEvidenceDigest,
+            quarantineReceiptDigest: execution.quarantineReceiptDigest,
+            completionReceiptDigest: execution.completionReceiptDigest,
+            completedAt: execution.completedAt,
+            ...evidence,
+          };
+        } finally {
+          if (activeKey !== null && activeDownloads.get(activeKey) === active)
+            activeDownloads.delete(activeKey);
+        }
+      },
+    ),
+  );
+
+  /**
+   * Request cooperative cancellation of one active download owned by the same
+   * renderer. Completion and cleanup are reported only by the original call.
+   */
+  _ipcMain.handle(
+    "browser:action:cancel-download",
+    withErrorHandler(async (event, operationId) => {
+      const activeKey = downloadOperationKey(event?.sender?.id, operationId);
+      const grant = activeDownloads.get(activeKey)?.grant;
+      if (!grant)
+        throw new Error("Browser download cancellation target is not active");
+      await cancelDesktopBrowserDownloadActionGrant(grant, "user-request");
       return {
         success: true,
-        artifactRef: execution.artifactRef,
-        artifactDigest: execution.artifactDigest,
-        sizeBytes: execution.sizeBytes,
-        contentType: execution.contentType,
-        finalUrlDigest: execution.finalUrlDigest,
-        redirectOriginsDigest: execution.redirectOriginsDigest,
-        scanEvidenceDigest: execution.scanEvidenceDigest,
-        quarantineReceiptDigest: execution.quarantineReceiptDigest,
-        completionReceiptDigest: execution.completionReceiptDigest,
-        completedAt: execution.completedAt,
-        ...evidence,
+        status: "cancel-requested",
+        operationId,
       };
     }),
   );

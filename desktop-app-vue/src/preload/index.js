@@ -112,11 +112,12 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "blockchain-integration:sync-completed",
   "blockchain-integration:transaction-update",
   "browser:act",
+  "browser:action:cancel-download",
   "browser:action:coordinate",
+  "browser:action:discard-download-artifact",
+  "browser:action:download-url",
   "browser:action:history",
   "browser:action:key-press",
-  "browser:action:download-url",
-  "browser:action:discard-download-artifact",
   "browser:action:navigate",
   "browser:action:open-tab",
   "browser:action:vision",
@@ -4948,6 +4949,29 @@ contextBridge.exposeInMainWorld("electronAPI", {
         ipcRenderer.invoke("browser:action:upload", targetId, options),
       multiTab: (options) =>
         ipcRenderer.invoke("browser:action:multiTab", options),
+      downloadUrl: (targetId, destinationUrl, options, operationId) =>
+        ipcRenderer.invoke(
+          "browser:action:download-url",
+          targetId,
+          destinationUrl,
+          options,
+          operationId,
+        ),
+      cancelDownload: (operationId) =>
+        ipcRenderer.invoke("browser:action:cancel-download", operationId),
+      discardDownloadArtifact: (
+        artifactRef,
+        artifactDigest,
+        sourceActionReceiptDigest,
+        options,
+      ) =>
+        ipcRenderer.invoke(
+          "browser:action:discard-download-artifact",
+          artifactRef,
+          artifactDigest,
+          sourceActionReceiptDigest,
+          options,
+        ),
     },
 
     // -------- 高级页面支持 (Phase 4) --------

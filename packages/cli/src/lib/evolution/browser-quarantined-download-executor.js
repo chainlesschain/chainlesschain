@@ -367,11 +367,9 @@ function normalizeCompletionAck(value, quarantine, scan) {
 
 function deadlineGuard(execution, signal, now) {
   const current = now();
-  if (
-    signal?.aborted === true ||
-    !Number.isFinite(current) ||
-    current >= Date.parse(execution.deadlineAt)
-  )
+  if (signal?.aborted === true)
+    throw new Error("download execution was cancelled");
+  if (!Number.isFinite(current) || current >= Date.parse(execution.deadlineAt))
     throw new Error("download execution deadline exceeded");
   return current;
 }

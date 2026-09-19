@@ -247,6 +247,11 @@ function createDesktopBrowserDownloadActionHost(authority, captureAuthority) {
       "executeAuthorizedDownload",
       "browser download execution port",
     ),
+    cancelAuthorizedDownload: ownFunction(
+      captured,
+      "cancelAuthorizedDownload",
+      "browser download cancellation port",
+    ),
     recordActionOutcome: ownFunction(
       captured,
       "recordActionOutcome",
@@ -365,10 +370,12 @@ async function authorizeDesktopBrowserDownloadAction(
     receiptDigest,
     requestDigest,
     executeAuthorizedDownload: captured.executeAuthorizedDownload,
+    cancelAuthorizedDownload: captured.cancelAuthorizedDownload,
     recordActionOutcome: captured.recordActionOutcome,
     descriptor: captured.descriptor,
     consumed: false,
     execution: null,
+    executionStatus: "pending",
     auditStatus: "pending",
   });
   return grant;
@@ -430,16 +437,62 @@ async function executeDesktopBrowserDownloadActionGrant(
     throw error;
   }
   captured.consumed = true;
-  const execution = normalizeExecution(
-    await Reflect.apply(captured.executeAuthorizedDownload, undefined, [
+  captured.executionStatus = "executing";
+  try {
+    const execution = normalizeExecution(
+      await Reflect.apply(captured.executeAuthorizedDownload, undefined, [
+        Object.freeze({
+          receiptDigest: captured.receiptDigest,
+          requestDigest: captured.requestDigest,
+        }),
+      ]),
+    );
+    captured.execution = execution;
+    captured.executionStatus = "completed";
+    return execution;
+  } catch (error) {
+    captured.executionStatus = "uncertain";
+    throw error;
+  }
+}
+
+async function cancelDesktopBrowserDownloadActionGrant(
+  grant,
+  reason = "user-request",
+) {
+  const captured = grants.get(grant);
+  if (
+    !captured ||
+    captured.consumed !== true ||
+    captured.executionStatus !== "executing" ||
+    captured.execution !== null ||
+    !["user-request", "renderer-destroyed", "operator-request"].includes(reason)
+  ) {
+    const error = new Error(
+      "Browser download cancellation target is not active",
+    );
+    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    throw error;
+  }
+  const acknowledgement = await Reflect.apply(
+    captured.cancelAuthorizedDownload,
+    undefined,
+    [
       Object.freeze({
         receiptDigest: captured.receiptDigest,
         requestDigest: captured.requestDigest,
+        reason,
       }),
-    ]),
+    ],
   );
-  captured.execution = execution;
-  return execution;
+  exact(
+    acknowledgement,
+    ["accepted"],
+    "Desktop browser download cancellation acknowledgement",
+  );
+  if (acknowledgement.accepted !== true)
+    throw new Error("Browser download cancellation was not accepted");
+  return Object.freeze({ accepted: true });
 }
 
 async function recordDesktopBrowserDownloadActionOutcome(grant) {
@@ -529,6 +582,7 @@ async function recordDesktopBrowserDownloadActionOutcome(grant) {
 
 module.exports = {
   authorizeDesktopBrowserDownloadAction,
+  cancelDesktopBrowserDownloadActionGrant,
   createDesktopBrowserDownloadActionHost,
   executeDesktopBrowserDownloadActionGrant,
   recordDesktopBrowserDownloadActionOutcome,

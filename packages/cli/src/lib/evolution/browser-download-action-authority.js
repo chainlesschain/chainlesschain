@@ -607,9 +607,37 @@ export function captureBrowserDownloadActionAuthority(value) {
         request,
         receipt,
         execution: null,
+        abortController: null,
+        cancelRequested: false,
         outcomeRequestDigest: null,
       });
       return receipt;
+    },
+    cancelAuthorizedDownload: async (input) => {
+      exact(
+        input,
+        ["receiptDigest", "requestDigest", "reason"],
+        "browser download cancellation request",
+      );
+      const issued = captured.issued.get(input.receiptDigest);
+      if (
+        !DIGEST.test(input.receiptDigest) ||
+        !DIGEST.test(input.requestDigest) ||
+        !["user-request", "renderer-destroyed", "operator-request"].includes(
+          input.reason,
+        ) ||
+        !issued ||
+        issued.receipt.requestDigest !== input.requestDigest ||
+        issued.execution?.status !== "executing" ||
+        !(issued.abortController instanceof AbortController) ||
+        issued.cancelRequested
+      )
+        throw new Error("browser download cancellation target is not active");
+      issued.cancelRequested = true;
+      issued.abortController.abort(
+        new Error("browser download execution cancellation requested"),
+      );
+      return Object.freeze({ accepted: true });
     },
     executeAuthorizedDownload: async (input) => {
       exact(
@@ -632,6 +660,7 @@ export function captureBrowserDownloadActionAuthority(value) {
       issued.execution = Object.freeze({ status: "executing" });
       const deadlineAtMs = startMs + issued.request.timeout;
       const controller = new AbortController();
+      issued.abortController = controller;
       let timer = null;
       let timedOut = false;
       let result;
@@ -663,6 +692,8 @@ export function captureBrowserDownloadActionAuthority(value) {
         ]);
         if (timedOut)
           throw new Error("browser download execution completed after timeout");
+        if (issued.cancelRequested || controller.signal.aborted)
+          throw new Error("browser download execution was cancelled");
         const finishedAtMs = captured.now();
         const artifact = normalizeArtifact(
           artifactValue,
@@ -673,10 +704,15 @@ export function captureBrowserDownloadActionAuthority(value) {
         result = executionEvidence(artifact);
       } catch {
         result = failedExecutionEvidence(
-          timedOut ? "download-timeout" : "download-provider-failed",
+          timedOut
+            ? "download-timeout"
+            : issued.cancelRequested
+              ? "download-cancelled"
+              : "download-provider-failed",
         );
       } finally {
         if (timer !== null) clearTimeout(timer);
+        issued.abortController = null;
       }
       issued.execution = result;
       return result;

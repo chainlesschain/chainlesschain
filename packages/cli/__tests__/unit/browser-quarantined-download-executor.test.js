@@ -249,4 +249,26 @@ describe("browser quarantined download executor", () => {
     expect(ports.discardArtifact).toHaveBeenCalledOnce();
     expect(ports.commitArtifact).not.toHaveBeenCalled();
   });
+
+  it("discards partial custody when an active execution is cancelled", async () => {
+    const controller = new AbortController();
+    async function* cancellingBody() {
+      yield Buffer.from("a");
+      controller.abort(new Error("user-request"));
+      yield Buffer.from("b");
+    }
+    const ports = fixture({
+      response: { contentLength: null, body: cancellingBody() },
+    });
+
+    await expect(
+      ports.executor(execution(), { signal: controller.signal }),
+    ).rejects.toThrow(/cancelled/u);
+    expect(ports.writeChunk).toHaveBeenCalledOnce();
+    expect(ports.commitArtifact).not.toHaveBeenCalled();
+    expect(ports.scanArtifact).not.toHaveBeenCalled();
+    expect(ports.discardArtifact).toHaveBeenCalledWith({
+      reason: "download-execution-failed",
+    });
+  });
 });

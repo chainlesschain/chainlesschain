@@ -793,6 +793,7 @@ describe("desktop evolution deployment", () => {
       return Object.freeze({
         descriptor,
         authorizeAction,
+        cancelAuthorizedDownload: vi.fn(),
         executeAuthorizedDownload: vi.fn(),
         recordActionOutcome: vi.fn(),
       });

@@ -247,7 +247,11 @@ function createTabOpenHost() {
   return { host, authorizeAction, recordActionOutcome };
 }
 
-function createDownloadHost({ failed = false } = {}) {
+function createDownloadHost({
+  failed = false,
+  executePort = null,
+  cancelPort = null,
+} = {}) {
   const authority = Object.freeze({});
   const descriptor = Object.freeze({
     authorityId: "ipc-download",
@@ -290,41 +294,45 @@ function createDownloadHost({ failed = false } = {}) {
       receiptDigest: digest(request.requestId),
     }),
   );
-  const executeAuthorizedDownload = vi.fn(async () =>
-    Object.freeze(
-      failed
-        ? {
-            status: "failed",
-            failureClass: "download-provider-failed",
-            artifactRef: null,
-            artifactDigest: null,
-            sizeBytes: null,
-            contentType: null,
-            finalUrlDigest: null,
-            redirectOriginsDigest: null,
-            scanEvidenceDigest: null,
-            quarantineReceiptDigest: null,
-            completionReceiptDigest: null,
-            completedAt: null,
-            resultDigest: digest("failed-result"),
-          }
-        : {
-            status: "succeeded",
-            failureClass: null,
-            artifactRef: "quarantine:artifact-1",
-            artifactDigest: digest("artifact"),
-            sizeBytes: 4096,
-            contentType: "application/pdf",
-            finalUrlDigest: digest("final-url"),
-            redirectOriginsDigest: digest("redirects"),
-            scanEvidenceDigest: digest("scan"),
-            quarantineReceiptDigest: digest("quarantine"),
-            completionReceiptDigest: digest("completion"),
-            completedAt: new Date().toISOString(),
-            resultDigest: digest("success-result"),
-          },
-    ),
-  );
+  const executeAuthorizedDownload =
+    executePort ??
+    vi.fn(async () =>
+      Object.freeze(
+        failed
+          ? {
+              status: "failed",
+              failureClass: "download-provider-failed",
+              artifactRef: null,
+              artifactDigest: null,
+              sizeBytes: null,
+              contentType: null,
+              finalUrlDigest: null,
+              redirectOriginsDigest: null,
+              scanEvidenceDigest: null,
+              quarantineReceiptDigest: null,
+              completionReceiptDigest: null,
+              completedAt: null,
+              resultDigest: digest("failed-result"),
+            }
+          : {
+              status: "succeeded",
+              failureClass: null,
+              artifactRef: "quarantine:artifact-1",
+              artifactDigest: digest("artifact"),
+              sizeBytes: 4096,
+              contentType: "application/pdf",
+              finalUrlDigest: digest("final-url"),
+              redirectOriginsDigest: digest("redirects"),
+              scanEvidenceDigest: digest("scan"),
+              quarantineReceiptDigest: digest("quarantine"),
+              completionReceiptDigest: digest("completion"),
+              completedAt: new Date().toISOString(),
+              resultDigest: digest("success-result"),
+            },
+      ),
+    );
+  const cancelAuthorizedDownload =
+    cancelPort ?? vi.fn(async () => ({ accepted: true }));
   const recordActionOutcome = vi.fn(async (request) =>
     Object.freeze({
       schema: "chainlesschain.browser-download-action-outcome-ack/v1",
@@ -346,12 +354,14 @@ function createDownloadHost({ failed = false } = {}) {
     return Object.freeze({
       descriptor,
       authorizeAction,
+      cancelAuthorizedDownload,
       executeAuthorizedDownload,
       recordActionOutcome,
     });
   });
   return {
     authorizeAction,
+    cancelAuthorizedDownload,
     executeAuthorizedDownload,
     host,
     recordActionOutcome,
@@ -968,6 +978,89 @@ describe("browser computer-use IPC", () => {
     expect(download.recordActionOutcome).toHaveBeenCalledWith(
       expect.objectContaining({ status: "failed" }),
     );
+  });
+
+  it("cancels only an active download owned by the same renderer and audits it", async () => {
+    let settleExecution;
+    const executePort = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          settleExecution = resolve;
+        }),
+    );
+    const cancelPort = vi.fn(async () => {
+      settleExecution(
+        Object.freeze({
+          status: "failed",
+          failureClass: "download-cancelled",
+          artifactRef: null,
+          artifactDigest: null,
+          sizeBytes: null,
+          contentType: null,
+          finalUrlDigest: null,
+          redirectOriginsDigest: null,
+          scanEvidenceDigest: null,
+          quarantineReceiptDigest: null,
+          completionReceiptDigest: null,
+          completedAt: null,
+          resultDigest: digest("cancelled-result"),
+        }),
+      );
+      return { accepted: true };
+    });
+    const download = createDownloadHost({ executePort, cancelPort });
+    const { handlers } = fixture({
+      downloadHost: download.host,
+      engine: { getPage: vi.fn(() => ({})) },
+    });
+    const event = {
+      sender: { id: 17, getURL: () => "app://desktop/index.html" },
+      senderFrame: { url: "app://desktop/index.html" },
+    };
+    const downloadPromise = handlers.get("browser:action:download-url")(
+      event,
+      "tab-1",
+      "https://example.test/report.pdf",
+      { allowedContentTypes: ["application/pdf"] },
+      "download-operation-1",
+    );
+    await vi.waitFor(() => expect(executePort).toHaveBeenCalledOnce());
+
+    await expect(
+      handlers.get("browser:action:cancel-download")(
+        { ...event, sender: { ...event.sender, id: 18 } },
+        "download-operation-1",
+      ),
+    ).rejects.toThrow(/not active/u);
+    await expect(
+      handlers.get("browser:action:cancel-download")(
+        event,
+        "download-operation-1",
+      ),
+    ).resolves.toEqual({
+      success: true,
+      status: "cancel-requested",
+      operationId: "download-operation-1",
+    });
+    await expect(downloadPromise).resolves.toMatchObject({
+      success: false,
+      failureClass: "download-cancelled",
+      auditEventDigest: expect.stringMatching(/^sha256:/u),
+    });
+    expect(cancelPort).toHaveBeenCalledWith({
+      receiptDigest: expect.stringMatching(/^sha256:/u),
+      requestDigest: expect.stringMatching(/^sha256:/u),
+      reason: "user-request",
+    });
+    expect(download.recordActionOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" }),
+    );
+    await expect(
+      handlers.get("browser:action:cancel-download")(
+        event,
+        "download-operation-1",
+      ),
+    ).rejects.toThrow(/not active/u);
   });
 
   it("denies artifact disposal without its signed host", async () => {
