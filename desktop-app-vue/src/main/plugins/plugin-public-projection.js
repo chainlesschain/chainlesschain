@@ -515,6 +515,117 @@ function projectPluginRuntimeUiEntries(entries, kind) {
   });
 }
 
+function projectV6Actions(actions) {
+  if (!Array.isArray(actions)) {
+    return [];
+  }
+  return actions.slice(0, 64).flatMap((action) => {
+    if (!action || typeof action !== "object") {
+      return [];
+    }
+    return [
+      {
+        id: boundedString(action.id, 256),
+        label: boundedString(action.label, 512),
+        icon: boundedString(action.icon, 128),
+      },
+    ];
+  });
+}
+
+function projectPluginV6UiEntries(entries, kind) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries.slice(0, 1024).flatMap((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+    const common = {
+      id: boundedString(entry.id, 256),
+      pluginId: boundedString(entry.pluginId ?? entry.plugin_id, 256),
+    };
+    const order = Number.isSafeInteger(entry.order)
+      ? Math.max(-10000, Math.min(10000, entry.order))
+      : 100;
+
+    switch (kind) {
+      case "space":
+        return [
+          {
+            ...common,
+            name: boundedString(entry.name, 512),
+            icon: boundedString(entry.icon, 128),
+            description: boundedString(entry.description, 4096),
+            permissions: projectStringList(entry.permissions, 64, 256),
+            order,
+          },
+        ];
+      case "artifact":
+        return [
+          {
+            ...common,
+            type: boundedString(entry.type, 128),
+            icon: boundedString(entry.icon, 128),
+            label: boundedString(entry.label, 512),
+            actions: projectV6Actions(entry.actions),
+          },
+        ];
+      case "slash":
+        return [
+          {
+            ...common,
+            trigger: boundedString(entry.trigger, 128),
+            description: boundedString(entry.description, 4096),
+            icon: boundedString(entry.icon, 128),
+            requirePermissions: projectStringList(
+              entry.requirePermissions,
+              64,
+              256,
+            ),
+          },
+        ];
+      case "mention":
+        return [
+          {
+            ...common,
+            prefix: boundedString(entry.prefix, 128),
+            label: boundedString(entry.label, 512),
+            icon: boundedString(entry.icon, 128),
+          },
+        ];
+      case "status-bar":
+        return [
+          {
+            ...common,
+            position: boundedString(entry.position, 64),
+            order,
+            tooltip: boundedString(entry.tooltip, 1024),
+          },
+        ];
+      case "home-widget":
+        return [
+          {
+            ...common,
+            size: boundedString(entry.size, 64),
+            order,
+            title: boundedString(entry.title, 512),
+          },
+        ];
+      case "composer-slot":
+        return [
+          {
+            ...common,
+            position: boundedString(entry.position, 64),
+            order,
+          },
+        ];
+      default:
+        return [];
+    }
+  });
+}
+
 module.exports = {
   projectMarketplaceInstalledPlugin,
   projectPluginDataExecutionReceipt,
@@ -529,4 +640,5 @@ module.exports = {
   projectPluginToolDefinitions,
   projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
+  projectPluginV6UiEntries,
 };

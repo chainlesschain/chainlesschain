@@ -214,6 +214,64 @@ describe("plugin IPC error boundary", () => {
     const sandbox = {
       callMethod: vi.fn().mockResolvedValue({ secret }),
     };
+    const v6Entries = {
+      space: {
+        id: "space-1",
+        pluginId: "plugin-1",
+        name: "Space",
+        description: "Space description",
+        permissions: ["read"],
+        order: 1,
+        systemPrompt: secret,
+        ragPreset: { secret },
+      },
+      artifact: {
+        id: "artifact-1",
+        pluginId: "plugin-1",
+        type: "note",
+        label: "Note",
+        renderer: { secret },
+        rendererPath: secret,
+        actions: [{ id: "open", label: "Open", secret }],
+      },
+      slash: {
+        id: "slash-1",
+        pluginId: "plugin-1",
+        trigger: "help",
+        description: "Help",
+        handler: secret,
+      },
+      mention: {
+        id: "mention-1",
+        pluginId: "plugin-1",
+        prefix: "@",
+        label: "People",
+        source: { secret },
+      },
+      status: {
+        id: "status-1",
+        pluginId: "plugin-1",
+        position: "right",
+        order: 2,
+        tooltip: "Status",
+        componentPath: secret,
+      },
+      home: {
+        id: "home-1",
+        pluginId: "plugin-1",
+        size: "medium",
+        order: 3,
+        title: "Home",
+        componentPath: secret,
+      },
+      composer: {
+        id: "composer-1",
+        pluginId: "plugin-1",
+        position: "left",
+        order: 4,
+        componentPath: secret,
+      },
+    };
     const handlers = new Map();
     const plugin = {
       id: "plugin-1",
@@ -299,6 +357,14 @@ describe("plugin IPC error boundary", () => {
           props: { secret },
         },
       ],
+      getRegisteredSpaces: () => [v6Entries.space],
+      getRegisteredArtifacts: () => [v6Entries.artifact],
+      getArtifactRenderer: () => v6Entries.artifact,
+      getRegisteredSlashCommands: () => [v6Entries.slash],
+      getRegisteredMentionSources: () => [v6Entries.mention],
+      getRegisteredStatusBarWidgets: () => [v6Entries.status],
+      getRegisteredHomeWidgets: () => [v6Entries.home],
+      getRegisteredComposerSlots: () => [v6Entries.composer],
       sandboxes: new Map([["plugin-1", sandbox]]),
       registry: {
         getExtensionsByPoint: (point) => [
@@ -406,6 +472,23 @@ describe("plugin IPC error boundary", () => {
     const runtimeUi = await handlers.get("plugin:get-all-registered-ui")(
       {},
       "plugin-1",
+    );
+    const spaces = await handlers.get("plugin:get-registered-spaces")();
+    const artifacts = await handlers.get("plugin:get-registered-artifacts")();
+    const artifactRenderer = await handlers.get("plugin:get-artifact-renderer")(
+      {},
+      "note",
+    );
+    const commands = await handlers.get("plugin:get-slash-commands")();
+    const sources = await handlers.get("plugin:get-mention-sources")();
+    const statusWidgets = await handlers.get("plugin:get-status-bar-widgets")(
+      {},
+      {},
+    );
+    const homeWidgets = await handlers.get("plugin:get-home-widgets")();
+    const composerSlots = await handlers.get("plugin:get-composer-slots")(
+      {},
+      {},
     );
 
     expect(list.plugins[0]).toMatchObject({
@@ -519,6 +602,14 @@ describe("plugin IPC error boundary", () => {
       order: 2,
     });
     expect(Object.keys(runtimeUi.ui)).toEqual(["pages", "menus", "components"]);
+    expect(spaces.spaces[0]).not.toHaveProperty("systemPrompt");
+    expect(artifacts.artifacts[0]).not.toHaveProperty("rendererPath");
+    expect(artifactRenderer.renderer).toEqual(artifacts.artifacts[0]);
+    expect(commands.commands[0]).not.toHaveProperty("handler");
+    expect(sources.sources[0]).not.toHaveProperty("source");
+    expect(statusWidgets.widgets[0]).not.toHaveProperty("componentPath");
+    expect(homeWidgets.widgets[0]).not.toHaveProperty("componentPath");
+    expect(composerSlots.slots[0]).not.toHaveProperty("componentPath");
     expect(
       JSON.stringify({
         list,
@@ -541,6 +632,14 @@ describe("plugin IPC error boundary", () => {
         runtimeMenus,
         runtimeComponents,
         runtimeUi,
+        spaces,
+        artifacts,
+        artifactRenderer,
+        commands,
+        sources,
+        statusWidgets,
+        homeWidgets,
+        composerSlots,
       }),
     ).not.toContain(secret);
   });

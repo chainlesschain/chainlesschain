@@ -19,6 +19,7 @@ const {
   projectPluginToolDefinitions,
   projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
+  projectPluginV6UiEntries,
 } = require("./plugin-public-projection");
 const path = require("path");
 const {
@@ -349,7 +350,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        spaces: pluginManager.getRegisteredSpaces(pluginId),
+        spaces: projectPluginV6UiEntries(
+          pluginManager.getRegisteredSpaces(pluginId),
+          "space",
+        ),
       };
     }),
   );
@@ -359,7 +363,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        artifacts: pluginManager.getRegisteredArtifacts(pluginId),
+        artifacts: projectPluginV6UiEntries(
+          pluginManager.getRegisteredArtifacts(pluginId),
+          "artifact",
+        ),
       };
     }),
   );
@@ -368,7 +375,12 @@ function registerPluginIPC({
     safeInvoke(() => {
       ensureManager();
       const renderer = pluginManager.getArtifactRenderer(type);
-      return { success: true, renderer };
+      return {
+        success: true,
+        renderer:
+          projectPluginV6UiEntries(renderer ? [renderer] : [], "artifact")[0] ||
+          null,
+      };
     }),
   );
 
@@ -377,7 +389,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        commands: pluginManager.getRegisteredSlashCommands(pluginId),
+        commands: projectPluginV6UiEntries(
+          pluginManager.getRegisteredSlashCommands(pluginId),
+          "slash",
+        ),
       };
     }),
   );
@@ -387,7 +402,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        sources: pluginManager.getRegisteredMentionSources(pluginId),
+        sources: projectPluginV6UiEntries(
+          pluginManager.getRegisteredMentionSources(pluginId),
+          "mention",
+        ),
       };
     }),
   );
@@ -398,9 +416,9 @@ function registerPluginIPC({
       const { position = null, pluginId = null } = options;
       return {
         success: true,
-        widgets: pluginManager.getRegisteredStatusBarWidgets(
-          position,
-          pluginId,
+        widgets: projectPluginV6UiEntries(
+          pluginManager.getRegisteredStatusBarWidgets(position, pluginId),
+          "status-bar",
         ),
       };
     }),
@@ -411,7 +429,10 @@ function registerPluginIPC({
       ensureManager();
       return {
         success: true,
-        widgets: pluginManager.getRegisteredHomeWidgets(pluginId),
+        widgets: projectPluginV6UiEntries(
+          pluginManager.getRegisteredHomeWidgets(pluginId),
+          "home-widget",
+        ),
       };
     }),
   );
@@ -422,7 +443,10 @@ function registerPluginIPC({
       const { position = null, pluginId = null } = options;
       return {
         success: true,
-        slots: pluginManager.getRegisteredComposerSlots(position, pluginId),
+        slots: projectPluginV6UiEntries(
+          pluginManager.getRegisteredComposerSlots(position, pluginId),
+          "composer-slot",
+        ),
       };
     }),
   );

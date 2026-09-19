@@ -16,6 +16,7 @@ const {
   projectPluginToolDefinitions,
   projectPluginToolExecutionReceipt,
   projectPluginUiExtensions,
+  projectPluginV6UiEntries,
 } = require("../plugin-public-projection.js");
 
 describe("plugin public projection", () => {
@@ -502,5 +503,119 @@ describe("plugin public projection", () => {
       order: 2,
     });
     expect(JSON.stringify({ pages, menus, components })).not.toContain(secret);
+  });
+
+  it("projects v6 shell entries without executable content", () => {
+    const secret = "v6-ui-secret";
+    const common = { id: "entry-1", pluginId: "plugin-1" };
+    const projected = {
+      spaces: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            name: "Space",
+            icon: "AppstoreOutlined",
+            description: "Space description",
+            permissions: ["read"],
+            order: 1,
+            ragPreset: { secret },
+            systemPrompt: secret,
+            contactsGroup: secret,
+          },
+        ],
+        "space",
+      ),
+      artifacts: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            type: "note",
+            icon: "FileOutlined",
+            label: "Note",
+            renderer: { secret },
+            rendererPath: secret,
+            actions: [
+              { id: "open", label: "Open", icon: "EyeOutlined", secret },
+            ],
+          },
+        ],
+        "artifact",
+      ),
+      commands: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            trigger: "help",
+            description: "Help",
+            icon: "ThunderboltOutlined",
+            requirePermissions: ["read"],
+            handler: secret,
+          },
+        ],
+        "slash",
+      ),
+      mentions: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            prefix: "@",
+            label: "People",
+            icon: "UserOutlined",
+            source: { secret },
+          },
+        ],
+        "mention",
+      ),
+      status: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            position: "right",
+            order: 2,
+            tooltip: "Status",
+            component: { secret },
+            componentPath: secret,
+          },
+        ],
+        "status-bar",
+      ),
+      home: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            size: "medium",
+            order: 3,
+            title: "Home",
+            component: { secret },
+            componentPath: secret,
+          },
+        ],
+        "home-widget",
+      ),
+      composer: projectPluginV6UiEntries(
+        [
+          {
+            ...common,
+            position: "left",
+            order: 4,
+            component: { secret },
+            componentPath: secret,
+          },
+        ],
+        "composer-slot",
+      ),
+    };
+
+    expect(projected.spaces[0]).not.toHaveProperty("systemPrompt");
+    expect(projected.artifacts[0]).not.toHaveProperty("renderer");
+    expect(projected.artifacts[0].actions).toEqual([
+      { id: "open", label: "Open", icon: "EyeOutlined" },
+    ]);
+    expect(projected.commands[0]).not.toHaveProperty("handler");
+    expect(projected.mentions[0]).not.toHaveProperty("source");
+    expect(projected.status[0]).not.toHaveProperty("componentPath");
+    expect(projected.home[0]).not.toHaveProperty("componentPath");
+    expect(projected.composer[0]).not.toHaveProperty("componentPath");
+    expect(JSON.stringify(projected)).not.toContain(secret);
   });
 });
