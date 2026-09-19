@@ -6,6 +6,7 @@ import {
   mkdir,
   open,
   readFile,
+  readdir,
   realpath,
   rename,
   stat,
@@ -22,6 +23,10 @@ export const BROWSER_FILESYSTEM_QUARANTINE_DELETION_INTENT_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-deletion-intent/v1";
 export const BROWSER_FILESYSTEM_QUARANTINE_TOMBSTONE_SCHEMA =
   "chainlesschain.browser-filesystem-quarantine-tombstone/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-retention-descriptor/v1";
+export const BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA =
+  "chainlesschain.browser-filesystem-quarantine-expiry-plan/v1";
 
 const QUARANTINE_COMMIT_ACK_SCHEMA =
   "chainlesschain.browser-download-quarantine-commit-ack/v1";
@@ -35,6 +40,7 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 const ARTIFACT_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
 const ARTIFACT_REF = /^quarantine:[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u;
+const METADATA_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\.json$/u;
 const CONTENT_TYPE =
   /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const MAX_BYTES = 100 * 1024 * 1024;
@@ -716,6 +722,208 @@ function normalizeDisposalDescriptor(value, custodyDescriptor) {
   return Object.freeze({ ...value });
 }
 
+function normalizeRetentionDescriptor(value, custodyDescriptor) {
+  exact(
+    value,
+    [
+      "schema",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "maxBatchSize",
+      "maxGrantTtlMs",
+      "auditMode",
+      "effectMode",
+    ],
+    "filesystem quarantine retention descriptor",
+  );
+  if (
+    value.schema !==
+      BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA ||
+    !ID.test(value.authorityId) ||
+    value.tenantId !== custodyDescriptor.tenantId ||
+    value.handlerArtifactDigest !== custodyDescriptor.handlerArtifactDigest ||
+    !ID.test(value.policyRevision) ||
+    !Number.isSafeInteger(value.maxBatchSize) ||
+    value.maxBatchSize < 1 ||
+    value.maxBatchSize > 256 ||
+    !Number.isSafeInteger(value.maxGrantTtlMs) ||
+    value.maxGrantTtlMs < 1 ||
+    value.maxGrantTtlMs > 30_000 ||
+    value.auditMode !== "authenticated-durable-readback" ||
+    value.effectMode !== "irreversible-expiry-disposal"
+  )
+    throw new TypeError(
+      "filesystem quarantine retention descriptor is invalid",
+    );
+  return Object.freeze({ ...value });
+}
+
+function normalizeExpiryPlanInput(value, retentionDescriptor, nowMs) {
+  exact(
+    value,
+    ["sweepId", "cutoffAt", "maxArtifacts"],
+    "filesystem quarantine expiry plan request",
+  );
+  const cutoffMs = Date.parse(value.cutoffAt);
+  if (
+    !ID.test(value.sweepId) ||
+    !Number.isFinite(cutoffMs) ||
+    new Date(cutoffMs).toISOString() !== value.cutoffAt ||
+    cutoffMs > nowMs ||
+    !Number.isSafeInteger(value.maxArtifacts) ||
+    value.maxArtifacts < 1 ||
+    value.maxArtifacts > retentionDescriptor.maxBatchSize
+  )
+    throw new TypeError("filesystem quarantine expiry plan request is invalid");
+  return Object.freeze({ ...value, cutoffMs });
+}
+
+async function planExpiredArtifacts(state, retentionDescriptor, value) {
+  await prepare(state);
+  const nowMs = state.now();
+  if (!Number.isFinite(nowMs))
+    throw new Error("filesystem quarantine clock is invalid");
+  const input = normalizeExpiryPlanInput(value, retentionDescriptor, nowMs);
+  const artifacts = [];
+  const entries = (await readdir(state.metadataRoot, { withFileTypes: true }))
+    .filter((entry) => METADATA_FILE.test(entry.name))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    if (!entry.isFile())
+      throw new Error("filesystem quarantine metadata entry is unsafe");
+    const artifactId = METADATA_FILE.exec(entry.name)?.[1];
+    if (!artifactId)
+      throw new Error("filesystem quarantine metadata entry is invalid");
+    const artifactRef = `quarantine:${artifactId}`;
+    const persisted = await readMetadata(state, artifactRef);
+    const expiresAtMs = Date.parse(persisted.metadata.expiresAt);
+    if (expiresAtMs > input.cutoffMs || expiresAtMs > nowMs) continue;
+    await verifyBlob(persisted.files, persisted.metadata);
+    artifacts.push(
+      Object.freeze({
+        artifactRef,
+        artifactRefDigest: digest(
+          "chainlesschain.browser-download-artifact-ref/v1",
+          artifactRef,
+        ),
+        artifactDigest: persisted.metadata.artifactDigest,
+        sourceActionReceiptDigest: persisted.metadata.sourceActionReceiptDigest,
+        expiresAt: persisted.metadata.expiresAt,
+      }),
+    );
+    if (artifacts.length === input.maxArtifacts) break;
+  }
+  const core = Object.freeze({
+    schema: BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA,
+    custodyId: state.descriptor.custodyId,
+    authorityId: retentionDescriptor.authorityId,
+    tenantId: retentionDescriptor.tenantId,
+    handlerArtifactDigest: retentionDescriptor.handlerArtifactDigest,
+    policyRevision: retentionDescriptor.policyRevision,
+    sweepId: input.sweepId,
+    cutoffAt: value.cutoffAt,
+    plannedAt: new Date(nowMs).toISOString(),
+    artifacts: Object.freeze(artifacts),
+  });
+  return Object.freeze({
+    ...core,
+    planDigest: digest(BROWSER_FILESYSTEM_QUARANTINE_EXPIRY_PLAN_SCHEMA, core),
+  });
+}
+
+function normalizeExpiredDisposalInput(value) {
+  exact(
+    value,
+    [
+      "sweepReceiptDigest",
+      "planDigest",
+      "sweepId",
+      "cutoffAt",
+      "artifactRef",
+      "artifactRefDigest",
+      "artifactDigest",
+      "sourceActionReceiptDigest",
+      "expiresAt",
+    ],
+    "filesystem quarantine expired artifact disposal request",
+  );
+  const cutoffMs = Date.parse(value.cutoffAt);
+  const expiresAtMs = Date.parse(value.expiresAt);
+  if (
+    !DIGEST.test(value.sweepReceiptDigest) ||
+    !DIGEST.test(value.planDigest) ||
+    !ID.test(value.sweepId) ||
+    !Number.isFinite(cutoffMs) ||
+    new Date(cutoffMs).toISOString() !== value.cutoffAt ||
+    !ARTIFACT_REF.test(value.artifactRef) ||
+    value.artifactRefDigest !==
+      digest(
+        "chainlesschain.browser-download-artifact-ref/v1",
+        value.artifactRef,
+      ) ||
+    !DIGEST.test(value.artifactDigest) ||
+    !DIGEST.test(value.sourceActionReceiptDigest) ||
+    !Number.isFinite(expiresAtMs) ||
+    new Date(expiresAtMs).toISOString() !== value.expiresAt ||
+    expiresAtMs > cutoffMs
+  )
+    throw new TypeError(
+      "filesystem quarantine expired artifact disposal request is invalid",
+    );
+  return Object.freeze({ ...value, cutoffMs, expiresAtMs });
+}
+
+async function disposeExpiredArtifact(state, retentionDescriptor, input) {
+  await prepare(state);
+  const nowMs = state.now();
+  if (!Number.isFinite(nowMs) || input.cutoffMs > nowMs)
+    throw new Error("filesystem quarantine expiry cutoff is not current");
+  try {
+    const persisted = await readMetadata(state, input.artifactRef);
+    if (
+      persisted.metadata.artifactDigest !== input.artifactDigest ||
+      persisted.metadata.sourceActionReceiptDigest !==
+        input.sourceActionReceiptDigest ||
+      persisted.metadata.expiresAt !== input.expiresAt ||
+      input.expiresAtMs > nowMs
+    )
+      throw new Error("filesystem quarantine expiry differs from custody");
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  const requestCore = Object.freeze({
+    authorityId: retentionDescriptor.authorityId,
+    tenantId: retentionDescriptor.tenantId,
+    handlerArtifactDigest: retentionDescriptor.handlerArtifactDigest,
+    policyRevision: retentionDescriptor.policyRevision,
+    sweepReceiptDigest: input.sweepReceiptDigest,
+    planDigest: input.planDigest,
+    sweepId: input.sweepId,
+    cutoffAt: input.cutoffAt,
+    artifactRef: input.artifactRef,
+    artifactDigest: input.artifactDigest,
+    sourceActionReceiptDigest: input.sourceActionReceiptDigest,
+    expiresAt: input.expiresAt,
+  });
+  return disposeArtifact(
+    state,
+    retentionDescriptor,
+    Object.freeze({
+      actionReceiptDigest: input.sweepReceiptDigest,
+      requestDigest: digest(
+        "chainlesschain.browser-filesystem-quarantine-expired-disposal/v1",
+        requestCore,
+      ),
+      artifactRef: input.artifactRef,
+      artifactDigest: input.artifactDigest,
+      sourceActionReceiptDigest: input.sourceActionReceiptDigest,
+      reason: "expired",
+    }),
+  );
+}
+
 function normalizeDisposalInput(value) {
   exact(
     value,
@@ -1048,6 +1256,64 @@ export function captureBrowserFilesystemQuarantineCustody(value) {
         state.descriptor,
       );
       return async (input) => disposeArtifact(state, disposalDescriptor, input);
+    },
+    bindRetentionAuthority: (descriptor) => {
+      const retentionDescriptor = normalizeRetentionDescriptor(
+        descriptor,
+        state.descriptor,
+      );
+      const issuedPlans = new Map();
+      return Object.freeze({
+        planExpiredArtifacts: async (input) => {
+          const plan = await planExpiredArtifacts(
+            state,
+            retentionDescriptor,
+            input,
+          );
+          issuedPlans.clear();
+          if (plan.artifacts.length > 0)
+            issuedPlans.set(plan.planDigest, {
+              sweepId: plan.sweepId,
+              cutoffAt: plan.cutoffAt,
+              artifacts: new Map(
+                plan.artifacts.map((artifact) => [
+                  artifact.artifactRef,
+                  artifact,
+                ]),
+              ),
+            });
+          return plan;
+        },
+        disposeExpiredArtifact: async (input) => {
+          const normalizedInput = normalizeExpiredDisposalInput(input);
+          const plan = issuedPlans.get(normalizedInput.planDigest);
+          const artifact = plan?.artifacts.get(normalizedInput.artifactRef);
+          if (
+            !plan ||
+            !artifact ||
+            plan.sweepId !== normalizedInput.sweepId ||
+            plan.cutoffAt !== normalizedInput.cutoffAt ||
+            [
+              "artifactRefDigest",
+              "artifactDigest",
+              "sourceActionReceiptDigest",
+              "expiresAt",
+            ].some((key) => artifact[key] !== normalizedInput[key])
+          )
+            throw new Error(
+              "filesystem quarantine expiry disposal is not in the active plan",
+            );
+          const acknowledgement = await disposeExpiredArtifact(
+            state,
+            retentionDescriptor,
+            normalizedInput,
+          );
+          plan.artifacts.delete(normalizedInput.artifactRef);
+          if (plan.artifacts.size === 0)
+            issuedPlans.delete(normalizedInput.planDigest);
+          return acknowledgement;
+        },
+      });
     },
   });
 }

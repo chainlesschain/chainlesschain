@@ -43,8 +43,10 @@ import {
 } from "../../src/lib/evolution/browser-quarantined-download-executor.js";
 import {
   BROWSER_FILESYSTEM_QUARANTINE_CUSTODY_DESCRIPTOR_SCHEMA,
+  BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA,
   captureBrowserFilesystemQuarantineCustody,
 } from "../../src/lib/evolution/browser-filesystem-quarantine-custody.js";
+import { captureBrowserQuarantineRetentionAuthority } from "../../src/lib/evolution/browser-quarantine-retention-authority.js";
 import {
   BROWSER_DOWNLOAD_ARTIFACT_DISPOSAL_DESCRIPTOR_SCHEMA,
   captureBrowserDownloadArtifactDisposalAuthority,
@@ -1135,6 +1137,26 @@ describe("signed evolution deployment loader", () => {
               now: () => Date.now(),
             }),
           ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createBrowserQuarantineRetentionAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-retention",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "retention-policy-1",
+                maxBatchSize: 10,
+                maxGrantTtlMs: 5000,
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-expiry-disposal",
+              },
+              custody: {},
+              authorizeSweep: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
           const signer = factories.createPmExplorationReceiptSigner({
             role: "execution",
             authorityId: "desktop.pm.runner",
@@ -1293,6 +1315,25 @@ describe("signed evolution deployment loader", () => {
               authorize: async () => ({ decision: "deny" }),
               now: () => Date.now(),
             });
+          const browserQuarantineRetentionAuthority =
+            factories.createBrowserQuarantineRetentionAuthority({
+              descriptor: {
+                schema:
+                  BROWSER_FILESYSTEM_QUARANTINE_RETENTION_DESCRIPTOR_SCHEMA,
+                authorityId: "browser-quarantine-retention",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: descriptor.moduleDigest,
+                policyRevision: "retention-policy-1",
+                maxBatchSize: 10,
+                maxGrantTtlMs: 5000,
+                auditMode: "authenticated-durable-readback",
+                effectMode: "irreversible-expiry-disposal",
+              },
+              custody: browserFilesystemQuarantineCustody,
+              authorizeSweep: async () => ({ decision: "deny" }),
+              recordOutcome: async () => null,
+              now: () => Date.now(),
+            });
           return {
             receiptAuthority:
               factories.inspectPmExplorationReceiptAuthority(signer),
@@ -1306,6 +1347,7 @@ describe("signed evolution deployment loader", () => {
             browserFilesystemQuarantineCustody,
             browserDownloadArtifactDisposalAuthority,
             browserFilesystemQuarantineDisposalAuthority,
+            browserQuarantineRetentionAuthority,
           };
         },
       }),
@@ -1403,6 +1445,16 @@ describe("signed evolution deployment loader", () => {
     ).toMatchObject({
       authorityId: "browser-filesystem-download-disposal",
       effectMode: "irreversible-byte-disposal",
+      handlerArtifactDigest: fixture.descriptor.moduleDigest,
+    });
+    expect(
+      captureBrowserQuarantineRetentionAuthority(
+        result.browserQuarantineRetentionAuthority,
+      ).descriptor,
+    ).toMatchObject({
+      authorityId: "browser-quarantine-retention",
+      policyRevision: "retention-policy-1",
+      effectMode: "irreversible-expiry-disposal",
       handlerArtifactDigest: fixture.descriptor.moduleDigest,
     });
   });
