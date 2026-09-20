@@ -152,7 +152,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     planModeManager.setHookSystem(hookSystem);
   }
 
-  // 🔥 Markdown Skills 系统 (Claude Code 风格, 17 handlers)
+  // 🔥 Markdown Skills 系统 (Claude Code 风格, 8 handlers)
   safeRegister("Markdown Skills IPC", {
     register: () => {
       const {
@@ -169,7 +169,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
           null,
       });
     },
-    handlers: 18,
+    handlers: 8,
   });
 
   // 🔥 AI Engine IPC (AI引擎核心, 含Word/PPT生成等, 20+ handlers)

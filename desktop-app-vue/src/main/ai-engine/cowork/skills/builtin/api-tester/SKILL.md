@@ -114,7 +114,7 @@ Total handlers: 200+
 By module:
   audit-ipc.js: 18 handlers
   marketplace-ipc.js: 22 handlers
-  skills-ipc.js: 17 handlers
+  skills-ipc.js: 5 handlers
   ...
 ```
 

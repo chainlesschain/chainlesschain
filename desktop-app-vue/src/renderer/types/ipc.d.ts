@@ -231,9 +231,7 @@ export type MemoryChannel =
 export type SkillsChannel =
   | 'skills:list'
   | 'skills:get'
-  | 'skills:execute'
-  | 'skills:install'
-  | 'skills:uninstall';
+  | 'skills:execute';
 
 /**
  * Context Engineering 相关通道
