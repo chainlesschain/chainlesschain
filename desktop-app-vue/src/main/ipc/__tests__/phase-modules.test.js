@@ -21,11 +21,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 20 safeRegister calls total: 19 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 19 unconditional fire. The legacy
-    // Context Engineering, Message Aggregator, and Progress Emitter renderer
-    // IPC surfaces are retired.
-    expectedRegistrations: 19,
+    // 19 safeRegister calls total: 18 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 18 unconditional fire. Legacy helper
+    // renderer surfaces are retired after their internal consumers cut over.
+    expectedRegistrations: 18,
     needsRegisteredModules: false,
   },
   {
@@ -254,6 +253,20 @@ describe("ipc/phases — extracted phase module contracts", () => {
     expect(typeof InternalProgressEmitter).toBe("function");
     expect(Object.keys(InternalProgressEmitter).sort()).toEqual(
       ["DEFAULT_LIMITS", "HARD_LIMITS", "Stage"].sort(),
+    );
+  });
+
+  it("keeps the internal Resource Monitor out of the renderer IPC surface", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    registerPhase1AI({ safeRegister, logger, deps: { database: null } });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Resource Monitor IPC",
+    );
+    const internalMonitor = require("../../utils/resource-monitor");
+    expect(internalMonitor.registerResourceMonitorIPC).toBeUndefined();
+    expect(Object.keys(internalMonitor).sort()).toEqual(
+      ["ResourceMonitor", "getResourceMonitor"].sort(),
     );
   });
 });

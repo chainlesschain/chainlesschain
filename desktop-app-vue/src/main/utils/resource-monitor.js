@@ -5,7 +5,6 @@
 
 const { logger } = require("./logger.js");
 const os = require("os");
-const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
 

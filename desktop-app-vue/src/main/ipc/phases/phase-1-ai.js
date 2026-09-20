@@ -4,8 +4,8 @@
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
  * Hooks, Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
- * Controller, Resource Monitor, Team Task, Permission, Logger, RAG
- * (gated), Follow-up Intent, Web
+ * Controller, Team Task, Permission, Logger, RAG (gated), Follow-up
+ * Intent, Web
  * Search, Browser.
  *
  * Returns the resolved `hookSystem` so callers (Plan Mode IPC was once
@@ -292,17 +292,6 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       });
     },
     handlers: 12,
-  });
-
-  // 🔥 Resource Monitor 系统 (资源监控与降级, 13 handlers)
-  safeRegister("Resource Monitor IPC", {
-    register: () => {
-      const {
-        registerResourceMonitorIPC,
-      } = require("../../utils/resource-monitor-ipc");
-      registerResourceMonitorIPC({ mainWindow: mainWindow || null });
-    },
-    handlers: 13,
   });
 
   // 🔥 Team Task Management 系统 (任务看板, 49 handlers)
