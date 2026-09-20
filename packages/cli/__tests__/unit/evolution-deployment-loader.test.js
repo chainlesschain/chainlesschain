@@ -1054,13 +1054,21 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionExecutionAuthority({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-authority/v1",
+                schema: "chainlesschain.volcengine-function-authority/v2",
                 authorityId: "volcengine-functions",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
                 policyRevision: "policy-1",
                 purpose: "model-tool-execution",
                 allowedFunctions: ["create_note"],
+                functionPolicies: [
+                  {
+                    functionName: "create_note",
+                    allowedArgumentKeys: ["content", "title"],
+                    maxArgumentBytes: 1024,
+                    maxResultBytes: 1024,
+                  },
+                ],
                 auditMode: "authenticated-durable-readback",
               },
               execute: async () => null,

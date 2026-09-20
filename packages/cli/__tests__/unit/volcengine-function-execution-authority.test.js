@@ -37,6 +37,31 @@ function sha(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+function functionPolicies() {
+  return [
+    {
+      functionName: "create_note",
+      allowedArgumentKeys: ["content", "title"],
+      maxArgumentBytes: 1024,
+      maxResultBytes: 1024,
+    },
+    {
+      functionName: "read_file",
+      allowedArgumentKeys: ["path"],
+      maxArgumentBytes: 512,
+      maxResultBytes: 2048,
+    },
+  ];
+}
+
+function functionPolicyDigest(functionName = "create_note") {
+  const policy = functionPolicies().find(
+    (entry) => entry.functionName === functionName,
+  );
+  if (!policy) return sha(`missing-policy:${functionName}`);
+  return domainDigest("chainlesschain.volcengine-function-policy/v1", policy);
+}
+
 function descriptor(overrides = {}) {
   return {
     schema: VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA,
@@ -46,6 +71,7 @@ function descriptor(overrides = {}) {
     policyRevision: "policy-1",
     purpose: VOLCENGINE_FUNCTION_PURPOSE,
     allowedFunctions: ["create_note", "read_file"],
+    functionPolicies: functionPolicies(),
     auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
     ...overrides,
   };
@@ -65,6 +91,9 @@ function request(overrides = {}) {
     senderId: 7,
     executorType: VOLCENGINE_FUNCTION_EXECUTOR_TYPE,
     functionName: "create_note",
+    functionPolicyDigest: functionPolicyDigest(
+      overrides.functionName || "create_note",
+    ),
     arguments: args,
     argumentsDigest: domainDigest(
       "chainlesschain.volcengine-function-arguments/v1",
@@ -76,7 +105,7 @@ function request(overrides = {}) {
   return {
     ...core,
     requestDigest: domainDigest(
-      "chainlesschain.volcengine-function-request/v1",
+      "chainlesschain.volcengine-function-request/v2",
       core,
     ),
   };
@@ -93,6 +122,7 @@ function responseFor(value, toolResult, overrides = {}) {
       policyRevision: "policy-1",
       requestId: value.requestId,
       requestDigest: value.requestDigest,
+      functionPolicyDigest: value.functionPolicyDigest,
       resultDigest: digestVolcengineFunctionResult(toolResult),
       auditEventDigest: sha("audit-event"),
       durabilityReceiptDigest: sha("durability-receipt"),
@@ -124,6 +154,17 @@ function setup(overrides = {}) {
 }
 
 describe("Volcengine function execution authority", () => {
+  it("rejects legacy v1 authority descriptors", () => {
+    expect(() =>
+      createVolcengineFunctionExecutionAuthority({
+        descriptor: descriptor({
+          schema: "chainlesschain.volcengine-function-authority/v1",
+        }),
+        execute: vi.fn(),
+      }),
+    ).toThrow("Volcengine function authority descriptor is invalid");
+  });
+
   it("issues a result-bound receipt only after authenticated durable readback", async () => {
     const { authority, execute, port } = setup();
 
@@ -144,6 +185,7 @@ describe("Volcengine function execution authority", () => {
       requestId: "request-1",
       senderId: 7,
       functionName: "create_note",
+      functionPolicyDigest: functionPolicyDigest(),
       auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
       auditEventDigest: sha("audit-event"),
       durabilityReceiptDigest: sha("durability-receipt"),
@@ -261,10 +303,50 @@ describe("Volcengine function execution authority", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("requires policies to exactly cover the signed function allowlist", () => {
+    expect(() =>
+      createVolcengineFunctionExecutionAuthority({
+        descriptor: descriptor({
+          functionPolicies: [functionPolicies()[0]],
+        }),
+        execute: vi.fn(),
+      }),
+    ).toThrow("must exactly cover the allowlist");
+  });
+
+  it("rejects argument fields and byte sizes outside the function policy", async () => {
+    const { execute, port } = setup();
+
+    await expect(
+      port.executeFunction(
+        request({ arguments: { title: "ok", privatePath: "secret" } }),
+      ),
+    ).rejects.toThrow("arguments violate policy");
+    await expect(
+      port.executeFunction(
+        request({ arguments: { title: "x".repeat(2048) }, requestId: "large" }),
+      ),
+    ).rejects.toThrow("arguments is too large");
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("rejects results outside the function policy byte budget", async () => {
+    const { execute, port } = setup({
+      execute: async (value) =>
+        responseFor(value, { content: "x".repeat(2048) }),
+    });
+
+    await expect(port.executeFunction(request())).rejects.toThrow(
+      "result is too large",
+    );
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("rejects unverified or result-mismatched audit evidence", async () => {
     for (const auditOverride of [
       { readbackVerified: false },
       { resultDigest: sha("other-result") },
+      { functionPolicyDigest: sha("other-policy") },
     ]) {
       const { port } = setup({
         execute: async (value) =>

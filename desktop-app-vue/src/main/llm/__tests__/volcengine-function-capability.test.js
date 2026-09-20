@@ -28,6 +28,24 @@ function authorization(overrides = {}) {
   };
 }
 
+function policiesFor(allowedFunctions) {
+  const definitions = {
+    create_note: {
+      functionName: "create_note",
+      allowedArgumentKeys: ["content", "title"],
+      maxArgumentBytes: 1024,
+      maxResultBytes: 1024,
+    },
+    read_file: {
+      functionName: "read_file",
+      allowedArgumentKeys: ["path"],
+      maxArgumentBytes: 512,
+      maxResultBytes: 2048,
+    },
+  };
+  return allowedFunctions.map((name) => definitions[name]);
+}
+
 function responseFor(request, toolResult, overrides = {}) {
   return {
     toolResult,
@@ -42,6 +60,7 @@ function responseFor(request, toolResult, overrides = {}) {
       requestId: request.requestId,
       senderId: request.senderId,
       functionName: request.functionName,
+      functionPolicyDigest: request.functionPolicyDigest,
       requestDigest: request.requestDigest,
       resultDigest: digestVolcengineFunctionResult(toolResult),
       auditMode: AUDIT_MODE,
@@ -56,7 +75,11 @@ function responseFor(request, toolResult, overrides = {}) {
   };
 }
 
-function setup({ allowedFunctions = ["create_note"], execute } = {}) {
+function setup({
+  allowedFunctions = ["create_note"],
+  execute,
+  descriptorOverrides = {},
+} = {}) {
   const authority = Object.freeze({});
   const executeFunction = vi.fn(
     execute ||
@@ -74,7 +97,9 @@ function setup({ allowedFunctions = ["create_note"], execute } = {}) {
         policyRevision: "policy-1",
         purpose: PURPOSE,
         allowedFunctions,
+        functionPolicies: policiesFor(allowedFunctions),
         auditMode: AUDIT_MODE,
+        ...descriptorOverrides,
       },
       executeFunction,
     };
@@ -94,6 +119,16 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
+  it("rejects legacy v1 authority descriptors", () => {
+    expect(() =>
+      setup({
+        descriptorOverrides: {
+          schema: "chainlesschain.volcengine-function-authority/v1",
+        },
+      }),
+    ).toThrow("Volcengine function authority descriptor is invalid");
+  });
+
   it("binds an opaque host to actor, tenant, sender, purpose and result receipt", async () => {
     const { host, executeFunction } = setup();
     const executor = createVolcengineFunctionExecutor(host, {
@@ -122,6 +157,7 @@ describe("Volcengine function capability", () => {
       senderId: 7,
       executorType: EXECUTOR_TYPE,
       functionName: "create_note",
+      functionPolicyDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       arguments: { title: "bounded title" },
     });
     expect(request.argumentsDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
@@ -177,6 +213,44 @@ describe("Volcengine function capability", () => {
     expect(JSON.stringify(error)).not.toContain("private-path");
   });
 
+  it("blocks argument fields and sizes outside the signed function policy", async () => {
+    const { host, executeFunction } = setup();
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    for (const args of [
+      { title: "ok", privatePath: "secret" },
+      { title: "x".repeat(2048) },
+    ]) {
+      let error;
+      try {
+        await executor.execute("create_note", args);
+      } catch (cause) {
+        error = cause;
+      }
+      expectGovernanceFailure(error);
+    }
+    expect(executeFunction).not.toHaveBeenCalled();
+  });
+
+  it("blocks results outside the signed function policy", async () => {
+    const { host, executeFunction } = setup({
+      execute: async (request) =>
+        responseFor(request, { content: "x".repeat(2048) }),
+    });
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    await expect(
+      executor.execute("create_note", { title: "bounded" }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(executeFunction).toHaveBeenCalledOnce();
+  });
+
   it("rejects accessor arguments without invoking the accessor or authority", async () => {
     const { host, executeFunction } = setup();
     const executor = createVolcengineFunctionExecutor(host, {
@@ -228,6 +302,27 @@ describe("Volcengine function capability", () => {
 
     expectGovernanceFailure(error);
     expect(JSON.stringify(error)).not.toContain(privateReason);
+  });
+
+  it("fails closed when the durable receipt substitutes the function policy", async () => {
+    const { host } = setup({
+      execute: async (request) =>
+        responseFor(
+          request,
+          { success: true },
+          {
+            functionPolicyDigest: sha("substituted-policy"),
+          },
+        ),
+    });
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    await expect(executor.execute("create_note", {})).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
   });
 
   it("fails closed without exposing authority exceptions", async () => {

@@ -3,9 +3,9 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v1";
-const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v1";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v1";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v2";
+const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v2";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v2";
 const PURPOSE = "model-tool-execution";
 const AUDIT_MODE = "authenticated-durable-readback";
 const EXECUTOR_TYPE = "capability";
@@ -13,6 +13,7 @@ const MAX_ARGUMENT_BYTES = 64 * 1024;
 const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_JSON_DEPTH = 8;
 const MAX_JSON_FIELDS = 512;
+const MAX_POLICY_ARGUMENT_KEYS = 64;
 const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const BUILTIN_FUNCTIONS = Object.freeze([
   "create_note",
@@ -232,6 +233,114 @@ function normalizeAllowedFunctions(value) {
   return Object.freeze([...names]);
 }
 
+function normalizeArgumentKeys(value, label) {
+  const keys = directArrayValues(value, label, MAX_POLICY_ARGUMENT_KEYS);
+  if (
+    keys.some(
+      (key) =>
+        typeof key !== "string" ||
+        key.length < 1 ||
+        key.length > 256 ||
+        /\p{Cc}/u.test(key) ||
+        ["__proto__", "constructor", "prototype"].includes(key),
+    ) ||
+    new Set(keys).size !== keys.length ||
+    [...keys].sort().some((key, index) => key !== keys[index])
+  ) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  return Object.freeze([...keys]);
+}
+
+function normalizeFunctionPolicies(value, allowedFunctions) {
+  const entries = directArrayValues(
+    value,
+    "Volcengine function policies",
+    BUILTIN_FUNCTIONS.length,
+  );
+  const policies = entries.map((entry) => {
+    exactData(
+      entry,
+      [
+        "functionName",
+        "allowedArgumentKeys",
+        "maxArgumentBytes",
+        "maxResultBytes",
+      ],
+      "Volcengine function policy",
+    );
+    const policy = Object.freeze({
+      functionName: ownData(
+        entry,
+        "functionName",
+        "Volcengine function policy name",
+      ),
+      allowedArgumentKeys: normalizeArgumentKeys(
+        ownData(
+          entry,
+          "allowedArgumentKeys",
+          "Volcengine function policy argument keys",
+        ),
+        "Volcengine function policy argument keys",
+      ),
+      maxArgumentBytes: ownData(
+        entry,
+        "maxArgumentBytes",
+        "Volcengine function policy argument budget",
+      ),
+      maxResultBytes: ownData(
+        entry,
+        "maxResultBytes",
+        "Volcengine function policy result budget",
+      ),
+    });
+    if (
+      !BUILTIN_FUNCTION_SET.has(policy.functionName) ||
+      !Number.isSafeInteger(policy.maxArgumentBytes) ||
+      policy.maxArgumentBytes < 2 ||
+      policy.maxArgumentBytes > MAX_ARGUMENT_BYTES ||
+      !Number.isSafeInteger(policy.maxResultBytes) ||
+      policy.maxResultBytes < 1 ||
+      policy.maxResultBytes > MAX_RESULT_BYTES
+    ) {
+      throw new TypeError("Volcengine function policy is invalid");
+    }
+    return policy;
+  });
+  if (
+    policies.length !== allowedFunctions.length ||
+    policies.some(
+      (policy, index) => policy.functionName !== allowedFunctions[index],
+    )
+  ) {
+    throw new TypeError(
+      "Volcengine function policies must exactly cover the allowlist",
+    );
+  }
+  return Object.freeze(policies);
+}
+
+function functionPolicy(descriptor, functionName) {
+  return descriptor.functionPolicies.find(
+    (policy) => policy.functionName === functionName,
+  );
+}
+
+function digestFunctionPolicy(policy) {
+  return digest("chainlesschain.volcengine-function-policy/v1", policy);
+}
+
+function validatePolicyArguments(value, policy) {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((key) => !policy.allowedArgumentKeys.includes(key))
+  ) {
+    throw new TypeError("Volcengine function arguments violate policy");
+  }
+}
+
 function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
   if (
     typeof captureAuthority !== "function" ||
@@ -260,6 +369,7 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "policyRevision",
       "purpose",
       "allowedFunctions",
+      "functionPolicies",
       "auditMode",
     ],
     "Volcengine function authority descriptor",
@@ -274,6 +384,13 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
   ) {
     throw new TypeError("Volcengine function authority descriptor is invalid");
   }
+  const allowedFunctions = normalizeAllowedFunctions(
+    ownData(
+      descriptor,
+      "allowedFunctions",
+      "Volcengine function authority allowlist",
+    ),
+  );
   const normalizedDescriptor = Object.freeze({
     schema: AUTHORITY_SCHEMA,
     authorityId: boundedIdentifier(
@@ -302,12 +419,14 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "Volcengine function authority policy revision",
     ),
     purpose: PURPOSE,
-    allowedFunctions: normalizeAllowedFunctions(
+    allowedFunctions,
+    functionPolicies: normalizeFunctionPolicies(
       ownData(
         descriptor,
-        "allowedFunctions",
-        "Volcengine function authority allowlist",
+        "functionPolicies",
+        "Volcengine function authority policies",
       ),
+      allowedFunctions,
     ),
     auditMode: AUDIT_MODE,
   });
@@ -370,6 +489,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
       "requestId",
       "senderId",
       "functionName",
+      "functionPolicyDigest",
       "requestDigest",
       "resultDigest",
       "auditMode",
@@ -393,6 +513,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     requestId: request.requestId,
     senderId: request.senderId,
     functionName: request.functionName,
+    functionPolicyDigest: request.functionPolicyDigest,
     requestDigest: request.requestDigest,
     resultDigest,
     auditMode: AUDIT_MODE,
@@ -452,11 +573,16 @@ function createVolcengineFunctionExecutor(
           ) {
             throw new TypeError("Volcengine function is not authorized");
           }
+          const policy = functionPolicy(captured.descriptor, functionName);
+          if (!policy) {
+            throw new TypeError("Volcengine function is not authorized");
+          }
           const normalizedArguments = normalizeJson(
             args,
             "Volcengine function arguments",
-            { maxBytes: MAX_ARGUMENT_BYTES },
+            { maxBytes: policy.maxArgumentBytes },
           );
+          validatePolicyArguments(normalizedArguments, policy);
           const requestCore = Object.freeze({
             schema: REQUEST_SCHEMA,
             authorityId: captured.descriptor.authorityId,
@@ -469,6 +595,7 @@ function createVolcengineFunctionExecutor(
             senderId: context.senderId,
             executorType: EXECUTOR_TYPE,
             functionName,
+            functionPolicyDigest: digestFunctionPolicy(policy),
             arguments: normalizedArguments,
             argumentsDigest: digest(
               "chainlesschain.volcengine-function-arguments/v1",
@@ -479,7 +606,7 @@ function createVolcengineFunctionExecutor(
           const request = Object.freeze({
             ...requestCore,
             requestDigest: digest(
-              "chainlesschain.volcengine-function-request/v1",
+              "chainlesschain.volcengine-function-request/v2",
               requestCore,
             ),
           });
@@ -500,7 +627,7 @@ function createVolcengineFunctionExecutor(
               "Volcengine function execution result",
             ),
             "Volcengine function result",
-            { maxBytes: MAX_RESULT_BYTES },
+            { maxBytes: policy.maxResultBytes },
           );
           validateReceipt(
             ownData(
