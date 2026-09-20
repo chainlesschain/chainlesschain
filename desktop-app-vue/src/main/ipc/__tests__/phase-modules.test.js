@@ -21,10 +21,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 22 safeRegister calls total: 21 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 21 unconditional fire. The legacy
-    // Context Engineering IPC surface was retired after the App Server cutover.
-    expectedRegistrations: 21,
+    // 21 safeRegister calls total: 20 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 20 unconditional fire. The legacy
+    // Context Engineering and Message Aggregator IPC surfaces are retired.
+    expectedRegistrations: 20,
     needsRegisteredModules: false,
   },
   {
@@ -219,6 +219,24 @@ describe("ipc/phases — extracted phase module contracts", () => {
         "getOrCreateCompressor",
         "getOrCreateContextEngineering",
         "getTokenEstimator",
+      ].sort(),
+    );
+  });
+
+  it("keeps the internal Message Aggregator out of the renderer IPC surface", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    registerPhase1AI({ safeRegister, logger, deps: { database: null } });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Message Aggregator IPC",
+    );
+    const internalAggregator = require("../../utils/message-aggregator");
+    expect(internalAggregator.registerMessageAggregatorIPC).toBeUndefined();
+    expect(Object.keys(internalAggregator).sort()).toEqual(
+      [
+        "MessageAggregator",
+        "destroyGlobalAggregator",
+        "getMessageAggregator",
       ].sort(),
     );
   });

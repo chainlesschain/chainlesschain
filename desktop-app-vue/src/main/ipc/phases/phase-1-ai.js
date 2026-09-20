@@ -4,8 +4,8 @@
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
  * Hooks, Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
- * Controller, Resource Monitor, Message Aggregator, Progress Emitter,
- * Team Task, Permission, Logger, RAG (gated), Follow-up Intent, Web
+ * Controller, Resource Monitor, Progress Emitter, Team Task, Permission,
+ * Logger, RAG (gated), Follow-up Intent, Web
  * Search, Browser.
  *
  * Returns the resolved `hookSystem` so callers (Plan Mode IPC was once
@@ -303,17 +303,6 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       registerResourceMonitorIPC({ mainWindow: mainWindow || null });
     },
     handlers: 13,
-  });
-
-  // 🔥 Message Aggregator 系统 (消息批量聚合, 10 handlers)
-  safeRegister("Message Aggregator IPC", {
-    register: () => {
-      const {
-        registerMessageAggregatorIPC,
-      } = require("../../utils/message-aggregator-ipc");
-      registerMessageAggregatorIPC({ mainWindow: mainWindow || null });
-    },
-    handlers: 10,
   });
 
   // 🔥 Progress Emitter 系统 (统一进度通知, 12 handlers)
