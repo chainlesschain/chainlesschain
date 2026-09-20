@@ -5,6 +5,8 @@
  * @module llm/llm-ipc-alert
  */
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const { projectAlert } = require("./llm-ipc-record-projection");
+const { ownData } = require("./llm-ipc-success-projection");
 
 /**
  * Tolerant JSON column parse — a single alert with a corrupt details string must
@@ -68,11 +70,14 @@ function registerAlertHandlers(ctx) {
 
       const alerts = database.prepare(sql).all(...params);
 
-      return alerts.map((alert) => ({
-        ...alert,
-        details: safeParse(alert.details, null, privacy),
-        dismissed: alert.dismissed === 1,
-      }));
+      return alerts
+        .map((alert) =>
+          projectAlert(
+            alert,
+            safeParse(ownData(alert, "details"), null, privacy),
+          ),
+        )
+        .filter(Boolean);
     } catch {
       privacy.failure("get-alert-history");
       return [];

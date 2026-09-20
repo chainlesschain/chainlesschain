@@ -5,6 +5,7 @@
  * @module llm/llm-ipc-budgets
  */
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const { projectModelBudget } = require("./llm-ipc-record-projection");
 
 function registerBudgetHandlers(ctx) {
   const { ipcMain, database } = ctx;
@@ -32,12 +33,7 @@ function registerBudgetHandlers(ctx) {
           )
           .all(userId);
 
-        return budgets.map((b) => ({
-          ...b,
-          enabled: b.enabled === 1,
-          alertOnLimit: b.alert_on_limit === 1,
-          blockOnLimit: b.block_on_limit === 1,
-        }));
+        return budgets.map(projectModelBudget).filter(Boolean);
       } catch {
         privacy.failure("get-model-budgets");
         return [];

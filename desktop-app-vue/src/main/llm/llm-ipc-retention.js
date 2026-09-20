@@ -5,6 +5,7 @@
  * @module llm/llm-ipc-retention
  */
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const { projectRetentionConfig } = require("./llm-ipc-record-projection");
 
 function registerRetentionHandlers(ctx) {
   const { ipcMain, database } = ctx;
@@ -30,17 +31,7 @@ function registerRetentionHandlers(ctx) {
           .prepare("SELECT * FROM llm_data_retention_config WHERE user_id = ?")
           .get(userId);
 
-        if (config) {
-          return {
-            ...config,
-            autoCleanupEnabled: config.auto_cleanup_enabled === 1,
-            usageLogRetentionDays: config.usage_log_retention_days,
-            cacheRetentionDays: config.cache_retention_days,
-            alertHistoryRetentionDays: config.alert_history_retention_days,
-          };
-        }
-
-        return null;
+        return projectRetentionConfig(config);
       } catch {
         privacy.failure("get-retention-config");
         return null;
