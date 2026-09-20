@@ -21,9 +21,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 23 safeRegister calls total: 22 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 22 unconditional fire.
-    expectedRegistrations: 22,
+    // 22 safeRegister calls total: 21 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 21 unconditional fire. The legacy
+    // Context Engineering IPC surface was retired after the App Server cutover.
+    expectedRegistrations: 21,
     needsRegisteredModules: false,
   },
   {
@@ -201,4 +202,24 @@ describe("ipc/phases — extracted phase module contracts", () => {
       });
     });
   }
+
+  it("keeps the retired Context Engineering IPC surface out of Phase 1", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    registerPhase1AI({ safeRegister, logger, deps: { database: null } });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Context Engineering IPC",
+    );
+    const legacyHelpers = require("../../llm/context-engineering-ipc");
+    expect(legacyHelpers.registerContextEngineeringIPC).toBeUndefined();
+    expect(legacyHelpers.unregisterContextEngineeringIPC).toBeUndefined();
+    expect(Object.keys(legacyHelpers).sort()).toEqual(
+      [
+        "TokenEstimator",
+        "getOrCreateCompressor",
+        "getOrCreateContextEngineering",
+        "getTokenEstimator",
+      ].sort(),
+    );
+  });
 });

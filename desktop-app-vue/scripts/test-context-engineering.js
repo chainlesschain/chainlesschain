@@ -393,10 +393,10 @@ async function runTests() {
   })();
 
   console.log();
-  console.log('6. IPC Handler Tests');
+  console.log('6. Legacy Local Helper Tests');
   console.log('-'.repeat(40));
 
-  await test('Should get stats via IPC pattern', async () => {
+  await test('Should get stats through the local helper', async () => {
     const { getOrCreateContextEngineering } = require(path.join(srcPath, 'llm/context-engineering-ipc'));
 
     const ce = getOrCreateContextEngineering();

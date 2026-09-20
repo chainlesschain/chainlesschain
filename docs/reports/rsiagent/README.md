@@ -254,3 +254,4 @@
 | 184  | 2026-09-21 | [第一百八十四次工程实施：独立 Response Cache IPC 授权与数据边界](./rsiagent-one-hundred-eighty-fourth-batch-implementation-2026-09-21.md)   |
 | 185  | 2026-09-21 | [第一百八十五次工程实施：独立 Token Tracker IPC 授权与身份作用域](./rsiagent-one-hundred-eighty-fifth-batch-implementation-2026-09-21.md)       |
 | 186  | 2026-09-21 | [第一百八十六次工程实施：Prompt Compressor IPC 授权与身份隔离](./rsiagent-one-hundred-eighty-sixth-batch-implementation-2026-09-21.md)        |
+| 187  | 2026-09-21 | [第一百八十七次工程实施：旧 Context Engineering IPC 生产退役](./rsiagent-one-hundred-eighty-seventh-batch-implementation-2026-09-21.md)      |

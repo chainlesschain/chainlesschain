@@ -2,8 +2,8 @@
  * Phase 1: AI Core IPC Registrations.
  *
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
- * Hooks, Plan Mode, Markdown Skills, Skill Sync, Context Engineering,
- * AI Engine, Prompt Compressor, Response Cache, Token Tracker, Stream
+ * Hooks, Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
+ * Compressor, Response Cache, Token Tracker, Stream
  * Controller, Resource Monitor, Message Aggregator, Progress Emitter,
  * Team Task, Permission, Logger, RAG (gated), Follow-up Intent, Web
  * Search, Browser.
@@ -212,17 +212,6 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       registerSkillSyncIPC({ syncManager: skillSyncManager });
     },
     handlers: 7,
-  });
-
-  // 🔥 Context Engineering 系统 (KV-Cache 优化, 17 handlers)
-  safeRegister("Context Engineering IPC", {
-    register: () => {
-      const {
-        registerContextEngineeringIPC,
-      } = require("../../llm/context-engineering-ipc");
-      registerContextEngineeringIPC();
-    },
-    handlers: 17,
   });
 
   // 🔥 AI Engine IPC (AI引擎核心, 含Word/PPT生成等, 20+ handlers)

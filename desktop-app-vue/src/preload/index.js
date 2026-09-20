@@ -245,7 +245,6 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "config:import",
   "config:set",
   "contact:update",
-  "context:compress",
   "context:get-stats",
   "cowork:assign-task",
   "cowork:create-checkpoint",
