@@ -25,4 +25,4 @@
 
 - 历史 `user_id = 'default'` retention 行不会自动归入任意新 actor；需要目标环境依据认证身份制定迁移或明确废弃策略。
 - 全局 `llm_cache` 的 tenant/actor schema、既有行认证迁移和安全的分区清理尚未实现；当前 per-actor 清理会保留这些缓存行。
-- 本批未执行真实 Electron renderer/preload 与 SQLite 用户目录 E2E；生产 purpose authority/企业组织 RBAC、alert/token 辅助 IPC 授权、tenant HMAC 和耐久审计仍待处理。
+- Alert 辅助 IPC 后续已由第一百八十批完成 actor DID/tenant/用途授权和输入收口；本批未执行真实 Electron renderer/preload 与 SQLite 用户目录 E2E，生产 purpose authority/企业组织 RBAC、token 辅助 IPC 授权、tenant HMAC 和耐久审计仍待处理。

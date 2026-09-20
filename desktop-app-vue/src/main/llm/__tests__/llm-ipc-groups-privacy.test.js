@@ -53,6 +53,12 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
     registerAlertHandlers({
       ipcMain,
       database,
+      coreAuthorization: {
+        authorize: vi.fn(async () => ({
+          actorDid: "did:key:alert-test",
+          tenantId: "tenant:test",
+        })),
+      },
       alertPrivacy: createLlmIpcPrivacy("alert", sink),
     });
     registerBudgetHandlers({

@@ -134,19 +134,23 @@ describe("LLM core IPC authorization", () => {
   it("defines authorization scopes for every governed LLM operation", () => {
     expect(Object.keys(OPERATION_AUTHORIZATION).sort()).toEqual(
       [
+        "add-alert",
         "chat",
         "chat-with-template",
         "check-status",
         "cleanup-old-data",
         "clear-test-data",
         "clear-context",
+        "clear-alert-history",
         "create-stream-controller",
         "delete-model-budget",
+        "dismiss-alert",
         "destroy-stream-controller",
         "embeddings",
         "generate-test-data",
         "generate-report",
         "get-config",
+        "get-alert-history",
         "get-model-budgets",
         "get-retention-config",
         "get-selector-info",

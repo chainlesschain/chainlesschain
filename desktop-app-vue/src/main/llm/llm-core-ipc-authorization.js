@@ -169,6 +169,22 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-data-retention-delete",
     fields: Object.freeze(["retention-cleanup-receipt"]),
   }),
+  "get-alert-history": Object.freeze({
+    purpose: "model-alert-history-read",
+    fields: Object.freeze(["alert-history"]),
+  }),
+  "add-alert": Object.freeze({
+    purpose: "model-alert-create",
+    fields: Object.freeze(["alert-record"]),
+  }),
+  "dismiss-alert": Object.freeze({
+    purpose: "model-alert-update",
+    fields: Object.freeze(["alert-record"]),
+  }),
+  "clear-alert-history": Object.freeze({
+    purpose: "model-alert-history-delete",
+    fields: Object.freeze(["alert-history"]),
+  }),
 });
 
 function authorizationError() {
