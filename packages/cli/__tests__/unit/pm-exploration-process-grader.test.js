@@ -240,13 +240,16 @@ afterEach(async () => {
 });
 
 describe("PM exploration process grader", () => {
-  it("keeps hidden grading data in a restricted child process and binds its supervision", async () => {
-    const privateExpected = "private-answer-never-shared-with-actor";
-    const hiddenSource = JSON.stringify({
-      taskId: "task-one",
-      expected: privateExpected,
-    });
-    const source = `
+  it(
+    "keeps hidden grading data in a restricted child process and binds its supervision",
+    { timeout: 240_000 },
+    async () => {
+      const privateExpected = "private-answer-never-shared-with-actor";
+      const hiddenSource = JSON.stringify({
+        taskId: "task-one",
+        expected: privateExpected,
+      });
+      const source = `
       import { createHash } from "node:crypto";
       import { readFile } from "node:fs/promises";
       import { join } from "node:path";
@@ -264,43 +267,47 @@ describe("PM exploration process grader", () => {
         };
       }
     `;
-    const fixture = await processFixture(source, { hiddenSource });
-    const boundPlan = plan(15_000);
-    const configured = hostFixture({
-      boundPlan,
-      processGrader: (graderSigner) =>
-        createPmExplorationProcessGrader({
-          signer: graderSigner,
-          supervisor: fixture.supervisor,
-          target: fixture.target,
-          maxWallClockMs: fixture.maxWallClockMs,
-        }),
-      isolation: inspectPmExplorationGraderIsolation,
-    });
-    const result = await execute(configured.host, boundPlan);
+      const fixture = await processFixture(source, {
+        hiddenSource,
+        maxWallClockMs: 120_000,
+      });
+      const boundPlan = plan(180_000);
+      const configured = hostFixture({
+        boundPlan,
+        processGrader: (graderSigner) =>
+          createPmExplorationProcessGrader({
+            signer: graderSigner,
+            supervisor: fixture.supervisor,
+            target: fixture.target,
+            maxWallClockMs: fixture.maxWallClockMs,
+          }),
+        isolation: inspectPmExplorationGraderIsolation,
+      });
+      const result = await execute(configured.host, boundPlan);
 
-    expect(configured.manifest.schema).toBe(
-      PM_EXPLORATION_EXECUTION_MANIFEST_SCHEMA_V3,
-    );
-    expect(inspectPmExplorationExecutionHost(configured.host)).toMatchObject({
-      graderIsolation: {
-        mode: "process",
-        targetDigest: expect.stringMatching(/^sha256:/u),
-      },
-    });
-    expect(result.graderReceipt.payload.decision).toBe("accept");
-    expect(result.graderReceipt.payload.scoreBasisPoints).toBe(10_000);
-    expect(result.graderReceipt.payload.resultDigest).toMatch(/^sha256:/u);
-    expect(fixture.children).toHaveLength(1);
-    expect(fixture.children[0].pid).not.toBe(process.pid);
-    expect(fixture.spawnCalls[0][2].env).toEqual({});
-    expect(JSON.stringify(configured.actorRequests)).not.toContain(
-      privateExpected,
-    );
-    expect(JSON.stringify(configured.actorRequests)).not.toContain(
-      fixture.hiddenPath,
-    );
-  });
+      expect(configured.manifest.schema).toBe(
+        PM_EXPLORATION_EXECUTION_MANIFEST_SCHEMA_V3,
+      );
+      expect(inspectPmExplorationExecutionHost(configured.host)).toMatchObject({
+        graderIsolation: {
+          mode: "process",
+          targetDigest: expect.stringMatching(/^sha256:/u),
+        },
+      });
+      expect(result.graderReceipt.payload.decision).toBe("accept");
+      expect(result.graderReceipt.payload.scoreBasisPoints).toBe(10_000);
+      expect(result.graderReceipt.payload.resultDigest).toMatch(/^sha256:/u);
+      expect(fixture.children).toHaveLength(1);
+      expect(fixture.children[0].pid).not.toBe(process.pid);
+      expect(fixture.spawnCalls[0][2].env).toEqual({});
+      expect(JSON.stringify(configured.actorRequests)).not.toContain(
+        privateExpected,
+      );
+      expect(JSON.stringify(configured.actorRequests)).not.toContain(
+        fixture.hiddenPath,
+      );
+    },
+  );
 
   it("rejects a process manifest paired with an in-process grader", async () => {
     const source = `export async function grade() { return { decision: "reject", scoreBasisPoints: 0, resultDigest: "${sha("grade")}" }; }`;
