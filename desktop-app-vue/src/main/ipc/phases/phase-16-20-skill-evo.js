@@ -239,15 +239,18 @@ function registerPhases16to20({
       if (database) {
         instinctManager
           .initialize(database, permanentMemoryManager, hookSystem)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] InstinctManager async init error (non-fatal):",
-              err.message,
-            ),
+          .catch(() =>
+            logger.warn("[IPC Registry] InstinctManager async init failed"),
           );
       }
 
-      registerInstinctIPC(instinctManager);
+      registerInstinctIPC(instinctManager, {
+        ipcMain: deps.ipcMain,
+        getMainWindow: () => deps.mainWindow || null,
+        getCurrentIdentity: () =>
+          deps.didManager?.getCurrentIdentity?.() || null,
+        authorizePurpose: deps.authorizeInstinctPurpose,
+      });
       registeredModules.instinctManager = instinctManager;
     },
     handlers: 11,

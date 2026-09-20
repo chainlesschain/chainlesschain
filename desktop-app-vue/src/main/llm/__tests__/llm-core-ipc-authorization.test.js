@@ -164,6 +164,17 @@ describe("LLM core IPC authorization", () => {
         "get-stream-stats",
         "get-time-series",
         "get-usage-stats",
+        "instinct-add",
+        "instinct-decay",
+        "instinct-delete",
+        "instinct-evolve",
+        "instinct-export",
+        "instinct-get-all",
+        "instinct-get-relevant",
+        "instinct-get-stats",
+        "instinct-import",
+        "instinct-reinforce",
+        "instinct-update",
         "list-models",
         "query",
         "query-stream",
@@ -199,6 +210,10 @@ describe("LLM core IPC authorization", () => {
     expect(OPERATION_AUTHORIZATION["clear-test-data"]).toEqual({
       purpose: "model-test-data-delete",
       fields: ["usage-test-data"],
+    });
+    expect(OPERATION_AUTHORIZATION["instinct-export"]).toEqual({
+      purpose: "model-instinct-export",
+      fields: ["instinct-export"],
     });
   });
 

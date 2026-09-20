@@ -57,6 +57,50 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-test-data-delete",
     fields: Object.freeze(["usage-test-data"]),
   }),
+  "instinct-get-all": Object.freeze({
+    purpose: "model-instinct-read",
+    fields: Object.freeze(["instinct-catalog"]),
+  }),
+  "instinct-get-relevant": Object.freeze({
+    purpose: "model-instinct-match",
+    fields: Object.freeze(["instinct-catalog"]),
+  }),
+  "instinct-add": Object.freeze({
+    purpose: "model-instinct-create",
+    fields: Object.freeze(["instinct-record"]),
+  }),
+  "instinct-update": Object.freeze({
+    purpose: "model-instinct-update",
+    fields: Object.freeze(["instinct-record"]),
+  }),
+  "instinct-delete": Object.freeze({
+    purpose: "model-instinct-delete",
+    fields: Object.freeze(["instinct-record"]),
+  }),
+  "instinct-reinforce": Object.freeze({
+    purpose: "model-instinct-update",
+    fields: Object.freeze(["instinct-record"]),
+  }),
+  "instinct-decay": Object.freeze({
+    purpose: "model-instinct-update",
+    fields: Object.freeze(["instinct-record"]),
+  }),
+  "instinct-evolve": Object.freeze({
+    purpose: "model-instinct-evolve",
+    fields: Object.freeze(["instinct-evolution-receipt"]),
+  }),
+  "instinct-export": Object.freeze({
+    purpose: "model-instinct-export",
+    fields: Object.freeze(["instinct-export"]),
+  }),
+  "instinct-import": Object.freeze({
+    purpose: "model-instinct-import",
+    fields: Object.freeze(["instinct-import-receipt"]),
+  }),
+  "instinct-get-stats": Object.freeze({
+    purpose: "model-instinct-stats-read",
+    fields: Object.freeze(["instinct-statistics"]),
+  }),
   "get-selector-info": Object.freeze({
     purpose: "model-selector-catalog-read",
     fields: Object.freeze(["selector-catalog"]),

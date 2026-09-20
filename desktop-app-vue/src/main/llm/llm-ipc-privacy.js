@@ -12,6 +12,7 @@ const SAFE_COMPONENTS = new Set([
   "bootstrap",
   "budgets",
   "core",
+  "instinct",
   "retention",
   "selector",
   "stream",
@@ -142,6 +143,17 @@ const SAFE_OPERATIONS = new Set([
   "calculate-cost",
   "export-report",
   "get-conversation-stats",
+  "instinct-get-all",
+  "instinct-get-relevant",
+  "instinct-add",
+  "instinct-update",
+  "instinct-delete",
+  "instinct-reinforce",
+  "instinct-decay",
+  "instinct-evolve",
+  "instinct-export",
+  "instinct-import",
+  "instinct-get-stats",
 ]);
 
 function allowlisted(value, values) {

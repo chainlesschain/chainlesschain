@@ -250,3 +250,4 @@
 | 180  | 2026-09-21 | [第一百八十次工程实施：告警历史 IPC 身份绑定与输入边界](./rsiagent-one-hundred-eightieth-batch-implementation-2026-09-21.md)              |
 | 181  | 2026-09-21 | [第一百八十一次工程实施：Token IPC 身份作用域与授权边界](./rsiagent-one-hundred-eighty-first-batch-implementation-2026-09-21.md)           |
 | 182  | 2026-09-21 | [第一百八十二次工程实施：LLM State Bus 事件回执最小披露](./rsiagent-one-hundred-eighty-second-batch-implementation-2026-09-21.md)          |
+| 183  | 2026-09-21 | [第一百八十三次工程实施：Instinct IPC 授权、输入与回执边界](./rsiagent-one-hundred-eighty-third-batch-implementation-2026-09-21.md)        |
