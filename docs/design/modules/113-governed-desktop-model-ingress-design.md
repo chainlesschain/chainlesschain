@@ -1,10 +1,10 @@
 # 113 Desktop 受治理模型入口设计
 
-> 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell 源码已落地；CLI/Hub 共享治理入口基线为 `0.166.38`，当前公开 CLI `0.166.44` 将新 Volcengine 文本配置默认更新为 DeepSeek V4 Flash GA；Desktop native 生产部署仍待独立验收
+> 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC、内嵌 Web Shell、Volcengine function capability 与 Secure Storage IPC/原子恢复源码已落地；当前公开 CLI 为 `0.166.68`，Desktop native 生产部署仍待独立验收
 >
-> 核对基线：本地 `main@a238e6c245`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
+> 核对基线：源码 `main@5da428687f`；最近完成公共 ARM64 证据的祖先为 `45557d27dc`（2026-09-20）
 >
-> 发布边界：`chainlesschain@0.166.38` 已包含 CLI/Hub 受治理模型入口；这仍不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
+> 发布边界：`chainlesschain@0.166.68`、Open VSX `0.37.110` 与 JetBrains `0.4.131` 已公开；`ad7567214f`–`5da428687f` 的 Desktop 增量晚于这些制品，不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
 
 ## 1. 背景与目标
 
@@ -45,6 +45,18 @@ Desktop 主进程现在将 `desktopModelIngressHost` 注入 Personal Data Hub IP
 ### 1.3 `a238e6c245` 的遗留 ImageGen 内容入口闭合
 
 ImageGen 的 15 个 Desktop IPC 覆盖文生图、图生图、变体与超分。状态读取、模型选择、进度与中断属于控制面；任何携带用户文本或图像的内容入口现在在读取缓存、选择 provider 或执行 fallback 前先验证受治理 ingress。缺失或拒绝时返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，不会调用 manager provider 或底层 `SDClient`/`DALLEClient` 的 `fetch`。这关闭的是已识别的遗留 Desktop IPC 绕过面，不扩大为所有未来第三方 SDK 或目标部署 authority 已验收的声明。
+
+### 1.4 `ad7567214f`–`5da428687f` 的 IPC、函数能力与密钥文件恢复
+
+Volcengine 与 Secure Storage 的 renderer IPC 现在先验证实际主窗口、main frame、可信来源、当前 DID actor/tenant 和操作固定用途，再读取配置、调用 provider、执行函数、访问文件或打开对话框。Secure Storage 写入值必须落在显式敏感字段白名单内，拒绝原型键、accessor、Proxy、跨 provider 路径及越界 payload；读取只返回脱敏状态。Volcengine 模型选择与目录同样只返回有界公开投影。
+
+Volcengine Function Calling 不再包含数据库、文件系统、P2P 和系统信息的旧本地 executor。签名 evolution deployment 可显式提供 branded authority，Desktop 经真实 CLI capture 后把它收窄为 opaque host。逐次执行绑定 actor、tenant、sender、purpose、函数白名单、参数/request digest、handler artifact digest 与 policy revision，并要求业务 port 返回认证、耐久、回读已确认的结果与审计摘要。未装配 authority 时功能保持失败关闭。
+
+LLM 加密配置的同步/异步保存、备份、恢复、密码导出和 safeStorage 迁移统一通过原子文件提交器。写入使用目标同目录内的 `0600` 排他临时文件，flush 后原子 rename 并同步目录；启动恢复只接纳能由当前密钥成功解密的完整临时文件。备份默认保留 10 份（允许 1–100），仅接纳严格 UTC 文件名、规范目录内、非符号链接且不超过 16 MiB 的普通文件；恢复只接受服务端清单内路径，保留裁剪失败会撤销新备份并返回失败。
+
+原子目标另有跨进程 owner 与 recovery fence。owner 绑定 PID、进程启动时间、随机 nonce 和目标摘要；活动 owner 拒绝竞争写入，死亡 owner 只有在独立 fence 下复核完整记录和存活状态后才能回收。owner 变化、记录异常或另一个恢复者存活时不会猜测接管。
+
+核心 LLM IPC 的成功结果同样是边界的一部分。query、chat、stream、status、model list 与 embedding 会从底层结果重建固定、冻结且有界的 plain data；provider/Agent/cache 内部对象、额外字段、Proxy、accessor、非有限数值、超限文本、模型列表、引用文档和向量都不会直接进入 renderer。投影错误按固定失败回执终止，不会回退为透传原对象。
 
 ## 2. 架构
 

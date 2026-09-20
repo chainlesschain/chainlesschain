@@ -1,14 +1,25 @@
 # Desktop 模型治理与失败闭合
 
-> 适用范围：本地 `main@a238e6c245`；GitHub `main@1895749692` / Gitee `main@3806866d80`（2026-09-09）
+> 适用范围：源码 `main@5da428687f`；公开 CLI `0.166.68@815fdbc0c4`、Open VSX `0.37.110@5860f1e4a4`、JetBrains `0.4.131@5860f1e4a4`（2026-09-20）
 >
-> 发布边界：CLI/Hub 共享治理入口已随 `0.166.38@de8ec4e5c8` 发布；本页的 Desktop Electron 接线不是 npm CLI 字节，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
+> 发布边界：本页 `ad7567214f`–`5da428687f` 的 Desktop Electron IPC 与安全配置增量晚于当前公共 npm/IDE 制品，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
 
 ## 概述
 
-本地 `main@a238e6c245` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量晚于已核对的远端 head，且尚未进入公开 Desktop native 安装包。
+源码 `main@5da428687f` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量尚未进入公开 Desktop native 安装包。
 
 桌面端的模型请求不再只治理“聊天”入口。普通对话、流式输出、函数工具、多模态、记忆摘要等已接入同一受治理 Run；已识别但尚无可信桥接的旧 embedding、reranker、媒体、项目、文档和 RAG 直连会在发送数据前拒绝。
+
+### 2026-09-20 源码安全增量
+
+- **renderer IPC 授权**：Volcengine 与 Secure Storage 的操作在读取密钥、调用 provider、访问文件或打开系统对话框前，校验主窗口、main frame、可信来源、当前 DID tenant 和固定用途。renderer 不能自行声明 actor/tenant/purpose，拒绝结果也不会包含密钥、路径或底层动态异常。
+- **函数调用能力**：Volcengine 不再直接执行数据库、文件、P2P 或系统信息操作。只有签名 evolution deployment 明确提供的 opaque capability 才能执行白名单函数；请求与结果绑定当前身份、参数摘要、handler 摘要、策略 revision 和认证耐久回读。未配置时会明确失败，不会退回旧实现。
+- **加密配置恢复**：保存、导入、迁移和备份先写私有临时文件，完成 flush、原子 rename 与目录同步后才成功。崩溃恢复只提升能用当前密钥解密的完整临时文件，损坏或伪造文件会被丢弃。
+- **备份清单**：默认保留最新 10 份，可配置为 1–100。系统只列出严格命名、位于真实备份目录、非符号链接且不超过 16 MiB 的普通文件；恢复只能选择该清单中的路径，裁剪旧备份失败时本次新备份也会撤销。
+- **跨进程写入保护**：同一配置目标由包含进程身份、启动时间、随机 nonce 和目标摘要的 owner 记录互斥。进程退出后，下一写入者必须先取得 recovery fence、复核 owner 未变化且原进程确已死亡，才会回收旧锁。
+- **成功结果最小投影**：核心 query/chat/stream/status/model list/embedding 只向界面返回固定、有界的纯数据字段。provider/Agent/cache 内部对象、额外属性、Proxy、accessor、非有限数值、超长文本和超大向量/集合会被过滤或拒绝，不会因调用成功而绕过隐私边界。
+
+这些边界不等于生产 Credential Manager/Keychain/Secret Service 已完成验收。物理断电、目录 ACL、身份切换、多租户撤销和 operator 签名销毁策略仍需在目标 Windows、macOS 和 Linux 环境测试。
 
 这意味着：
 

@@ -1,14 +1,16 @@
 # 受治理的 Skill 自进化
 
-> 适用版本：Agent Platform CLI `0.166.65`；更新：2026-09-19
+> 适用版本：Agent Platform CLI `0.166.68`；更新：2026-09-20
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.65` 是当前 `latest`，对应标签 `v-npm-0-166-65` 与提交 `17509017a2`。安装或升级 CLI：`npm i -g chainlesschain@0.166.65`。Open VSX `0.37.109` 与 JetBrains `0.4.130` 已公开并推荐该 CLI。
+> 发布状态：npm `chainlesschain@0.166.68` 是当前 `latest`，对应标签 `v-npm-0-166-68` 与提交 `815fdbc0c4`。安装或升级 CLI：`npm i -g chainlesschain@0.166.68`。Open VSX `0.37.110` 与 JetBrains `0.4.131` 已公开并推荐该 CLI。
 
 > `0.166.63` 在既有 Evolution ledger v2、TEST→managed 部署轮换和 PM Broad/Deep 恢复合同上，新增宿主强制预算、签名执行/评分回执、provider settlement、独立 PM 业务 grader、Desktop 只读 SQLite 结果源、执行前后 seal、失败污染门禁、耐久迁移与恢复快照。无需为普通对话部署治理宿主；Explorer、candidate/Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 > `0.166.64–0.166.65` 只收敛 Agent 循环恢复语义：已知目标允许有界分段续读，合成暂停不污染重复读取/相同大输出计数；真实无进展、策略拒绝与 authority 边界不变。
+
+> `0.166.68` 将浏览器动作与下载纳入显式 authority，把下载字节先放入可恢复、可撤销、可审计销毁的耐久隔离区；PM runner/reviewer/grader 的结果绑定有界子进程与执行上下文。发布链先审计全部 13 个子包，并先发布有变化的 Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 和 Personal Data Hub `0.4.62`，再发布 CLI 与 IDE。该顺序不改变 candidate、review、promotion 或 active mutation 的 authority 边界。
 
 ## 概述
 
@@ -439,11 +441,11 @@ if ($LASTEXITCODE -ne 0) {
 公开 CLI `0.166.63` 包含 PM 场景的受治理 Broad/Deep 轮次、宿主强制预算、四角色签名回执、provider usage/费用结算、独立业务评分、静止点 Journal 恢复，以及 Desktop SQLite 状态迁移/恢复快照链。配套 Open VSX `0.37.108` 与 JetBrains `0.4.129` 推荐同一 CLI，但当前没有向普通用户开放“一键自主探索”入口。
 
 ```bash
-npm install --global chainlesschain@0.166.65 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.68 --registry https://registry.npmjs.org
 cc --version
 ```
 
-`cc --version` 应输出 `0.166.65`。公开版本的正确行为是：
+`cc --version` 应输出 `0.166.68`。公开版本的正确行为是：
 
 - Desktop readiness 只读取签名 deployment 提供的品牌化执行、评分、迁移与快照能力，不向 renderer、IPC、模型或 IDE 暴露通用写端口、Ledger、authority、密钥、任意 SQL、数据库字节或目录。
 - 即使本地配置检查全部满足，`readyForExecution`、`runtimeVerified`、`authenticated` 与 `qualifiesForPromotion` 仍为 `false`，状态保持 `requires-runtime-evidence`；这表示 operator authority、隔离工作区、真实身份/RBAC、远端 durability 和目标环境恢复证据尚未齐备，不是安装故障。

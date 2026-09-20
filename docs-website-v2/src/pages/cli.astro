@@ -11,6 +11,7 @@ const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_HEAD_COMMIT = releaseStatus.sourceHeadCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
+const IDE_RELEASE_COMMIT = releaseStatus.ideReleaseCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 
@@ -507,7 +508,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 允许恢复中的已知目标做显式有界续读，并把合成暂停与真实文件/命令/远端观察分开，避免恢复指引自己触发重复读取或相同大输出保护。真实重复、策略拒绝、全局无进展与六次真实尝试上限保持失败闭合。精确 SHA 的 CLI CI/Strict 三系统门、OIDC provenance、公共 registry 与全新安装回读均成功。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 在既有有界恢复上加入浏览器 action authority、下载耐久 quarantine 和 PM 有界子进程。发布前逐一审计 13 个子包，先发布发生变化的 Session Core、Context/Memory Kernel 与 Personal Data Hub，再发布 CLI；精确 SHA 的 CLI CI/Strict 三系统门可复用，发布标签无需重复整套测试。OIDC provenance、公共 registry 与全新安装回读均成功。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>
@@ -692,7 +693,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 公开 canonical Agent Protocol、CC App Server、Agent Kernel、durable Graph Kernel、Graph trace/diff/eval、受治理 <code class="font-mono text-sm">cc exec</code> facade、实时 Team child 消息与 Agent SDK {AGENT_SDK_VERSION}。exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> 的三平台 CLI CI、Strict Sandbox、Trusted Publishing 与独立 registry/provenance 回读均成功；前序 `0.166.5` 的 1,800 秒 App Server overload/RSS soak 与 SDK npm/PyPI 安装回读继续提供对应专项证据。
         </p>
         <p class="mt-4 text-lg text-muted">
-          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。CLI authoritative entry 已在 {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT} 完成切换；Desktop/VS Code 固定能力 App Server 仍是独立迁移面。PM 恢复源码 {DESKTOP_SOURCE_COMMIT} 只证明只读 readiness 与测试证据；IDE 发布源码 {SOURCE_HEAD_COMMIT} 对齐 {SOURCE_CLI_VERSION}，不会因此取得 Desktop native 或自动晋升授权。
+          GraphRun 是 run identity、authority、budget 与 revision envelope：Task Graph 决定依赖和 ready frontier，Agent Tree 描述动态执行拓扑，Artifact/Trace Graph 只读投影证据。Occurrence 接纳成功或当前无 ready task 都不等于 Graph 成功。CLI authoritative entry 已在 {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT} 完成切换；Desktop/VS Code 固定能力 App Server 仍是独立迁移面。PM 恢复源码 {DESKTOP_SOURCE_COMMIT} 只证明只读 readiness 与测试证据；IDE 发布源码 {IDE_RELEASE_COMMIT} 对齐 {SOURCE_CLI_VERSION}。文档核对源码 {SOURCE_HEAD_COMMIT} 的后续 Desktop 安全增量不会因此取得 native 发行或自动晋升授权。
         </p>
       </div>
     </div>

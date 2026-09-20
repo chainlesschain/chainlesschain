@@ -1,6 +1,8 @@
 # 112 受治理的 Skill 自进化设计
 
-> 2026-09-19 增量：公开 CLI 已升至 `0.166.65@17509017a2`，Open VSX `0.37.109@063d491dab` 与 JetBrains `0.4.130@063d491dab` 已公开并推荐该 CLI。`0.166.64–0.166.65` 将恢复控制结果与真实工具观察分开，允许已知目标的显式有界续读，并阻止合成暂停反向推进重复读取/相同大输出计数；真实重复、无关远端发现、策略拒绝和六次真实无进展仍失败闭合。本版继承 0.166.63 的宿主强制预算、四角色签名回执、provider settlement、独立 PM 业务 grader、Desktop SQLite 状态链与恢复快照；`readyForExecution:false`、`qualifiesForPromotion:false` 和 automatic promotion `HOLD` 不变。
+> 2026-09-20 增量：公开 CLI 已升至 `0.166.68@815fdbc0c4`，Open VSX `0.37.110@5860f1e4a4` 与 JetBrains `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器观察、导航、标签、历史、键盘与下载均要求显式 action authority；下载字节进入带跨进程锁、认证保留/撤销、崩溃恢复、到期清理与可审计销毁的耐久隔离区。PM runner/reviewer/grader 的证据与恢复快照绑定有界子进程和受治理上下文。Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62` 已先于 CLI 发布；13 个子包全部通过公共 tarball 字节审计。`readyForExecution:false`、`qualifiesForPromotion:false` 和 automatic promotion `HOLD` 不变。
+>
+> 2026-09-19 增量：公开 CLI `0.166.65@17509017a2` 将恢复控制结果与真实工具观察分开，允许已知目标的显式有界续读，并阻止合成暂停反向推进重复读取/相同大输出计数；真实重复、无关远端发现、策略拒绝和六次真实无进展仍失败闭合。
 
 > 2026-09-15 增量：公开 CLI 已升至 `0.166.56@d55de4810e`，Open VSX `0.37.103` 与 JetBrains `0.4.124` 均已公开并推荐该 CLI。部署 profile v5 新增明确的 `managed/test` 模式和受约束的测试私钥路径；`init-test` 通过正常验签/原子写入链创建本机 TEST 环境，`replace-test` 以 root-rotation proof 轮换到正式 descriptor/trust root。TEST 身份不获得审核或发布权限，automatic active promotion 继续 `HOLD`。
 
@@ -11,6 +13,18 @@
 > 适用范围：`packages/cli/src/lib/evolution/`、CLI learning writers、Desktop Skill Creator/Sync/Workbench、App Server、IDE 受治理投影与有界请求
 >
 > 用户文档：[受治理的 Skill 自进化](https://docs.chainlesschain.com/chainlesschain/governed-skill-evolution.html)
+
+### 2026-09-20 浏览器动作、下载隔离与发布证据
+
+浏览器工具不再把“已连接浏览器”视为所有动作的隐式授权。observation、navigation、tab creation、history traversal、keyboard action 和 download 使用不同 action class；每次副作用在调度前验证 authority、scope、目标和上下文 binding。只读观察不能升级为导航或下载，恢复流程也不能凭旧工具结果重建授权。
+
+下载采用流式写入并先进入 filesystem quarantine。记录绑定来源、字节摘要、创建与到期时间、custody 状态及 retain/revoke 决定。跨进程锁保证同一条目只能由一个恢复、保留、撤销、过期或销毁事务推进；崩溃后只能从已认证状态继续，未完成字节不会进入工作区或作为可信 PM 证据。销毁结果写入审计记录，不能用“文件不存在”替代已完成处置证明。
+
+PM exploration 的 runner、reviewer 和 grader 运行在有界子进程中。它们的输入摘要、预算、egress decision、recovery snapshot、benchmark receipt 和退出状态绑定 governed execution context；父进程只能接受匹配本轮 identity 与 digest 的结果。该隔离提高测试与恢复证据质量，不提供生产 runner、grader、PKI/KMS 或 promotion authority。
+
+发布链按依赖拓扑执行。工作流先构建确定性生成物并审计 13 个子包；源码有变化但版本未递增、公共 tarball 不一致或 provenance/标签/Git tree 无法闭合时，在 CLI publish 前停止。有变化的 Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62` 完成公共回读后，才发布 `chainlesschain@0.166.68`。发布标签复用 exact-SHA 的完整三平台 CLI CI 与 Strict Sandbox，不重复整套测试，也不接受本地、部分或旧提交结果。
+
+IDE 在 CLI 公共回读之后发布。failed-job rerun 的 ARM64 聚合按矩阵 key 从全部 attempt 选择最新证据，未重跑的成功单元保留早先 attempt；缺格、重复、SHA/架构/版本或 digest 不匹配仍失败关闭。最终 `45557d27dc` 的 11 单元矩阵与聚合全部成功。
 
 ### 2026-09-19 循环恢复语义
 

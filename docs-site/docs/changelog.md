@@ -5,6 +5,27 @@
 
 ## [Unreleased]
 
+#### Source main — Desktop governed IPC 与安全配置恢复（2026-09-20）
+
+- **IPC 身份与用途授权**（`ad7567214f`）：Volcengine 与 Secure Storage 操作在读取配置、调用 provider、访问文件或打开对话框前绑定主窗口、main frame、可信来源、当前 DID tenant 与固定用途；写入只接受已声明敏感字段，错误回执不泄露动态异常或密钥。
+- **签名函数能力**（`ad7567214f`）：Volcengine Function Calling 移除本地数据库、文件、P2P 和系统信息直连实现，只接受签名 evolution deployment 提供的 opaque capability，并校验 actor、tenant、函数白名单、参数摘要、handler 摘要、策略 revision 与认证耐久回读；未装配时失败关闭。
+- **原子提交与认证恢复**（`96d7cbc294`）：加密配置、导入、迁移和备份统一使用私有临时文件、flush、原子 rename 与目录同步；启动只提升可通过现有解密认证的完整临时文件，损坏或伪造文件被清理。
+- **有界备份清单**（`fe6157d58f`）：默认保留 10 份（配置范围 1–100），只接纳严格命名、备份目录内、非符号链接且不超过 16 MiB 的普通文件；恢复只允许清单内规范路径，保留裁剪失败会撤销新备份并报告失败。
+- **跨进程写入 fence**（`89e180f700`）：原子提交器使用绑定 PID、进程启动时间、随机 nonce 与目标摘要的 owner 记录互斥写入；死亡 owner 只能在独立 recovery fence 下回收，owner 字节变化、活动进程或并发恢复都会失败关闭。
+- **核心 LLM 成功结果投影**（`5da428687f`）：query/chat/stream/status/model list/embedding 的成功结果统一重建为有界 plain data；不再把 provider、Agent 或缓存内部对象直接返回 renderer，并拒绝 Proxy、accessor、非有限数值、超大文本/向量/集合和未声明字段。
+- **发布边界**：上述三项是公开 CLI/IDE 发布后的 Desktop 源码增量，不代表 Desktop native 已发行。真实 Credential Manager/Keychain/Secret Service、跨进程锁、物理断电和多租户撤销仍需目标环境验收。
+
+#### Released — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131（2026-09-20）
+
+- **浏览器动作治理**：观察、导航、标签、历史、键盘和下载使用显式 action authority；只读观察不能隐式扩大为副作用权限。
+- **下载耐久隔离**：响应字节流先写入 filesystem quarantine，并由跨进程锁、认证 retain/revoke、崩溃恢复、到期 sweep 与可审计 dispose 管理；未裁决内容不能直接成为可信工作区文件。
+- **PM 运行隔离**：runner、reviewer 与 grader 在有界子进程中执行，证据、恢复快照、egress 决定及 benchmark receipt 绑定 governed execution context。
+- **子包先发与字节审计**：发布工作流检查 13 个子 npm 包，先发布发生变化的 Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`，再发布 CLI；源码变化但未递增版本、公共 tarball 漂移或 provenance 不完整会失败关闭。
+- **避免重复全量测试**：发布标签复用 `815fdbc0c4` 已通过的完整三平台 CLI CI 与 Strict Sandbox，只执行制品审计、公共安装和发布回读；本地、部分矩阵、超时或旧提交结果不被接受。
+- **CLI 发布证据**：`v-npm-0-166-68@815fdbc0c4` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35507258259)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35507258127)和 [npm OIDC 发布/公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35509552030)均成功。
+- **IDE 发布证据**：`0.37.110/0.4.131@5860f1e4a4` 的 [IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35510430698)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35511532130)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35512228012)成功，两个公开 listing 均已回读。
+- **ARM64 重跑聚合修复**：`45557d27dc` 从所有 run attempt 按矩阵 key 选择最新证据，保留未重跑单元的早先成功 artifact；[11 单元 ARM64 矩阵及聚合](https://github.com/chainlesschain/chainlesschain/actions/runs/35514094545)全部通过。Microsoft Marketplace 因未配置 `VSCE_PAT` 仍未发行。
+
 #### Released — CLI 0.166.65 / Open VSX 0.37.109 / JetBrains 0.4.130（2026-09-19）
 
 - **有界目标续读**：`0.166.64` 允许任务恢复阶段对已知目标使用显式 offset 与最多 80 行的小范围读取，不再要求重新输出整个文件。

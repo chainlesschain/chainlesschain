@@ -11,6 +11,7 @@ const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_HEAD_COMMIT = releaseStatus.sourceHeadCommit.slice(0, 10);
 const DESKTOP_SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
+const IDE_RELEASE_COMMIT = releaseStatus.ideReleaseCommit.slice(0, 10);
 const AGENT_SDK_VERSION = releaseStatus.agentSdkVersion;
 const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 
@@ -503,7 +504,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} allows an explicit bounded read of a known target during recovery and separates synthetic pauses from real file, command, and remote observations, so recovery guidance cannot trigger its own repeated-read or identical-output guard. Genuine repetition, policy rejection, global no-progress, and six-real-attempt limits remain fail closed. The exact-SHA CLI CI/Strict three-OS gates, OIDC provenance, public registry, and fresh-install readback all passed.</p>
+      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} adds browser action authorities, durable download quarantine, and bounded PM child processes on top of existing recovery controls. Publication audits all 13 child packages, ships changed Session Core, Context/Memory Kernel, and Personal Data Hub packages first, then ships the CLI. The tag reuses complete exact-SHA CLI CI/Strict three-OS gates instead of rerunning the full suite. OIDC provenance, public registry, and fresh-install readback all passed.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
     </div>
   </section>
@@ -689,7 +690,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, real-Team-child messaging, and Agent SDK {AGENT_SDK_VERSION}. Exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry/provenance readback; the preceding `0.166.5` 1,800-second App Server overload/RSS soak and npm/PyPI SDK install readback remain the corresponding focused evidence.
         </p>
         <p class="mt-4 text-lg text-muted">
-          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. PM recovery source {DESKTOP_SOURCE_COMMIT} proves only read-only readiness and test evidence; IDE release source {SOURCE_HEAD_COMMIT} aligns with {SOURCE_CLI_VERSION} without authorizing Desktop native distribution or automatic promotion.
+          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. PM recovery source {DESKTOP_SOURCE_COMMIT} proves only read-only readiness and test evidence; IDE release source {IDE_RELEASE_COMMIT} aligns with {SOURCE_CLI_VERSION}. Later Desktop security changes in documented source {SOURCE_HEAD_COMMIT} do not authorize native distribution or automatic promotion.
         </p>
       </div>
     </div>

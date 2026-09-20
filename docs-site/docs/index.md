@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.65 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.68 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.65
-    details: 公开 CLI 支持恢复阶段的已知目标有界续读，合成暂停不再反向触发重复读取/相同大输出计数；真实无进展仍失败闭合。
+    title: Agent Platform 0.166.68
+    details: 浏览器动作使用显式 authority，下载先进入耐久隔离区；PM 子进程证据与恢复快照绑定受治理执行上下文。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.109 与 JetBrains 0.4.130 自动保存有界任务证据，并将已校验记录交给独立新会话，不复制旧对话或权限。
+    details: VS Code 0.37.110 与 JetBrains 0.4.131 自动保存有界任务证据，并将已校验记录交给独立新会话，不复制旧对话或权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
@@ -42,24 +42,26 @@ features:
     link: /chainlesschain/cli-team-graph
   - icon: 🛡️
     title: Desktop 模型与 Skill 治理
-    details: 外部 Handler 经签名与隔离 Worker；普通、工具和多模态模型请求共用受治理 Run，未迁移旧直连在网络发送前失败闭合。
+    details: 模型、Volcengine 与 Secure Storage IPC 绑定主进程身份和固定用途；密钥文件原子提交、认证恢复并执行有界备份保留。
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
-    title: IDE Bridge 突破 4.5 万下载
-    details: Open VSX 0.37.109 与 JetBrains 0.4.130 已公开并推荐 CLI 0.166.65；Microsoft Marketplace 当前未发行。
+    title: IDE Bridge 突破 4.7 万下载
+    details: Open VSX 0.37.110 与 JetBrains 0.4.131 已公开并推荐 CLI 0.166.68；Microsoft Marketplace 当前未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
-    details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
+    details: 本地优先、权限控制、会话恢复、Process Broker、跨平台沙箱与加密配置清单共同保护 Agent 执行边界。
   - icon: 🧠
-    title: Personal Data Hub 0.4.60
+    title: Personal Data Hub 0.4.62
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.65@17509017a2，三平台 CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均成功；Desktop 继续独立验收。
+    details: npm latest 为 CLI 0.166.68@815fdbc0c4；13 个子包完成字节审计，三平台 CLI/Strict、OIDC 发布和公共安装回读均成功。
 ---
 
-> **2026-09-19 发布快照**：npm `latest` 为 `chainlesschain@0.166.65`，不可变标签为 `v-npm-0-166-65@17509017a2`；Open VSX `0.37.109@063d491dab` 与 JetBrains Marketplace `0.4.130@063d491dab` 已公开并推荐该 CLI。恢复阶段现在可对已知目标做显式小范围续读，合成暂停不会累计进重复读取/相同大输出计数；真实重复、策略拒绝和六次真实无进展尝试仍失败闭合。CLI/Strict/npm OIDC 与 IDE 精确提交/ARM64/渠道发布门均成功；Microsoft Marketplace 未发行。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[发布与升级指南](/chainlesschain/agent-platform-release)与[模块 112 设计](/design/modules/112-governed-skill-evolution-design)。
+> **2026-09-20 发布快照**：npm `latest` 为 `chainlesschain@0.166.68`，不可变标签为 `v-npm-0-166-68@815fdbc0c4`；Open VSX `0.37.110@5860f1e4a4` 与 JetBrains Marketplace `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器动作进入显式 authority，下载字节先进入耐久隔离区；13 个子包完成公共 tarball 字节审计，并先发布 Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62`。CLI/Strict/npm OIDC、IDE 精确提交及最新 11 单元 ARM64 聚合均成功；Microsoft Marketplace 未发行。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 112](/design/modules/112-governed-skill-evolution-design)。
+
+> **本次源码核对边界**：`main@5da428687f` 在公开制品之后加入 Desktop IPC 身份/tenant/用途授权、签名 Volcengine function capability、带死亡 owner 回收与 recovery fence 的跨进程原子提交、默认 10 份的严格备份清单，以及核心 LLM IPC 成功结果的有界纯数据投影。该源码尚未作为 Desktop native 安装包公开发布；真实系统凭据库、物理断电、目录 ACL 与身份撤销故障矩阵仍需目标环境验收。详见 [Desktop 模型治理](/chainlesschain/desktop-model-governance) 与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 
 > **2026-09-11 历史发布快照**：npm `latest` 为 `chainlesschain@0.166.44`，不可变标签为 `v-npm-0-166-44@0651cbcb7d`；产品版本为 `v5.0.3.137`。新建 Volcengine 文本配置默认使用 `deepseek-v4-flash-ga-260731`（DeepSeek V4 Flash GA），既有保存配置不迁移。同期源码强化了 EvolutionLedger 的整批预校验/签名、增量前缀重验和 v2 manifest head CAS；这些可靠性增强不等于目标环境已配置 KMS/PKI/witness/grader，也不改变 automatic promotion `HOLD`。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[模块 112](/design/modules/112-governed-skill-evolution-design)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 

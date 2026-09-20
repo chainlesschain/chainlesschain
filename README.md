@@ -2,26 +2,28 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.65`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.68`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.65 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.68 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-19 当前发布 — CLI 0.166.65 / Open VSX 0.37.109 / JetBrains 0.4.130
+## 2026-09-20 当前发布 — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131
 
 > 发布边界：CLI、VSIX 与 JetBrains ZIP 是三个独立制品；本节只描述已经完成精确提交门禁并从公开渠道回读的版本。Desktop 原生安装包、生产 KMS/PKI、独立 witness/grader 与自动 active Skill 晋升不在本次发布范围内。
 
-npm `latest` 为 `0.166.65`，不可变标签 `v-npm-0-166-65` 对应精确提交 `17509017a2`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35438409239) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35438410004) 已通过 Linux、Windows、macOS 全部配置任务；[npm OIDC 发布与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35440962350)成功，并生成签名 provenance。官方 registry 已回读 `latest=0.166.65`、tarball 完整性与全新安装。Agent Protocol `0.1.11`、Context Memory Kernel `0.1.4`、Agent SDK TS/Python `0.2.11/0.2.9` 与 Session Core `0.3.12` 保持独立发布边界。
+npm `latest` 为 `0.166.68`，不可变标签 `v-npm-0-166-68` 对应精确提交 `815fdbc0c4`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35507258259) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35507258127) 已通过 Linux、Windows、macOS 全部配置任务；[npm OIDC 发布与公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35509552030)成功，并生成签名 provenance。发布前对 13 个子 npm 包逐一执行公共 tarball 字节审计；检测到源码变化的 Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62` 已先于 CLI 发布，其余子包复用前也必须证明 Git tree、标签、provenance 与公共包字节一致。
 
-本版修复 IDE 长任务可能出现的 `Repeated file reads or identical large command outputs` 停滞：恢复阶段可继续读取已知目标的显式小分段；运行时生成的暂停结果不再反向累加重复文件读取或相同大输出计数。真实重复读取、无关远端发现、策略拒绝和六次真实无进展尝试仍会失败闭合，因此修复不会放宽审批、沙箱或执行边界。
+本版把浏览器观察、导航、新建标签、历史前进/后退、键盘动作和下载纳入显式 action authority。下载内容以流方式进入耐久文件隔离区，由跨进程锁、认证保留/撤销决定、崩溃恢复、到期清理和可审计销毁共同管理；浏览器或模型不能把未裁决字节直接当作可信工作区文件。PM 探索 runner、reviewer 与 grader 同样在有界子进程中运行，其证据、恢复快照、出口决定和 benchmark 回执绑定受治理执行上下文。
 
-本版在既有 Broad/Deep 恢复合同上完成 RSIAgent 第 9–23 批：宿主强制 token/tool/墙钟预算与四角色 Ed25519 回执、火山引擎真实 usage/费用结算及耐久回读、独立 PM 业务 grader、绑定签名数据库路径的 Desktop 固定 `SELECT` 结果端口，以及 SQLite 执行前/后/失败 seal、tainted host 门禁、耐久迁移提交、认证链头恢复和与迁移绑定的 SQLite 恢复快照。Desktop 仍只投影只读 readiness，`readyForExecution`、`runtimeVerified`、`authenticated` 与 `qualifiesForPromotion` 均保持 `false`，不会因此开放 Explorer 或自动晋升。
+发布工作流现在先构建确定性生成物，再审计可复用子包；发现源码变化但版本未递增、公共 tarball 漂移或缺少可信 provenance 时，会在 CLI 发布前失败关闭。已通过的精确 SHA CLI CI 与 Strict Sandbox 可由发布标签复用，因此不重复执行整套测试；标签只能消费完整三平台结果，不能接受本地、部分矩阵、超时或旧提交结果。
 
-CLI 制品源码边界为 `17509017a2`；VS Code 与 JetBrains 制品源码边界均为 `063d491dab`。[Open VSX 0.37.109](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains Marketplace 0.4.130](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.65`；[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35444203114)、[ARM64 门](https://github.com/chainlesschain/chainlesschain/actions/runs/35444203032)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35445857141)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35447194795)均成功。微软 VS Code Marketplace 回填在上传前因发布凭据未配置而停止，当前仍未发行；Desktop 原生安装包也是独立发布面。当前快照的生产 authority、远端 durability、workspace 恢复集合、原子 restore 和真实 Electron DID/RBAC PM E2E 仍未完成。详见[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)、[受治理演进用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+CLI 制品源码边界为 `815fdbc0c4`；VS Code 与 JetBrains 制品源码边界均为 `5860f1e4a4`。[Open VSX 0.37.110](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains Marketplace 0.4.131](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并推荐 CLI `0.166.68`；[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35510430698)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35511532130)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35512228012)均成功。后续 `45557d27dc` 修复 failed-job rerun 只读取当前 attempt、遗漏早先成功证据的问题，[11 单元 ARM64 真机矩阵及聚合](https://github.com/chainlesschain/chainlesschain/actions/runs/35514094545)已全绿。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包也是独立发布面。详见[模块 110 发布边界设计](docs/design/modules/110-agent-platform-release-boundaries.md)、[模块 112 设计](docs/design/modules/112-governed-skill-evolution-design.md)、[受治理演进用户指南](docs-site/docs/chainlesschain/governed-skill-evolution.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+
+本次文档核对的源码基线 `5da428687f` 另收紧 Desktop 的受治理 IPC 与本地密钥存储：Volcengine 与 Secure Storage IPC 在副作用前绑定主窗口、main frame、DID tenant 和固定用途；函数调用只能消费签名 deployment 提供的 opaque capability；加密配置使用 flush/rename/目录同步的原子提交与认证恢复，并通过带进程身份、死亡 owner 回收和 recovery fence 的跨进程锁串行写入。备份默认保留 10 份，并拒绝符号链接、目录逃逸、超大文件和清单外恢复。核心 LLM IPC 的成功结果也会投影为有界纯数据，过滤 provider/Agent 内部对象、accessor、Proxy、非有限数值与超限数组。这些是发布后的源码增量，尚未进入上述 npm、IDE 或 Desktop native 公共制品。
 
 ## 2026-09-11 历史发布 — **v5.0.3.137 / CLI 0.166.44：DeepSeek V4 Flash GA 默认模型**
 
