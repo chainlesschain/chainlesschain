@@ -43,17 +43,21 @@ export const VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA =
 export const VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA =
   "chainlesschain.volcengine-function-revocation-result/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-evidence-resolver/v2";
+  "chainlesschain.volcengine-function-revocation-evidence-resolver/v3";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA =
   "chainlesschain.volcengine-function-revocation-evidence-request/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA =
   "chainlesschain.volcengine-function-revocation-evidence-readback/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA =
   "chainlesschain.volcengine-function-revocation-authorization-evidence/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-signer-certificate/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE =
   "digest-bound-exact-bytes";
 export const VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE =
-  "ed25519-pinned-trust-root";
+  "ed25519-certified-signer";
+export const VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE =
+  "ed25519-root-signed-leaf";
 export const VOLCENGINE_FUNCTION_REVOCATION_PURPOSE =
   "revoke-model-tool-execution";
 export const VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE = "operator-signed";
@@ -928,8 +932,12 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "policyRevision",
       "mode",
       "signatureMode",
+      "certificateMode",
       "trustRootDigest",
+      "rootKeyId",
       "signerKeyId",
+      "signerCertificateDigest",
+      "revocationAuthorityId",
       "maxEvidenceBytes",
     ],
     "Volcengine function revocation evidence resolver descriptor",
@@ -970,15 +978,35 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "signatureMode",
       "Volcengine function revocation evidence signature mode",
     ),
+    certificateMode: ownData(
+      value,
+      "certificateMode",
+      "Volcengine function revocation evidence certificate mode",
+    ),
     trustRootDigest: ownData(
       value,
       "trustRootDigest",
       "Volcengine function revocation evidence trust root digest",
     ),
+    rootKeyId: ownData(
+      value,
+      "rootKeyId",
+      "Volcengine function revocation evidence root key identifier",
+    ),
     signerKeyId: ownData(
       value,
       "signerKeyId",
       "Volcengine function revocation evidence signer key identifier",
+    ),
+    signerCertificateDigest: ownData(
+      value,
+      "signerCertificateDigest",
+      "Volcengine function revocation signer certificate digest",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine function revocation evidence authority identifier",
     ),
     maxEvidenceBytes: ownData(
       value,
@@ -996,8 +1024,13 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
     descriptor.mode !== VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE ||
     descriptor.signatureMode !==
       VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE ||
+    descriptor.certificateMode !==
+      VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE ||
     !DIGEST.test(descriptor.trustRootDigest) ||
+    !ID.test(descriptor.rootKeyId) ||
     !ID.test(descriptor.signerKeyId) ||
+    !DIGEST.test(descriptor.signerCertificateDigest) ||
+    !ID.test(descriptor.revocationAuthorityId) ||
     !Number.isSafeInteger(descriptor.maxEvidenceBytes) ||
     descriptor.maxEvidenceBytes < 1 ||
     descriptor.maxEvidenceBytes > 1024 * 1024
@@ -1030,10 +1063,193 @@ function copyEvidenceBytes(value, label, maxEvidenceBytes) {
   return Buffer.from(value);
 }
 
+function parseCanonicalJsonBytes(value, keys, label) {
+  const text = value.toString("utf8");
+  if (!Buffer.from(text, "utf8").equals(value)) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new TypeError(`${label} is invalid`);
+  }
+  exactData(parsed, keys, label);
+  if (!Buffer.from(canonical(parsed), "utf8").equals(value)) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  return parsed;
+}
+
+function decodeCanonicalBase64(value, label, maxBytes) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/u.test(value)
+  ) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  const bytes = Buffer.from(value, "base64");
+  if (
+    bytes.length < 1 ||
+    bytes.length > maxBytes ||
+    bytes.toString("base64") !== value
+  ) {
+    throw new TypeError(`${label} is invalid`);
+  }
+  return bytes;
+}
+
+function verifyRevocationSignerCertificate(
+  descriptor,
+  trustRootPublicKey,
+  signerCertificateBytes,
+) {
+  if (
+    digestBytes(signerCertificateBytes) !== descriptor.signerCertificateDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation signer certificate is invalid",
+    );
+  }
+  const value = parseCanonicalJsonBytes(
+    signerCertificateBytes,
+    [
+      "schema",
+      "trustRootDigest",
+      "issuerKeyId",
+      "subjectKeyId",
+      "subjectPublicKey",
+      "tenantId",
+      "revocationAuthorityId",
+      "usage",
+      "notBefore",
+      "notAfter",
+      "signature",
+    ],
+    "Volcengine function revocation signer certificate",
+  );
+  const core = Object.freeze({
+    schema: ownData(
+      value,
+      "schema",
+      "Volcengine function revocation signer certificate schema",
+    ),
+    trustRootDigest: ownData(
+      value,
+      "trustRootDigest",
+      "Volcengine function revocation signer certificate trust root",
+    ),
+    issuerKeyId: ownData(
+      value,
+      "issuerKeyId",
+      "Volcengine function revocation signer certificate issuer",
+    ),
+    subjectKeyId: ownData(
+      value,
+      "subjectKeyId",
+      "Volcengine function revocation signer certificate subject",
+    ),
+    subjectPublicKey: ownData(
+      value,
+      "subjectPublicKey",
+      "Volcengine function revocation signer certificate public key",
+    ),
+    tenantId: ownData(
+      value,
+      "tenantId",
+      "Volcengine function revocation signer certificate tenant",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine function revocation signer certificate authority",
+    ),
+    usage: ownData(
+      value,
+      "usage",
+      "Volcengine function revocation signer certificate usage",
+    ),
+    notBefore: ownData(
+      value,
+      "notBefore",
+      "Volcengine function revocation signer certificate start",
+    ),
+    notAfter: ownData(
+      value,
+      "notAfter",
+      "Volcengine function revocation signer certificate expiry",
+    ),
+  });
+  const signature = decodeCanonicalBase64(
+    ownData(
+      value,
+      "signature",
+      "Volcengine function revocation signer certificate signature",
+    ),
+    "Volcengine function revocation signer certificate signature",
+    64,
+  );
+  const notBeforeMs = Date.parse(core.notBefore);
+  const notAfterMs = Date.parse(core.notAfter);
+  if (
+    core.schema !== VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA ||
+    core.trustRootDigest !== descriptor.trustRootDigest ||
+    core.issuerKeyId !== descriptor.rootKeyId ||
+    core.subjectKeyId !== descriptor.signerKeyId ||
+    core.tenantId !== descriptor.tenantId ||
+    core.revocationAuthorityId !== descriptor.revocationAuthorityId ||
+    core.usage !== VOLCENGINE_FUNCTION_REVOCATION_PURPOSE ||
+    !Number.isFinite(notBeforeMs) ||
+    new Date(notBeforeMs).toISOString() !== core.notBefore ||
+    !Number.isFinite(notAfterMs) ||
+    new Date(notAfterMs).toISOString() !== core.notAfter ||
+    notAfterMs <= notBeforeMs ||
+    notAfterMs > notBeforeMs + 366 * 24 * 60 * 60 * 1000 ||
+    signature.length !== 64 ||
+    !verifySignature(
+      null,
+      Buffer.from(
+        `${VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA}\0${canonical(core)}`,
+        "utf8",
+      ),
+      trustRootPublicKey,
+      signature,
+    )
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation signer certificate signature rejected",
+    );
+  }
+  const subjectPublicKeyBytes = decodeCanonicalBase64(
+    core.subjectPublicKey,
+    "Volcengine function revocation signer certificate public key",
+    16 * 1024,
+  );
+  let subjectPublicKey;
+  try {
+    subjectPublicKey = createPublicKey({
+      key: subjectPublicKeyBytes,
+      format: "der",
+      type: "spki",
+    });
+  } catch {
+    throw new TypeError(
+      "Volcengine function revocation signer certificate public key is invalid",
+    );
+  }
+  if (subjectPublicKey.asymmetricKeyType !== "ed25519") {
+    throw new TypeError(
+      "Volcengine function revocation signer certificate public key is invalid",
+    );
+  }
+  return Object.freeze({ subjectPublicKey, notBeforeMs, notAfterMs });
+}
+
 export function createVolcengineFunctionRevocationEvidenceResolver(options) {
   exactData(
     options,
-    ["descriptor", "resolve", "trustRootBytes"],
+    ["descriptor", "resolve", "trustRootBytes", "signerCertificateBytes"],
     "Volcengine function revocation evidence resolver",
   );
   const descriptor = normalizeRevocationEvidenceResolverDescriptor(
@@ -1087,6 +1303,20 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
       "Volcengine function revocation evidence trust root is invalid",
     );
   }
+  const signerCertificateBytes = copyEvidenceBytes(
+    ownData(
+      options,
+      "signerCertificateBytes",
+      "Volcengine function revocation signer certificate",
+    ),
+    "Volcengine function revocation signer certificate",
+    64 * 1024,
+  );
+  const signerCertificate = verifyRevocationSignerCertificate(
+    descriptor,
+    publicKey,
+    signerCertificateBytes,
+  );
   const resolver = Object.freeze({});
   revocationEvidenceResolvers.set(resolver, {
     descriptor,
@@ -1095,7 +1325,9 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
       descriptor,
     ),
     resolve,
-    publicKey,
+    publicKey: signerCertificate.subjectPublicKey,
+    signerNotBeforeMs: signerCertificate.notBeforeMs,
+    signerNotAfterMs: signerCertificate.notAfterMs,
   });
   return resolver;
 }
@@ -1120,22 +1352,8 @@ function verifyRevocationAuthorizationEvidence(
   decision,
   authorizationEvidenceBytes,
 ) {
-  const text = authorizationEvidenceBytes.toString("utf8");
-  if (!Buffer.from(text, "utf8").equals(authorizationEvidenceBytes)) {
-    throw new TypeError(
-      "Volcengine function revocation authorization evidence is invalid",
-    );
-  }
-  let value;
-  try {
-    value = JSON.parse(text);
-  } catch {
-    throw new TypeError(
-      "Volcengine function revocation authorization evidence is invalid",
-    );
-  }
-  exactData(
-    value,
+  const value = parseCanonicalJsonBytes(
+    authorizationEvidenceBytes,
     [
       "schema",
       "trustRootDigest",
@@ -1150,13 +1368,6 @@ function verifyRevocationAuthorizationEvidence(
     ],
     "Volcengine function revocation authorization evidence",
   );
-  if (
-    !Buffer.from(canonical(value), "utf8").equals(authorizationEvidenceBytes)
-  ) {
-    throw new TypeError(
-      "Volcengine function revocation authorization evidence is invalid",
-    );
-  }
   const core = Object.freeze({
     schema: ownData(
       value,
@@ -1204,11 +1415,17 @@ function verifyRevocationAuthorizationEvidence(
       "Volcengine function revocation authorization evidence expiry",
     ),
   });
-  const signature = ownData(
-    value,
-    "signature",
+  const signatureBytes = decodeCanonicalBase64(
+    ownData(
+      value,
+      "signature",
+      "Volcengine function revocation authorization evidence signature",
+    ),
     "Volcengine function revocation authorization evidence signature",
+    64,
   );
+  const authorizedAtMs = Date.parse(core.authorizedAt);
+  const validUntilMs = Date.parse(core.validUntil);
   if (
     core.schema !==
       VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA ||
@@ -1220,17 +1437,17 @@ function verifyRevocationAuthorizationEvidence(
     core.decision !== "allow" ||
     core.authorizedAt !== decision.authorizedAt ||
     core.validUntil !== decision.validUntil ||
-    typeof signature !== "string" ||
-    !/^[A-Za-z0-9+/]+={0,2}$/u.test(signature)
+    !Number.isFinite(authorizedAtMs) ||
+    authorizedAtMs < captured.signerNotBeforeMs ||
+    !Number.isFinite(validUntilMs) ||
+    validUntilMs > captured.signerNotAfterMs
   ) {
     throw new TypeError(
       "Volcengine function revocation authorization evidence is invalid",
     );
   }
-  const signatureBytes = Buffer.from(signature, "base64");
   if (
     signatureBytes.length !== 64 ||
-    signatureBytes.toString("base64") !== signature ||
     !verifySignature(
       null,
       Buffer.from(
@@ -2159,6 +2376,8 @@ export function createVolcengineFunctionRevocationAuthority(options) {
     evidenceResolverDescriptor.descriptorDigest !==
       descriptor.evidenceResolverDigest ||
     evidenceResolverDescriptor.descriptor.tenantId !== descriptor.tenantId ||
+    evidenceResolverDescriptor.descriptor.revocationAuthorityId !==
+      descriptor.authorityId ||
     evidenceResolverDescriptor.descriptor.handlerArtifactDigest !==
       descriptor.handlerArtifactDigest
   ) {

@@ -18,11 +18,13 @@ import {
   VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
   VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE,
   VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
   VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
   VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA,
   captureVolcengineFunctionRevocationAuthority,
   captureVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionExecutionAuthority,
@@ -43,7 +45,11 @@ import {
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
 const REPLAY_RETENTION_MS = 65_000;
 const temporaryRoots = [];
-const { privateKey: REVOCATION_SIGNING_KEY, publicKey: REVOCATION_TRUST_ROOT } =
+const {
+  privateKey: REVOCATION_ROOT_SIGNING_KEY,
+  publicKey: REVOCATION_TRUST_ROOT,
+} = generateKeyPairSync("ed25519");
+const { privateKey: REVOCATION_SIGNING_KEY, publicKey: REVOCATION_SIGNER_KEY } =
   generateKeyPairSync("ed25519");
 const REVOCATION_TRUST_ROOT_BYTES = Buffer.from(
   REVOCATION_TRUST_ROOT.export({
@@ -52,6 +58,11 @@ const REVOCATION_TRUST_ROOT_BYTES = Buffer.from(
   }),
 );
 const REVOCATION_SIGNER_KEY_ID = "revocation-operator-key:test";
+const REVOCATION_ROOT_KEY_ID = "revocation-root-key:test";
+const REVOCATION_SIGNER_PUBLIC_KEY_BYTES = REVOCATION_SIGNER_KEY.export({
+  type: "spki",
+  format: "der",
+});
 const AUDIT_EVENT_BYTES = Buffer.from("revocation-audit-event");
 const DURABILITY_RECEIPT_BYTES = Buffer.from("revocation-durability-receipt");
 
@@ -104,6 +115,36 @@ function authorizationEvidenceBytes(
     null,
     Buffer.from(
       `${VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA}\0${canonical(core)}`,
+      "utf8",
+    ),
+    signingKey,
+  ).toString("base64");
+  return Buffer.from(canonical({ ...core, signature }), "utf8");
+}
+
+function signerCertificateBytes(
+  overrides = {},
+  signingKey = REVOCATION_ROOT_SIGNING_KEY,
+) {
+  const core = {
+    schema: VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA,
+    trustRootDigest: sha(REVOCATION_TRUST_ROOT_BYTES),
+    issuerKeyId: REVOCATION_ROOT_KEY_ID,
+    subjectKeyId: REVOCATION_SIGNER_KEY_ID,
+    subjectPublicKey: Buffer.from(REVOCATION_SIGNER_PUBLIC_KEY_BYTES).toString(
+      "base64",
+    ),
+    tenantId: "tenant:test",
+    revocationAuthorityId: "function-revocation:test",
+    usage: VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
+    notBefore: new Date(NOW - 1000).toISOString(),
+    notAfter: new Date(NOW + 60_000).toISOString(),
+    ...overrides,
+  };
+  const signature = signBytes(
+    null,
+    Buffer.from(
+      `${VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA}\0${canonical(core)}`,
       "utf8",
     ),
     signingKey,
@@ -320,6 +361,8 @@ function createRevocationPort(
   now = () => NOW,
   evidenceOverrides = {},
 ) {
+  const certificateBytes =
+    evidenceOverrides.signerCertificateBytes || signerCertificateBytes();
   const evidenceResolverDescriptor = {
     schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
     resolverId: "revocation-evidence:test",
@@ -328,8 +371,12 @@ function createRevocationPort(
     policyRevision: "revocation-evidence-policy-1",
     mode: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
     signatureMode: VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE,
+    certificateMode: VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE,
     trustRootDigest: sha(REVOCATION_TRUST_ROOT_BYTES),
+    rootKeyId: REVOCATION_ROOT_KEY_ID,
     signerKeyId: REVOCATION_SIGNER_KEY_ID,
+    signerCertificateDigest: sha(certificateBytes),
+    revocationAuthorityId: targetDescriptor.revocationAuthorityId,
     maxEvidenceBytes: 4096,
     ...evidenceOverrides.descriptor,
   };
@@ -348,6 +395,7 @@ function createRevocationPort(
         })),
       trustRootBytes:
         evidenceOverrides.trustRootBytes || REVOCATION_TRUST_ROOT_BYTES,
+      signerCertificateBytes: certificateBytes,
     });
   return captureVolcengineFunctionRevocationAuthority(
     createVolcengineFunctionRevocationAuthority({
@@ -721,6 +769,28 @@ describe("Volcengine function execution authority", () => {
     ).resolves.toBeDefined();
   });
 
+  it("rejects authorization outside the certified signer validity window", async () => {
+    const target = setup();
+    const expiredCertificate = signerCertificateBytes({
+      notBefore: new Date(NOW - 60_000).toISOString(),
+      notAfter: new Date(NOW - 1).toISOString(),
+    });
+
+    await expect(
+      createRevocationPort(descriptor(), undefined, undefined, {
+        signerCertificateBytes: expiredCertificate,
+      }).revokeAuthority(
+        target.authority,
+        revocationRequest({ requestId: "revocation-expired-certificate" }),
+      ),
+    ).rejects.toThrow("revocation authorization evidence is invalid");
+    await expect(
+      target.port.executeFunction(
+        request({ requestId: "after-expired-certificate" }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it("binds the revocation authority to one branded evidence resolver", () => {
     expect(() =>
       createRevocationPort(descriptor(), undefined, undefined, {
@@ -759,6 +829,21 @@ describe("Volcengine function execution authority", () => {
         trustRootBytes: privateKeyBytes,
       }),
     ).toThrow("evidence trust root is invalid");
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        descriptor: { signerCertificateDigest: sha("foreign-certificate") },
+      }),
+    ).toThrow("signer certificate is invalid");
+    const { privateKey: foreignRootSigningKey } =
+      generateKeyPairSync("ed25519");
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        signerCertificateBytes: signerCertificateBytes(
+          {},
+          foreignRootSigningKey,
+        ),
+      }),
+    ).toThrow("signer certificate signature rejected");
   });
 
   it("binds the revocation authority to one signed execution authority", async () => {
