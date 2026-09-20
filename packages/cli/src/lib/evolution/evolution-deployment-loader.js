@@ -284,6 +284,7 @@ async function loadBuiltInFactories(commandName) {
       volcengineFunctionExecution,
       volcengineFunctionProcessExecutor,
       volcengineFunctionReplay,
+      volcengineFunctionRevocationStatusFloor,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -319,6 +320,7 @@ async function loadBuiltInFactories(commandName) {
       import("./volcengine-function-execution-authority.js"),
       import("./volcengine-function-process-executor.js"),
       import("./volcengine-function-replay-store.js"),
+      import("./volcengine-function-revocation-status-floor-store.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -463,6 +465,8 @@ async function loadBuiltInFactories(commandName) {
         volcengineFunctionProcessExecutor.createVolcengineFunctionProcessExecutor,
       createVolcengineFunctionReplayStore:
         volcengineFunctionReplay.createVolcengineFunctionReplayStore,
+      createVolcengineFunctionRevocationStatusFloorStore:
+        volcengineFunctionRevocationStatusFloor.createVolcengineFunctionRevocationStatusFloorStore,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -824,6 +828,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createVolcengineFunctionRevocationAuthority",
     "createVolcengineFunctionRevocationEvidenceResolver",
     "createVolcengineFunctionReplayStore",
+    "createVolcengineFunctionRevocationStatusFloorStore",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

@@ -19,6 +19,12 @@ import {
   captureVolcengineFunctionProcessResult,
   inspectVolcengineFunctionProcessExecutor,
 } from "./volcengine-function-process-executor.js";
+import {
+  VOLCENGINE_FUNCTION_REVOCATION_STATUS_ACK_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_STATUS_SNAPSHOT_SCHEMA,
+  captureVolcengineFunctionRevocationStatusFloorStore,
+  inspectVolcengineFunctionRevocationStatusFloorStore,
+} from "./volcengine-function-revocation-status-floor-store.js";
 
 export const VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA =
   "chainlesschain.volcengine-function-authority/v6";
@@ -43,11 +49,11 @@ export const VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA =
 export const VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA =
   "chainlesschain.volcengine-function-revocation-result/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-evidence-resolver/v4";
+  "chainlesschain.volcengine-function-revocation-evidence-resolver/v5";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA =
   "chainlesschain.volcengine-function-revocation-evidence-request/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-evidence-readback/v1";
+  "chainlesschain.volcengine-function-revocation-evidence-readback/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA =
   "chainlesschain.volcengine-function-revocation-authorization-evidence/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA =
@@ -944,6 +950,7 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "signerCertificateDigest",
       "signerRevocationsDigest",
       "signerRevocationsRevision",
+      "statusFloorStoreDigest",
       "revocationAuthorityId",
       "maxEvidenceBytes",
     ],
@@ -1025,6 +1032,11 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "signerRevocationsRevision",
       "Volcengine function revocation signer revocations revision",
     ),
+    statusFloorStoreDigest: ownData(
+      value,
+      "statusFloorStoreDigest",
+      "Volcengine function revocation status floor store digest",
+    ),
     revocationAuthorityId: ownData(
       value,
       "revocationAuthorityId",
@@ -1057,6 +1069,7 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
     !DIGEST.test(descriptor.signerRevocationsDigest) ||
     !Number.isSafeInteger(descriptor.signerRevocationsRevision) ||
     descriptor.signerRevocationsRevision < 1 ||
+    !DIGEST.test(descriptor.statusFloorStoreDigest) ||
     !ID.test(descriptor.revocationAuthorityId) ||
     !Number.isSafeInteger(descriptor.maxEvidenceBytes) ||
     descriptor.maxEvidenceBytes < 1 ||
@@ -1406,7 +1419,12 @@ function verifyRevocationSignerRevocations(
       "Volcengine function revocation signer certificate was revoked",
     );
   }
-  return Object.freeze({ issuedAtMs, nextUpdateMs });
+  return Object.freeze({
+    issuedAt: core.issuedAt,
+    issuedAtMs,
+    nextUpdate: core.nextUpdate,
+    nextUpdateMs,
+  });
 }
 
 export function createVolcengineFunctionRevocationEvidenceResolver(options) {
@@ -1418,6 +1436,7 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
       "trustRootBytes",
       "signerCertificateBytes",
       "signerRevocationsBytes",
+      "statusFloorStore",
     ],
     "Volcengine function revocation evidence resolver",
   );
@@ -1500,6 +1519,72 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
     publicKey,
     signerRevocationsBytes,
   );
+  const statusFloorStore = ownData(
+    options,
+    "statusFloorStore",
+    "Volcengine function revocation status floor store",
+  );
+  const statusFloorStoreDescriptor =
+    inspectVolcengineFunctionRevocationStatusFloorStore(statusFloorStore);
+  if (
+    statusFloorStoreDescriptor.descriptorDigest !==
+      descriptor.statusFloorStoreDigest ||
+    statusFloorStoreDescriptor.descriptor.tenantId !== descriptor.tenantId ||
+    statusFloorStoreDescriptor.descriptor.handlerArtifactDigest !==
+      descriptor.handlerArtifactDigest ||
+    statusFloorStoreDescriptor.descriptor.revocationAuthorityId !==
+      descriptor.revocationAuthorityId ||
+    statusFloorStoreDescriptor.descriptor.trustRootDigest !==
+      descriptor.trustRootDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation status floor store does not match resolver",
+    );
+  }
+  const statusFloor =
+    captureVolcengineFunctionRevocationStatusFloorStore(statusFloorStore);
+  const statusAcknowledgement = statusFloor.acceptSnapshot(
+    Object.freeze({
+      schema: VOLCENGINE_FUNCTION_REVOCATION_STATUS_SNAPSHOT_SCHEMA,
+      storeId: statusFloor.descriptor.storeId,
+      tenantId: descriptor.tenantId,
+      handlerArtifactDigest: descriptor.handlerArtifactDigest,
+      revocationAuthorityId: descriptor.revocationAuthorityId,
+      trustRootDigest: descriptor.trustRootDigest,
+      revision: descriptor.signerRevocationsRevision,
+      snapshotDigest: descriptor.signerRevocationsDigest,
+      issuedAt: signerStatus.issuedAt,
+      nextUpdate: signerStatus.nextUpdate,
+    }),
+  );
+  exactData(
+    statusAcknowledgement,
+    [
+      "schema",
+      "storeId",
+      "revision",
+      "snapshotDigest",
+      "headDigest",
+      "durable",
+      "readbackVerified",
+    ],
+    "Volcengine function revocation status floor acknowledgement",
+  );
+  if (
+    statusAcknowledgement.schema !==
+      VOLCENGINE_FUNCTION_REVOCATION_STATUS_ACK_SCHEMA ||
+    statusAcknowledgement.storeId !== statusFloor.descriptor.storeId ||
+    statusAcknowledgement.revision !== descriptor.signerRevocationsRevision ||
+    statusAcknowledgement.snapshotDigest !==
+      descriptor.signerRevocationsDigest ||
+    !DIGEST.test(statusAcknowledgement.headDigest) ||
+    statusAcknowledgement.durable !== true ||
+    statusAcknowledgement.readbackVerified !== true
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation status floor acknowledgement is invalid",
+    );
+  }
   const resolver = Object.freeze({});
   revocationEvidenceResolvers.set(resolver, {
     descriptor,
@@ -1513,6 +1598,7 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
     signerNotAfterMs: signerCertificate.notAfterMs,
     signerStatusIssuedAtMs: signerStatus.issuedAtMs,
     signerStatusNextUpdateMs: signerStatus.nextUpdateMs,
+    statusFloorHeadDigest: statusAcknowledgement.headDigest,
   });
   return resolver;
 }
@@ -1737,6 +1823,7 @@ async function resolveRevocationDecisionEvidence(
   const readbackCore = Object.freeze({
     schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA,
     evidenceResolverDigest: captured.descriptorDigest,
+    statusFloorHeadDigest: captured.statusFloorHeadDigest,
     resolutionRequestDigest: resolutionRequest.requestDigest,
     authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
     auditEventDigest: decision.auditEventDigest,

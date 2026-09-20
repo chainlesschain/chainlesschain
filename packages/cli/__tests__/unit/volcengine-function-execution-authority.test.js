@@ -43,6 +43,13 @@ import {
   VOLCENGINE_FUNCTION_REVOCATION_MODE,
   createVolcengineFunctionReplayStore,
 } from "../../src/lib/evolution/volcengine-function-replay-store.js";
+import {
+  VOLCENGINE_FUNCTION_REVOCATION_STATUS_FLOOR_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_STATUS_FLOOR_STORE_SCHEMA,
+  createVolcengineFunctionRevocationStatusFloorStore,
+  digestVolcengineFunctionRevocationStatusFloorRoot,
+  digestVolcengineFunctionRevocationStatusFloorStoreDescriptor,
+} from "../../src/lib/evolution/volcengine-function-revocation-status-floor-store.js";
 
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
 const REPLAY_RETENTION_MS = 65_000;
@@ -395,6 +402,28 @@ function createRevocationPort(
     evidenceOverrides.signerCertificateBytes || signerCertificateBytes();
   const revocationsBytes =
     evidenceOverrides.signerRevocationsBytes || signerRevocationsBytes();
+  const statusFloorRoot =
+    evidenceOverrides.statusFloorRoot ||
+    mkdtempSync(join(tmpdir(), "cc-function-revocation-status-floor-"));
+  if (!evidenceOverrides.statusFloorRoot) temporaryRoots.push(statusFloorRoot);
+  const statusFloorDescriptor = {
+    schema: VOLCENGINE_FUNCTION_REVOCATION_STATUS_FLOOR_STORE_SCHEMA,
+    storeId: "revocation-status-floor:test",
+    tenantId: targetDescriptor.tenantId,
+    handlerArtifactDigest: targetDescriptor.handlerArtifactDigest,
+    revocationAuthorityId: targetDescriptor.revocationAuthorityId,
+    trustRootDigest: sha(REVOCATION_TRUST_ROOT_BYTES),
+    stateRootDigest:
+      digestVolcengineFunctionRevocationStatusFloorRoot(statusFloorRoot),
+    mode: VOLCENGINE_FUNCTION_REVOCATION_STATUS_FLOOR_MODE,
+    ...evidenceOverrides.statusFloorDescriptor,
+  };
+  const statusFloorStore =
+    evidenceOverrides.statusFloorStore ||
+    createVolcengineFunctionRevocationStatusFloorStore({
+      descriptor: statusFloorDescriptor,
+      directoryPath: statusFloorRoot,
+    });
   const evidenceResolverDescriptor = {
     schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
     resolverId: "revocation-evidence:test",
@@ -412,6 +441,11 @@ function createRevocationPort(
     signerCertificateDigest: sha(certificateBytes),
     signerRevocationsDigest: sha(revocationsBytes),
     signerRevocationsRevision: 1,
+    statusFloorStoreDigest:
+      evidenceOverrides.statusFloorStoreDigest ||
+      digestVolcengineFunctionRevocationStatusFloorStoreDescriptor(
+        statusFloorDescriptor,
+      ),
     revocationAuthorityId: targetDescriptor.revocationAuthorityId,
     maxEvidenceBytes: 4096,
     ...evidenceOverrides.descriptor,
@@ -433,6 +467,7 @@ function createRevocationPort(
         evidenceOverrides.trustRootBytes || REVOCATION_TRUST_ROOT_BYTES,
       signerCertificateBytes: certificateBytes,
       signerRevocationsBytes: revocationsBytes,
+      statusFloorStore,
     });
   return captureVolcengineFunctionRevocationAuthority(
     createVolcengineFunctionRevocationAuthority({
@@ -855,6 +890,54 @@ describe("Volcengine function execution authority", () => {
         request({ requestId: "after-stale-signer-status" }),
       ),
     ).resolves.toBeDefined();
+  });
+
+  it("rejects signer status revision rollback and same-revision substitution", () => {
+    const statusFloorRoot = mkdtempSync(
+      join(tmpdir(), "cc-function-revocation-status-reopen-"),
+    );
+    temporaryRoots.push(statusFloorRoot);
+    const revisionTwo = signerRevocationsBytes([], { revision: 2 });
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        statusFloorRoot,
+        signerRevocationsBytes: revisionTwo,
+        descriptor: { signerRevocationsRevision: 2 },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        statusFloorRoot,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_VOLCENGINE_FUNCTION_REVOCATION_STATUS_ROLLBACK",
+      }),
+    );
+
+    const substitutedRevisionTwo = signerRevocationsBytes([], {
+      revision: 2,
+      nextUpdate: new Date(NOW + 30_000).toISOString(),
+    });
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        statusFloorRoot,
+        signerRevocationsBytes: substitutedRevisionTwo,
+        descriptor: { signerRevocationsRevision: 2 },
+      }),
+    ).toThrow("conflicts at the current revision");
+
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        statusFloorRoot,
+        signerRevocationsBytes: signerRevocationsBytes([], {
+          revision: 3,
+          issuedAt: new Date(NOW).toISOString(),
+        }),
+        descriptor: { signerRevocationsRevision: 3 },
+      }),
+    ).not.toThrow();
   });
 
   it("binds the revocation authority to one branded evidence resolver", () => {

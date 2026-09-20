@@ -872,6 +872,7 @@ describe("signed evolution deployment loader", () => {
       "createVolcengineFunctionRevocationEvidenceResolver",
       "createVolcengineFunctionProcessExecutor",
       "createVolcengineFunctionReplayStore",
+      "createVolcengineFunctionRevocationStatusFloorStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1139,6 +1140,13 @@ describe("signed evolution deployment loader", () => {
           ).toThrow("authenticated deployment module digest");
           expect(() =>
             factories.createVolcengineFunctionRevocationEvidenceResolver({
+              descriptor: {
+                handlerArtifactDigest: substitutedDigest,
+              },
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionRevocationStatusFloorStore({
               descriptor: {
                 handlerArtifactDigest: substitutedDigest,
               },

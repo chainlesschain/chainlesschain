@@ -228,3 +228,4 @@
 | 165  | 2026-09-21 | [第一百六十五次工程实施：CLI Volcengine 撤销证据信任根验签](./rsiagent-one-hundred-sixty-fifth-batch-implementation-2026-09-21.md)       |
 | 166  | 2026-09-21 | [第一百六十六次工程实施：CLI Volcengine 撤销签发者证书链](./rsiagent-one-hundred-sixty-sixth-batch-implementation-2026-09-21.md)         |
 | 167  | 2026-09-21 | [第一百六十七次工程实施：CLI Volcengine 撤销签发者状态快照](./rsiagent-one-hundred-sixty-seventh-batch-implementation-2026-09-21.md)     |
+| 168  | 2026-09-21 | [第一百六十八次工程实施：CLI Volcengine 签发者状态防回滚](./rsiagent-one-hundred-sixty-eighth-batch-implementation-2026-09-21.md)         |
