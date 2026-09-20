@@ -294,6 +294,9 @@ describe("PM exploration process grader", () => {
     expect(fixture.children).toHaveLength(1);
     expect(fixture.children[0].pid).not.toBe(process.pid);
     expect(fixture.spawnCalls[0][1]).toContain(
+      `--allow-fs-read=${fixture.hiddenPath}`,
+    );
+    expect(fixture.spawnCalls[0][1]).toContain(
       `--allow-fs-read=${await realpath(fixture.hiddenPath)}`,
     );
     expect(fixture.spawnCalls[0][2].env).toEqual({});

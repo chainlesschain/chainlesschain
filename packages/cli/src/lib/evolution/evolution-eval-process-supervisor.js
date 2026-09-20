@@ -129,20 +129,23 @@ function sandboxPolicy(value) {
     if (paths === undefined) return Object.freeze([]);
     if (!Array.isArray(paths) || paths.length > MAX_PERMISSION_PATHS)
       throw new TypeError(`${label} must be a bounded array`);
-    const normalized = paths.map((path) => {
+    const requested = paths.map((path) => {
       if (typeof path !== "string" || !isAbsolute(path))
         throw new TypeError(`${label} paths must be absolute`);
-      const absolute = resolve(path);
+      return resolve(path);
+    });
+    if (new Set(requested).size !== requested.length)
+      throw new TypeError(`${label} paths must be unique`);
+    const normalized = requested.flatMap((absolute) => {
       try {
-        return realpathSync(absolute);
+        const physical = realpathSync(absolute);
+        return physical === absolute ? [absolute] : [absolute, physical];
       } catch (cause) {
-        if (cause?.code === "ENOENT") return absolute;
+        if (cause?.code === "ENOENT") return [absolute];
         throw new Error(`${label} path could not be resolved`, { cause });
       }
     });
-    if (new Set(normalized).size !== normalized.length)
-      throw new TypeError(`${label} paths must be unique`);
-    return Object.freeze(normalized);
+    return Object.freeze([...new Set(normalized)]);
   };
   const memoryLimitMb = value.memoryLimitMb ?? DEFAULT_MEMORY_LIMIT_MB;
   if (
