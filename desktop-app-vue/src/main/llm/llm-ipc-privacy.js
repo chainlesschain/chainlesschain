@@ -17,6 +17,7 @@ const SAFE_COMPONENTS = new Set([
   "stream",
   "test-data",
   "token",
+  "tracker",
 ]);
 const SAFE_EVENTS = new Set([
   "agent-execution-failed",
@@ -38,6 +39,7 @@ const SAFE_EVENTS = new Set([
   "handlers-already-registered",
   "handlers-registered",
   "handlers-registering",
+  "handlers-unregistered",
   "image-input-detected",
   "long-context-detected",
   "manus-optimization-applied",
@@ -103,6 +105,7 @@ const SAFE_OPERATIONS = new Set([
   "get-config",
   "get-cost-breakdown",
   "get-model-budgets",
+  "get-pricing",
   "get-retention-config",
   "get-selector-info",
   "get-stream-stats",
@@ -113,14 +116,20 @@ const SAFE_OPERATIONS = new Set([
   "pause-stream",
   "query",
   "query-stream",
+  "record-usage",
+  "reset-budget-counters",
   "resume-service",
   "resume-stream",
   "select-best",
   "set-budget",
   "set-config",
+  "set-exchange-rate",
   "set-model-budget",
   "set-retention-config",
   "switch-provider",
+  "calculate-cost",
+  "export-report",
+  "get-conversation-stats",
 ]);
 
 function allowlisted(value, values) {

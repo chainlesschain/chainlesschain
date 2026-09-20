@@ -9,7 +9,10 @@ const {
 
 const MAX_TIME_SERIES_POINTS = 10000;
 const MAX_BREAKDOWN_ROWS = 1000;
+const MAX_PRICING_PROVIDERS = 64;
+const MAX_PRICING_MODELS = 2000;
 const MAX_TIMESTAMP = 8_640_000_000_000_000;
+const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
 function numberField(value, key) {
   return boundedNumber(ownData(value, key)) ?? 0;
@@ -162,6 +165,155 @@ function projectBudget(value) {
   });
 }
 
+function usagePercent(spend, limit) {
+  if (limit <= 0) {
+    return 0;
+  }
+  return Number(Math.min((spend / limit) * 100, 100).toFixed(2));
+}
+
+function projectTrackerBudget(value) {
+  const budget = projectBudget(value);
+  if (!budget) {
+    return null;
+  }
+  return Object.freeze({
+    dailyLimit: budget.dailyLimit,
+    weeklyLimit: budget.weeklyLimit,
+    monthlyLimit: budget.monthlyLimit,
+    currentDailySpend: budget.dailySpend,
+    currentWeeklySpend: budget.weeklySpend,
+    currentMonthlySpend: budget.monthlySpend,
+    dailyUsagePercent: usagePercent(budget.dailySpend, budget.dailyLimit),
+    weeklyUsagePercent: usagePercent(budget.weeklySpend, budget.weeklyLimit),
+    monthlyUsagePercent: usagePercent(budget.monthlySpend, budget.monthlyLimit),
+    warningThreshold: budget.warningThreshold,
+    criticalThreshold: budget.criticalThreshold,
+    desktopAlerts: budget.desktopAlerts,
+    autoPauseOnLimit: budget.autoPauseOnLimit,
+    autoSwitchToCheaperModel: budget.autoSwitchToCheaperModel,
+    dailyResetAt: budget.dailyResetAt,
+    weeklyResetAt: budget.weeklyResetAt,
+    monthlyResetAt: budget.monthlyResetAt,
+  });
+}
+
+function plainObject(value) {
+  return (
+    value &&
+    typeof value === "object" &&
+    !types.isProxy(value) &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(value))
+  );
+}
+
+function dataEntries(value, limit) {
+  if (!plainObject(value)) {
+    return [];
+  }
+  const entries = [];
+  for (const key of Object.keys(Object.getOwnPropertyDescriptors(value))) {
+    if (entries.length >= limit || FORBIDDEN_KEYS.has(key)) {
+      continue;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      descriptor?.enumerable &&
+      "value" in descriptor &&
+      boundedString(key) !== undefined
+    ) {
+      entries.push([key, descriptor.value]);
+    }
+  }
+  return entries;
+}
+
+function projectPricingCatalog(value) {
+  const catalog = {};
+  for (const [provider, providerPricing] of dataEntries(
+    value,
+    MAX_PRICING_PROVIDERS,
+  )) {
+    const models = {};
+    for (const [model, price] of dataEntries(
+      providerPricing,
+      MAX_PRICING_MODELS,
+    )) {
+      Object.defineProperty(models, model, {
+        configurable: false,
+        enumerable: true,
+        writable: false,
+        value: Object.freeze({
+          input: numberField(price, "input"),
+          output: numberField(price, "output"),
+          cache: numberField(price, "cache"),
+        }),
+      });
+    }
+    Object.defineProperty(catalog, provider, {
+      configurable: false,
+      enumerable: true,
+      writable: false,
+      value: Object.freeze(models),
+    });
+  }
+  return Object.freeze(catalog);
+}
+
+function projectUsageRecord(value) {
+  return Object.freeze({
+    totalTokens: numberField(value, "totalTokens"),
+    costUsd: numberField(value, "costUsd"),
+    costCny: numberField(value, "costCny"),
+  });
+}
+
+function projectConversationRow(value) {
+  const provider = boundedString(ownData(value, "provider"));
+  const model = boundedString(ownData(value, "model"));
+  if (provider === undefined || model === undefined) {
+    return null;
+  }
+  return Object.freeze({
+    provider,
+    model,
+    callCount: firstNumber(value, ["callCount", "call_count"]),
+    inputTokens: firstNumber(value, ["inputTokens", "input_tokens"]),
+    outputTokens: firstNumber(value, ["outputTokens", "output_tokens"]),
+    costUsd: firstNumber(value, ["costUsd", "cost_usd"]),
+    avgResponseTime: firstNumber(value, [
+      "avgResponseTime",
+      "avg_response_time",
+    ]),
+  });
+}
+
+function projectConversationStats(summary, rows) {
+  return Object.freeze({
+    summary: summary
+      ? Object.freeze({
+          totalInputTokens: firstNumber(summary, [
+            "totalInputTokens",
+            "total_input_tokens",
+          ]),
+          totalOutputTokens: firstNumber(summary, [
+            "totalOutputTokens",
+            "total_output_tokens",
+          ]),
+          totalCostUsd: firstNumber(summary, [
+            "totalCostUsd",
+            "total_cost_usd",
+          ]),
+          totalCostCny: firstNumber(summary, [
+            "totalCostCny",
+            "total_cost_cny",
+          ]),
+        })
+      : null,
+    byModel: safeArray(rows, MAX_BREAKDOWN_ROWS, projectConversationRow),
+  });
+}
+
 function percentNumber(value) {
   const direct = boundedNumber(value);
   if (direct !== undefined) {
@@ -241,9 +393,13 @@ module.exports = {
   projectBudget,
   projectBudgetDecision,
   projectCacheStats,
+  projectConversationStats,
   projectCostBreakdown,
   projectCostEstimate,
   projectOperationResult,
+  projectPricingCatalog,
   projectTimeSeries,
+  projectTrackerBudget,
+  projectUsageRecord,
   projectUsageStats,
 };
