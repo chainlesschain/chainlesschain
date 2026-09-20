@@ -3,12 +3,6 @@ name: CLI CI
 on:
   push:
     branches: [main]
-    tags:
-      # The release gate only consumes CLI and native-release tags.  Broad
-      # `v*` also matched IDE tags, scheduling a duplicate 60+ job matrix on
-      # the same SHA and starving the npm release gate behind runner queues.
-      - "v-npm-*"
-      - "cli-v*"
     paths:
       - "packages/cli/**"
       - "packages/core-db/**"
@@ -73,10 +67,10 @@ on:
   workflow_dispatch:
 
 # Cancel superseded branch and PR matrices before they consume the 60+ job
-# fan-out. Tags stay isolated by their full ref, while manual dispatches use a
-# unique run id so they cannot cancel an authoritative push or another ref.
+# fan-out. Release tags reuse the exact-SHA branch result; manual dispatches use
+# a unique run id so they cannot cancel an authoritative push or another ref.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && github.ref_type == 'branch' && format('branch-{0}', github.ref) || github.event_name == 'push' && github.ref_type == 'tag' && format('tag-{0}', github.ref) || format('run-{0}', github.run_id) }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && format('branch-{0}', github.ref) || format('run-{0}', github.run_id) }}
   cancel-in-progress: true
 
 jobs:

@@ -1,5 +1,9 @@
 # Context/Memory Kernel
 
+Current npm package: `@chainlesschain/context-memory-kernel@0.1.5`. This
+release includes the checked-in contracts, schemas, fixtures, inventory, and
+documentation that are verified byte-for-byte before the paired CLI publishes.
+
 Canonical, host-neutral Context/Memory Kernel for ChainlessChain. The package owns deterministic context planning, compaction invariants/CAS, scoped memory lifecycle, tombstone fencing, deletion reconciliation, and writer cutover authority.
 
 The package intentionally performs no filesystem, database, provider, embedding, or network I/O. Hosts implement `SessionContextPort`, `MemoryPort`, `ContentPort`, and purge/reconciliation ports. Shadow mode is observation-only and cannot mutate authority state.

@@ -23,7 +23,7 @@ function fixture() {
     version: "0.166.24",
     dependencies: {
       "@chainlesschain/core-db": "0.1.5",
-      "@chainlesschain/session-core": "0.3.12",
+      "@chainlesschain/session-core": "0.3.13",
     },
   };
   const cliFile = path.join(root, "node_modules/chainlesschain/package.json");
@@ -58,7 +58,7 @@ describe("pre-publish CLI public dependency install evidence", () => {
       childrenSource: "https://registry.npmjs.org",
       children: [
         { name: "@chainlesschain/core-db", version: "0.1.5" },
-        { name: "@chainlesschain/session-core", version: "0.3.12" },
+        { name: "@chainlesschain/session-core", version: "0.3.13" },
       ],
     });
   });

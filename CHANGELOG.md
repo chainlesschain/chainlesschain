@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.66: governed browser actions and durable quarantine custody
+### Added - cc CLI 0.166.67: governed browser actions and corrected child releases
 
 - Govern browser observation, navigation, tab creation, history traversal,
   keyboard actions, and downloads through explicit action authorities instead
@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   benchmark receipts to the governed execution context.
 - Migrate mixed evolution receipt histories under an explicit compatibility
   policy while preserving fail-closed verification for unsupported records.
+- Publish Session Core 0.3.13, Context/Memory Kernel 0.1.5, and Personal Data
+  Hub 0.4.62 before the CLI so their public tarballs include every checked-in
+  runtime and package-content change.
+- Compare all 13 child package tarballs byte-for-byte with npm before CLI
+  publication, and reuse the exact-SHA CLI CI and Strict Sandbox results
+  instead of rerunning the complete suite on the release tag.
 
 ### Fixed - cc CLI 0.166.65: resume after bounded loop-recovery pauses
 

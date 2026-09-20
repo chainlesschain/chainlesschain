@@ -97,7 +97,7 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
-test("CLI CI cancels superseded branch and PR matrices without crossing refs", () => {
+test("CLI CI cancels superseded branch and PR matrices without rerunning release tags", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "cli-ci.yml"),
     "utf8",
@@ -116,15 +116,14 @@ test("CLI CI cancels superseded branch and PR matrices without crossing refs", (
   );
   assert.ok(
     concurrency.includes(
-      "github.event_name == 'push' && github.ref_type == 'branch' && format('branch-{0}', github.ref)",
+      "github.event_name == 'push' && format('branch-{0}', github.ref)",
     ),
     "branch pushes must share their full-ref group instead of grouping by commit SHA",
   );
-  assert.ok(
-    concurrency.includes(
-      "github.event_name == 'push' && github.ref_type == 'tag' && format('tag-{0}', github.ref)",
-    ),
-    "tag pushes must use a tag-ref group that cannot cancel a branch or another tag",
+  assert.doesNotMatch(
+    workflow.slice(workflow.indexOf("on:"), workflow.indexOf("concurrency:")),
+    /^\s+tags:/mu,
+    "release tags must reuse the authoritative exact-SHA branch matrix",
   );
   assert.ok(
     concurrency.includes("format('run-{0}', github.run_id)"),
@@ -1623,7 +1622,8 @@ test("selector changes run integrity and CLI contracts without desktop fallback"
 });
 
 test("open-source gap audit evidence stays on the integrity gate", () => {
-  const auditFile = "docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
+  const auditFile =
+    "docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
   const auditSelection = selector.createSelection([auditFile]);
 
   assert.equal(auditSelection.suite, "ci-gate-integrity");

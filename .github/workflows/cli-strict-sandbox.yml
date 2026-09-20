@@ -3,9 +3,6 @@ name: CLI Strict Sandbox
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
-      - "cli-v*"
     paths:
       - "packages/cli/src/**"
       - "packages/context-memory-kernel/**"

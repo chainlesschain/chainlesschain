@@ -90,9 +90,27 @@ describe("CLI release workflow contracts", () => {
     expect(start).toBeLessThan(publish);
     const gate = text.slice(start, publish);
     expect(gate).toContain("set -euo pipefail");
+    expect(gate).toContain('cmp "$LOCAL_TARBALL" "$REGISTRY_TARBALL"');
     expect(gate).toContain(
-      'cmp "release-artifacts/children/$ARCHIVE" "$READBACK_ROOT/$CHILD/$ARCHIVE"',
+      "printf 'package\\tversion\\tsha512\\n' > \"$AUDIT_FILE\"",
     );
+    for (const child of [
+      "agent-protocol",
+      "core-env",
+      "core-mtc",
+      "core-multisig",
+      "core-settlement",
+      "shared-logger",
+      "core-config",
+      "core-db",
+      "core-infra",
+      "session-core",
+      "context-memory-kernel",
+      "agent-sdk",
+      "personal-data-hub",
+    ]) {
+      expect(gate).toContain(`            ${child}`);
+    }
     expect(gate).toContain("--registry=https://registry.npmjs.org");
     expect(gate).toContain("verify-cli-registry-install.mjs");
     expect(gate).toContain("npm-release-artifact.mjs verify");
@@ -178,8 +196,9 @@ describe("CLI release workflow contracts", () => {
       "if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}",
     );
     expect(publishJob).toContain(
-      "if: ${{ github.event_name == 'push' && needs.test.result == 'success'",
+      "if: ${{ github.event_name == 'push' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}",
     );
+    expect(publishJob).not.toContain("needs.test.result");
 
     const packageJobStart = text.indexOf("  package-cli:");
     const packageJob = text.slice(
@@ -292,26 +311,24 @@ describe("CLI release workflow contracts", () => {
 
   it("runs authoritative release gates with ref-safe CLI concurrency", () => {
     const cliCi = workflow("cli-ci.yml");
-    expect(cliCi).toContain('- "v-npm-*"');
-    expect(cliCi).toContain('- "cli-v*"');
+    expect(cliCi).not.toContain('- "v-npm-*"');
+    expect(cliCi).not.toContain('- "cli-v*"');
     expect(cliCi).not.toContain('- "v*"');
     expect(cliCi).toContain(
       "github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number)",
     );
     expect(cliCi).toContain(
-      "github.event_name == 'push' && github.ref_type == 'branch' && format('branch-{0}', github.ref)",
+      "github.event_name == 'push' && format('branch-{0}', github.ref)",
     );
-    expect(cliCi).toContain(
-      "github.event_name == 'push' && github.ref_type == 'tag' && format('tag-{0}', github.ref)",
-    );
+    expect(cliCi).not.toContain("format('tag-{0}', github.ref)");
     expect(cliCi).toContain("format('run-{0}', github.run_id)");
     expect(cliCi).not.toContain(
       "group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}",
     );
 
     const strict = workflow("cli-strict-sandbox.yml");
-    expect(strict).toContain('- "v*"');
-    expect(strict).toContain('- "cli-v*"');
+    expect(strict).not.toContain('- "v*"');
+    expect(strict).not.toContain('- "cli-v*"');
   });
 
   it("allows enough time for the full exact-SHA CI matrix before publishing", () => {
@@ -587,7 +604,7 @@ describe("CLI release workflow contracts", () => {
     } finally {
       fs.rmSync(tempRoot, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("runs the complete MCP recovery authority matrix in the strict gate", () => {
     const text = workflow("cli-strict-sandbox.yml");

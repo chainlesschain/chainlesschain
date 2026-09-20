@@ -13,8 +13,10 @@ permissions:
   contents: read
 
 jobs:
-  # Run tests before publishing
+  # Manual dry runs retain an isolated full-suite check. Production tags reuse
+  # the exact-SHA CLI CI and CLI Strict Sandbox matrices verified below.
   test:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -145,8 +147,8 @@ jobs:
           retention-days: 90
 
   package-cli:
-    needs: [test, exact-sha-gate]
-    if: ${{ needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' }}
+    needs: [exact-sha-gate]
+    if: ${{ github.event_name == 'push' && needs.exact-sha-gate.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
@@ -265,8 +267,8 @@ jobs:
   # No npm token is supplied: npm obtains a short-lived OIDC credential from
   # GitHub Actions, bound to this workflow's id-token permission.
   publish:
-    needs: [test, exact-sha-gate, package-cli]
-    if: ${{ github.event_name == 'push' && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
+    needs: [exact-sha-gate, package-cli]
+    if: ${{ github.event_name == 'push' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -758,20 +760,52 @@ jobs:
           set -euo pipefail
           READBACK_ROOT=$(mktemp -d)
           trap 'rm -rf "$READBACK_ROOT"' EXIT
-          for CHILD in core-db session-core; do
+          AUDIT_FILE="release-artifacts/child-registry-audit.tsv"
+          printf 'package\tversion\tsha512\n' > "$AUDIT_FILE"
+          CHILDREN=(
+            agent-protocol
+            core-env
+            core-mtc
+            core-multisig
+            core-settlement
+            shared-logger
+            core-config
+            core-db
+            core-infra
+            session-core
+            context-memory-kernel
+            agent-sdk
+            personal-data-hub
+          )
+          for CHILD in "${CHILDREN[@]}"; do
+            PACKAGE_NAME=$(node -p "require('./packages/$CHILD/package.json').name")
             CHILD_VERSION=$(node -p "require('./packages/$CHILD/package.json').version")
-            ARCHIVE="chainlesschain-$CHILD-$CHILD_VERSION.tgz"
-            mkdir -p "$READBACK_ROOT/$CHILD"
+            LOCAL_DIR="$READBACK_ROOT/$CHILD/local"
+            REGISTRY_DIR="$READBACK_ROOT/$CHILD/registry"
+            mkdir -p "$LOCAL_DIR" "$REGISTRY_DIR"
+            (
+              cd "packages/$CHILD"
+              npm pack --ignore-scripts --pack-destination "$LOCAL_DIR" >/dev/null
+            )
+            LOCAL_TARBALL=$(find "$LOCAL_DIR" -maxdepth 1 -name '*.tgz' -type f -print -quit)
+            test -n "$LOCAL_TARBALL"
             for ATTEMPT in {1..30}; do
-              if npm pack "@chainlesschain/$CHILD@$CHILD_VERSION" --ignore-scripts --prefer-online \
-                --registry=https://registry.npmjs.org --pack-destination "$READBACK_ROOT/$CHILD"; then
+              if npm pack "$PACKAGE_NAME@$CHILD_VERSION" --ignore-scripts --prefer-online \
+                --registry=https://registry.npmjs.org --pack-destination "$REGISTRY_DIR" \
+                >/dev/null; then
                 break
               fi
               if [ "$ATTEMPT" -eq 30 ]; then exit 1; fi
               sleep 10
             done
-            # Compare the exact archive submitted to npm, including all exports.
-            cmp "release-artifacts/children/$ARCHIVE" "$READBACK_ROOT/$CHILD/$ARCHIVE"
+            REGISTRY_TARBALL=$(find "$REGISTRY_DIR" -maxdepth 1 -name '*.tgz' -type f -print -quit)
+            test -n "$REGISTRY_TARBALL"
+            # Every child package must match its public immutable archive. This
+            # catches source or README changes that forgot a version bump.
+            cmp "$LOCAL_TARBALL" "$REGISTRY_TARBALL"
+            PACKAGE_SHA512=$(sha512sum "$REGISTRY_TARBALL" | cut -d ' ' -f 1)
+            printf '%s\t%s\t%s\n' "$PACKAGE_NAME" "$CHILD_VERSION" "$PACKAGE_SHA512" \
+              >> "$AUDIT_FILE"
           done
           TARBALL=$(find "$GITHUB_WORKSPACE/release-artifacts" -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
           node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" release-artifacts/chainlesschain-release.json

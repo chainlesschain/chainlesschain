@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/context-memory-kernel",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Canonical Context/Memory Kernel contracts, reducers, and host ports",
   "type": "commonjs",
   "main": "lib/index.js",
