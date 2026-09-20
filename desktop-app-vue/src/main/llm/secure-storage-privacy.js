@@ -2,7 +2,7 @@
 
 const { logger } = require("../utils/logger.js");
 
-const SAFE_COMPONENTS = new Set(["ipc", "storage"]);
+const SAFE_COMPONENTS = new Set(["config", "ipc", "storage"]);
 const SAFE_EVENTS = new Set([
   "backup-create-failed",
   "backup-created",
@@ -22,6 +22,7 @@ const SAFE_EVENTS = new Set([
   "config-save-failed",
   "config-saved",
   "encryption-fallback-used",
+  "embedding-model-migrated",
   "import-format-invalid",
   "import-source-missing",
   "ipc-registered",
@@ -30,8 +31,12 @@ const SAFE_EVENTS = new Set([
   "migration-not-needed",
   "migration-succeeded",
   "migration-unavailable",
+  "model-migrated",
   "safe-storage-availability-checked",
   "safe-storage-check-failed",
+  "sensitive-config-load-failed",
+  "sensitive-config-loaded",
+  "sensitive-config-saved",
   "storage-info-failed",
 ]);
 const SAFE_OPERATIONS = new Set([

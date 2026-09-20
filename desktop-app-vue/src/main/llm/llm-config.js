@@ -3,7 +3,6 @@
  * 支持敏感信息（API Keys）加密存储
  */
 
-const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const fsp = require("fs").promises;
 const path = require("path");
@@ -14,6 +13,8 @@ const {
   mergeSensitiveFields,
   sanitizeConfig,
 } = require("./secure-config-storage");
+const { createSecureStoragePrivacy } = require("./secure-storage-privacy");
+const configPrivacy = createSecureStoragePrivacy("config");
 
 const normalizeProvider = (provider) => {
   if (!provider) {
@@ -155,19 +156,19 @@ class LLMConfig {
         this._applyMergedConfig(savedConfig);
         const needsMigration = this._migrateLegacyVolcengine();
         if (needsMigration) {
-          logger.info("[LLMConfig] 检测到旧配置，已自动异步迁移并保存");
+          configPrivacy.event("migration-succeeded");
           await this.saveAsync();
         }
         await this._loadSensitiveFieldsAsync();
         this.loaded = true;
-        logger.info("[LLMConfig] 配置异步加载成功");
+        configPrivacy.event("config-loaded");
       } else {
-        logger.info("[LLMConfig] 配置文件不存在，使用默认配置");
+        configPrivacy.event("config-missing");
         await this._loadSensitiveFieldsAsync();
         this.loaded = false;
       }
-    } catch (error) {
-      logger.error("[LLMConfig] 异步加载配置失败:", error);
+    } catch {
+      configPrivacy.event("config-load-failed");
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -190,7 +191,7 @@ class LLMConfig {
             ? await this.secureStorage.saveAsync(sensitiveData)
             : this.secureStorage.save(sensitiveData);
         if (secureResult) {
-          logger.info("[LLMConfig] 敏感配置已加密保存");
+          configPrivacy.event("sensitive-config-saved");
         }
       }
 
@@ -200,10 +201,10 @@ class LLMConfig {
         JSON.stringify(configToSave, null, 2),
         "utf-8",
       );
-      logger.info("[LLMConfig] 配置异步保存成功");
+      configPrivacy.event("config-saved");
       return true;
-    } catch (error) {
-      logger.error("[LLMConfig] 异步保存配置失败:", error);
+    } catch {
+      configPrivacy.event("config-save-failed");
       return false;
     }
   }
@@ -252,9 +253,7 @@ class LLMConfig {
           oldModel === "doubao-seed-1.6" ||
           !oldModel.match(/-\d{6}$/))
       ) {
-        logger.info(
-          `[LLMConfig] 迁移旧模型: ${oldModel} → doubao-seed-1-6-251015`,
-        );
+        configPrivacy.event("model-migrated");
         this.config.volcengine.model = "doubao-seed-1-6-251015";
         needsMigration = true;
       }
@@ -265,9 +264,7 @@ class LLMConfig {
           oldEmbedding === "doubao-embedding-large" ||
           !oldEmbedding.match(/-\d{6}$/))
       ) {
-        logger.info(
-          `[LLMConfig] 迁移旧嵌入模型: ${oldEmbedding} → doubao-embedding-text-240715`,
-        );
+        configPrivacy.event("embedding-model-migrated");
         this.config.volcengine.embeddingModel = "doubao-embedding-text-240715";
         needsMigration = true;
       }
@@ -322,9 +319,7 @@ class LLMConfig {
               oldModel === "doubao-seed-1.6" ||
               !oldModel.match(/-\d{6}$/)) // 没有版本号后缀
           ) {
-            logger.info(
-              `[LLMConfig] 迁移旧模型: ${oldModel} → doubao-seed-1-6-251015`,
-            );
+            configPrivacy.event("model-migrated");
             this.config.volcengine.model = "doubao-seed-1-6-251015";
             needsMigration = true;
           }
@@ -337,9 +332,7 @@ class LLMConfig {
               oldEmbedding === "doubao-embedding-large" ||
               !oldEmbedding.match(/-\d{6}$/)) // 没有版本号后缀
           ) {
-            logger.info(
-              `[LLMConfig] 迁移旧嵌入模型: ${oldEmbedding} → doubao-embedding-text-240715`,
-            );
+            configPrivacy.event("embedding-model-migrated");
             this.config.volcengine.embeddingModel =
               "doubao-embedding-text-240715";
             needsMigration = true;
@@ -348,7 +341,7 @@ class LLMConfig {
 
         // 如果有迁移，自动保存新配置
         if (needsMigration) {
-          logger.info("[LLMConfig] 检测到旧配置，已自动迁移并保存");
+          configPrivacy.event("migration-succeeded");
           this.save();
         }
 
@@ -356,15 +349,15 @@ class LLMConfig {
         this._loadSensitiveFields();
 
         this.loaded = true;
-        logger.info("[LLMConfig] 配置加载成功");
+        configPrivacy.event("config-loaded");
       } else {
-        logger.info("[LLMConfig] 配置文件不存在，使用默认配置");
+        configPrivacy.event("config-missing");
         // 尝试从安全存储恢复敏感字段
         this._loadSensitiveFields();
         this.loaded = false;
       }
-    } catch (error) {
-      logger.error("[LLMConfig] 配置加载失败:", error);
+    } catch {
+      configPrivacy.event("config-load-failed");
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -381,10 +374,10 @@ class LLMConfig {
       const sensitiveData = this.secureStorage.load();
       if (sensitiveData) {
         mergeSensitiveFields(this.config, sensitiveData);
-        logger.info("[LLMConfig] 敏感配置已从安全存储加载");
+        configPrivacy.event("sensitive-config-loaded");
       }
-    } catch (error) {
-      logger.warn("[LLMConfig] 加载敏感配置失败:", error.message);
+    } catch {
+      configPrivacy.event("sensitive-config-load-failed");
     }
   }
 
@@ -400,10 +393,10 @@ class LLMConfig {
           : this.secureStorage.load();
       if (sensitiveData) {
         mergeSensitiveFields(this.config, sensitiveData);
-        logger.info("[LLMConfig] 敏感配置已异步加载");
+        configPrivacy.event("sensitive-config-loaded");
       }
-    } catch (error) {
-      logger.warn("[LLMConfig] 异步加载敏感配置失败:", error.message);
+    } catch {
+      configPrivacy.event("sensitive-config-load-failed");
     }
   }
 
@@ -422,7 +415,7 @@ class LLMConfig {
       if (Object.keys(sensitiveData).length > 0) {
         const secureResult = this.secureStorage.save(sensitiveData);
         if (secureResult) {
-          logger.info("[LLMConfig] 敏感配置已加密保存");
+          configPrivacy.event("sensitive-config-saved");
         }
       }
 
@@ -435,10 +428,10 @@ class LLMConfig {
         "utf8",
       );
 
-      logger.info("[LLMConfig] 配置保存成功");
+      configPrivacy.event("config-saved");
       return true;
-    } catch (error) {
-      logger.error("[LLMConfig] 配置保存失败:", error);
+    } catch {
+      configPrivacy.event("config-save-failed");
       return false;
     }
   }

@@ -186,6 +186,7 @@ describe("secure storage IPC privacy", () => {
   it("keeps events, operations and source access on fixed boundaries", () => {
     const sink = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const files = [
+      ["llm-config.js", "config", "configPrivacy"],
       ["secure-config-storage.js", "storage", "storagePrivacy"],
       ["secure-storage-ipc.js", "ipc", "privacy"],
     ];
