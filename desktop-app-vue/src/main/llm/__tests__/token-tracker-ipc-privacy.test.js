@@ -11,6 +11,12 @@ const {
 } = require("../token-tracker-ipc");
 
 function capture(tokenTracker) {
+  const actorDid = "did:key:tracker-owner";
+  const authorize = vi.fn(async (_event, operation) => ({
+    actorDid,
+    operation,
+    tenantId: "tenant:tracker-owner",
+  }));
   const handlers = new Map();
   const ipcMain = {
     handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
@@ -21,8 +27,13 @@ function capture(tokenTracker) {
     markModuleRegistered: vi.fn(),
     unmarkModuleRegistered: vi.fn(),
   };
-  registerTokenTrackerIPC({ ipcMain, ipcGuard, tokenTracker });
-  return { handlers, ipcGuard, ipcMain };
+  registerTokenTrackerIPC({
+    ipcMain,
+    ipcGuard,
+    tokenTracker,
+    coreAuthorization: { authorize },
+  });
+  return { actorDid, authorize, handlers, ipcGuard, ipcMain };
 }
 
 describe("standalone Token Tracker IPC privacy", () => {
@@ -37,7 +48,7 @@ describe("standalone Token Tracker IPC privacy", () => {
         if (sql.includes("UPDATE llm_budget_config")) {
           return { run: updateRun };
         }
-        if (sql.includes("FROM conversations")) {
+        if (sql.includes("SUM(cost_cny)")) {
           return {
             get: vi.fn(() => ({
               total_input_tokens: 10,
@@ -135,14 +146,14 @@ describe("standalone Token Tracker IPC privacy", () => {
         filePath: `C:\\${privateValue}\\report.csv`,
       }),
     };
-    const { handlers } = capture(tracker);
+    const { actorDid, authorize, handlers } = capture(tracker);
 
     const results = {
       usage: await handlers.get("tracker:get-usage-stats")(),
       series: await handlers.get("tracker:get-time-series")(
         {},
         {
-          interval: privateValue,
+          interval: "day",
         },
       ),
       breakdown: await handlers.get("tracker:get-cost-breakdown")(),
@@ -153,17 +164,23 @@ describe("standalone Token Tracker IPC privacy", () => {
           model: "public-model",
         },
       ),
-      budget: await handlers.get("tracker:get-budget")({}, privateValue),
+      budget: await handlers.get("tracker:get-budget")({}),
       setBudget: await handlers.get("tracker:set-budget")(
         {},
         {
-          userId: privateValue,
+          dailyLimit: 1,
+          weeklyLimit: 5,
+          monthlyLimit: 20,
+          warningThreshold: 0.8,
+          criticalThreshold: 0.95,
+          desktopAlerts: true,
+          autoPauseOnLimit: true,
+          autoSwitchToCheaperModel: false,
         },
       ),
       reset: await handlers.get("tracker:reset-budget-counters")(
         {},
         {
-          userId: privateValue,
           period: "all",
         },
       ),
@@ -230,7 +247,34 @@ describe("standalone Token Tracker IPC privacy", () => {
     });
     expect(results.exchange).toEqual({ success: true });
     expect(tracker.options.exchangeRate).toBe(7.3);
+    expect(tracker.getUsageStats).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: actorDid }),
+    );
+    expect(tracker.getTimeSeriesData).toHaveBeenCalledWith(
+      expect.objectContaining({ interval: "day", userId: actorDid }),
+    );
+    expect(tracker.getCostBreakdown).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: actorDid }),
+    );
+    expect(tracker.getBudgetConfig).toHaveBeenCalledWith(actorDid);
+    expect(tracker.saveBudgetConfig).toHaveBeenCalledWith(
+      actorDid,
+      expect.objectContaining({ dailyLimit: 1, monthlyLimit: 20 }),
+    );
+    expect(tracker.recordUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: null,
+        provider: "openai",
+        updateConversationTotals: false,
+        userId: actorDid,
+      }),
+    );
+    expect(tracker.exportCostReport).toHaveBeenCalledWith(
+      expect.objectContaining({ format: "csv", userId: actorDid }),
+    );
     expect(updateRun).toHaveBeenCalledOnce();
+    expect(updateRun.mock.calls[0].at(-1)).toBe(actorDid);
+    expect(authorize).toHaveBeenCalledTimes(11);
     expect(JSON.stringify(results)).not.toContain(privateValue);
   });
 
@@ -267,6 +311,60 @@ describe("standalone Token Tracker IPC privacy", () => {
       expected,
     );
     expect(JSON.stringify(expected)).not.toContain(privateValue);
+  });
+
+  it("fails authorization before reading the tracker", async () => {
+    const getUsageStats = vi.fn();
+    const { handlers, authorize } = capture({ getUsageStats });
+    authorize.mockRejectedValueOnce(new Error("private authorization reason"));
+
+    await expect(
+      handlers.get("tracker:get-usage-stats")({ sender: "renderer" }),
+    ).rejects.toMatchObject({
+      code: "CC_LLM_IPC_UNAUTHORIZED",
+      component: "tracker",
+      operation: "tracker-get-usage-stats",
+    });
+    expect(getUsageStats).not.toHaveBeenCalled();
+  });
+
+  it("rejects renderer identities and active input objects", async () => {
+    const getUsageStats = vi.fn();
+    const saveBudgetConfig = vi.fn();
+    const recordUsage = vi.fn();
+    const { handlers } = capture({
+      getUsageStats,
+      saveBudgetConfig,
+      recordUsage,
+    });
+    const expected = {
+      success: false,
+      error: "LLM IPC operation failed",
+      code: "CC_LLM_IPC_OPERATION_FAILED",
+    };
+    const accessor = {};
+    Object.defineProperty(accessor, "provider", {
+      enumerable: true,
+      get: vi.fn(() => "openai"),
+    });
+
+    expect(
+      await handlers.get("tracker:get-usage-stats")(
+        {},
+        {
+          userId: "did:key:attacker",
+        },
+      ),
+    ).toEqual(expected);
+    expect(
+      await handlers.get("tracker:get-usage-stats")({}, new Proxy({}, {})),
+    ).toEqual(expected);
+    expect(await handlers.get("tracker:record-usage")({}, accessor)).toEqual(
+      expected,
+    );
+    expect(getUsageStats).not.toHaveBeenCalled();
+    expect(saveBudgetConfig).not.toHaveBeenCalled();
+    expect(recordUsage).not.toHaveBeenCalled();
   });
 
   it("unregisters all handlers and clears the tracker reference", () => {

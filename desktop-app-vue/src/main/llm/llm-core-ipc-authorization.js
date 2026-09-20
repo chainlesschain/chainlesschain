@@ -145,6 +145,54 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-cache-control",
     fields: Object.freeze(["cache-control-receipt"]),
   }),
+  "tracker-get-usage-stats": Object.freeze({
+    purpose: "model-usage-read",
+    fields: Object.freeze(["usage-statistics"]),
+  }),
+  "tracker-get-time-series": Object.freeze({
+    purpose: "model-usage-read",
+    fields: Object.freeze(["usage-time-series"]),
+  }),
+  "tracker-get-cost-breakdown": Object.freeze({
+    purpose: "model-cost-read",
+    fields: Object.freeze(["cost-breakdown"]),
+  }),
+  "tracker-get-pricing": Object.freeze({
+    purpose: "model-pricing-read",
+    fields: Object.freeze(["pricing-catalog"]),
+  }),
+  "tracker-calculate-cost": Object.freeze({
+    purpose: "model-cost-estimate",
+    fields: Object.freeze(["cost-estimate"]),
+  }),
+  "tracker-get-budget": Object.freeze({
+    purpose: "model-budget-read",
+    fields: Object.freeze(["budget-configuration"]),
+  }),
+  "tracker-set-budget": Object.freeze({
+    purpose: "model-budget-write",
+    fields: Object.freeze(["budget-configuration"]),
+  }),
+  "tracker-reset-budget-counters": Object.freeze({
+    purpose: "model-budget-reset",
+    fields: Object.freeze(["budget-configuration"]),
+  }),
+  "tracker-record-usage": Object.freeze({
+    purpose: "model-usage-record",
+    fields: Object.freeze(["usage-record"]),
+  }),
+  "tracker-export-report": Object.freeze({
+    purpose: "model-cost-report-export",
+    fields: Object.freeze(["cost-report-receipt"]),
+  }),
+  "tracker-get-conversation-stats": Object.freeze({
+    purpose: "model-usage-read",
+    fields: Object.freeze(["conversation-statistics"]),
+  }),
+  "tracker-set-exchange-rate": Object.freeze({
+    purpose: "model-pricing-write",
+    fields: Object.freeze(["pricing-configuration"]),
+  }),
   "get-selector-info": Object.freeze({
     purpose: "model-selector-catalog-read",
     fields: Object.freeze(["selector-catalog"]),

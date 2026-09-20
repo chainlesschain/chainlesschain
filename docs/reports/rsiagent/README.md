@@ -252,3 +252,4 @@
 | 182  | 2026-09-21 | [第一百八十二次工程实施：LLM State Bus 事件回执最小披露](./rsiagent-one-hundred-eighty-second-batch-implementation-2026-09-21.md)          |
 | 183  | 2026-09-21 | [第一百八十三次工程实施：Instinct IPC 授权、输入与回执边界](./rsiagent-one-hundred-eighty-third-batch-implementation-2026-09-21.md)        |
 | 184  | 2026-09-21 | [第一百八十四次工程实施：独立 Response Cache IPC 授权与数据边界](./rsiagent-one-hundred-eighty-fourth-batch-implementation-2026-09-21.md)   |
+| 185  | 2026-09-21 | [第一百八十五次工程实施：独立 Token Tracker IPC 授权与身份作用域](./rsiagent-one-hundred-eighty-fifth-batch-implementation-2026-09-21.md)       |

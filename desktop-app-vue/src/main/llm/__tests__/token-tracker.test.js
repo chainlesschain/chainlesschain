@@ -211,6 +211,23 @@ describe('TokenTracker', () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
+    it('can record actor-scoped usage without updating global conversation totals', async () => {
+      const updateConversationStats = vi.spyOn(
+        tracker,
+        'updateConversationStats',
+      );
+
+      await tracker.recordUsage({
+        provider: 'openai',
+        model: 'gpt-4o',
+        conversationId: 'conv-actor-scoped',
+        userId: 'did:key:owner',
+        updateConversationTotals: false,
+      });
+
+      expect(updateConversationStats).not.toHaveBeenCalled();
+    });
+
     it('should require provider and model', async () => {
       const result = await tracker.recordUsage({
         inputTokens: 100,

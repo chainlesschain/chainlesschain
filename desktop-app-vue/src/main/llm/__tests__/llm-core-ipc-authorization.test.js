@@ -212,6 +212,18 @@ describe("LLM core IPC authorization", () => {
         "stream-start",
         "cancel-stream",
         "switch-provider",
+        "tracker-calculate-cost",
+        "tracker-export-report",
+        "tracker-get-budget",
+        "tracker-get-conversation-stats",
+        "tracker-get-cost-breakdown",
+        "tracker-get-pricing",
+        "tracker-get-time-series",
+        "tracker-get-usage-stats",
+        "tracker-record-usage",
+        "tracker-reset-budget-counters",
+        "tracker-set-budget",
+        "tracker-set-exchange-rate",
       ].sort(),
     );
     expect(OPERATION_AUTHORIZATION["generate-test-data"]).toEqual({
@@ -229,6 +241,10 @@ describe("LLM core IPC authorization", () => {
     expect(OPERATION_AUTHORIZATION["response-cache-clear-all"]).toEqual({
       purpose: "model-cache-delete",
       fields: ["cache-control-receipt"],
+    });
+    expect(OPERATION_AUTHORIZATION["tracker-record-usage"]).toEqual({
+      purpose: "model-usage-record",
+      fields: ["usage-record"],
     });
   });
 

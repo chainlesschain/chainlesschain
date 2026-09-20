@@ -257,6 +257,7 @@ class TokenTracker extends EventEmitter {
    * @param {number} params.responseTime - 响应时间 (毫秒)
    * @param {string} params.endpoint - API 端点
    * @param {string} params.userId - 用户 ID (默认: 'default')
+   * @param {boolean} params.updateConversationTotals - 是否更新旧的全局会话汇总列
    */
   async recordUsage(params) {
     const {
@@ -273,6 +274,7 @@ class TokenTracker extends EventEmitter {
       responseTime,
       endpoint,
       userId = "default",
+      updateConversationTotals = true,
     } = params;
 
     if (!provider || !model) {
@@ -339,7 +341,7 @@ class TokenTracker extends EventEmitter {
       );
 
       // 更新对话统计
-      if (conversationId) {
+      if (conversationId && updateConversationTotals) {
         this.updateConversationStats(
           conversationId,
           inputTokens,

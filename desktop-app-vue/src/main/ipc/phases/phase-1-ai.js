@@ -278,6 +278,9 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       registerTokenTrackerIPC({
         tokenTracker: tokenTracker || null,
         database: database || null,
+        getMainWindow: () => mainWindow || null,
+        getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+        authorizePurpose: deps.authorizeTokenTrackerPurpose,
       });
     },
     handlers: 12,

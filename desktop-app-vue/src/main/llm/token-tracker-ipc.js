@@ -7,7 +7,11 @@
  * @module token-tracker-ipc
  */
 
+const { types } = require("node:util");
 const defaultIpcGuard = require("../ipc/ipc-guard");
+const {
+  createLlmCoreIpcAuthorization,
+} = require("./llm-core-ipc-authorization");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 const {
   projectConversationStats,
@@ -23,8 +27,285 @@ const {
 
 const VALID_RESET_PERIODS = new Set(["daily", "weekly", "monthly", "all"]);
 const VALID_INTERVALS = new Set(["hour", "day", "week"]);
+const MAX_TIMESTAMP = 8_640_000_000_000_000;
+const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
+const MAX_TOKEN_COUNT = 1_000_000_000;
+const MAX_BUDGET_USD = 1_000_000_000;
+const RANGE_KEYS = new Set([
+  "startDate",
+  "endDate",
+  "provider",
+  "interval",
+  "format",
+]);
+const BUDGET_KEYS = new Set([
+  "dailyLimit",
+  "weeklyLimit",
+  "monthlyLimit",
+  "warningThreshold",
+  "criticalThreshold",
+  "desktopAlerts",
+  "autoPauseOnLimit",
+  "autoSwitchToCheaperModel",
+]);
+const ESTIMATE_KEYS = new Set([
+  "provider",
+  "model",
+  "inputTokens",
+  "outputTokens",
+  "cachedTokens",
+]);
+const RESET_KEYS = new Set(["period"]);
+const RECORD_KEYS = new Set([
+  "conversationId",
+  "messageId",
+  "provider",
+  "model",
+  "inputTokens",
+  "outputTokens",
+  "cachedTokens",
+  "wasCached",
+  "wasCompressed",
+  "compressionRatio",
+  "responseTime",
+]);
+const TRACKER_CHANNEL_OPERATIONS = Object.freeze({
+  "tracker:get-usage-stats": "tracker-get-usage-stats",
+  "tracker:get-time-series": "tracker-get-time-series",
+  "tracker:get-cost-breakdown": "tracker-get-cost-breakdown",
+  "tracker:get-pricing": "tracker-get-pricing",
+  "tracker:calculate-cost": "tracker-calculate-cost",
+  "tracker:get-budget": "tracker-get-budget",
+  "tracker:set-budget": "tracker-set-budget",
+  "tracker:reset-budget-counters": "tracker-reset-budget-counters",
+  "tracker:record-usage": "tracker-record-usage",
+  "tracker:export-report": "tracker-export-report",
+  "tracker:get-conversation-stats": "tracker-get-conversation-stats",
+  "tracker:set-exchange-rate": "tracker-set-exchange-rate",
+});
 
 let tokenTrackerInstance = null;
+
+function ownData(source, key) {
+  if (
+    !source ||
+    types.isProxy(source) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(source))
+  ) {
+    return undefined;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(source, key);
+  return descriptor?.enumerable === true && Object.hasOwn(descriptor, "value")
+    ? descriptor.value
+    : undefined;
+}
+
+function authorizedActor(request) {
+  const actorDid = ownData(request, "actorDid");
+  if (
+    typeof actorDid !== "string" ||
+    actorDid.length < 1 ||
+    actorDid.length > 512 ||
+    /\p{Cc}/u.test(actorDid)
+  ) {
+    throw new TypeError("Invalid tracker actor");
+  }
+  return actorDid;
+}
+
+function descriptorsFor(value, allowedKeys) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid tracker input");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (
+      typeof key !== "string" ||
+      !allowedKeys.has(key) ||
+      descriptors[key]?.enumerable !== true ||
+      !Object.hasOwn(descriptors[key], "value")
+    ) {
+      throw new TypeError("Invalid tracker field");
+    }
+  }
+  return descriptors;
+}
+
+function boundedText(value, maximum, { optional = false } = {}) {
+  if (optional && (value === undefined || value === null || value === "")) {
+    return null;
+  }
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > maximum ||
+    value.trim() !== value ||
+    /\p{Cc}/u.test(value)
+  ) {
+    throw new TypeError("Invalid tracker identifier");
+  }
+  return value;
+}
+
+function timestamp(value, fallback) {
+  const normalized = value ?? fallback;
+  if (
+    !Number.isSafeInteger(normalized) ||
+    normalized < 0 ||
+    normalized > MAX_TIMESTAMP
+  ) {
+    throw new TypeError("Invalid tracker timestamp");
+  }
+  return normalized;
+}
+
+function normalizeRange(value, actorDid, kind) {
+  const descriptors = descriptorsFor(value, RANGE_KEYS);
+  const now = Date.now();
+  const startDate = timestamp(
+    descriptors.startDate?.value,
+    now - (kind === "export" ? 30 : 7) * 24 * 60 * 60 * 1000,
+  );
+  const endDate = timestamp(descriptors.endDate?.value, now);
+  if (startDate > endDate || endDate - startDate > MAX_RANGE_MS) {
+    throw new TypeError("Invalid tracker date range");
+  }
+  const normalized = { startDate, endDate, userId: actorDid };
+  if (kind === "usage" && descriptors.provider) {
+    normalized.provider = boundedText(descriptors.provider.value, 128);
+  }
+  if (kind === "time-series") {
+    const interval = descriptors.interval?.value ?? "day";
+    if (!VALID_INTERVALS.has(interval)) {
+      throw new TypeError("Invalid tracker interval");
+    }
+    normalized.interval = interval;
+  }
+  if (kind === "export") {
+    const format = descriptors.format?.value ?? "csv";
+    if (format !== "csv") {throw new TypeError("Invalid tracker report format");}
+    normalized.format = format;
+  }
+  for (const key of Object.keys(descriptors)) {
+    const allowed =
+      key === "startDate" ||
+      key === "endDate" ||
+      (kind === "usage" && key === "provider") ||
+      (kind === "time-series" && key === "interval") ||
+      (kind === "export" && key === "format");
+    if (!allowed) {throw new TypeError("Unexpected tracker range field");}
+  }
+  return Object.freeze(normalized);
+}
+
+function budgetNumber(descriptors, key, maximum = MAX_BUDGET_USD) {
+  const value = descriptors[key]?.value;
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > maximum
+  ) {
+    throw new TypeError("Invalid tracker budget number");
+  }
+  return value;
+}
+
+function budgetFlag(descriptors, key, fallback) {
+  const value = descriptors[key]?.value ?? fallback;
+  if (typeof value !== "boolean") {
+    throw new TypeError("Invalid tracker budget flag");
+  }
+  return value;
+}
+
+function normalizeBudget(value) {
+  const descriptors = descriptorsFor(value, BUDGET_KEYS);
+  const warningThreshold = budgetNumber(descriptors, "warningThreshold", 1);
+  const criticalThreshold = budgetNumber(descriptors, "criticalThreshold", 1);
+  if (warningThreshold > criticalThreshold) {
+    throw new TypeError("Invalid tracker budget thresholds");
+  }
+  return Object.freeze({
+    dailyLimit: budgetNumber(descriptors, "dailyLimit"),
+    weeklyLimit: budgetNumber(descriptors, "weeklyLimit"),
+    monthlyLimit: budgetNumber(descriptors, "monthlyLimit"),
+    warningThreshold,
+    criticalThreshold,
+    desktopAlerts: budgetFlag(descriptors, "desktopAlerts", true),
+    autoPauseOnLimit: budgetFlag(descriptors, "autoPauseOnLimit", false),
+    autoSwitchToCheaperModel: budgetFlag(
+      descriptors,
+      "autoSwitchToCheaperModel",
+      true,
+    ),
+  });
+}
+
+function tokenCount(value) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_TOKEN_COUNT) {
+    throw new TypeError("Invalid tracker token count");
+  }
+  return value;
+}
+
+function normalizeEstimate(value) {
+  const descriptors = descriptorsFor(value, ESTIMATE_KEYS);
+  return Object.freeze({
+    provider: boundedText(descriptors.provider?.value, 128),
+    model: boundedText(descriptors.model?.value, 256),
+    inputTokens: tokenCount(descriptors.inputTokens?.value ?? 0),
+    outputTokens: tokenCount(descriptors.outputTokens?.value ?? 0),
+    cachedTokens: tokenCount(descriptors.cachedTokens?.value ?? 0),
+  });
+}
+
+function booleanField(descriptors, key, fallback) {
+  const value = descriptors[key]?.value ?? fallback;
+  if (typeof value !== "boolean") {throw new TypeError("Invalid tracker flag");}
+  return value;
+}
+
+function normalizeRecord(value, actorDid) {
+  const descriptors = descriptorsFor(value, RECORD_KEYS);
+  const ratio = descriptors.compressionRatio?.value ?? 1;
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
+    throw new TypeError("Invalid tracker compression ratio");
+  }
+  const responseTime = descriptors.responseTime?.value;
+  if (
+    responseTime !== undefined &&
+    (!Number.isSafeInteger(responseTime) ||
+      responseTime < 0 ||
+      responseTime > 86_400_000)
+  ) {
+    throw new TypeError("Invalid tracker response time");
+  }
+  return Object.freeze({
+    conversationId: boundedText(descriptors.conversationId?.value, 256, {
+      optional: true,
+    }),
+    messageId: boundedText(descriptors.messageId?.value, 256, {
+      optional: true,
+    }),
+    provider: boundedText(descriptors.provider?.value, 128),
+    model: boundedText(descriptors.model?.value, 256),
+    inputTokens: tokenCount(descriptors.inputTokens?.value ?? 0),
+    outputTokens: tokenCount(descriptors.outputTokens?.value ?? 0),
+    cachedTokens: tokenCount(descriptors.cachedTokens?.value ?? 0),
+    wasCached: booleanField(descriptors, "wasCached", false),
+    wasCompressed: booleanField(descriptors, "wasCompressed", false),
+    compressionRatio: ratio,
+    responseTime,
+    endpoint: null,
+    userId: actorDid,
+    updateConversationTotals: false,
+  });
+}
 
 function setTokenTrackerInstance(tracker) {
   tokenTrackerInstance = tracker;
@@ -56,8 +337,15 @@ function registerTokenTrackerIPC({
   ipcMain: injectedIpcMain,
   ipcGuard: injectedIpcGuard,
   tokenTracker,
+  mainWindow,
+  didManager,
+  getMainWindow,
+  getCurrentIdentity,
+  authorizePurpose,
+  coreAuthorization: injectedAuthorization,
+  trackerPrivacy,
 } = {}) {
-  const privacy = createLlmIpcPrivacy("tracker");
+  const privacy = trackerPrivacy || createLlmIpcPrivacy("tracker");
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
   if (ipcGuard.isModuleRegistered("token-tracker-ipc")) {
@@ -66,164 +354,208 @@ function registerTokenTrackerIPC({
   }
 
   const ipcMain = injectedIpcMain || require("electron").ipcMain;
-  if (tokenTracker) {
-    setTokenTrackerInstance(tokenTracker);
+  if (tokenTracker !== undefined) {
+    setTokenTrackerInstance(tokenTracker || null);
   }
+
+  const authorization =
+    injectedAuthorization ||
+    createLlmCoreIpcAuthorization({
+      getMainWindow: getMainWindow || (() => mainWindow || null),
+      getCurrentIdentity:
+        getCurrentIdentity ||
+        (() => didManager?.getCurrentIdentity?.() || null),
+      authorizePurpose,
+    });
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const authorizationOperation = TRACKER_CHANNEL_OPERATIONS[channel];
+      ipcMain.handle(channel, async (event, ...args) => {
+        let actorDid;
+        try {
+          actorDid = authorizedActor(
+            await authorization.authorize(event, authorizationOperation),
+          );
+        } catch {
+          throw privacy.authorizationFailure(authorizationOperation);
+        }
+        return handler(event, actorDid, ...args);
+      });
+    },
+  };
 
   privacy.event("handlers-registering");
 
-  ipcMain.handle("tracker:get-usage-stats", async (_event, options = {}) => {
-    const lookup = trackerOrFailure(privacy, "get-usage-stats");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      return Object.freeze({
-        success: true,
-        stats: projectUsageStats(await lookup.tracker.getUsageStats(options)),
-      });
-    } catch {
-      return fixedFailure(privacy, "get-usage-stats");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:get-usage-stats",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "get-usage-stats");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length > 1) {throw new TypeError("Invalid tracker input count");}
+        const options = normalizeRange(args[0] ?? {}, actorDid, "usage");
+        return Object.freeze({
+          success: true,
+          stats: projectUsageStats(await lookup.tracker.getUsageStats(options)),
+        });
+      } catch {
+        return fixedFailure(privacy, "get-usage-stats");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:get-time-series", async (_event, options = {}) => {
-    const lookup = trackerOrFailure(privacy, "get-time-series");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      const interval = VALID_INTERVALS.has(options.interval)
-        ? options.interval
-        : "day";
-      return Object.freeze({
-        success: true,
-        data: projectTimeSeries(
-          await lookup.tracker.getTimeSeriesData(options),
-        ),
-        interval,
-      });
-    } catch {
-      return fixedFailure(privacy, "get-time-series");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:get-time-series",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "get-time-series");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length > 1) {throw new TypeError("Invalid tracker input count");}
+        const options = normalizeRange(args[0] ?? {}, actorDid, "time-series");
+        return Object.freeze({
+          success: true,
+          data: projectTimeSeries(
+            await lookup.tracker.getTimeSeriesData(options),
+          ),
+          interval: options.interval,
+        });
+      } catch {
+        return fixedFailure(privacy, "get-time-series");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:get-cost-breakdown", async (_event, options = {}) => {
-    const lookup = trackerOrFailure(privacy, "get-cost-breakdown");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      return Object.freeze({
-        success: true,
-        breakdown: projectCostBreakdown(
-          await lookup.tracker.getCostBreakdown(options),
-        ),
-      });
-    } catch {
-      return fixedFailure(privacy, "get-cost-breakdown");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:get-cost-breakdown",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "get-cost-breakdown");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length > 1) {throw new TypeError("Invalid tracker input count");}
+        const options = normalizeRange(args[0] ?? {}, actorDid, "cost");
+        return Object.freeze({
+          success: true,
+          breakdown: projectCostBreakdown(
+            await lookup.tracker.getCostBreakdown(options),
+          ),
+        });
+      } catch {
+        return fixedFailure(privacy, "get-cost-breakdown");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:get-pricing", async () => {
-    try {
-      const { PRICING_DATA } = require("./token-tracker.js");
-      return Object.freeze({
-        success: true,
-        pricing: projectPricingCatalog(PRICING_DATA),
-      });
-    } catch {
-      return fixedFailure(privacy, "get-pricing");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:get-pricing",
+    async (_event, _actorDid, ...args) => {
+      try {
+        if (args.length !== 0)
+          {throw new TypeError("Invalid tracker input count");}
+        const { PRICING_DATA } = require("./token-tracker.js");
+        return Object.freeze({
+          success: true,
+          pricing: projectPricingCatalog(PRICING_DATA),
+        });
+      } catch {
+        return fixedFailure(privacy, "get-pricing");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:calculate-cost", async (_event, params = {}) => {
-    const lookup = trackerOrFailure(privacy, "calculate-cost");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      const {
-        provider,
-        model,
-        inputTokens = 0,
-        outputTokens = 0,
-        cachedTokens = 0,
-      } = params;
-      if (!provider || !model) {
+  authorizedIpcMain.handle(
+    "tracker:calculate-cost",
+    async (_event, _actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "calculate-cost");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length !== 1)
+          {throw new TypeError("Invalid tracker input count");}
+        const { provider, model, inputTokens, outputTokens, cachedTokens } =
+          normalizeEstimate(args[0]);
+        return Object.freeze({
+          success: true,
+          cost: projectCostEstimate(
+            lookup.tracker.calculateCost(
+              provider,
+              model,
+              inputTokens,
+              outputTokens,
+              cachedTokens,
+            ),
+          ),
+        });
+      } catch {
         return fixedFailure(privacy, "calculate-cost");
       }
-      return Object.freeze({
-        success: true,
-        cost: projectCostEstimate(
-          lookup.tracker.calculateCost(
-            provider,
-            model,
-            inputTokens,
-            outputTokens,
-            cachedTokens,
+    },
+  );
+
+  authorizedIpcMain.handle(
+    "tracker:get-budget",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "get-budget");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length !== 0)
+          {throw new TypeError("Invalid tracker input count");}
+        return Object.freeze({
+          success: true,
+          config: projectTrackerBudget(
+            await lookup.tracker.getBudgetConfig(actorDid),
           ),
-        ),
-      });
-    } catch {
-      return fixedFailure(privacy, "calculate-cost");
-    }
-  });
+        });
+      } catch {
+        return fixedFailure(privacy, "get-budget");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:get-budget", async (_event, userId = "default") => {
-    const lookup = trackerOrFailure(privacy, "get-budget");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      return Object.freeze({
-        success: true,
-        config: projectTrackerBudget(
-          await lookup.tracker.getBudgetConfig(userId),
-        ),
-      });
-    } catch {
-      return fixedFailure(privacy, "get-budget");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:set-budget",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "set-budget");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length !== 1)
+          {throw new TypeError("Invalid tracker input count");}
+        await lookup.tracker.saveBudgetConfig(
+          actorDid,
+          normalizeBudget(args[0]),
+        );
+        return successReceipt();
+      } catch {
+        return fixedFailure(privacy, "set-budget");
+      }
+    },
+  );
 
-  ipcMain.handle("tracker:set-budget", async (_event, params = {}) => {
-    const lookup = trackerOrFailure(privacy, "set-budget");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      const userId = params.userId || "default";
-      await lookup.tracker.saveBudgetConfig(userId, {
-        dailyLimit: params.dailyLimit,
-        weeklyLimit: params.weeklyLimit,
-        monthlyLimit: params.monthlyLimit,
-        warningThreshold: params.warningThreshold,
-        criticalThreshold: params.criticalThreshold,
-        desktopAlerts: params.desktopAlerts,
-        autoPauseOnLimit: params.autoPauseOnLimit,
-        autoSwitchToCheaperModel: params.autoSwitchToCheaperModel,
-      });
-      return successReceipt();
-    } catch {
-      return fixedFailure(privacy, "set-budget");
-    }
-  });
-
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "tracker:reset-budget-counters",
-    async (_event, params = {}) => {
+    async (_event, actorDid, ...args) => {
       const lookup = trackerOrFailure(privacy, "reset-budget-counters");
       if (lookup.failure) {
         return lookup.failure;
       }
       try {
-        const userId = params.userId || "default";
-        const period = params.period || "all";
+        if (args.length > 1) {throw new TypeError("Invalid tracker input count");}
+        const descriptors = descriptorsFor(args[0] ?? {}, RESET_KEYS);
+        const period = descriptors.period?.value ?? "all";
         if (!VALID_RESET_PERIODS.has(period)) {
           return fixedFailure(privacy, "reset-budget-counters");
         }
-        if (!(await lookup.tracker.getBudgetConfig(userId))) {
+        if (!(await lookup.tracker.getBudgetConfig(actorDid))) {
           return fixedFailure(privacy, "reset-budget-counters");
         }
 
@@ -251,7 +583,7 @@ function registerTokenTrackerIPC({
              SET ${setClauses}, updated_at = ?
              WHERE user_id = ?`,
           )
-          .run(...Object.values(updates), now, userId);
+          .run(...Object.values(updates), now, actorDid);
 
         return successReceipt({
           resetPeriods:
@@ -263,56 +595,69 @@ function registerTokenTrackerIPC({
     },
   );
 
-  ipcMain.handle("tracker:record-usage", async (_event, params = {}) => {
-    const lookup = trackerOrFailure(privacy, "record-usage");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      if (!params.provider || !params.model) {
+  authorizedIpcMain.handle(
+    "tracker:record-usage",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "record-usage");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length !== 1)
+          {throw new TypeError("Invalid tracker input count");}
+        return Object.freeze({
+          success: true,
+          record: projectUsageRecord(
+            await lookup.tracker.recordUsage(
+              normalizeRecord(args[0], actorDid),
+            ),
+          ),
+        });
+      } catch {
         return fixedFailure(privacy, "record-usage");
       }
-      return Object.freeze({
-        success: true,
-        record: projectUsageRecord(await lookup.tracker.recordUsage(params)),
-      });
-    } catch {
-      return fixedFailure(privacy, "record-usage");
-    }
-  });
+    },
+  );
 
-  ipcMain.handle("tracker:export-report", async (_event, options = {}) => {
-    const lookup = trackerOrFailure(privacy, "export-report");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      await lookup.tracker.exportCostReport(options);
-      return successReceipt();
-    } catch {
-      return fixedFailure(privacy, "export-report");
-    }
-  });
+  authorizedIpcMain.handle(
+    "tracker:export-report",
+    async (_event, actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "export-report");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length > 1) {throw new TypeError("Invalid tracker input count");}
+        const options = normalizeRange(args[0] ?? {}, actorDid, "export");
+        await lookup.tracker.exportCostReport(options);
+        return successReceipt();
+      } catch {
+        return fixedFailure(privacy, "export-report");
+      }
+    },
+  );
 
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "tracker:get-conversation-stats",
-    async (_event, conversationId) => {
+    async (_event, actorDid, ...args) => {
       const lookup = trackerOrFailure(privacy, "get-conversation-stats");
       if (lookup.failure) {
         return lookup.failure;
       }
-      if (!conversationId) {
-        return fixedFailure(privacy, "get-conversation-stats");
-      }
       try {
+        if (args.length !== 1)
+          {throw new TypeError("Invalid tracker input count");}
+        const conversationId = boundedText(args[0], 256);
         const summary = lookup.tracker.db
           .prepare(
-            `SELECT total_input_tokens, total_output_tokens,
-                    total_cost_usd, total_cost_cny
-             FROM conversations
-             WHERE id = ?`,
+            `SELECT SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens,
+                    SUM(cost_usd) as total_cost_usd,
+                    SUM(cost_cny) as total_cost_cny
+             FROM llm_usage_log
+             WHERE conversation_id = ? AND user_id = ?`,
           )
-          .get(conversationId);
+          .get(conversationId, actorDid);
         const byModel = lookup.tracker.db
           .prepare(
             `SELECT COUNT(*) as call_count, provider, model,
@@ -321,11 +666,11 @@ function registerTokenTrackerIPC({
                     SUM(cost_usd) as cost_usd,
                     AVG(response_time) as avg_response_time
              FROM llm_usage_log
-             WHERE conversation_id = ?
+             WHERE conversation_id = ? AND user_id = ?
              GROUP BY provider, model
              ORDER BY cost_usd DESC`,
           )
-          .all(conversationId);
+          .all(conversationId, actorDid);
         return Object.freeze({
           success: true,
           ...projectConversationStats(summary, byModel),
@@ -336,26 +681,32 @@ function registerTokenTrackerIPC({
     },
   );
 
-  ipcMain.handle("tracker:set-exchange-rate", async (_event, rate) => {
-    const lookup = trackerOrFailure(privacy, "set-exchange-rate");
-    if (lookup.failure) {
-      return lookup.failure;
-    }
-    try {
-      if (
-        typeof rate !== "number" ||
-        !Number.isFinite(rate) ||
-        rate <= 0 ||
-        rate > Number.MAX_SAFE_INTEGER
-      ) {
+  authorizedIpcMain.handle(
+    "tracker:set-exchange-rate",
+    async (_event, _actorDid, ...args) => {
+      const lookup = trackerOrFailure(privacy, "set-exchange-rate");
+      if (lookup.failure) {
+        return lookup.failure;
+      }
+      try {
+        if (args.length !== 1)
+          {throw new TypeError("Invalid tracker input count");}
+        const rate = args[0];
+        if (
+          typeof rate !== "number" ||
+          !Number.isFinite(rate) ||
+          rate <= 0 ||
+          rate > Number.MAX_SAFE_INTEGER
+        ) {
+          return fixedFailure(privacy, "set-exchange-rate");
+        }
+        lookup.tracker.options.exchangeRate = rate;
+        return successReceipt();
+      } catch {
         return fixedFailure(privacy, "set-exchange-rate");
       }
-      lookup.tracker.options.exchangeRate = rate;
-      return successReceipt();
-    } catch {
-      return fixedFailure(privacy, "set-exchange-rate");
-    }
-  });
+    },
+  );
 
   ipcGuard.markModuleRegistered("token-tracker-ipc");
   privacy.event("handlers-registered");

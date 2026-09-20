@@ -166,6 +166,18 @@ const SAFE_OPERATIONS = new Set([
   "response-cache-warmup-status",
   "response-cache-start-auto-cleanup",
   "response-cache-stop-auto-cleanup",
+  "tracker-get-usage-stats",
+  "tracker-get-time-series",
+  "tracker-get-cost-breakdown",
+  "tracker-get-pricing",
+  "tracker-calculate-cost",
+  "tracker-get-budget",
+  "tracker-set-budget",
+  "tracker-reset-budget-counters",
+  "tracker-record-usage",
+  "tracker-export-report",
+  "tracker-get-conversation-stats",
+  "tracker-set-exchange-rate",
 ]);
 
 function allowlisted(value, values) {
