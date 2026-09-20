@@ -268,23 +268,25 @@ export declare class HookSystem extends EventEmitter {
 
 // ==================== 中间件类型 ====================
 
+export type HookMiddlewareHandler = (...args: any[]) => any;
+
 export interface IPCHookMiddleware {
   wrap(
     channel: string,
-    handler: Function,
-    options?: { skipPreHook?: boolean; skipPostHook?: boolean; contextExtractor?: Function }
-  ): Function;
-  wrapAll(handlers: Record<string, Function>, options?: Record<string, any>): Record<string, Function>;
-  createWrappedHandle(ipcMain: any): Function;
+    handler: HookMiddlewareHandler,
+    options?: { skipPreHook?: boolean; skipPostHook?: boolean; contextExtractor?: HookMiddlewareHandler }
+  ): HookMiddlewareHandler;
+  wrapAll(handlers: Record<string, HookMiddlewareHandler>, options?: Record<string, any>): Record<string, HookMiddlewareHandler>;
+  createWrappedHandle(ipcMain: any): HookMiddlewareHandler;
 }
 
 export interface ToolHookMiddleware {
   wrap(
     toolName: string,
-    handler: Function,
+    handler: HookMiddlewareHandler,
     options?: { skipPreHook?: boolean; skipPostHook?: boolean }
-  ): Function;
-  wrapAll(tools: Map<string, any> | Record<string, Function>, options?: Record<string, any>): any;
+  ): HookMiddlewareHandler;
+  wrapAll(tools: Map<string, any> | Record<string, HookMiddlewareHandler>, options?: Record<string, any>): any;
 }
 
 export interface SessionHookMiddleware {
@@ -292,8 +294,8 @@ export interface SessionHookMiddleware {
 }
 
 export interface FileHookMiddleware {
-  wrapRead(readFn: Function): Function;
-  wrapWrite(writeFn: Function): Function;
+  wrapRead(readFn: HookMiddlewareHandler): HookMiddlewareHandler;
+  wrapWrite(writeFn: HookMiddlewareHandler): HookMiddlewareHandler;
 }
 
 export interface AgentHookMiddleware {
@@ -313,5 +315,3 @@ export function createFileHookMiddleware(hookSystem: HookSystem): FileHookMiddle
 export function createAgentHookMiddleware(hookSystem: HookSystem): AgentHookMiddleware;
 
 // ==================== IPC 相关 ====================
-
-export function registerHooksIPC(dependencies?: { hookSystem?: HookSystem }): void;

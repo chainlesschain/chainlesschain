@@ -262,3 +262,4 @@
 | 192  | 2026-09-21 | [第一百九十二次工程实施：Follow-up Intent IPC 授权与上下文边界](./rsiagent-one-hundred-ninety-second-batch-implementation-2026-09-21.md)       |
 | 193  | 2026-09-21 | [第一百九十三次工程实施：旧 Web Search IPC 与查询诊断退役](./rsiagent-one-hundred-ninety-third-batch-implementation-2026-09-21.md)          |
 | 194  | 2026-09-21 | [第一百九十四次工程实施：旧 Permanent Memory 维护与高级 IPC 退役](./rsiagent-one-hundred-ninety-fourth-batch-implementation-2026-09-21.md) |
+| 195  | 2026-09-21 | [第一百九十五次工程实施：旧 Hooks Renderer IPC 生产退役](./rsiagent-one-hundred-ninety-fifth-batch-implementation-2026-09-21.md)       |

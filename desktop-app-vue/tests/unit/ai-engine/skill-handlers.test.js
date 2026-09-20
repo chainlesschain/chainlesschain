@@ -486,16 +486,15 @@ describe("Skill Handlers", () => {
 
     it("should generate test stubs for an IPC file", async () => {
       const projectRoot = path.resolve(__dirname, "../../..");
-      const ipcFile = path.join(projectRoot, "src/main/hooks/hooks-ipc.js");
+      const ipcFile = path.join(projectRoot, "src/main/ipc/logger-ipc.js");
       expect(fs.existsSync(ipcFile)).toBe(true);
       const result = await handler.execute(
-        { input: "--generate src/main/hooks/hooks-ipc.js" },
+        { input: "--generate src/main/ipc/logger-ipc.js" },
         { workspacePath: projectRoot },
       );
       expect(result.success).toBe(true);
-      expect(result.result.handlerCount).toBe(13);
-      expect(result.result.testCode).toContain("hooks:list");
-      expect(result.result.testCode).toContain("hooks:cancel-all");
+      expect(result.result.handlerCount).toBe(1);
+      expect(result.result.testCode).toContain("logger:write");
     });
 
     it("should discover canonical and injected IPC receivers without suffix lookalikes", async () => {

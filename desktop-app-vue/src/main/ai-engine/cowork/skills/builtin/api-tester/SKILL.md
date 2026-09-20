@@ -141,7 +141,7 @@ describe("audit-ipc handlers", () => {
 为特定模块生成测试:
 
 ```
-/api-tester --generate src/main/hooks/hooks-ipc.js
+/api-tester --generate src/main/ipc/logger-ipc.js
 ```
 
 运行全局健康检查:

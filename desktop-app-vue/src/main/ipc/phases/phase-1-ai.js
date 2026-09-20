@@ -2,7 +2,7 @@
  * Phase 1: AI Core IPC Registrations.
  *
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
- * Hooks, Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
+ * Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
  * Controller, Team Task, Permission, Logger, RAG (gated), Follow-up
  * Intent, Browser.
@@ -120,21 +120,10 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     continueMessage: "Continuing with other IPC registrations...",
   });
 
-  // 🔥 Hooks 系统 (Claude Code 风格, 11 handlers)
-  let hookSystem = null;
-  safeRegister("Hooks IPC", {
-    register: () => {
-      const { registerHooksIPC } = require("../../hooks/hooks-ipc");
-      const { getHookSystem } = require("../../hooks");
-      hookSystem = getHookSystem();
-      registerHooksIPC({
-        hookSystem,
-        artifactCandidateGate:
-          deps.evolvableArtifactHookCandidateGate || undefined,
-      });
-    },
-    handlers: 11,
-  });
+  // Hooks remain an internal dependency of Plan Mode and Markdown Skills.
+  // The unused renderer IPC surface has been retired.
+  const { getHookSystem } = require("../../hooks");
+  const hookSystem = getHookSystem();
 
   safeRegister("Evolvable Artifact Lifecycle IPC", {
     register: () => {

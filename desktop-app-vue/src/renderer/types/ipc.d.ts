@@ -226,15 +226,6 @@ export type MemoryChannel =
   | 'memory:get-insights';
 
 /**
- * Hooks 系统相关通道
- */
-export type HooksChannel =
-  | 'hooks:register'
-  | 'hooks:unregister'
-  | 'hooks:list'
-  | 'hooks:trigger';
-
-/**
  * Plan Mode 相关通道
  */
 export type PlanModeChannel =
@@ -305,7 +296,6 @@ export type IPCChannel =
   | MultimediaChannel
   | SessionChannel
   | MemoryChannel
-  | HooksChannel
   | PlanModeChannel
   | SkillsChannel
   | ContextChannel

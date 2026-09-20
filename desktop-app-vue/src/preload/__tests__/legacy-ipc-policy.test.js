@@ -53,12 +53,8 @@ describe("legacy generic IPC policy", () => {
     }
   });
 
-  it("preserves existing lifecycle channels when adding governed marketplace capabilities", () => {
+  it("preserves governed artifact and marketplace lifecycle capabilities", () => {
     for (const channel of [
-      "hooks:list",
-      "hooks:register",
-      "hooks:unregister",
-      "hooks:trigger",
       "evolution-artifact:promote",
       "evolution-artifact:revalidate",
       "skill-market:capabilities",
@@ -69,6 +65,14 @@ describe("legacy generic IPC policy", () => {
       "skill-market:revoke",
     ]) {
       expect(isFixedRendererIpcChannel(channel), channel).toBe(true);
+    }
+    for (const retiredHookChannel of [
+      "hooks:list",
+      "hooks:register",
+      "hooks:unregister",
+      "hooks:trigger",
+    ]) {
+      expect(isFixedRendererIpcChannel(retiredHookChannel)).toBe(false);
     }
     expect(isFixedRendererIpcChannel("skill-market:force-activate")).toBe(
       false,
