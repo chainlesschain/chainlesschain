@@ -358,6 +358,44 @@ describe('TokenTracker', () => {
     });
   });
 
+  it('scopes aggregate usage queries to the requested user', async () => {
+    const actorDid = 'did:key:usage-owner';
+    const usageGet = vi.fn().mockReturnValue({ total_calls: 0 });
+    const timeSeriesAll = vi.fn().mockReturnValue([]);
+    const providerAll = vi.fn().mockReturnValue([]);
+    const modelAll = vi.fn().mockReturnValue([]);
+    mockDb.prepare
+      .mockReturnValueOnce({ get: usageGet })
+      .mockReturnValueOnce({ all: timeSeriesAll })
+      .mockReturnValueOnce({ all: providerAll })
+      .mockReturnValueOnce({ all: modelAll });
+
+    await tracker.getUsageStats({
+      startDate: 100,
+      endDate: 200,
+      userId: actorDid,
+    });
+    await tracker.getTimeSeriesData({
+      startDate: 100,
+      endDate: 200,
+      interval: 'day',
+      userId: actorDid,
+    });
+    await tracker.getCostBreakdown({
+      startDate: 100,
+      endDate: 200,
+      userId: actorDid,
+    });
+
+    for (const [sql] of mockDb.prepare.mock.calls.slice(-4)) {
+      expect(sql).toContain('user_id = ?');
+    }
+    expect(usageGet).toHaveBeenCalledWith([100, 200, actorDid]);
+    expect(timeSeriesAll).toHaveBeenCalledWith(100, 200, actorDid);
+    expect(providerAll).toHaveBeenCalledWith(100, 200, actorDid);
+    expect(modelAll).toHaveBeenCalledWith(100, 200, actorDid);
+  });
+
   describe('budget management', () => {
     it('should get budget config', async () => {
       mockDb.prepare.mockReturnValue({

@@ -185,6 +185,54 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-alert-history-delete",
     fields: Object.freeze(["alert-history"]),
   }),
+  "get-usage-stats": Object.freeze({
+    purpose: "model-usage-read",
+    fields: Object.freeze(["usage-statistics"]),
+  }),
+  "get-time-series": Object.freeze({
+    purpose: "model-usage-read",
+    fields: Object.freeze(["usage-time-series"]),
+  }),
+  "get-cost-breakdown": Object.freeze({
+    purpose: "model-cost-read",
+    fields: Object.freeze(["cost-breakdown"]),
+  }),
+  "get-budget": Object.freeze({
+    purpose: "model-budget-read",
+    fields: Object.freeze(["budget-configuration"]),
+  }),
+  "set-budget": Object.freeze({
+    purpose: "model-budget-write",
+    fields: Object.freeze(["budget-configuration"]),
+  }),
+  "export-cost-report": Object.freeze({
+    purpose: "model-cost-report-export",
+    fields: Object.freeze(["cost-report-receipt"]),
+  }),
+  "clear-cache": Object.freeze({
+    purpose: "model-cache-delete",
+    fields: Object.freeze(["cache-control-receipt"]),
+  }),
+  "get-cache-stats": Object.freeze({
+    purpose: "model-cache-stats-read",
+    fields: Object.freeze(["cache-statistics"]),
+  }),
+  "resume-service": Object.freeze({
+    purpose: "model-service-control",
+    fields: Object.freeze(["service-control-receipt"]),
+  }),
+  "pause-service": Object.freeze({
+    purpose: "model-service-control",
+    fields: Object.freeze(["service-control-receipt"]),
+  }),
+  "calculate-cost-estimate": Object.freeze({
+    purpose: "model-cost-estimate",
+    fields: Object.freeze(["cost-estimate"]),
+  }),
+  "can-perform-operation": Object.freeze({
+    purpose: "model-budget-decision",
+    fields: Object.freeze(["budget-decision"]),
+  }),
 });
 
 function authorizationError() {

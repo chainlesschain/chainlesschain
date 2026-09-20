@@ -368,6 +368,7 @@ const budgetForm = reactive({
   weeklyLimit: 5.0,
   monthlyLimit: 20.0,
   warningThreshold: 0.8,
+  criticalThreshold: 0.95,
   desktopAlerts: true,
 });
 
@@ -537,6 +538,7 @@ async function loadData() {
         weeklyLimit: budgetData.weeklyLimit ?? 5.0,
         monthlyLimit: budgetData.monthlyLimit ?? 20.0,
         warningThreshold: budgetData.warningThreshold ?? 0.8,
+        criticalThreshold: budgetData.criticalThreshold ?? 0.95,
         desktopAlerts: budgetData.desktopAlerts !== false,
       });
     }
@@ -686,7 +688,7 @@ async function clearCache() {
 
 async function saveBudget() {
   try {
-    await window.electronAPI.llm.setBudget("default", budgetForm);
+    await window.electronAPI.llm.setBudget({ ...budgetForm });
     message.success("预算设置已保存");
     showBudgetModal.value = false;
     await loadData();

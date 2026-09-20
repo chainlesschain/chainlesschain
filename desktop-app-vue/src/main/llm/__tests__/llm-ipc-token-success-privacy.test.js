@@ -10,6 +10,12 @@ function capture(overrides = {}) {
     database: null,
     tokenTracker: null,
     responseCache: null,
+    coreAuthorization: {
+      authorize: vi.fn(async () => ({
+        actorDid: "did:key:token-test",
+        tenantId: "tenant:test",
+      })),
+    },
     ...overrides,
   });
   return handlers;
@@ -223,7 +229,7 @@ describe("LLM token IPC success privacy", () => {
           filePath: privateValue,
         }),
       },
-      responseCache: { clear: vi.fn().mockResolvedValue(7) },
+      responseCache: { clearExpired: vi.fn().mockResolvedValue(7) },
       managerRef: {
         current: {
           resumeService: vi.fn().mockResolvedValue({
@@ -239,7 +245,19 @@ describe("LLM token IPC success privacy", () => {
     });
 
     const results = [
-      await handlers.get("llm:set-budget")({}, "default", {}),
+      await handlers.get("llm:set-budget")(
+        {},
+        {
+          dailyLimit: 5,
+          weeklyLimit: 20,
+          monthlyLimit: 50,
+          warningThreshold: 0.8,
+          criticalThreshold: 0.95,
+          desktopAlerts: true,
+          autoPauseOnLimit: false,
+          autoSwitchToCheaperModel: true,
+        },
+      ),
       await handlers.get("llm:export-cost-report")(),
       await handlers.get("llm:clear-cache")(),
       await handlers.get("llm:resume-service")(),

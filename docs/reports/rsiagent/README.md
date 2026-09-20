@@ -248,3 +248,4 @@
 | 178  | 2026-09-21 | [第一百七十八次工程实施：模型预算 IPC 身份绑定与输入边界](./rsiagent-one-hundred-seventy-eighth-batch-implementation-2026-09-21.md)        |
 | 179  | 2026-09-21 | [第一百七十九次工程实施：数据保留 IPC 身份作用域与安全清理](./rsiagent-one-hundred-seventy-ninth-batch-implementation-2026-09-21.md)      |
 | 180  | 2026-09-21 | [第一百八十次工程实施：告警历史 IPC 身份绑定与输入边界](./rsiagent-one-hundred-eightieth-batch-implementation-2026-09-21.md)              |
+| 181  | 2026-09-21 | [第一百八十一次工程实施：Token IPC 身份作用域与授权边界](./rsiagent-one-hundred-eighty-first-batch-implementation-2026-09-21.md)           |

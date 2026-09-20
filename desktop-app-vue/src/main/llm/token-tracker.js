@@ -749,7 +749,8 @@ class TokenTracker extends EventEmitter {
       startDate = Date.now() - 7 * 24 * 60 * 60 * 1000, // 默认: 过去7天
       endDate = Date.now(),
       provider,
-      groupBy,
+      groupBy: _groupBy,
+      userId = "default",
     } = options;
 
     try {
@@ -765,10 +766,10 @@ class TokenTracker extends EventEmitter {
           SUM(CASE WHEN was_compressed = 1 THEN 1 ELSE 0 END) as compressed_calls,
           AVG(response_time) as avg_response_time
         FROM llm_usage_log
-        WHERE created_at >= ? AND created_at <= ?
+        WHERE created_at >= ? AND created_at <= ? AND user_id = ?
       `;
 
-      const params = [startDate, endDate];
+      const params = [startDate, endDate, userId];
 
       if (provider) {
         sql += " AND provider = ?";
@@ -817,6 +818,7 @@ class TokenTracker extends EventEmitter {
       startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
       endDate = Date.now(),
       interval = "day",
+      userId = "default",
     } = options;
 
     try {
@@ -843,13 +845,13 @@ class TokenTracker extends EventEmitter {
           SUM(total_tokens) as tokens,
           SUM(cost_usd) as cost_usd
         FROM llm_usage_log
-        WHERE created_at >= ? AND created_at <= ?
+        WHERE created_at >= ? AND created_at <= ? AND user_id = ?
         GROUP BY time_bucket
         ORDER BY time_bucket
       `;
 
       const stmt = this.db.prepare(sql);
-      const results = stmt.all(startDate, endDate);
+      const results = stmt.all(startDate, endDate, userId);
 
       return results.map((row) => ({
         timestamp: row.time_bucket,
@@ -872,6 +874,7 @@ class TokenTracker extends EventEmitter {
     const {
       startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
       endDate = Date.now(),
+      userId = "default",
     } = options;
 
     try {
@@ -883,13 +886,13 @@ class TokenTracker extends EventEmitter {
           SUM(total_tokens) as tokens,
           SUM(cost_usd) as cost_usd
         FROM llm_usage_log
-        WHERE created_at >= ? AND created_at <= ?
+        WHERE created_at >= ? AND created_at <= ? AND user_id = ?
         GROUP BY provider
         ORDER BY cost_usd DESC
       `;
 
       const providerStmt = this.db.prepare(providerSql);
-      const providerBreakdown = providerStmt.all(startDate, endDate);
+      const providerBreakdown = providerStmt.all(startDate, endDate, userId);
 
       // 按模型分组
       const modelSql = `
@@ -900,14 +903,14 @@ class TokenTracker extends EventEmitter {
           SUM(total_tokens) as tokens,
           SUM(cost_usd) as cost_usd
         FROM llm_usage_log
-        WHERE created_at >= ? AND created_at <= ?
+        WHERE created_at >= ? AND created_at <= ? AND user_id = ?
         GROUP BY provider, model
         ORDER BY cost_usd DESC
         LIMIT 20
       `;
 
       const modelStmt = this.db.prepare(modelSql);
-      const modelBreakdown = modelStmt.all(startDate, endDate);
+      const modelBreakdown = modelStmt.all(startDate, endDate, userId);
 
       return {
         byProvider: providerBreakdown,
@@ -929,14 +932,12 @@ class TokenTracker extends EventEmitter {
       startDate = Date.now() - 30 * 24 * 60 * 60 * 1000, // 默认: 过去30天
       endDate = Date.now(),
       format = "csv",
+      userId = "default",
     } = options;
 
     try {
       const sql = `
         SELECT
-          id,
-          conversation_id,
-          message_id,
           provider,
           model,
           input_tokens,
@@ -951,19 +952,16 @@ class TokenTracker extends EventEmitter {
           response_time,
           created_at
         FROM llm_usage_log
-        WHERE created_at >= ? AND created_at <= ?
+        WHERE created_at >= ? AND created_at <= ? AND user_id = ?
         ORDER BY created_at DESC
       `;
 
       const stmt = this.db.prepare(sql);
-      const results = stmt.all(startDate, endDate);
+      const results = stmt.all(startDate, endDate, userId);
 
       if (format === "csv") {
         // 生成 CSV
         const headers = [
-          "ID",
-          "Conversation ID",
-          "Message ID",
           "Provider",
           "Model",
           "Input Tokens",
@@ -983,9 +981,6 @@ class TokenTracker extends EventEmitter {
 
         results.forEach((row) => {
           const line = [
-            row.id,
-            row.conversation_id || "",
-            row.message_id || "",
             row.provider,
             row.model,
             row.input_tokens,

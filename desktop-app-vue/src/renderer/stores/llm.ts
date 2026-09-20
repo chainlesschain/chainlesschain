@@ -129,6 +129,8 @@ export interface BudgetConfig {
   warningThreshold: number;
   criticalThreshold: number;
   desktopAlerts: boolean;
+  autoPauseOnLimit?: boolean;
+  autoSwitchToCheaperModel?: boolean;
 }
 
 /**
@@ -725,9 +727,9 @@ export const useLLMStore = defineStore("llm", {
     /**
      * 加载预算配置
      */
-    async loadBudget(userId: string = "default"): Promise<any> {
+    async loadBudget(): Promise<any> {
       try {
-        const budget = await (window as any).electronAPI.llm.getBudget(userId);
+        const budget = await (window as any).electronAPI.llm.getBudget();
         if (budget) {
           Object.assign(this.budget, budget);
         }
@@ -741,13 +743,21 @@ export const useLLMStore = defineStore("llm", {
     /**
      * 保存预算配置
      */
-    async saveBudget(
-      config: Partial<BudgetConfig>,
-      userId: string = "default",
-    ): Promise<boolean> {
+    async saveBudget(config: Partial<BudgetConfig>): Promise<boolean> {
       try {
-        await (window as any).electronAPI.llm.setBudget(userId, config);
-        await this.loadBudget(userId);
+        const budget = { ...this.budget, ...config };
+        await (window as any).electronAPI.llm.setBudget({
+          dailyLimit: budget.dailyLimit,
+          weeklyLimit: budget.weeklyLimit,
+          monthlyLimit: budget.monthlyLimit,
+          warningThreshold: budget.warningThreshold,
+          criticalThreshold: budget.criticalThreshold,
+          desktopAlerts: budget.desktopAlerts,
+          autoPauseOnLimit: budget.autoPauseOnLimit ?? false,
+          autoSwitchToCheaperModel:
+            budget.autoSwitchToCheaperModel ?? true,
+        });
+        await this.loadBudget();
         return true;
       } catch (error) {
         logger.error("保存预算配置失败:", error as any);

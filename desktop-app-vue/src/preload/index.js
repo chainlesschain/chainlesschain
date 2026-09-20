@@ -121,8 +121,6 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:action:navigate",
   "browser:action:open-tab",
   "browser:action:vision",
-  "browser:operator:maintain-quarantine-lock",
-  "browser:operator:revoke-quarantine-artifact",
   "browser:aiClearHistory",
   "browser:aiExecute",
   "browser:aiGetHistory",
@@ -140,6 +138,8 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "browser:network",
   "browser:ocr:recognize",
   "browser:openTab",
+  "browser:operator:maintain-quarantine-lock",
+  "browser:operator:revoke-quarantine-artifact",
   "browser:recording:delete",
   "browser:recording:getPlaybackStatus",
   "browser:recording:getStatus",
@@ -1651,9 +1651,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("llm:get-time-series", options),
     getCostBreakdown: (options) =>
       ipcRenderer.invoke("llm:get-cost-breakdown", options),
-    getBudget: (userId) => ipcRenderer.invoke("llm:get-budget", userId),
-    setBudget: (userId, config) =>
-      ipcRenderer.invoke("llm:set-budget", userId, config),
+    getBudget: () => ipcRenderer.invoke("llm:get-budget"),
+    setBudget: (config) => ipcRenderer.invoke("llm:set-budget", config),
     exportCostReport: (options) =>
       ipcRenderer.invoke("llm:export-cost-report", options),
     clearCache: () => ipcRenderer.invoke("llm:clear-cache"),

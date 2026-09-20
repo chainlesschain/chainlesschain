@@ -24,4 +24,4 @@
 
 - 历史 `user_id = 'default'` 告警行不会自动归入任意新 actor；需要目标环境依据认证身份制定迁移或明确废弃策略。
 - 本批未执行真实 Electron renderer/preload 与 SQLite 用户目录 E2E，也未验证身份切换时告警面板缓存立即失效。
-- 生产 purpose authority/企业组织 RBAC、token 辅助 IPC 授权、tenant HMAC 和耐久审计仍待处理。
+- Token 辅助 IPC 后续已由第一百八十一批完成 actor DID/tenant/用途授权、查询作用域和输入收口；生产 purpose authority/企业组织 RBAC、全局 cache/service 分区、tenant HMAC 和耐久审计仍待处理。

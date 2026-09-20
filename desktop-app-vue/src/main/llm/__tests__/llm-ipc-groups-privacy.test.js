@@ -151,6 +151,12 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       managerRef,
       tokenTracker,
       responseCache,
+      coreAuthorization: {
+        authorize: vi.fn(async () => ({
+          actorDid: "did:key:token-test",
+          tenantId: "tenant:test",
+        })),
+      },
       tokenPrivacy: createLlmIpcPrivacy("token", sink),
     });
 

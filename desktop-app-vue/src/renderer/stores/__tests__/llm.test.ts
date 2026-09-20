@@ -522,8 +522,15 @@ describe("useLLMStore", () => {
       const result = await store.saveBudget({ dailyLimit: 3.0 });
 
       expect(result).toBe(true);
-      expect(mockLlm.setBudget).toHaveBeenCalledWith("default", {
-        dailyLimit: 3.0,
+      expect(mockLlm.setBudget).toHaveBeenCalledWith({
+        dailyLimit: 3,
+        weeklyLimit: 5,
+        monthlyLimit: 20,
+        warningThreshold: 0.8,
+        criticalThreshold: 0.95,
+        desktopAlerts: true,
+        autoPauseOnLimit: false,
+        autoSwitchToCheaperModel: true,
       });
       expect(mockLlm.getBudget).toHaveBeenCalled();
     });

@@ -1890,7 +1890,7 @@ class LLMManager extends EventEmitter {
    * @param {number} estimatedTokens - 预估 token 数量
    * @returns {Promise<Object>} { allowed: boolean, reason?: string }
    */
-  async canPerformOperation(estimatedTokens = 0) {
+  async canPerformOperation(estimatedTokens = 0, userId = "default") {
     if (this.paused) {
       return {
         allowed: false,
@@ -1911,7 +1911,7 @@ class LLMManager extends EventEmitter {
     );
 
     // 获取当前预算状态
-    const budgetConfig = await this.getBudgetConfig();
+    const budgetConfig = await this.getBudgetConfig(userId);
     if (!budgetConfig) {
       return { allowed: true };
     }

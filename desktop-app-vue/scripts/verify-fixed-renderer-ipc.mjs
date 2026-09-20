@@ -35,6 +35,8 @@ const retainedGovernedChannels = [
   "browser:action:navigate",
   "browser:action:open-tab",
   "browser:visualType",
+  "browser:operator:maintain-quarantine-lock",
+  "browser:operator:revoke-quarantine-artifact",
   "evolution-artifact:promote",
   "evolution-artifact:revalidate",
 ];
@@ -117,7 +119,7 @@ function directIpcChannels(source, patterns) {
 function mainAuthorityChannels() {
   const channels = new Set();
   const registrationPatterns = [
-    /\b(?:_?ipcMain|hostIpcMain)\s*\.\s*(?:handle|handleOnce|on|once)\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
+    /\b(?:_?ipcMain|[A-Za-z_$][A-Za-z0-9_$]*IpcMain)\s*\.\s*(?:handle|handleOnce|on|once)\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bsafeHandle\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bregisterHandler\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
     /\bsendToRenderer\s*\(\s*(["'`])([^"'`\r\n]+)\1/g,
