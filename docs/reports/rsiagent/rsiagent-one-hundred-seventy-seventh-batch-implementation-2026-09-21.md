@@ -24,4 +24,4 @@
 
 - 本批验证合成 handler 与主进程构建，未执行真实 Electron renderer/preload 的身份切换和在途 stream E2E。
 - 当前在身份切换后抑制旧 controller 广播，但未主动中止其上游 provider 工作；切换时的强制取消、资源回收、每 tenant 容量配额和耐久审计仍需目标环境接线。
-- 生产 purpose authority/企业组织 RBAC、其他辅助 LLM IPC 授权、其他 LLM 模块日志/错误通道、tenant HMAC 和生产日志访问治理仍待处理。
+- 模型预算辅助 IPC 后续已由第一百七十八批完成 actor DID/tenant/用途授权和输入收口；生产 purpose authority/企业组织 RBAC、alert/retention/token 辅助 IPC 授权、其他 LLM 模块日志/错误通道、tenant HMAC 和生产日志访问治理仍待处理。

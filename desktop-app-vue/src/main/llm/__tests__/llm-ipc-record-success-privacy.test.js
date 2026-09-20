@@ -9,6 +9,12 @@ function capture(register, database) {
   register({
     ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
     database,
+    coreAuthorization: {
+      authorize: async () => ({
+        actorDid: "did:key:record-test",
+        tenantId: "tenant:test",
+      }),
+    },
   });
   return handlers;
 }

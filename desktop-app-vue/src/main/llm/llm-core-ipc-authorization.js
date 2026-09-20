@@ -145,6 +145,18 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-stream-delete",
     fields: Object.freeze(["stream-control-receipt"]),
   }),
+  "get-model-budgets": Object.freeze({
+    purpose: "model-budget-read",
+    fields: Object.freeze(["model-budget"]),
+  }),
+  "set-model-budget": Object.freeze({
+    purpose: "model-budget-write",
+    fields: Object.freeze(["model-budget"]),
+  }),
+  "delete-model-budget": Object.freeze({
+    purpose: "model-budget-delete",
+    fields: Object.freeze(["model-budget"]),
+  }),
 });
 
 function authorizationError() {

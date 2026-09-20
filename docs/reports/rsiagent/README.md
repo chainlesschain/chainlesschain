@@ -245,3 +245,4 @@
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | 176  | 2026-09-21 | [第一百七十六次工程实施：旧 Stream Controller IPC 租户隔离与最小回执](./rsiagent-one-hundred-seventy-sixth-batch-implementation-2026-09-21.md) |
 | 177  | 2026-09-21 | [第一百七十七次工程实施：聚合 Stream IPC 授权与身份切换隔离](./rsiagent-one-hundred-seventy-seventh-batch-implementation-2026-09-21.md)        |
+| 178  | 2026-09-21 | [第一百七十八次工程实施：模型预算 IPC 身份绑定与输入边界](./rsiagent-one-hundred-seventy-eighth-batch-implementation-2026-09-21.md)        |
