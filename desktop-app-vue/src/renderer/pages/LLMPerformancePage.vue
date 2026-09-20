@@ -728,7 +728,7 @@ const exportData = async (format = "csv") => {
       format,
     });
     if (result.success) {
-      message.success("报告已导出: " + result.filePath);
+      message.success("报告已导出");
     } else {
       message.error("导出失败: " + result.error);
     }
@@ -750,7 +750,7 @@ const handleExport = async (config) => {
       options: config.options,
     });
     if (result.success) {
-      message.success("报告已导出: " + result.filePath);
+      message.success("报告已导出");
       showExportModal.value = false;
     } else {
       message.error("导出失败: " + result.error);

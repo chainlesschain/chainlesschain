@@ -664,7 +664,9 @@ async function exportReport() {
       format: "csv",
     });
 
-    message.success(`报告已导出: ${result.filePath}`);
+    if (result.success) {
+      message.success("报告已导出");
+    }
   } catch (error) {
     logger.error("导出报告失败:", error);
     message.error("导出报告失败: " + error.message);

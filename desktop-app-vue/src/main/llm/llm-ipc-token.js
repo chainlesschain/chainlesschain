@@ -5,6 +5,16 @@
  * @module llm/llm-ipc-token
  */
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const {
+  projectBudget,
+  projectBudgetDecision,
+  projectCacheStats,
+  projectCostBreakdown,
+  projectCostEstimate,
+  projectOperationResult,
+  projectTimeSeries,
+  projectUsageStats,
+} = require("./llm-ipc-token-projection");
 
 function registerTokenHandlers(ctx) {
   const { ipcMain, managerRef, database, tokenTracker, responseCache } = ctx;
@@ -21,7 +31,7 @@ function registerTokenHandlers(ctx) {
   ipcMain.handle("llm:get-usage-stats", async (_event, options = {}) => {
     try {
       if (tokenTracker) {
-        return await tokenTracker.getUsageStats(options);
+        return projectUsageStats(await tokenTracker.getUsageStats(options));
       }
 
       // Fallback: 直接从数据库查询
@@ -57,7 +67,7 @@ function registerTokenHandlers(ctx) {
           ? (((stats.cached_calls || 0) / stats.total_calls) * 100).toFixed(2)
           : 0;
 
-      return {
+      return projectUsageStats({
         totalCalls: stats.total_calls || 0,
         totalInputTokens: stats.total_input_tokens || 0,
         totalOutputTokens: stats.total_output_tokens || 0,
@@ -68,7 +78,7 @@ function registerTokenHandlers(ctx) {
         compressedCalls: stats.compressed_calls || 0,
         cacheHitRate: parseFloat(cacheHitRate),
         avgResponseTime: Math.round(stats.avg_response_time || 0),
-      };
+      });
     } catch {
       throw privacy.failure("get-usage-stats");
     }
@@ -81,7 +91,7 @@ function registerTokenHandlers(ctx) {
   ipcMain.handle("llm:get-time-series", async (_event, options = {}) => {
     try {
       if (tokenTracker) {
-        return await tokenTracker.getTimeSeriesData(options);
+        return projectTimeSeries(await tokenTracker.getTimeSeriesData(options));
       }
 
       // Fallback: 直接从数据库查询
@@ -128,16 +138,18 @@ function registerTokenHandlers(ctx) {
       const stmt = database.prepare(sql);
       const rows = stmt.all([startDate, endDate]);
 
-      return rows.map((row) => ({
-        timestamp: row.time_bucket,
-        date: new Date(row.time_bucket).toISOString(),
-        calls: row.calls || 0,
-        inputTokens: row.input_tokens || 0,
-        outputTokens: row.output_tokens || 0,
-        totalTokens: row.total_tokens || 0,
-        costUsd: row.cost_usd || 0,
-        costCny: row.cost_cny || 0,
-      }));
+      return projectTimeSeries(
+        rows.map((row) => ({
+          timestamp: row.time_bucket,
+          date: new Date(row.time_bucket).toISOString(),
+          calls: row.calls || 0,
+          inputTokens: row.input_tokens || 0,
+          outputTokens: row.output_tokens || 0,
+          totalTokens: row.total_tokens || 0,
+          costUsd: row.cost_usd || 0,
+          costCny: row.cost_cny || 0,
+        })),
+      );
     } catch {
       throw privacy.failure("get-time-series");
     }
@@ -150,7 +162,9 @@ function registerTokenHandlers(ctx) {
   ipcMain.handle("llm:get-cost-breakdown", async (_event, options = {}) => {
     try {
       if (tokenTracker) {
-        return await tokenTracker.getCostBreakdown(options);
+        return projectCostBreakdown(
+          await tokenTracker.getCostBreakdown(options),
+        );
       }
 
       // Fallback: 直接从数据库查询
@@ -199,7 +213,7 @@ function registerTokenHandlers(ctx) {
       const modelStmt = database.prepare(modelSql);
       const byModel = modelStmt.all([startDate, endDate]);
 
-      return {
+      return projectCostBreakdown({
         byProvider: byProvider.map((row) => ({
           provider: row.provider,
           calls: row.calls || 0,
@@ -215,7 +229,7 @@ function registerTokenHandlers(ctx) {
           costUsd: row.cost_usd || 0,
           costCny: row.cost_cny || 0,
         })),
-      };
+      });
     } catch {
       throw privacy.failure("get-cost-breakdown");
     }
@@ -231,7 +245,7 @@ function registerTokenHandlers(ctx) {
         throw new Error("Token 追踪器未初始化");
       }
 
-      return await tokenTracker.getBudgetConfig(userId);
+      return projectBudget(await tokenTracker.getBudgetConfig(userId));
     } catch {
       throw privacy.failure("get-budget");
     }
@@ -247,7 +261,9 @@ function registerTokenHandlers(ctx) {
         throw new Error("Token 追踪器未初始化");
       }
 
-      return await tokenTracker.saveBudgetConfig(userId, config);
+      return projectOperationResult(
+        await tokenTracker.saveBudgetConfig(userId, config),
+      );
     } catch {
       throw privacy.failure("set-budget");
     }
@@ -263,7 +279,9 @@ function registerTokenHandlers(ctx) {
         throw new Error("Token 追踪器未初始化");
       }
 
-      return await tokenTracker.exportCostReport(options);
+      return projectOperationResult(
+        await tokenTracker.exportCostReport(options),
+      );
     } catch {
       throw privacy.failure("export-cost-report");
     }
@@ -280,7 +298,15 @@ function registerTokenHandlers(ctx) {
       }
 
       const deletedCount = await responseCache.clear();
-      return { success: true, deletedCount };
+      return projectOperationResult(
+        { success: true },
+        {
+          deletedCount:
+            Number.isSafeInteger(deletedCount) && deletedCount >= 0
+              ? deletedCount
+              : 0,
+        },
+      );
     } catch {
       throw privacy.failure("clear-cache");
     }
@@ -296,7 +322,7 @@ function registerTokenHandlers(ctx) {
         throw new Error("响应缓存未初始化");
       }
 
-      return await responseCache.getStats();
+      return projectCacheStats(await responseCache.getStats());
     } catch {
       throw privacy.failure("get-cache-stats");
     }
@@ -316,7 +342,7 @@ function registerTokenHandlers(ctx) {
 
       privacy.event("service-resumed");
 
-      return result;
+      return projectOperationResult(result);
     } catch {
       throw privacy.failure("resume-service");
     }
@@ -336,7 +362,7 @@ function registerTokenHandlers(ctx) {
 
       privacy.event("service-paused");
 
-      return result;
+      return projectOperationResult(result);
     } catch {
       throw privacy.failure("pause-service");
     }
@@ -357,12 +383,14 @@ function registerTokenHandlers(ctx) {
           throw new Error("LLM 服务未初始化");
         }
 
-        return managerRef.current.calculateCostEstimate(
-          provider,
-          model,
-          inputTokens,
-          outputTokens,
-          cachedTokens,
+        return projectCostEstimate(
+          managerRef.current.calculateCostEstimate(
+            provider,
+            model,
+            inputTokens,
+            outputTokens,
+            cachedTokens,
+          ),
         );
       } catch {
         throw privacy.failure("calculate-cost-estimate");
@@ -382,7 +410,9 @@ function registerTokenHandlers(ctx) {
           throw new Error("LLM 服务未初始化");
         }
 
-        return await managerRef.current.canPerformOperation(estimatedTokens);
+        return projectBudgetDecision(
+          await managerRef.current.canPerformOperation(estimatedTokens),
+        );
       } catch {
         throw privacy.failure("can-perform-operation");
       }
