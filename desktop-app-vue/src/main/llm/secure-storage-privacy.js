@@ -4,6 +4,9 @@ const { logger } = require("../utils/logger.js");
 
 const SAFE_COMPONENTS = new Set(["config", "ipc", "storage"]);
 const SAFE_EVENTS = new Set([
+  "atomic-invalid-temporary-discarded",
+  "atomic-stale-temporary-discarded",
+  "atomic-temporary-recovered",
   "backup-create-failed",
   "backup-created",
   "backup-list-failed",

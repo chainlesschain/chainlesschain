@@ -1147,10 +1147,27 @@ describe("SecureConfigStorage", () => {
 
       const exportPath = "/tmp/import-test.enc";
       storage.exportWithPassword("password123", exportPath);
+      storage.createBackup = vi.fn(() => "/tmp/backup.enc.bak");
 
       const result = storage.importWithPassword("password123", exportPath);
 
       expect(result).toBe(true);
+      expect(storage.createBackup).toHaveBeenCalledOnce();
+    });
+
+    it("现有配置无法备份时应拒绝导入", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/tmp/test-config.enc",
+      });
+      storage.save({ test: "current" });
+      const exportPath = "/tmp/import-backup-failure.enc";
+      storage.exportWithPassword("password123", exportPath);
+      storage.createBackup = vi.fn(() => null);
+
+      const result = storage.importWithPassword("password123", exportPath);
+
+      expect(result).toBe(false);
+      expect(storage.load(false)).toEqual({ test: "current" });
     });
 
     it("导入不存在的文件应返回false", () => {

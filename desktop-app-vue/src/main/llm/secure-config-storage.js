@@ -16,6 +16,7 @@ const path = require("path");
 const { app, safeStorage } = require("electron");
 const os = require("os");
 const { createSecureStoragePrivacy } = require("./secure-storage-privacy");
+const { createAtomicFileCommitter } = require("./secure-config-atomic-file");
 const storagePrivacy = createSecureStoragePrivacy("storage");
 
 // 加密算法配置
@@ -110,12 +111,48 @@ class SecureConfigStorage {
     // `app`/`safeStorage` undefined there. Defaults to the real Electron exports.
     this._app = options.app || app;
     this._safeStorage = options.safeStorage || safeStorage;
+    this._atomicFile =
+      options.atomicFile ||
+      createAtomicFileCommitter({ fs, fsPromises: fsp, path });
     this.storagePath = options.storagePath || this._getDefaultStoragePath();
     this.safeStorageAvailable = this._checkSafeStorageAvailability();
     this.machineKey = null;
     this._cache = null;
     this._cacheTimestamp = null;
     this._cacheTTL = 5 * 60 * 1000; // 5分钟缓存
+  }
+
+  _recordAtomicRecovery(receipt) {
+    if (receipt?.action === "temporary-recovered") {
+      this.clearCache();
+      storagePrivacy.event("atomic-temporary-recovered");
+    } else if (receipt?.action === "stale-discarded") {
+      storagePrivacy.event("atomic-stale-temporary-discarded");
+    } else if (receipt?.action === "invalid-discarded") {
+      storagePrivacy.event("atomic-invalid-temporary-discarded");
+    }
+  }
+
+  _recoverStorageSync() {
+    const receipt = this._atomicFile.recoverSync(
+      this.storagePath,
+      (encrypted) => {
+        this.decrypt(encrypted);
+        return true;
+      },
+    );
+    this._recordAtomicRecovery(receipt);
+  }
+
+  async _recoverStorage() {
+    const receipt = await this._atomicFile.recover(
+      this.storagePath,
+      (encrypted) => {
+        this.decrypt(encrypted);
+        return true;
+      },
+    );
+    this._recordAtomicRecovery(receipt);
   }
 
   /**
@@ -371,13 +408,8 @@ class SecureConfigStorage {
    */
   save(config) {
     try {
-      const dir = path.dirname(this.storagePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
       const encrypted = this.encrypt(config);
-      fs.writeFileSync(this.storagePath, encrypted);
+      this._atomicFile.writeFileSync(this.storagePath, encrypted);
 
       // 清除缓存
       this._cache = null;
@@ -386,6 +418,7 @@ class SecureConfigStorage {
       storagePrivacy.event("config-saved");
       return true;
     } catch {
+      this.clearCache();
       storagePrivacy.event("config-save-failed");
       return false;
     }
@@ -398,6 +431,8 @@ class SecureConfigStorage {
    */
   load(useCache = true) {
     try {
+      this._recoverStorageSync();
+
       // 检查缓存
       if (useCache && this._cache && this._cacheTimestamp) {
         if (Date.now() - this._cacheTimestamp < this._cacheTTL) {
@@ -432,11 +467,8 @@ class SecureConfigStorage {
    */
   async saveAsync(config) {
     try {
-      const dir = path.dirname(this.storagePath);
-      await fsp.mkdir(dir, { recursive: true });
-
       const encrypted = this.encrypt(config);
-      await fsp.writeFile(this.storagePath, encrypted);
+      await this._atomicFile.writeFile(this.storagePath, encrypted);
 
       // 清除缓存
       this._cache = null;
@@ -445,6 +477,7 @@ class SecureConfigStorage {
       storagePrivacy.event("config-saved");
       return true;
     } catch {
+      this.clearCache();
       storagePrivacy.event("config-save-failed");
       return false;
     }
@@ -457,6 +490,8 @@ class SecureConfigStorage {
    */
   async loadAsync(useCache = true) {
     try {
+      await this._recoverStorage();
+
       if (useCache && this._cache && this._cacheTimestamp) {
         if (Date.now() - this._cacheTimestamp < this._cacheTTL) {
           return this._cache;
@@ -499,10 +534,9 @@ class SecureConfigStorage {
    */
   delete() {
     try {
-      if (fs.existsSync(this.storagePath)) {
-        fs.unlinkSync(this.storagePath);
-        this._cache = null;
-        this._cacheTimestamp = null;
+      const removed = this._atomicFile.removeSync(this.storagePath);
+      this.clearCache();
+      if (removed) {
         storagePrivacy.event("config-deleted");
       }
       return true;
@@ -524,17 +558,16 @@ class SecureConfigStorage {
       }
 
       const backupDir = this._getBackupDir();
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-      }
-
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const backupPath = path.join(
         backupDir,
-        `secure-config-${timestamp}.enc.bak`,
+        `secure-config-${timestamp}-${crypto.randomBytes(4).toString("hex")}.enc.bak`,
       );
 
-      fs.copyFileSync(this.storagePath, backupPath);
+      this._atomicFile.writeFileSync(
+        backupPath,
+        fs.readFileSync(this.storagePath),
+      );
       storagePrivacy.event("backup-created");
 
       return backupPath;
@@ -563,11 +596,14 @@ class SecureConfigStorage {
       // 备份当前文件
       if (this.exists()) {
         const currentBackup = this.storagePath + ".before-restore";
-        fs.copyFileSync(this.storagePath, currentBackup);
+        this._atomicFile.writeFileSync(
+          currentBackup,
+          fs.readFileSync(this.storagePath),
+        );
       }
 
       // 恢复
-      fs.copyFileSync(backupPath, this.storagePath);
+      this._atomicFile.writeFileSync(this.storagePath, encrypted);
       this._cache = null;
       this._cacheTimestamp = null;
 
@@ -654,7 +690,7 @@ class SecureConfigStorage {
       const header = Buffer.from([0x45, 0x58, STORAGE_VERSION]); // 'EX' + version
       const exportData = Buffer.concat([header, salt, iv, authTag, encrypted]);
 
-      fs.writeFileSync(exportPath, exportData);
+      this._atomicFile.writeFileSync(exportPath, exportData);
       storagePrivacy.event("config-exported");
       return true;
     } catch {
@@ -718,8 +754,14 @@ class SecureConfigStorage {
       const parsed = JSON.parse(decrypted.toString("utf8"));
 
       // 创建备份后保存
-      this.createBackup();
-      this.save(parsed.data);
+      if (this.exists() && !this.createBackup()) {
+        storagePrivacy.event("config-import-failed");
+        return false;
+      }
+      if (!this.save(parsed.data)) {
+        storagePrivacy.event("config-import-failed");
+        return false;
+      }
 
       storagePrivacy.event("config-imported");
       return true;
@@ -782,11 +824,14 @@ class SecureConfigStorage {
       }
 
       // 创建备份
-      this.createBackup();
+      if (!this.createBackup()) {
+        storagePrivacy.event("migration-failed");
+        return false;
+      }
 
       // 使用 safeStorage 重新加密
       const encrypted = this._encryptWithSafeStorage(config);
-      fs.writeFileSync(this.storagePath, encrypted);
+      this._atomicFile.writeFileSync(this.storagePath, encrypted);
 
       this._cache = null;
       this._cacheTimestamp = null;
