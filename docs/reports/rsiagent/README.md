@@ -236,3 +236,11 @@
 | 173  | 2026-09-21 | [第一百七十三次工程实施：LLM Stream Controller 事件与成功回执最小披露](./rsiagent-one-hundred-seventy-third-batch-implementation-2026-09-21.md) |
 | 174  | 2026-09-21 | [第一百七十四次工程实施：LLM 测试数据输入、授权与成功回执边界](./rsiagent-one-hundred-seventy-fourth-batch-implementation-2026-09-21.md) |
 | 175  | 2026-09-21 | [第一百七十五次工程实施：LLM Selector 授权与成功结果投影](./rsiagent-one-hundred-seventy-fifth-batch-implementation-2026-09-21.md) |
+
+<a id="batch-176-200"></a>
+
+## 第 176–200 批
+
+| 批次 | 日期       | 实施记录                                                                                                                                    |
+| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 176  | 2026-09-21 | [第一百七十六次工程实施：旧 Stream Controller IPC 租户隔离与最小回执](./rsiagent-one-hundred-seventy-sixth-batch-implementation-2026-09-21.md) |

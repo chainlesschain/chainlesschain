@@ -20,7 +20,7 @@
 
 ## 未完成边界
 
-- State Bus 的业务 payload 和 Stream Controller 的内部 `stream-error` 事件合同未在本批改变；跨 IPC 输出仍需独立授权与投影。
-- `stream-controller-ipc` 及其他 LLM 模块的日志、错误返回和 sender/tenant/用途授权仍待收口。
+- Stream Controller 的业务事件与辅助 IPC 投影后续已由第一百七十三批收口，旧 `stream-controller-ipc` 的日志、错误、业务结果、租户隔离与用途授权也已由第一百七十六批完成；State Bus 的通用业务 payload 仍待独立处理。
+- 其他辅助 LLM IPC 和其他 LLM 模块的日志、错误返回及 sender/tenant/用途授权仍待收口。
 - Electron JavaScript 入口前的原生致命 stderr、tenant HMAC、生产日志保留/访问控制仍未完成。
 - G03 仍为部分完成，真实 Electron/browser/provider E2E 与生产 authority/隐私验收仍不可省略。

@@ -286,7 +286,10 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const {
         registerStreamControllerIPC,
       } = require("../../llm/stream-controller-ipc");
-      registerStreamControllerIPC({ mainWindow: mainWindow || null });
+      registerStreamControllerIPC({
+        mainWindow: mainWindow || null,
+        didManager: didManager || null,
+      });
     },
     handlers: 12,
   });

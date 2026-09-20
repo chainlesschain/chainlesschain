@@ -22,5 +22,5 @@
 ## 未完成边界
 
 - 本批复用现有用途 authority 合同，企业组织 RBAC、生产 purpose policy、身份切换时在途推荐/切换中止与撤销仍需目标环境接线和验收。
-- 启动阶段旧 `stream-controller-ipc.js`、其他辅助 LLM IPC 的业务 payload、日志/错误通道和 sender/DID tenant/用途授权仍待处理。
+- 启动阶段旧 `stream-controller-ipc.js` 的业务 payload、日志/错误与租户授权后续已由第一百七十六批收口；其他辅助 LLM IPC 的 sender/DID tenant/用途授权仍待处理。
 - 真实 Electron renderer/preload/provider E2E、provider 切换失败后的配置回滚、tenant HMAC 和生产日志访问治理未在本批执行。

@@ -73,6 +73,54 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-provider-switch",
     fields: Object.freeze(["provider-configuration"]),
   }),
+  "stream-create": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-reference"]),
+  }),
+  "stream-start": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-complete": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-destroy": Object.freeze({
+    purpose: "model-stream-delete",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-pause": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-resume": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-cancel": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "stream-get-status": Object.freeze({
+    purpose: "model-stream-status-read",
+    fields: Object.freeze(["stream-status"]),
+  }),
+  "stream-get-stats": Object.freeze({
+    purpose: "model-stream-stats-read",
+    fields: Object.freeze(["stream-stats"]),
+  }),
+  "stream-list-active": Object.freeze({
+    purpose: "model-stream-list-read",
+    fields: Object.freeze(["stream-list"]),
+  }),
+  "stream-get-buffer": Object.freeze({
+    purpose: "model-stream-buffer-metadata-read",
+    fields: Object.freeze(["stream-buffer-metadata"]),
+  }),
+  "stream-clear-buffer": Object.freeze({
+    purpose: "model-stream-buffer-delete",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
 });
 
 function authorizationError() {

@@ -1,684 +1,373 @@
-/**
- * Stream Controller IPC 处理器
- *
- * 提供流式输出控制的前端访问接口
- * 支持暂停、恢复、取消等流式输出控制功能
- *
- * 功能：
- * - 流状态查询和控制
- * - 暂停/恢复流式输出
- * - 取消流式输出
- * - 流统计信息
- *
- * @module stream-controller-ipc
- */
+"use strict";
 
-const { logger } = require('../utils/logger.js');
-const defaultIpcGuard = require('../ipc/ipc-guard');
-const { StreamController, StreamStatus, createStreamController } = require('./stream-controller.js');
-const { StreamControllerRegistry } = require('./stream-controller-registry.js');
+const { randomUUID } = require("node:crypto");
+const { types } = require("node:util");
+const defaultIpcGuard = require("../ipc/ipc-guard");
+const {
+  createLlmCoreIpcAuthorization,
+} = require("./llm-core-ipc-authorization");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const {
+  HARD_STREAM_CONTROLLER_LIMITS,
+  StreamStatus,
+  createStreamController,
+} = require("./stream-controller.js");
+const {
+  StreamControllerRegistry,
+} = require("./stream-controller-registry.js");
 
-// 活跃的流控制器管理
 const streamControllerRegistry = new StreamControllerRegistry();
+const streamControllerOwners = new WeakMap();
 const STREAM_CONTROLLER_REGISTRY_LIMITS = streamControllerRegistry.limits;
+const CREATE_OPTION_KEYS = new Set([
+  "enableBuffering",
+  "maxBufferedChunks",
+  "maxBufferedBytes",
+  "maxBufferedChunkBytes",
+  "maxPauseWaiters",
+]);
+const STREAM_STATUSES = new Set(Object.values(StreamStatus));
+const CHANNEL_OPERATIONS = Object.freeze({
+  "stream:create": "stream-create",
+  "stream:start": "stream-start",
+  "stream:complete": "stream-complete",
+  "stream:destroy": "stream-destroy",
+  "stream:pause": "stream-pause",
+  "stream:resume": "stream-resume",
+  "stream:cancel": "stream-cancel",
+  "stream:get-status": "stream-get-status",
+  "stream:get-stats": "stream-get-stats",
+  "stream:list-active": "stream-list-active",
+  "stream:get-buffer": "stream-get-buffer",
+  "stream:clear-buffer": "stream-clear-buffer",
+});
 
-/**
- * 创建或获取流控制器
- * @param {string} streamId - 流 ID
- * @param {Object} options - 配置选项
- * @returns {StreamController} 控制器实例
- */
+function fixedSuccess(details = {}) {
+  return Object.freeze({ success: true, ...details });
+}
+
+function ownData(source, key) {
+  if (
+    !source ||
+    typeof source !== "object" ||
+    types.isProxy(source) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(source))
+  ) {
+    return undefined;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(source, key);
+  return descriptor?.enumerable && Object.hasOwn(descriptor, "value")
+    ? descriptor.value
+    : undefined;
+}
+
+function boundedCount(value) {
+  return typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= Number.MAX_SAFE_INTEGER
+    ? value
+    : 0;
+}
+
+function projectStats(stats) {
+  const status = ownData(stats, "status");
+  return Object.freeze({
+    status: STREAM_STATUSES.has(status) ? status : StreamStatus.IDLE,
+    totalChunks: boundedCount(ownData(stats, "totalChunks")),
+    processedChunks: boundedCount(ownData(stats, "processedChunks")),
+    duration: boundedCount(ownData(stats, "duration")),
+    throughput: boundedCount(ownData(stats, "throughput")),
+    averageChunkTime: boundedCount(ownData(stats, "averageChunkTime")),
+    isPaused: ownData(stats, "isPaused") === true,
+    bufferedChunks: boundedCount(ownData(stats, "bufferedChunks")),
+    bufferedBytes: boundedCount(ownData(stats, "bufferedBytes")),
+    droppedBufferedChunks: boundedCount(
+      ownData(stats, "droppedBufferedChunks"),
+    ),
+    pauseWaiters: boundedCount(ownData(stats, "pauseWaiters")),
+    droppedPausedChunks: boundedCount(ownData(stats, "droppedPausedChunks")),
+  });
+}
+
+function normalizeLimit(descriptors, key, maximum) {
+  const descriptor = descriptors[key];
+  if (descriptor === undefined) {
+    return undefined;
+  }
+  if (!descriptor.enumerable || !Object.hasOwn(descriptor, "value")) {
+    throw new TypeError("Invalid stream option");
+  }
+  const value = descriptor.value;
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    throw new TypeError("Invalid stream limit");
+  }
+  return value;
+}
+
+function normalizeCreateOptions(value) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid stream options");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== "string" || !CREATE_OPTION_KEYS.has(key)) {
+      throw new TypeError("Invalid stream option");
+    }
+  }
+  const bufferingDescriptor = descriptors.enableBuffering;
+  if (
+    bufferingDescriptor &&
+    (!bufferingDescriptor.enumerable ||
+      !Object.hasOwn(bufferingDescriptor, "value") ||
+      typeof bufferingDescriptor.value !== "boolean")
+  ) {
+    throw new TypeError("Invalid stream buffering option");
+  }
+  const options = {
+    enableBuffering: bufferingDescriptor?.value === true,
+  };
+  for (const [key, maximum] of [
+    ["maxBufferedChunks", HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunks],
+    ["maxBufferedBytes", HARD_STREAM_CONTROLLER_LIMITS.maxBufferedBytes],
+    [
+      "maxBufferedChunkBytes",
+      HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunkBytes,
+    ],
+    ["maxPauseWaiters", HARD_STREAM_CONTROLLER_LIMITS.maxPauseWaiters],
+  ]) {
+    const limit = normalizeLimit(descriptors, key, maximum);
+    if (limit !== undefined) {
+      options[key] = limit;
+    }
+  }
+  return Object.freeze(options);
+}
+
+function authorizedTenant(request) {
+  const tenantId = ownData(request, "tenantId");
+  if (
+    typeof tenantId !== "string" ||
+    tenantId.length < 1 ||
+    tenantId.length > 512 ||
+    /\p{Cc}/u.test(tenantId)
+  ) {
+    throw new TypeError("Invalid stream tenant");
+  }
+  return tenantId;
+}
+
+function validateStreamId(streamId) {
+  const validation = streamControllerRegistry.validateStreamId(streamId);
+  if (!validation.accepted) {
+    throw new TypeError("Invalid stream reference");
+  }
+  return validation.streamId;
+}
+
+function ownedController(streamId, tenantId) {
+  const controller = streamControllerRegistry.get(validateStreamId(streamId));
+  if (!controller || streamControllerOwners.get(controller) !== tenantId) {
+    throw new TypeError("Unknown stream reference");
+  }
+  return controller;
+}
+
 function getOrCreateController(streamId, options = {}) {
   const { controller, created } = streamControllerRegistry.getOrCreate(
     streamId,
     () => createStreamController(options),
   );
   if (created) {
-
-    // 监听完成/取消/错误事件，自动清理
     const cleanup = () => {
       streamControllerRegistry.scheduleTerminalDelete(streamId, 30000);
     };
-
-    controller.on('complete', cleanup);
-    controller.on('cancel', cleanup);
-    controller.on('stream-error', cleanup);
+    controller.on("complete", cleanup);
+    controller.on("cancel", cleanup);
+    controller.on("stream-error", cleanup);
   }
-
   return controller;
 }
 
-/**
- * 注册 Stream Controller IPC 处理器
- * @param {Object} dependencies - 依赖
- * @param {Object} [dependencies.ipcMain] - IPC 主进程对象
- * @param {Object} [dependencies.ipcGuard] - IPC 防重复注册守卫
- * @param {Object} [dependencies.mainWindow] - 主窗口（用于发送事件）
- */
 function registerStreamControllerIPC({
   ipcMain: injectedIpcMain,
   ipcGuard: injectedIpcGuard,
   mainWindow,
+  didManager,
+  authorizePurpose,
+  coreAuthorization: injectedAuthorization,
+  streamPrivacy: injectedPrivacy,
 } = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
-
-  // 防止重复注册
-  if (ipcGuard.isModuleRegistered('stream-controller-ipc')) {
-    logger.info('[Stream Controller IPC] Handlers already registered, skipping...');
+  const privacy = injectedPrivacy || createLlmIpcPrivacy("stream");
+  if (ipcGuard.isModuleRegistered("stream-controller-ipc")) {
+    privacy.event("handlers-already-registered");
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
+  const authorization =
+    injectedAuthorization ||
+    createLlmCoreIpcAuthorization({
+      getMainWindow: () => mainWindow,
+      getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+      authorizePurpose,
+    });
 
-  logger.info('[Stream Controller IPC] Registering handlers...');
-
-  // ============================================================
-  // 流生命周期 (Lifecycle) - 4 handlers
-  // ============================================================
-
-  /**
-   * 创建新的流控制器
-   * Channel: 'stream:create'
-   *
-   * @param {Object} options - 配置选项
-   * @param {string} [options.streamId] - 自定义流 ID（默认自动生成）
-   * @param {boolean} [options.enableBuffering] - 启用内容缓冲
-   * @returns {Object} 创建结果
-   */
-  ipcMain.handle('stream:create', async (_event, options = {}) => {
-    try {
-      const normalizedOptions = options && typeof options === 'object'
-        ? options
-        : {};
-      const streamId = normalizedOptions.streamId || `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      const streamIdValidation =
-        streamControllerRegistry.validateStreamId(streamId);
-      if (!streamIdValidation.accepted) {
-        return { success: false, ...streamIdValidation };
+  function handle(channel, handler) {
+    const operation = CHANNEL_OPERATIONS[channel];
+    ipcMain.handle(channel, async (event, ...args) => {
+      let tenantId;
+      try {
+        tenantId = authorizedTenant(
+          await authorization.authorize(event, operation),
+        );
+      } catch {
+        throw privacy.authorizationFailure(operation);
       }
-
-      if (streamControllerRegistry.has(streamId)) {
-        return {
-          success: false,
-          error: `Stream ${streamId} already exists`,
-        };
+      try {
+        return await handler(tenantId, ...args);
+      } catch {
+        throw privacy.failure(operation);
       }
+    });
+  }
 
-      const controller = getOrCreateController(streamId, {
-        enableBuffering: normalizedOptions.enableBuffering === true,
-        maxBufferedChunks: normalizedOptions.maxBufferedChunks,
-        maxBufferedBytes: normalizedOptions.maxBufferedBytes,
-        maxBufferedChunkBytes: normalizedOptions.maxBufferedChunkBytes,
-        maxPauseWaiters: normalizedOptions.maxPauseWaiters,
-      });
-
-      logger.info('[Stream Controller IPC] 流控制器已创建:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        limits: {
-          ...STREAM_CONTROLLER_REGISTRY_LIMITS,
-          ...controller.bufferLimits,
-        },
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 创建流控制器失败:', error);
-      return {
-        success: false,
-        error: error.message,
-        ...(error.code ? { code: error.code } : {}),
-        ...(error.scope ? { scope: error.scope } : {}),
-        ...(error.retryAfterMs ? { retryAfterMs: error.retryAfterMs } : {}),
-        ...(error.limit ? { limit: error.limit } : {}),
-      };
-    }
+  handle("stream:create", async (tenantId, options = {}) => {
+    const streamId = `stream:${randomUUID()}`;
+    validateStreamId(streamId);
+    const controller = getOrCreateController(
+      streamId,
+      normalizeCreateOptions(options),
+    );
+    streamControllerOwners.set(controller, tenantId);
+    privacy.success("stream-create");
+    return fixedSuccess({ streamId });
   });
 
-  /**
-   * 启动流
-   * Channel: 'stream:start'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 启动结果
-   */
-  ipcMain.handle('stream:start', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      controller.start();
-
-      logger.info('[Stream Controller IPC] 流已启动:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        startTime: controller.startTime,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 启动流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:start", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).start();
+    privacy.success("stream-start");
+    return fixedSuccess();
   });
 
-  /**
-   * 完成流
-   * Channel: 'stream:complete'
-   *
-   * @param {string} streamId - 流 ID
-   * @param {Object} [result] - 最终结果
-   * @returns {Object} 完成结果
-   */
-  ipcMain.handle('stream:complete', async (_event, streamId, result = {}) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      controller.complete(result);
-      const stats = controller.getStats();
-
-      logger.info('[Stream Controller IPC] 流已完成:', streamId, stats);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        stats,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 完成流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:complete", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).complete();
+    privacy.success("stream-complete");
+    return fixedSuccess();
   });
 
-  /**
-   * 销毁流控制器
-   * Channel: 'stream:destroy'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 销毁结果
-   */
-  ipcMain.handle('stream:destroy', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: true,
-          message: `Stream ${streamId} not found or already destroyed`,
-        };
-      }
-
+  handle("stream:destroy", async (tenantId, streamId) => {
+    const safeStreamId = validateStreamId(streamId);
+    const controller = streamControllerRegistry.get(safeStreamId);
+    if (controller && streamControllerOwners.get(controller) === tenantId) {
       controller.destroy();
-      streamControllerRegistry.delete(streamId);
-
-      logger.info('[Stream Controller IPC] 流控制器已销毁:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        message: 'Stream controller destroyed',
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 销毁流控制器失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      streamControllerRegistry.delete(safeStreamId);
     }
+    privacy.success("stream-destroy");
+    return fixedSuccess();
   });
 
-  // ============================================================
-  // 流控制 (Control) - 3 handlers
-  // ============================================================
-
-  /**
-   * 暂停流
-   * Channel: 'stream:pause'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 暂停结果
-   */
-  ipcMain.handle('stream:pause', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      controller.pause();
-
-      logger.info('[Stream Controller IPC] 流已暂停:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        isPaused: controller.isPaused,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 暂停流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:pause", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).pause();
+    privacy.success("stream-pause");
+    return fixedSuccess();
   });
 
-  /**
-   * 恢复流
-   * Channel: 'stream:resume'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 恢复结果
-   */
-  ipcMain.handle('stream:resume', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      controller.resume();
-
-      logger.info('[Stream Controller IPC] 流已恢复:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        isPaused: controller.isPaused,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 恢复流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:resume", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).resume();
+    privacy.success("stream-resume");
+    return fixedSuccess();
   });
 
-  /**
-   * 取消流
-   * Channel: 'stream:cancel'
-   *
-   * @param {string} streamId - 流 ID
-   * @param {string} [reason] - 取消原因
-   * @returns {Object} 取消结果
-   */
-  ipcMain.handle('stream:cancel', async (_event, streamId, reason = '用户取消') => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      controller.cancel(reason);
-      const stats = controller.getStats();
-
-      logger.info('[Stream Controller IPC] 流已取消:', streamId, reason);
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        reason,
-        stats,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 取消流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:cancel", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).cancel();
+    privacy.success("stream-cancel");
+    return fixedSuccess();
   });
 
-  // ============================================================
-  // 状态查询 (Status) - 3 handlers
-  // ============================================================
-
-  /**
-   * 获取流状态
-   * Channel: 'stream:get-status'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 流状态
-   */
-  ipcMain.handle('stream:get-status', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      return {
-        success: true,
-        streamId,
-        status: controller.status,
-        isPaused: controller.isPaused,
-        processedChunks: controller.processedChunks,
-        totalChunks: controller.totalChunks,
-        startTime: controller.startTime,
-        endTime: controller.endTime,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 获取流状态失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:get-status", async (tenantId, streamId) => {
+    const controller = ownedController(streamId, tenantId);
+    return fixedSuccess({
+      status: STREAM_STATUSES.has(controller.status)
+        ? controller.status
+        : StreamStatus.IDLE,
+      isPaused: controller.isPaused === true,
+      processedChunks: boundedCount(controller.processedChunks),
+      totalChunks: boundedCount(controller.totalChunks),
+    });
   });
 
-  /**
-   * 获取流统计
-   * Channel: 'stream:get-stats'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 流统计信息
-   */
-  ipcMain.handle('stream:get-stats', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      const stats = controller.getStats();
-
-      return {
-        success: true,
-        streamId,
-        stats,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 获取流统计失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:get-stats", async (tenantId, streamId) => {
+    const controller = ownedController(streamId, tenantId);
+    return fixedSuccess({ stats: projectStats(controller.getStats()) });
   });
 
-  /**
-   * 列出所有活跃的流
-   * Channel: 'stream:list-active'
-   *
-   * @returns {Object} 活跃流列表
-   */
-  ipcMain.handle('stream:list-active', async () => {
-    try {
-      const streams = [];
-
-      for (const [streamId, controller] of streamControllerRegistry.entries()) {
-        streams.push({
+  handle("stream:list-active", async (tenantId) => {
+    const streams = [];
+    for (const [streamId, controller] of streamControllerRegistry.entries()) {
+      if (streamControllerOwners.get(controller) !== tenantId) {
+        continue;
+      }
+      streams.push(
+        Object.freeze({
           streamId,
-          status: controller.status,
-          isPaused: controller.isPaused,
-          processedChunks: controller.processedChunks,
-          startTime: controller.startTime,
-        });
-      }
-
-      return {
-        success: true,
-        count: streams.length,
-        streams,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 列出活跃流失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+          status: STREAM_STATUSES.has(controller.status)
+            ? controller.status
+            : StreamStatus.IDLE,
+          isPaused: controller.isPaused === true,
+          processedChunks: boundedCount(controller.processedChunks),
+        }),
+      );
     }
+    return fixedSuccess({ count: streams.length, streams });
   });
 
-  // ============================================================
-  // 缓冲操作 (Buffer) - 2 handlers
-  // ============================================================
-
-  /**
-   * 获取缓冲内容
-   * Channel: 'stream:get-buffer'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 缓冲内容
-   */
-  ipcMain.handle('stream:get-buffer', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      const buffer = controller.getBuffer();
-
-      return {
-        success: true,
-        streamId,
-        buffer,
-        bufferSize: buffer.length,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 获取缓冲内容失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:get-buffer", async (tenantId, streamId) => {
+    const stats = projectStats(ownedController(streamId, tenantId).getStats());
+    return fixedSuccess({
+      bufferedChunks: stats.bufferedChunks,
+      bufferedBytes: stats.bufferedBytes,
+    });
   });
 
-  /**
-   * 清空缓冲
-   * Channel: 'stream:clear-buffer'
-   *
-   * @param {string} streamId - 流 ID
-   * @returns {Object} 清空结果
-   */
-  ipcMain.handle('stream:clear-buffer', async (_event, streamId) => {
-    try {
-      if (!streamId) {
-        return {
-          success: false,
-          error: 'streamId is required',
-        };
-      }
-
-      const controller = streamControllerRegistry.get(streamId);
-      if (!controller) {
-        return {
-          success: false,
-          error: `Stream ${streamId} not found`,
-        };
-      }
-
-      const previousSize = controller.getBuffer().length;
-      controller.clearBuffer();
-
-      logger.info('[Stream Controller IPC] 缓冲已清空:', streamId);
-
-      return {
-        success: true,
-        streamId,
-        message: 'Buffer cleared',
-        previousSize,
-      };
-    } catch (error) {
-      logger.error('[Stream Controller IPC] 清空缓冲失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  handle("stream:clear-buffer", async (tenantId, streamId) => {
+    ownedController(streamId, tenantId).clearBuffer();
+    privacy.success("stream-clear-buffer");
+    return fixedSuccess();
   });
 
-  // 标记模块为已注册
-  ipcGuard.markModuleRegistered('stream-controller-ipc');
-
-  logger.info('[Stream Controller IPC] ✓ All handlers registered (12 handlers: 4 lifecycle + 3 control + 3 status + 2 buffer)');
+  ipcGuard.markModuleRegistered("stream-controller-ipc");
+  privacy.event("handlers-registered");
 }
 
-/**
- * 注销 Stream Controller IPC 处理器
- * @param {Object} [dependencies] - 依赖
- */
-function unregisterStreamControllerIPC({ ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard } = {}) {
+function unregisterStreamControllerIPC({
+  ipcMain: injectedIpcMain,
+  ipcGuard: injectedIpcGuard,
+} = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
-
-  if (!ipcGuard.isModuleRegistered('stream-controller-ipc')) {
+  if (!ipcGuard.isModuleRegistered("stream-controller-ipc")) {
     return;
   }
-
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
-
-  // 所有 channel 名称
-  const channels = [
-    // Lifecycle
-    'stream:create',
-    'stream:start',
-    'stream:complete',
-    'stream:destroy',
-    // Control
-    'stream:pause',
-    'stream:resume',
-    'stream:cancel',
-    // Status
-    'stream:get-status',
-    'stream:get-stats',
-    'stream:list-active',
-    // Buffer
-    'stream:get-buffer',
-    'stream:clear-buffer',
-  ];
-
-  for (const channel of channels) {
+  for (const channel of Object.keys(CHANNEL_OPERATIONS)) {
     ipcMain.removeHandler(channel);
   }
-
-  // 清理所有活跃的控制器
   destroyAllStreamControllers();
-
-  ipcGuard.unmarkModuleRegistered('stream-controller-ipc');
-  logger.info('[Stream Controller IPC] Handlers unregistered');
+  ipcGuard.unmarkModuleRegistered("stream-controller-ipc");
+  createLlmIpcPrivacy("stream").event("handlers-unregistered");
 }
 
-/**
- * 获取活跃控制器（用于测试或内部访问）
- * @param {string} streamId - 流 ID
- * @returns {StreamController|undefined}
- */
 function getActiveController(streamId) {
   return streamControllerRegistry.get(streamId);
 }
 
-/**
- * 获取所有活跃控制器数量
- * @returns {number}
- */
 function getActiveControllerCount() {
   return streamControllerRegistry.size;
 }
