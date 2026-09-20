@@ -11,6 +11,8 @@ const SAFE_EVENTS = new Set([
   "backup-created",
   "backup-list-failed",
   "backup-missing",
+  "backup-retention-failed",
+  "backup-retention-pruned",
   "backup-restore-failed",
   "backup-restored",
   "config-delete-failed",

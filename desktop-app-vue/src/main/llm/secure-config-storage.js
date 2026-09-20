@@ -29,6 +29,11 @@ const ITERATIONS = 100000;
 
 // 存储版本（用于未来迁移）
 const STORAGE_VERSION = 2;
+const DEFAULT_MAX_BACKUPS = 10;
+const MAX_BACKUPS_LIMIT = 100;
+const MAX_BACKUP_BYTES = 16 * 1024 * 1024;
+const BACKUP_FILENAME =
+  /^secure-config-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(?:-[a-f0-9]{8})?\.enc\.bak$/u;
 
 /**
  * 敏感配置字段列表 - 支持14+个LLM提供商
@@ -114,6 +119,14 @@ class SecureConfigStorage {
     this._atomicFile =
       options.atomicFile ||
       createAtomicFileCommitter({ fs, fsPromises: fsp, path });
+    this.maxBackups = options.maxBackups ?? DEFAULT_MAX_BACKUPS;
+    if (
+      !Number.isSafeInteger(this.maxBackups) ||
+      this.maxBackups < 1 ||
+      this.maxBackups > MAX_BACKUPS_LIMIT
+    ) {
+      throw new TypeError("Secure config backup limit is invalid");
+    }
     this.storagePath = options.storagePath || this._getDefaultStoragePath();
     this.safeStorageAvailable = this._checkSafeStorageAvailability();
     this.machineKey = null;
@@ -551,6 +564,7 @@ class SecureConfigStorage {
    * @returns {string|null} 备份文件路径或 null
    */
   createBackup() {
+    let backupPath = null;
     try {
       if (!this.exists()) {
         storagePrivacy.event("backup-missing");
@@ -558,8 +572,9 @@ class SecureConfigStorage {
       }
 
       const backupDir = this._getBackupDir();
+      this._assertBackupDirectory(backupDir);
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const backupPath = path.join(
+      backupPath = path.join(
         backupDir,
         `secure-config-${timestamp}-${crypto.randomBytes(4).toString("hex")}.enc.bak`,
       );
@@ -568,10 +583,18 @@ class SecureConfigStorage {
         backupPath,
         fs.readFileSync(this.storagePath),
       );
+      this._enforceBackupRetention(backupPath);
       storagePrivacy.event("backup-created");
 
       return backupPath;
     } catch {
+      if (backupPath) {
+        try {
+          this._atomicFile.removeSync(backupPath);
+        } catch {
+          // Preserve the primary backup or retention failure.
+        }
+      }
       storagePrivacy.event("backup-create-failed");
       return null;
     }
@@ -584,13 +607,22 @@ class SecureConfigStorage {
    */
   restoreFromBackup(backupPath) {
     try {
-      if (!fs.existsSync(backupPath)) {
+      if (typeof backupPath !== "string" || backupPath.length > 4096) {
+        storagePrivacy.event("backup-missing");
+        return false;
+      }
+
+      const requestedPath = path.resolve(backupPath);
+      const backup = this._readBackupInventory().find(
+        (candidate) => candidate.path === requestedPath,
+      );
+      if (!backup) {
         storagePrivacy.event("backup-missing");
         return false;
       }
 
       // 先验证备份文件是否可解密
-      const encrypted = fs.readFileSync(backupPath);
+      const encrypted = fs.readFileSync(backup.path);
       this.decrypt(encrypted); // 如果解密失败会抛出异常
 
       // 备份当前文件
@@ -621,30 +653,87 @@ class SecureConfigStorage {
    */
   listBackups() {
     try {
-      const backupDir = this._getBackupDir();
-      if (!fs.existsSync(backupDir)) {
-        return [];
-      }
-
-      const files = fs
-        .readdirSync(backupDir)
-        .filter((f) => f.endsWith(".enc.bak"))
-        .map((f) => {
-          const fullPath = path.join(backupDir, f);
-          const stat = fs.statSync(fullPath);
-          return {
-            path: fullPath,
-            filename: f,
-            date: stat.mtime,
-            size: stat.size,
-          };
-        })
-        .sort((a, b) => b.date - a.date);
-
-      return files;
+      return this._readBackupInventory();
     } catch {
       storagePrivacy.event("backup-list-failed");
       return [];
+    }
+  }
+
+  _readBackupInventory() {
+    const backupDir = this._getBackupDir();
+    if (!fs.existsSync(backupDir)) {
+      return [];
+    }
+    this._assertBackupDirectory(backupDir);
+    const resolvedBackupDir = fs.realpathSync(backupDir);
+    const entries = fs.readdirSync(backupDir, { withFileTypes: true });
+    const backups = [];
+
+    for (const entry of entries) {
+      if (!entry.isFile() || !BACKUP_FILENAME.test(entry.name)) {
+        continue;
+      }
+      const fullPath = path.resolve(backupDir, entry.name);
+      const resolvedPath = fs.realpathSync(fullPath);
+      if (path.dirname(resolvedPath) !== resolvedBackupDir) {
+        throw new Error("Secure config backup escaped its directory");
+      }
+      const stat = fs.lstatSync(resolvedPath);
+      if (
+        !stat.isFile() ||
+        stat.isSymbolicLink() ||
+        !Number.isSafeInteger(stat.size) ||
+        stat.size < 1 ||
+        stat.size > MAX_BACKUP_BYTES
+      ) {
+        throw new Error("Secure config backup is invalid");
+      }
+      backups.push({
+        path: resolvedPath,
+        filename: entry.name,
+        date: stat.mtime,
+        size: stat.size,
+      });
+    }
+    backups.sort((a, b) => b.date - a.date);
+    return backups;
+  }
+
+  _assertBackupDirectory(backupDir) {
+    if (!fs.existsSync(backupDir)) {
+      return;
+    }
+    const directoryInfo = fs.lstatSync(backupDir);
+    if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink()) {
+      throw new Error("Secure config backup directory is invalid");
+    }
+  }
+
+  _enforceBackupRetention(newBackupPath) {
+    const resolvedNewBackup = fs.realpathSync(newBackupPath);
+    const inventory = this._readBackupInventory();
+    const retained = new Set([resolvedNewBackup]);
+    for (const backup of inventory) {
+      if (retained.size >= this.maxBackups) {
+        break;
+      }
+      retained.add(backup.path);
+    }
+
+    let pruned = false;
+    for (const backup of inventory) {
+      if (retained.has(backup.path)) {
+        continue;
+      }
+      if (!this._atomicFile.removeSync(backup.path)) {
+        storagePrivacy.event("backup-retention-failed");
+        throw new Error("Secure config backup retention failed");
+      }
+      pruned = true;
+    }
+    if (pruned) {
+      storagePrivacy.event("backup-retention-pruned");
     }
   }
 
