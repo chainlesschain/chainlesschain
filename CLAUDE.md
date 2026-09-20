@@ -64,7 +64,7 @@ Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `
 
 ## CLI Commands Reference
 
-**See [`docs/CLI_COMMANDS_REFERENCE.md`](docs/CLI_COMMANDS_REFERENCE.md)** for the full 175-command reference (thin index → 6 sub-files in `docs/cli/`). Read on demand, not auto-loaded.
+**See [`docs/cli/CLI_COMMANDS_REFERENCE.md`](docs/cli/CLI_COMMANDS_REFERENCE.md)** for the full 175-command reference (thin index → 6 sub-files in `docs/cli/`). Read on demand, not auto-loaded.
 
 Key CLI entry points:
 

@@ -58,7 +58,7 @@ const CAPABILITIES = [
     section: "M0 - Foundations",
     name: "Single docs source-of-truth for gap analysis",
     status: "partial",
-    evidence: "docs/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md",
+    evidence: "docs/research/cli/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md",
     required: false,
     notes: "This parity matrix now acts as machine-readable source; older docs need archive banner",
   },

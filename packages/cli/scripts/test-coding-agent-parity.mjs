@@ -5,7 +5,7 @@
  * Unified parity acceptance script for ChainlessChain CLI / Coding Agent.
  *
  * This is the single publish-gate command referenced in
- * docs/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md §13.
+ * docs/research/cli/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md §13.
  *
  * Exit codes:
  *   0 - all required checks passed
@@ -278,7 +278,7 @@ function suiteDocsDrift() {
       fs.existsSync(
         path.resolve(
           REPO_ROOT,
-          "docs/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md",
+          "docs/research/cli/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md",
         ),
       ),
       "current gaps doc missing",
@@ -287,7 +287,7 @@ function suiteDocsDrift() {
   runCheck("Historical gap doc carries superseded/implemented header", () => {
     const hist = path.resolve(
       REPO_ROOT,
-      "docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md",
+      "docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md",
     );
     if (!fs.existsSync(hist)) return;
     const content = fs.readFileSync(hist, "utf8");

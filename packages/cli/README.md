@@ -292,8 +292,8 @@ multi-hop cross-Wiki provenance and recovers targeted tombstone settlement.
 `candidate-staged` is not activation. Rollout/revocation require the exact
 current state digest and independently verified receipts. Explicit
 `serve-badge` publishes one pinned, read-only, expiring Eval snapshot on
-loopback by default. See [marketplace contracts](../../docs/GOVERNED_SKILL_MARKETPLACE_CLI.md)
-and [Workbench startup](../../docs/EVOLUTION_WORKBENCH_STARTUP.md).
+loopback by default. See [marketplace contracts](../../docs/cli/GOVERNED_SKILL_MARKETPLACE_CLI.md)
+and [Workbench startup](../../docs/features/evolution-workbench/EVOLUTION_WORKBENCH_STARTUP.md).
 
 Session Core 0.3.12 and Core DB 0.1.5 supply the public evolvable-artifact export
 and normalized named SQL bindings. Production identity, PKI, witness, grader

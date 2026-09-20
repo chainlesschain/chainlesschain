@@ -240,7 +240,7 @@ chainlesschain perf report            # 生成综合性能报告
 ## 相关文档
 
 - 设计文档：`docs/design/modules/22_性能自动调优.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Ops / AIOps →](/chainlesschain/cli-ops)
 - [DB Evolution →](/chainlesschain/cli-dbevo)
 - [Runtime →](/chainlesschain/cli-runtime)

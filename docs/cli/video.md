@@ -1,6 +1,6 @@
 # CLI — Video Editing Agent (CutClaw-inspired)
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 
 ```bash
 # 完整管线: deconstruct → plan → assemble → render

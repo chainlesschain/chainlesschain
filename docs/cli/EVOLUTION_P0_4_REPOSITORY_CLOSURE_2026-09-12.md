@@ -1,6 +1,6 @@
 # EVO-P0-4 仓库闭环核验（2026-09-12）
 
-状态：**尚未闭环**。本清单按[原任务 §5.4](../AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md)核对证据，不以默认拒绝、测试文件存在或旧提交绿灯代替完整验收。最终入口清单见[模型入口审计](EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md)。
+状态：**尚未闭环**。本清单按[原任务 §5.4](../research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md)核对证据，不以默认拒绝、测试文件存在或旧提交绿灯代替完整验收。最终入口清单见[模型入口审计](EVOLUTION_MODEL_ENTRY_AUDIT_2026-09-08.md)。
 
 ## 完成条件与证据边界
 

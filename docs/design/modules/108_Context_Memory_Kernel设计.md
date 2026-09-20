@@ -616,4 +616,4 @@ reconcile(operationId): Promise<ReconciliationReport>
 - [91 Managed Agents 对标计划](./91_Managed_Agents对标计划.md)
 - [99 项目记忆与 init 对标方案](./99_项目记忆与init对标方案.md)
 - [CLI Runtime 当前实现](../cli-runtime-current.md)
-- [开源差距分析 6.4](../../CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md#64-统一上下文压缩与记忆生命周期)
+- [开源差距分析 6.4](../../research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md#64-统一上下文压缩与记忆生命周期)

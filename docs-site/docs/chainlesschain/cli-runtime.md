@@ -287,7 +287,7 @@ chainlesschain runtime stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/63_统一应用运行时.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Plugin Ecosystem →](/chainlesschain/cli-ecosystem)
 - [Perf Tuning →](/chainlesschain/cli-perf)
 - [Doctor →](/chainlesschain/cli-doctor)

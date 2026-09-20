@@ -245,7 +245,7 @@ chainlesschain anet stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/24_去中心化Agent网络.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [DID v2.0 →](/chainlesschain/cli-did-v2)
 - [A2A Protocol →](/chainlesschain/cli-a2a)
 - [Agent Federation →](/chainlesschain/cli-federation)

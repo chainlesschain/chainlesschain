@@ -1,6 +1,6 @@
 # CLI — Platform Services
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 >
 > Covers: Phase 9 Low-Code, EvoMap, CLI-Anything, Server & Web Panel, AI Orchestration.
 

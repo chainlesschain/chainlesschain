@@ -1,6 +1,6 @@
 /**
  * Governance coverage metrics — the last open item of P1-9 ("覆盖率指标") in
- * docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md, and the
+ * docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md, and the
  * computation behind two §11.3 acceptance targets:
  *
  *   - "高风险 Tool Call Ledger/Trace 覆盖率：100%"

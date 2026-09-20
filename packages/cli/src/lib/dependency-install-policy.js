@@ -1,6 +1,6 @@
 /**
  * Dependency-install policy for `run_code` (gap-analysis 2026-07-11,
- * docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "依赖安装与凭据").
+ * docs/research/cli/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "依赖安装与凭据").
  *
  * Auto `pip install` on a Python import error used to be unconditional. It is
  * now OPT-IN:

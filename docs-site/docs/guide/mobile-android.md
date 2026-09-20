@@ -726,7 +726,7 @@ adb logcat -s SignalClient WebRTCClient TerminalRpcClient SyncManager DIDManager
 | `docs/design/Android_M4_D2_E2E.md`                 | M4 D2 真机 E2E（183 行）           |
 | `docs/design/Android_M6_Performance_Validation.md` | M6 性能验证（192 行）              |
 | `docs/design/phase3d-mobile-sync.md`               | Phase 3d 同步设计                  |
-| `docs/v1.0_GA_checklist.md`                        | GA 剩 5 项用户出场清单             |
+| `docs/releases/v1.0_GA_checklist.md`                        | GA 剩 5 项用户出场清单             |
 
 ## 使用示例
 
@@ -896,7 +896,7 @@ cc ui --port 9001
 - [Android M3 Real Device Test Plan](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_M3_Real_Device_Test_Plan.md)
 - [Android M4 D2 E2E](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_M4_D2_E2E.md)
 - [Android M6 Performance Validation](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_M6_Performance_Validation.md)
-- [v1.0_GA_checklist](https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md) — 剩 5 项用户出场清单
+- [v1.0_GA_checklist](https://github.com/chainlesschain/chainlesschain/blob/main/docs/releases/v1.0_GA_checklist.md) — 剩 5 项用户出场清单
 
 ---
 

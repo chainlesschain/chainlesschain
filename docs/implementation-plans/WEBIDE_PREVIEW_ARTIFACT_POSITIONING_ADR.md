@@ -64,7 +64,7 @@ session，也没有通用仓库树、搜索、诊断、Git/Diff、Terminal 或 W
 - [原始 Web IDE 实施计划](../../plan/archived/melodic-singing-dragon.md)：明确为 CodePen 式固定
   HTML/CSS/JavaScript playground。
 - [Desktop V6 UI 设计](../design/桌面版UI重构_设计文档.md)：明确 Chat-first、Artifact 与插件化主线。
-- [IDE 增量差距分析](../CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-17.md)：明确把 WebIDE/
+- [IDE 增量差距分析](../research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-17.md)：明确把 WebIDE/
   Browser/Preview 原语统一为 session-centric App Preview，并以 evidence artifact 结束验证流程。
 - [旧页面实现](../../desktop-app-vue/src/renderer/pages/webide/WebIDEPage.vue)与
   [固定三文件编辑器](../../desktop-app-vue/src/renderer/components/webide/EditorPanel.vue)：证明当前实现边界。

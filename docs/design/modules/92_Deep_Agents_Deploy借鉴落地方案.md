@@ -506,7 +506,7 @@ chainlesschain agent deploy --bundle ./agent-bundle --target chainless-hub
 
 - `MemoryStore.SCOPE.USER` + `memory store/recall --scope user --scope-id <uid>` 已上线
 - `agent-bundle-loader` 解析 `USER.md` 作为 bundle-level user memory seed
-- CLI `memory` 命令支持 `--scope user` (参见 `docs/CLI_COMMANDS_REFERENCE.md`)
+- CLI `memory` 命令支持 `--scope user` (参见 `docs/cli/CLI_COMMANDS_REFERENCE.md`)
 
 ### 优先级
 

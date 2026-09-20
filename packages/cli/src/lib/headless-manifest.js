@@ -1,6 +1,6 @@
 /**
  * Deterministic-headless manifest helpers (gap-analysis 2026-07-11,
- * docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "确定性 Headless").
+ * docs/research/cli/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "确定性 Headless").
  *
  * The stream-json init event carries a protocol version, whether this run
  * persists its session, which ambient customization sources are live, and

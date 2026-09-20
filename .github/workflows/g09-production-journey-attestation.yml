@@ -6,14 +6,14 @@ on:
       - ".github/workflows/g09-production-journey-attestation.yml"
       - "packages/cli/scripts/verify-g09-production-journey.mjs"
       - "packages/cli/__tests__/unit/verify-g09-production-journey.test.js"
-      - "docs/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
+      - "docs/reports/implementation/claude-code-codex/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
   push:
     branches: [main]
     paths:
       - ".github/workflows/g09-production-journey-attestation.yml"
       - "packages/cli/scripts/verify-g09-production-journey.mjs"
       - "packages/cli/__tests__/unit/verify-g09-production-journey.test.js"
-      - "docs/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
+      - "docs/reports/implementation/claude-code-codex/CLAUDE_CODE_CODEX_GAP_G09_PRODUCTION_JOURNEY_IMPLEMENTATION_2026-09-13.md"
   workflow_dispatch:
     inputs:
       commit_sha:

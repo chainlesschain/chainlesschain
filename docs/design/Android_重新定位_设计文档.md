@@ -5,12 +5,12 @@
 > 把 ChainlessChain Android 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 的二端分工，停止以 skill 数量对标桌面，转向场景独占价值。
 >
 > v0.7 → v0.8 变更（GA 发版稿）：
-> 1. **M3 收尾 5/5 code 全落**（commits `47bebed80` VoiceMode / `a69269ced` CameraOCR / `3f5ac8647` LocationTagger Play Services 接线 / `3d1a6e3a8` ShareReceiver→knowledge.createNote flush / `c0d990c91` PushNotifier 本地 channel + FCM 骨架）— D-voice/D-camera/D-push 真机 + FCM 凭证待用户出场（详 [v1.0.0 GA 检查清单](https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md)）
+> 1. **M3 收尾 5/5 code 全落**（commits `47bebed80` VoiceMode / `a69269ced` CameraOCR / `3f5ac8647` LocationTagger Play Services 接线 / `3d1a6e3a8` ShareReceiver→knowledge.createNote flush / `c0d990c91` PushNotifier 本地 channel + FCM 骨架）— D-voice/D-camera/D-push 真机 + FCM 凭证待用户出场（详 [v1.0.0 GA 检查清单](https://github.com/chainlesschain/chainlesschain/blob/main/docs/releases/v1.0_GA_checklist.md)）
 > 2. **M4 D1 method-level 元数据**（commit `6e49270fd`）：RemoteSkillRegistry 从 file-level 升 method-level 双粒度，ai.* + knowledge.* 各 10 method seed 含 8 riskOverride 演示
 > 3. **M4 ApprovalUI 4 类 category + ProgressViewer**（commit `f4f83cc67`）：M5 sign-only → Sign/Cowork/Marketplace/SystemCritical 4 类 dialog；新 LongTaskRegistry + TaskProgressCommandRouter `task.*` reverse-RPC + Compose 长时任务面板
 > 4. **§8.1 + §8.3 收敛**（commit `0bc8e2797`）：android-app/README.md versionName 同步；SkillMetadata.aliases + RemoteSkillRegistry.aliasIndex 1 版兼容窗口
 > 5. **M7 GA flip** ✅：android-app versionCode 37 → 100 / versionName 0.37.0 → 1.0.0；CHANGELOG v1.0.0 entry；tag `v1.0.0` 推 gitee+github；GitHub Release published with 4 APK assets + AAB
-> 6. **剩 5 项用户出场**（[v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md)）：M3 真机 E2E / M4 D2 真机 E2E / FCM google-services.json 凭证 / M6 性能实测回填 / docs-site 全栈同步
+> 6. **剩 5 项用户出场**（[v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/releases/v1.0_GA_checklist.md)）：M3 真机 E2E / M4 D2 真机 E2E / FCM google-services.json 凭证 / M6 性能实测回填 / docs-site 全栈同步
 > 7. **§10 加 GitHub milestone 引用** — [Android v1.1 milestone #1](https://github.com/chainlesschain/chainlesschain/milestone/1) tracking [#19](https://github.com/chainlesschain/chainlesschain/issues/19) (due 2026-09-30) + [Android v1.2 milestone #2](https://github.com/chainlesschain/chainlesschain/milestone/2) tracking [#20](https://github.com/chainlesschain/chainlesschain/issues/20) (due 2026-12-31)；本文档 §10 仍是 single source of truth，issues 是执行追踪面
 >
 > v0.6 → v0.7 变更：
@@ -578,7 +578,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 - ResourceType enum 双端对齐（解 §8.4）
 - **QRPairing 真落地**（~2.5d，从 v1.0 M2 D4 推下）：(a) `p2pGraph()` 接进 app NavGraph + 加 Settings → "配对桌面" 入口 (b) `PairingViewModel` stub 换实 `RemoteCommandClient.invoke("device.pairing.handleQRCodeScan", ...)` (c) pairing QR scanner 接桌面 `device-pairing-handler.js` 的 `{type:"device-pairing",code,did,expiresAt}` JSON shape (d) 18 单测 + 1 E2E。与 §8.5 桌面 Settings → Mobile Bridge 子面板（Q4 决策）合并实施
 - 国内 push 厂商 SDK（OPPO / 小米 / 华为 / vivo，解 §9.1 + Q2 决策）
-- v1.0.0 GA 遗留：M3 真机 E2E / M4 D2 真机 E2E / M6 性能实测 / FCM 真接入（详 [docs/v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md)）
+- v1.0.0 GA 遗留：M3 真机 E2E / M4 D2 真机 E2E / M6 性能实测 / FCM 真接入（详 [docs/releases/v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/main/docs/releases/v1.0_GA_checklist.md)）
 
 ### v1.2（目标 2026-Q4 — [milestone #2](https://github.com/chainlesschain/chainlesschain/milestone/2) / tracking [#20](https://github.com/chainlesschain/chainlesschain/issues/20)）
 
@@ -666,7 +666,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 ## 变更记录
 
-- 2026-05-15 v0.19：**§10 A.1 PR3 landed — A.1 主体闭环** — `dist/systemd/chainlesschain.service` template + `docs/linux/PAIRING.md` 9 段用户指南 + `docs/CLI_COMMANDS_REFERENCE.md` `#pair` 锚段。systemd 专为 SSH-tunneled web-panel 部署（不覆盖 Electron 桌面 auto-start）。**A.1 累计 57 tests + 完整 docs**；full headless WS signaling listener 移至 GA-reflection follow-up。**#21 P1 主体全 5 项闭环**（A.1 + A.2 + B.1 + B.5 + C.1）。
+- 2026-05-15 v0.19：**§10 A.1 PR3 landed — A.1 主体闭环** — `dist/systemd/chainlesschain.service` template + `docs/linux/PAIRING.md` 9 段用户指南 + `docs/cli/CLI_COMMANDS_REFERENCE.md` `#pair` 锚段。systemd 专为 SSH-tunneled web-panel 部署（不覆盖 Electron 桌面 auto-start）。**A.1 累计 57 tests + 完整 docs**；full headless WS signaling listener 移至 GA-reflection follow-up。**#21 P1 主体全 5 项闭环**（A.1 + A.2 + B.1 + B.5 + C.1）。
 - 2026-05-15 v0.18：**§10 A.1 PR2 landed** — `cc pair token` subcommand 群（generate/list/show/revoke）+ `lan-pairing-tokens.js` lib + persistent JSON store + one-active-token-per-DID 不变量 + 兼容现 `device-pairing-handler.js` QR shape + 35 tests。**Scope narrowing**：原 PR2 设想的 full headless signaling listener 改为 PR3+ 评估（涉及 libp2p + crypto bootstrap 跨 CLI/Electron 边界）；narrowed PR2 已覆盖 CI/SSH dev box 主要痛点（pre-generate token → 转移到 mobile → 通过 Electron 完成 pairing）。
 - 2026-05-15 v0.17：**§10 A.1 PR1 landed + 准入条件重评** — Audit 显示 `@libp2p/mdns` + `bonjour-service` 是纯 JS 不依赖系统 daemon，原 "Linux 需补 mDNS systemd 单元 / Wayland 权限" framing 大部分不准。真缺口 = headless + preflight + docs。PR1 `cc pair preflight` CLI subcommand（5 项检查：interfaces / multicast bind / port 5353 / distro / firewall hint）+ `--json` exit 码 0/1/2 + 22 tests + spike doc v0.1。PR2 headless 模式 + PR3 systemd template + docs 列入下一步，等 GA 反馈决定优先级。
 - 2026-05-15 v0.16：**§10 C.1 PR3 landed — C.1 主体闭环** — wear-side `WearVoiceSender` + `VoiceForwardActivity` trampoline + `VoiceComplicationService` + `VoiceShortcutTileService` + wear manifest 注册 1 activity + 2 services + 7 unit tests。wear→phone forwarding 端到端协议 wired (累计 33 tests across 3 PRs)。真表 instrumented E2E 留 follow-up。

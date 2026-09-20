@@ -308,7 +308,7 @@ chainlesschain mm stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/27_多模态协作.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Perception 多模态感知 →](/chainlesschain/cli-perception)
 - [NL Programming →](/chainlesschain/cli-nlprog)
 - [Session Manager →](/chainlesschain/cli-session)

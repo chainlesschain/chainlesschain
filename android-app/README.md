@@ -6,7 +6,7 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 **版本日期：** 2026-05-12
 **versionCode**: 100 / **versionName**: 1.0.0
-**状态：** 🎉 GA — code 部分全部落地；M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs-site 同步 5 件用户出场清单见 [docs/v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md)
+**状态：** 🎉 GA — code 部分全部落地；M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs-site 同步 5 件用户出场清单见 [docs/releases/v1.0_GA_checklist.md](../docs/releases/v1.0_GA_checklist.md)
 
 Android v1.0 重新定位为 **DID 钱包 + 移动捕获 + REMOTE 遥控器** 三层模型，
 对齐 Claude Desktop / Mobile 的二端分工。详见：
@@ -34,7 +34,7 @@ Android v1.0 重新定位为 **DID 钱包 + 移动捕获 + REMOTE 遥控器** �
 4. **M6 性能实测回填** — Macrobenchmark / Battery Historian / TC 弱网，8 项预算值
 5. **docs-site 同步 + GitHub Release** — `grep -rn "v0\.37" docs-site/` 扫所有"当前版本"标签 → 1.0.0；GitHub Release 上传 APK
 
-按顺序执行：参考 [v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md)。本地 commits + tag `v1.0.0` 已落，详见 [CHANGELOG.md](./CHANGELOG.md#100---2026-05-12--ga)。
+按顺序执行：参考 [v1.0_GA_checklist.md](../docs/releases/v1.0_GA_checklist.md)。本地 commits + tag `v1.0.0` 已落，详见 [CHANGELOG.md](./CHANGELOG.md#100---2026-05-12--ga)。
 
 ---
 

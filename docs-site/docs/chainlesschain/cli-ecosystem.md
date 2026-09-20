@@ -270,7 +270,7 @@ chainlesschain eco stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/64_智能插件生态2.0.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [MCP Registry →](/chainlesschain/cli-mcp)
 - [Skill Marketplace →](/chainlesschain/cli-skill)
 - [Runtime →](/chainlesschain/cli-runtime)

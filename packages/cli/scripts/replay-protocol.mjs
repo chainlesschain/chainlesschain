@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Offline protocol replay tool (P1-9 "离线协议回放" of
- * docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md).
+ * docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md).
  *
  * Replays a recorded stream-json session (NDJSON, one JSON frame per line — or a
  * JSON array) against a negotiation context, WITHOUT any live peer:

@@ -265,7 +265,7 @@ chainlesschain sso stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/14_身份权限系统.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [DID v2.0 →](/chainlesschain/cli-did-v2)
 - [Auth →](/chainlesschain/cli-auth)
 - [Encrypt →](/chainlesschain/cli-encrypt)

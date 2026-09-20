@@ -3,7 +3,7 @@
  * Generate (or byte-diff-check) the agent protocol capability manifest doc from
  * the ONE canonical source — `capability-manifest.js` `renderProtocolDoc()` —
  * closing the last open item of P1-9 in
- * docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md
+ * docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md
  * ("renderProtocolDoc 接进 CI byte-diff 签入副本").
  *
  * The protocol capability surface (negotiable wire features + permission modes)

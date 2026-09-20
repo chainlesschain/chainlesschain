@@ -5,7 +5,7 @@
 > Covers STIX 2.1 threat intelligence, UEBA (User & Entity Behavior Analytics),
 > and templated framework reports for SOC 2 / ISO 27001 / GDPR.
 >
-> **Last updated**: 2026-04-16 · See also: `docs/CLI_COMMANDS_REFERENCE.md`,
+> **Last updated**: 2026-04-16 · See also: `docs/cli/CLI_COMMANDS_REFERENCE.md`,
 > `docs/design/modules/19_合规分类系统.md`
 
 ---
@@ -194,7 +194,7 @@ All tables live in the SQLCipher-encrypted application database.
 ## 7. See also
 
 - Design doc: `docs/design/modules/19_合规分类系统.md`
-- CLI reference: `docs/CLI_COMMANDS_REFERENCE.md` (Phase 8 section)
+- CLI reference: `docs/cli/CLI_COMMANDS_REFERENCE.md` (Phase 8 section)
 - Audit / SIEM: `chainlesschain audit log`, `chainlesschain siem export`
 - DLP: `chainlesschain dlp scan` — complementary to UEBA for data flows
 

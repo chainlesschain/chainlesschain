@@ -31,7 +31,7 @@ const P1_10_OWNED_PROCESS_RUNNER_TEST =
 const P1_10_SCENARIO_RECEIPTS_TEST =
   "scripts/__tests__/p1-10-scenario-receipts.test.mjs";
 const OPEN_SOURCE_GAP_AUDIT =
-  "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
+  "docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
 const CI_GATE_INTEGRITY_TRIGGERS = new Set([
   ".github/workflows/test.yml",
   "desktop-app-vue/scripts/cowork-ci-test-selector.js",

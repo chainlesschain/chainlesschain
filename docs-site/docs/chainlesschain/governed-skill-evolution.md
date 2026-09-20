@@ -490,7 +490,7 @@ Linux、Windows、macOS 的精确 SHA 门禁已覆盖多进程恢复、CAS 竞�
 
 启动恢复报告的 `reviewsSettled` / `rollbacksSettled` 是已核验并补账的效果数；`reviewPreparationsDeferred` / `rollbackPlansDeferred` 是已保存但尚无效果的计划数。对后者应先核对当前状态和有效授权，再显式恢复。签名撤销、陈旧状态或账本损坏时停止变更并保留证据。
 
-部署接口详见[Workbench 启动合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/EVOLUTION_WORKBENCH_STARTUP.md)。
+部署接口详见[Workbench 启动合同](https://github.com/chainlesschain/chainlesschain/blob/main/docs/features/evolution-workbench/EVOLUTION_WORKBENCH_STARTUP.md)。
 
 ## 状态与结果
 
@@ -611,7 +611,7 @@ Linux、Windows、macOS 的精确 SHA 门禁已覆盖多进程恢复、CAS 竞�
 6. 在不降低类型专属安全门的前提下，逐步把 Prompt、Hook 和 Knowledge 接入与 Skill 一致的不可变 candidate/evidence/review/release 协议。
 7. 为公共 CLI 装载真实 branded deployment host，并完成 KMS/HSM、PKI/身份、独立 witness、流量 authority、灾备和 kill-switch 演练。
 
-详细任务、状态与验收标准见仓库 `docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`。完成目标部署验收前，production auto-promotion 继续保持 HOLD。
+详细任务、状态与验收标准见仓库 `docs/research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`。完成目标部署验收前，production auto-promotion 继续保持 HOLD。
 
 ## 相关文档
 

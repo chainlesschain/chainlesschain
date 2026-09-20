@@ -1,7 +1,7 @@
 # Linux LAN Pairing Setup Guide
 
 > **范围**: Linux 桌面 / Linux dev box / SSH-only Linux server 用户配对 ChainlessChain 手机 ↔ 桌面的常见坑 + 修复路径
-> **关联**: [#21 A.1 spike doc](../design/A1_Linux_Native_Pairing_spike.md) v0.3 / [CLI commands reference §pair](../CLI_COMMANDS_REFERENCE.md#pair)
+> **关联**: [#21 A.1 spike doc](../design/A1_Linux_Native_Pairing_spike.md) v0.3 / [CLI commands reference §pair](../cli/CLI_COMMANDS_REFERENCE.md#pair)
 
 ---
 
@@ -293,7 +293,7 @@ tar czf cc-pairing-debug-$(date +%Y%m%d-%H%M%S).tgz .
 
 - [A.1 spike doc](../design/A1_Linux_Native_Pairing_spike.md) — 准入条件 audit + 3 PR 拆分
 - [Phase3d_Mobile_Sync 设计文档](../design/Phase3d_Mobile_Sync_设计文档.md) — mDNS auto-discovery
-- [CLI commands reference §pair](../CLI_COMMANDS_REFERENCE.md#pair) — `cc pair` subcommands
+- [CLI commands reference §pair](../cli/CLI_COMMANDS_REFERENCE.md#pair) — `cc pair` subcommands
 - [Android 重新定位 §10 A.1](../design/Android_重新定位_设计文档.md) — issue tracker
 
 ## 附录：规范章节补全（v5.0.3.108）

@@ -252,7 +252,7 @@ chainlesschain didv2 stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/55_去中心化身份2.0.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [DID v1 →](/chainlesschain/cli-did)
 - [Agent Network →](/chainlesschain/cli-agent-network)
 - [SSO Manager →](/chainlesschain/cli-sso)

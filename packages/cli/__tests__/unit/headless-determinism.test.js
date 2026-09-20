@@ -1,6 +1,6 @@
 /**
  * Deterministic-headless batch (gap-analysis 2026-07-11,
- * docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "确定性 Headless"):
+ * docs/research/cli/CLAUDE_CODE_CLI_GAP_ANALYSIS.md P0 "确定性 Headless"):
  *  - init event manifest fields (protocol_version / session_persistence /
  *    loaded_sources / policy_digest / tools_hash)
  *  - --ephemeral (no session persistence; resume replay stays read-only)

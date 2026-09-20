@@ -555,7 +555,7 @@ describe("read_file offset/limit line ranges", () => {
     const source = fs.readFileSync(
       fileURLToPath(
         new URL(
-          "../../../../docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md",
+          "../../../../docs/research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md",
           import.meta.url,
         ),
       ),

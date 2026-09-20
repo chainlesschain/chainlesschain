@@ -124,7 +124,7 @@ CLI option.
 - Saved keys never return to the page; changing destinations requires the new
   service's key. Review and rollback still require fresh state, confirmation
   and real host authority. Local-test profiles remain visibly isolated.
-- See the [workspace panel guide](../../docs/IDE_WORKSPACE_PANELS.md) for setup
+- See the [workspace panel guide](../../docs/ide/IDE_WORKSPACE_PANELS.md) for setup
   and the distinction between local test profiles and real governed deployment.
 
 ### Retained task-recovery and governance safeguards

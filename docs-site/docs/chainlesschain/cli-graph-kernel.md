@@ -295,4 +295,4 @@ npm --prefix packages/cli run graph:production-evidence -- \
 - [CC App Server 使用指南](./cli-app-server.md)
 - [CLI Runtime 当前实现](./cli-runtime-current.md)
 - [设计文档：Graph Kernel](/design/modules/105-graph-kernel)
-- [开源差距分析 6.9（GitHub）](https://github.com/chainlesschain/chainlesschain/blob/main/docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md#69-将多套图收敛为-canonical-graph-kernel)
+- [开源差距分析 6.9（GitHub）](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md#69-将多套图收敛为-canonical-graph-kernel)

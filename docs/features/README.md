@@ -4,6 +4,10 @@
 
 ## 📄 文档列表
 
+### 演进工作台
+
+- [演进工作台运行说明](./evolution-workbench/README.md) - 宿主启动、人工审核、Registry 状态和回滚接线。
+
 ### IDE 任务协作
 
 - [IDE 任务记录与新会话接力](./ide-task-worklog-user-guide.md) - 自动保存过程、查看 Markdown、带历史启动新会话。

@@ -1,6 +1,6 @@
 # CLI — Managed Agents & Hosted Session API
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 
 ## Managed Agents Parity (session-core)
 

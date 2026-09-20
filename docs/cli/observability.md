@@ -1,6 +1,6 @@
 # CLI — Observability & Code Intelligence
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 >
 > Covers: Code Generation Agent (Phase 86), AIOps (Phase 25), Multimodal Perception
 > (Phase 84), Database Evolution (Phase 80), Federation Hardening (Phase 58),

@@ -271,7 +271,7 @@ chainlesschain ipfs attachments --note <note-id>
 ## 相关文档
 
 - 设计文档：`docs/design/modules/17_IPFS去中心化存储.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Knowledge Exporter →](/chainlesschain/cli-export)
 - [Note Versioning →](/chainlesschain/cli-note)
 - [Encrypt (Crypto Manager) →](/chainlesschain/cli-encrypt)

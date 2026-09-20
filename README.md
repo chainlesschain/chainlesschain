@@ -99,7 +99,7 @@ CLI 制品源码边界为 `17509017a2`；VS Code 与 JetBrains 制品源码边�
 
 ## 2026-07-12 发布 — **cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0**
 
-> CLI-only 发版（0.162.161 → **0.162.162**，npm `latest`，provenance）。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）**P0/P1/P2 全部章节收口**：P1 Subagent 契约（tighten-only 继承/覆盖，权限加宽钳回父级、capabilities 取交集、memory 父拒不授予）+ Turn↔Checkpoint 绑定（覆盖度 FULL/PARTIAL/NONE，恢复计划永不过度承诺）+ Plugin 能力声明与配置 Schema（默认 DENY + 加宽需重新同意 + 敏感选项拒 project 配置）；P2 Hooks 统一事件总线（信封 + `event_id` + 决策最严胜出 + 决策类 replay 必须显式 sandbox）+ JSON Schema 结构化输出（Draft 2020-12 子集 + `schema_digest` + `structured_result`）+ 多 Agent Review 聚合核（dedupe 跨维度合并 + verifier 复现剔除 + 结构化 path/line/category/severity/failure_scenario/evidence）与 LSP 自动诊断调度（debounce/throttle + token 上限先丢最不严重）+ Doctor Runtime Checkup（agenda 逾期/慢·熔断 Hook/失效 Plugin·LSP/冗长指令文件）+ CLI 参考文档漂移检测（从 manifest 175 + 工具 26 生成并双向 diff）+ 统一 OTel id（九 id 归一 + content 默认脱敏 `[redacted]` + 基数收敛，每 span 带 workflow.run_id+session.id）+ IDE gap P0（远程审批绑定操作指纹 + 会话生命周期状态机）。命令数 **175 不变**。发版前本地三层全绿（unit 23,182 / integration 1,044 / e2e 628）。
+> CLI-only 发版（0.162.161 → **0.162.162**，npm `latest`，provenance）。对照 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）**P0/P1/P2 全部章节收口**：P1 Subagent 契约（tighten-only 继承/覆盖，权限加宽钳回父级、capabilities 取交集、memory 父拒不授予）+ Turn↔Checkpoint 绑定（覆盖度 FULL/PARTIAL/NONE，恢复计划永不过度承诺）+ Plugin 能力声明与配置 Schema（默认 DENY + 加宽需重新同意 + 敏感选项拒 project 配置）；P2 Hooks 统一事件总线（信封 + `event_id` + 决策最严胜出 + 决策类 replay 必须显式 sandbox）+ JSON Schema 结构化输出（Draft 2020-12 子集 + `schema_digest` + `structured_result`）+ 多 Agent Review 聚合核（dedupe 跨维度合并 + verifier 复现剔除 + 结构化 path/line/category/severity/failure_scenario/evidence）与 LSP 自动诊断调度（debounce/throttle + token 上限先丢最不严重）+ Doctor Runtime Checkup（agenda 逾期/慢·熔断 Hook/失效 Plugin·LSP/冗长指令文件）+ CLI 参考文档漂移检测（从 manifest 175 + 工具 26 生成并双向 diff）+ 统一 OTel id（九 id 归一 + content 默认脱敏 `[redacted]` + 基数收敛，每 span 带 workflow.run_id+session.id）+ IDE gap P0（远程审批绑定操作指纹 + 会话生命周期状态机）。命令数 **175 不变**。发版前本地三层全绿（unit 23,182 / integration 1,044 / e2e 628）。
 
 ## 2026-07-12 发布 — **cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化**
 
@@ -2129,7 +2129,7 @@ cc pack
 - 基础命令参考：[docs-site/docs/chainlesschain/cli-pack.md](./docs-site/docs/chainlesschain/cli-pack.md)
 - **项目模式用户文档**：[docs-site/docs/chainlesschain/cli-pack-project.md](./docs-site/docs/chainlesschain/cli-pack-project.md) (v0.4)
 - 完整设计：[docs/design/CC*PACK*打包指令设计文档.md](./docs/design/CC_PACK_打包指令设计文档.md) (v0.4)
-- CLI 索引：[docs/CLI_COMMANDS_REFERENCE.md](./docs/CLI_COMMANDS_REFERENCE.md) → System Management
+- CLI 索引：[docs/cli/CLI_COMMANDS_REFERENCE.md](./docs/cli/CLI_COMMANDS_REFERENCE.md) → System Management
 
 ---
 
@@ -2514,7 +2514,7 @@ Electron 桌面端 `/v2` 路由上线**对话优先 + 插件化平台**新壳，
 - **Phase 84 多模态感知** — `cc perception` 记录/索引/跨模态查询 + 语音会话状态机，**47 tests**
 - **Phase 86 代码生成 Agent 2.0** — `cc codegen` 生成追踪 + 5 条启发式安全规则 + 脚手架记录，**38 tests**
 
-**文档重构**：`docs/CLI_COMMANDS_REFERENCE.md` 由 54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)，命令注释全量中文化 (~371 条)。新增 `docs-site` 页面 `cli-federation.md` / `cli-perception.md` + VitePress 侧栏。
+**文档重构**：`docs/cli/CLI_COMMANDS_REFERENCE.md` 由 54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)，命令注释全量中文化 (~371 条)。新增 `docs-site` 页面 `cli-federation.md` / `cli-perception.md` + VitePress 侧栏。
 
 ### 回归测试结果 (2026-04-17)
 

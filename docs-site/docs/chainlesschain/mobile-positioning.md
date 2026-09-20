@@ -675,7 +675,7 @@ class ShareReceiverActivity : ComponentActivity() {
 >   - 桌面对标 v5.0.3.47 → v5.0.3.48
 >   - 9 commits 落地：M3 L2 5 件齐落 (VoiceMode/CameraOCR/LocationTagger/ShareReceiver/PushNotifier, +3,861 行 / 99 单测) + M4 method-level + ApprovalUI 4 类 + ProgressViewer + §8.3 alias 兼容窗口 (+1,610 行 / 68 单测)
 >   - FAQ "Android 支持哪些桌面能力" 更新到 v1.0.0 GA 事实
->   - 剩 5 项用户出场清单见 [docs/v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/v1.0.0/docs/v1.0_GA_checklist.md)
+>   - 剩 5 项用户出场清单见 [docs/releases/v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/v1.0.0/docs/v1.0_GA_checklist.md)
 > - 2026-05-11 v1.1 (调研收口稿)：基于 v0.2 设计文档同步事实修正：
 >   - 桌面对标 v5.0.3.46 → v5.0.3.47；Android 版本说明加 v0.37.0 起点
 >   - 关键文件路径全部修正（mobile-app/ → android-app/；desktop remote/command-handler.js → command-router.js + handlers/；desktop mobile/DevicePairingHandler.js → p2p/device-pairing-handler.js）

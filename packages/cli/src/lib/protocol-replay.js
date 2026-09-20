@@ -1,6 +1,6 @@
 /**
  * Offline protocol replay — the last open pure item of P1-9 ("离线协议回放") in
- * docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md.
+ * docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md.
  *
  * [[event-seq-replay.js]] replays for TRANSPORT reliability (re-send a gap over a
  * lossy socket). This module replays for PROTOCOL COMPAT: take a recorded

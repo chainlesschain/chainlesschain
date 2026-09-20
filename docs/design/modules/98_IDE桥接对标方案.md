@@ -22,7 +22,7 @@
 >
 > **本文档是 IDE 桥接的初版规划方案（v1.1，2026-06-10），记录 Phase 0–7 首轮落地。它已不再反映现状——请勿把下方 §1.2 缺口表当作当前状态。**
 >
-> - **当前权威**：[`docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md`](../../CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md)（增量差距与优化建议）。IDE 落地状态另见 [`docs/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md) 与 [`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../CLAUDE_CODE_IDE_GAP_ANALYSIS.md)。
+> - **当前权威**：[`docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md`](../../research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md)（增量差距与优化建议）。IDE 落地状态另见 [`docs/research/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS_2026-07-10.md`](../../research/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS_2026-07-10.md) 与 [`docs/research/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../research/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md)。
 > - **版本指针**：VS Code 扩展 **0.37.71**（Open VSX live）；JetBrains 插件 **0.4.100**（Marketplace live），源码/上传为 **0.4.102**；正文出现的 `0.2.x` / `0.1.0` 是首发版本号，不是当前版本。
 > - **§1.2 缺口表（下方）是实施前的原始基线**（2026-06-10）；表中"无 / HIGH"等判断均已在 Phase 0–7 及后续 7 个月的批次中落地，逐行 ✅ 标注见表内。
 > - **2026-06-10 之后落地、本文 Phase 日志未覆盖的主要能力**：Session Workbench / Sessions Index、Remote Handoff / Remote QR、IDE Diff Review（逐 hunk / 行批注 / openMultiDiff）、Browser State / Browser Action、managed CLI（检测 + 一键升级）、Artifacts / Policy / Quality 面板、Artifact access/deletion settlement、语义工具（VS symbol / JB PSI）、Capability 双向协商 + N/N-1 降级、跨事件 `trace_id`、事件 `seq` / replay / 背压、remote URI/path mapping、隐式上下文脱敏、操作指纹审批、后台 Agent 面板与 durable workflow recovery 源码增量。

@@ -253,7 +253,7 @@ chainlesschain pipe stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/26_开发流水线编排.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Workflow Engine →](/chainlesschain/cli-workflow)
 - [Automation →](/chainlesschain/cli-automation)
 - [Codegen →](/chainlesschain/cli-codegen)

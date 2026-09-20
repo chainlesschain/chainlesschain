@@ -1,88 +1,27 @@
-# 优化和修复文档
+# ???????
 
-本目录包含系统优化、Bug修复和性能改进的相关文档。
+[??????](../README.md)
 
-## 文档分类
+[???????](./OPTIMIZATION_PLAN.md)????????????????????????
 
-### 系统优化
-- 优化实现报告
-- 短期优化总结
-- 提示词优化完成
+## ????
 
-### AI优化
-- AI对话Bug修复报告
-- AI管道优化计划
-
-### 语音输入
-- 语音输入集成指南
-- 语音输入优化计划
-- 语音输入优化总结
-
-### 工具优化
-- 高频工具增强
-
-### Bug修复
-- Bug修复报告
-- 综合修复报告
-- 文件路径修复总结
-- 安全修复应用
-
-### 数据库升级
-- MyBatis Plus升级报告
-
-共 **15 个文档**
-
-## 附录：规范章节补全（v5.0.3.108）
-
-> 为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
-
-### 1. 概述
-见正文头部。本文：优化和修复文档。
-
-### 2. 核心特性
-见正文要点 / 特性 / 范围章节。
-
-### 3. 系统架构
-见正文架构 / 设计章节（或项目根 docs/design/ 系统设计主文档）。
-
-### 4. 系统定位
-见正文定位 / 背景章节。
-
-### 5. 核心功能
-见正文功能 / 内容章节。
-
-### 6. 技术架构
-见正文技术 / 实现章节。
-
-### 7. 系统特点
-见正文（状态 / 版本 / 特性）。
-
-### 8. 应用场景
-见正文应用场景 / 背景。
-
-### 9. 竞品对比
-见正文对比 / 借鉴（如有）。
-
-### 10. 配置参考
-见正文配置 / 参数 / 环境章节。
-
-### 11. 性能指标
-见正文性能 / 指标章节（如有）。
-
-### 12. 测试覆盖
-见正文测试 / 验证章节（如有）。
-
-### 13. 安全考虑
-见正文安全 / 权限章节（如适用）。
-
-### 14. 故障排除
-见正文故障 / 已知限制 / 常见问题章节。
-
-### 15. 关键文件
-见正文实现位置 / 关键文件章节。
-
-### 16. 使用示例
-见正文命令 / 操作 / API 示例。
-
-### 17. 相关文档
-见正文相关链接；项目根 docs/design/ 系统设计主文档与对应模块文档。
+- [AI会话工具调用错误修复报告](./AI_CONVERSATION_BUG_FIX_REPORT.md)
+- [ChainlessChain AI Pipeline 优化方案](./AI_PIPELINE_OPTIMIZATION_PLAN.md)
+- [ChainlessChain 企业版 Bug修复报告](./BUGFIX_REPORT.md)
+- [AI对话文件操作综合修复报告](./COMPREHENSIVE_FIX_REPORT.md)
+- [文件路径和刷新问题修复总结](./FILE_PATH_FIX_SUMMARY.md)
+- [✅ 项目详情页面 - 修复完成](./FIXES_README.md)
+- [高频工具Examples增强报告](./HIGH_FREQUENCY_TOOLS_ENHANCED.md)
+- [Manus/OpenManus 最佳实践优化指南](./MANUS_OPTIMIZATION_GUIDE.md)
+- [MyBatis Plus 3.5.9 升级报告](./MYBATIS_PLUS_UPGRADE_REPORT.md)
+- [AI Pipeline 优化实施报告](./OPTIMIZATION_IMPLEMENTATION_REPORT.md)
+- [工作流程优化 - 阶段1完成报告](./OPTIMIZATION_PHASE1_COMPLETION_REPORT.md)
+- [ChainlessChain 优化与演进计划](./OPTIMIZATION_PLAN.md)
+- [✅ Prompt优化完成报告](./PROMPT_OPTIMIZATION_COMPLETE.md)
+- [项目详情页面 - 安全修复报告](./SECURITY_FIXES_APPLIED.md)
+- [ChainlessChain 安全改进实施报告](./SECURITY_IMPROVEMENT_SUMMARY.md)
+- [短期优化完成总结](./SHORT_TERM_OPTIMIZATION_SUMMARY.md)
+- [实时语音输入功能集成指南](./VOICE_INPUT_INTEGRATION_GUIDE.md)
+- [语音输入功能优化方案](./VOICE_INPUT_OPTIMIZATION_PLAN.md)
+- [语音输入功能优化完成总结](./VOICE_INPUT_OPTIMIZATION_SUMMARY.md)

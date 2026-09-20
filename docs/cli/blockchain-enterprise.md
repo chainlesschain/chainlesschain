@@ -1,6 +1,6 @@
 # CLI — Phase 8: Blockchain & Enterprise
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 >
 > Covers: economy, zkp, bi, compliance, dlp, siem, pqc, nostr, matrix, activitypub,
 > scim, terraform, hardening, stress, reputation, sla, tech, dev, collab, marketplace,

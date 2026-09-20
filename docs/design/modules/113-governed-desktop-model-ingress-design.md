@@ -194,4 +194,4 @@ Volcengine 健康检查只验证 `apiKey`、`baseUrl` 与 `model` 是否配置�
 - [模块 112：受治理的 Skill 自进化](./112-governed-skill-evolution-design.md)
 - [模块 110：Agent Platform 发布与证据边界](./110-agent-platform-release-boundaries.md)
 - [用户指南：Desktop 模型治理](../../../docs-site/docs/chainlesschain/desktop-model-governance.md)
-- [自进化差距分析](../../AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md)
+- [自进化差距分析](../../research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md)

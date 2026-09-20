@@ -247,7 +247,7 @@ chainlesschain nlprog stats --json   # JSON 格式
 ## 相关文档
 
 - 设计文档：`docs/design/modules/28_自然语言编程.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [Codegen →](/chainlesschain/cli-codegen)
 - [Multimodal →](/chainlesschain/cli-mm)
 - [Autonomous Developer →](/chainlesschain/cli-dev)

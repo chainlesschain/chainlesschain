@@ -5,7 +5,7 @@
 > 涵盖 Nostr (NIP-04/09/25)、Matrix (Threads/Spaces)、ActivityPub C2S、
 > 进程内社交图谱以及多语言主题分类。
 >
-> **最后更新**: 2026-04-16 · 另见: `docs/CLI_COMMANDS_REFERENCE.md`
+> **最后更新**: 2026-04-16 · 另见: `docs/cli/CLI_COMMANDS_REFERENCE.md`
 
 ---
 

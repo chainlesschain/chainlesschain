@@ -5,7 +5,7 @@
 > Covers Nostr (NIP-04/09/25), Matrix (Threads/Spaces), ActivityPub C2S, the
 > in-process social graph, and language-aware topic classification.
 >
-> **Last updated**: 2026-04-16 · See also: `docs/CLI_COMMANDS_REFERENCE.md`
+> **Last updated**: 2026-04-16 · See also: `docs/cli/CLI_COMMANDS_REFERENCE.md`
 
 ---
 

@@ -1623,7 +1623,7 @@ test("selector changes run integrity and CLI contracts without desktop fallback"
 });
 
 test("open-source gap audit evidence stays on the integrity gate", () => {
-  const auditFile = "docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
+  const auditFile = "docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md";
   const auditSelection = selector.createSelection([auditFile]);
 
   assert.equal(auditSelection.suite, "ci-gate-integrity");

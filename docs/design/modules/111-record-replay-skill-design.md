@@ -368,7 +368,7 @@ cc skill recording revoke approve-invoice --approve
 ## 20. 相关文档
 
 - `docs/features/record-replay-skill-user-guide.md`
-- `docs/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md` §7.3、§12.68 及产品化关闭增量。
+- `docs/research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md` §7.3、§12.68 及产品化关闭增量。
 - `docs/design/modules/110-agent-platform-release-boundaries.md` §7。
 - `docs/design/modules/109_Desktop_Cowork_Skill_Execution_Security.md`。
 - `docs-site/docs/chainlesschain/skills.md`。

@@ -5,7 +5,7 @@
 > 涵盖 STIX 2.1 威胁情报、UEBA（用户与实体行为分析）以及
 > SOC 2 / ISO 27001 / GDPR 模板化合规报告。
 >
-> **最后更新**: 2026-04-17 · 另见: `docs/CLI_COMMANDS_REFERENCE.md`、
+> **最后更新**: 2026-04-17 · 另见: `docs/cli/CLI_COMMANDS_REFERENCE.md`、
 > `docs/design/modules/19_合规分类系统.md`
 
 ---
@@ -190,7 +190,7 @@ chainlesschain compliance scan                  # 综合扫描
 ## 7. 相关文档
 
 - 设计文档: `docs/design/modules/19_合规分类系统.md`
-- CLI 参考: `docs/CLI_COMMANDS_REFERENCE.md`（Phase 8 部分）
+- CLI 参考: `docs/cli/CLI_COMMANDS_REFERENCE.md`（Phase 8 部分）
 - 审计 / SIEM: `chainlesschain audit log`、`chainlesschain siem export`
 - DLP: `chainlesschain dlp scan` — 与 UEBA 互补的数据流防护
 
@@ -320,7 +320,7 @@ packages/cli/src/commands/compliance/
   ueba.js
   compliance-manager.js
 desktop-app-vue/src/main/plugins-builtin/compliance-default/
-docs/CLI_COMMANDS_REFERENCE.md   # Phase 8
+docs/cli/CLI_COMMANDS_REFERENCE.md   # Phase 8
 ```
 
 ### 16. 使用示例

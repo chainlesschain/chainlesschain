@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Offline governance coverage report (P1-9 "覆盖率指标" of
- * docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md; §11.3 acceptance
+ * docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md; §11.3 acceptance
  * targets). Reads a run summary JSON and prints the two coverage metrics —
  * high-risk tool-call ledger/trace coverage and Plugin/MCP/Skill/Hook provenance
  * traceability — WITHOUT any live run; exits 1 on any coverage gap so a CI job

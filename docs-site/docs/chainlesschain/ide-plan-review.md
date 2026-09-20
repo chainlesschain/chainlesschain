@@ -364,4 +364,4 @@ rm  ~/.chainlesschain/ide/session-index.json   # 损坏时删除即自动重建
 - [`cc agent` 托管智能体](/chainlesschain/cli-agent) — stream-json 双工协议与 Plan 模式的 CLI 侧
 - [会话管理 `cc session`](/chainlesschain/cli-session) — CLI session store（转录真正的家）与 `--resume`
 - [Cowork 多智能体协作](/chainlesschain/cowork) — 桌面侧的计划/审批工作流（与 IDE 内审阅互补）
-- 设计对照：`docs/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`（本轮实施状态与剩余项）
+- 设计对照：`docs/research/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS_2026-07-10.md`（本轮实施状态与剩余项）

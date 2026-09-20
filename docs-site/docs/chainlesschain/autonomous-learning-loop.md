@@ -77,4 +77,4 @@ cc learning synthesize --json
 
 - [受治理 Skill 演进](/chainlesschain/governed-skill-evolution)
 - [历史自进化模拟壳（已退役）](/design/modules/65-self-evolving-ai)
-- 仓库 `docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`
+- 仓库 `docs/research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`

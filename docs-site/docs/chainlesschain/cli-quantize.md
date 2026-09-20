@@ -223,7 +223,7 @@ chainlesschain quantize stats --json
 ## 相关文档
 
 - 设计文档：`docs/design/modules/20_模型量化系统.md`
-- CLI 总索引：`docs/CLI_COMMANDS_REFERENCE.md`
+- CLI 总索引：`docs/cli/CLI_COMMANDS_REFERENCE.md`
 - [LLM Providers →](/chainlesschain/cli-llm)
 - [Inference Network →](/chainlesschain/cli-inference)
 - [Runtime →](/chainlesschain/cli-runtime)

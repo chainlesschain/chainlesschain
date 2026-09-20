@@ -86,6 +86,6 @@ if (failed > 0) {
   console.log("  - src/lib/runtime-provenance-ledger.js  (Hash-chained immutable audit)");
   console.log("  - src/lib/process-execution-broker/index.js  (Unified spawn broker)");
   console.log("  - src/lib/hooks-v2-runtime.js       (18 hook events, 5 executors)");
-  console.log("  - docs/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md (gap analysis)");
+  console.log("  - docs/research/cli/CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md (gap analysis)");
   process.exit(0);
 }

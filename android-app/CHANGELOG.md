@@ -33,7 +33,7 @@ Android v1.0 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱
 
 ### 📄 文档
 
-- **v1.0.0 GA 检查清单** — `3da484e9c` — [docs/v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md) — 5 项需用户出场的 step-by-step + Pre-flight 检查 + 中止条件
+- **v1.0.0 GA 检查清单** — `3da484e9c` — [docs/releases/v1.0_GA_checklist.md](../docs/releases/v1.0_GA_checklist.md) — 5 项需用户出场的 step-by-step + Pre-flight 检查 + 中止条件
 - **M3 FCM 接入指南** — [android-app/docs/M3_FCM_SETUP.md](docs/M3_FCM_SETUP.md) — google-services.json 后 5 步激活 FCM
 
 ### ⚠️ 已知限制（v1.0 不修，v1.1 上）
@@ -42,7 +42,7 @@ Android v1.0 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱
 - **单 peer pair**：v1.0 只支持 1 个桌面同步配对，多设备 N 端 v1.1
 - **离线消息队列**：桌面离线时 REMOTE 请求不缓存，恢复后无重放，v1.1
 - **QRPairing scaffold-only**：2034 行 UI 真实，但 PairingViewModel 是 delay() stub + DEVICE_PAIRING_ROUTE 孤儿，真落地 ~2.5d 推 v1.1（设计文档 §5.2 + §10）
-- **M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs-site 同步**：见 [v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md) 5 项用户出场清单
+- **M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs-site 同步**：见 [v1.0_GA_checklist.md](../docs/releases/v1.0_GA_checklist.md) 5 项用户出场清单
 
 ### 📊 累计
 

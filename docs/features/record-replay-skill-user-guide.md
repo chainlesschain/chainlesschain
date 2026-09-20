@@ -229,5 +229,5 @@ cc skill recording revoke open-project --approve
 
 - [文档站用户指南](../../docs-site/docs/chainlesschain/record-replay-skill.md)
 - [模块 111 设计](../design/modules/111-record-replay-skill-design.md)
-- [P2-4 差距分析与验收](../CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md)
+- [P2-4 差距分析与验收](../research/agents/CODEX_OPEN_SOURCE_GAP_ANALYSIS_2026-08-24.md)
 - [Skill 系统](../../docs-site/docs/chainlesschain/skills.md)

@@ -566,7 +566,7 @@ npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9
 
 #### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 锚定 / 终端上下文 / worktree 清理安全闸 / 崩溃恢复台账
 
-> CLI-only 发版（`chainlesschain` 0.162.163 → **0.162.164**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加 session 子命令 `cc session pr-status` + REPL `/rewind <n> --branch` + `cc doctor`「Execution context」段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（默认路径字节不变）。
+> CLI-only 发版（`chainlesschain` 0.162.163 → **0.162.164**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加 session 子命令 `cc session pr-status` + REPL `/rewind <n> --branch` + `cc doctor`「Execution context」段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（默认路径字节不变）。
 
 - **8.1 凭据脱敏三导出面全闸**：`cc session export`（`--no-redact` 保原值）+ OTLP `toOtlp()` span/exception 脱敏 + `cc doctor --export-bundle` 诊断包——离机导出朝「不泄漏」失败。
 - **P0-2 崩溃恢复副作用台账**：两阶段记账接进 headless + IDE/Bridge resume（reconcile 注入 Recovery notice 不盲重跑）+ Diff-Apply 内容哈希幂等 + 0-重复度量。
@@ -579,7 +579,7 @@ npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9
 
 #### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线——Subagent 契约全轴强制 / 跨 Agent 授权边界 / 完成条件引擎 / Turn↔Checkpoint 持久化 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel
 
-> CLI-only 发版（`chainlesschain` 0.162.162 → **0.162.163**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节 last-mile「仍欠」。
+> CLI-only 发版（`chainlesschain` 0.162.162 → **0.162.163**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，补齐 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节 last-mile「仍欠」。
 
 - **Subagent 契约全轴强制（P1）**：spawn 真正消费 `resolveSubagentContract`，tighten-only 强制 skills/mcp/hooks/memory 交集、permissionMode（plan→只读）、budget/effort/context、worktree fail-closed、递归上限；headless 与 REPL 均以运行模式播种子级天花板；子级专属 ApprovalGate 强制 run_shell/run_code/browser_act。
 - **跨 Agent 授权边界接线（P0）**：headless 审批携带并校验 `tool_call_id+参数+policy` 绑定（重放/参数替换/错投判 `binding-mismatch` 拒）；入站 channel 事件显式打 steer authority。
@@ -593,7 +593,7 @@ npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9
 
 #### Added — cc CLI 0.162.162：增量 gap-analysis 收尾（Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema/Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0
 
-> CLI-only 发版（`chainlesschain` 0.162.161 → **0.162.162**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」。均为纯核 + 时钟注入 + 最小接线的低风险增量。
+> CLI-only 发版（`chainlesschain` 0.162.161 → **0.162.162**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」。均为纯核 + 时钟注入 + 最小接线的低风险增量。
 
 - **Subagent 契约（P1）**：tighten-only 继承/覆盖——权限加宽钳回父级、capabilities 与父级取交集、memory 父拒则永不授予、预算封顶父级余量、maxDepth/maxChildren 只降不升；接线 `.claude/agents/*.md` 解析。
 - **Turn↔Checkpoint 绑定（P1）**：显式 turn→checkpoint 表，有副作用无 checkpoint 标 PARTIAL、有变更无 checkpoint 标 NONE；`resolveRestorePlan` 永不过度承诺可恢复范围（conversation/files/both）。
@@ -606,7 +606,7 @@ npm `latest` `0.166.24` 对应不可变 tag `v-npm-0-166-24` 与精确提交 [`9
 
 #### Added — cc CLI 0.162.161：增量 gap-analysis（后台状态机/跨 Agent 授权/凭据代理/完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化
 
-> CLI-only 发版（`chainlesschain` 0.162.160 → **0.162.161**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（`cc agenda list` 增 `nextWakeupAt`），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 最有价值切片，均为纯核 + 时钟注入 + 最小接线的低风险增量（9 测试文件 148 测全绿）。
+> CLI-only 发版（`chainlesschain` 0.162.160 → **0.162.161**，经 `npm-publish.yml` 发 npm `latest`，`--provenance --access public`）。无新顶层命令（`cc agenda list` 增 `nextWakeupAt`），**顶层命令数 175 不变**。对照 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 最有价值切片，均为纯核 + 时钟注入 + 最小接线的低风险增量（9 测试文件 148 测全绿）。
 
 - **跨事件 `trace_id`**：stream-json 每行标注 run-scoped `trace_id`（`--trace-id`/`CC_TRACE_ID`/自动），限字符集 `[A-Za-z0-9._:-]`≤128，供跨进程/跨 Agent 关联。
 - **后台 Agent 状态机（P0）**：拆分 Idle 与 Needs-input，后台仪表板把「空闲」与「待输入/待批准」分组显示。
@@ -3848,7 +3848,7 @@ i18n M3 是「web-panel V5→Web 全量化收官（Phase A+B+C+D = 23 ports）�
 
 ### Changed
 
-- **`docs/CLI_COMMANDS_REFERENCE.md` 精简重构**：54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)
+- **`docs/cli/CLI_COMMANDS_REFERENCE.md` 精简重构**：54.8k → 4.4k 精简索引；完整命令清单拆到 `docs/cli/` 6 个子文件 (core-phases / managed-agents / blockchain-enterprise / observability / platform / video)
 - **命令注释全量中文化**：~371 条 `#` 注释由英文翻译为中文，技术术语 (DID/P2P/MCP/PQC/...) 保留原文
 - **CLAUDE.md 计数更新**：65 → 90 CLI commands，5960+ → 7200+ tests
 

@@ -43,7 +43,7 @@ cc marketplace serve-badge safe-refactor --skill-version 2.0.0 --manifest sha256
 
 徽章展示指定版本、目标、评测分数/样本量和来源摘要，不返回租户、候选内容或私有审核回执；每次访问复核当前签名与已记录撤销，异常返回 503。徽章不是安装授权，也不是本项目通用性能承诺。
 
-签名部署同时设置绝对路径 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，allowlist 包含 `marketplace`。目标、catalog、PKI、适配/Eval/Pilot/回滚 authority 均由部署提供。详细合同见[市场接线说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/GOVERNED_SKILL_MARKETPLACE_CLI.md)。
+签名部署同时设置绝对路径 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR` 和 `CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT`，allowlist 包含 `marketplace`。目标、catalog、PKI、适配/Eval/Pilot/回滚 authority 均由部署提供。详细合同见[市场接线说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/GOVERNED_SKILL_MARKETPLACE_CLI.md)。
 
 ## 命令参考
 

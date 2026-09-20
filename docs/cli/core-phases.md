@@ -1,6 +1,6 @@
 # CLI — Phases 2–7 · Init, Persona, Cowork
 
-> Parent: [`../CLI_COMMANDS_REFERENCE.md`](../CLI_COMMANDS_REFERENCE.md)
+> Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 
 ## Phase 2: Knowledge & Content Management
 

@@ -41,7 +41,7 @@ node packages/context-memory-kernel/scripts/lexical-retrieval-eval.mjs
 node --test packages/context-memory-kernel/test/lexical-retrieval-eval.test.js
 ```
 
-The fixed fixture compares Recall@k, MRR, and negative-query false recall against the previous exact-token matcher through the same governance filters. It does not certify natural-language quality, production capacity, or a release. See [G06 implementation and validation](../../docs/CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md) for evidence and remaining limits.
+The fixed fixture compares Recall@k, MRR, and negative-query false recall against the previous exact-token matcher through the same governance filters. It does not certify natural-language quality, production capacity, or a release. See [G06 implementation and validation](../../docs/reports/implementation/claude-code-codex/CLAUDE_CODE_CODEX_GAP_G06_IMPLEMENTATION_2026-09-12.md) for evidence and remaining limits.
 
 ## Operational gates
 

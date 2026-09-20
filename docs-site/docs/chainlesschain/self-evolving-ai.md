@@ -64,7 +64,7 @@ Raw evidence 与模型可见投影分层保存；secret/PII、prompt injection�
 
 - `packages/cli/src/lib/evolution/`：受治理演进内核、端口与策略。
 - `desktop-app-vue/src/main/ai-engine/cowork/evolution-ipc.js`：Phase 20 指标与知识图谱 IPC，不是模型训练器。
-- `docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`：逐项验收状态和剩余边界。
+- `docs/research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md`：逐项验收状态和剩余边界。
 
 ## 使用示例
 
@@ -72,4 +72,4 @@ Raw evidence 与模型可见投影分层保存；secret/PII、prompt injection�
 
 ## 相关文档
 
-详细架构和安全边界见 [受治理 Skill 演进](/chainlesschain/governed-skill-evolution)。仓库维护者还应以 `docs/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md` 中的验收表为准。
+详细架构和安全边界见 [受治理 Skill 演进](/chainlesschain/governed-skill-evolution)。仓库维护者还应以 `docs/research/agents/AGENT_SELF_EVOLUTION_GAP_ANALYSIS_2026-09-01.md` 中的验收表为准。
