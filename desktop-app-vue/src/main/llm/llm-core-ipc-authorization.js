@@ -157,6 +157,18 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-budget-delete",
     fields: Object.freeze(["model-budget"]),
   }),
+  "get-retention-config": Object.freeze({
+    purpose: "model-data-retention-read",
+    fields: Object.freeze(["retention-configuration"]),
+  }),
+  "set-retention-config": Object.freeze({
+    purpose: "model-data-retention-write",
+    fields: Object.freeze(["retention-configuration"]),
+  }),
+  "cleanup-old-data": Object.freeze({
+    purpose: "model-data-retention-delete",
+    fields: Object.freeze(["retention-cleanup-receipt"]),
+  }),
 });
 
 function authorizationError() {

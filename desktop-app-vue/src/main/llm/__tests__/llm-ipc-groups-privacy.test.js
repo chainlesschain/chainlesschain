@@ -69,6 +69,12 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
     registerRetentionHandlers({
       ipcMain,
       database,
+      coreAuthorization: {
+        authorize: vi.fn(async () => ({
+          actorDid: "did:key:retention-test",
+          tenantId: "tenant:test",
+        })),
+      },
       retentionPrivacy: createLlmIpcPrivacy("retention", sink),
     });
     registerTestDataHandlers({

@@ -1,35 +1,156 @@
 /**
- * LLM IPC handlers — retention group.
- * Split verbatim from llm-ipc.js registerLLMIPC(); shared symbols arrive via ctx.
+ * LLM IPC handlers — data retention group.
  *
  * @module llm/llm-ipc-retention
  */
+const { randomUUID } = require("node:crypto");
+const { types } = require("node:util");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 const { projectRetentionConfig } = require("./llm-ipc-record-projection");
+
+const SUCCESS_RECEIPT = Object.freeze({ success: true });
+const MAX_RETENTION_DAYS = 3650;
+const RETENTION_KEYS = new Set([
+  "usageLogRetentionDays",
+  "cacheRetentionDays",
+  "alertHistoryRetentionDays",
+  "autoCleanupEnabled",
+]);
+
+function ownData(source, key) {
+  if (
+    !source ||
+    types.isProxy(source) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(source))
+  ) {
+    return undefined;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(source, key);
+  return descriptor?.enumerable === true && Object.hasOwn(descriptor, "value")
+    ? descriptor.value
+    : undefined;
+}
+
+function authorizedActor(request) {
+  const actorDid = ownData(request, "actorDid");
+  if (
+    typeof actorDid !== "string" ||
+    actorDid.length < 1 ||
+    actorDid.length > 512 ||
+    /\p{Cc}/u.test(actorDid)
+  ) {
+    throw new TypeError("Invalid retention actor");
+  }
+  return actorDid;
+}
+
+function retentionDays(value, fallback) {
+  const normalized = value ?? fallback;
+  if (
+    !Number.isSafeInteger(normalized) ||
+    normalized < 0 ||
+    normalized > MAX_RETENTION_DAYS
+  ) {
+    throw new TypeError("Invalid retention period");
+  }
+  return normalized;
+}
+
+function normalizeRetentionConfig(value) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid retention config");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (
+      typeof key !== "string" ||
+      !RETENTION_KEYS.has(key) ||
+      descriptors[key]?.enumerable !== true ||
+      !Object.hasOwn(descriptors[key], "value")
+    ) {
+      throw new TypeError("Invalid retention field");
+    }
+  }
+  const autoCleanupEnabled = descriptors.autoCleanupEnabled?.value ?? true;
+  if (typeof autoCleanupEnabled !== "boolean") {
+    throw new TypeError("Invalid retention cleanup flag");
+  }
+  return Object.freeze({
+    usageLogRetentionDays: retentionDays(
+      descriptors.usageLogRetentionDays?.value,
+      90,
+    ),
+    cacheRetentionDays: retentionDays(descriptors.cacheRetentionDays?.value, 7),
+    alertHistoryRetentionDays: retentionDays(
+      descriptors.alertHistoryRetentionDays?.value,
+      30,
+    ),
+    autoCleanupEnabled,
+  });
+}
+
+function storedRetentionConfig(value) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid stored retention config");
+  }
+  return Object.freeze({
+    usageLogRetentionDays: retentionDays(
+      ownData(value, "usage_log_retention_days"),
+      90,
+    ),
+    alertHistoryRetentionDays: retentionDays(
+      ownData(value, "alert_history_retention_days"),
+      30,
+    ),
+  });
+}
 
 function registerRetentionHandlers(ctx) {
   const { ipcMain, database } = ctx;
   const privacy = ctx.retentionPrivacy || createLlmIpcPrivacy("retention");
+  const authorization = ctx.coreAuthorization;
+  if (!authorization || typeof authorization.authorize !== "function") {
+    throw new TypeError("LLM retention IPC authorization is required");
+  }
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const operation = channel.replace(/^llm:/u, "");
+      ipcMain.handle(channel, async (event, ...args) => {
+        let actorDid;
+        try {
+          actorDid = authorizedActor(
+            await authorization.authorize(event, operation),
+          );
+        } catch {
+          throw privacy.authorizationFailure(operation);
+        }
+        return handler(event, actorDid, ...args);
+      });
+    },
+  };
 
-  // ============================================================
-  // Data Retention (数据保留设置)
-  // ============================================================
-
-  /**
-   * 获取数据保留配置
-   * Channel: 'llm:get-retention-config'
-   */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "llm:get-retention-config",
-    async (_event, userId = "default") => {
+    async (_event, actorDid, ...args) => {
       try {
+        if (args.length !== 0) {
+          throw new TypeError("Unexpected retention input");
+        }
         if (!database) {
           return null;
         }
 
         const config = database
           .prepare("SELECT * FROM llm_data_retention_config WHERE user_id = ?")
-          .get(userId);
+          .get(actorDid);
 
         return projectRetentionConfig(config);
       } catch {
@@ -39,122 +160,118 @@ function registerRetentionHandlers(ctx) {
     },
   );
 
-  /**
-   * 设置数据保留配置
-   * Channel: 'llm:set-retention-config'
-   */
-  ipcMain.handle("llm:set-retention-config", async (_event, config) => {
-    try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+  authorizedIpcMain.handle(
+    "llm:set-retention-config",
+    async (_event, actorDid, ...args) => {
+      try {
+        if (args.length !== 1) {
+          throw new TypeError("Invalid retention input count");
+        }
+        if (!database) {
+          throw new Error("Database is not initialized");
+        }
+        const config = normalizeRetentionConfig(args[0]);
+        const now = Date.now();
 
-      const now = Date.now();
-
-      database
-        .prepare(
-          `
-        UPDATE llm_data_retention_config SET
-          usage_log_retention_days = ?,
-          cache_retention_days = ?,
-          alert_history_retention_days = ?,
-          auto_cleanup_enabled = ?,
-          updated_at = ?
-        WHERE user_id = ?
-      `,
-        )
-        .run(
-          config.usageLogRetentionDays || 90,
-          config.cacheRetentionDays || 7,
-          config.alertHistoryRetentionDays || 30,
-          config.autoCleanupEnabled !== false ? 1 : 0,
-          now,
-          config.userId || "default",
-        );
-
-      return { success: true };
-    } catch {
-      throw privacy.failure("set-retention-config");
-    }
-  });
-
-  /**
-   * 手动清理旧数据
-   * Channel: 'llm:cleanup-old-data'
-   */
-  ipcMain.handle("llm:cleanup-old-data", async (_event, userId = "default") => {
-    try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
-
-      // 获取保留配置
-      const config = database
-        .prepare("SELECT * FROM llm_data_retention_config WHERE user_id = ?")
-        .get(userId);
-
-      if (!config) {
-        return { success: false, error: "配置不存在" };
-      }
-
-      const now = Date.now();
-      const deletedCounts = {
-        usageLogs: 0,
-        cache: 0,
-        alerts: 0,
-      };
-
-      // 清理使用日志
-      if (config.usage_log_retention_days > 0) {
-        const usageCutoff =
-          now - config.usage_log_retention_days * 24 * 60 * 60 * 1000;
-        const usageResult = database
+        database
           .prepare(
-            "DELETE FROM llm_usage_log WHERE created_at < ? AND user_id = ?",
+            `
+              INSERT INTO llm_data_retention_config (
+                id, user_id, usage_log_retention_days, cache_retention_days,
+                alert_history_retention_days, auto_cleanup_enabled,
+                last_cleanup_at, total_storage_mb, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?, ?)
+              ON CONFLICT(user_id) DO UPDATE SET
+                usage_log_retention_days = excluded.usage_log_retention_days,
+                cache_retention_days = excluded.cache_retention_days,
+                alert_history_retention_days = excluded.alert_history_retention_days,
+                auto_cleanup_enabled = excluded.auto_cleanup_enabled,
+                updated_at = excluded.updated_at
+            `,
           )
-          .run(usageCutoff, userId);
-        deletedCounts.usageLogs = usageResult.changes;
+          .run(
+            randomUUID(),
+            actorDid,
+            config.usageLogRetentionDays,
+            config.cacheRetentionDays,
+            config.alertHistoryRetentionDays,
+            config.autoCleanupEnabled ? 1 : 0,
+            now,
+            now,
+          );
+
+        return SUCCESS_RECEIPT;
+      } catch {
+        throw privacy.failure("set-retention-config");
       }
+    },
+  );
 
-      // 清理缓存
-      if (config.cache_retention_days > 0) {
-        const cacheCutoff =
-          now - config.cache_retention_days * 24 * 60 * 60 * 1000;
-        const cacheResult = database
-          .prepare("DELETE FROM llm_cache WHERE created_at < ?")
-          .run(cacheCutoff);
-        deletedCounts.cache = cacheResult.changes;
+  authorizedIpcMain.handle(
+    "llm:cleanup-old-data",
+    async (_event, actorDid, ...args) => {
+      try {
+        if (args.length !== 0) {
+          throw new TypeError("Unexpected retention cleanup input");
+        }
+        if (!database) {
+          throw new Error("Database is not initialized");
+        }
+
+        const cleanup = database.transaction(() => {
+          const stored = database
+            .prepare(
+              "SELECT * FROM llm_data_retention_config WHERE user_id = ?",
+            )
+            .get(actorDid);
+          if (!stored) {
+            throw new TypeError("Missing retention config");
+          }
+          const config = storedRetentionConfig(stored);
+          const now = Date.now();
+
+          if (config.usageLogRetentionDays > 0) {
+            const cutoff =
+              now - config.usageLogRetentionDays * 24 * 60 * 60 * 1000;
+            database
+              .prepare(
+                "DELETE FROM llm_usage_log WHERE created_at < ? AND user_id = ?",
+              )
+              .run(cutoff, actorDid);
+          }
+
+          // llm_cache has no actor or tenant ownership column. A per-actor IPC
+          // cannot safely delete from it until the schema carries that scope.
+
+          if (config.alertHistoryRetentionDays > 0) {
+            const cutoff =
+              now - config.alertHistoryRetentionDays * 24 * 60 * 60 * 1000;
+            database
+              .prepare(
+                "DELETE FROM llm_alert_history WHERE created_at < ? AND user_id = ?",
+              )
+              .run(cutoff, actorDid);
+          }
+
+          database
+            .prepare(
+              `
+                UPDATE llm_data_retention_config
+                SET last_cleanup_at = ?, updated_at = ?
+                WHERE user_id = ?
+              `,
+            )
+            .run(now, now, actorDid);
+        });
+        cleanup();
+
+        privacy.event("data-cleanup-completed");
+        return SUCCESS_RECEIPT;
+      } catch {
+        throw privacy.failure("cleanup-old-data");
       }
-
-      // 清理告警历史
-      if (config.alert_history_retention_days > 0) {
-        const alertCutoff =
-          now - config.alert_history_retention_days * 24 * 60 * 60 * 1000;
-        const alertResult = database
-          .prepare(
-            "DELETE FROM llm_alert_history WHERE created_at < ? AND user_id = ?",
-          )
-          .run(alertCutoff, userId);
-        deletedCounts.alerts = alertResult.changes;
-      }
-
-      // 更新最后清理时间
-      database
-        .prepare(
-          `
-        UPDATE llm_data_retention_config SET last_cleanup_at = ?, updated_at = ?
-        WHERE user_id = ?
-      `,
-        )
-        .run(now, now, userId);
-
-      privacy.event("data-cleanup-completed");
-
-      return { success: true, deletedCounts };
-    } catch {
-      throw privacy.failure("cleanup-old-data");
-    }
-  });
+    },
+  );
 }
 
 module.exports = { registerRetentionHandlers };

@@ -24,4 +24,4 @@
 
 - 历史 `user_id = 'default'` 预算行不会自动归入任意新 actor；需要目标环境依据认证身份制定一次性迁移或明确废弃策略，不能在运行时无鉴别回退读取。
 - 本批未执行真实 Electron renderer/preload 与 SQLite 用户目录 E2E，也未验证身份切换时预算面板缓存立即失效。
-- 生产 purpose authority/企业组织 RBAC、alert/retention/token 辅助 IPC 授权、tenant HMAC 和耐久审计仍待处理。
+- Retention 辅助 IPC 后续已由第一百七十九批完成 actor DID/tenant/用途授权与安全清理；生产 purpose authority/企业组织 RBAC、alert/token 辅助 IPC 授权、tenant HMAC 和耐久审计仍待处理。
