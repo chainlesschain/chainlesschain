@@ -5,7 +5,6 @@
 
 const { logger } = require("./logger.js");
 const https = require("https");
-const http = require("http");
 
 // 单次搜索响应体上限：搜索 API 的正常响应远小于此。设置上限以防上游异常/被
 // 中间人篡改时无界累积 `data += chunk` 把主进程内存吃光（DoS 兜底）。
@@ -21,7 +20,7 @@ const REQUEST_TIMEOUT_MS = 5000;
 async function searchFallback(query, options = {}) {
   const { maxResults = 5 } = options;
 
-  logger.info("[WebSearch] 使用备选搜索方案:", query);
+  logger.info("[WebSearch] fallback search selected");
 
   // 返回基于查询的建议结果（引导用户自己搜索）
   const results = [
@@ -64,14 +63,14 @@ async function searchFallback(query, options = {}) {
  * @returns {Promise<Object>} 搜索结果
  */
 async function searchDuckDuckGo(query, options = {}) {
-  const { maxResults = 5, language = "zh-cn" } = options;
+  const { maxResults = 5 } = options;
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const encodedQuery = encodeURIComponent(query);
     // 使用DuckDuckGo即时回答API（仅支持即时回答，不支持常规搜索）
     const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1`;
 
-    logger.info("[WebSearch] 尝试使用DuckDuckGo API:", query);
+    logger.info("[WebSearch] DuckDuckGo request started");
 
     const request = https.get(url, { timeout: REQUEST_TIMEOUT_MS }, (res) => {
       let data = "";
@@ -128,23 +127,23 @@ async function searchDuckDuckGo(query, options = {}) {
             return resolve(searchFallback(query, options));
           }
 
-          logger.info("[WebSearch] DuckDuckGo找到", results.length, "条结果");
+          logger.info("[WebSearch] DuckDuckGo request completed");
 
           resolve({
             query,
             results,
             totalResults: results.length,
           });
-        } catch (error) {
-          logger.error("[WebSearch] DuckDuckGo解析失败:", error.message);
+        } catch {
+          logger.error("[WebSearch] DuckDuckGo response rejected");
           // 解析失败时使用备选方案
           resolve(searchFallback(query, options));
         }
       });
     });
 
-    request.on("error", (error) => {
-      logger.error("[WebSearch] DuckDuckGo请求失败:", error.message);
+    request.on("error", () => {
+      logger.error("[WebSearch] DuckDuckGo request failed");
       // 请求失败时使用备选方案
       resolve(searchFallback(query, options));
     });
@@ -174,7 +173,7 @@ async function searchBing(query, options = {}) {
     const encodedQuery = encodeURIComponent(query);
     const url = `https://api.bing.microsoft.com/v7.0/search?q=${encodedQuery}&count=${maxResults}`;
 
-    logger.info("[WebSearch] 使用Bing搜索:", query);
+    logger.info("[WebSearch] Bing request started");
 
     // 注意：用 reqOptions（不要叫 options）以免遮蔽函数参数 options。
     const reqOptions = {
@@ -207,7 +206,7 @@ async function searchBing(query, options = {}) {
             source: "Bing",
           }));
 
-          logger.info("[WebSearch] 找到", results.length, "条结果");
+          logger.info("[WebSearch] Bing request completed");
 
           resolve({
             query,
@@ -215,16 +214,16 @@ async function searchBing(query, options = {}) {
             totalResults:
               result.webPages?.totalEstimatedMatches || results.length,
           });
-        } catch (error) {
-          logger.error("[WebSearch] 解析结果失败:", error);
-          reject(error);
+        } catch {
+          logger.error("[WebSearch] Bing response rejected");
+          reject(new Error("Bing search response rejected"));
         }
       });
     });
 
-    request.on("error", (error) => {
-      logger.error("[WebSearch] 请求失败:", error);
-      reject(error);
+    request.on("error", () => {
+      logger.error("[WebSearch] Bing request failed");
+      reject(new Error("Bing search request failed"));
     });
 
     // 关键修复：searchBing 此前无超时，挂起的连接会让 Promise 永不 settle，
@@ -296,7 +295,7 @@ async function enhanceChatWithSearch(
   options = {},
 ) {
   try {
-    logger.info("[WebSearch] 增强对话，搜索:", userQuery);
+    logger.info("[WebSearch] search augmentation started");
 
     // 执行搜索
     const searchResult = await search(userQuery, options);
@@ -336,8 +335,8 @@ async function enhanceChatWithSearch(
 
     // 调用LLM
     return await llmChat(enhancedMessages, options);
-  } catch (error) {
-    logger.error("[WebSearch] 搜索增强失败，使用原始对话:", error.message);
+  } catch {
+    logger.error("[WebSearch] search augmentation failed");
     // 如果搜索失败，直接使用原始对话
     return await llmChat(messages, options);
   }

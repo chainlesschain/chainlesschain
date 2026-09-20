@@ -5,8 +5,7 @@
  * Hooks, Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
  * Controller, Team Task, Permission, Logger, RAG (gated), Follow-up
- * Intent, Web
- * Search, Browser.
+ * Intent, Browser.
  *
  * Returns the resolved `hookSystem` so callers (Plan Mode IPC was once
  * a closure consumer; Phase 16-20 still depends on it via deps).
@@ -369,15 +368,6 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       });
     },
     handlers: 3,
-  });
-
-  // 联网搜索工具 (Web Search，4 handlers)
-  safeRegister("Web Search IPC", {
-    register: () => {
-      const { registerWebSearchIPC } = require("../../utils/web-search-ipc");
-      registerWebSearchIPC();
-    },
-    handlers: 4,
   });
 
   // 浏览器自动化控制 (Browser Control，24 handlers)

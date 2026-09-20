@@ -21,10 +21,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 19 safeRegister calls total: 18 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 18 unconditional fire. Legacy helper
+    // 18 safeRegister calls total: 17 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 17 unconditional fire. Legacy helper
     // renderer surfaces are retired after their internal consumers cut over.
-    expectedRegistrations: 18,
+    expectedRegistrations: 17,
     needsRegisteredModules: false,
   },
   {
@@ -267,6 +267,26 @@ describe("ipc/phases — extracted phase module contracts", () => {
     expect(internalMonitor.registerResourceMonitorIPC).toBeUndefined();
     expect(Object.keys(internalMonitor).sort()).toEqual(
       ["ResourceMonitor", "getResourceMonitor"].sort(),
+    );
+  });
+
+  it("keeps the internal Web Search utility out of the renderer IPC surface", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    registerPhase1AI({ safeRegister, logger, deps: { database: null } });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Web Search IPC",
+    );
+    const internalSearch = require("../../utils/web-search");
+    expect(internalSearch.registerWebSearchIPC).toBeUndefined();
+    expect(Object.keys(internalSearch).sort()).toEqual(
+      [
+        "enhanceChatWithSearch",
+        "formatSearchResults",
+        "search",
+        "searchBing",
+        "searchDuckDuckGo",
+      ].sort(),
     );
   });
 });
