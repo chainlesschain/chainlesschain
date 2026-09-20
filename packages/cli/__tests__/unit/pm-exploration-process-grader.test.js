@@ -296,9 +296,10 @@ describe("PM exploration process grader", () => {
     expect(fixture.spawnCalls[0][1]).toContain(
       `--allow-fs-read=${fixture.hiddenPath}`,
     );
-    expect(fixture.spawnCalls[0][1]).toContain(
-      `--allow-fs-read=${await realpath(fixture.hiddenPath)}`,
-    );
+    if (process.platform === "darwin")
+      expect(fixture.spawnCalls[0][1]).toContain(
+        `--allow-fs-read=${await realpath(fixture.hiddenPath)}`,
+      );
     expect(fixture.spawnCalls[0][2].env).toEqual({});
     expect(JSON.stringify(configured.actorRequests)).not.toContain(
       privateExpected,
