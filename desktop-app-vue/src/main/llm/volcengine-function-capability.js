@@ -3,9 +3,12 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v3";
-const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v3";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v3";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v4";
+const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v4";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v4";
+const REPLAY_RESERVATION_SCHEMA =
+  "chainlesschain.volcengine-function-replay-reservation/v1";
+const REPLAY_MODE = "cross-process-exclusive-file-fsync";
 const PURPOSE = "model-tool-execution";
 const AUDIT_MODE = "authenticated-durable-readback";
 const EXECUTOR_TYPE = "capability";
@@ -377,6 +380,9 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
+      "replayStoreId",
+      "replayRetentionMs",
+      "replayMode",
       "purpose",
       "allowedFunctions",
       "functionPolicies",
@@ -428,6 +434,24 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       ),
       "Volcengine function authority policy revision",
     ),
+    replayStoreId: boundedIdentifier(
+      ownData(
+        descriptor,
+        "replayStoreId",
+        "Volcengine function replay store identifier",
+      ),
+      "Volcengine function replay store identifier",
+    ),
+    replayRetentionMs: ownData(
+      descriptor,
+      "replayRetentionMs",
+      "Volcengine function replay retention",
+    ),
+    replayMode: ownData(
+      descriptor,
+      "replayMode",
+      "Volcengine function replay mode",
+    ),
     purpose: PURPOSE,
     allowedFunctions,
     functionPolicies: normalizeFunctionPolicies(
@@ -440,7 +464,13 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
     ),
     auditMode: AUDIT_MODE,
   });
-  if (!SHA256_DIGEST.test(normalizedDescriptor.handlerArtifactDigest)) {
+  if (
+    !SHA256_DIGEST.test(normalizedDescriptor.handlerArtifactDigest) ||
+    !Number.isSafeInteger(normalizedDescriptor.replayRetentionMs) ||
+    normalizedDescriptor.replayRetentionMs < 65_000 ||
+    normalizedDescriptor.replayRetentionMs > 24 * 60 * 60 * 1000 ||
+    normalizedDescriptor.replayMode !== REPLAY_MODE
+  ) {
     throw new TypeError("Volcengine function authority descriptor is invalid");
   }
   const executeFunction = ownFunction(
@@ -486,6 +516,23 @@ function normalizeAuthorization(value, descriptor) {
 }
 
 function validateReceipt(receipt, request, descriptor, resultDigest) {
+  const replayReservationCore = Object.freeze({
+    schema: REPLAY_RESERVATION_SCHEMA,
+    replayStoreId: descriptor.replayStoreId,
+    authorityId: descriptor.authorityId,
+    tenantId: descriptor.tenantId,
+    handlerArtifactDigest: descriptor.handlerArtifactDigest,
+    policyRevision: descriptor.policyRevision,
+    requestId: request.requestId,
+    requestDigest: request.requestDigest,
+    expiresAt: new Date(
+      Date.parse(request.deadlineAt) + descriptor.replayRetentionMs,
+    ).toISOString(),
+  });
+  const replayReservationDigest = digest(
+    REPLAY_RESERVATION_SCHEMA,
+    replayReservationCore,
+  );
   exactData(
     receipt,
     [
@@ -494,12 +541,14 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
+      "replayStoreId",
       "actorDid",
       "purpose",
       "requestId",
       "senderId",
       "functionName",
       "functionPolicyDigest",
+      "replayReservationDigest",
       "deadlineAt",
       "requestDigest",
       "resultDigest",
@@ -519,12 +568,14 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     tenantId: descriptor.tenantId,
     handlerArtifactDigest: descriptor.handlerArtifactDigest,
     policyRevision: descriptor.policyRevision,
+    replayStoreId: descriptor.replayStoreId,
     actorDid: request.actorDid,
     purpose: PURPOSE,
     requestId: request.requestId,
     senderId: request.senderId,
     functionName: request.functionName,
     functionPolicyDigest: request.functionPolicyDigest,
+    replayReservationDigest,
     deadlineAt: request.deadlineAt,
     requestDigest: request.requestDigest,
     resultDigest,
@@ -605,6 +656,7 @@ function createVolcengineFunctionExecutor(
             tenantId: context.tenantId,
             handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
             policyRevision: captured.descriptor.policyRevision,
+            replayStoreId: captured.descriptor.replayStoreId,
             actorDid: context.actorDid,
             purpose: PURPOSE,
             requestId: randomUUID(),
@@ -625,7 +677,7 @@ function createVolcengineFunctionExecutor(
           const request = Object.freeze({
             ...requestCore,
             requestDigest: digest(
-              "chainlesschain.volcengine-function-request/v3",
+              "chainlesschain.volcengine-function-request/v4",
               requestCore,
             ),
           });

@@ -282,6 +282,7 @@ async function loadBuiltInFactories(commandName) {
       browserQuarantineLockMaintenance,
       browserDownloadArtifactDisposal,
       volcengineFunctionExecution,
+      volcengineFunctionReplay,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -315,6 +316,7 @@ async function loadBuiltInFactories(commandName) {
       import("./browser-quarantine-lock-maintenance-authority.js"),
       import("./browser-download-artifact-disposal-authority.js"),
       import("./volcengine-function-execution-authority.js"),
+      import("./volcengine-function-replay-store.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -449,6 +451,8 @@ async function loadBuiltInFactories(commandName) {
         volcengineFunctionExecution.createVolcengineFunctionExecutionAuthority,
       revokeVolcengineFunctionExecutionAuthority:
         volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
+      createVolcengineFunctionReplayStore:
+        volcengineFunctionReplay.createVolcengineFunctionReplayStore,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -806,6 +810,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createBrowserQuarantineLockMaintenanceAuthority",
     "createBrowserDownloadArtifactDisposalAuthority",
     "createVolcengineFunctionExecutionAuthority",
+    "createVolcengineFunctionReplayStore",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

@@ -13,6 +13,27 @@ const {
   digestVolcengineFunctionResult,
 } = require("../volcengine-function-capability");
 
+const REPLAY_RESERVATION_SCHEMA =
+  "chainlesschain.volcengine-function-replay-reservation/v1";
+const REPLAY_MODE = "cross-process-exclusive-file-fsync";
+const REPLAY_RETENTION_MS = 65_000;
+
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+    .join(",")}}`;
+}
+
+function domainDigest(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(`${domain}\0`)
+    .update(canonical(value))
+    .digest("hex")}`;
+}
+
 function sha(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
@@ -49,6 +70,19 @@ function policiesFor(allowedFunctions) {
 }
 
 function responseFor(request, toolResult, overrides = {}) {
+  const replayReservationCore = {
+    schema: REPLAY_RESERVATION_SCHEMA,
+    replayStoreId: request.replayStoreId,
+    authorityId: request.authorityId,
+    tenantId: request.tenantId,
+    handlerArtifactDigest: request.handlerArtifactDigest,
+    policyRevision: request.policyRevision,
+    requestId: request.requestId,
+    requestDigest: request.requestDigest,
+    expiresAt: new Date(
+      Date.parse(request.deadlineAt) + REPLAY_RETENTION_MS,
+    ).toISOString(),
+  };
   return {
     toolResult,
     receipt: {
@@ -57,12 +91,17 @@ function responseFor(request, toolResult, overrides = {}) {
       tenantId: request.tenantId,
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
+      replayStoreId: request.replayStoreId,
       actorDid: request.actorDid,
       purpose: PURPOSE,
       requestId: request.requestId,
       senderId: request.senderId,
       functionName: request.functionName,
       functionPolicyDigest: request.functionPolicyDigest,
+      replayReservationDigest: domainDigest(
+        REPLAY_RESERVATION_SCHEMA,
+        replayReservationCore,
+      ),
       deadlineAt: request.deadlineAt,
       requestDigest: request.requestDigest,
       resultDigest: digestVolcengineFunctionResult(toolResult),
@@ -98,6 +137,9 @@ function setup({
         tenantId: "tenant:test",
         handlerArtifactDigest: sha("handler"),
         policyRevision: "policy-1",
+        replayStoreId: "replay:test",
+        replayRetentionMs: REPLAY_RETENTION_MS,
+        replayMode: REPLAY_MODE,
         purpose: PURPOSE,
         allowedFunctions,
         functionPolicies: policiesFor(allowedFunctions),
@@ -122,7 +164,7 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
-  it.each(["v1", "v2"])(
+  it.each(["v1", "v2", "v3"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -158,6 +200,7 @@ describe("Volcengine function capability", () => {
       tenantId: "tenant:test",
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
+      replayStoreId: "replay:test",
       actorDid: "did:test:operator",
       purpose: PURPOSE,
       senderId: 7,
@@ -319,6 +362,27 @@ describe("Volcengine function capability", () => {
           { success: true },
           {
             functionPolicyDigest: sha("substituted-policy"),
+          },
+        ),
+    });
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    await expect(executor.execute("create_note", {})).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+  });
+
+  it("fails closed when the durable receipt substitutes the replay reservation", async () => {
+    const { host } = setup({
+      execute: async (request) =>
+        responseFor(
+          request,
+          { success: true },
+          {
+            replayReservationDigest: sha("substituted-replay-reservation"),
           },
         ),
     });

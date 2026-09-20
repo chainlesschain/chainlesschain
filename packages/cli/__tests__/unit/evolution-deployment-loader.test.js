@@ -867,6 +867,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserDownloadArtifactDisposalAuthority",
       "createVolcengineFunctionExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
+      "createVolcengineFunctionReplayStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1053,13 +1054,31 @@ describe("signed evolution deployment loader", () => {
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>
-            factories.createVolcengineFunctionExecutionAuthority({
+            factories.createVolcengineFunctionReplayStore({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-authority/v3",
+                schema: "chainlesschain.volcengine-function-replay-store/v1",
+                replayStoreId: "volcengine-function-replay",
                 authorityId: "volcengine-functions",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
                 policyRevision: "policy-1",
+                retentionMs: 65_000,
+                mode: "cross-process-exclusive-file-fsync",
+              },
+              rootDir: "C:\\should-not-be-opened",
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionExecutionAuthority({
+              descriptor: {
+                schema: "chainlesschain.volcengine-function-authority/v4",
+                authorityId: "volcengine-functions",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                replayStoreId: "volcengine-function-replay",
+                replayRetentionMs: 65_000,
+                replayMode: "cross-process-exclusive-file-fsync",
                 purpose: "model-tool-execution",
                 allowedFunctions: ["create_note"],
                 functionPolicies: [

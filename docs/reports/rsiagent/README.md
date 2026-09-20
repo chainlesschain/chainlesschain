@@ -217,3 +217,4 @@
 | 154  | 2026-09-21 | [第一百五十四次工程实施：CLI Volcengine 逐函数字段与字节策略](./rsiagent-one-hundred-fifty-fourth-batch-implementation-2026-09-21.md)       |
 | 155  | 2026-09-21 | [第一百五十五次工程实施：CLI Volcengine 函数 Deadline 与协作取消](./rsiagent-one-hundred-fifty-fifth-batch-implementation-2026-09-21.md)    |
 | 156  | 2026-09-21 | [第一百五十六次工程实施：CLI Volcengine 运行时 Authority 撤销](./rsiagent-one-hundred-fifty-sixth-batch-implementation-2026-09-21.md)       |
+| 157  | 2026-09-21 | [第一百五十七次工程实施：CLI Volcengine 跨进程耐久重放门禁](./rsiagent-one-hundred-fifty-seventh-batch-implementation-2026-09-21.md)        |

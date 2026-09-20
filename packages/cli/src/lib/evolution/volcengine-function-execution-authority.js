@@ -1,14 +1,21 @@
 import { createHash } from "node:crypto";
 import { types } from "node:util";
 
+import {
+  VOLCENGINE_FUNCTION_REPLAY_MODE,
+  VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+  VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
+  captureVolcengineFunctionReplayStore,
+} from "./volcengine-function-replay-store.js";
+
 export const VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA =
-  "chainlesschain.volcengine-function-authority/v3";
+  "chainlesschain.volcengine-function-authority/v4";
 export const VOLCENGINE_FUNCTION_REQUEST_SCHEMA =
-  "chainlesschain.volcengine-function-request/v3";
+  "chainlesschain.volcengine-function-request/v4";
 export const VOLCENGINE_FUNCTION_RECEIPT_SCHEMA =
-  "chainlesschain.volcengine-function-receipt/v3";
+  "chainlesschain.volcengine-function-receipt/v4";
 export const VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA =
-  "chainlesschain.volcengine-function-audit-evidence/v3";
+  "chainlesschain.volcengine-function-audit-evidence/v4";
 export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
@@ -341,6 +348,9 @@ function normalizeDescriptor(value) {
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
+      "replayStoreId",
+      "replayRetentionMs",
+      "replayMode",
       "purpose",
       "allowedFunctions",
       "functionPolicies",
@@ -377,6 +387,17 @@ function normalizeDescriptor(value) {
       "policyRevision",
       "Volcengine function authority policy revision",
     ),
+    replayStoreId: ownData(
+      value,
+      "replayStoreId",
+      "Volcengine function replay store identifier",
+    ),
+    replayRetentionMs: ownData(
+      value,
+      "replayRetentionMs",
+      "Volcengine function replay retention",
+    ),
+    replayMode: ownData(value, "replayMode", "Volcengine function replay mode"),
     purpose: ownData(value, "purpose", "Volcengine function authority purpose"),
     allowedFunctions,
     functionPolicies: normalizeFunctionPolicies(
@@ -399,6 +420,11 @@ function normalizeDescriptor(value) {
     !ID.test(descriptor.tenantId) ||
     !DIGEST.test(descriptor.handlerArtifactDigest) ||
     !ID.test(descriptor.policyRevision) ||
+    !ID.test(descriptor.replayStoreId) ||
+    !Number.isSafeInteger(descriptor.replayRetentionMs) ||
+    descriptor.replayRetentionMs < REPLAY_RETENTION_MS ||
+    descriptor.replayRetentionMs > 24 * 60 * 60 * 1000 ||
+    descriptor.replayMode !== VOLCENGINE_FUNCTION_REPLAY_MODE ||
     descriptor.purpose !== VOLCENGINE_FUNCTION_PURPOSE ||
     descriptor.auditMode !== VOLCENGINE_FUNCTION_AUDIT_MODE
   ) {
@@ -416,6 +442,7 @@ function normalizeRequest(value, descriptor, nowMs) {
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
+      "replayStoreId",
       "actorDid",
       "purpose",
       "requestId",
@@ -463,6 +490,11 @@ function normalizeRequest(value, descriptor, nowMs) {
       value,
       "policyRevision",
       "Volcengine function request policy revision",
+    ),
+    replayStoreId: ownData(
+      value,
+      "replayStoreId",
+      "Volcengine function request replay store",
     ),
     actorDid: ownData(value, "actorDid", "Volcengine function request actor"),
     purpose: ownData(value, "purpose", "Volcengine function request purpose"),
@@ -513,6 +545,7 @@ function normalizeRequest(value, descriptor, nowMs) {
     core.tenantId !== descriptor.tenantId ||
     core.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
     core.policyRevision !== descriptor.policyRevision ||
+    core.replayStoreId !== descriptor.replayStoreId ||
     !ID.test(core.actorDid) ||
     core.purpose !== VOLCENGINE_FUNCTION_PURPOSE ||
     !ID.test(core.requestId) ||
@@ -536,7 +569,7 @@ function normalizeRequest(value, descriptor, nowMs) {
     deadlineAtMs <= requestedAtMs ||
     deadlineAtMs > requestedAtMs + policy.maxExecutionMs ||
     requestDigest !==
-      digest("chainlesschain.volcengine-function-request/v3", core)
+      digest("chainlesschain.volcengine-function-request/v4", core)
   ) {
     throw new TypeError("Volcengine function request is invalid");
   }
@@ -546,6 +579,58 @@ function normalizeRequest(value, descriptor, nowMs) {
     requestedAtMs,
     deadlineAtMs,
   });
+}
+
+function createReplayReservation(request, descriptor) {
+  const core = Object.freeze({
+    schema: VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+    replayStoreId: descriptor.replayStoreId,
+    authorityId: descriptor.authorityId,
+    tenantId: descriptor.tenantId,
+    handlerArtifactDigest: descriptor.handlerArtifactDigest,
+    policyRevision: descriptor.policyRevision,
+    requestId: request.requestId,
+    requestDigest: request.requestDigest,
+    expiresAt: new Date(
+      request.deadlineAtMs + descriptor.replayRetentionMs,
+    ).toISOString(),
+  });
+  return Object.freeze({
+    ...core,
+    reservationDigest: digest(
+      VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+      core,
+    ),
+  });
+}
+
+function validateReplayReservationAck(value, reservation) {
+  exactData(
+    value,
+    ["reservationDigest", "durable", "readbackVerified"],
+    "Volcengine function replay reservation acknowledgement",
+  );
+  if (
+    ownData(
+      value,
+      "reservationDigest",
+      "Volcengine function replay acknowledgement digest",
+    ) !== reservation.reservationDigest ||
+    ownData(
+      value,
+      "durable",
+      "Volcengine function replay acknowledgement durability",
+    ) !== true ||
+    ownData(
+      value,
+      "readbackVerified",
+      "Volcengine function replay acknowledgement readback",
+    ) !== true
+  ) {
+    throw new TypeError(
+      "Volcengine function replay reservation acknowledgement is invalid",
+    );
+  }
 }
 
 function validateAuditEvidence(
@@ -566,6 +651,7 @@ function validateAuditEvidence(
       "requestId",
       "requestDigest",
       "functionPolicyDigest",
+      "replayReservationDigest",
       "deadlineAt",
       "resultDigest",
       "auditEventDigest",
@@ -612,6 +698,11 @@ function validateAuditEvidence(
       "functionPolicyDigest",
       "Volcengine function audit policy digest",
     ) !== request.functionPolicyDigest ||
+    ownData(
+      value,
+      "replayReservationDigest",
+      "Volcengine function audit replay reservation digest",
+    ) !== request.replayReservationDigest ||
     ownData(value, "deadlineAt", "Volcengine function audit deadline") !==
       request.deadlineAt ||
     ownData(
@@ -671,7 +762,7 @@ function reserveRequest(captured, request, nowMs) {
     request.requestId,
     Object.freeze({
       requestDigest: request.requestDigest,
-      expiresAtMs: nowMs + REPLAY_RETENTION_MS,
+      expiresAtMs: request.deadlineAtMs + captured.descriptor.replayRetentionMs,
     }),
   );
 }
@@ -713,6 +804,7 @@ async function executeWithinDeadline(captured, request) {
     signal: controller.signal,
     deadlineAt: request.deadlineAt,
     functionPolicyDigest: request.functionPolicyDigest,
+    replayReservationDigest: request.replayReservationDigest,
   });
   try {
     const response = await Promise.race([
@@ -731,6 +823,7 @@ async function executeWithinDeadline(captured, request) {
 export function createVolcengineFunctionExecutionAuthority({
   descriptor,
   execute,
+  replayStore,
   now = () => Date.now(),
 } = {}) {
   const normalizedDescriptor = normalizeDescriptor(descriptor);
@@ -740,11 +833,62 @@ export function createVolcengineFunctionExecutionAuthority({
   if (typeof now !== "function" || types.isProxy(now)) {
     throw new TypeError("Volcengine function authority clock is invalid");
   }
+  const replayPort = captureVolcengineFunctionReplayStore(replayStore);
+  exactData(
+    replayPort,
+    ["descriptor", "reserve"],
+    "Volcengine function replay store port",
+  );
+  const replayDescriptor = ownData(
+    replayPort,
+    "descriptor",
+    "Volcengine function replay store descriptor",
+  );
+  exactData(
+    replayDescriptor,
+    [
+      "schema",
+      "replayStoreId",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "retentionMs",
+      "mode",
+    ],
+    "Volcengine function replay store descriptor",
+  );
+  if (
+    replayDescriptor.schema !== VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA ||
+    replayDescriptor.replayStoreId !== normalizedDescriptor.replayStoreId ||
+    replayDescriptor.authorityId !== normalizedDescriptor.authorityId ||
+    replayDescriptor.tenantId !== normalizedDescriptor.tenantId ||
+    replayDescriptor.handlerArtifactDigest !==
+      normalizedDescriptor.handlerArtifactDigest ||
+    replayDescriptor.policyRevision !== normalizedDescriptor.policyRevision ||
+    replayDescriptor.retentionMs !== normalizedDescriptor.replayRetentionMs ||
+    replayDescriptor.mode !== normalizedDescriptor.replayMode
+  ) {
+    throw new TypeError(
+      "Volcengine function replay store binding does not match authority",
+    );
+  }
+  const reserveReplay = ownData(
+    replayPort,
+    "reserve",
+    "Volcengine function replay reservation port",
+  );
+  if (typeof reserveReplay !== "function" || types.isProxy(reserveReplay)) {
+    throw new TypeError(
+      "Volcengine function replay reservation port is invalid",
+    );
+  }
   const authority = Object.freeze({});
   authorities.set(authority, {
     descriptor: normalizedDescriptor,
     execute,
     now,
+    reserveReplay,
     requests: new Map(),
     revoked: false,
     activeExecutions: new Set(),
@@ -784,7 +928,18 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
       }
       const request = normalizeRequest(value, captured.descriptor, nowMs);
       reserveRequest(captured, request, nowMs);
-      const response = await executeWithinDeadline(captured, request);
+      const reservation = createReplayReservation(request, captured.descriptor);
+      const reservationAck = await Reflect.apply(
+        captured.reserveReplay,
+        undefined,
+        [reservation],
+      );
+      validateReplayReservationAck(reservationAck, reservation);
+      const executionRequest = Object.freeze({
+        ...request,
+        replayReservationDigest: reservation.reservationDigest,
+      });
+      const response = await executeWithinDeadline(captured, executionRequest);
       exactData(
         response,
         ["toolResult", "auditEvidence"],
@@ -806,7 +961,7 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
           "auditEvidence",
           "Volcengine function audit evidence",
         ),
-        request,
+        executionRequest,
         captured.descriptor,
         resultDigest,
         captured.now(),
@@ -819,14 +974,16 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
           tenantId: captured.descriptor.tenantId,
           handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
           policyRevision: captured.descriptor.policyRevision,
+          replayStoreId: captured.descriptor.replayStoreId,
           actorDid: request.actorDid,
           purpose: VOLCENGINE_FUNCTION_PURPOSE,
-          requestId: request.requestId,
-          senderId: request.senderId,
-          functionName: request.functionName,
-          functionPolicyDigest: request.functionPolicyDigest,
-          deadlineAt: request.deadlineAt,
-          requestDigest: request.requestDigest,
+          requestId: executionRequest.requestId,
+          senderId: executionRequest.senderId,
+          functionName: executionRequest.functionName,
+          functionPolicyDigest: executionRequest.functionPolicyDigest,
+          replayReservationDigest: executionRequest.replayReservationDigest,
+          deadlineAt: executionRequest.deadlineAt,
+          requestDigest: executionRequest.requestDigest,
           resultDigest,
           auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
           auditEventDigest: audit.auditEventDigest,

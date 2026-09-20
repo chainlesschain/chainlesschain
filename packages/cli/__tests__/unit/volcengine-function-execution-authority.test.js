@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import fs, { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA,
   VOLCENGINE_FUNCTION_AUDIT_MODE,
@@ -13,8 +16,22 @@ import {
   digestVolcengineFunctionResult,
   revokeVolcengineFunctionExecutionAuthority,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
+import {
+  VOLCENGINE_FUNCTION_REPLAY_MODE,
+  VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+  VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
+  createVolcengineFunctionReplayStore,
+} from "../../src/lib/evolution/volcengine-function-replay-store.js";
 
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
+const REPLAY_RETENTION_MS = 65_000;
+const temporaryRoots = [];
+
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function canonical(value) {
   if (value === null || typeof value !== "object") {
@@ -73,6 +90,9 @@ function descriptor(overrides = {}) {
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("signed-deployment"),
     policyRevision: "policy-1",
+    replayStoreId: "replay:test",
+    replayRetentionMs: REPLAY_RETENTION_MS,
+    replayMode: VOLCENGINE_FUNCTION_REPLAY_MODE,
     purpose: VOLCENGINE_FUNCTION_PURPOSE,
     allowedFunctions: ["create_note", "read_file"],
     functionPolicies: functionPolicies(),
@@ -92,6 +112,7 @@ function request(overrides = {}, policies = functionPolicies()) {
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("signed-deployment"),
     policyRevision: "policy-1",
+    replayStoreId: "replay:test",
     actorDid: "did:test:operator",
     purpose: VOLCENGINE_FUNCTION_PURPOSE,
     requestId: "request-1",
@@ -116,13 +137,26 @@ function request(overrides = {}, policies = functionPolicies()) {
   return {
     ...core,
     requestDigest: domainDigest(
-      "chainlesschain.volcengine-function-request/v3",
+      "chainlesschain.volcengine-function-request/v4",
       core,
     ),
   };
 }
 
 function responseFor(value, toolResult, overrides = {}) {
+  const reservationCore = {
+    schema: VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+    replayStoreId: value.replayStoreId,
+    authorityId: value.authorityId,
+    tenantId: value.tenantId,
+    handlerArtifactDigest: value.handlerArtifactDigest,
+    policyRevision: value.policyRevision,
+    requestId: value.requestId,
+    requestDigest: value.requestDigest,
+    expiresAt: new Date(
+      Date.parse(value.deadlineAt) + REPLAY_RETENTION_MS,
+    ).toISOString(),
+  };
   return {
     toolResult,
     auditEvidence: {
@@ -134,6 +168,10 @@ function responseFor(value, toolResult, overrides = {}) {
       requestId: value.requestId,
       requestDigest: value.requestDigest,
       functionPolicyDigest: value.functionPolicyDigest,
+      replayReservationDigest: domainDigest(
+        VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
+        reservationCore,
+      ),
       deadlineAt: value.deadlineAt,
       resultDigest: digestVolcengineFunctionResult(toolResult),
       auditEventDigest: sha("audit-event"),
@@ -147,15 +185,37 @@ function responseFor(value, toolResult, overrides = {}) {
   };
 }
 
+function createReplayStore(authorityDescriptor, rootDir) {
+  const root = rootDir || mkdtempSync(join(tmpdir(), "cc-function-replay-"));
+  if (!rootDir) temporaryRoots.push(root);
+  return createVolcengineFunctionReplayStore({
+    rootDir: root,
+    descriptor: {
+      schema: VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
+      replayStoreId: authorityDescriptor.replayStoreId,
+      authorityId: authorityDescriptor.authorityId,
+      tenantId: authorityDescriptor.tenantId,
+      handlerArtifactDigest: authorityDescriptor.handlerArtifactDigest,
+      policyRevision: authorityDescriptor.policyRevision,
+      retentionMs: authorityDescriptor.replayRetentionMs,
+      mode: authorityDescriptor.replayMode,
+    },
+    now: () => NOW,
+  });
+}
+
 function setup(overrides = {}) {
   const execute = vi.fn(
     overrides.execute ||
       (async (value) =>
         responseFor(value, { noteId: "note-1", success: true })),
   );
+  const authorityDescriptor = descriptor(overrides.descriptor);
   const authority = createVolcengineFunctionExecutionAuthority({
-    descriptor: descriptor(overrides.descriptor),
+    descriptor: authorityDescriptor,
     execute,
+    replayStore:
+      overrides.replayStore || createReplayStore(authorityDescriptor),
     now: () => NOW,
   });
   return {
@@ -166,7 +226,7 @@ function setup(overrides = {}) {
 }
 
 describe("Volcengine function execution authority", () => {
-  it.each(["v1", "v2"])(
+  it.each(["v1", "v2", "v3"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -195,12 +255,14 @@ describe("Volcengine function execution authority", () => {
       tenantId: "tenant:test",
       handlerArtifactDigest: sha("signed-deployment"),
       policyRevision: "policy-1",
+      replayStoreId: "replay:test",
       actorDid: "did:test:operator",
       purpose: VOLCENGINE_FUNCTION_PURPOSE,
       requestId: "request-1",
       senderId: 7,
       functionName: "create_note",
       functionPolicyDigest: functionPolicyDigest(),
+      replayReservationDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       deadlineAt: new Date(NOW + 1000).toISOString(),
       auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
       auditEventDigest: sha("audit-event"),
@@ -270,10 +332,12 @@ describe("Volcengine function execution authority", () => {
 
   it("rejects an invalid authority clock before execution", async () => {
     const execute = vi.fn();
+    const authorityDescriptor = descriptor();
     const port = captureVolcengineFunctionExecutionAuthority(
       createVolcengineFunctionExecutionAuthority({
-        descriptor: descriptor(),
+        descriptor: authorityDescriptor,
         execute,
+        replayStore: createReplayStore(authorityDescriptor),
         now: () => Number.NaN,
       }),
     );
@@ -307,6 +371,53 @@ describe("Volcengine function execution authority", () => {
       ),
     ).rejects.toThrow("Volcengine function request was replayed");
     expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a replay after the authority and replay store are reopened", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-function-replay-reopen-"));
+    temporaryRoots.push(root);
+    const authorityDescriptor = descriptor();
+    const first = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+    const second = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+    const signedRequest = request();
+
+    await expect(
+      first.port.executeFunction(signedRequest),
+    ).resolves.toBeDefined();
+    await expect(second.port.executeFunction(signedRequest)).rejects.toThrow(
+      "Volcengine function request was replayed",
+    );
+    expect(first.execute).toHaveBeenCalledOnce();
+    expect(second.execute).not.toHaveBeenCalled();
+  });
+
+  it("does not execute when durable replay reservation is uncertain", async () => {
+    const { execute, port } = setup();
+    const originalFsync = fs.fsyncSync;
+    let syncCalls = 0;
+    const sync = vi.spyOn(fs, "fsyncSync").mockImplementation((descriptor) => {
+      syncCalls += 1;
+      if (syncCalls === 2) throw new Error("simulated directory sync failure");
+      return originalFsync(descriptor);
+    });
+    let error;
+    try {
+      await port.executeFunction(request());
+    } catch (cause) {
+      error = cause;
+    } finally {
+      sync.mockRestore();
+    }
+
+    expect(error).toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_REPLAY_DURABILITY_UNKNOWN",
+      message: "Volcengine function replay reservation durability is unknown",
+    });
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it("reserves a request before awaiting execution", async () => {
@@ -367,6 +478,20 @@ describe("Volcengine function execution authority", () => {
         execute: vi.fn(),
       }),
     ).toThrow("must exactly cover the allowlist");
+  });
+
+  it("requires the replay store to match the complete authority binding", () => {
+    const authorityDescriptor = descriptor();
+    const foreignDescriptor = descriptor({ tenantId: "tenant:foreign" });
+
+    expect(() =>
+      createVolcengineFunctionExecutionAuthority({
+        descriptor: authorityDescriptor,
+        execute: vi.fn(),
+        replayStore: createReplayStore(foreignDescriptor),
+        now: () => NOW,
+      }),
+    ).toThrow("replay store binding does not match authority");
   });
 
   it("rejects argument fields and byte sizes outside the function policy", async () => {
@@ -431,6 +556,7 @@ describe("Volcengine function execution authority", () => {
     expect(Object.keys(executionContext).sort()).toEqual([
       "deadlineAt",
       "functionPolicyDigest",
+      "replayReservationDigest",
       "signal",
     ]);
     expect(executionContext.signal.aborted).toBe(true);
@@ -453,6 +579,7 @@ describe("Volcengine function execution authority", () => {
       { readbackVerified: false },
       { resultDigest: sha("other-result") },
       { functionPolicyDigest: sha("other-policy") },
+      { replayReservationDigest: sha("other-replay-reservation") },
       { deadlineAt: new Date(NOW + 500).toISOString() },
       { completedAt: new Date(NOW + 1001).toISOString() },
     ]) {
