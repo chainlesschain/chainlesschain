@@ -173,7 +173,7 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
     expect(JSON.stringify(sink.error.mock.calls)).not.toContain(secret);
   });
 
-  it("projects stream error events and stream operation failures", async () => {
+  it("projects stream events, stats, successes and operation failures", async () => {
     const secret = "private-stream-chunk-and-error";
     const send = vi.fn();
     const app = {};
@@ -190,14 +190,80 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       {},
     );
     const controller = app.streamControllers.get(created.controllerId);
+    controller.emit("chunk", { chunk: secret, provider: secret });
+    controller.emit("pause", { reason: secret, timestamp: secret });
+    controller.emit("resume", { result: secret });
+    controller.emit("cancel", { reason: secret });
+    controller.emit("complete", { result: secret, stats: { secret } });
     controller.emit("stream-error", { error: secret, stack: secret });
 
+    for (const [channel, event] of [
+      ["llm:stream-chunk", "chunk"],
+      ["llm:stream-pause", "pause"],
+      ["llm:stream-resume", "resume"],
+      ["llm:stream-cancel", "cancel"],
+      ["llm:stream-complete", "complete"],
+    ]) {
+      expect(send).toHaveBeenCalledWith(channel, {
+        controllerId: created.controllerId,
+        code: "CC_LLM_STREAM_EVENT",
+        component: "stream-controller",
+        event,
+      });
+    }
     expect(send).toHaveBeenCalledWith("llm:stream-error", {
       controllerId: created.controllerId,
-      error: "LLM stream failed",
       code: "CC_LLM_STREAM_FAILED",
+      component: "stream-controller",
+      event: "stream-error",
     });
     expect(JSON.stringify(send.mock.calls)).not.toContain(secret);
+
+    controller.getStats = () => ({
+      status: "running",
+      totalChunks: 4,
+      processedChunks: 3,
+      duration: 20,
+      throughput: 150,
+      averageChunkTime: 5,
+      isPaused: true,
+      bufferedChunks: 2,
+      bufferedBytes: 40,
+      droppedBufferedChunks: 1,
+      pauseWaiters: 2,
+      droppedPausedChunks: 1,
+      startTime: secret,
+      result: secret,
+    });
+    await expect(
+      handlers.get("llm:get-stream-stats")(null, created.controllerId),
+    ).resolves.toEqual({
+      status: "running",
+      totalChunks: 4,
+      processedChunks: 3,
+      duration: 20,
+      throughput: 150,
+      averageChunkTime: 5,
+      isPaused: true,
+      bufferedChunks: 2,
+      bufferedBytes: 40,
+      droppedBufferedChunks: 1,
+      pauseWaiters: 2,
+      droppedPausedChunks: 1,
+    });
+
+    controller.pause = vi.fn();
+    controller.resume = vi.fn();
+    controller.cancel = vi.fn();
+    await expect(
+      handlers.get("llm:pause-stream")(null, created.controllerId),
+    ).resolves.toEqual({ success: true });
+    await expect(
+      handlers.get("llm:resume-stream")(null, created.controllerId),
+    ).resolves.toEqual({ success: true });
+    await expect(
+      handlers.get("llm:cancel-stream")(null, created.controllerId, secret),
+    ).resolves.toEqual({ success: true });
 
     await expect(
       handlers.get("llm:pause-stream")(null, "missing-private-controller"),

@@ -39,6 +39,14 @@ const {
   createStreamController,
 } = require('../stream-controller');
 
+function streamEvent(event) {
+  return {
+    code: 'CC_LLM_STREAM_EVENT',
+    component: 'stream-controller',
+    event,
+  };
+}
+
 describe('StreamStatus', () => {
   it('should have all status constants', () => {
     expect(StreamStatus.IDLE).toBe('idle');
@@ -121,7 +129,7 @@ describe('StreamController', () => {
 
       expect(controller.status).toBe(StreamStatus.RUNNING);
       expect(controller.startTime).not.toBeNull();
-      expect(startHandler).toHaveBeenCalledWith({ timestamp: controller.startTime });
+      expect(startHandler).toHaveBeenCalledWith(streamEvent('start'));
     });
 
     it('should throw error if not in IDLE state', () => {
@@ -152,11 +160,7 @@ describe('StreamController', () => {
       expect(result).toBe(true);
       expect(controller.totalChunks).toBe(1);
       expect(controller.processedChunks).toBe(1);
-      expect(chunkHandler).toHaveBeenCalledWith({
-        chunk: { data: 'test' },
-        index: 1,
-        total: 1,
-      });
+      expect(chunkHandler).toHaveBeenCalledWith(streamEvent('chunk'));
     });
 
     it('should buffer chunks when buffering is enabled', async () => {
@@ -339,14 +343,11 @@ describe('StreamController', () => {
       expect(controller.status).toBe(StreamStatus.CANCELLED);
       expect(controller.abortController.signal.aborted).toBe(true);
       expect(controller.endTime).not.toBeNull();
-      expect(cancelHandler).toHaveBeenCalledWith({
-        reason: 'User cancelled',
-        timestamp: controller.endTime,
-        processedChunks: 0,
-      });
+      expect(cancelHandler).toHaveBeenCalledWith(streamEvent('cancel'));
+      expect(controller.signal.reason).toBe('LLM stream cancelled');
     });
 
-    it('should use default reason', () => {
+    it('should emit a fixed cancellation receipt', () => {
       controller.start();
 
       const cancelHandler = vi.fn();
@@ -354,9 +355,7 @@ describe('StreamController', () => {
 
       controller.cancel();
 
-      expect(cancelHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: '用户取消' })
-      );
+      expect(cancelHandler).toHaveBeenCalledWith(streamEvent('cancel'));
     });
 
     it('should resolve all pause waiters', async () => {
@@ -410,14 +409,10 @@ describe('StreamController', () => {
 
       expect(controller.status).toBe(StreamStatus.COMPLETED);
       expect(controller.endTime).not.toBeNull();
-      expect(completeHandler).toHaveBeenCalledWith({
-        result: { finalResult: 'done' },
-        stats: expect.any(Object),
-        timestamp: controller.endTime,
-      });
+      expect(completeHandler).toHaveBeenCalledWith(streamEvent('complete'));
     });
 
-    it('should complete with empty result by default', () => {
+    it('should emit a fixed completion receipt by default', () => {
       controller.start();
 
       const completeHandler = vi.fn();
@@ -425,9 +420,7 @@ describe('StreamController', () => {
 
       controller.complete();
 
-      expect(completeHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ result: {} })
-      );
+      expect(completeHandler).toHaveBeenCalledWith(streamEvent('complete'));
     });
 
     it('should not complete if already cancelled', () => {
@@ -456,11 +449,7 @@ describe('StreamController', () => {
 
       expect(controller.status).toBe(StreamStatus.ERROR);
       expect(controller.endTime).not.toBeNull();
-      expect(errorHandler).toHaveBeenCalledWith({
-        error: testError,
-        timestamp: controller.endTime,
-        processedChunks: 0,
-      });
+      expect(errorHandler).toHaveBeenCalledWith(streamEvent('stream-error'));
     });
 
     it('should include processed chunks count in error event', async () => {
@@ -473,9 +462,7 @@ describe('StreamController', () => {
 
       controller.error(new Error('Test'));
 
-      expect(errorHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ processedChunks: 2 })
-      );
+      expect(errorHandler).toHaveBeenCalledWith(streamEvent('stream-error'));
     });
   });
 
@@ -616,7 +603,7 @@ describe('StreamController', () => {
       expect(controller.startTime).toBeNull();
       expect(controller.endTime).toBeNull();
       expect(controller.pauseResolvers).toEqual([]);
-      expect(resetHandler).toHaveBeenCalled();
+      expect(resetHandler).toHaveBeenCalledWith(streamEvent('reset'));
     });
 
     it('should create new AbortController', () => {
@@ -655,7 +642,7 @@ describe('StreamController', () => {
       expect(handler).toHaveBeenCalledTimes(1); // 只有 destroy 时触发一次
     });
 
-    it('should use destroy reason', () => {
+    it('should use a fixed destroy cancellation receipt', () => {
       controller.start();
 
       const cancelHandler = vi.fn();
@@ -663,9 +650,7 @@ describe('StreamController', () => {
 
       controller.destroy();
 
-      expect(cancelHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: '控制器销毁' })
-      );
+      expect(cancelHandler).toHaveBeenCalledWith(streamEvent('cancel'));
     });
   });
 });

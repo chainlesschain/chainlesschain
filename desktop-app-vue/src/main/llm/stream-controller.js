@@ -139,7 +139,7 @@ class StreamController extends EventEmitter {
 
     this.status = StreamStatus.RUNNING;
     this.startTime = Date.now();
-    this.emit("start", { timestamp: this.startTime });
+    this.emit("start", streamControllerPrivacy.publicEvent("start"));
   }
 
   /**
@@ -176,11 +176,7 @@ class StreamController extends EventEmitter {
       this.retainBufferedChunk(chunk);
     }
 
-    this.emit("chunk", {
-      chunk,
-      index: this.processedChunks,
-      total: this.totalChunks,
-    });
+    this.emit("chunk", streamControllerPrivacy.publicEvent("chunk"));
 
     return true;
   }
@@ -196,7 +192,7 @@ class StreamController extends EventEmitter {
 
     this.isPaused = true;
     this.status = StreamStatus.PAUSED;
-    this.emit("pause", { timestamp: Date.now() });
+    this.emit("pause", streamControllerPrivacy.publicEvent("pause"));
   }
 
   /**
@@ -214,7 +210,7 @@ class StreamController extends EventEmitter {
     // 解析所有等待中的promise
     this.releasePauseWaiters(true);
 
-    this.emit("resume", { timestamp: Date.now() });
+    this.emit("resume", streamControllerPrivacy.publicEvent("resume"));
   }
 
   /**
@@ -247,9 +243,8 @@ class StreamController extends EventEmitter {
 
   /**
    * 取消流式输出
-   * @param {string} reason - 取消原因
    */
-  cancel(reason = "用户取消") {
+  cancel() {
     if (
       this.status === StreamStatus.CANCELLED ||
       this.status === StreamStatus.COMPLETED
@@ -257,7 +252,7 @@ class StreamController extends EventEmitter {
       return;
     }
 
-    this.abortController.abort(reason);
+    this.abortController.abort("LLM stream cancelled");
     this.status = StreamStatus.CANCELLED;
     this.isPaused = false;
     this.endTime = Date.now();
@@ -265,18 +260,13 @@ class StreamController extends EventEmitter {
     // 清空暂停等待队列
     this.releasePauseWaiters(false);
 
-    this.emit("cancel", {
-      reason,
-      timestamp: this.endTime,
-      processedChunks: this.processedChunks,
-    });
+    this.emit("cancel", streamControllerPrivacy.publicEvent("cancel"));
   }
 
   /**
    * 完成流式输出
-   * @param {Object} result - 最终结果
    */
-  complete(result = {}) {
+  complete() {
     if (this.status === StreamStatus.CANCELLED) {
       return;
     }
@@ -286,20 +276,13 @@ class StreamController extends EventEmitter {
     this.endTime = Date.now();
     this.releasePauseWaiters(false);
 
-    const stats = this.getStats();
-
-    this.emit("complete", {
-      result,
-      stats,
-      timestamp: this.endTime,
-    });
+    this.emit("complete", streamControllerPrivacy.publicEvent("complete"));
   }
 
   /**
    * 标记错误
-   * @param {Error} error - 错误对象
    */
-  error(error) {
+  error() {
     this.status = StreamStatus.ERROR;
     this.isPaused = false;
     this.endTime = Date.now();
@@ -307,11 +290,10 @@ class StreamController extends EventEmitter {
 
     // 使用 stream-error 而非 error，避免 Node.js EventEmitter
     // 在无监听器时抛出 ERR_UNHANDLED_ERROR
-    this.emit("stream-error", {
-      error,
-      timestamp: this.endTime,
-      processedChunks: this.processedChunks,
-    });
+    this.emit(
+      "stream-error",
+      streamControllerPrivacy.publicEvent("stream-error"),
+    );
   }
 
   /**
@@ -412,14 +394,14 @@ class StreamController extends EventEmitter {
     this.endTime = null;
     this.pauseResolvers = [];
 
-    this.emit("reset");
+    this.emit("reset", streamControllerPrivacy.publicEvent("reset"));
   }
 
   /**
    * 销毁控制器
    */
   destroy() {
-    this.cancel("控制器销毁");
+    this.cancel();
     this.removeAllListeners();
   }
 }

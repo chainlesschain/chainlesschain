@@ -20,6 +20,6 @@
 
 ## 未完成边界
 
-- 独立 Stream Controller、test-data、selector 以及其他 LLM 模块的成功 payload、业务事件和订阅授权仍待收口。
+- 核心 Stream Controller 与辅助流桥接的事件/成功投影后续已由第一百七十三批收口；旧 `stream-controller-ipc.js`、test-data、selector 以及其他 LLM 模块的成功 payload、业务事件和订阅授权仍待处理。
 - LLM State Bus 的通用 `dispatch`、session/global invalidation payload 和各订阅模块自己的二次广播不在本批结论内。
 - 企业 purpose/RBAC、身份切换中止与撤销、真实 Electron renderer/preload/provider E2E、tenant HMAC 和生产日志访问治理仍需目标环境验收。

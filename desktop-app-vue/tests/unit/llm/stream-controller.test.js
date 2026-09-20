@@ -39,6 +39,14 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
   createLogger: vi.fn(() => mockLogger),
 }));
 
+function streamEvent(event) {
+  return {
+    code: "CC_LLM_STREAM_EVENT",
+    component: "stream-controller",
+    event,
+  };
+}
+
 describe("StreamController", () => {
   let StreamController;
   let StreamStatus;
@@ -164,9 +172,7 @@ describe("StreamController", () => {
 
       controller.start();
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ timestamp: expect.any(Number) }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("start"));
     });
 
     it("应该在非IDLE状态时抛出错误", () => {
@@ -196,13 +202,7 @@ describe("StreamController", () => {
 
       await controller.processChunk({ text: "Hello" });
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          chunk: { text: "Hello" },
-          index: 1,
-          total: 1,
-        }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("chunk"));
     });
 
     it("应该在enableBuffering时添加到缓冲区", async () => {
@@ -420,9 +420,7 @@ describe("StreamController", () => {
 
       controller.cancel("测试取消");
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "测试取消" }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("cancel"));
     });
 
     it("应该abort AbortController", () => {
@@ -431,15 +429,14 @@ describe("StreamController", () => {
       expect(controller.abortController.signal.aborted).toBe(true);
     });
 
-    it("应该接受自定义取消原因", () => {
+    it("应该隐藏自定义取消原因", () => {
       const handler = vi.fn();
       controller.on("cancel", handler);
 
       controller.cancel("自定义原因");
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "自定义原因" }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("cancel"));
+      expect(controller.signal.reason).toBe("LLM stream cancelled");
     });
   });
 
@@ -467,11 +464,7 @@ describe("StreamController", () => {
 
       controller.complete({ totalChunks: 10 });
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          result: { totalChunks: 10 },
-        }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("complete"));
     });
   });
 
@@ -506,9 +499,7 @@ describe("StreamController", () => {
       const testError = new Error("Test error");
       controller.error(testError);
 
-      expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ error: testError }),
-      );
+      expect(handler).toHaveBeenCalledWith(streamEvent("stream-error"));
     });
   });
 

@@ -78,6 +78,50 @@ describe("LLM runtime privacy", () => {
     });
   });
 
+  it("returns frozen allowlisted stream receipts", () => {
+    const privacy = createLlmRuntimePrivacy("stream-controller", {
+      info: vi.fn(),
+    });
+
+    const receipt = privacy.publicEvent("chunk");
+    const unknown = privacy.publicEvent("private-stream-event");
+
+    expect(receipt).toEqual({
+      code: "CC_LLM_STREAM_EVENT",
+      component: "stream-controller",
+      event: "chunk",
+    });
+    expect(Object.isFrozen(receipt)).toBe(true);
+    expect(unknown.event).toBe("unknown");
+  });
+
+  it("does not publish stream content, results, reasons or errors", async () => {
+    const secret = "private-stream-content-result-reason-error";
+    const controller = new StreamController();
+    const observed = [];
+    for (const event of ["chunk", "cancel", "complete", "stream-error"]) {
+      controller.on(event, (receipt) => observed.push(receipt));
+    }
+
+    controller.start();
+    await controller.processChunk({ content: secret });
+    controller.complete({ result: secret });
+    controller.reset();
+    controller.start();
+    controller.cancel(secret);
+    controller.reset();
+    controller.error(new Error(secret));
+
+    expect(JSON.stringify(observed)).not.toContain(secret);
+    expect(controller.signal.reason).toBeUndefined();
+    expect(observed).toEqual([
+      expect.objectContaining({ event: "chunk" }),
+      expect.objectContaining({ event: "complete" }),
+      expect.objectContaining({ event: "cancel" }),
+      expect.objectContaining({ event: "stream-error" }),
+    ]);
+  });
+
   it("keeps direct logger, console and error-message access out of consumers", () => {
     for (const file of ["llm-state-bus.js", "stream-controller.js"]) {
       const source = fs.readFileSync(

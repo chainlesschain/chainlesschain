@@ -6,6 +6,70 @@
  */
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
+const STREAM_STATUSES = new Set([
+  "idle",
+  "running",
+  "paused",
+  "cancelled",
+  "completed",
+  "error",
+]);
+const STREAM_EVENT_NAMES = new Set([
+  "chunk",
+  "pause",
+  "resume",
+  "cancel",
+  "complete",
+  "stream-error",
+]);
+
+function ownData(source, key) {
+  if (source === null || typeof source !== "object") {
+    return undefined;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(source, key);
+  return descriptor && Object.hasOwn(descriptor, "value")
+    ? descriptor.value
+    : undefined;
+}
+
+function finiteNonNegative(source, key) {
+  const value = ownData(source, key);
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : 0;
+}
+
+function projectStreamStats(stats) {
+  const status = ownData(stats, "status");
+  return Object.freeze({
+    status: STREAM_STATUSES.has(status) ? status : "idle",
+    totalChunks: finiteNonNegative(stats, "totalChunks"),
+    processedChunks: finiteNonNegative(stats, "processedChunks"),
+    duration: finiteNonNegative(stats, "duration"),
+    throughput: finiteNonNegative(stats, "throughput"),
+    averageChunkTime: finiteNonNegative(stats, "averageChunkTime"),
+    isPaused: ownData(stats, "isPaused") === true,
+    bufferedChunks: finiteNonNegative(stats, "bufferedChunks"),
+    bufferedBytes: finiteNonNegative(stats, "bufferedBytes"),
+    droppedBufferedChunks: finiteNonNegative(stats, "droppedBufferedChunks"),
+    pauseWaiters: finiteNonNegative(stats, "pauseWaiters"),
+    droppedPausedChunks: finiteNonNegative(stats, "droppedPausedChunks"),
+  });
+}
+
+function streamEvent(controllerId, event) {
+  return Object.freeze({
+    controllerId,
+    code:
+      event === "stream-error"
+        ? "CC_LLM_STREAM_FAILED"
+        : "CC_LLM_STREAM_EVENT",
+    component: "stream-controller",
+    event: STREAM_EVENT_NAMES.has(event) ? event : "unknown",
+  });
+}
+
 function registerStreamHandlers(ctx) {
   const { ipcMain, mainWindow, app } = ctx;
   const privacy = ctx.streamPrivacy || createLlmIpcPrivacy("stream");
@@ -35,62 +99,61 @@ function registerStreamHandlers(ctx) {
         app.streamControllers.set(controllerId, controller);
 
         // 设置事件监听
-        controller.on("chunk", (data) => {
+        controller.on("chunk", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-chunk", {
-              controllerId,
-              ...data,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-chunk",
+              streamEvent(controllerId, "chunk"),
+            );
           }
         });
 
-        controller.on("pause", (data) => {
+        controller.on("pause", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-pause", {
-              controllerId,
-              ...data,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-pause",
+              streamEvent(controllerId, "pause"),
+            );
           }
         });
 
-        controller.on("resume", (data) => {
+        controller.on("resume", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-resume", {
-              controllerId,
-              ...data,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-resume",
+              streamEvent(controllerId, "resume"),
+            );
           }
         });
 
-        controller.on("cancel", (data) => {
+        controller.on("cancel", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-cancel", {
-              controllerId,
-              ...data,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-cancel",
+              streamEvent(controllerId, "cancel"),
+            );
           }
         });
 
-        controller.on("complete", (data) => {
+        controller.on("complete", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-complete", {
-              controllerId,
-              ...data,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-complete",
+              streamEvent(controllerId, "complete"),
+            );
           }
         });
 
         controller.on("stream-error", () => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-error", {
-              controllerId,
-              error: "LLM stream failed",
-              code: "CC_LLM_STREAM_FAILED",
-            });
+            mainWindow.webContents.send(
+              "llm:stream-error",
+              streamEvent(controllerId, "stream-error"),
+            );
           }
         });
 
-        return { controllerId, status: controller.status };
+        return { controllerId };
       } catch {
         throw privacy.failure("create-stream-controller");
       }
@@ -110,7 +173,7 @@ function registerStreamHandlers(ctx) {
       const controller = app.streamControllers.get(controllerId);
       controller.pause();
 
-      return { success: true, status: controller.status };
+      return { success: true };
     } catch {
       throw privacy.failure("pause-stream");
     }
@@ -129,7 +192,7 @@ function registerStreamHandlers(ctx) {
       const controller = app.streamControllers.get(controllerId);
       controller.resume();
 
-      return { success: true, status: controller.status };
+      return { success: true };
     } catch {
       throw privacy.failure("resume-stream");
     }
@@ -148,7 +211,7 @@ function registerStreamHandlers(ctx) {
       const controller = app.streamControllers.get(controllerId);
       controller.cancel(reason);
 
-      return { success: true, status: controller.status };
+      return { success: true };
     } catch {
       throw privacy.failure("cancel-stream");
     }
@@ -167,7 +230,7 @@ function registerStreamHandlers(ctx) {
       const controller = app.streamControllers.get(controllerId);
       const stats = controller.getStats();
 
-      return stats;
+      return projectStreamStats(stats);
     } catch {
       throw privacy.failure("get-stream-stats");
     }
@@ -185,7 +248,7 @@ function registerStreamHandlers(ctx) {
           !app.streamControllers ||
           !app.streamControllers.has(controllerId)
         ) {
-          return { success: true, message: "控制器已不存在" };
+          return { success: true };
         }
 
         const controller = app.streamControllers.get(controllerId);
