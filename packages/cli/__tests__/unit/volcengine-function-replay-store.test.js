@@ -19,6 +19,8 @@ import {
   VOLCENGINE_FUNCTION_REPLAY_MODE,
   VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
   VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_SCHEMA,
   captureVolcengineFunctionReplayStore,
   createVolcengineFunctionReplayStore,
 } from "../../src/lib/evolution/volcengine-function-replay-store.js";
@@ -62,7 +64,30 @@ function descriptor(overrides = {}) {
     policyRevision: "policy-1",
     retentionMs: 65_000,
     mode: VOLCENGINE_FUNCTION_REPLAY_MODE,
+    revocationMode: VOLCENGINE_FUNCTION_REVOCATION_MODE,
     ...overrides,
+  };
+}
+
+function revocation(overrides = {}) {
+  const core = {
+    schema: VOLCENGINE_FUNCTION_REVOCATION_SCHEMA,
+    replayStoreId: "replay:test",
+    authorityId: "authority:test",
+    tenantId: "tenant:test",
+    handlerArtifactDigest: sha("handler"),
+    policyRevision: "policy-1",
+    revocationId: "revocation-1",
+    reasonDigest: sha("operator-request"),
+    authorizationEvidenceDigest: sha("authorization-evidence"),
+    auditEventDigest: sha("revocation-audit"),
+    durabilityReceiptDigest: sha("revocation-durability"),
+    revokedAt: new Date(NOW).toISOString(),
+    ...overrides,
+  };
+  return {
+    ...core,
+    revocationDigest: digest(VOLCENGINE_FUNCTION_REVOCATION_SCHEMA, core),
   };
 }
 
@@ -131,6 +156,42 @@ function runWorker(args) {
     child.once("close", (code) => {
       if (code !== 0) {
         reject(new Error(`replay worker exited ${code}: ${stderr}`));
+        return;
+      }
+      resolve(JSON.parse(stdout));
+    });
+  });
+}
+
+function runRevocationReader(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        fileURLToPath(
+          new URL(
+            "./helpers/volcengine-function-revocation-reader-worker.mjs",
+            import.meta.url,
+          ),
+        ),
+        ...args,
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`revocation reader exited ${code}: ${stderr}`));
         return;
       }
       resolve(JSON.parse(stdout));
@@ -288,5 +349,108 @@ describe("Volcengine function replay store", () => {
     expect(() =>
       port.reserve(reservation({ tenantId: "tenant:foreign" })),
     ).toThrow("Volcengine function replay reservation is invalid");
+  });
+
+  it("durably publishes one revocation and reopens it across instances", () => {
+    const rootDir = root();
+    const first = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    const value = revocation();
+
+    expect(first.readRevocation()).toBeNull();
+    expect(first.revoke(value)).toEqual({
+      revocationDigest: value.revocationDigest,
+      durable: true,
+      readbackVerified: true,
+    });
+    const reopened = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    expect(reopened.readRevocation()).toMatchObject({
+      revocationId: "revocation-1",
+      revocationDigest: value.revocationDigest,
+    });
+    expect(reopened.revoke(value)).toMatchObject({
+      revocationDigest: value.revocationDigest,
+      durable: true,
+      readbackVerified: true,
+    });
+    expect(() =>
+      reopened.revoke(revocation({ revocationId: "revocation-conflict" })),
+    ).toThrow("conflicts with existing record");
+  });
+
+  it("publishes durable revocation to a separate process", async () => {
+    const rootDir = root();
+    const descriptorPath = join(rootDir, "descriptor.json");
+    const readyPath = join(rootDir, "revocation-reader.ready");
+    writeFileSync(descriptorPath, JSON.stringify(descriptor()), "utf8");
+    const port = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    const reader = runRevocationReader([
+      rootDir,
+      descriptorPath,
+      readyPath,
+      String(NOW),
+    ]);
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (existsSync(readyPath)) break;
+      await delay(10);
+    }
+    expect(existsSync(readyPath)).toBe(true);
+
+    const value = revocation();
+    expect(port.revoke(value)).toMatchObject({
+      revocationDigest: value.revocationDigest,
+      durable: true,
+      readbackVerified: true,
+    });
+    await expect(reader).resolves.toMatchObject({
+      status: "revoked",
+      revocation: {
+        revocationId: value.revocationId,
+        revocationDigest: value.revocationDigest,
+      },
+    });
+  });
+
+  it("fails closed but retains revocation when directory fsync fails", () => {
+    const rootDir = root();
+    const port = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    const originalFsync = fs.fsyncSync;
+    let syncCalls = 0;
+    const sync = vi.spyOn(fs, "fsyncSync").mockImplementation((descriptor) => {
+      syncCalls += 1;
+      if (syncCalls === 2) throw new Error("simulated directory sync failure");
+      return originalFsync(descriptor);
+    });
+
+    const value = revocation();
+    try {
+      expect(() => port.revoke(value)).toThrow(
+        expect.objectContaining({
+          code: "CC_VOLCENGINE_FUNCTION_REVOCATION_DURABILITY_UNKNOWN",
+          message: "Volcengine function revocation durability is unknown",
+        }),
+      );
+    } finally {
+      sync.mockRestore();
+    }
+
+    const reopened = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    expect(reopened.readRevocation()).toMatchObject({
+      revocationDigest: value.revocationDigest,
+    });
+    expect(reopened.revoke(value)).toMatchObject({
+      revocationDigest: value.revocationDigest,
+      durable: true,
+      readbackVerified: true,
+    });
   });
 });

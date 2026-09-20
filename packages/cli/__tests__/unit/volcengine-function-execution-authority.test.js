@@ -15,11 +15,13 @@ import {
   createVolcengineFunctionExecutionAuthority,
   digestVolcengineFunctionResult,
   revokeVolcengineFunctionExecutionAuthority,
+  revokeVolcengineFunctionExecutionAuthorityDurably,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
 import {
   VOLCENGINE_FUNCTION_REPLAY_MODE,
   VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA,
   VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_MODE,
   createVolcengineFunctionReplayStore,
 } from "../../src/lib/evolution/volcengine-function-replay-store.js";
 
@@ -93,6 +95,7 @@ function descriptor(overrides = {}) {
     replayStoreId: "replay:test",
     replayRetentionMs: REPLAY_RETENTION_MS,
     replayMode: VOLCENGINE_FUNCTION_REPLAY_MODE,
+    revocationMode: VOLCENGINE_FUNCTION_REVOCATION_MODE,
     purpose: VOLCENGINE_FUNCTION_PURPOSE,
     allowedFunctions: ["create_note", "read_file"],
     functionPolicies: functionPolicies(),
@@ -113,6 +116,7 @@ function request(overrides = {}, policies = functionPolicies()) {
     handlerArtifactDigest: sha("signed-deployment"),
     policyRevision: "policy-1",
     replayStoreId: "replay:test",
+    revocationMode: VOLCENGINE_FUNCTION_REVOCATION_MODE,
     actorDid: "did:test:operator",
     purpose: VOLCENGINE_FUNCTION_PURPOSE,
     requestId: "request-1",
@@ -137,7 +141,7 @@ function request(overrides = {}, policies = functionPolicies()) {
   return {
     ...core,
     requestDigest: domainDigest(
-      "chainlesschain.volcengine-function-request/v4",
+      "chainlesschain.volcengine-function-request/v5",
       core,
     ),
   };
@@ -199,6 +203,7 @@ function createReplayStore(authorityDescriptor, rootDir) {
       policyRevision: authorityDescriptor.policyRevision,
       retentionMs: authorityDescriptor.replayRetentionMs,
       mode: authorityDescriptor.replayMode,
+      revocationMode: authorityDescriptor.revocationMode,
     },
     now: () => NOW,
   });
@@ -225,8 +230,20 @@ function setup(overrides = {}) {
   };
 }
 
+function revocationEvidence(overrides = {}) {
+  return {
+    revocationId: "revocation-1",
+    reasonDigest: sha("revocation-reason"),
+    authorizationEvidenceDigest: sha("revocation-authorization"),
+    auditEventDigest: sha("revocation-audit-event"),
+    durabilityReceiptDigest: sha("revocation-durability-receipt"),
+    revokedAt: new Date(NOW).toISOString(),
+    ...overrides,
+  };
+}
+
 describe("Volcengine function execution authority", () => {
-  it.each(["v1", "v2", "v3"])(
+  it.each(["v1", "v2", "v3", "v4"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -256,6 +273,7 @@ describe("Volcengine function execution authority", () => {
       handlerArtifactDigest: sha("signed-deployment"),
       policyRevision: "policy-1",
       replayStoreId: "replay:test",
+      revocationMode: VOLCENGINE_FUNCTION_REVOCATION_MODE,
       actorDid: "did:test:operator",
       purpose: VOLCENGINE_FUNCTION_PURPOSE,
       requestId: "request-1",
@@ -319,6 +337,91 @@ describe("Volcengine function execution authority", () => {
       code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
       message: "Volcengine function execution authority was revoked",
     });
+  });
+
+  it("durably revokes an authority and rejects execution after restart", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-reopen-"));
+    temporaryRoots.push(root);
+    const authorityDescriptor = descriptor();
+    const first = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+
+    await expect(
+      revokeVolcengineFunctionExecutionAuthorityDurably(
+        first.authority,
+        revocationEvidence(),
+      ),
+    ).resolves.toMatchObject({
+      revoked: true,
+      revocationDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      durable: true,
+      readbackVerified: true,
+    });
+
+    const reopened = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+    await expect(
+      reopened.port.executeFunction(request()),
+    ).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+      message: "Volcengine function execution authority was revoked",
+    });
+    expect(reopened.execute).not.toHaveBeenCalled();
+  });
+
+  it("propagates durable revocation to an in-flight sibling authority", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-live-"));
+    temporaryRoots.push(root);
+    const authorityDescriptor = descriptor();
+    const publisher = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+    let executionContext;
+    const sibling = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+      execute: async (_value, context) => {
+        executionContext = context;
+        return new Promise(() => {});
+      },
+    });
+    const execution = sibling.port.executeFunction(
+      request({ requestId: "request-in-flight" }),
+    );
+    await vi.waitFor(() => expect(sibling.execute).toHaveBeenCalledOnce());
+
+    await revokeVolcengineFunctionExecutionAuthorityDurably(
+      publisher.authority,
+      revocationEvidence(),
+    );
+
+    await expect(execution).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+      message: "Volcengine function execution authority was revoked",
+    });
+    expect(executionContext.signal.aborted).toBe(true);
+    expect(executionContext.signal.reason).toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+    });
+  });
+
+  it("fails closed when durable revocation status cannot be verified", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-corrupt-"));
+    temporaryRoots.push(root);
+    const authorityDescriptor = descriptor();
+    const instance = setup({
+      replayStore: createReplayStore(authorityDescriptor, root),
+    });
+    fs.writeFileSync(join(root, "authority-revocation.json"), "{", "utf8");
+
+    await expect(
+      instance.port.executeFunction(request()),
+    ).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_REVOCATION_STATUS_UNAVAILABLE",
+      message: "Volcengine function authority revocation status is unavailable",
+    });
+    expect(instance.execute).not.toHaveBeenCalled();
   });
 
   it("rejects request digest tampering before execution", async () => {

@@ -16,6 +16,7 @@ const {
 const REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 const REPLAY_MODE = "cross-process-exclusive-file-fsync";
+const REVOCATION_MODE = "cross-process-durable-readback-poll";
 const REPLAY_RETENTION_MS = 65_000;
 
 function canonical(value) {
@@ -92,6 +93,7 @@ function responseFor(request, toolResult, overrides = {}) {
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
       replayStoreId: request.replayStoreId,
+      revocationMode: request.revocationMode,
       actorDid: request.actorDid,
       purpose: PURPOSE,
       requestId: request.requestId,
@@ -140,6 +142,7 @@ function setup({
         replayStoreId: "replay:test",
         replayRetentionMs: REPLAY_RETENTION_MS,
         replayMode: REPLAY_MODE,
+        revocationMode: REVOCATION_MODE,
         purpose: PURPOSE,
         allowedFunctions,
         functionPolicies: policiesFor(allowedFunctions),
@@ -164,7 +167,7 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
-  it.each(["v1", "v2", "v3"])(
+  it.each(["v1", "v2", "v3", "v4"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -201,6 +204,7 @@ describe("Volcengine function capability", () => {
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
       replayStoreId: "replay:test",
+      revocationMode: REVOCATION_MODE,
       actorDid: "did:test:operator",
       purpose: PURPOSE,
       senderId: 7,

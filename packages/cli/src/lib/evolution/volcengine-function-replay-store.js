@@ -6,11 +6,15 @@ import { types } from "node:util";
 import { withFileLock } from "../with-file-lock.js";
 
 export const VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA =
-  "chainlesschain.volcengine-function-replay-store/v1";
+  "chainlesschain.volcengine-function-replay-store/v2";
 export const VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 export const VOLCENGINE_FUNCTION_REPLAY_MODE =
   "cross-process-exclusive-file-fsync";
+export const VOLCENGINE_FUNCTION_REVOCATION_SCHEMA =
+  "chainlesschain.volcengine-function-authority-revocation/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_MODE =
+  "cross-process-durable-readback-poll";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[^\p{Cc}]{1,512}$/u;
@@ -75,6 +79,7 @@ function normalizeDescriptor(value) {
       "policyRevision",
       "retentionMs",
       "mode",
+      "revocationMode",
     ],
     "Volcengine function replay store descriptor",
   );
@@ -107,6 +112,11 @@ function normalizeDescriptor(value) {
       "Volcengine replay store retention",
     ),
     mode: ownData(value, "mode", "Volcengine replay store mode"),
+    revocationMode: ownData(
+      value,
+      "revocationMode",
+      "Volcengine function revocation mode",
+    ),
   });
   if (
     descriptor.schema !== VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA ||
@@ -118,7 +128,8 @@ function normalizeDescriptor(value) {
     !Number.isSafeInteger(descriptor.retentionMs) ||
     descriptor.retentionMs < 1 ||
     descriptor.retentionMs > MAX_RETENTION_MS ||
-    descriptor.mode !== VOLCENGINE_FUNCTION_REPLAY_MODE
+    descriptor.mode !== VOLCENGINE_FUNCTION_REPLAY_MODE ||
+    descriptor.revocationMode !== VOLCENGINE_FUNCTION_REVOCATION_MODE
   ) {
     throw new TypeError(
       "Volcengine function replay store descriptor is invalid",
@@ -212,6 +223,103 @@ function normalizeReservation(value, descriptor) {
   return Object.freeze({ ...core, reservationDigest, expiresAtMs });
 }
 
+function normalizeRevocation(value, descriptor) {
+  exactData(
+    value,
+    [
+      "schema",
+      "replayStoreId",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "revocationId",
+      "reasonDigest",
+      "authorizationEvidenceDigest",
+      "auditEventDigest",
+      "durabilityReceiptDigest",
+      "revokedAt",
+      "revocationDigest",
+    ],
+    "Volcengine function authority revocation",
+  );
+  const core = Object.freeze({
+    schema: ownData(value, "schema", "Volcengine revocation schema"),
+    replayStoreId: ownData(
+      value,
+      "replayStoreId",
+      "Volcengine revocation store",
+    ),
+    authorityId: ownData(
+      value,
+      "authorityId",
+      "Volcengine revocation authority",
+    ),
+    tenantId: ownData(value, "tenantId", "Volcengine revocation tenant"),
+    handlerArtifactDigest: ownData(
+      value,
+      "handlerArtifactDigest",
+      "Volcengine revocation artifact digest",
+    ),
+    policyRevision: ownData(
+      value,
+      "policyRevision",
+      "Volcengine revocation policy revision",
+    ),
+    revocationId: ownData(
+      value,
+      "revocationId",
+      "Volcengine revocation identifier",
+    ),
+    reasonDigest: ownData(
+      value,
+      "reasonDigest",
+      "Volcengine revocation reason digest",
+    ),
+    authorizationEvidenceDigest: ownData(
+      value,
+      "authorizationEvidenceDigest",
+      "Volcengine revocation authorization evidence digest",
+    ),
+    auditEventDigest: ownData(
+      value,
+      "auditEventDigest",
+      "Volcengine revocation audit event digest",
+    ),
+    durabilityReceiptDigest: ownData(
+      value,
+      "durabilityReceiptDigest",
+      "Volcengine revocation durability receipt digest",
+    ),
+    revokedAt: ownData(value, "revokedAt", "Volcengine revocation time"),
+  });
+  const revocationDigest = ownData(
+    value,
+    "revocationDigest",
+    "Volcengine authority revocation digest",
+  );
+  const revokedAtMs = Date.parse(core.revokedAt);
+  if (
+    core.schema !== VOLCENGINE_FUNCTION_REVOCATION_SCHEMA ||
+    core.replayStoreId !== descriptor.replayStoreId ||
+    core.authorityId !== descriptor.authorityId ||
+    core.tenantId !== descriptor.tenantId ||
+    core.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
+    core.policyRevision !== descriptor.policyRevision ||
+    !ID.test(core.revocationId) ||
+    !DIGEST.test(core.reasonDigest) ||
+    !DIGEST.test(core.authorizationEvidenceDigest) ||
+    !DIGEST.test(core.auditEventDigest) ||
+    !DIGEST.test(core.durabilityReceiptDigest) ||
+    !Number.isFinite(revokedAtMs) ||
+    new Date(revokedAtMs).toISOString() !== core.revokedAt ||
+    revocationDigest !== digest(VOLCENGINE_FUNCTION_REVOCATION_SCHEMA, core)
+  ) {
+    throw new TypeError("Volcengine function authority revocation is invalid");
+  }
+  return Object.freeze({ ...core, revocationDigest, revokedAtMs });
+}
+
 function syncDirectory(directory) {
   const descriptor = fs.openSync(
     directory,
@@ -289,6 +397,108 @@ function readRecord(recordPath, descriptor) {
     throw new Error("Volcengine function replay record is invalid", { cause });
   }
   return normalizeReservation(value, descriptor);
+}
+
+function readRevocationRecord(recordPath, descriptor) {
+  const info = fs.lstatSync(recordPath);
+  if (
+    !info.isFile() ||
+    info.isSymbolicLink() ||
+    info.nlink !== 1 ||
+    info.size < 2 ||
+    info.size > MAX_RECORD_BYTES
+  ) {
+    throw new Error("Volcengine function revocation record is invalid");
+  }
+  const bytes = fs.readFileSync(recordPath);
+  if (bytes.length !== info.size) {
+    throw new Error(
+      "Volcengine function revocation record changed during readback",
+    );
+  }
+  let value;
+  try {
+    value = JSON.parse(bytes.toString("utf8"));
+  } catch (cause) {
+    throw new Error("Volcengine function revocation record is invalid", {
+      cause,
+    });
+  }
+  return normalizeRevocation(value, descriptor);
+}
+
+function revocationDurabilityError(cause) {
+  const error = new Error(
+    "Volcengine function revocation durability is unknown",
+    { cause },
+  );
+  error.code = "CC_VOLCENGINE_FUNCTION_REVOCATION_DURABILITY_UNKNOWN";
+  return error;
+}
+
+function writeRevocation(recordPath, root, revocation) {
+  const storedRevocation = Object.freeze({
+    schema: revocation.schema,
+    replayStoreId: revocation.replayStoreId,
+    authorityId: revocation.authorityId,
+    tenantId: revocation.tenantId,
+    handlerArtifactDigest: revocation.handlerArtifactDigest,
+    policyRevision: revocation.policyRevision,
+    revocationId: revocation.revocationId,
+    reasonDigest: revocation.reasonDigest,
+    authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
+    auditEventDigest: revocation.auditEventDigest,
+    durabilityReceiptDigest: revocation.durabilityReceiptDigest,
+    revokedAt: revocation.revokedAt,
+    revocationDigest: revocation.revocationDigest,
+  });
+  const encoded = Buffer.from(JSON.stringify(storedRevocation), "utf8");
+  if (encoded.length < 2 || encoded.length > MAX_RECORD_BYTES) {
+    throw new TypeError(
+      "Volcengine function authority revocation is too large",
+    );
+  }
+  let descriptor;
+  try {
+    descriptor = fs.openSync(recordPath, "wx", 0o600);
+    let offset = 0;
+    while (offset < encoded.length) {
+      const written = fs.writeSync(
+        descriptor,
+        encoded,
+        offset,
+        encoded.length - offset,
+      );
+      if (!Number.isSafeInteger(written) || written < 1) {
+        throw new Error("Volcengine function revocation write stalled");
+      }
+      offset += written;
+    }
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = undefined;
+    syncDirectory(root);
+    const readback = readRevocationRecord(recordPath, {
+      replayStoreId: revocation.replayStoreId,
+      authorityId: revocation.authorityId,
+      tenantId: revocation.tenantId,
+      handlerArtifactDigest: revocation.handlerArtifactDigest,
+      policyRevision: revocation.policyRevision,
+    });
+    if (readback.revocationDigest !== revocation.revocationDigest) {
+      throw new Error("Volcengine function revocation readback differs");
+    }
+    return readback;
+  } catch (cause) {
+    if (descriptor !== undefined) {
+      try {
+        fs.closeSync(descriptor);
+      } catch {
+        // Preserve the record because its durability is unknown.
+      }
+    }
+    throw revocationDurabilityError(cause);
+  }
 }
 
 function writeReservation(recordPath, reservationsDirectory, reservation) {
@@ -424,6 +634,7 @@ export function createVolcengineFunctionReplayStore({
     root,
     reservationsDirectory,
     lockTarget: path.join(root, "reservations-index"),
+    revocationPath: path.join(root, "authority-revocation.json"),
     now,
   });
   return store;
@@ -438,6 +649,94 @@ export function captureVolcengineFunctionReplayStore(value) {
   }
   return Object.freeze({
     descriptor: captured.descriptor,
+    readRevocation() {
+      try {
+        const revocation = readRevocationRecord(
+          captured.revocationPath,
+          captured.descriptor,
+        );
+        return Object.freeze({
+          schema: revocation.schema,
+          replayStoreId: revocation.replayStoreId,
+          authorityId: revocation.authorityId,
+          tenantId: revocation.tenantId,
+          handlerArtifactDigest: revocation.handlerArtifactDigest,
+          policyRevision: revocation.policyRevision,
+          revocationId: revocation.revocationId,
+          reasonDigest: revocation.reasonDigest,
+          authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
+          auditEventDigest: revocation.auditEventDigest,
+          durabilityReceiptDigest: revocation.durabilityReceiptDigest,
+          revokedAt: revocation.revokedAt,
+          revocationDigest: revocation.revocationDigest,
+        });
+      } catch (error) {
+        if (error?.code === "ENOENT") return null;
+        throw error;
+      }
+    },
+    revoke(value) {
+      const revocation = normalizeRevocation(value, captured.descriptor);
+      const nowMs = captured.now();
+      if (!Number.isFinite(nowMs) || revocation.revokedAtMs > nowMs + 5_000) {
+        throw new TypeError(
+          "Volcengine function authority revocation time is invalid",
+        );
+      }
+      return withFileLock(
+        captured.lockTarget,
+        () => {
+          let existing;
+          try {
+            existing = readRevocationRecord(
+              captured.revocationPath,
+              captured.descriptor,
+            );
+          } catch (error) {
+            if (error?.code !== "ENOENT") {
+              throw revocationDurabilityError(error);
+            }
+          }
+          if (existing) {
+            if (existing.revocationDigest !== revocation.revocationDigest) {
+              throw new Error(
+                "Volcengine function authority revocation conflicts with existing record",
+              );
+            }
+            try {
+              syncDirectory(captured.root);
+              const readback = readRevocationRecord(
+                captured.revocationPath,
+                captured.descriptor,
+              );
+              if (readback.revocationDigest !== revocation.revocationDigest) {
+                throw new Error(
+                  "Volcengine function revocation readback differs",
+                );
+              }
+              return Object.freeze({
+                revocationDigest: readback.revocationDigest,
+                durable: true,
+                readbackVerified: true,
+              });
+            } catch (cause) {
+              throw revocationDurabilityError(cause);
+            }
+          }
+          const readback = writeRevocation(
+            captured.revocationPath,
+            captured.root,
+            revocation,
+          );
+          return Object.freeze({
+            revocationDigest: readback.revocationDigest,
+            durable: true,
+            readbackVerified: true,
+          });
+        },
+        { failIfUnavailable: true, timeoutMs: 5_000 },
+      );
+    },
     reserve(value) {
       const reservation = normalizeReservation(value, captured.descriptor);
       const nowMs = captured.now();

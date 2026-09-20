@@ -867,6 +867,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserDownloadArtifactDisposalAuthority",
       "createVolcengineFunctionExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
+      "revokeVolcengineFunctionExecutionAuthorityDurably",
       "createVolcengineFunctionReplayStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
@@ -1056,7 +1057,7 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionReplayStore({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-replay-store/v1",
+                schema: "chainlesschain.volcengine-function-replay-store/v2",
                 replayStoreId: "volcengine-function-replay",
                 authorityId: "volcengine-functions",
                 tenantId: "tenant-1",
@@ -1064,6 +1065,7 @@ describe("signed evolution deployment loader", () => {
                 policyRevision: "policy-1",
                 retentionMs: 65_000,
                 mode: "cross-process-exclusive-file-fsync",
+                revocationMode: "cross-process-durable-readback-poll",
               },
               rootDir: "C:\\should-not-be-opened",
             }),
@@ -1071,7 +1073,7 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionExecutionAuthority({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-authority/v4",
+                schema: "chainlesschain.volcengine-function-authority/v5",
                 authorityId: "volcengine-functions",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
@@ -1079,6 +1081,7 @@ describe("signed evolution deployment loader", () => {
                 replayStoreId: "volcengine-function-replay",
                 replayRetentionMs: 65_000,
                 replayMode: "cross-process-exclusive-file-fsync",
+                revocationMode: "cross-process-durable-readback-poll",
                 purpose: "model-tool-execution",
                 allowedFunctions: ["create_note"],
                 functionPolicies: [

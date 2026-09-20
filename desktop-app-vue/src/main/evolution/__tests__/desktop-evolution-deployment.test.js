@@ -609,7 +609,7 @@ describe("desktop evolution deployment", () => {
   it("narrows a signed Volcengine function authority to an opaque Desktop host", async () => {
     const authority = Object.freeze({});
     const descriptor = Object.freeze({
-      schema: "chainlesschain.volcengine-function-authority/v4",
+      schema: "chainlesschain.volcengine-function-authority/v5",
       authorityId: "volcengine-functions",
       tenantId: "tenant-1",
       handlerArtifactDigest: sha("signed-deployment"),
@@ -617,6 +617,7 @@ describe("desktop evolution deployment", () => {
       replayStoreId: "volcengine-function-replay",
       replayRetentionMs: 65_000,
       replayMode: "cross-process-exclusive-file-fsync",
+      revocationMode: "cross-process-durable-readback-poll",
       purpose: "model-tool-execution",
       allowedFunctions: Object.freeze(["create_note"]),
       functionPolicies: Object.freeze([

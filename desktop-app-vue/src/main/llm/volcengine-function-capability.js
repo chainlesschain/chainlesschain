@@ -3,12 +3,13 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v4";
-const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v4";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v4";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v5";
+const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v5";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v5";
 const REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 const REPLAY_MODE = "cross-process-exclusive-file-fsync";
+const REVOCATION_MODE = "cross-process-durable-readback-poll";
 const PURPOSE = "model-tool-execution";
 const AUDIT_MODE = "authenticated-durable-readback";
 const EXECUTOR_TYPE = "capability";
@@ -383,6 +384,7 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "replayStoreId",
       "replayRetentionMs",
       "replayMode",
+      "revocationMode",
       "purpose",
       "allowedFunctions",
       "functionPolicies",
@@ -452,6 +454,11 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "replayMode",
       "Volcengine function replay mode",
     ),
+    revocationMode: ownData(
+      descriptor,
+      "revocationMode",
+      "Volcengine function revocation mode",
+    ),
     purpose: PURPOSE,
     allowedFunctions,
     functionPolicies: normalizeFunctionPolicies(
@@ -469,7 +476,8 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
     !Number.isSafeInteger(normalizedDescriptor.replayRetentionMs) ||
     normalizedDescriptor.replayRetentionMs < 65_000 ||
     normalizedDescriptor.replayRetentionMs > 24 * 60 * 60 * 1000 ||
-    normalizedDescriptor.replayMode !== REPLAY_MODE
+    normalizedDescriptor.replayMode !== REPLAY_MODE ||
+    normalizedDescriptor.revocationMode !== REVOCATION_MODE
   ) {
     throw new TypeError("Volcengine function authority descriptor is invalid");
   }
@@ -542,6 +550,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
       "handlerArtifactDigest",
       "policyRevision",
       "replayStoreId",
+      "revocationMode",
       "actorDid",
       "purpose",
       "requestId",
@@ -569,6 +578,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     handlerArtifactDigest: descriptor.handlerArtifactDigest,
     policyRevision: descriptor.policyRevision,
     replayStoreId: descriptor.replayStoreId,
+    revocationMode: descriptor.revocationMode,
     actorDid: request.actorDid,
     purpose: PURPOSE,
     requestId: request.requestId,
@@ -657,6 +667,7 @@ function createVolcengineFunctionExecutor(
             handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
             policyRevision: captured.descriptor.policyRevision,
             replayStoreId: captured.descriptor.replayStoreId,
+            revocationMode: captured.descriptor.revocationMode,
             actorDid: context.actorDid,
             purpose: PURPOSE,
             requestId: randomUUID(),
@@ -677,7 +688,7 @@ function createVolcengineFunctionExecutor(
           const request = Object.freeze({
             ...requestCore,
             requestDigest: digest(
-              "chainlesschain.volcengine-function-request/v4",
+              "chainlesschain.volcengine-function-request/v5",
               requestCore,
             ),
           });

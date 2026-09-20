@@ -451,6 +451,8 @@ async function loadBuiltInFactories(commandName) {
         volcengineFunctionExecution.createVolcengineFunctionExecutionAuthority,
       revokeVolcengineFunctionExecutionAuthority:
         volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
+      revokeVolcengineFunctionExecutionAuthorityDurably:
+        volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthorityDurably,
       createVolcengineFunctionReplayStore:
         volcengineFunctionReplay.createVolcengineFunctionReplayStore,
       createEvolutionLedgerDurableArtifactResolver:
