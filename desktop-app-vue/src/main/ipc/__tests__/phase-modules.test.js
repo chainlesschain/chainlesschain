@@ -21,10 +21,11 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 21 safeRegister calls total: 20 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 20 unconditional fire. The legacy
-    // Context Engineering and Message Aggregator IPC surfaces are retired.
-    expectedRegistrations: 20,
+    // 20 safeRegister calls total: 19 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 19 unconditional fire. The legacy
+    // Context Engineering, Message Aggregator, and Progress Emitter renderer
+    // IPC surfaces are retired.
+    expectedRegistrations: 19,
     needsRegisteredModules: false,
   },
   {
@@ -238,6 +239,21 @@ describe("ipc/phases — extracted phase module contracts", () => {
         "destroyGlobalAggregator",
         "getMessageAggregator",
       ].sort(),
+    );
+  });
+
+  it("keeps the internal Progress Emitter out of the renderer IPC surface", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    registerPhase1AI({ safeRegister, logger, deps: { database: null } });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Progress Emitter IPC",
+    );
+    const InternalProgressEmitter = require("../../utils/progress-emitter");
+    expect(InternalProgressEmitter.registerProgressEmitterIPC).toBeUndefined();
+    expect(typeof InternalProgressEmitter).toBe("function");
+    expect(Object.keys(InternalProgressEmitter).sort()).toEqual(
+      ["DEFAULT_LIMITS", "HARD_LIMITS", "Stage"].sort(),
     );
   });
 });
