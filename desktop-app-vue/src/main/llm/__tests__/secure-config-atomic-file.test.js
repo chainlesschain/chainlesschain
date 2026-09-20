@@ -1,10 +1,46 @@
+import { fork } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const { createAtomicFileCommitter } = require("../secure-config-atomic-file");
 const { SecureConfigStorage } = require("../secure-config-storage");
+const workerPath = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures",
+  "secure-config-atomic-worker.cjs",
+);
+
+function waitForChildMessage(child, expectedType) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error(`Timed out waiting for child ${expectedType}`)),
+      10000,
+    );
+    child.on("message", (message) => {
+      if (message?.type === "error") {
+        clearTimeout(timeout);
+        reject(new Error(message.message));
+      } else if (message?.type === expectedType) {
+        clearTimeout(timeout);
+        resolve(message);
+      }
+    });
+    child.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+}
+
+function waitForChildExit(child) {
+  return new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code, signal) => resolve({ code, signal }));
+  });
+}
 
 function createStorage(storagePath) {
   return new SecureConfigStorage({
@@ -40,6 +76,7 @@ describe("secure config atomic file committer", () => {
 
     expect(fs.readFileSync(target, "utf8")).toBe("second");
     expect(fs.existsSync(`${target}.tmp`)).toBe(false);
+    expect(fs.existsSync(`${target}.lock`)).toBe(false);
     if (process.platform !== "win32") {
       expect(fs.statSync(target).mode & 0o777).toBe(0o600);
     }
@@ -111,6 +148,61 @@ describe("secure config atomic file committer", () => {
     expect(fs.readFileSync(target, "utf8")).toBe("first");
   });
 
+  it("rejects writes, recovery, and removal while another process owns the target", async () => {
+    const child = fork(workerPath, [target], {
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
+    });
+    const exit = waitForChildExit(child);
+    await waitForChildMessage(child, "locked");
+
+    try {
+      const committer = createAtomicFileCommitter();
+      expect(() => committer.recoverSync(target, () => true)).toThrow(
+        "Atomic file target is owned by another process",
+      );
+      expect(() => committer.removeSync(target)).toThrow(
+        "Atomic file target is owned by another process",
+      );
+      expect(() =>
+        committer.writeFileSync(target, Buffer.from("parent")),
+      ).toThrow("Atomic file target is owned by another process");
+    } finally {
+      child.send({ type: "release" });
+    }
+
+    await expect(exit).resolves.toEqual({ code: 0, signal: null });
+    expect(fs.readFileSync(target, "utf8")).toBe("child");
+    expect(fs.existsSync(`${target}.lock`)).toBe(false);
+  });
+
+  it("reclaims a dead process lock before committing", async () => {
+    const child = fork(workerPath, [target], {
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
+    });
+    const exit = waitForChildExit(child);
+    await waitForChildMessage(child, "locked");
+    child.kill();
+    await exit;
+
+    const committer = createAtomicFileCommitter();
+    committer.writeFileSync(target, Buffer.from("parent"));
+
+    expect(fs.readFileSync(target, "utf8")).toBe("parent");
+    expect(fs.existsSync(`${target}.lock`)).toBe(false);
+    expect(fs.existsSync(`${target}.lock.recovery`)).toBe(false);
+  });
+
+  it("fails closed on an invalid cross-process owner record", () => {
+    fs.writeFileSync(`${target}.lock`, "invalid-owner");
+    const committer = createAtomicFileCommitter();
+
+    expect(() =>
+      committer.writeFileSync(target, Buffer.from("blocked")),
+    ).toThrow("Atomic file lock owner is invalid");
+    expect(fs.existsSync(target)).toBe(false);
+    expect(fs.readFileSync(`${target}.lock`, "utf8")).toBe("invalid-owner");
+  });
+
   it("preserves the old target and removes the temporary file when rename fails", () => {
     fs.writeFileSync(target, "old");
     const failingFs = {
@@ -130,6 +222,7 @@ describe("secure config atomic file committer", () => {
     );
     expect(fs.readFileSync(target, "utf8")).toBe("old");
     expect(fs.existsSync(`${target}.tmp`)).toBe(false);
+    expect(fs.existsSync(`${target}.lock`)).toBe(false);
   });
 
   it("recovers a validated temporary file when the target is absent", () => {
