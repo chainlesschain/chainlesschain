@@ -6,6 +6,8 @@ const SAFE_EVENTS = new Set([
   "provider-defaulted",
   "provider-fallback-selected",
   "provider-selected",
+  "task-model-defaulted",
+  "task-model-selected",
 ]);
 
 function createLlmSelectorPrivacy(sink = logger) {

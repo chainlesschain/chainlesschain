@@ -1,4 +1,5 @@
-const { logger } = require("../utils/logger.js");
+const { createLlmSelectorPrivacy } = require("./llm-selector-privacy");
+const selectorPrivacy = createLlmSelectorPrivacy();
 
 /**
  * 火山引擎豆包模型列表和智能选择器
@@ -495,9 +496,7 @@ class VolcengineModelSelector {
     });
 
     if (candidates.length === 0) {
-      logger.warn(
-        `[ModelSelector] 未找到适合 ${taskType} 的模型，使用默认模型`,
-      );
+      selectorPrivacy.event("task-model-defaulted");
       return this.models["doubao-seed-1.6"];
     }
 
@@ -546,13 +545,7 @@ class VolcengineModelSelector {
     // 5. 返回最佳匹配
     const selectedModel = candidates[0];
 
-    logger.info(
-      `[ModelSelector] 为任务 ${taskType} 选择模型: ${selectedModel.name}`,
-    );
-    logger.info(`[ModelSelector] 模型能力:`, selectedModel.capabilities);
-    logger.info(
-      `[ModelSelector] 预估成本: ¥${selectedModel.pricing?.input || "N/A"}/百万tokens`,
-    );
+    selectorPrivacy.event("task-model-selected");
 
     return selectedModel;
   }
@@ -567,7 +560,7 @@ class VolcengineModelSelector {
       hasImage = false,
       hasVideo = false,
       needsThinking = false,
-      needsWebSearch = false,
+      needsWebSearch: _needsWebSearch = false,
       needsFunctionCalling = false,
       needsEmbedding = false,
       needsImageGeneration = false,
