@@ -6,60 +6,71 @@
  * @module secure-storage-ipc
  */
 
-const { logger } = require("../utils/logger.js");
-const { ipcMain, dialog, BrowserWindow } = require("electron");
+const {
+  ipcMain: defaultIpcMain,
+  dialog: defaultDialog,
+  BrowserWindow: DefaultBrowserWindow,
+} = require("electron");
 const path = require("path");
 const {
   getSecureConfigStorage,
   validateApiKeyFormat,
   sanitizeConfig,
-  extractSensitiveFields,
-  mergeSensitiveFields,
   isSensitiveField,
   getProviderSensitiveFields,
   SENSITIVE_FIELDS,
 } = require("./secure-config-storage");
+const { createSecureStoragePrivacy } = require("./secure-storage-privacy");
 
 /**
  * 注册安全存储 IPC 处理器
  */
-function registerSecureStorageIPC() {
-  const storage = getSecureConfigStorage();
+function registerSecureStorageIPC(dependencies = {}) {
+  const storage = dependencies.storage || getSecureConfigStorage();
+  const ipcMain = dependencies.ipcMain || defaultIpcMain;
+  const dialog = dependencies.dialog || defaultDialog;
+  const BrowserWindow = dependencies.BrowserWindow || DefaultBrowserWindow;
+  const privacy = dependencies.privacy || createSecureStoragePrivacy("ipc");
 
   /**
    * 获取存储信息
    */
   ipcMain.handle("secure-storage:get-info", async () => {
     try {
+      const info = storage.getStorageInfo();
       return {
         success: true,
-        data: storage.getStorageInfo(),
+        data: {
+          exists: info.exists === true,
+          safeStorageAvailable: info.safeStorageAvailable === true,
+          encryptionType: ["safeStorage", "aes", "legacy"].includes(
+            info.encryptionType,
+          )
+            ? info.encryptionType
+            : null,
+          version: Number.isSafeInteger(info.version) ? info.version : null,
+          backupCount: Number.isSafeInteger(info.backupCount)
+            ? info.backupCount
+            : 0,
+        },
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 获取存储信息失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("get-info");
     }
   });
 
   /**
    * 保存敏感配置
    */
-  ipcMain.handle("secure-storage:save", async (event, config) => {
+  ipcMain.handle("secure-storage:save", async (_event, config) => {
     try {
       const result = storage.save(config);
       return {
         success: result,
         error: result ? null : "保存失败",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 保存配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("save");
     }
   });
 
@@ -71,14 +82,10 @@ function registerSecureStorageIPC() {
       const config = storage.load();
       return {
         success: true,
-        data: config,
+        data: { configured: config != null },
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 加载配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("load");
     }
   });
 
@@ -91,11 +98,8 @@ function registerSecureStorageIPC() {
         success: true,
         data: storage.exists(),
       };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("exists");
     }
   });
 
@@ -109,12 +113,8 @@ function registerSecureStorageIPC() {
         success: result,
         error: result ? null : "删除失败",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 删除配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("delete");
     }
   });
 
@@ -123,18 +123,15 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:validate-api-key",
-    async (event, { provider, apiKey }) => {
+    async (_event, { provider, apiKey }) => {
       try {
         const result = validateApiKeyFormat(provider, apiKey);
         return {
           success: true,
-          data: result,
+          data: { valid: result.valid === true },
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("validate-api-key");
       }
     },
   );
@@ -147,15 +144,11 @@ function registerSecureStorageIPC() {
       const backupPath = storage.createBackup();
       return {
         success: !!backupPath,
-        data: backupPath,
+        data: backupPath ? { backupId: path.basename(backupPath) } : null,
         error: backupPath ? null : "没有配置可备份",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 创建备份失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("create-backup");
     }
   });
 
@@ -167,33 +160,41 @@ function registerSecureStorageIPC() {
       const backups = storage.listBackups();
       return {
         success: true,
-        data: backups,
+        data: backups.map((backup) => ({
+          backupId: path.basename(backup.filename || backup.path || ""),
+        })),
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 列出备份失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("list-backups");
     }
   });
 
   /**
    * 从备份恢复
    */
-  ipcMain.handle("secure-storage:restore-backup", async (event, backupPath) => {
+  ipcMain.handle("secure-storage:restore-backup", async (_event, backupId) => {
     try {
-      const result = storage.restoreFromBackup(backupPath);
+      const backup = storage
+        .listBackups()
+        .find(
+          (candidate) =>
+            path.basename(candidate.filename || candidate.path || "") ===
+            backupId,
+        );
+      if (!backup) {
+        return {
+          success: false,
+          error: "Backup not found",
+          code: "CC_SECURE_STORAGE_BACKUP_NOT_FOUND",
+        };
+      }
+      const result = storage.restoreFromBackup(backup.path);
       return {
         success: result,
         error: result ? null : "恢复失败",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 恢复备份失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("restore-backup");
     }
   });
 
@@ -227,15 +228,11 @@ function registerSecureStorageIPC() {
       );
       return {
         success: exportResult,
-        data: result.filePath,
+        data: exportResult ? { exported: true } : null,
         error: exportResult ? null : "导出失败",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 导出配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("export");
     }
   });
 
@@ -271,12 +268,8 @@ function registerSecureStorageIPC() {
         success: importResult,
         error: importResult ? null : "导入失败，请检查密码是否正确",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 导入配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("import");
     }
   });
 
@@ -290,12 +283,8 @@ function registerSecureStorageIPC() {
         success: result,
         error: result ? null : "safeStorage 不可用",
       };
-    } catch (error) {
-      logger.error("[SecureStorageIPC] 迁移失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("migrate-to-safe-storage");
     }
   });
 
@@ -306,11 +295,8 @@ function registerSecureStorageIPC() {
     try {
       storage.clearCache();
       return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("clear-cache");
     }
   });
 
@@ -329,7 +315,7 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:get-provider-fields",
-    async (event, provider) => {
+    async (_event, provider) => {
       return {
         success: true,
         data: getProviderSensitiveFields(provider),
@@ -340,7 +326,7 @@ function registerSecureStorageIPC() {
   /**
    * 检查字段是否敏感
    */
-  ipcMain.handle("secure-storage:is-sensitive", async (event, fieldPath) => {
+  ipcMain.handle("secure-storage:is-sensitive", async (_event, fieldPath) => {
     return {
       success: true,
       data: isSensitiveField(fieldPath),
@@ -350,18 +336,15 @@ function registerSecureStorageIPC() {
   /**
    * 脱敏配置
    */
-  ipcMain.handle("secure-storage:sanitize", async (event, config) => {
+  ipcMain.handle("secure-storage:sanitize", async (_event, config) => {
     try {
       const sanitized = sanitizeConfig(config);
       return {
         success: true,
         data: sanitized,
       };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("sanitize");
     }
   });
 
@@ -370,14 +353,15 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:set-api-key",
-    async (event, { provider, key, value }) => {
+    async (_event, { provider, key, value }) => {
       try {
         // 验证格式
         const validation = validateApiKeyFormat(provider, value);
         if (!validation.valid) {
           return {
             success: false,
-            error: validation.message,
+            error: "API Key format invalid",
+            code: "CC_SECURE_STORAGE_INVALID_API_KEY",
           };
         }
 
@@ -404,12 +388,8 @@ function registerSecureStorageIPC() {
           success: saveResult,
           error: saveResult ? null : "保存失败",
         };
-      } catch (error) {
-        logger.error("[SecureStorageIPC] 设置 API Key 失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("set-api-key");
       }
     },
   );
@@ -419,7 +399,7 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:get-api-key-masked",
-    async (event, { provider, key }) => {
+    async (_event, { provider, key }) => {
       try {
         const config = storage.load();
         if (!config) {
@@ -444,23 +424,12 @@ function registerSecureStorageIPC() {
           }
         }
 
-        // 脱敏处理
-        if (value && typeof value === "string" && value.length > 8) {
-          value =
-            value.substring(0, 4) + "****" + value.substring(value.length - 4);
-        } else if (value) {
-          value = "********";
-        }
-
         return {
           success: true,
-          data: value,
+          data: { configured: typeof value === "string" && value.length > 0 },
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("get-api-key-status");
       }
     },
   );
@@ -470,7 +439,7 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:delete-api-key",
-    async (event, { provider, key }) => {
+    async (_event, { provider, key }) => {
       try {
         const config = storage.load();
         if (!config) {
@@ -497,11 +466,8 @@ function registerSecureStorageIPC() {
         return {
           success: saveResult,
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("delete-api-key");
       }
     },
   );
@@ -511,7 +477,7 @@ function registerSecureStorageIPC() {
    */
   ipcMain.handle(
     "secure-storage:batch-set-api-keys",
-    async (event, apiKeys) => {
+    async (_event, apiKeys) => {
       try {
         const config = storage.load() || {};
         const errors = [];
@@ -522,7 +488,7 @@ function registerSecureStorageIPC() {
           const validation = validateApiKeyFormat(provider, value);
 
           if (!validation.valid) {
-            errors.push({ field: fieldPath, error: validation.message });
+            errors.push(fieldPath);
             continue;
           }
 
@@ -543,8 +509,9 @@ function registerSecureStorageIPC() {
         if (errors.length > 0) {
           return {
             success: false,
-            errors: errors,
-            error: `${errors.length} 个 API Key 格式验证失败`,
+            invalidCount: errors.length,
+            error: "One or more API Keys have an invalid format",
+            code: "CC_SECURE_STORAGE_INVALID_API_KEY",
           };
         }
 
@@ -553,12 +520,8 @@ function registerSecureStorageIPC() {
           success: saveResult,
           error: saveResult ? null : "保存失败",
         };
-      } catch (error) {
-        logger.error("[SecureStorageIPC] 批量设置 API Keys 失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("batch-set-api-keys");
       }
     },
   );
@@ -566,7 +529,7 @@ function registerSecureStorageIPC() {
   /**
    * 检查提供商是否已配置 API Key
    */
-  ipcMain.handle("secure-storage:has-api-key", async (event, provider) => {
+  ipcMain.handle("secure-storage:has-api-key", async (_event, provider) => {
     try {
       const config = storage.load();
       if (!config) {
@@ -581,11 +544,8 @@ function registerSecureStorageIPC() {
         success: true,
         data: !!apiKey && apiKey.length > 0,
       };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("has-api-key");
     }
   });
 
@@ -621,21 +581,20 @@ function registerSecureStorageIPC() {
         success: true,
         data: providers,
       };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("get-configured-providers");
     }
   });
 
-  logger.info("[SecureStorageIPC] IPC 处理器已注册");
+  privacy.event("ipc-registered");
 }
 
 /**
  * 注销 IPC 处理器
  */
-function unregisterSecureStorageIPC() {
+function unregisterSecureStorageIPC(dependencies = {}) {
+  const ipcMain = dependencies.ipcMain || defaultIpcMain;
+  const privacy = dependencies.privacy || createSecureStoragePrivacy("ipc");
   const channels = [
     "secure-storage:get-info",
     "secure-storage:save",
@@ -666,7 +625,7 @@ function unregisterSecureStorageIPC() {
     ipcMain.removeHandler(channel);
   }
 
-  logger.info("[SecureStorageIPC] IPC 处理器已注销");
+  privacy.event("ipc-unregistered");
 }
 
 module.exports = {

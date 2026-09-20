@@ -434,14 +434,14 @@ describe("SecureConfigStorage", () => {
       expect(sanitized.openai.apiKey).not.toBe("sk-abcdefghijklmnopqrstuvwxyz");
     });
 
-    it("应该保留前4后4字符", () => {
+    it("不应该保留密钥首尾字符", () => {
       const config = {
         openai: { apiKey: "sk-abcdefghijklmnopqrstuvwxyz" },
       };
 
       const sanitized = sanitizeConfig(config);
 
-      expect(sanitized.openai.apiKey).toMatch(/^sk-a.*wxyz$/);
+      expect(sanitized.openai.apiKey).toBe("********");
     });
 
     it("应该处理短API Key", () => {
