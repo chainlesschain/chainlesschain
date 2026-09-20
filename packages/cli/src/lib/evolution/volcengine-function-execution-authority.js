@@ -43,7 +43,7 @@ export const VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA =
 export const VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA =
   "chainlesschain.volcengine-function-revocation-result/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-evidence-resolver/v3";
+  "chainlesschain.volcengine-function-revocation-evidence-resolver/v4";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA =
   "chainlesschain.volcengine-function-revocation-evidence-request/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA =
@@ -52,12 +52,16 @@ export const VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA =
   "chainlesschain.volcengine-function-revocation-authorization-evidence/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_SIGNER_CERTIFICATE_SCHEMA =
   "chainlesschain.volcengine-function-revocation-signer-certificate/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_SIGNER_REVOCATIONS_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-signer-revocations/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE =
   "digest-bound-exact-bytes";
 export const VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE =
   "ed25519-certified-signer";
 export const VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE =
   "ed25519-root-signed-leaf";
+export const VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_STATUS_MODE =
+  "ed25519-root-signed-revocation-snapshot";
 export const VOLCENGINE_FUNCTION_REVOCATION_PURPOSE =
   "revoke-model-tool-execution";
 export const VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE = "operator-signed";
@@ -933,10 +937,13 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "mode",
       "signatureMode",
       "certificateMode",
+      "certificateStatusMode",
       "trustRootDigest",
       "rootKeyId",
       "signerKeyId",
       "signerCertificateDigest",
+      "signerRevocationsDigest",
+      "signerRevocationsRevision",
       "revocationAuthorityId",
       "maxEvidenceBytes",
     ],
@@ -983,6 +990,11 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       "certificateMode",
       "Volcengine function revocation evidence certificate mode",
     ),
+    certificateStatusMode: ownData(
+      value,
+      "certificateStatusMode",
+      "Volcengine function revocation evidence certificate status mode",
+    ),
     trustRootDigest: ownData(
       value,
       "trustRootDigest",
@@ -1002,6 +1014,16 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       value,
       "signerCertificateDigest",
       "Volcengine function revocation signer certificate digest",
+    ),
+    signerRevocationsDigest: ownData(
+      value,
+      "signerRevocationsDigest",
+      "Volcengine function revocation signer revocations digest",
+    ),
+    signerRevocationsRevision: ownData(
+      value,
+      "signerRevocationsRevision",
+      "Volcengine function revocation signer revocations revision",
     ),
     revocationAuthorityId: ownData(
       value,
@@ -1026,10 +1048,15 @@ function normalizeRevocationEvidenceResolverDescriptor(value) {
       VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE ||
     descriptor.certificateMode !==
       VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_MODE ||
+    descriptor.certificateStatusMode !==
+      VOLCENGINE_FUNCTION_REVOCATION_CERTIFICATE_STATUS_MODE ||
     !DIGEST.test(descriptor.trustRootDigest) ||
     !ID.test(descriptor.rootKeyId) ||
     !ID.test(descriptor.signerKeyId) ||
     !DIGEST.test(descriptor.signerCertificateDigest) ||
+    !DIGEST.test(descriptor.signerRevocationsDigest) ||
+    !Number.isSafeInteger(descriptor.signerRevocationsRevision) ||
+    descriptor.signerRevocationsRevision < 1 ||
     !ID.test(descriptor.revocationAuthorityId) ||
     !Number.isSafeInteger(descriptor.maxEvidenceBytes) ||
     descriptor.maxEvidenceBytes < 1 ||
@@ -1246,10 +1273,152 @@ function verifyRevocationSignerCertificate(
   return Object.freeze({ subjectPublicKey, notBeforeMs, notAfterMs });
 }
 
+function verifyRevocationSignerRevocations(
+  descriptor,
+  trustRootPublicKey,
+  signerRevocationsBytes,
+) {
+  if (
+    digestBytes(signerRevocationsBytes) !== descriptor.signerRevocationsDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation signer status is invalid",
+    );
+  }
+  const value = parseCanonicalJsonBytes(
+    signerRevocationsBytes,
+    [
+      "schema",
+      "trustRootDigest",
+      "issuerKeyId",
+      "tenantId",
+      "revocationAuthorityId",
+      "revision",
+      "issuedAt",
+      "nextUpdate",
+      "revokedCertificateDigests",
+      "signature",
+    ],
+    "Volcengine function revocation signer status",
+  );
+  const revokedCertificateDigests = Object.freeze(
+    directArrayValues(
+      ownData(
+        value,
+        "revokedCertificateDigests",
+        "Volcengine function revoked signer certificates",
+      ),
+      "Volcengine function revoked signer certificates",
+      4096,
+    ),
+  );
+  const core = Object.freeze({
+    schema: ownData(
+      value,
+      "schema",
+      "Volcengine function revocation signer status schema",
+    ),
+    trustRootDigest: ownData(
+      value,
+      "trustRootDigest",
+      "Volcengine function revocation signer status trust root",
+    ),
+    issuerKeyId: ownData(
+      value,
+      "issuerKeyId",
+      "Volcengine function revocation signer status issuer",
+    ),
+    tenantId: ownData(
+      value,
+      "tenantId",
+      "Volcengine function revocation signer status tenant",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine function revocation signer status authority",
+    ),
+    revision: ownData(
+      value,
+      "revision",
+      "Volcengine function revocation signer status revision",
+    ),
+    issuedAt: ownData(
+      value,
+      "issuedAt",
+      "Volcengine function revocation signer status issue time",
+    ),
+    nextUpdate: ownData(
+      value,
+      "nextUpdate",
+      "Volcengine function revocation signer status next update",
+    ),
+    revokedCertificateDigests,
+  });
+  const signature = decodeCanonicalBase64(
+    ownData(
+      value,
+      "signature",
+      "Volcengine function revocation signer status signature",
+    ),
+    "Volcengine function revocation signer status signature",
+    64,
+  );
+  const issuedAtMs = Date.parse(core.issuedAt);
+  const nextUpdateMs = Date.parse(core.nextUpdate);
+  if (
+    core.schema !== VOLCENGINE_FUNCTION_REVOCATION_SIGNER_REVOCATIONS_SCHEMA ||
+    core.trustRootDigest !== descriptor.trustRootDigest ||
+    core.issuerKeyId !== descriptor.rootKeyId ||
+    core.tenantId !== descriptor.tenantId ||
+    core.revocationAuthorityId !== descriptor.revocationAuthorityId ||
+    core.revision !== descriptor.signerRevocationsRevision ||
+    !Number.isSafeInteger(core.revision) ||
+    core.revision < 1 ||
+    revokedCertificateDigests.some(
+      (entry, index) =>
+        !DIGEST.test(entry) ||
+        (index > 0 && entry <= revokedCertificateDigests[index - 1]),
+    ) ||
+    !Number.isFinite(issuedAtMs) ||
+    new Date(issuedAtMs).toISOString() !== core.issuedAt ||
+    !Number.isFinite(nextUpdateMs) ||
+    new Date(nextUpdateMs).toISOString() !== core.nextUpdate ||
+    nextUpdateMs <= issuedAtMs ||
+    nextUpdateMs > issuedAtMs + 24 * 60 * 60 * 1000 ||
+    signature.length !== 64 ||
+    !verifySignature(
+      null,
+      Buffer.from(
+        `${VOLCENGINE_FUNCTION_REVOCATION_SIGNER_REVOCATIONS_SCHEMA}\0${canonical(core)}`,
+        "utf8",
+      ),
+      trustRootPublicKey,
+      signature,
+    )
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation signer status signature rejected",
+    );
+  }
+  if (revokedCertificateDigests.includes(descriptor.signerCertificateDigest)) {
+    throw new TypeError(
+      "Volcengine function revocation signer certificate was revoked",
+    );
+  }
+  return Object.freeze({ issuedAtMs, nextUpdateMs });
+}
+
 export function createVolcengineFunctionRevocationEvidenceResolver(options) {
   exactData(
     options,
-    ["descriptor", "resolve", "trustRootBytes", "signerCertificateBytes"],
+    [
+      "descriptor",
+      "resolve",
+      "trustRootBytes",
+      "signerCertificateBytes",
+      "signerRevocationsBytes",
+    ],
     "Volcengine function revocation evidence resolver",
   );
   const descriptor = normalizeRevocationEvidenceResolverDescriptor(
@@ -1317,6 +1486,20 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
     publicKey,
     signerCertificateBytes,
   );
+  const signerRevocationsBytes = copyEvidenceBytes(
+    ownData(
+      options,
+      "signerRevocationsBytes",
+      "Volcengine function revocation signer status",
+    ),
+    "Volcengine function revocation signer status",
+    1024 * 1024,
+  );
+  const signerStatus = verifyRevocationSignerRevocations(
+    descriptor,
+    publicKey,
+    signerRevocationsBytes,
+  );
   const resolver = Object.freeze({});
   revocationEvidenceResolvers.set(resolver, {
     descriptor,
@@ -1328,6 +1511,8 @@ export function createVolcengineFunctionRevocationEvidenceResolver(options) {
     publicKey: signerCertificate.subjectPublicKey,
     signerNotBeforeMs: signerCertificate.notBeforeMs,
     signerNotAfterMs: signerCertificate.notAfterMs,
+    signerStatusIssuedAtMs: signerStatus.issuedAtMs,
+    signerStatusNextUpdateMs: signerStatus.nextUpdateMs,
   });
   return resolver;
 }
@@ -1439,8 +1624,10 @@ function verifyRevocationAuthorizationEvidence(
     core.validUntil !== decision.validUntil ||
     !Number.isFinite(authorizedAtMs) ||
     authorizedAtMs < captured.signerNotBeforeMs ||
+    authorizedAtMs < captured.signerStatusIssuedAtMs ||
     !Number.isFinite(validUntilMs) ||
-    validUntilMs > captured.signerNotAfterMs
+    validUntilMs > captured.signerNotAfterMs ||
+    validUntilMs > captured.signerStatusNextUpdateMs
   ) {
     throw new TypeError(
       "Volcengine function revocation authorization evidence is invalid",
