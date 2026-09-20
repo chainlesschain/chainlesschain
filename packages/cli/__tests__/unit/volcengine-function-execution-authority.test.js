@@ -1,4 +1,8 @@
-import { createHash } from "node:crypto";
+import {
+  createHash,
+  generateKeyPairSync,
+  sign as signBytes,
+} from "node:crypto";
 import fs, { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,11 +16,13 @@ import {
   VOLCENGINE_FUNCTION_RECEIPT_SCHEMA,
   VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
   VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
   VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE,
   captureVolcengineFunctionRevocationAuthority,
   captureVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionExecutionAuthority,
@@ -37,7 +43,15 @@ import {
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
 const REPLAY_RETENTION_MS = 65_000;
 const temporaryRoots = [];
-const AUTHORIZATION_EVIDENCE_BYTES = Buffer.from("revocation-authorization");
+const { privateKey: REVOCATION_SIGNING_KEY, publicKey: REVOCATION_TRUST_ROOT } =
+  generateKeyPairSync("ed25519");
+const REVOCATION_TRUST_ROOT_BYTES = Buffer.from(
+  REVOCATION_TRUST_ROOT.export({
+    type: "spki",
+    format: "pem",
+  }),
+);
+const REVOCATION_SIGNER_KEY_ID = "revocation-operator-key:test";
 const AUDIT_EVENT_BYTES = Buffer.from("revocation-audit-event");
 const DURABILITY_RECEIPT_BYTES = Buffer.from("revocation-durability-receipt");
 
@@ -67,6 +81,34 @@ function domainDigest(domain, value) {
 
 function sha(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function authorizationEvidenceBytes(
+  requestDigest,
+  overrides = {},
+  signingKey = REVOCATION_SIGNING_KEY,
+) {
+  const core = {
+    schema: VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA,
+    trustRootDigest: sha(REVOCATION_TRUST_ROOT_BYTES),
+    signerKeyId: REVOCATION_SIGNER_KEY_ID,
+    tenantId: "tenant:test",
+    revocationAuthorityId: "function-revocation:test",
+    authorizationRequestDigest: requestDigest,
+    decision: "allow",
+    authorizedAt: new Date(NOW).toISOString(),
+    validUntil: new Date(NOW + 1000).toISOString(),
+    ...overrides,
+  };
+  const signature = signBytes(
+    null,
+    Buffer.from(
+      `${VOLCENGINE_FUNCTION_REVOCATION_AUTHORIZATION_EVIDENCE_SCHEMA}\0${canonical(core)}`,
+      "utf8",
+    ),
+    signingKey,
+  ).toString("base64");
+  return Buffer.from(canonical({ ...core, signature }), "utf8");
 }
 
 function functionPolicies() {
@@ -264,7 +306,9 @@ function createRevocationPort(
   authorize = async (value) => ({
     decision: "allow",
     requestDigest: value.requestDigest,
-    authorizationEvidenceDigest: sha(AUTHORIZATION_EVIDENCE_BYTES),
+    authorizationEvidenceDigest: sha(
+      authorizationEvidenceBytes(value.requestDigest),
+    ),
     auditEventDigest: sha(AUDIT_EVENT_BYTES),
     durabilityReceiptDigest: sha(DURABILITY_RECEIPT_BYTES),
     authenticated: true,
@@ -283,6 +327,9 @@ function createRevocationPort(
     handlerArtifactDigest: targetDescriptor.handlerArtifactDigest,
     policyRevision: "revocation-evidence-policy-1",
     mode: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
+    signatureMode: VOLCENGINE_FUNCTION_REVOCATION_SIGNATURE_MODE,
+    trustRootDigest: sha(REVOCATION_TRUST_ROOT_BYTES),
+    signerKeyId: REVOCATION_SIGNER_KEY_ID,
     maxEvidenceBytes: 4096,
     ...evidenceOverrides.descriptor,
   };
@@ -292,11 +339,15 @@ function createRevocationPort(
       descriptor: evidenceResolverDescriptor,
       resolve:
         evidenceOverrides.resolve ||
-        (async () => ({
-          authorizationEvidenceBytes: AUTHORIZATION_EVIDENCE_BYTES,
+        (async (value) => ({
+          authorizationEvidenceBytes: authorizationEvidenceBytes(
+            value.authorizationRequestDigest,
+          ),
           auditEventBytes: AUDIT_EVENT_BYTES,
           durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
         })),
+      trustRootBytes:
+        evidenceOverrides.trustRootBytes || REVOCATION_TRUST_ROOT_BYTES,
     });
   return captureVolcengineFunctionRevocationAuthority(
     createVolcengineFunctionRevocationAuthority({
@@ -564,8 +615,10 @@ describe("Volcengine function execution authority", () => {
 
   it("resolves and verifies the exact revocation evidence bytes before persisting", async () => {
     const target = setup();
-    const resolveEvidence = vi.fn(async () => ({
-      authorizationEvidenceBytes: AUTHORIZATION_EVIDENCE_BYTES,
+    const resolveEvidence = vi.fn(async (value) => ({
+      authorizationEvidenceBytes: authorizationEvidenceBytes(
+        value.authorizationRequestDigest,
+      ),
       auditEventBytes: AUDIT_EVENT_BYTES,
       durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
     }));
@@ -578,17 +631,22 @@ describe("Volcengine function execution authority", () => {
     ).revokeAuthority(target.authority, revocationRequest());
 
     expect(resolveEvidence).toHaveBeenCalledOnce();
-    expect(resolveEvidence.mock.calls[0][0]).toMatchObject({
+    const resolutionRequest = resolveEvidence.mock.calls[0][0];
+    expect(resolutionRequest).toMatchObject({
       resolverId: "revocation-evidence:test",
       tenantId: "tenant:test",
       handlerArtifactDigest: sha("signed-deployment"),
       revocationAuthorityId: "function-revocation:test",
-      authorizationEvidenceDigest: sha(AUTHORIZATION_EVIDENCE_BYTES),
+      authorizationEvidenceDigest: sha(
+        authorizationEvidenceBytes(
+          resolutionRequest.authorizationRequestDigest,
+        ),
+      ),
       auditEventDigest: sha(AUDIT_EVENT_BYTES),
       durabilityReceiptDigest: sha(DURABILITY_RECEIPT_BYTES),
       requestDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
     });
-    expect(Object.isFrozen(resolveEvidence.mock.calls[0][0])).toBe(true);
+    expect(Object.isFrozen(resolutionRequest)).toBe(true);
     expect(result).toMatchObject({
       status: "revoked",
       evidenceResolverDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
@@ -623,6 +681,46 @@ describe("Volcengine function execution authority", () => {
     ).resolves.toBeDefined();
   });
 
+  it("rejects authorization evidence signed outside the pinned trust root", async () => {
+    const target = setup();
+    const { privateKey: foreignSigningKey } = generateKeyPairSync("ed25519");
+    const foreignEvidence = (requestDigest) =>
+      authorizationEvidenceBytes(requestDigest, {}, foreignSigningKey);
+    const authorize = async (value) => ({
+      decision: "allow",
+      requestDigest: value.requestDigest,
+      authorizationEvidenceDigest: sha(foreignEvidence(value.requestDigest)),
+      auditEventDigest: sha(AUDIT_EVENT_BYTES),
+      durabilityReceiptDigest: sha(DURABILITY_RECEIPT_BYTES),
+      authenticated: true,
+      durable: true,
+      readbackVerified: true,
+      authorizedAt: new Date(NOW).toISOString(),
+      validUntil: new Date(NOW + 1000).toISOString(),
+    });
+    const resolveEvidence = async (value) => ({
+      authorizationEvidenceBytes: foreignEvidence(
+        value.authorizationRequestDigest,
+      ),
+      auditEventBytes: AUDIT_EVENT_BYTES,
+      durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
+    });
+
+    await expect(
+      createRevocationPort(descriptor(), authorize, undefined, {
+        resolve: resolveEvidence,
+      }).revokeAuthority(
+        target.authority,
+        revocationRequest({ requestId: "revocation-foreign-signature" }),
+      ),
+    ).rejects.toThrow("authorization evidence signature rejected");
+    await expect(
+      target.port.executeFunction(
+        request({ requestId: "after-foreign-signature" }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it("binds the revocation authority to one branded evidence resolver", () => {
     expect(() =>
       createRevocationPort(descriptor(), undefined, undefined, {
@@ -641,6 +739,26 @@ describe("Volcengine function execution authority", () => {
         resolver: Object.freeze({}),
       }),
     ).toThrow("branded Volcengine function revocation evidence resolver");
+    const foreignTrustRoot = Buffer.from(
+      generateKeyPairSync("ed25519").publicKey.export({
+        type: "spki",
+        format: "pem",
+      }),
+    );
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        trustRootBytes: foreignTrustRoot,
+      }),
+    ).toThrow("evidence trust root is invalid");
+    const privateKeyBytes = Buffer.from(
+      REVOCATION_SIGNING_KEY.export({ type: "pkcs8", format: "pem" }),
+    );
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        descriptor: { trustRootDigest: sha(privateKeyBytes) },
+        trustRootBytes: privateKeyBytes,
+      }),
+    ).toThrow("evidence trust root is invalid");
   });
 
   it("binds the revocation authority to one signed execution authority", async () => {
