@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.66: governed browser actions and durable quarantine custody
+
+- Govern browser observation, navigation, tab creation, history traversal,
+  keyboard actions, and downloads through explicit action authorities instead
+  of allowing implicit automation side effects.
+- Stream downloads into a durable filesystem quarantine with cross-process
+  locks, authenticated retention and revocation decisions, crash recovery,
+  expiry sweeps, and auditable disposal custody.
+- Isolate PM exploration runners, reviewers, and graders in bounded child
+  processes; bind their evidence, recovery snapshots, egress decisions, and
+  benchmark receipts to the governed execution context.
+- Migrate mixed evolution receipt histories under an explicit compatibility
+  policy while preserving fail-closed verification for unsupported records.
+
 ### Fixed - cc CLI 0.166.65: resume after bounded loop-recovery pauses
 
 - Stop synthetic `CC_TOOL_RECOVERY_PAUSED` results from feeding the same
@@ -2919,7 +2933,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.167：增量 gap-analysis 收尾——P0 沙箱远程脚本执行检测 + 4 个生命周期事件钩子（CwdChanged/Worktree/InstructionsLoaded）+ doctor 孤儿子进程 + 4 项杂项接线（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。
+> `chainlesschain` 0.162.166 → **0.162.167** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（+ 测试 + gap-analysis 文档状态更新）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**无新增顶层命令，命令数 175 不变**；所有改动 opt-in / 默认路径字节不变。本版把 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 的多个可 Windows 落地「仍欠」项整批接线。
 
 - **P0 沙箱：run_shell 远程脚本执行检测**：新增统一「代码获取」分类器——把 20+ 包管理器安装命令（npm/pip/cargo/gem/go/apt/…）与 `curl … | sh` / `wget -O- | bash` 一类**下载即执行**的远程脚本归为一类，在 shell 审批时抬高风险地板并落审计（记录带 `remoteExec` 标记）；`cat script.sh | sh`（本地文件）与 `curl -O file`（仅下载不执行）不误报。默认路径字节不变。
 - **P2 生命周期事件钩子——4 个命令层生产者**：为新的 settings.json 生命周期事件类型接上真实触发点（此前它们只在事件总线注册、无生产者、loader 不认、`cc doctor` 还会当 unknown-event 告警用户配的钩子）：`CwdChanged`（REPL `/cd` 改工作目录后）、`WorktreeCreate`/`WorktreeRemove`（`cc agent --worktree` 会话 create/finish 一对，payload 含 branch/base_sha，remove 带 `removed`/`reason` 区分自动删与保留）、`InstructionsLoaded`（会话启动组装完项目指令块后，携本会话权威指令文件清单 `{path,scope,truncated}`，**绝不含文件内容**）。全部 observe-only、无注册 hook 时字节不变；`InstructionsLoaded` 经 `composeSystemPrompt` 可选回调拿**真正注入**的那份文件集（零漂移，非另行 re-discover）。三处会话入口（headless / stream / REPL）与 SessionStart 同点触发。
@@ -2928,7 +2942,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.166：P1-9「Capability Manifest 与脱敏诊断包」收官——协议文档 CI byte-diff / 离线协议回放 / 治理覆盖率指标（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.165 → **0.162.166** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 3 个 `src/lib` 纯逻辑模块 + 3 个 `scripts/` 离线工具 + 测试）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**只加 npm 脚本 + 离线工具,无新增顶层命令,命令数 175 不变**;默认路径字节不变。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项全部收口。
+> `chainlesschain` 0.162.165 → **0.162.166** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量（新增 3 个 `src/lib` 纯逻辑模块 + 3 个 `scripts/` 离线工具 + 测试）；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。**只加 npm 脚本 + 离线工具,无新增顶层命令,命令数 175 不变**;默认路径字节不变。本版把 `docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的 P1-9 三个剩项全部收口。
 
 - **协议能力文档 CI byte-diff 单源生成**：新增生成器 `scripts/gen-protocol-doc.mjs`（`--out`/`--check`）从唯一源 `capability-manifest.js` `renderProtocolDoc()` 投影出 `docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md`（协议版本 + 可协商 wire 特性表 + 权限模式）；npm 脚本 `docs:protocol` / `docs:protocol:check`；`capability-manifest.test.js` 新增 byte-diff 断言（读签入副本 = `renderProtocolDoc()`），manifest 加 wire 字段但未重生成即测试红——drift 不可能 merge 绿。
 - **离线协议回放 + 兼容审计**：新增 `protocol-replay.js`——拿一段录制的 stream-json 会话 + 协商上下文（server×client offer），**无需活体对端**离线①回放到该协商下的线上形态（未通过协商的字段按 field-gate 剥离）②审计录制是否遵守协商（任何帧携带已 gate-OFF 的可协商 wire 字段 = 前向兼容违规,fail-closed）。可 gate 字段集从唯一源 `toFieldGate()` 投影不会漂移；`sessionDigest` 键序无关可 pin golden 录制。离线工具 `scripts/replay-protocol.mjs`（`--replay`/`--audit`,违规 exit 1）+ golden fixture。
@@ -2944,7 +2958,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.164：IDE 增量 gap-analysis (2026-07-13) 全批接线落地——凭据脱敏三导出面 / /rewind 从这里分支 / cc doctor 执行位置 / cc session pr-status / 复杂 Diff 行评论锚定 / 终端上下文策略 / worktree 清理安全闸 / 崩溃恢复台账 / 无人值守动作门 / 跨设备操作指纹（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.163 → **0.162.164** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 **session 子命令 `cc session pr-status`** 与 REPL `/rewind <n> --branch`、`cc doctor` 新增「Execution context」诊断段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（纯核已建、本版补真实运行时/命令面接线，默认路径保持字节不变）。
+> `chainlesschain` 0.162.163 → **0.162.164** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加 **session 子命令 `cc session pr-status`** 与 REPL `/rewind <n> --branch`、`cc doctor` 新增「Execution context」诊断段 + 工具 flag，**顶层命令数 175 不变**。本版把 `docs/research/ide/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md` 的可 Windows 落地项整批接线（纯核已建、本版补真实运行时/命令面接线，默认路径保持字节不变）。
 
 - **8.1 凭据脱敏三导出面全闸**：一份导出物离机必须朝「不泄漏」失败——`cc session export` 导出前对渲染 transcript 跑召回优先 secret-scan（命中替 `[REDACTED]`，脱敏计数写 stderr，`--no-redact` 保原值）；OTLP `toOtlp()` 对 span/event 字符串属性（含 exception message）默认脱敏（`cc agent/team --otlp`、`cc eval`）；诊断包 `cc doctor --export-bundle` 强制脱敏（P1-9）。三面共用同一 recall-first 扫描器。
 - **P0-2 崩溃恢复副作用台账**：两阶段记账 `prepare→start→commit|fail|unknown` 接进 headless 与 IDE/Bridge/Extension-Host resume——`--resume` reconcile 台账，started-未落定-非幂等 op 注入去标识「Recovery notice」而非盲目重跑；Diff-Apply 内容哈希幂等（old 已改+new 已在→幂等 no-op 不重写）；外部操作 Idempotency Key + 0-重复副作用度量。
@@ -2962,7 +2976,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.163：增量 gap-analysis last-mile 运行时接线——Subagent 契约全轴强制 / 跨 Agent 授权边界 / 完成条件引擎 / Turn↔Checkpoint 持久化 / hook 事件日志+replay / plugin consent 生命周期 / /goal 循环 / --json-schema / OTel（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。
+> `chainlesschain` 0.162.162 → **0.162.163** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面只加子命令（`cc agenda prune`、`cc plugin consent`、`cc hook replay`/`events-log`、`cc context --sources`）与 REPL slash（`/goal`）+ 工具参数/flag，**顶层命令数 175 不变**。本版把 0.162.162 announce 的多数纯核落成真实**运行时接线**，并补齐 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md` 各节的 last-mile「仍欠」。全套本地三层全绿（unit+integration 25,008 + e2e 628，0 真失败）。
 
 - **Subagent 契约全轴强制（P1）**：`_executeSpawnSubAgent` 真正消费 `resolveSubagentContract`（spawnArgs > agent-file > 父级天花板），tighten-only 强制 skills/mcp/hooks/memory capability INTERSECT、permissionMode（plan→只读工具集）、budget/effort/context、worktree fail-closed、递归深度/宽度上限；非 plan confirmer 线程化 + headless 与交互 REPL 均以运行模式播种子级天花板；子级专属无 confirmer ApprovalGate 强制 run_shell/run_code/browser_act 会话策略。
 - **跨 Agent 授权边界接线（P0）**：本地 headless 审批链路携带并校验 `tool_call_id + normalized_arguments + policy_digest` 绑定（重放/参数替换/错投的批准判 `binding-mismatch` 拒绝）；入站 channel 事件显式打 steer authority（其载荷里的 "approved" 只是文本，不能代表用户批准）。
@@ -2979,7 +2993,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.162：增量 gap-analysis 收尾（P1 Subagent 契约/Turn-Checkpoint 绑定/Plugin 能力 Schema + P2 Hooks 事件总线/JSON Schema/多 Agent Review + LSP 诊断/Doctor+文档+OTel）+ IDE gap P0（远程审批指纹/会话生命周期）（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.161 → **0.162.162** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 一个构建脚本；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）的 P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」（多为环境/平台阻塞或运行时深接线）。
+> `chainlesschain` 0.162.161 → **0.162.162** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + 一个构建脚本；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（全部为纯核 lib 模块 + 最小接线 + 一个 `scripts/gen-cli-reference.mjs` 生成器），**顶层命令数 175 不变**。至此 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）的 P0/P1/P2 全部章节均有「已落地（增量）」记录；每节仍列「仍欠」（多为环境/平台阻塞或运行时深接线）。
 >
 > 全部为纯核 + 时钟注入（无 timer/RNG，确定性可测）+ 最小真实接线的低风险增量；新增测试文件本地全绿。
 
@@ -2994,7 +3008,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.161：增量 gap-analysis（P0 后台状态机/跨 Agent 授权/凭据代理 + P1 完成条件/Monorepo 排除/持久 Scheduler）+ bg-\* WS relay 协议硬化（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.160 → **0.162.161** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/agent-sdk` 协议增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（`cc agenda list` 增 `nextWakeupAt` 字段），**顶层命令数 175 不变**。对照 `docs/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 Windows-可做、自包含、全测试的最有价值切片，每节文档记录「已落地」与「仍欠」。
+> `chainlesschain` 0.162.160 → **0.162.161** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` + `packages/agent-sdk` 协议增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面无新顶层命令（`cc agenda list` 增 `nextWakeupAt` 字段），**顶层命令数 175 不变**。对照 `docs/research/cli/CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`（vs Claude Code v2.1.207）逐节落地 P0/P1 Windows-可做、自包含、全测试的最有价值切片，每节文档记录「已落地」与「仍欠」。
 >
 > 全部为纯核 + 时钟注入（无 timer/RNG，确定性可测）+ 最小真实接线的低风险增量；已落地增量的 9 个测试文件 148 测全绿。
 
@@ -3009,7 +3023,7 @@ Sandbox` (`31329476020`) matrices passed; the formal two-hour
 
 ### Added — cc CLI 0.162.160：运行时安全与确定性 8 批（沙箱严格模式 + 依赖/凭据安全 + 确定性 Headless + Subagent 契约 + MCP 生命周期 + Hooks 硬化）（CLI-only npm 发版）
 
-> `chainlesschain` 0.162.159 → **0.162.160** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面**只加子命令**（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**（manifest 无需重生）。对照 `docs/CLAUDE_CODE_CLI_GAP_ANALYSIS.md`（docs 根）审计确认仍缺的 8 项全落地（commit 链 `c4533ad848..4c2e297754`）。
+> `chainlesschain` 0.162.159 → **0.162.160** 发 npm `latest`（经 `npm-publish.yml`，`--provenance --access public`）。纯 `packages/cli/src` 增量；未触 `pdh/lib` → 无 Android cc bundle rollover / 无 USR_VERSION 改动。命令面**只加子命令**（`cc session rename/prune`、`cc daemon rm`、`cc mcp trust-project`），**顶层命令数 175 不变**（manifest 无需重生）。对照 `docs/research/cli/CLAUDE_CODE_CLI_GAP_ANALYSIS.md`（docs 根）审计确认仍缺的 8 项全落地（commit 链 `c4533ad848..4c2e297754`）。
 >
 > ⚠️ **行为变更（升级前须知）**：① `run_code` 的 pip 依赖**默认不再自动安装**（改 opt-in，见下）；② agent 脚本默认写 OS 临时目录、不再落项目根（`persist:true` 才进项目）；③ headless/agent **退出码细化**——最大轮次→3、预算超限→4、模型错误→5、配置错误→6（成功仍 0、通用失败仍 1、hook block 仍 2、SIGINT/SIGTERM 仍 130/143）。依赖固定 exit≠0 判失败的脚本不受影响；依赖"失败必为 1"的脚本需放宽。
 
