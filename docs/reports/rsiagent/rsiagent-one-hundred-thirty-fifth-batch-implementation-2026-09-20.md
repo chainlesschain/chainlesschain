@@ -21,7 +21,7 @@
 
 ## 未完成边界
 
-- Manager 的 provider/model/budget 等成功或策略事件仍按现有合同广播；直接方法的上游 rejection 后续已由第一百七十一批统一重建为固定失败，成功与非失败事件的最小披露尚未全部完成。
+- Manager 直接方法的上游 rejection 后续已由第一百七十一批统一重建为固定失败，provider/model/budget 等成功与非失败事件也已由第一百七十二批收窄为固定回执。
 - Core/辅助 IPC 的成功 payload，以及 selector、context/session/memory/Manus 等其他 LLM 模块日志与错误通道仍待收口。
 - Electron JavaScript 入口前的原生致命 stderr、tenant HMAC、生产日志保留/访问控制仍未完成。
 - G03 仍为部分完成，真实 Electron/browser/provider E2E 与生产 authority/隐私验收仍不可省略。

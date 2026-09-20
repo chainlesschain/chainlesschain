@@ -56,6 +56,21 @@ describe("LLM manager privacy boundary", () => {
     });
   });
 
+  it("returns fixed public event receipts", () => {
+    const privacy = createLlmManagerPrivacy(sink);
+
+    expect(privacy.publicEvent("chat-completed")).toEqual({
+      code: "CC_LLM_MANAGER_EVENT",
+      component: "manager",
+      event: "chat-completed",
+    });
+    expect(privacy.publicEvent("private-event")).toEqual({
+      code: "CC_LLM_MANAGER_EVENT",
+      component: "manager",
+      event: "unknown",
+    });
+  });
+
   it("rebuilds caught failures without retaining private error content", () => {
     const privacy = createLlmManagerPrivacy(sink);
     const source = new Error("private provider response and prompt");
@@ -123,5 +138,29 @@ describe("LLM manager privacy boundary", () => {
       /emit\("(?:query-failed|chat-failed|chat-stream-failed|stream-failed)",\s*\{/u,
     );
     expect(source).not.toMatch(/throw\s+(?:chatError|streamError)\s*;/u);
+    for (const event of [
+      "initialized",
+      "unavailable",
+      "provider-changed",
+      "query-completed",
+      "chat-completed",
+      "chat-stream-completed",
+      "stream-completed",
+      "budget-alert",
+      "service-paused",
+      "model-switched",
+      "service-resumed",
+    ]) {
+      const calls = source.match(
+        new RegExp(`emit\\(\\s*"${event}"\\s*,`, "gu"),
+      );
+      const fixedCalls = source.match(
+        new RegExp(
+          `emit\\(\\s*"${event}"\\s*,\\s*managerPrivacy\\.publicEvent\\("${event}"\\)`,
+          "gu",
+        ),
+      );
+      expect(fixedCalls?.length).toBe(calls?.length);
+    }
   });
 });

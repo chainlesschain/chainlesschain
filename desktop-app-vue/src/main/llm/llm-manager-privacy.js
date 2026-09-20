@@ -82,6 +82,20 @@ const SAFE_FAILURE_OPERATIONS = new Set([
 
 const GOVERNANCE_FAILURE_CODE = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
 
+const SAFE_PUBLIC_EVENTS = new Set([
+  "budget-alert",
+  "chat-completed",
+  "chat-stream-completed",
+  "initialized",
+  "model-switched",
+  "provider-changed",
+  "query-completed",
+  "service-paused",
+  "service-resumed",
+  "stream-completed",
+  "unavailable",
+]);
+
 function allowlisted(value, values) {
   return typeof value === "string" && values.has(value) ? value : "unknown";
 }
@@ -103,6 +117,13 @@ function createLlmManagerPrivacy(sink = logger) {
     },
     failureEvent(operation) {
       return failureReceipt(operation);
+    },
+    publicEvent(event) {
+      return Object.freeze({
+        code: "CC_LLM_MANAGER_EVENT",
+        component: "manager",
+        event: allowlisted(event, SAFE_PUBLIC_EVENTS),
+      });
     },
     failure(operation, source) {
       let governed = false;

@@ -394,8 +394,9 @@ describe("LLMManager", () => {
       await llmManager.initialize();
 
       expect(handler).toHaveBeenCalledWith({
-        available: true,
-        models: ["llama2"],
+        code: "CC_LLM_MANAGER_EVENT",
+        component: "manager",
+        event: "initialized",
       });
     });
 
@@ -540,7 +541,11 @@ describe("LLMManager", () => {
 
       await llmManager.switchProvider("openai");
 
-      expect(handler).toHaveBeenCalledWith("openai");
+      expect(handler).toHaveBeenCalledWith({
+        code: "CC_LLM_MANAGER_EVENT",
+        component: "manager",
+        event: "provider-changed",
+      });
     });
 
     it("应该合并新配置", async () => {

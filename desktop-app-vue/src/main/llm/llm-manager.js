@@ -311,12 +311,12 @@ class LLMManager extends EventEmitter {
           if (status.available) {
             this.isInitialized = true;
             managerPrivacy.event("service-available");
-            this.emit("initialized", status);
+            this.emit("initialized", managerPrivacy.publicEvent("initialized"));
           } else {
             managerPrivacy.event("service-unavailable");
             // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
             this.isInitialized = true;
-            this.emit("unavailable", status);
+            this.emit("unavailable", managerPrivacy.publicEvent("unavailable"));
           }
         } catch {
           managerPrivacy.event("service-status-check-failed");
@@ -456,7 +456,10 @@ class LLMManager extends EventEmitter {
       this.isInitialized = candidate.isInitialized;
       candidate.client = null;
       candidate.toolsClient = null;
-      this.emit("provider-changed", this.provider);
+      this.emit(
+        "provider-changed",
+        managerPrivacy.publicEvent("provider-changed"),
+      );
 
       return true;
     } catch (error) {
@@ -543,7 +546,10 @@ class LLMManager extends EventEmitter {
             .get(conversationId)
             .messages.push({ role: "user", content: prompt }, result.message);
         }
-        this.emit("query-completed", { prompt, result });
+        this.emit(
+          "query-completed",
+          managerPrivacy.publicEvent("query-completed"),
+        );
         return {
           text: result.text || result.message?.content,
           model: result.model,
@@ -615,7 +621,10 @@ class LLMManager extends EventEmitter {
         }
       }
 
-      this.emit("query-completed", { prompt, result });
+      this.emit(
+        "query-completed",
+        managerPrivacy.publicEvent("query-completed"),
+      );
 
       const responseTime = Date.now() - startTime;
 
@@ -710,10 +719,10 @@ class LLMManager extends EventEmitter {
         "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
       );
     try {
-      let publication;
+      let publication = false;
       const selectedClient = this.client;
-      const publish = (event) => {
-        publication = event;
+      const publish = () => {
+        publication = true;
       };
       // Opaque image blocks must enter the Agent v3 multimodal projection in the
       // provider client. Serializing them through the manager's legacy text
@@ -747,7 +756,11 @@ class LLMManager extends EventEmitter {
                   selectedClient,
                 ),
             );
-      if (publication) this.emit("chat-completed", publication);
+      if (publication)
+        this.emit(
+          "chat-completed",
+          managerPrivacy.publicEvent("chat-completed"),
+        );
       return result;
     } catch (error) {
       throw managerPrivacy.failure("chat", error);
@@ -797,7 +810,10 @@ class LLMManager extends EventEmitter {
           },
         },
       );
-      this.emit("chat-completed", { messages, result });
+      this.emit(
+        "chat-completed",
+        managerPrivacy.publicEvent("chat-completed"),
+      );
       return {
         text: result.message?.content ?? result.text,
         message: result.message,
@@ -930,8 +946,12 @@ class LLMManager extends EventEmitter {
         }
       }
 
-      if (governed) publish({ messages: processedMessages, result });
-      else this.emit("chat-completed", { messages: processedMessages, result });
+      if (governed) publish();
+      else
+        this.emit(
+          "chat-completed",
+          managerPrivacy.publicEvent("chat-completed"),
+        );
 
       const responseTime = Date.now() - startTime;
 
@@ -1099,10 +1119,10 @@ class LLMManager extends EventEmitter {
         }
       }
 
-      this.emit("chat-stream-completed", {
-        messages: processedMessages,
-        result,
-      });
+      this.emit(
+        "chat-stream-completed",
+        managerPrivacy.publicEvent("chat-stream-completed"),
+      );
 
       const responseTime = Date.now() - startTime;
 
@@ -1194,7 +1214,10 @@ class LLMManager extends EventEmitter {
             .get(conversationId)
             .messages.push({ role: "user", content: prompt }, result.message);
         }
-        this.emit("stream-completed", { prompt, result });
+        this.emit(
+          "stream-completed",
+          managerPrivacy.publicEvent("stream-completed"),
+        );
         return result;
       }
 
@@ -1253,7 +1276,10 @@ class LLMManager extends EventEmitter {
         }
       }
 
-      this.emit("stream-completed", { prompt, result });
+      this.emit(
+        "stream-completed",
+        managerPrivacy.publicEvent("stream-completed"),
+      );
 
       const responseTime = Date.now() - startTime;
 
@@ -1631,13 +1657,16 @@ class LLMManager extends EventEmitter {
     managerPrivacy.event("budget-alert-received");
 
     // 发送告警事件给外部监听器
-    this.emit("budget-alert", alert);
+    this.emit("budget-alert", managerPrivacy.publicEvent("budget-alert"));
 
     // 如果是 critical 级别且启用了自动暂停
     if (level === "critical" && this.budgetConfig?.auto_pause_on_limit) {
       managerPrivacy.event("budget-auto-paused");
       this.paused = true;
-      this.emit("service-paused", { reason: "budget-exceeded", alert });
+      this.emit(
+        "service-paused",
+        managerPrivacy.publicEvent("service-paused"),
+      );
     }
 
     // 如果启用了自动切换到更便宜的模型
@@ -1678,11 +1707,10 @@ class LLMManager extends EventEmitter {
         this.config.model = newModel;
         await this.initialize();
 
-        this.emit("model-switched", {
-          from: currentModel,
-          to: newModel,
-          reason: "budget-optimization",
-        });
+        this.emit(
+          "model-switched",
+          managerPrivacy.publicEvent("model-switched"),
+        );
       } else {
         managerPrivacy.event("model-downgrade-unavailable");
       }
@@ -1693,7 +1721,7 @@ class LLMManager extends EventEmitter {
    * 恢复被暂停的服务
    * @param {string} userId - 用户 ID
    */
-  async resumeService(userId = "default") {
+  async resumeService(_userId = "default") {
     if (!this.paused) {
       managerPrivacy.event("service-not-paused");
       return { success: false, message: "服务未暂停" };
@@ -1701,7 +1729,10 @@ class LLMManager extends EventEmitter {
 
     managerPrivacy.event("service-resumed");
     this.paused = false;
-    this.emit("service-resumed", { userId });
+    this.emit(
+      "service-resumed",
+      managerPrivacy.publicEvent("service-resumed"),
+    );
 
     return { success: true, message: "服务已恢复" };
   }
@@ -1717,7 +1748,10 @@ class LLMManager extends EventEmitter {
 
     managerPrivacy.event("service-paused");
     this.paused = true;
-    this.emit("service-paused", { reason: "manual" });
+    this.emit(
+      "service-paused",
+      managerPrivacy.publicEvent("service-paused"),
+    );
 
     return { success: true, message: "服务已暂停" };
   }

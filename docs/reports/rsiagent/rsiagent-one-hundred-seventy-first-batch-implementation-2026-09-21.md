@@ -22,6 +22,6 @@
 
 ## 未完成边界
 
-- Manager 的 provider/model/budget 成功事件与其他非失败业务事件仍携带现有 payload，需要独立完成字段投影和订阅授权。
+- Manager 的 provider/model/budget 成功与非失败事件后续已由第一百七十二批统一为固定回执；通用 State Bus payload 和其他模块的二次广播仍需独立治理。
 - Stream controller、test-data、selector 与其他 LLM 模块的成功 payload、内部事件和授权投影仍待收口。
 - 企业 purpose/RBAC、身份切换中止与撤销、真实 Electron renderer/preload/provider E2E、tenant HMAC 和生产日志访问治理仍需目标环境验收。
