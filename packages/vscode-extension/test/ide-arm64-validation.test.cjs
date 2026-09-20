@@ -199,6 +199,35 @@ test("the IDE ARM64 aggregate rejects a missing matrix cell", async (t) => {
   );
 });
 
+test("the IDE ARM64 aggregate uses the newest evidence for a failed-job rerun", async (t) => {
+  const { root, files, evidence, verifier } = await createCompleteMatrix(t);
+  const firstAttempt = files.find((filePath) =>
+    filePath.includes("jetbrains-linux-2024_2"),
+  );
+  const secondAttemptRoot = path.join(
+    root,
+    `ide-arm64-evidence-jetbrains-linux-2024.2-${releaseCommit}-2`,
+  );
+  const secondAttempt = path.join(
+    secondAttemptRoot,
+    path.basename(path.dirname(firstAttempt)),
+  );
+  fs.cpSync(path.dirname(firstAttempt), secondAttempt, { recursive: true });
+  rewriteEvidence(firstAttempt, evidence, (value) => {
+    value.result = "failed";
+  });
+
+  const aggregate = verifier.verifyIdeArm64EvidenceSet({
+    evidenceDir: root,
+    releaseCommit,
+  });
+  const repairedCell = aggregate.matrix.find(
+    (entry) => entry.key === "jetbrains:linux:2024.2",
+  );
+  assert.equal(aggregate.evidenceCount, 11);
+  assert.equal(repairedCell.sourceRunAttempt, 2);
+});
+
 test("the IDE ARM64 aggregate rejects a self-consistent wrong architecture", async (t) => {
   const { root, files, evidence, verifier } = await createCompleteMatrix(t);
   rewriteEvidence(files[0], evidence, (value) => {
@@ -310,7 +339,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     /actions\/runner-images#14264[\s\S]*?Name = 'wsl\.exe'[\s\S]*?--update[\s\S]*?--confirm[\s\S]*?--prompt-before-exit[\s\S]*?WindowsTerminal,WindowsTerminalPreview[\s\S]*?MainWindowTitle -match '\(\?i\)wsl\\\.exe'[\s\S]*?Start-Process[\s\S]*?-WindowStyle Hidden[\s\S]*?Stop Windows ARM64 GUI watchdog[\s\S]*?ToFileTimeUtc\(\)/u,
   );
   assert.match(workflow, /verify-ide-arm64-evidence\.mjs\s+--evidence-dir/u);
-  assert.match(workflow, /merge-multiple: true/u);
+  assert.match(
+    workflow,
+    /Download every ARM64 journey artifact[\s\S]*?pattern: ide-arm64-evidence-\*-\$\{\{ env\.IDE_ARM64_RELEASE_COMMIT \}\}-\*[\s\S]*?merge-multiple: false/u,
+  );
   assert.doesNotMatch(workflow, /continue-on-error/u);
 
   const vscodeHostDriver = fs.readFileSync(

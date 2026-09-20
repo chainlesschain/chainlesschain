@@ -203,7 +203,7 @@ function requiredMatrixKeys() {
   return keys.sort();
 }
 
-function verifyEvidenceFile(filePath, releaseCommit) {
+function readEvidenceFile(filePath, releaseCommit) {
   const value = JSON.parse(readFileSync(filePath, "utf8"));
   const core = { ...value };
   delete core.evidenceDigest;
@@ -213,8 +213,6 @@ function verifyEvidenceFile(filePath, releaseCommit) {
     value.schemaVersion !== IDE_JOURNEY_EVIDENCE_VERSION ||
     value.releaseCommit !== releaseCommit ||
     value.required !== true ||
-    value.result !== "passed" ||
-    value.evidenceComplete !== true ||
     value.host?.architecture !== IDE_ARM64_REQUIRED_ARCHITECTURE ||
     value.evidenceDigest !== expectedDigest ||
     !Array.isArray(value.artifacts) ||
@@ -222,6 +220,15 @@ function verifyEvidenceFile(filePath, releaseCommit) {
     !Array.isArray(value.incidents) ||
     !String(value.host?.transport || "").startsWith("local-ide-bridge")
   ) {
+    throw new Error(`invalid IDE ARM64 journey evidence: ${filePath}`);
+  }
+  return { value, matrix: classifyEvidence(value) };
+}
+
+function verifyEvidenceFile(filePath, releaseCommit) {
+  const verified = readEvidenceFile(filePath, releaseCommit);
+  const { value } = verified;
+  if (value.result !== "passed" || value.evidenceComplete !== true) {
     throw new Error(`invalid IDE ARM64 journey evidence: ${filePath}`);
   }
   const directory = path.dirname(filePath);
@@ -234,7 +241,25 @@ function verifyEvidenceFile(filePath, releaseCommit) {
       `IDE ARM64 evidence has no re-verifiable artifact: ${filePath}`,
     );
   }
-  return { value, matrix: classifyEvidence(value) };
+  return verified;
+}
+
+function evidenceRunAttempt(root, filePath, releaseCommit) {
+  const artifactPattern = new RegExp(
+    `^ide-arm64-evidence-.+-${releaseCommit}-(\\d+)$`,
+  );
+  const relative = path.relative(root, filePath);
+  for (const segment of relative.split(path.sep)) {
+    const match = artifactPattern.exec(segment);
+    if (!match) continue;
+    const attempt = Number(match[1]);
+    if (!Number.isSafeInteger(attempt) || attempt < 1) {
+      throw new Error(`invalid IDE ARM64 artifact run attempt: ${segment}`);
+    }
+    return attempt;
+  }
+  // Preserve support for locally assembled and legacy merged evidence trees.
+  return 1;
 }
 
 function writeImmutableJson(destination, value) {
@@ -322,23 +347,33 @@ export function verifyIdeArm64EvidenceSet({
   }
   const files = listEvidenceFiles(root).sort();
   const expectedKeys = requiredMatrixKeys();
-  if (files.length !== expectedKeys.length) {
+  if (files.length < expectedKeys.length) {
     throw new Error(
       `IDE ARM64 matrix requires ${expectedKeys.length} evidence files, found ${files.length}`,
     );
   }
-  const entries = [];
-  const seen = new Set();
+  const latestByKey = new Map();
   for (const filePath of files) {
-    const verified = verifyEvidenceFile(filePath, releaseCommit);
-    if (seen.has(verified.matrix.key)) {
+    const identity = readEvidenceFile(filePath, releaseCommit);
+    const attempt = evidenceRunAttempt(root, filePath, releaseCommit);
+    const current = latestByKey.get(identity.matrix.key);
+    if (current?.attempt === attempt) {
       throw new Error(
-        `duplicate IDE ARM64 matrix entry: ${verified.matrix.key}`,
+        `duplicate IDE ARM64 matrix entry at run attempt ${attempt}: ${identity.matrix.key}`,
       );
     }
+    if (!current || attempt > current.attempt) {
+      latestByKey.set(identity.matrix.key, { attempt, filePath });
+    }
+  }
+  const entries = [];
+  const seen = new Set();
+  for (const { attempt, filePath } of latestByKey.values()) {
+    const verified = verifyEvidenceFile(filePath, releaseCommit);
     seen.add(verified.matrix.key);
     entries.push({
       ...verified.matrix,
+      sourceRunAttempt: attempt,
       evidenceDigest: verified.value.evidenceDigest,
       evidenceSha256: sha256File(filePath),
     });

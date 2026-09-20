@@ -464,9 +464,12 @@ jobs:
       - name: Download every ARM64 journey artifact
         uses: actions/download-artifact@v7
         with:
-          pattern: ide-arm64-evidence-*-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          # Failed-job reruns keep successful matrix artifacts on their earlier
+          # attempt. Download every attempt and let the verifier select the
+          # newest evidence for each host cell.
+          pattern: ide-arm64-evidence-*-${{ env.IDE_ARM64_RELEASE_COMMIT }}-*
           path: ${{ runner.temp }}/ide-arm64-evidence
-          merge-multiple: true
+          merge-multiple: false
       - name: Verify exact SHA, architecture, matrix, and artifact digests
         shell: bash
         run: >-
