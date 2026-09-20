@@ -22,7 +22,6 @@ import {
   LOCK_FILENAME,
   buildSkillSignatureLock,
 } from "../skill-execution-security.js";
-import { registerSkillSyncIPC } from "../skill-sync-ipc.js";
 const artifactProtocol = require("@chainlesschain/session-core/evolvable-artifact");
 
 const {
@@ -104,38 +103,6 @@ function unifiedSkillCandidateGate(onPersist = () => {}) {
       },
     },
   });
-}
-
-function stagedImportResult(overrides = {}) {
-  const sourceDigest = `sha256:${"d".repeat(64)}`;
-  const artifactDigest = `sha256:${"e".repeat(64)}`;
-  return {
-    skillId: "portable-skill",
-    action: "candidate-staged",
-    version: "1.0.0",
-    candidateId: CANDIDATE_ID,
-    sourceDigest,
-    artifactDigest,
-    persistenceReceipt: {
-      schema: EVOLVABLE_ARTIFACT_PERSISTENCE_RECEIPT_SCHEMA,
-      tenantId: "tenant-a",
-      type: "skill",
-      artifactId: "skill:portable-skill",
-      candidateId: CANDIDATE_ID,
-      contentDigest: sourceDigest,
-      artifactDigest,
-      status: "candidate",
-      persisted: true,
-    },
-    candidateOnly: true,
-    persisted: true,
-    trust: "untrusted",
-    quarantined: true,
-    activeMutation: false,
-    hotLoaded: false,
-    reloadRequired: false,
-    ...overrides,
-  };
 }
 
 function skillMarkdown({
@@ -716,123 +683,5 @@ describe("SkillSyncManager package boundary", () => {
     expect(() => manager.exportSkill("portable-skill")).toThrowError(
       expect.objectContaining({ code: "CC_SKILL_HANDLER_ESCAPE" }),
     );
-  });
-});
-
-describe("Skill sync IPC async boundary", () => {
-  it("does not report import success before asynchronous validation finishes", async () => {
-    const handlers = new Map();
-    const ipcMain = {
-      handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
-    };
-    let finishImport;
-    const importPromise = new Promise((resolve) => {
-      finishImport = resolve;
-    });
-    registerSkillSyncIPC({
-      syncManager: { importSkill: vi.fn(() => importPromise) },
-      ipcMain,
-    });
-    const handler = handlers.get("skills:sync:import");
-    let settled = false;
-    const responsePromise = handler({}, { package: {} }).then((response) => {
-      settled = true;
-      return response;
-    });
-
-    await Promise.resolve();
-    expect(settled).toBe(false);
-
-    const result = stagedImportResult();
-    finishImport(result);
-    await expect(responsePromise).resolves.toEqual({
-      success: true,
-      data: result,
-    });
-  });
-
-  it("returns a structured failure for malformed IPC arguments", async () => {
-    const handlers = new Map();
-    registerSkillSyncIPC({
-      syncManager: { importSkill: vi.fn() },
-      ipcMain: {
-        handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
-      },
-    });
-
-    await expect(
-      handlers.get("skills:sync:import")({}, null),
-    ).resolves.toMatchObject({
-      success: false,
-      code: "CC_SKILL_SYNC_IPC_INVALID_ARGUMENT",
-      error: expect.any(String),
-    });
-  });
-
-  it("preserves manager error codes across the IPC boundary", async () => {
-    const handlers = new Map();
-    const error = Object.assign(new Error("candidate store unavailable"), {
-      code: "CC_SKILL_SYNC_CANDIDATE_STORE_UNAVAILABLE",
-    });
-    registerSkillSyncIPC({
-      syncManager: { importSkill: vi.fn(async () => Promise.reject(error)) },
-      ipcMain: {
-        handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
-      },
-    });
-
-    await expect(
-      handlers.get("skills:sync:import")({}, { package: {} }),
-    ).resolves.toEqual({
-      success: false,
-      error: "candidate store unavailable",
-      code: "CC_SKILL_SYNC_CANDIDATE_STORE_UNAVAILABLE",
-    });
-  });
-
-  it("rejects a manager result that only claims candidate staging", async () => {
-    const handlers = new Map();
-    registerSkillSyncIPC({
-      syncManager: {
-        importSkill: vi.fn(async () => ({
-          action: "candidate-staged",
-          activeMutation: false,
-        })),
-      },
-      ipcMain: {
-        handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
-      },
-    });
-
-    await expect(
-      handlers.get("skills:sync:import")({}, { package: {} }),
-    ).resolves.toMatchObject({
-      success: false,
-      code: "CC_SKILL_SYNC_IMPORT_RESULT_INVALID",
-    });
-  });
-
-  it("accepts an explicit skipped/no-mutation import outcome", async () => {
-    const handlers = new Map();
-    const result = {
-      skillId: "portable-skill",
-      action: "skipped",
-      reason: "local-version-newer",
-      candidateOnly: true,
-      persisted: false,
-      activeMutation: false,
-      hotLoaded: false,
-      reloadRequired: false,
-    };
-    registerSkillSyncIPC({
-      syncManager: { importSkill: vi.fn(async () => result) },
-      ipcMain: {
-        handle: vi.fn((channel, handler) => handlers.set(channel, handler)),
-      },
-    });
-
-    await expect(
-      handlers.get("skills:sync:import")({}, { package: {} }),
-    ).resolves.toEqual({ success: true, data: result });
   });
 });

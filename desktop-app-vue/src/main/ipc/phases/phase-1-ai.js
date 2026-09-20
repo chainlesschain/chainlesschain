@@ -2,7 +2,7 @@
  * Phase 1: AI Core IPC Registrations.
  *
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
- * Markdown Skills, Skill Sync, AI Engine, Prompt
+ * Markdown Skills, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
  * Controller, Team Task, Permission, Logger, RAG (gated), Follow-up
  * Intent, Browser.
@@ -170,32 +170,6 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       });
     },
     handlers: 18,
-  });
-
-  // 🔥 跨设备技能同步 (7 handlers)
-  safeRegister("Skill Sync IPC", {
-    register: () => {
-      const {
-        registerSkillSyncIPC,
-      } = require("../../ai-engine/cowork/skills/skill-sync-ipc");
-      const {
-        SkillSyncManager,
-      } = require("../../ai-engine/cowork/skills/skill-sync-manager");
-      const {
-        getSkillRegistry,
-      } = require("../../ai-engine/cowork/skills/skill-registry");
-
-      const skillSyncManager = new SkillSyncManager({
-        skillRegistry: getSkillRegistry(),
-        artifactCandidateGate:
-          deps.evolvableArtifactSkillCandidateGate || undefined,
-        resolveArtifactDependencies:
-          deps.resolveSkillArtifactDependencies || undefined,
-        resolveArtifactBase: deps.resolveSkillArtifactBase || undefined,
-      });
-      registerSkillSyncIPC({ syncManager: skillSyncManager });
-    },
-    handlers: 7,
   });
 
   // 🔥 AI Engine IPC (AI引擎核心, 含Word/PPT生成等, 20+ handlers)

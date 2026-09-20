@@ -513,10 +513,6 @@ const SOURCE_CONTRACT_TEST_MAPPINGS = new Map([
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
   [
-    "src/main/ai-engine/cowork/skills/skill-sync-ipc.js",
-    SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
-  ],
-  [
     "src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js",
     SKILL_SUPPLY_CHAIN_CONTRACT_TESTS,
   ],
