@@ -9,6 +9,11 @@ import {
   VOLCENGINE_FUNCTION_REVOCATION_SCHEMA,
   captureVolcengineFunctionReplayStore,
 } from "./volcengine-function-replay-store.js";
+import {
+  VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA,
+  captureVolcengineFunctionProcessResult,
+  inspectVolcengineFunctionProcessExecutor,
+} from "./volcengine-function-process-executor.js";
 
 export const VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA =
   "chainlesschain.volcengine-function-authority/v6";
@@ -18,6 +23,11 @@ export const VOLCENGINE_FUNCTION_RECEIPT_SCHEMA =
   "chainlesschain.volcengine-function-receipt/v6";
 export const VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA =
   "chainlesschain.volcengine-function-audit-evidence/v6";
+export const VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA =
+  "chainlesschain.volcengine-function-authority/v7";
+export const VOLCENGINE_FUNCTION_PROCESS_RECEIPT_SCHEMA =
+  "chainlesschain.volcengine-function-receipt/v7";
+export const VOLCENGINE_FUNCTION_PROCESS_ISOLATION = "process-hard-termination";
 export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
@@ -455,6 +465,84 @@ function normalizeDescriptor(value) {
     descriptor.auditMode !== VOLCENGINE_FUNCTION_AUDIT_MODE
   ) {
     throw new TypeError("Volcengine function authority descriptor is invalid");
+  }
+  return descriptor;
+}
+
+function normalizeProcessDescriptor(value) {
+  const baseKeys = [
+    "authorityId",
+    "revocationAuthorityId",
+    "tenantId",
+    "handlerArtifactDigest",
+    "policyRevision",
+    "replayStoreId",
+    "replayRetentionMs",
+    "replayMode",
+    "revocationMode",
+    "purpose",
+    "allowedFunctions",
+    "functionPolicies",
+    "auditMode",
+  ];
+  exactData(
+    value,
+    [
+      "schema",
+      ...baseKeys,
+      "executionIsolation",
+      "processTargetDigest",
+      "processTargetAuthorityDigest",
+      "processSupervisorAuthorityDigest",
+    ],
+    "Volcengine process function authority descriptor",
+  );
+  if (
+    ownData(value, "schema", "Volcengine process authority schema") !==
+    VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA
+  ) {
+    throw new TypeError(
+      "Volcengine process function authority descriptor is invalid",
+    );
+  }
+  const baseInput = { schema: VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA };
+  for (const key of baseKeys) {
+    baseInput[key] = ownData(value, key, `Volcengine process authority ${key}`);
+  }
+  const base = normalizeDescriptor(baseInput);
+  const descriptor = Object.freeze({
+    ...base,
+    schema: VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA,
+    executionIsolation: ownData(
+      value,
+      "executionIsolation",
+      "Volcengine function execution isolation",
+    ),
+    processTargetDigest: ownData(
+      value,
+      "processTargetDigest",
+      "Volcengine function process target digest",
+    ),
+    processTargetAuthorityDigest: ownData(
+      value,
+      "processTargetAuthorityDigest",
+      "Volcengine function process target authority digest",
+    ),
+    processSupervisorAuthorityDigest: ownData(
+      value,
+      "processSupervisorAuthorityDigest",
+      "Volcengine function process supervisor authority digest",
+    ),
+  });
+  if (
+    descriptor.executionIsolation !== VOLCENGINE_FUNCTION_PROCESS_ISOLATION ||
+    !DIGEST.test(descriptor.processTargetDigest) ||
+    !DIGEST.test(descriptor.processTargetAuthorityDigest) ||
+    !DIGEST.test(descriptor.processSupervisorAuthorityDigest)
+  ) {
+    throw new TypeError(
+      "Volcengine process function authority descriptor is invalid",
+    );
   }
   return descriptor;
 }
@@ -1354,6 +1442,7 @@ export function createVolcengineFunctionExecutionAuthority({
   authorities.set(authority, {
     descriptor: normalizedDescriptor,
     execute,
+    processExecutor: null,
     now,
     reserveReplay,
     readRevocation,
@@ -1361,6 +1450,60 @@ export function createVolcengineFunctionExecutionAuthority({
     requests: new Map(),
     revoked: false,
     activeExecutions: new Set(),
+  });
+  return authority;
+}
+
+export function createVolcengineFunctionProcessExecutionAuthority({
+  descriptor,
+  execute,
+  replayStore,
+  now = () => Date.now(),
+} = {}) {
+  const normalizedDescriptor = normalizeProcessDescriptor(descriptor);
+  const executorDescriptor = inspectVolcengineFunctionProcessExecutor(execute);
+  if (
+    executorDescriptor.mode !== "process" ||
+    executorDescriptor.targetDigest !==
+      normalizedDescriptor.processTargetDigest ||
+    executorDescriptor.targetAuthorityDigest !==
+      normalizedDescriptor.processTargetAuthorityDigest ||
+    executorDescriptor.supervisorAuthorityDigest !==
+      normalizedDescriptor.processSupervisorAuthorityDigest ||
+    executorDescriptor.handlerArtifactDigest !==
+      normalizedDescriptor.handlerArtifactDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function process executor binding does not match authority",
+    );
+  }
+  const baseDescriptor = {
+    schema: VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA,
+    authorityId: normalizedDescriptor.authorityId,
+    revocationAuthorityId: normalizedDescriptor.revocationAuthorityId,
+    tenantId: normalizedDescriptor.tenantId,
+    handlerArtifactDigest: normalizedDescriptor.handlerArtifactDigest,
+    policyRevision: normalizedDescriptor.policyRevision,
+    replayStoreId: normalizedDescriptor.replayStoreId,
+    replayRetentionMs: normalizedDescriptor.replayRetentionMs,
+    replayMode: normalizedDescriptor.replayMode,
+    revocationMode: normalizedDescriptor.revocationMode,
+    purpose: normalizedDescriptor.purpose,
+    allowedFunctions: normalizedDescriptor.allowedFunctions,
+    functionPolicies: normalizedDescriptor.functionPolicies,
+    auditMode: normalizedDescriptor.auditMode,
+  };
+  const authority = createVolcengineFunctionExecutionAuthority({
+    descriptor: baseDescriptor,
+    execute,
+    replayStore,
+    now,
+  });
+  const captured = authorities.get(authority);
+  captured.descriptor = normalizedDescriptor;
+  captured.processExecutor = Object.freeze({
+    execute,
+    descriptor: executorDescriptor,
   });
   return authority;
 }
@@ -1658,6 +1801,62 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
         replayReservationDigest: reservation.reservationDigest,
       });
       const response = await executeWithinDeadline(captured, executionRequest);
+      let processEvidence = null;
+      if (captured.processExecutor !== null) {
+        processEvidence = captureVolcengineFunctionProcessResult(
+          captured.processExecutor.execute,
+          response,
+        );
+        exactData(
+          processEvidence,
+          [
+            "schema",
+            "requestDigest",
+            "targetDigest",
+            "targetAuthorityDigest",
+            "supervisorAuthorityDigest",
+            "supervisionReceiptDigest",
+            "targetInvocationDigest",
+            "revocationDigest",
+            "completedAt",
+            "isolation",
+            "hardDeadlineEnforced",
+            "lateSideEffectsPrevented",
+            "evidenceDigest",
+          ],
+          "Volcengine function process evidence",
+        );
+        const { evidenceDigest, ...evidenceCore } = processEvidence;
+        const processCompletedAtMs = Date.parse(processEvidence.completedAt);
+        if (
+          processEvidence.schema !==
+            VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA ||
+          processEvidence.requestDigest !== executionRequest.requestDigest ||
+          processEvidence.targetDigest !==
+            captured.descriptor.processTargetDigest ||
+          processEvidence.targetAuthorityDigest !==
+            captured.descriptor.processTargetAuthorityDigest ||
+          processEvidence.supervisorAuthorityDigest !==
+            captured.descriptor.processSupervisorAuthorityDigest ||
+          !DIGEST.test(processEvidence.supervisionReceiptDigest) ||
+          !DIGEST.test(processEvidence.targetInvocationDigest) ||
+          !DIGEST.test(processEvidence.revocationDigest) ||
+          !Number.isFinite(processCompletedAtMs) ||
+          new Date(processCompletedAtMs).toISOString() !==
+            processEvidence.completedAt ||
+          processCompletedAtMs < executionRequest.requestedAtMs ||
+          processCompletedAtMs > executionRequest.deadlineAtMs ||
+          processEvidence.isolation !== "process" ||
+          processEvidence.hardDeadlineEnforced !== true ||
+          processEvidence.lateSideEffectsPrevented !== true ||
+          evidenceDigest !==
+            digest(VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA, evidenceCore)
+        ) {
+          throw new TypeError(
+            "Volcengine function process evidence is invalid",
+          );
+        }
+      }
       exactData(
         response,
         ["toolResult", "auditEvidence"],
@@ -1684,10 +1883,21 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
         resultDigest,
         captured.now(),
       );
+      if (
+        processEvidence !== null &&
+        Date.parse(audit.completedAt) > Date.parse(processEvidence.completedAt)
+      ) {
+        throw new TypeError(
+          "Volcengine function audit completed after process supervision",
+        );
+      }
       return Object.freeze({
         toolResult,
         receipt: Object.freeze({
-          schema: VOLCENGINE_FUNCTION_RECEIPT_SCHEMA,
+          schema:
+            processEvidence === null
+              ? VOLCENGINE_FUNCTION_RECEIPT_SCHEMA
+              : VOLCENGINE_FUNCTION_PROCESS_RECEIPT_SCHEMA,
           authorityId: captured.descriptor.authorityId,
           tenantId: captured.descriptor.tenantId,
           handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
@@ -1711,7 +1921,23 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
           authenticated: true,
           durable: true,
           readbackVerified: true,
-          completedAt: audit.completedAt,
+          completedAt:
+            processEvidence === null
+              ? audit.completedAt
+              : processEvidence.completedAt,
+          ...(processEvidence === null
+            ? {}
+            : {
+                executionIsolation: captured.descriptor.executionIsolation,
+                processTargetDigest: processEvidence.targetDigest,
+                processTargetAuthorityDigest:
+                  processEvidence.targetAuthorityDigest,
+                processSupervisorAuthorityDigest:
+                  processEvidence.supervisorAuthorityDigest,
+                processSupervisionReceiptDigest:
+                  processEvidence.supervisionReceiptDigest,
+                processEvidenceDigest: processEvidence.evidenceDigest,
+              }),
         }),
       });
     },

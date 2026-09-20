@@ -16,18 +16,21 @@ import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/ev
 import {
   VOLCENGINE_FUNCTION_PROCESS_EXECUTOR_SCHEMA,
   VOLCENGINE_FUNCTION_PROCESS_OPERATION,
+  captureVolcengineFunctionProcessResult,
   createVolcengineFunctionProcessExecutor,
   inspectVolcengineFunctionProcessExecutor,
 } from "../../src/lib/evolution/volcengine-function-process-executor.js";
 import {
   VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA,
   VOLCENGINE_FUNCTION_AUDIT_MODE,
-  VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA,
   VOLCENGINE_FUNCTION_EXECUTOR_TYPE,
+  VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA,
+  VOLCENGINE_FUNCTION_PROCESS_ISOLATION,
+  VOLCENGINE_FUNCTION_PROCESS_RECEIPT_SCHEMA,
   VOLCENGINE_FUNCTION_PURPOSE,
   VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
   captureVolcengineFunctionExecutionAuthority,
-  createVolcengineFunctionExecutionAuthority,
+  createVolcengineFunctionProcessExecutionAuthority,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
 import {
   VOLCENGINE_FUNCTION_REPLAY_MODE,
@@ -215,6 +218,17 @@ describe("Volcengine function process executor", () => {
       auditEvidence: { requestDigest: value.requestDigest },
     });
     expect(result.toolResult.pid).not.toBe(process.pid);
+    expect(
+      captureVolcengineFunctionProcessResult(executor, result),
+    ).toMatchObject({
+      schema: "chainlesschain.volcengine-function-process-evidence/v1",
+      requestDigest: value.requestDigest,
+      supervisionReceiptDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      evidenceDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
+    expect(() =>
+      captureVolcengineFunctionProcessResult(executor, result),
+    ).toThrow("result from the captured");
     expect(inspectVolcengineFunctionProcessExecutor(executor)).toMatchObject({
       schema: VOLCENGINE_FUNCTION_PROCESS_EXECUTOR_SCHEMA,
       mode: "process",
@@ -371,6 +385,8 @@ describe("Volcengine function process executor", () => {
       supervisor,
       target,
     });
+    const processDescriptor =
+      inspectVolcengineFunctionProcessExecutor(executor);
     const functionPolicies = [
       {
         functionName: "create_note",
@@ -381,7 +397,7 @@ describe("Volcengine function process executor", () => {
       },
     ];
     const authorityDescriptor = {
-      schema: VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA,
+      schema: VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA,
       authorityId: "authority:process",
       revocationAuthorityId: "function-revocation:process",
       tenantId: "tenant:process",
@@ -395,6 +411,11 @@ describe("Volcengine function process executor", () => {
       allowedFunctions: ["create_note"],
       functionPolicies,
       auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
+      executionIsolation: VOLCENGINE_FUNCTION_PROCESS_ISOLATION,
+      processTargetDigest: processDescriptor.targetDigest,
+      processTargetAuthorityDigest: processDescriptor.targetAuthorityDigest,
+      processSupervisorAuthorityDigest:
+        processDescriptor.supervisorAuthorityDigest,
     };
     const replayStore = createVolcengineFunctionReplayStore({
       rootDir: join(root, "replay"),
@@ -411,7 +432,24 @@ describe("Volcengine function process executor", () => {
         revocationMode: authorityDescriptor.revocationMode,
       },
     });
-    const authority = createVolcengineFunctionExecutionAuthority({
+    expect(() =>
+      createVolcengineFunctionProcessExecutionAuthority({
+        descriptor: {
+          ...authorityDescriptor,
+          processTargetDigest: sha("substituted-process-target"),
+        },
+        execute: executor,
+        replayStore,
+      }),
+    ).toThrow("process executor binding does not match authority");
+    expect(() =>
+      createVolcengineFunctionProcessExecutionAuthority({
+        descriptor: authorityDescriptor,
+        execute: async () => ({ toolResult: {}, auditEvidence: {} }),
+        replayStore,
+      }),
+    ).toThrow("branded Volcengine function process executor");
+    const authority = createVolcengineFunctionProcessExecutionAuthority({
       descriptor: authorityDescriptor,
       execute: executor,
       replayStore,
@@ -446,9 +484,16 @@ describe("Volcengine function process executor", () => {
       requestedAt,
       deadlineAt,
     };
-    const result = await captureVolcengineFunctionExecutionAuthority(
-      authority,
-    ).executeFunction({
+    const port = captureVolcengineFunctionExecutionAuthority(authority);
+    expect(port.descriptor).toMatchObject({
+      schema: VOLCENGINE_FUNCTION_PROCESS_AUTHORITY_SCHEMA,
+      executionIsolation: VOLCENGINE_FUNCTION_PROCESS_ISOLATION,
+      processTargetDigest: processDescriptor.targetDigest,
+      processTargetAuthorityDigest: processDescriptor.targetAuthorityDigest,
+      processSupervisorAuthorityDigest:
+        processDescriptor.supervisorAuthorityDigest,
+    });
+    const result = await port.executeFunction({
       ...requestCore,
       requestDigest: domainDigest(
         "chainlesschain.volcengine-function-request/v6",
@@ -463,7 +508,17 @@ describe("Volcengine function process executor", () => {
     });
     expect(result.toolResult.pid).not.toBe(process.pid);
     expect(result.receipt).toMatchObject({
+      schema: VOLCENGINE_FUNCTION_PROCESS_RECEIPT_SCHEMA,
       requestId: "process-request-1",
+      executionIsolation: VOLCENGINE_FUNCTION_PROCESS_ISOLATION,
+      processTargetDigest: processDescriptor.targetDigest,
+      processTargetAuthorityDigest: processDescriptor.targetAuthorityDigest,
+      processSupervisorAuthorityDigest:
+        processDescriptor.supervisorAuthorityDigest,
+      processSupervisionReceiptDigest: expect.stringMatching(
+        /^sha256:[a-f0-9]{64}$/u,
+      ),
+      processEvidenceDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       authenticated: true,
       durable: true,
       readbackVerified: true,

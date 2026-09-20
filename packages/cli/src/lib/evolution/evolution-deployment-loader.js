@@ -451,6 +451,8 @@ async function loadBuiltInFactories(commandName) {
         browserDownloadArtifactDisposal.createBrowserDownloadArtifactDisposalAuthority,
       createVolcengineFunctionExecutionAuthority:
         volcengineFunctionExecution.createVolcengineFunctionExecutionAuthority,
+      createVolcengineFunctionProcessExecutionAuthority:
+        volcengineFunctionExecution.createVolcengineFunctionProcessExecutionAuthority,
       revokeVolcengineFunctionExecutionAuthority:
         volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
       createVolcengineFunctionRevocationAuthority:
@@ -816,6 +818,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createBrowserQuarantineLockMaintenanceAuthority",
     "createBrowserDownloadArtifactDisposalAuthority",
     "createVolcengineFunctionExecutionAuthority",
+    "createVolcengineFunctionProcessExecutionAuthority",
     "createVolcengineFunctionRevocationAuthority",
     "createVolcengineFunctionReplayStore",
   ];

@@ -866,6 +866,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserQuarantinedDownloadExecutor",
       "createBrowserDownloadArtifactDisposalAuthority",
       "createVolcengineFunctionExecutionAuthority",
+      "createVolcengineFunctionProcessExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
       "createVolcengineFunctionRevocationAuthority",
       "createVolcengineFunctionProcessExecutor",
@@ -1099,6 +1100,13 @@ describe("signed evolution deployment loader", () => {
                 auditMode: "authenticated-durable-readback",
               },
               execute: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionProcessExecutionAuthority({
+              descriptor: {
+                handlerArtifactDigest: substitutedDigest,
+              },
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>

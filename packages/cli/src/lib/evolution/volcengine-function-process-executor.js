@@ -15,6 +15,8 @@ import { isEvolutionEvalProcessSupervisor } from "./evolution-eval-process-super
 
 export const VOLCENGINE_FUNCTION_PROCESS_EXECUTOR_SCHEMA =
   "chainlesschain.volcengine-function-process-executor/v1";
+export const VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA =
+  "chainlesschain.volcengine-function-process-evidence/v1";
 export const VOLCENGINE_FUNCTION_PROCESS_OPERATION =
   "volcengine-function-execute";
 
@@ -24,6 +26,7 @@ const MAX_PAYLOAD_BYTES = 1024 * 1024;
 const MAX_JSON_DEPTH = 16;
 const MAX_JSON_FIELDS = 2048;
 const EXECUTORS = new WeakMap();
+const PROCESS_RESULTS = new WeakMap();
 const SUPERVISION_RECEIPT_KEYS = Object.freeze([
   "schema",
   "requestDigest",
@@ -443,6 +446,20 @@ export function inspectVolcengineFunctionProcessExecutor(value) {
   return binding.descriptor;
 }
 
+export function captureVolcengineFunctionProcessResult(executor, response) {
+  const binding = EXECUTORS.get(executor);
+  const result =
+    response && typeof response === "object"
+      ? PROCESS_RESULTS.get(response)
+      : null;
+  if (!binding || !result || result.executor !== executor)
+    throw new TypeError(
+      "a result from the captured Volcengine function process executor is required",
+    );
+  PROCESS_RESULTS.delete(response);
+  return result.evidence;
+}
+
 export async function invokeVolcengineFunctionProcessExecutor(
   executor,
   request,
@@ -556,13 +573,40 @@ export async function invokeVolcengineFunctionProcessExecutor(
       error.code = "CC_VOLCENGINE_FUNCTION_DEADLINE_EXCEEDED";
       throw error;
     }
-    validateReceipt({
+    const supervisionReceiptDigest = validateReceipt({
       receipt: response.receipt,
       request: supervisionRequest,
       binding,
       value: response.value,
       status: "completed",
     });
+    exact(
+      response.value,
+      ["toolResult", "auditEvidence"],
+      "Volcengine function process result",
+    );
+    const evidenceCore = Object.freeze({
+      schema: VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA,
+      requestDigest: payload.requestDigest,
+      targetDigest: binding.targetDigest,
+      targetAuthorityDigest: binding.targetAuthorityDigest,
+      supervisorAuthorityDigest: binding.descriptor.supervisorAuthorityDigest,
+      supervisionReceiptDigest,
+      targetInvocationDigest: response.receipt.targetInvocationDigest,
+      revocationDigest: response.receipt.revocationDigest,
+      completedAt: response.receipt.completedAt,
+      isolation: "process",
+      hardDeadlineEnforced: true,
+      lateSideEffectsPrevented: true,
+    });
+    const evidence = Object.freeze({
+      ...evidenceCore,
+      evidenceDigest: hash(
+        VOLCENGINE_FUNCTION_PROCESS_EVIDENCE_SCHEMA,
+        evidenceCore,
+      ),
+    });
+    PROCESS_RESULTS.set(response.value, { executor, evidence });
     return response.value;
   } finally {
     signal.removeEventListener("abort", abort);
