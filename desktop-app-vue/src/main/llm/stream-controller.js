@@ -6,8 +6,9 @@
  * @description 管理流式输出的生命周期，支持AbortController和自定义控制逻辑
  */
 
-const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
+const { createLlmRuntimePrivacy } = require("./llm-runtime-privacy");
+const streamControllerPrivacy = createLlmRuntimePrivacy("stream-controller");
 
 const KIB = 1024;
 const MIB = KIB * KIB;
@@ -189,7 +190,7 @@ class StreamController extends EventEmitter {
    */
   pause() {
     if (this.status !== StreamStatus.RUNNING) {
-      logger.warn(`[StreamController] 无法暂停：当前状态为 ${this.status}`);
+      streamControllerPrivacy.event("pause-rejected");
       return;
     }
 
@@ -203,7 +204,7 @@ class StreamController extends EventEmitter {
    */
   resume() {
     if (this.status !== StreamStatus.PAUSED) {
-      logger.warn(`[StreamController] 无法恢复：当前状态为 ${this.status}`);
+      streamControllerPrivacy.event("resume-rejected");
       return;
     }
 

@@ -24,7 +24,8 @@
 "use strict";
 
 const EventEmitter = require("events");
-const { logger } = require("../utils/logger.js");
+const { createLlmRuntimePrivacy } = require("./llm-runtime-privacy");
+const stateBusPrivacy = createLlmRuntimePrivacy("state-bus");
 
 /**
  * 标准事件名称。订阅方应使用这些常量而非裸字符串,便于重构。
@@ -86,7 +87,7 @@ class LLMStateBus extends EventEmitter {
       throw new TypeError("forwardFrom requires an EventEmitter source");
     }
     if (this._forwardedSources.has(source)) {
-      logger.debug("[LLMStateBus] Source already forwarded, skipping");
+      stateBusPrivacy.event("source-already-forwarded");
       return () => {};
     }
 
@@ -117,12 +118,9 @@ class LLMStateBus extends EventEmitter {
     );
     try {
       this.emit(eventName, payload);
-    } catch (err) {
+    } catch {
       // 单个监听器抛错不应阻塞其他监听器或源
-      logger.error(
-        `[LLMStateBus] Listener for ${eventName} threw:`,
-        err.message,
-      );
+      stateBusPrivacy.event("listener-failed");
     }
   }
 
