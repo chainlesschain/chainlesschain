@@ -258,3 +258,4 @@
 | 188  | 2026-09-21 | [第一百八十八次工程实施：旧 Message Aggregator IPC 生产退役](./rsiagent-one-hundred-eighty-eighth-batch-implementation-2026-09-21.md)       |
 | 189  | 2026-09-21 | [第一百八十九次工程实施：旧 Progress Emitter IPC 生产退役](./rsiagent-one-hundred-eighty-ninth-batch-implementation-2026-09-21.md)          |
 | 190  | 2026-09-21 | [第一百九十次工程实施：旧 Resource Monitor IPC 生产退役](./rsiagent-one-hundred-ninetieth-batch-implementation-2026-09-21.md)                |
+| 191  | 2026-09-21 | [第一百九十一次工程实施：Renderer Logger IPC 授权与最小表面](./rsiagent-one-hundred-ninety-first-batch-implementation-2026-09-21.md)          |

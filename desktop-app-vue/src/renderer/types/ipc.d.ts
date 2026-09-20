@@ -142,10 +142,7 @@ export type FileChannel =
 /**
  * 日志相关通道
  */
-export type LoggerChannel =
-  | 'logger:write'
-  | 'logger:get-logs'
-  | 'logger:clear';
+export type LoggerChannel = 'logger:write';
 
 /**
  * 数据库相关通道

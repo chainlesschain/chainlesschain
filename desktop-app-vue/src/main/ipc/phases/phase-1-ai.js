@@ -335,9 +335,13 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
   safeRegister("Logger IPC", {
     register: () => {
       const { registerLoggerIPC } = require("../logger-ipc");
-      registerLoggerIPC();
+      registerLoggerIPC({
+        mainWindow: mainWindow || null,
+        didManager: didManager || null,
+        authorizePurpose: deps.authorizeLoggerPurpose,
+      });
     },
-    handlers: 6,
+    handlers: 1,
   });
 
   // RAG 检索 (函数模式 - 小模块示范，7 handlers)
