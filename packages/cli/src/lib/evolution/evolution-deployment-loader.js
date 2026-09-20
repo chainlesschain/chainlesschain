@@ -281,6 +281,7 @@ async function loadBuiltInFactories(commandName) {
       browserQuarantineOperatorRevocation,
       browserQuarantineLockMaintenance,
       browserDownloadArtifactDisposal,
+      volcengineFunctionExecution,
       ledgerPorts,
       artifactPorts,
       ledgerBackend,
@@ -313,6 +314,7 @@ async function loadBuiltInFactories(commandName) {
       import("./browser-quarantine-operator-revocation-authority.js"),
       import("./browser-quarantine-lock-maintenance-authority.js"),
       import("./browser-download-artifact-disposal-authority.js"),
+      import("./volcengine-function-execution-authority.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
       import("./evolution-ledger-file-backend.js"),
@@ -443,6 +445,8 @@ async function loadBuiltInFactories(commandName) {
         browserQuarantineLockMaintenance.createBrowserQuarantineLockMaintenanceAuthority,
       createBrowserDownloadArtifactDisposalAuthority:
         browserDownloadArtifactDisposal.createBrowserDownloadArtifactDisposalAuthority,
+      createVolcengineFunctionExecutionAuthority:
+        volcengineFunctionExecution.createVolcengineFunctionExecutionAuthority,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
@@ -799,6 +803,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createBrowserQuarantineOperatorRevocationAuthority",
     "createBrowserQuarantineLockMaintenanceAuthority",
     "createBrowserDownloadArtifactDisposalAuthority",
+    "createVolcengineFunctionExecutionAuthority",
   ];
   for (const name of providerFactories) {
     if (typeof factories[name] !== "function") continue;

@@ -706,8 +706,19 @@ class ChainlessChainApp {
         registerTaskTrackerIPC,
       } = require("./ai-engine/task-tracker-ipc");
 
-      registerVolcengineIPC();
-      registerSecureStorageIPC();
+      registerVolcengineIPC({
+        getMainWindow: () => this.mainWindow,
+        getCurrentIdentity: () =>
+          this.didManager?.getCurrentIdentity?.() || null,
+        functionExecutionHost:
+          this.evolutionDeploymentDependencies
+            .volcengineFunctionExecutionHost ?? null,
+      });
+      registerSecureStorageIPC({
+        getMainWindow: () => this.mainWindow,
+        getCurrentIdentity: () =>
+          this.didManager?.getCurrentIdentity?.() || null,
+      });
 
       // session IPC：始终注册（缺 sessionManager 时 handler 内部返回错误）
       registerSessionManagerIPC({ sessionManager: this.sessionManager });

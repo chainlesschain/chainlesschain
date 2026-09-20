@@ -865,6 +865,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserDownloadActionAuthority",
       "createBrowserQuarantinedDownloadExecutor",
       "createBrowserDownloadArtifactDisposalAuthority",
+      "createVolcengineFunctionExecutionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",
@@ -1048,6 +1049,21 @@ describe("signed evolution deployment loader", () => {
               },
               authorize: async () => ({ decision: "deny" }),
               recordOutcome: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionExecutionAuthority({
+              descriptor: {
+                schema: "chainlesschain.volcengine-function-authority/v1",
+                authorityId: "volcengine-functions",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "policy-1",
+                purpose: "model-tool-execution",
+                allowedFunctions: ["create_note"],
+                auditMode: "authenticated-durable-readback",
+              },
+              execute: async () => null,
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>

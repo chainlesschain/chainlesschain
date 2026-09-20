@@ -5,12 +5,172 @@
  */
 
 const { ipcMain: defaultIpcMain } = require("electron");
+const { types: utilTypes } = require("node:util");
 const { getLLMConfig } = require("./llm-config");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
 const { createVolcengineIpcPrivacy } = require("./volcengine-ipc-privacy");
-const SqlSecurity = require("../database/sql-security.js");
+const {
+  createVolcengineIpcAuthorization,
+} = require("./volcengine-ipc-authorization");
+const {
+  createVolcengineFunctionExecutor,
+} = require("./volcengine-function-capability");
 
 const defaultPrivacy = createVolcengineIpcPrivacy();
+
+const SAFE_MODEL_TYPES = new Set([
+  "3d_generation",
+  "embedding",
+  "image_editing",
+  "image_generation",
+  "text",
+  "video_generation",
+  "vision",
+  "vision_embedding",
+]);
+const SAFE_CAPABILITIES = new Set([
+  "3d_generation",
+  "code_generation",
+  "deep_thinking",
+  "embedding",
+  "function_calling",
+  "gui_agent",
+  "image_editing",
+  "image_generation",
+  "text_generation",
+  "translation",
+  "video_generation",
+  "video_understanding",
+  "vision",
+  "vision_embedding",
+  "web_search",
+]);
+const SAFE_PRICE_FIELDS = new Set([
+  "cache",
+  "high",
+  "imagePrice",
+  "input",
+  "output",
+  "perModel",
+  "perSecond",
+  "standard",
+]);
+const SAFE_CONFIG_FIELDS = new Set([
+  "apiKey",
+  "baseURL",
+  "embeddingModel",
+  "model",
+  "videoModel",
+]);
+
+function boundedString(value, field) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 256 ||
+    /\p{Cc}/u.test(value)
+  ) {
+    throw new TypeError(`Invalid Volcengine ${field}`);
+  }
+  return value;
+}
+
+function safeNumber(value, field) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new TypeError(`Invalid Volcengine ${field}`);
+  }
+  return value;
+}
+
+function projectCapabilities(value) {
+  if (!Array.isArray(value) || value.length > SAFE_CAPABILITIES.size) {
+    throw new TypeError("Invalid Volcengine model capabilities");
+  }
+  return value.map((capability) => {
+    if (!SAFE_CAPABILITIES.has(capability)) {
+      throw new TypeError("Invalid Volcengine model capability");
+    }
+    return capability;
+  });
+}
+
+function projectPricing(value) {
+  if (
+    !value ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid Volcengine model pricing");
+  }
+  const projected = {};
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      typeof key !== "string" ||
+      !SAFE_PRICE_FIELDS.has(key) ||
+      !descriptor ||
+      !Object.hasOwn(descriptor, "value") ||
+      !descriptor.enumerable
+    ) {
+      throw new TypeError("Invalid Volcengine model pricing field");
+    }
+    projected[key] = safeNumber(descriptor.value, `pricing.${key}`);
+  }
+  return projected;
+}
+
+function projectSelectedModel(model) {
+  return {
+    modelId: boundedString(model?.id, "model id"),
+    modelName: boundedString(model?.name, "model name"),
+    capabilities: projectCapabilities(model?.capabilities),
+    pricing: projectPricing(model?.pricing),
+    description: boundedString(model?.description, "model description"),
+  };
+}
+
+function projectCatalogModel(model) {
+  if (!SAFE_MODEL_TYPES.has(model?.type)) {
+    throw new TypeError("Invalid Volcengine model type");
+  }
+  return {
+    id: boundedString(model.id, "model id"),
+    name: boundedString(model.name, "model name"),
+    type: model.type,
+    capabilities: projectCapabilities(model.capabilities),
+    pricing: projectPricing(model.pricing),
+    recommended: model.recommended === true,
+  };
+}
+
+function projectConfigUpdate(value) {
+  if (
+    !value ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid Volcengine configuration");
+  }
+  const projected = {};
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      typeof key !== "string" ||
+      !SAFE_CONFIG_FIELDS.has(key) ||
+      !descriptor ||
+      !Object.hasOwn(descriptor, "value") ||
+      !descriptor.enumerable
+    ) {
+      throw new TypeError("Unsupported Volcengine configuration field");
+    }
+    if (descriptor.value === "") {
+      projected[key] = "";
+      continue;
+    }
+    projected[key] = boundedString(descriptor.value, `configuration ${key}`);
+  }
+  return projected;
+}
 
 /**
  * 获取或创建工具客户端
@@ -37,6 +197,31 @@ function registerVolcengineIPC(dependencies = {}) {
   const resolveModelSelector =
     dependencies.getModelSelector || getModelSelector;
   const privacy = dependencies.privacy || defaultPrivacy;
+  const authorization =
+    dependencies.authorization ||
+    createVolcengineIpcAuthorization({
+      getMainWindow: dependencies.getMainWindow,
+      getCurrentIdentity: dependencies.getCurrentIdentity,
+      authorizePurpose: dependencies.authorizePurpose,
+    });
+  const functionExecutionHost = dependencies.functionExecutionHost || null;
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const operation = channel.replace(/^volcengine:/u, "");
+      ipcMain.handle(channel, async (event, ...args) => {
+        let authorizationContext;
+        try {
+          authorizationContext = await authorization.authorize(
+            event,
+            operation,
+          );
+        } catch {
+          return privacy.authorizationFailure(operation);
+        }
+        return handler(event, args[0], authorizationContext);
+      });
+    },
+  };
 
   privacy.event("handlers-registering");
 
@@ -45,32 +230,27 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 智能选择模型（根据场景）
    */
-  ipcMain.handle("volcengine:select-model", async (event, { scenario }) => {
-    try {
-      const selector = resolveModelSelector();
-      const model = selector.selectByScenario(scenario);
+  authorizedIpcMain.handle(
+    "volcengine:select-model",
+    async (event, { scenario }) => {
+      try {
+        const selector = resolveModelSelector();
+        const model = selector.selectByScenario(scenario);
 
-      return {
-        success: true,
-        data: {
-          modelId: model.id,
-          modelName: model.name,
-          capabilities: model.capabilities,
-          pricing: model.pricing,
-          description: model.description,
-          contextLength: model.contextLength,
-          maxOutputTokens: model.maxOutputTokens,
-        },
-      };
-    } catch {
-      return privacy.failure("select-model");
-    }
-  });
+        return {
+          success: true,
+          data: projectSelectedModel(model),
+        };
+      } catch {
+        return privacy.failure("select-model");
+      }
+    },
+  );
 
   /**
    * 根据任务类型选择模型
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:select-model-by-task",
     async (event, { taskType, options }) => {
       try {
@@ -79,12 +259,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            modelId: model.id,
-            modelName: model.name,
-            capabilities: model.capabilities,
-            pricing: model.pricing,
-          },
+          data: projectSelectedModel(model),
         };
       } catch {
         return privacy.failure("select-model-by-task");
@@ -95,7 +270,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 估算成本
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:estimate-cost",
     async (event, { modelId, inputTokens, outputTokens, imageCount }) => {
       try {
@@ -106,12 +281,13 @@ function registerVolcengineIPC(dependencies = {}) {
           outputTokens,
           imageCount,
         );
+        const projectedCost = safeNumber(cost, "estimated cost");
 
         return {
           success: true,
           data: {
-            cost: cost,
-            formatted: `¥${cost.toFixed(4)}`,
+            cost: projectedCost,
+            formatted: `¥${projectedCost.toFixed(4)}`,
           },
         };
       } catch {
@@ -123,33 +299,29 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 列出所有模型
    */
-  ipcMain.handle("volcengine:list-models", async (event, { filters }) => {
-    try {
-      const selector = resolveModelSelector();
-      const models = selector.listModels(filters || {});
+  authorizedIpcMain.handle(
+    "volcengine:list-models",
+    async (event, { filters }) => {
+      try {
+        const selector = resolveModelSelector();
+        const models = selector.listModels(filters || {});
 
-      return {
-        success: true,
-        data: models.map((m) => ({
-          id: m.id,
-          name: m.name,
-          type: m.type,
-          capabilities: m.capabilities,
-          pricing: m.pricing,
-          recommended: m.recommended,
-        })),
-      };
-    } catch {
-      return privacy.failure("list-models");
-    }
-  });
+        return {
+          success: true,
+          data: models.map(projectCatalogModel),
+        };
+      } catch {
+        return privacy.failure("list-models");
+      }
+    },
+  );
 
   // ========== 联网搜索 ==========
 
   /**
    * 联网搜索对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-web-search",
     async (event, { messages, options }) => {
       try {
@@ -177,7 +349,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 图像处理对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-image",
     async (event, { messages, options }) => {
       try {
@@ -205,7 +377,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 图像理解（简化接口）
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:understand-image",
     async (event, { prompt, imageUrl, options }) => {
       try {
@@ -231,7 +403,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 配置知识库（上传文档）
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:setup-knowledge-base",
     async (event, { knowledgeBaseId, documents }) => {
       try {
@@ -254,7 +426,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 知识库搜索对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-knowledge-base",
     async (event, { messages, knowledgeBaseId, options }) => {
       try {
@@ -286,7 +458,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * Function Calling 对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-function-calling",
     async (event, { messages, functions, options }) => {
       try {
@@ -317,14 +489,25 @@ function registerVolcengineIPC(dependencies = {}) {
    * 执行完整的 Function Calling 流程
    * 注意：functionExecutor 需要在主进程侧定义
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:execute-function-calling",
-    async (event, { messages, functions, executorType, options }) => {
+    async (
+      event,
+      { messages, functions, executorType, options },
+      authorizationContext,
+    ) => {
       try {
+        const capabilityExecutor = createVolcengineFunctionExecutor(
+          functionExecutionHost,
+          { authorization: authorizationContext, executorType },
+        );
+        const functionExecutor = Object.freeze({
+          async execute(functionName, args) {
+            privacy.event("function-execution-started");
+            return capabilityExecutor.execute(functionName, args);
+          },
+        });
         const client = getToolsClient();
-
-        // 根据类型获取函数执行器
-        const functionExecutor = getFunctionExecutor(executorType, privacy);
 
         const result = await client.executeFunctionCalling(
           messages,
@@ -348,7 +531,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * MCP 对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-mcp",
     async (event, { messages, mcpConfig, options }) => {
       try {
@@ -379,7 +562,7 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 多工具混合对话
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "volcengine:chat-with-multiple-tools",
     async (event, { messages, toolConfig, options }) => {
       try {
@@ -410,178 +593,44 @@ function registerVolcengineIPC(dependencies = {}) {
   /**
    * 检查配置状态
    */
-  ipcMain.handle("volcengine:check-config", async (_event) => {
+  authorizedIpcMain.handle("volcengine:check-config", async () => {
     try {
-      const client = getToolsClient();
-      const config = client.getConfig();
+      const config = resolveConfig().getProviderConfig("volcengine");
 
       return {
         success: true,
-        data: config,
+        data: {
+          hasApiKey:
+            typeof config?.apiKey === "string" && config.apiKey.length > 0,
+        },
       };
     } catch {
-      return privacy.governanceFailure("check-config");
+      return privacy.failure("check-config");
     }
   });
 
   /**
    * 更新配置
    */
-  ipcMain.handle("volcengine:update-config", async (event, { config }) => {
-    try {
-      // 更新 LLM 配置
-      const llmConfig = resolveConfig();
-      llmConfig.setProviderConfig("volcengine", config);
+  authorizedIpcMain.handle(
+    "volcengine:update-config",
+    async (event, { config }) => {
+      try {
+        // 更新 LLM 配置
+        const llmConfig = resolveConfig();
+        llmConfig.setProviderConfig("volcengine", projectConfigUpdate(config));
 
-      return {
-        success: true,
-        message: "配置已更新",
-      };
-    } catch {
-      return privacy.failure("update-config");
-    }
-  });
-
-  privacy.event("handlers-registered");
-}
-
-/**
- * 获取函数执行器
- * @param {string} executorType - 执行器类型
- * @returns {Object} 函数执行器
- */
-function getFunctionExecutor(executorType, privacy = defaultPrivacy) {
-  // 这里可以根据类型返回不同的执行器
-  // 示例：返回一个简单的执行器
-  return {
-    async execute(functionName, args) {
-      privacy.event("function-execution-started");
-
-      // 根据 functionName 调用实际的业务逻辑
-      switch (functionName) {
-        case "create_note": {
-          const { getDatabase } = require("../database");
-          const db = getDatabase();
-          const id = require("crypto").randomUUID();
-          const now = Date.now();
-
-          await db.run(
-            `INSERT INTO notes (id, title, content, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?)`,
-            [id, args.title || "Untitled", args.content || "", now, now],
-          );
-
-          return { noteId: id, success: true };
-        }
-
-        case "search_notes": {
-          const { getDatabase } = require("../database");
-          const db = getDatabase();
-          const query = args.query || "";
-          const limit = args.limit || 20;
-
-          const notes = await db.all(
-            `SELECT id, title, content, created_at, updated_at
-             FROM notes
-             WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\'
-             ORDER BY updated_at DESC
-             LIMIT ?`,
-            [
-              SqlSecurity.likeContains(query),
-              SqlSecurity.likeContains(query),
-              limit,
-            ],
-          );
-
-          return { notes, total: notes.length };
-        }
-
-        case "get_note": {
-          const { getDatabase } = require("../database");
-          const db = getDatabase();
-
-          const note = await db.get("SELECT * FROM notes WHERE id = ?", [
-            args.noteId,
-          ]);
-
-          return note
-            ? { note, success: true }
-            : { note: null, success: false };
-        }
-
-        case "update_note": {
-          const { getDatabase } = require("../database");
-          const db = getDatabase();
-          const now = Date.now();
-
-          await db.run(
-            `UPDATE notes SET title = ?, content = ?, updated_at = ?
-             WHERE id = ?`,
-            [args.title, args.content, now, args.noteId],
-          );
-
-          return { success: true };
-        }
-
-        case "delete_note": {
-          const { getDatabase } = require("../database");
-          const db = getDatabase();
-
-          await db.run("DELETE FROM notes WHERE id = ?", [args.noteId]);
-
-          return { success: true };
-        }
-
-        case "send_p2p_message": {
-          // P2P 消息需要通过 IPC 调用，这里记录消息意图
-          const id = require("crypto").randomUUID();
-          privacy.event("p2p-message-prepared");
-
-          return {
-            messageId: id,
-            success: true,
-            note: "Message queued for P2P delivery",
-          };
-        }
-
-        case "get_system_info": {
-          const os = require("os");
-          return {
-            platform: os.platform(),
-            hostname: os.hostname(),
-            cpus: os.cpus().length,
-            totalMemory: os.totalmem(),
-            freeMemory: os.freemem(),
-            uptime: os.uptime(),
-          };
-        }
-
-        case "list_files": {
-          const fs = require("fs").promises;
-          const path = require("path");
-          const dirPath = args.path || process.cwd();
-
-          const entries = await fs.readdir(dirPath, { withFileTypes: true });
-          const files = entries.map((entry) => ({
-            name: entry.name,
-            isDirectory: entry.isDirectory(),
-            path: path.join(dirPath, entry.name),
-          }));
-
-          return { files, count: files.length };
-        }
-
-        case "read_file": {
-          const fs = require("fs").promises;
-          const content = await fs.readFile(args.path, "utf-8");
-          return { content, success: true };
-        }
-
-        default:
-          throw new Error(`未知函数: ${functionName}`);
+        return {
+          success: true,
+          data: { updated: true },
+        };
+      } catch {
+        return privacy.failure("update-config");
       }
     },
-  };
+  );
+
+  privacy.event("handlers-registered");
 }
 
 /**

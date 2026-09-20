@@ -22,7 +22,7 @@ function setup(overrides = {}) {
     selectByScenario: vi.fn(() => ({
       id: "model-1",
       name: "Model One",
-      capabilities: ["chat"],
+      capabilities: ["text_generation"],
       pricing: { input: 1 },
       description: "description",
       contextLength: 1024,
@@ -34,20 +34,39 @@ function setup(overrides = {}) {
     ...overrides.selector,
   };
   const llmConfig = {
+    getProviderConfig: vi.fn(() => ({ apiKey: "private-key" })),
     setProviderConfig: vi.fn(),
     ...overrides.llmConfig,
   };
   const sink = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const privacy = createVolcengineIpcPrivacy(sink);
+  const authorization = overrides.authorization || {
+    authorize: vi.fn(async () => ({
+      actorDid: "did:test:operator",
+      operation: "test",
+      purpose: "test",
+      senderId: 1,
+      tenantId: "tenant:test",
+    })),
+  };
 
   registerVolcengineIPC({
     ipcMain,
     getModelSelector: () => selector,
     getLLMConfig: () => llmConfig,
     privacy,
+    authorization,
   });
 
-  return { handlers, ipcMain, selector, llmConfig, sink, privacy };
+  return {
+    authorization,
+    handlers,
+    ipcMain,
+    selector,
+    llmConfig,
+    sink,
+    privacy,
+  };
 }
 
 describe("Volcengine IPC privacy", () => {
@@ -123,6 +142,31 @@ describe("Volcengine IPC privacy", () => {
     );
   });
 
+  it("fails closed before resolving a model when authorization is denied", async () => {
+    const authorization = {
+      authorize: vi.fn(async () => {
+        throw new Error("private authorization reason");
+      }),
+    };
+    const { handlers, selector, sink } = setup({ authorization });
+
+    const result = await handlers.get("volcengine:select-model")(null, {
+      scenario: "private-scenario",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Volcengine IPC request is not authorized",
+      code: "CC_VOLCENGINE_IPC_UNAUTHORIZED",
+      component: "volcengine",
+      operation: "select-model",
+    });
+    expect(selector.selectByScenario).not.toHaveBeenCalled();
+    expect(JSON.stringify(sink.error.mock.calls)).not.toContain(
+      "private authorization reason",
+    );
+  });
+
   it("preserves successful selector and config-update contracts", async () => {
     const { handlers, llmConfig } = setup();
 
@@ -138,17 +182,86 @@ describe("Volcengine IPC privacy", () => {
       data: {
         modelId: "model-1",
         modelName: "Model One",
-        capabilities: ["chat"],
+        capabilities: ["text_generation"],
         pricing: { input: 1 },
         description: "description",
-        contextLength: 1024,
-        maxOutputTokens: 256,
       },
     });
-    expect(updated.success).toBe(true);
+    expect(updated).toEqual({ success: true, data: { updated: true } });
     expect(llmConfig.setProviderConfig).toHaveBeenCalledWith("volcengine", {
       apiKey: "private-key",
     });
+  });
+
+  it("returns only configuration status and rejects extension fields", async () => {
+    const { handlers, llmConfig } = setup();
+
+    const status = await handlers.get("volcengine:check-config")(null);
+    const rejected = await handlers.get("volcengine:update-config")(null, {
+      config: { apiKey: "private-key", privateExtension: "private-value" },
+    });
+    const accessorConfig = {};
+    Object.defineProperty(accessorConfig, "apiKey", {
+      enumerable: true,
+      get() {
+        throw new Error("private accessor value");
+      },
+    });
+    const accessorRejected = await handlers.get("volcengine:update-config")(
+      null,
+      { config: accessorConfig },
+    );
+
+    expect(status).toEqual({ success: true, data: { hasApiKey: true } });
+    expect(rejected).toEqual({
+      success: false,
+      error: "Volcengine IPC operation failed",
+      code: "CC_VOLCENGINE_IPC_OPERATION_FAILED",
+      component: "volcengine",
+      operation: "update-config",
+    });
+    expect(accessorRejected).toEqual(rejected);
+    expect(llmConfig.setProviderConfig).not.toHaveBeenCalled();
+    expect(JSON.stringify(status)).not.toContain("private-key");
+  });
+
+  it("projects catalog entries through bounded public fields", async () => {
+    const { handlers } = setup({
+      selector: {
+        listModels: vi.fn(() => [
+          {
+            id: "model-1",
+            name: "Model One",
+            type: "text",
+            capabilities: ["text_generation"],
+            pricing: { input: 0.5, output: 1 },
+            recommended: true,
+            description: "private-description",
+            providerConfig: { apiKey: "private-key" },
+          },
+        ]),
+      },
+    });
+
+    const result = await handlers.get("volcengine:list-models")(null, {
+      filters: {},
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: [
+        {
+          id: "model-1",
+          name: "Model One",
+          type: "text",
+          capabilities: ["text_generation"],
+          pricing: { input: 0.5, output: 1 },
+          recommended: true,
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("private-description");
+    expect(JSON.stringify(result)).not.toContain("private-key");
   });
 
   it("unregisters every channel through an injected IPC boundary", () => {
@@ -175,5 +288,19 @@ describe("Volcengine IPC privacy", () => {
     expect(source).not.toMatch(/console\.(?:debug|info|warn|error|log)\s*\(/u);
     expect(source).not.toMatch(/\berror\.message\b/u);
     expect(source).not.toMatch(/catch\s*\(\s*error\s*\)/u);
+  });
+
+  it("contains no local database, filesystem or system-info function executor", () => {
+    const source = fs.readFileSync(
+      path.resolve(__dirname, "..", "volcengine-ipc.js"),
+      "utf8",
+    );
+
+    expect(source).toContain("createVolcengineFunctionExecutor");
+    expect(source).not.toContain('require("../database")');
+    expect(source).not.toContain("getFunctionExecutor");
+    expect(source).not.toMatch(
+      /\b(?:readFile|readdir|hostname|totalmem|freemem|uptime)\s*\(/u,
+    );
   });
 });

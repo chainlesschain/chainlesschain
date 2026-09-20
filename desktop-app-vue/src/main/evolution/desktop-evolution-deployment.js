@@ -6,6 +6,9 @@ const { pathToFileURL } = require("url");
 const { types } = require("util");
 const { createDesktopModelIngressHost } = require("./desktop-model-ingress");
 const {
+  createVolcengineFunctionExecutionHost,
+} = require("../llm/volcengine-function-capability");
+const {
   createDesktopBrowserVisionObservationHost,
 } = require("./desktop-browser-vision-observation");
 const {
@@ -89,6 +92,8 @@ const DEV_BROWSER_QUARANTINE_LOCK_MAINTENANCE_AUTHORITY_REL =
   "../../../../packages/cli/src/lib/evolution/browser-quarantine-lock-maintenance-authority.js";
 const DEV_BROWSER_QUARANTINE_RETENTION_SCHEDULER_REL =
   "../../../../packages/cli/src/lib/evolution/browser-quarantine-retention-scheduler.js";
+const DEV_VOLCENGINE_FUNCTION_EXECUTION_AUTHORITY_REL =
+  "../../../../packages/cli/src/lib/evolution/volcengine-function-execution-authority.js";
 const PM_EXPLORATION_STORAGE_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_HOSTS = new WeakMap();
 const PM_EXPLORATION_EXECUTION_LANES = new WeakMap();
@@ -699,6 +704,27 @@ function resolveBrowserKeyboardActionAuthorityPath({
     );
   }
   return path.resolve(__dirname, DEV_BROWSER_KEYBOARD_ACTION_AUTHORITY_REL);
+}
+
+function resolveVolcengineFunctionExecutionAuthorityPath({
+  isPackaged = false,
+  resourcesPath,
+} = {}) {
+  if (isPackaged) {
+    if (typeof resourcesPath !== "string" || resourcesPath === "") {
+      throw new Error(
+        "packaged Volcengine function authority requires resourcesPath",
+      );
+    }
+    return path.join(
+      resourcesPath,
+      "packages/cli/src/lib/evolution/volcengine-function-execution-authority.js",
+    );
+  }
+  return path.resolve(
+    __dirname,
+    DEV_VOLCENGINE_FUNCTION_EXECUTION_AUTHORITY_REL,
+  );
 }
 
 function resolveBrowserTabOpenActionAuthorityPath({
@@ -1488,6 +1514,7 @@ async function loadDesktopEvolutionDependencies({
   importBrowserVisionObservationAuthorityModule = (url) => import(url),
   importBrowserVisionActionAuthorityModule = (url) => import(url),
   importBrowserNavigationActionAuthorityModule = (url) => import(url),
+  importVolcengineFunctionExecutionAuthorityModule = (url) => import(url),
   importBrowserKeyboardActionAuthorityModule = (url) => import(url),
   importBrowserTabOpenActionAuthorityModule = (url) => import(url),
   importBrowserDownloadActionAuthorityModule = (url) => import(url),
@@ -1539,6 +1566,37 @@ async function loadDesktopEvolutionDependencies({
         resourcesPath,
       },
     );
+  }
+  const volcengineFunctionAuthorityDescriptor = Object.getOwnPropertyDescriptor(
+    result,
+    "volcengineFunctionExecutionAuthority",
+  );
+  if (volcengineFunctionAuthorityDescriptor) {
+    if (
+      !Object.hasOwn(volcengineFunctionAuthorityDescriptor, "value") ||
+      volcengineFunctionAuthorityDescriptor.enumerable !== true
+    ) {
+      throw new TypeError(
+        "Desktop Volcengine function authority must be an enumerable data property",
+      );
+    }
+    const authorityPath = resolveVolcengineFunctionExecutionAuthorityPath({
+      isPackaged,
+      resourcesPath,
+    });
+    const authorityModule =
+      await importVolcengineFunctionExecutionAuthorityModule(
+        pathToFileURL(authorityPath).href,
+      );
+    desktopDependencies.volcengineFunctionExecutionHost =
+      createVolcengineFunctionExecutionHost(
+        volcengineFunctionAuthorityDescriptor.value,
+        ownDirectFunction(
+          authorityModule,
+          "captureVolcengineFunctionExecutionAuthority",
+          "Volcengine function execution authority capture",
+        ),
+      );
   }
   const browserVisionAuthorityDescriptor = Object.getOwnPropertyDescriptor(
     result,
@@ -2257,6 +2315,7 @@ module.exports = {
   resolveBrowserVisionObservationAuthorityPath,
   resolveBrowserVisionActionAuthorityPath,
   resolveBrowserNavigationActionAuthorityPath,
+  resolveVolcengineFunctionExecutionAuthorityPath,
   resolveBrowserKeyboardActionAuthorityPath,
   resolveBrowserTabOpenActionAuthorityPath,
   resolveBrowserDownloadActionAuthorityPath,

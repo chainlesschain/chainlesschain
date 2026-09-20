@@ -20,6 +20,7 @@ const {
   resolvePmExplorationLedgerAdapterPath,
   resolvePmExplorationRecoverySnapshotStorePath,
   resolvePmExplorationTransitionCommitterPath,
+  resolveVolcengineFunctionExecutionAuthorityPath,
 } = require("../desktop-evolution-deployment");
 const {
   createDesktopPmPreRunSealValue,
@@ -603,6 +604,42 @@ describe("desktop evolution deployment", () => {
     ).resolves.toEqual({});
     expect(capture).toHaveBeenCalledWith(authority);
     expect(authorizeAction).toHaveBeenCalledOnce();
+  });
+
+  it("narrows a signed Volcengine function authority to an opaque Desktop host", async () => {
+    const authority = Object.freeze({});
+    const descriptor = Object.freeze({
+      schema: "chainlesschain.volcengine-function-authority/v1",
+      authorityId: "volcengine-functions",
+      tenantId: "tenant-1",
+      handlerArtifactDigest: sha("signed-deployment"),
+      policyRevision: "policy-1",
+      purpose: "model-tool-execution",
+      allowedFunctions: Object.freeze(["create_note"]),
+      auditMode: "authenticated-durable-readback",
+    });
+    const executeFunction = vi.fn();
+    const capture = vi.fn((value) => {
+      if (value !== authority) throw new TypeError("unbranded authority");
+      return Object.freeze({ descriptor, executeFunction });
+    });
+
+    const result = await loadDesktopEvolutionDependencies({
+      importLoader: async () => ({
+        loadEvolutionDeploymentCommandDependencies: async () => ({
+          volcengineFunctionExecutionAuthority: authority,
+        }),
+      }),
+      importVolcengineFunctionExecutionAuthorityModule: async () => ({
+        captureVolcengineFunctionExecutionAuthority: capture,
+      }),
+    });
+
+    expect(Object.keys(result.volcengineFunctionExecutionHost)).toEqual([]);
+    expect(capture).toHaveBeenCalledWith(authority);
+    expect(resolveVolcengineFunctionExecutionAuthorityPath()).toMatch(
+      /volcengine-function-execution-authority\.js$/u,
+    );
   });
 
   it("narrows a signed keyboard authority to an opaque Desktop host", async () => {

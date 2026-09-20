@@ -12,7 +12,7 @@ const {
 } = require("../secure-storage-ipc");
 const { createSecureStoragePrivacy } = require("../secure-storage-privacy");
 
-function setup(overrides = {}) {
+function setup(overrides = {}, dependencyOverrides = {}) {
   const handlers = new Map();
   const ipcMain = {
     handle: (channel, handler) => handlers.set(channel, handler),
@@ -64,14 +64,26 @@ function setup(overrides = {}) {
     })),
   };
   const BrowserWindow = { fromWebContents: vi.fn(() => ({})) };
+  const authorization = dependencyOverrides.authorization || {
+    authorize: vi.fn(async (_event, operation) => ({ operation })),
+  };
   registerSecureStorageIPC({
     ipcMain,
     storage,
     dialog,
     BrowserWindow,
     privacy: createSecureStoragePrivacy("ipc", sink),
+    authorization,
   });
-  return { handlers, ipcMain, storage, sink, dialog, BrowserWindow };
+  return {
+    handlers,
+    ipcMain,
+    storage,
+    sink,
+    dialog,
+    BrowserWindow,
+    authorization,
+  };
 }
 
 describe("secure storage IPC privacy", () => {
@@ -181,6 +193,92 @@ describe("secure storage IPC privacy", () => {
     expect(inspected).toBe(false);
     expect(JSON.stringify(result)).not.toContain(secret);
     expect(JSON.stringify(sink.error.mock.calls)).not.toContain(secret);
+  });
+
+  it("fails before storage side effects when authorization is denied", async () => {
+    const authorization = {
+      authorize: vi.fn(async () => {
+        throw new Error("private authorization details");
+      }),
+    };
+    const { handlers, storage, sink } = setup({}, { authorization });
+
+    const result = await handlers.get("secure-storage:save")(
+      {},
+      { "openai.apiKey": `sk-${"a".repeat(32)}` },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Secure storage request is not authorized",
+      code: "CC_SECURE_STORAGE_UNAUTHORIZED",
+      component: "ipc",
+      operation: "save",
+    });
+    expect(storage.save).not.toHaveBeenCalled();
+    expect(JSON.stringify(sink.error.mock.calls)).not.toContain(
+      "private authorization details",
+    );
+  });
+
+  it("projects writes onto declared sensitive field paths", async () => {
+    const { handlers, storage } = setup();
+    const apiKey = `sk-${"a".repeat(32)}`;
+
+    await expect(
+      handlers.get("secure-storage:save")({}, { "openai.apiKey": apiKey }),
+    ).resolves.toMatchObject({ success: true });
+    expect(storage.save).toHaveBeenCalledWith({ "openai.apiKey": apiKey });
+
+    storage.save.mockClear();
+    await expect(
+      handlers.get("secure-storage:set-api-key")(
+        {},
+        { provider: "openai", value: apiKey },
+      ),
+    ).resolves.toMatchObject({ success: true });
+    expect(storage.save).toHaveBeenCalledWith({ "openai.apiKey": apiKey });
+
+    storage.save.mockClear();
+    await expect(
+      handlers.get("secure-storage:set-api-key")(
+        {},
+        {
+          provider: "openai",
+          key: "__proto__.polluted",
+          value: apiKey,
+        },
+      ),
+    ).resolves.toMatchObject({
+      success: false,
+      code: "CC_SECURE_STORAGE_OPERATION_FAILED",
+      operation: "set-api-key",
+    });
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects accessor-backed batch fields without evaluating them", async () => {
+    let inspected = false;
+    const apiKeys = {};
+    Object.defineProperty(apiKeys, "openai.apiKey", {
+      enumerable: true,
+      get() {
+        inspected = true;
+        return `sk-${"a".repeat(32)}`;
+      },
+    });
+    const { handlers, storage } = setup();
+
+    await expect(
+      handlers.get("secure-storage:batch-set-api-keys")({}, apiKeys),
+    ).resolves.toMatchObject({
+      success: false,
+      code: "CC_SECURE_STORAGE_OPERATION_FAILED",
+      operation: "batch-set-api-keys",
+    });
+    expect(inspected).toBe(false);
+    expect(storage.load).not.toHaveBeenCalled();
+    expect(storage.save).not.toHaveBeenCalled();
   });
 
   it("keeps events, operations and source access on fixed boundaries", () => {

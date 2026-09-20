@@ -11,7 +11,7 @@
 
 ## 批次导航
 
-[第 1–25 批](#batch-1-25) | [第 26–50 批](#batch-26-50) | [第 51–75 批](#batch-51-75) | [第 76–100 批](#batch-76-100) | [第 101–125 批](#batch-101-125) | [第 126–141 批](#batch-126-141)
+[第 1–25 批](#batch-1-25) | [第 26–50 批](#batch-26-50) | [第 51–75 批](#batch-51-75) | [第 76–100 批](#batch-76-100) | [第 101–125 批](#batch-101-125) | [第 126–145 批](#batch-126-145)
 
 <a id="batch-1-25"></a>
 
@@ -173,25 +173,29 @@
 | 124  | 2026-09-20 | [第一百二十四次工程实施：Plugin Sandbox Console 源头脱敏](./rsiagent-one-hundred-twenty-fourth-batch-implementation-2026-09-20.md)   |
 | 125  | 2026-09-20 | [第一百二十五次工程实施：Plugin 第三方依赖隔离加载](./rsiagent-one-hundred-twenty-fifth-batch-implementation-2026-09-20.md)          |
 
-<a id="batch-126-141"></a>
+<a id="batch-126-145"></a>
 
-## 第 126–141 批
+## 第 126–145 批
 
-| 批次 | 日期       | 实施记录                                                                                                                             |
-| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 126  | 2026-09-20 | [第一百二十六次工程实施：崩溃报告隐私默认与旧报告迁移](./rsiagent-one-hundred-twenty-sixth-batch-implementation-2026-09-20.md)       |
-| 127  | 2026-09-20 | [第一百二十七次工程实施：Chromium 诊断日志启动边界](./rsiagent-one-hundred-twenty-seventh-batch-implementation-2026-09-20.md)        |
-| 128  | 2026-09-20 | [第一百二十八次工程实施：LLM Provider 日志隐私边界](./rsiagent-one-hundred-twenty-eighth-batch-implementation-2026-09-20.md)         |
-| 129  | 2026-09-20 | [第一百二十九次工程实施：LLM Provider 失败最小披露](./rsiagent-one-hundred-twenty-ninth-batch-implementation-2026-09-20.md)          |
-| 130  | 2026-09-20 | [第一百三十次工程实施：LLM Selector IPC 隐私边界](./rsiagent-one-hundred-thirtieth-batch-implementation-2026-09-20.md)               |
-| 131  | 2026-09-20 | [第一百三十一次工程实施：LLM Core IPC 失败边界](./rsiagent-one-hundred-thirty-first-batch-implementation-2026-09-20.md)              |
-| 132  | 2026-09-20 | [第一百三十二次工程实施：LLM 配置 IPC 最小披露](./rsiagent-one-hundred-thirty-second-batch-implementation-2026-09-20.md)             |
-| 133  | 2026-09-20 | [第一百三十三次工程实施：LLM Core 内部日志最小披露](./rsiagent-one-hundred-thirty-third-batch-implementation-2026-09-20.md)          |
-| 134  | 2026-09-20 | [第一百三十四次工程实施：LLM 辅助 IPC 失败最小披露](./rsiagent-one-hundred-thirty-fourth-batch-implementation-2026-09-20.md)         |
-| 135  | 2026-09-20 | [第一百三十五次工程实施：LLM Manager 日志与失败事件最小披露](./rsiagent-one-hundred-thirty-fifth-batch-implementation-2026-09-20.md) |
-| 136  | 2026-09-20 | [第一百三十六次工程实施：LLM Selector 业务日志最小披露](./rsiagent-one-hundred-thirty-sixth-batch-implementation-2026-09-20.md)      |
-| 137  | 2026-09-20 | [第一百三十七次工程实施：LLM 安全存储 IPC 最小披露](./rsiagent-one-hundred-thirty-seventh-batch-implementation-2026-09-20.md)        |
-| 138  | 2026-09-20 | [第一百三十八次工程实施：Volcengine Tools 最小披露](./rsiagent-one-hundred-thirty-eighth-batch-implementation-2026-09-20.md)         |
-| 139  | 2026-09-20 | [第一百三十九次工程实施：LLM Config 日志最小披露](./rsiagent-one-hundred-thirty-ninth-batch-implementation-2026-09-20.md)            |
-| 140  | 2026-09-20 | [第一百四十次工程实施：LLM 运行时诊断最小披露](./rsiagent-one-hundred-fortieth-batch-implementation-2026-09-20.md)                   |
-| 141  | 2026-09-20 | [第一百四十一次工程实施：Volcengine IPC 最小披露](./rsiagent-one-hundred-forty-first-batch-implementation-2026-09-20.md)             |
+| 批次 | 日期       | 实施记录                                                                                                                                 |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 126  | 2026-09-20 | [第一百二十六次工程实施：崩溃报告隐私默认与旧报告迁移](./rsiagent-one-hundred-twenty-sixth-batch-implementation-2026-09-20.md)           |
+| 127  | 2026-09-20 | [第一百二十七次工程实施：Chromium 诊断日志启动边界](./rsiagent-one-hundred-twenty-seventh-batch-implementation-2026-09-20.md)            |
+| 128  | 2026-09-20 | [第一百二十八次工程实施：LLM Provider 日志隐私边界](./rsiagent-one-hundred-twenty-eighth-batch-implementation-2026-09-20.md)             |
+| 129  | 2026-09-20 | [第一百二十九次工程实施：LLM Provider 失败最小披露](./rsiagent-one-hundred-twenty-ninth-batch-implementation-2026-09-20.md)              |
+| 130  | 2026-09-20 | [第一百三十次工程实施：LLM Selector IPC 隐私边界](./rsiagent-one-hundred-thirtieth-batch-implementation-2026-09-20.md)                   |
+| 131  | 2026-09-20 | [第一百三十一次工程实施：LLM Core IPC 失败边界](./rsiagent-one-hundred-thirty-first-batch-implementation-2026-09-20.md)                  |
+| 132  | 2026-09-20 | [第一百三十二次工程实施：LLM 配置 IPC 最小披露](./rsiagent-one-hundred-thirty-second-batch-implementation-2026-09-20.md)                 |
+| 133  | 2026-09-20 | [第一百三十三次工程实施：LLM Core 内部日志最小披露](./rsiagent-one-hundred-thirty-third-batch-implementation-2026-09-20.md)              |
+| 134  | 2026-09-20 | [第一百三十四次工程实施：LLM 辅助 IPC 失败最小披露](./rsiagent-one-hundred-thirty-fourth-batch-implementation-2026-09-20.md)             |
+| 135  | 2026-09-20 | [第一百三十五次工程实施：LLM Manager 日志与失败事件最小披露](./rsiagent-one-hundred-thirty-fifth-batch-implementation-2026-09-20.md)     |
+| 136  | 2026-09-20 | [第一百三十六次工程实施：LLM Selector 业务日志最小披露](./rsiagent-one-hundred-thirty-sixth-batch-implementation-2026-09-20.md)          |
+| 137  | 2026-09-20 | [第一百三十七次工程实施：LLM 安全存储 IPC 最小披露](./rsiagent-one-hundred-thirty-seventh-batch-implementation-2026-09-20.md)            |
+| 138  | 2026-09-20 | [第一百三十八次工程实施：Volcengine Tools 最小披露](./rsiagent-one-hundred-thirty-eighth-batch-implementation-2026-09-20.md)             |
+| 139  | 2026-09-20 | [第一百三十九次工程实施：LLM Config 日志最小披露](./rsiagent-one-hundred-thirty-ninth-batch-implementation-2026-09-20.md)                |
+| 140  | 2026-09-20 | [第一百四十次工程实施：LLM 运行时诊断最小披露](./rsiagent-one-hundred-fortieth-batch-implementation-2026-09-20.md)                       |
+| 141  | 2026-09-20 | [第一百四十一次工程实施：Volcengine IPC 最小披露](./rsiagent-one-hundred-forty-first-batch-implementation-2026-09-20.md)                 |
+| 142  | 2026-09-20 | [第一百四十二次工程实施：Volcengine IPC 身份、租户与用途授权](./rsiagent-one-hundred-forty-second-batch-implementation-2026-09-20.md)    |
+| 143  | 2026-09-20 | [第一百四十三次工程实施：Volcengine 内置函数 Capability 边界](./rsiagent-one-hundred-forty-third-batch-implementation-2026-09-20.md)     |
+| 144  | 2026-09-20 | [第一百四十四次工程实施：Volcengine 函数签名 Authority 装配](./rsiagent-one-hundred-forty-fourth-batch-implementation-2026-09-20.md)     |
+| 145  | 2026-09-20 | [第一百四十五次工程实施：Secure Storage IPC 身份、租户与字段授权](./rsiagent-one-hundred-forty-fifth-batch-implementation-2026-09-20.md) |

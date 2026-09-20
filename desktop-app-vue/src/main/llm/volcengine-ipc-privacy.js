@@ -55,6 +55,16 @@ function createVolcengineIpcPrivacy(sink = logger) {
         ...safeDetails,
       };
     },
+    authorizationFailure(operation) {
+      const safeDetails = details(operation);
+      sink.error("[VolcengineIPC] authorization denied", safeDetails);
+      return {
+        success: false,
+        error: "Volcengine IPC request is not authorized",
+        code: "CC_VOLCENGINE_IPC_UNAUTHORIZED",
+        ...safeDetails,
+      };
+    },
     governanceFailure(operation) {
       const safeDetails = details(operation);
       sink.error("[VolcengineIPC] governed operation failed", safeDetails);

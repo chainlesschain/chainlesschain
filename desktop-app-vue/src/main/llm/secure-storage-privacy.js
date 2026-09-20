@@ -47,11 +47,15 @@ const SAFE_OPERATIONS = new Set([
   "delete-api-key",
   "exists",
   "export",
+  "get-api-key-masked",
   "get-api-key-status",
   "get-configured-providers",
   "get-info",
+  "get-provider-fields",
+  "get-sensitive-fields",
   "has-api-key",
   "import",
+  "is-sensitive",
   "list-backups",
   "load",
   "migrate-to-safe-storage",
@@ -84,6 +88,20 @@ function createSecureStoragePrivacy(component, sink = logger) {
         operation: allowlisted(operation, SAFE_OPERATIONS),
       };
       sink.error("[SecureStorage] operation failed", {
+        component: receipt.component,
+        operation: receipt.operation,
+      });
+      return receipt;
+    },
+    authorizationFailure(operation) {
+      const receipt = {
+        success: false,
+        error: "Secure storage request is not authorized",
+        code: "CC_SECURE_STORAGE_UNAUTHORIZED",
+        component: safeComponent,
+        operation: allowlisted(operation, SAFE_OPERATIONS),
+      };
+      sink.error("[SecureStorage] authorization denied", {
         component: receipt.component,
         operation: receipt.operation,
       });
