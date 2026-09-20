@@ -226,16 +226,6 @@ export type MemoryChannel =
   | 'memory:get-insights';
 
 /**
- * Plan Mode 相关通道
- */
-export type PlanModeChannel =
-  | 'plan-mode:enter'
-  | 'plan-mode:exit'
-  | 'plan-mode:get-plan'
-  | 'plan-mode:approve'
-  | 'plan-mode:reject';
-
-/**
  * Skills 系统相关通道
  */
 export type SkillsChannel =
@@ -296,7 +286,6 @@ export type IPCChannel =
   | MultimediaChannel
   | SessionChannel
   | MemoryChannel
-  | PlanModeChannel
   | SkillsChannel
   | ContextChannel
   | PermissionChannel

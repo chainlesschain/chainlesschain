@@ -2,7 +2,7 @@
  * Phase 1: AI Core IPC Registrations.
  *
  * Largest of the original phase blocks. Covers LLM, PermanentMemory,
- * Plan Mode, Markdown Skills, Skill Sync, AI Engine, Prompt
+ * Markdown Skills, Skill Sync, AI Engine, Prompt
  * Compressor, Response Cache, Token Tracker, Stream
  * Controller, Team Task, Permission, Logger, RAG (gated), Follow-up
  * Intent, Browser.
@@ -142,19 +142,15 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     handlers: 2,
   });
 
-  // 🔥 Plan Mode 系统 (Claude Code 风格, 14 handlers)
-  safeRegister("Plan Mode IPC", {
-    register: () => {
-      const {
-        registerPlanModeIPC,
-      } = require("../../ai-engine/plan-mode/plan-mode-ipc");
-      registerPlanModeIPC({
-        hookSystem,
-        functionCaller: aiEngineManager?.functionCaller || null,
-      });
-    },
-    handlers: 14,
-  });
+  // Plan Mode remains an internal coding-agent guard. Its unused renderer IPC
+  // surface has been retired, while the manager keeps the shared HookSystem.
+  const {
+    getPlanModeManager,
+  } = require("../../ai-engine/plan-mode");
+  const planModeManager = getPlanModeManager();
+  if (planModeManager.hookSystem !== hookSystem) {
+    planModeManager.setHookSystem(hookSystem);
+  }
 
   // 🔥 Markdown Skills 系统 (Claude Code 风格, 17 handlers)
   safeRegister("Markdown Skills IPC", {

@@ -21,10 +21,10 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-1-ai",
     exportName: "registerPhase1AI",
-    // 17 safeRegister calls total: 16 unconditional + 1 gated on ragManager
-    // (RAG IPC). With null deps, only the 16 unconditional fire. Legacy helper
+    // 16 safeRegister calls total: 15 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 15 unconditional fire. Legacy helper
     // renderer surfaces are retired after their internal consumers cut over.
-    expectedRegistrations: 16,
+    expectedRegistrations: 15,
     needsRegisteredModules: false,
   },
   {
@@ -304,5 +304,22 @@ describe("ipc/phases — extracted phase module contracts", () => {
     );
     expect(result.hookSystem).toBe(getHookSystem());
     expect(require("../../hooks").registerHooksIPC).toBeUndefined();
+  });
+
+  it("keeps PlanModeManager internal while omitting its renderer IPC", () => {
+    const { registerPhase1AI } = require("../phases/phase-1-ai");
+    const {
+      getPlanModeManager,
+    } = require("../../ai-engine/plan-mode");
+    const result = registerPhase1AI({
+      safeRegister,
+      logger,
+      deps: { database: null },
+    });
+
+    expect(safeRegister.mock.calls.map(([name]) => name)).not.toContain(
+      "Plan Mode IPC",
+    );
+    expect(getPlanModeManager().hookSystem).toBe(result.hookSystem);
   });
 });
