@@ -132,7 +132,13 @@ function sandboxPolicy(value) {
     const normalized = paths.map((path) => {
       if (typeof path !== "string" || !isAbsolute(path))
         throw new TypeError(`${label} paths must be absolute`);
-      return resolve(path);
+      const absolute = resolve(path);
+      try {
+        return realpathSync(absolute);
+      } catch (cause) {
+        if (cause?.code === "ENOENT") return absolute;
+        throw new Error(`${label} path could not be resolved`, { cause });
+      }
     });
     if (new Set(normalized).size !== normalized.length)
       throw new TypeError(`${label} paths must be unique`);
