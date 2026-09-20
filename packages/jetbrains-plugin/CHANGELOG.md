@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.131] - Pair with governed CLI 0.166.68 (2026-09-20)
+
+- Recommend the publicly verified `chainlesschain@0.166.68` release in runtime
+  upgrade guidance and release metadata.
+- Carry the CLI's governed browser actions, durable download quarantine, and
+  corrected cross-platform path and byte-stream handling into IDE-driven Agent
+  sessions while keeping execution authority in the CLI host.
+- Pair only after Session Core `0.3.13`, Context/Memory Kernel `0.1.5`, and
+  Personal Data Hub `0.4.62` were published with provenance and every child
+  archive passed the public npm byte audit.
+
 ## [0.4.130] - Recover bounded Agent loops with CLI 0.166.65 (2026-09-19)
 
 - Recommend the publicly verified `chainlesschain@0.166.65` release in runtime
