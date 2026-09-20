@@ -15,6 +15,10 @@ const {
 const {
   createVolcengineFunctionExecutor,
 } = require("./volcengine-function-capability");
+const {
+  projectVolcengineKnowledgeSetupSuccess,
+  projectVolcengineToolSuccess,
+} = require("./volcengine-tool-success-projection");
 
 const defaultPrivacy = createVolcengineIpcPrivacy();
 
@@ -196,6 +200,7 @@ function registerVolcengineIPC(dependencies = {}) {
   const resolveConfig = dependencies.getLLMConfig || getLLMConfig;
   const resolveModelSelector =
     dependencies.getModelSelector || getModelSelector;
+  const resolveToolsClient = dependencies.getToolsClient || getToolsClient;
   const privacy = dependencies.privacy || defaultPrivacy;
   const authorization =
     dependencies.authorization ||
@@ -325,18 +330,12 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-web-search",
     async (event, { messages, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithWebSearch(messages, options || {});
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            searchResults: result.choices?.[0]?.message?.search_results,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-web-search");
@@ -353,7 +352,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-image",
     async (event, { messages, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithImageProcess(
           messages,
           options || {},
@@ -361,12 +360,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-image");
@@ -381,7 +375,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:understand-image",
     async (event, { prompt, imageUrl, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.understandImage(
           prompt,
           imageUrl,
@@ -390,7 +384,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: result,
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("understand-image");
@@ -407,15 +401,12 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:setup-knowledge-base",
     async (event, { knowledgeBaseId, documents }) => {
       try {
-        const client = getToolsClient();
-        const result = await client.setupKnowledgeBase(
-          knowledgeBaseId,
-          documents,
-        );
+        const client = resolveToolsClient();
+        await client.setupKnowledgeBase(knowledgeBaseId, documents);
 
         return {
           success: true,
-          data: result,
+          data: projectVolcengineKnowledgeSetupSuccess(),
         };
       } catch {
         return privacy.governanceFailure("setup-knowledge-base");
@@ -430,7 +421,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-knowledge-base",
     async (event, { messages, knowledgeBaseId, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithKnowledgeBase(
           messages,
           knowledgeBaseId,
@@ -439,13 +430,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            knowledgeResults: result.choices?.[0]?.message?.knowledge_results,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-knowledge-base");
@@ -462,7 +447,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-function-calling",
     async (event, { messages, functions, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithFunctionCalling(
           messages,
           functions,
@@ -471,13 +456,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-            finishReason: result.choices?.[0]?.finish_reason,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-function-calling");
@@ -507,7 +486,7 @@ function registerVolcengineIPC(dependencies = {}) {
             return capabilityExecutor.execute(functionName, args);
           },
         });
-        const client = getToolsClient();
+        const client = resolveToolsClient();
 
         const result = await client.executeFunctionCalling(
           messages,
@@ -518,7 +497,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: result,
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("execute-function-calling");
@@ -535,7 +514,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-mcp",
     async (event, { messages, mcpConfig, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithMCP(
           messages,
           mcpConfig,
@@ -544,12 +523,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-mcp");
@@ -566,7 +540,7 @@ function registerVolcengineIPC(dependencies = {}) {
     "volcengine:chat-with-multiple-tools",
     async (event, { messages, toolConfig, options }) => {
       try {
-        const client = getToolsClient();
+        const client = resolveToolsClient();
         const result = await client.chatWithMultipleTools(
           messages,
           toolConfig || {},
@@ -575,12 +549,7 @@ function registerVolcengineIPC(dependencies = {}) {
 
         return {
           success: true,
-          data: {
-            text: result.choices?.[0]?.message?.content || "",
-            model: result.model,
-            usage: result.usage,
-            toolCalls: result.choices?.[0]?.message?.tool_calls,
-          },
+          data: projectVolcengineToolSuccess(result),
         };
       } catch {
         return privacy.governanceFailure("chat-with-multiple-tools");

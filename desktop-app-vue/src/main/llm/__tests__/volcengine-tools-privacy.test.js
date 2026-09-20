@@ -78,7 +78,8 @@ describe("Volcengine tools privacy", () => {
       {},
     );
 
-    const toolMessage = result.messages.find(
+    const updatedMessages = client.chatWithFunctionCalling.mock.calls[1][0];
+    const toolMessage = updatedMessages.find(
       (message) => message.role === "tool",
     );
     expect(JSON.parse(toolMessage.content)).toEqual({
@@ -86,6 +87,41 @@ describe("Volcengine tools privacy", () => {
       code: "CC_LLM_TOOL_EXECUTION_FAILED",
     });
     expect(JSON.stringify(toolMessage)).not.toContain(secret);
+    expect(result).toEqual({
+      text: "complete",
+      usage: { total_tokens: 0 },
+      model: "private-model",
+    });
+    expect(result).not.toHaveProperty("messages");
+    expect(JSON.stringify(result)).not.toContain("private-prompt");
+  });
+
+  it("projects image understanding success without provider tool payloads", async () => {
+    const client = new VolcengineToolsClient({ apiKey: "private-api-key" });
+    client.chatWithImageProcess = vi.fn().mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: "public description",
+            tool_calls: [{ arguments: "private-image-tool-arguments" }],
+          },
+        },
+      ],
+      model: "public-model",
+      usage: { total_tokens: 6, privateCost: "private-cost" },
+    });
+
+    const result = await client.understandImage(
+      "private-prompt",
+      "https://private.example.test/image.png",
+    );
+
+    expect(result).toEqual({
+      text: "public description",
+      usage: { total_tokens: 6 },
+      model: "public-model",
+    });
+    expect(JSON.stringify(result)).not.toContain("private-");
   });
 
   it("returns configuration receipts without endpoint or model values", () => {

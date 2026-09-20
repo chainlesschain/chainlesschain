@@ -56,6 +56,7 @@ function setup(overrides = {}) {
     getLLMConfig: () => llmConfig,
     privacy,
     authorization,
+    getToolsClient: overrides.getToolsClient,
   });
 
   return {
@@ -139,6 +140,100 @@ describe("Volcengine IPC privacy", () => {
     );
     expect(JSON.stringify(sink.error.mock.calls)).not.toContain(
       "private-model",
+    );
+  });
+
+  it("projects tool success payloads before returning them to the renderer", async () => {
+    const privatePayload = "private-provider-tool-payload";
+    const rawResult = {
+      choices: [
+        {
+          finish_reason: privatePayload,
+          message: {
+            content: "public answer",
+            knowledge_results: [{ content: privatePayload }],
+            search_results: [{ url: privatePayload }],
+            tool_calls: [{ function: { arguments: privatePayload } }],
+          },
+        },
+      ],
+      model: "public-model",
+      usage: { total_tokens: 9, billingAccount: privatePayload },
+      raw: privatePayload,
+    };
+    const client = {
+      chatWithWebSearch: vi.fn(async () => rawResult),
+      chatWithImageProcess: vi.fn(async () => rawResult),
+      understandImage: vi.fn(async () => ({
+        text: "public image answer",
+        model: "public-model",
+        usage: { total_tokens: 5, raw: privatePayload },
+        toolCalls: [{ arguments: privatePayload }],
+      })),
+      setupKnowledgeBase: vi.fn(async () => ({ raw: privatePayload })),
+      chatWithKnowledgeBase: vi.fn(async () => rawResult),
+      chatWithFunctionCalling: vi.fn(async () => rawResult),
+      chatWithMCP: vi.fn(async () => rawResult),
+      chatWithMultipleTools: vi.fn(async () => rawResult),
+    };
+    const { handlers } = setup({ getToolsClient: () => client });
+    const cases = [
+      ["volcengine:chat-with-web-search", { messages: [], options: {} }],
+      ["volcengine:chat-with-image", { messages: [], options: {} }],
+      [
+        "volcengine:chat-with-knowledge-base",
+        { messages: [], knowledgeBaseId: "kb-1", options: {} },
+      ],
+      [
+        "volcengine:chat-with-function-calling",
+        { messages: [], functions: [], options: {} },
+      ],
+      [
+        "volcengine:chat-with-mcp",
+        { messages: [], mcpConfig: {}, options: {} },
+      ],
+      [
+        "volcengine:chat-with-multiple-tools",
+        { messages: [], toolConfig: {}, options: {} },
+      ],
+    ];
+
+    for (const [channel, request] of cases) {
+      const result = await handlers.get(channel)(null, request);
+      expect(result).toEqual({
+        success: true,
+        data: {
+          text: "public answer",
+          usage: { total_tokens: 9 },
+          model: "public-model",
+        },
+      });
+      expect(JSON.stringify(result)).not.toContain(privatePayload);
+    }
+
+    const image = await handlers.get("volcengine:understand-image")(null, {
+      prompt: "prompt",
+      imageUrl: "https://example.test/image.png",
+      options: {},
+    });
+    const setupResult = await handlers.get("volcengine:setup-knowledge-base")(
+      null,
+      { knowledgeBaseId: "kb-1", documents: [] },
+    );
+    expect(image).toEqual({
+      success: true,
+      data: {
+        text: "public image answer",
+        usage: { total_tokens: 5 },
+        model: "public-model",
+      },
+    });
+    expect(setupResult).toEqual({
+      success: true,
+      data: { configured: true },
+    });
+    expect(JSON.stringify({ image, setupResult })).not.toContain(
+      privatePayload,
     );
   });
 

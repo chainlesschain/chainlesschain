@@ -12,6 +12,9 @@
 const fetch = require("node-fetch");
 const { getModelSelector } = require("./volcengine-models");
 const { createProviderLogger } = require("./provider-log-privacy");
+const {
+  projectVolcengineToolSuccess,
+} = require("./volcengine-tool-success-projection");
 const providerLog = createProviderLogger("volcengine");
 
 const _deps = {
@@ -272,12 +275,7 @@ class VolcengineToolsClient {
 
     const result = await this.chatWithImageProcess(messages, options);
 
-    return {
-      text: result.choices?.[0]?.message?.content || "",
-      model: result.model,
-      usage: result.usage,
-      toolCalls: result.choices?.[0]?.message?.tool_calls,
-    };
+    return projectVolcengineToolSuccess(result);
   }
 
   // ========== 3. 私域知识库搜索 (Knowledge Search) ==========
@@ -490,12 +488,7 @@ class VolcengineToolsClient {
       messages = updatedMessages;
     }
 
-    return {
-      text: result.choices?.[0]?.message?.content || "",
-      model: result.model,
-      usage: result.usage,
-      messages: messages, // 返回完整对话历史
-    };
+    return projectVolcengineToolSuccess(result);
   }
 
   // ========== 5. MCP (Model Context Protocol) ==========
