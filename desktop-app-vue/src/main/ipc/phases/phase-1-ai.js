@@ -261,6 +261,9 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       registerResponseCacheIPC({
         responseCache: responseCache || null,
         database: database || null,
+        getMainWindow: () => mainWindow || null,
+        getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+        authorizePurpose: deps.authorizeResponseCachePurpose,
       });
     },
     handlers: 11,

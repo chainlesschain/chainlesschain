@@ -101,6 +101,50 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-instinct-stats-read",
     fields: Object.freeze(["instinct-statistics"]),
   }),
+  "response-cache-get-stats": Object.freeze({
+    purpose: "model-cache-stats-read",
+    fields: Object.freeze(["cache-statistics"]),
+  }),
+  "response-cache-get-stats-by-provider": Object.freeze({
+    purpose: "model-cache-stats-read",
+    fields: Object.freeze(["cache-provider-statistics"]),
+  }),
+  "response-cache-get-hit-rate-trend": Object.freeze({
+    purpose: "model-cache-stats-read",
+    fields: Object.freeze(["cache-hit-statistics"]),
+  }),
+  "response-cache-get-config": Object.freeze({
+    purpose: "model-cache-configuration-read",
+    fields: Object.freeze(["cache-configuration"]),
+  }),
+  "response-cache-set-config": Object.freeze({
+    purpose: "model-cache-configuration-write",
+    fields: Object.freeze(["cache-configuration"]),
+  }),
+  "response-cache-clear-all": Object.freeze({
+    purpose: "model-cache-delete",
+    fields: Object.freeze(["cache-control-receipt"]),
+  }),
+  "response-cache-clear-expired": Object.freeze({
+    purpose: "model-cache-delete",
+    fields: Object.freeze(["cache-control-receipt"]),
+  }),
+  "response-cache-check": Object.freeze({
+    purpose: "model-cache-status-read",
+    fields: Object.freeze(["cache-entry-metadata"]),
+  }),
+  "response-cache-warmup-status": Object.freeze({
+    purpose: "model-cache-status-read",
+    fields: Object.freeze(["cache-health"]),
+  }),
+  "response-cache-start-auto-cleanup": Object.freeze({
+    purpose: "model-cache-control",
+    fields: Object.freeze(["cache-control-receipt"]),
+  }),
+  "response-cache-stop-auto-cleanup": Object.freeze({
+    purpose: "model-cache-control",
+    fields: Object.freeze(["cache-control-receipt"]),
+  }),
   "get-selector-info": Object.freeze({
     purpose: "model-selector-catalog-read",
     fields: Object.freeze(["selector-catalog"]),

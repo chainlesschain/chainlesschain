@@ -13,6 +13,7 @@ const SAFE_COMPONENTS = new Set([
   "budgets",
   "core",
   "instinct",
+  "response-cache",
   "retention",
   "selector",
   "stream",
@@ -154,6 +155,17 @@ const SAFE_OPERATIONS = new Set([
   "instinct-export",
   "instinct-import",
   "instinct-get-stats",
+  "response-cache-get-stats",
+  "response-cache-get-stats-by-provider",
+  "response-cache-get-hit-rate-trend",
+  "response-cache-get-config",
+  "response-cache-set-config",
+  "response-cache-clear-all",
+  "response-cache-clear-expired",
+  "response-cache-check",
+  "response-cache-warmup-status",
+  "response-cache-start-auto-cleanup",
+  "response-cache-stop-auto-cleanup",
 ]);
 
 function allowlisted(value, values) {

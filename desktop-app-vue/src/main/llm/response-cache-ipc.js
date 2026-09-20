@@ -1,584 +1,530 @@
-/**
- * Response Cache IPC 处理器
- *
- * 提供 LLM 响应缓存的前端访问接口
- * 支持缓存查询、统计、清理、配置管理
- *
- * 功能：
- * - 缓存统计和监控
- * - 缓存配置管理
- * - 手动缓存操作
- * - 按提供商统计
- *
- * @module response-cache-ipc
- */
+/** Authorized IPC boundary for the process-wide LLM response cache. */
 
-const { logger } = require("../utils/logger.js");
+"use strict";
+
+const { types } = require("node:util");
 const defaultIpcGuard = require("../ipc/ipc-guard");
+const {
+  createLlmCoreIpcAuthorization,
+} = require("./llm-core-ipc-authorization");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
-// 模块级别的实例引用
+const CACHE_CHANNELS = Object.freeze([
+  "cache:get-stats",
+  "cache:get-stats-by-provider",
+  "cache:get-hit-rate-trend",
+  "cache:get-config",
+  "cache:set-config",
+  "cache:clear-all",
+  "cache:clear-expired",
+  "cache:check",
+  "cache:warmup-status",
+  "cache:start-auto-cleanup",
+  "cache:stop-auto-cleanup",
+]);
+const CHANNEL_OPERATIONS = Object.freeze(
+  Object.fromEntries(
+    CACHE_CHANNELS.map((channel) => [
+      channel,
+      `response-cache-${channel.slice("cache:".length)}`,
+    ]),
+  ),
+);
+const CONFIG_KEYS = new Set(["enableAutoCleanup", "ttlDays", "maxSize"]);
+const CHECK_KEYS = new Set(["provider", "model", "messages"]);
+const MESSAGE_KEYS = new Set(["role", "content"]);
+const MESSAGE_ROLES = new Set(["assistant", "system", "tool", "user"]);
+
 let responseCacheInstance = null;
 
-/**
- * 设置 ResponseCache 实例
- * @param {Object} cache - ResponseCache 实例
- */
 function setResponseCacheInstance(cache) {
   responseCacheInstance = cache;
 }
 
-/**
- * 获取 ResponseCache 实例
- * @returns {Object|null}
- */
 function getResponseCacheInstance() {
   return responseCacheInstance;
 }
 
-/**
- * 注册 Response Cache IPC 处理器
- * @param {Object} dependencies - 依赖
- * @param {Object} [dependencies.ipcMain] - IPC 主进程对象
- * @param {Object} [dependencies.ipcGuard] - IPC 防重复注册守卫
- * @param {Object} [dependencies.responseCache] - ResponseCache 实例
- * @param {Object} [dependencies.database] - 数据库实例（用于创建新的 ResponseCache）
- */
-function registerResponseCacheIPC({
-  ipcMain: injectedIpcMain,
-  ipcGuard: injectedIpcGuard,
-  responseCache,
-  database,
-} = {}) {
-  const ipcGuard = injectedIpcGuard || defaultIpcGuard;
-
-  // 防止重复注册
-  if (ipcGuard.isModuleRegistered("response-cache-ipc")) {
-    logger.info(
-      "[Response Cache IPC] Handlers already registered, skipping...",
-    );
-    return;
+function descriptorsFor(value, allowedKeys, label) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError(`Invalid ${label}`);
   }
-
-  const electron = require("electron");
-  const ipcMain = injectedIpcMain || electron.ipcMain;
-
-  // 设置实例
-  if (responseCache) {
-    setResponseCacheInstance(responseCache);
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (
+      typeof key !== "string" ||
+      !allowedKeys.has(key) ||
+      descriptors[key]?.enumerable !== true ||
+      !Object.hasOwn(descriptors[key], "value")
+    ) {
+      throw new TypeError(`Invalid ${label} field`);
+    }
   }
+  return descriptors;
+}
 
-  logger.info("[Response Cache IPC] Registering handlers...");
-
-  // ============================================================
-  // 辅助函数
-  // ============================================================
-
-  /**
-   * 获取缓存实例，如果不存在则返回错误
-   */
-  function getCacheOrError() {
-    const cache = getResponseCacheInstance();
-    if (!cache) {
-      return {
-        success: false,
-        error: "Response cache not initialized",
-      };
+function ownData(value, key) {
+  try {
+    if (
+      !value ||
+      types.isProxy(value) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+    ) {
+      return undefined;
     }
-    return { success: true, cache };
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor?.enumerable === true && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
+  } catch {
+    return undefined;
   }
+}
 
-  // ============================================================
-  // 统计信息 (Statistics) - 3 handlers
-  // ============================================================
-
-  /**
-   * 获取缓存统计信息
-   * Channel: 'cache:get-stats'
-   *
-   * @returns {Object} 统计数据（运行时统计、数据库统计、配置）
-   */
-  ipcMain.handle("cache:get-stats", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const stats = await result.cache.getStats();
-      return {
-        success: true,
-        stats,
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 获取统计失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+function strictArrayValues(value, maximum, label) {
+  if (!Array.isArray(value) || types.isProxy(value) || value.length > maximum) {
+    throw new TypeError(`Invalid ${label}`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const allowedKeys = new Set([
+    "length",
+    ...Array.from({ length: value.length }, (_, index) => String(index)),
+  ]);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== "string" || !allowedKeys.has(key)) {
+      throw new TypeError(`Invalid ${label} field`);
     }
-  });
-
-  /**
-   * 获取按提供商的缓存统计
-   * Channel: 'cache:get-stats-by-provider'
-   *
-   * @returns {Object} 各提供商的缓存统计
-   */
-  ipcMain.handle("cache:get-stats-by-provider", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const stats = await result.cache.getStatsByProvider();
-      return {
-        success: true,
-        providers: stats,
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 获取提供商统计失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+  }
+  return Array.from({ length: value.length }, (_, index) => {
+    const descriptor = descriptors[index];
+    if (
+      descriptor?.enumerable !== true ||
+      !Object.hasOwn(descriptor, "value")
+    ) {
+      throw new TypeError(`Invalid ${label} entry`);
     }
+    return descriptor.value;
   });
+}
 
-  /**
-   * 获取缓存命中率趋势
-   * Channel: 'cache:get-hit-rate-trend'
-   *
-   * @returns {Object} 命中率和趋势数据
-   */
-  ipcMain.handle("cache:get-hit-rate-trend", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
+function projectedArrayValues(value, maximum) {
+  try {
+    if (!Array.isArray(value) || types.isProxy(value)) return [];
+    const values = [];
+    const length = Math.min(value.length, maximum);
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, index);
+      if (
+        descriptor?.enumerable === true &&
+        Object.hasOwn(descriptor, "value")
+      ) {
+        values.push(descriptor.value);
       }
-
-      const stats = await result.cache.getStats();
-
-      // 计算命中率
-      const runtime = stats.runtime;
-      const totalRequests = runtime.hits + runtime.misses;
-      const hitRate =
-        totalRequests > 0 ? (runtime.hits / totalRequests) * 100 : 0;
-
-      return {
-        success: true,
-        hitRate: {
-          current: hitRate.toFixed(2),
-          hits: runtime.hits,
-          misses: runtime.misses,
-          totalRequests,
-        },
-        savings: {
-          totalTokensSaved: stats.database.totalTokensSaved || 0,
-          totalEntries: stats.database.totalEntries || 0,
-        },
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 获取命中率趋势失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
     }
-  });
+    return values;
+  } catch {
+    return [];
+  }
+}
 
-  // ============================================================
-  // 配置管理 (Configuration) - 2 handlers
-  // ============================================================
+function boundedText(value, maximum, label) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > maximum ||
+    value.trim() !== value ||
+    /\p{Cc}/u.test(value)
+  ) {
+    throw new TypeError(`Invalid ${label}`);
+  }
+  return value;
+}
 
-  /**
-   * 获取缓存配置
-   * Channel: 'cache:get-config'
-   *
-   * @returns {Object} 当前配置
-   */
-  ipcMain.handle("cache:get-config", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const cache = result.cache;
-
-      return {
-        success: true,
-        config: {
-          ttl: cache.ttl,
-          ttlDays: cache.ttl / 1000 / 60 / 60 / 24,
-          maxSize: cache.maxSize,
-          enableAutoCleanup: cache.enableAutoCleanup,
-          cleanupInterval: cache.cleanupInterval,
-          cleanupIntervalMinutes: cache.cleanupInterval / 1000 / 60,
-        },
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 获取配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * 更新缓存配置
-   * Channel: 'cache:set-config'
-   *
-   * 注意：部分配置（如 TTL、maxSize）需要重启缓存才能生效
-   *
-   * @param {Object} config - 新配置
-   * @returns {Object} 更新结果
-   */
-  ipcMain.handle("cache:set-config", async (_event, config) => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const cache = result.cache;
-
-      // 只允许更新安全的配置项
-      if (config.enableAutoCleanup !== undefined) {
-        if (config.enableAutoCleanup && !cache.enableAutoCleanup) {
-          cache.enableAutoCleanup = true;
-          cache._startAutoCleanup();
-        } else if (!config.enableAutoCleanup && cache.enableAutoCleanup) {
-          cache.stopAutoCleanup();
-          cache.enableAutoCleanup = false;
-        }
-      }
-
-      // TTL 和 maxSize 的更改将影响新条目
-      if (config.ttlDays !== undefined && config.ttlDays > 0) {
-        cache.ttl = config.ttlDays * 24 * 60 * 60 * 1000;
-      }
-
-      if (config.maxSize !== undefined && config.maxSize > 0) {
-        cache.maxSize = config.maxSize;
-      }
-
-      logger.info("[Response Cache IPC] 配置已更新:", config);
-
-      return {
-        success: true,
-        message: "Configuration updated",
-        config: {
-          ttl: cache.ttl,
-          ttlDays: cache.ttl / 1000 / 60 / 60 / 24,
-          maxSize: cache.maxSize,
-          enableAutoCleanup: cache.enableAutoCleanup,
-        },
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 设置配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  // ============================================================
-  // 缓存操作 (Cache Operations) - 4 handlers
-  // ============================================================
-
-  /**
-   * 清除所有缓存
-   * Channel: 'cache:clear-all'
-   *
-   * @returns {Object} 清除结果
-   */
-  ipcMain.handle("cache:clear-all", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const deletedCount = await result.cache.clear();
-
-      logger.info(
-        "[Response Cache IPC] 所有缓存已清除，共",
-        deletedCount,
-        "条",
+function boundedContent(value, maximum) {
+  const hasUnsafeControl =
+    typeof value === "string" &&
+    [...value].some((character) => {
+      const codePoint = character.codePointAt(0);
+      return (
+        (codePoint < 32 && ![9, 10, 13].includes(codePoint)) ||
+        (codePoint >= 127 && codePoint <= 159)
       );
+    });
+  if (
+    typeof value !== "string" ||
+    value.length > maximum ||
+    hasUnsafeControl
+  ) {
+    throw new TypeError("Invalid message content");
+  }
+  return value;
+}
 
-      return {
-        success: true,
-        deletedCount,
-        message: `Cleared ${deletedCount} cache entries`,
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 清除缓存失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+function safeCount(value, maximum = Number.MAX_SAFE_INTEGER) {
+  return Number.isSafeInteger(value) && value >= 0 && value <= maximum
+    ? value
+    : 0;
+}
+
+function safeNumber(value, maximum = Number.MAX_SAFE_INTEGER) {
+  return Number.isFinite(value) && value >= 0 && value <= maximum ? value : 0;
+}
+
+function safeDecimal(value, maximum = Number.MAX_SAFE_INTEGER) {
+  if (typeof value === "number") return safeNumber(value, maximum);
+  if (typeof value !== "string" || !/^\d+(?:\.\d+)?$/u.test(value)) return 0;
+  return safeNumber(Number(value), maximum);
+}
+
+function normalizeConfig(value) {
+  const descriptors = descriptorsFor(value, CONFIG_KEYS, "cache config");
+  const normalized = {};
+  if (descriptors.enableAutoCleanup) {
+    if (typeof descriptors.enableAutoCleanup.value !== "boolean") {
+      throw new TypeError("Invalid cache cleanup setting");
     }
-  });
+    normalized.enableAutoCleanup = descriptors.enableAutoCleanup.value;
+  }
+  if (descriptors.ttlDays) {
+    const ttlDays = descriptors.ttlDays.value;
+    if (!Number.isSafeInteger(ttlDays) || ttlDays < 1 || ttlDays > 3_650) {
+      throw new TypeError("Invalid cache TTL");
+    }
+    normalized.ttlDays = ttlDays;
+  }
+  if (descriptors.maxSize) {
+    const maxSize = descriptors.maxSize.value;
+    if (!Number.isSafeInteger(maxSize) || maxSize < 1 || maxSize > 100_000) {
+      throw new TypeError("Invalid cache size");
+    }
+    normalized.maxSize = maxSize;
+  }
+  if (Object.keys(normalized).length === 0) {
+    throw new TypeError("Cache config is empty");
+  }
+  return Object.freeze(normalized);
+}
 
-  /**
-   * 清除过期缓存
-   * Channel: 'cache:clear-expired'
-   *
-   * @returns {Object} 清除结果
-   */
-  ipcMain.handle("cache:clear-expired", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const deletedCount = await result.cache.clearExpired();
-
-      logger.info(
-        "[Response Cache IPC] 过期缓存已清除，共",
-        deletedCount,
-        "条",
+function normalizeMessages(value) {
+  const messages = strictArrayValues(value, 200, "cache messages");
+  let totalCharacters = 0;
+  return Object.freeze(
+    messages.map((message) => {
+      const descriptors = descriptorsFor(
+        message,
+        MESSAGE_KEYS,
+        "cache message",
       );
-
-      return {
-        success: true,
-        deletedCount,
-        message: `Cleared ${deletedCount} expired cache entries`,
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 清除过期缓存失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * 检查特定请求是否有缓存
-   * Channel: 'cache:check'
-   *
-   * @param {Object} options - 检查选项
-   * @param {string} options.provider - 提供商
-   * @param {string} options.model - 模型
-   * @param {Array} options.messages - 消息数组
-   * @returns {Object} 缓存状态
-   */
-  ipcMain.handle("cache:check", async (_event, options = {}) => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
+      const role = descriptors.role?.value;
+      if (!MESSAGE_ROLES.has(role)) throw new TypeError("Invalid message role");
+      const content = boundedContent(descriptors.content?.value, 65_536);
+      totalCharacters += content.length;
+      if (totalCharacters > 262_144) {
+        throw new TypeError("Cache messages are too large");
       }
-
-      const { provider, model, messages } = options;
-
-      if (!provider || !model || !Array.isArray(messages)) {
-        return {
-          success: false,
-          error: "provider, model, and messages are required",
-        };
-      }
-
-      const cacheResult = await result.cache.get(provider, model, messages);
-
-      return {
-        success: true,
-        cached: cacheResult.hit,
-        cacheAge: cacheResult.cacheAge,
-        tokensSaved: cacheResult.tokensSaved,
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 检查缓存失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * 预热缓存（可选功能，用于预加载常用响应）
-   * Channel: 'cache:warmup-status'
-   *
-   * @returns {Object} 预热状态
-   */
-  ipcMain.handle("cache:warmup-status", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const stats = await result.cache.getStats();
-
-      // 计算缓存健康度
-      const totalEntries = stats.database.totalEntries || 0;
-      const expiredEntries = stats.database.expiredEntries || 0;
-      const healthyEntries = totalEntries - expiredEntries;
-      const healthPercent =
-        totalEntries > 0 ? (healthyEntries / totalEntries) * 100 : 100;
-
-      return {
-        success: true,
-        status: {
-          totalEntries,
-          healthyEntries,
-          expiredEntries,
-          healthPercent: healthPercent.toFixed(2),
-          recommendation:
-            healthPercent < 50
-              ? "Consider clearing expired entries"
-              : healthPercent < 80
-                ? "Cache is moderately healthy"
-                : "Cache is healthy",
-        },
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 获取预热状态失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  // ============================================================
-  // 控制操作 (Control Operations) - 2 handlers
-  // ============================================================
-
-  /**
-   * 启动自动清理
-   * Channel: 'cache:start-auto-cleanup'
-   *
-   * @returns {Object} 操作结果
-   */
-  ipcMain.handle("cache:start-auto-cleanup", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const cache = result.cache;
-
-      if (cache.enableAutoCleanup) {
-        return {
-          success: true,
-          message: "Auto cleanup is already running",
-        };
-      }
-
-      cache.enableAutoCleanup = true;
-      cache._startAutoCleanup();
-
-      logger.info("[Response Cache IPC] 自动清理已启动");
-
-      return {
-        success: true,
-        message: "Auto cleanup started",
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 启动自动清理失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * 停止自动清理
-   * Channel: 'cache:stop-auto-cleanup'
-   *
-   * @returns {Object} 操作结果
-   */
-  ipcMain.handle("cache:stop-auto-cleanup", async () => {
-    try {
-      const result = getCacheOrError();
-      if (!result.success) {
-        return result;
-      }
-
-      const cache = result.cache;
-
-      if (!cache.enableAutoCleanup) {
-        return {
-          success: true,
-          message: "Auto cleanup is already stopped",
-        };
-      }
-
-      cache.stopAutoCleanup();
-      cache.enableAutoCleanup = false;
-
-      logger.info("[Response Cache IPC] 自动清理已停止");
-
-      return {
-        success: true,
-        message: "Auto cleanup stopped",
-      };
-    } catch (error) {
-      logger.error("[Response Cache IPC] 停止自动清理失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  // 标记模块为已注册
-  ipcGuard.markModuleRegistered("response-cache-ipc");
-
-  logger.info(
-    "[Response Cache IPC] ✓ All handlers registered (11 handlers: 3 stats + 2 config + 4 operations + 2 control)",
+      return Object.freeze({ role, content });
+    }),
   );
 }
 
-/**
- * 注销 Response Cache IPC 处理器
- * @param {Object} [dependencies] - 依赖
- */
-function unregisterResponseCacheIPC({
-  ipcMain: injectedIpcMain,
-  ipcGuard: injectedIpcGuard,
-} = {}) {
-  const ipcGuard = injectedIpcGuard || defaultIpcGuard;
+function normalizeCheck(value) {
+  const descriptors = descriptorsFor(value, CHECK_KEYS, "cache check");
+  return Object.freeze({
+    provider: boundedText(descriptors.provider?.value, 128, "cache provider"),
+    model: boundedText(descriptors.model?.value, 256, "cache model"),
+    messages: normalizeMessages(descriptors.messages?.value),
+  });
+}
 
-  if (!ipcGuard.isModuleRegistered("response-cache-ipc")) {
+function projectConfig(cache) {
+  const ttl = safeNumber(cache?.ttl, 3_650 * 24 * 60 * 60 * 1_000);
+  const cleanupInterval = safeNumber(
+    cache?.cleanupInterval,
+    365 * 24 * 60 * 60 * 1_000,
+  );
+  return Object.freeze({
+    ttl,
+    ttlDays: ttl / (24 * 60 * 60 * 1_000),
+    maxSize: safeCount(cache?.maxSize, 100_000),
+    enableAutoCleanup: cache?.enableAutoCleanup === true,
+    cleanupInterval,
+    cleanupIntervalMinutes: cleanupInterval / (60 * 1_000),
+  });
+}
+
+function projectStats(value) {
+  const runtime = ownData(value, "runtime");
+  const database = ownData(value, "database");
+  const config = ownData(value, "config");
+  return Object.freeze({
+    runtime: Object.freeze({
+      hits: safeCount(ownData(runtime, "hits")),
+      misses: safeCount(ownData(runtime, "misses")),
+      sets: safeCount(ownData(runtime, "sets")),
+      evictions: safeCount(ownData(runtime, "evictions")),
+      expirations: safeCount(ownData(runtime, "expirations")),
+    }),
+    database: Object.freeze({
+      totalEntries: safeCount(ownData(database, "totalEntries")),
+      expiredEntries: safeCount(ownData(database, "expiredEntries")),
+      totalHits: safeCount(ownData(database, "totalHits")),
+      totalTokensSaved: safeCount(ownData(database, "totalTokensSaved")),
+      avgHitsPerEntry: safeDecimal(ownData(database, "avgHitsPerEntry")),
+    }),
+    config: Object.freeze({
+      maxSize: safeCount(ownData(config, "maxSize"), 100_000),
+      ttlDays: safeNumber(ownData(config, "ttlDays"), 3_650),
+      autoCleanup: ownData(config, "autoCleanup") === true,
+    }),
+  });
+}
+
+function projectProviders(value) {
+  return Object.freeze(
+    projectedArrayValues(value, 100)
+      .map((entry) => {
+        const provider = ownData(entry, "provider");
+        if (
+          typeof provider !== "string" ||
+          provider.length < 1 ||
+          provider.length > 128 ||
+          /\p{Cc}/u.test(provider)
+        ) {
+          return null;
+        }
+        return Object.freeze({
+          provider,
+          entries: safeCount(ownData(entry, "entries")),
+          hits: safeCount(ownData(entry, "hits")),
+          tokensSaved: safeCount(ownData(entry, "tokensSaved")),
+        });
+      })
+      .filter(Boolean),
+  );
+}
+
+function fixedFailure() {
+  return Object.freeze({
+    success: false,
+    error: "Response cache operation failed",
+    code: "CC_LLM_RESPONSE_CACHE_OPERATION_FAILED",
+  });
+}
+
+function fixedUnavailable() {
+  return Object.freeze({
+    success: false,
+    error: "Response cache unavailable",
+    code: "CC_LLM_RESPONSE_CACHE_UNAVAILABLE",
+  });
+}
+
+function registerResponseCacheIPC(dependencies = {}) {
+  const ipcGuard = dependencies.ipcGuard || defaultIpcGuard;
+  const privacy =
+    dependencies.privacy ||
+    createLlmIpcPrivacy("response-cache", dependencies.logger);
+  if (ipcGuard.isModuleRegistered("response-cache-ipc")) {
+    privacy.event("handlers-already-registered");
     return;
   }
 
-  const electron = require("electron");
-  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const electron = dependencies.ipcMain ? null : require("electron");
+  const ipcMain = dependencies.ipcMain || electron.ipcMain;
+  if (Object.hasOwn(dependencies, "responseCache")) {
+    setResponseCacheInstance(dependencies.responseCache || null);
+  }
+  const authorization =
+    dependencies.coreAuthorization ||
+    createLlmCoreIpcAuthorization({
+      getMainWindow: dependencies.getMainWindow,
+      getCurrentIdentity: dependencies.getCurrentIdentity,
+      authorizePurpose: dependencies.authorizePurpose,
+    });
 
-  // 所有 channel 名称
-  const channels = [
-    "cache:get-stats",
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const operation = CHANNEL_OPERATIONS[channel];
+      ipcMain.handle(channel, async (event, ...args) => {
+        try {
+          await authorization.authorize(event, operation);
+        } catch {
+          throw privacy.authorizationFailure(operation);
+        }
+        const cache = getResponseCacheInstance();
+        if (!cache) return fixedUnavailable();
+        try {
+          return await handler(cache, ...args);
+        } catch {
+          privacy.failure(operation);
+          return fixedFailure();
+        }
+      });
+    },
+  };
+
+  authorizedIpcMain.handle("cache:get-stats", async (cache, ...args) => {
+    if (args.length !== 0) throw new TypeError("Invalid cache input count");
+    return Object.freeze({
+      success: true,
+      stats: projectStats(await cache.getStats()),
+    });
+  });
+
+  authorizedIpcMain.handle(
     "cache:get-stats-by-provider",
-    "cache:get-hit-rate-trend",
-    "cache:get-config",
-    "cache:set-config",
-    "cache:clear-all",
-    "cache:clear-expired",
-    "cache:check",
-    "cache:warmup-status",
-    "cache:start-auto-cleanup",
-    "cache:stop-auto-cleanup",
-  ];
+    async (cache, ...args) => {
+      if (args.length !== 0) throw new TypeError("Invalid cache input count");
+      return Object.freeze({
+        success: true,
+        providers: projectProviders(await cache.getStatsByProvider()),
+      });
+    },
+  );
 
-  for (const channel of channels) {
-    ipcMain.removeHandler(channel);
+  authorizedIpcMain.handle(
+    "cache:get-hit-rate-trend",
+    async (cache, ...args) => {
+      if (args.length !== 0) throw new TypeError("Invalid cache input count");
+      const stats = projectStats(await cache.getStats());
+      const totalRequests = stats.runtime.hits + stats.runtime.misses;
+      return Object.freeze({
+        success: true,
+        hitRate: Object.freeze({
+          current:
+            totalRequests > 0 ? (stats.runtime.hits / totalRequests) * 100 : 0,
+          hits: stats.runtime.hits,
+          misses: stats.runtime.misses,
+          totalRequests,
+        }),
+        savings: Object.freeze({
+          totalTokensSaved: stats.database.totalTokensSaved,
+          totalEntries: stats.database.totalEntries,
+        }),
+      });
+    },
+  );
+
+  authorizedIpcMain.handle("cache:get-config", async (cache, ...args) => {
+    if (args.length !== 0) throw new TypeError("Invalid cache input count");
+    return Object.freeze({ success: true, config: projectConfig(cache) });
+  });
+
+  authorizedIpcMain.handle("cache:set-config", async (cache, ...args) => {
+    if (args.length !== 1) throw new TypeError("Invalid cache input count");
+    const config = normalizeConfig(args[0]);
+    if (Object.hasOwn(config, "enableAutoCleanup")) {
+      if (config.enableAutoCleanup && !cache.enableAutoCleanup) {
+        cache.enableAutoCleanup = true;
+        cache._startAutoCleanup();
+      } else if (!config.enableAutoCleanup && cache.enableAutoCleanup) {
+        cache.stopAutoCleanup();
+        cache.enableAutoCleanup = false;
+      }
+    }
+    if (config.ttlDays !== undefined) {
+      cache.ttl = config.ttlDays * 24 * 60 * 60 * 1_000;
+    }
+    if (config.maxSize !== undefined) cache.maxSize = config.maxSize;
+    return Object.freeze({ success: true, config: projectConfig(cache) });
+  });
+
+  for (const [channel, method] of [
+    ["cache:clear-all", "clear"],
+    ["cache:clear-expired", "clearExpired"],
+  ]) {
+    authorizedIpcMain.handle(channel, async (cache, ...args) => {
+      if (args.length !== 0) throw new TypeError("Invalid cache input count");
+      return Object.freeze({
+        success: true,
+        deletedCount: safeCount(await cache[method]()),
+      });
+    });
   }
 
+  authorizedIpcMain.handle("cache:check", async (cache, ...args) => {
+    if (args.length !== 1) throw new TypeError("Invalid cache input count");
+    const input = normalizeCheck(args[0]);
+    const result = await cache.get(input.provider, input.model, input.messages);
+    return Object.freeze({
+      success: true,
+      cached: ownData(result, "hit") === true,
+      cacheAge: safeCount(ownData(result, "cacheAge")),
+      tokensSaved: safeCount(ownData(result, "tokensSaved")),
+    });
+  });
+
+  authorizedIpcMain.handle("cache:warmup-status", async (cache, ...args) => {
+    if (args.length !== 0) throw new TypeError("Invalid cache input count");
+    const stats = projectStats(await cache.getStats());
+    const totalEntries = stats.database.totalEntries;
+    const expiredEntries = Math.min(
+      totalEntries,
+      stats.database.expiredEntries,
+    );
+    const healthyEntries = totalEntries - expiredEntries;
+    const healthPercent =
+      totalEntries > 0 ? (healthyEntries / totalEntries) * 100 : 100;
+    return Object.freeze({
+      success: true,
+      status: Object.freeze({
+        totalEntries,
+        healthyEntries,
+        expiredEntries,
+        healthPercent,
+        recommendation:
+          healthPercent < 50
+            ? "clear-expired"
+            : healthPercent < 80
+              ? "monitor"
+              : "healthy",
+      }),
+    });
+  });
+
+  authorizedIpcMain.handle(
+    "cache:start-auto-cleanup",
+    async (cache, ...args) => {
+      if (args.length !== 0) throw new TypeError("Invalid cache input count");
+      if (!cache.enableAutoCleanup) {
+        cache.enableAutoCleanup = true;
+        cache._startAutoCleanup();
+      }
+      return Object.freeze({ success: true, active: true });
+    },
+  );
+
+  authorizedIpcMain.handle(
+    "cache:stop-auto-cleanup",
+    async (cache, ...args) => {
+      if (args.length !== 0) throw new TypeError("Invalid cache input count");
+      if (cache.enableAutoCleanup) {
+        cache.stopAutoCleanup();
+        cache.enableAutoCleanup = false;
+      }
+      return Object.freeze({ success: true, active: false });
+    },
+  );
+
+  ipcGuard.markModuleRegistered("response-cache-ipc");
+  privacy.event("handlers-registered");
+}
+
+function unregisterResponseCacheIPC(dependencies = {}) {
+  const ipcGuard = dependencies.ipcGuard || defaultIpcGuard;
+  if (!ipcGuard.isModuleRegistered("response-cache-ipc")) return;
+  const electron = dependencies.ipcMain ? null : require("electron");
+  const ipcMain = dependencies.ipcMain || electron.ipcMain;
+  for (const channel of CACHE_CHANNELS) ipcMain.removeHandler(channel);
   ipcGuard.unmarkModuleRegistered("response-cache-ipc");
-  logger.info("[Response Cache IPC] Handlers unregistered");
+  const privacy =
+    dependencies.privacy ||
+    createLlmIpcPrivacy("response-cache", dependencies.logger);
+  privacy.event("handlers-unregistered");
 }
 
 module.exports = {
@@ -586,4 +532,5 @@ module.exports = {
   unregisterResponseCacheIPC,
   setResponseCacheInstance,
   getResponseCacheInstance,
+  CACHE_CHANNELS,
 };

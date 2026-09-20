@@ -182,6 +182,17 @@ describe("LLM core IPC authorization", () => {
         "pause-service",
         "resume-stream",
         "resume-service",
+        "response-cache-check",
+        "response-cache-clear-all",
+        "response-cache-clear-expired",
+        "response-cache-get-config",
+        "response-cache-get-hit-rate-trend",
+        "response-cache-get-stats",
+        "response-cache-get-stats-by-provider",
+        "response-cache-set-config",
+        "response-cache-start-auto-cleanup",
+        "response-cache-stop-auto-cleanup",
+        "response-cache-warmup-status",
         "select-best",
         "set-config",
         "set-model-budget",
@@ -214,6 +225,10 @@ describe("LLM core IPC authorization", () => {
     expect(OPERATION_AUTHORIZATION["instinct-export"]).toEqual({
       purpose: "model-instinct-export",
       fields: ["instinct-export"],
+    });
+    expect(OPERATION_AUTHORIZATION["response-cache-clear-all"]).toEqual({
+      purpose: "model-cache-delete",
+      fields: ["cache-control-receipt"],
     });
   });
 
