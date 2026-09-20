@@ -193,6 +193,46 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-pricing-write",
     fields: Object.freeze(["pricing-configuration"]),
   }),
+  "compressor-get-config": Object.freeze({
+    purpose: "model-prompt-compression-config-read",
+    fields: Object.freeze(["compression-configuration"]),
+  }),
+  "compressor-set-config": Object.freeze({
+    purpose: "model-prompt-compression-config-write",
+    fields: Object.freeze(["compression-configuration"]),
+  }),
+  "compressor-reset-config": Object.freeze({
+    purpose: "model-prompt-compression-config-reset",
+    fields: Object.freeze(["compression-configuration"]),
+  }),
+  "compressor-compress": Object.freeze({
+    purpose: "model-prompt-compress",
+    fields: Object.freeze(["compressed-messages", "compression-statistics"]),
+  }),
+  "compressor-preview": Object.freeze({
+    purpose: "model-prompt-compression-preview",
+    fields: Object.freeze(["compression-preview"]),
+  }),
+  "compressor-estimate-tokens": Object.freeze({
+    purpose: "model-token-estimate",
+    fields: Object.freeze(["token-estimate"]),
+  }),
+  "compressor-get-recommendations": Object.freeze({
+    purpose: "model-prompt-compression-recommend",
+    fields: Object.freeze(["compression-recommendations"]),
+  }),
+  "compressor-get-stats": Object.freeze({
+    purpose: "model-prompt-compression-stats-read",
+    fields: Object.freeze(["compression-statistics"]),
+  }),
+  "compressor-get-history": Object.freeze({
+    purpose: "model-prompt-compression-history-read",
+    fields: Object.freeze(["compression-history"]),
+  }),
+  "compressor-clear-history": Object.freeze({
+    purpose: "model-prompt-compression-history-delete",
+    fields: Object.freeze(["compression-history"]),
+  }),
   "get-selector-info": Object.freeze({
     purpose: "model-selector-catalog-read",
     fields: Object.freeze(["selector-catalog"]),

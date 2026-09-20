@@ -141,6 +141,16 @@ describe("LLM core IPC authorization", () => {
         "chat-with-template",
         "check-status",
         "cleanup-old-data",
+        "compressor-clear-history",
+        "compressor-compress",
+        "compressor-estimate-tokens",
+        "compressor-get-config",
+        "compressor-get-history",
+        "compressor-get-recommendations",
+        "compressor-get-stats",
+        "compressor-preview",
+        "compressor-reset-config",
+        "compressor-set-config",
         "clear-test-data",
         "clear-context",
         "clear-alert-history",
@@ -245,6 +255,10 @@ describe("LLM core IPC authorization", () => {
     expect(OPERATION_AUTHORIZATION["tracker-record-usage"]).toEqual({
       purpose: "model-usage-record",
       fields: ["usage-record"],
+    });
+    expect(OPERATION_AUTHORIZATION["compressor-compress"]).toEqual({
+      purpose: "model-prompt-compress",
+      fields: ["compressed-messages", "compression-statistics"],
     });
   });
 

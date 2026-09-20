@@ -247,7 +247,12 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const {
         registerPromptCompressorIPC,
       } = require("../../llm/prompt-compressor-ipc");
-      registerPromptCompressorIPC({ llmManager: llmManager || null });
+      registerPromptCompressorIPC({
+        llmManager: llmManager || null,
+        getMainWindow: () => mainWindow || null,
+        getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+        authorizePurpose: deps.authorizePromptCompressorPurpose,
+      });
     },
     handlers: 10,
   });

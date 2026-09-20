@@ -12,11 +12,13 @@
  * @module prompt-compressor
  */
 
-const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 const {
   assertDesktopLegacyMutationAllowed,
 } = require("../context-memory/authority.js");
+
+const privacy = createLlmIpcPrivacy("compressor");
 
 /**
  * 计算文本的 MD5 哈希
@@ -92,13 +94,7 @@ class PromptCompressor {
     this.similarityThreshold = options.similarityThreshold || 0.9;
     this.llmManager = options.llmManager || null;
 
-    logger.info("[PromptCompressor] 初始化完成，配置:", {
-      去重: this.enableDeduplication,
-      总结: this.enableSummarization,
-      截断: this.enableTruncation,
-      最大消息数: this.maxHistoryMessages,
-      最大Tokens: this.maxTotalTokens,
-    });
+    privacy.event("compressor-initialized");
   }
 
   /**
@@ -142,9 +138,7 @@ class PromptCompressor {
       );
     }, 0);
 
-    logger.info(
-      `[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`,
-    );
+    privacy.event("compression-started");
 
     let compressedMessages = [...messages];
     const appliedStrategies = [];
@@ -201,12 +195,10 @@ class PromptCompressor {
         } catch (summaryError) {
           // Evidence refusal is terminal for the whole request, not an
           // optional summarization failure that may fall back to raw history.
-          if (summaryError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+          if (summaryError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
             throw summaryError;
-          logger.error(
-            "[PromptCompressor] 总结失败，跳过总结策略:",
-            summaryError.message,
-          );
+          }
+          privacy.failure("compressor-summarize");
         }
       }
     }
@@ -227,12 +219,7 @@ class PromptCompressor {
       originalTokens > 0 ? compressedTokens / originalTokens : 1.0;
     const processingTime = Date.now() - startTime;
 
-    logger.info(
-      `[PromptCompressor] 压缩完成，压缩后消息数: ${compressedMessages.length}, 估算 Tokens: ${compressedTokens}, 压缩率: ${compressionRatio.toFixed(2)}, 耗时: ${processingTime}ms`,
-    );
-    logger.info(
-      `[PromptCompressor] 应用策略: ${appliedStrategies.join(", ") || "none"}`,
-    );
+    privacy.event("compression-completed");
 
     return {
       messages: compressedMessages,
@@ -289,15 +276,13 @@ class PromptCompressor {
 
       // 检查是否已存在相同消息
       if (seen.has(hash)) {
-        logger.info(
-          `[PromptCompressor] 发现重复消息 (exact match): ${content.substring(0, 50)}...`,
-        );
+        privacy.event("duplicate-message-detected");
         continue;
       }
 
       // 检查是否存在高度相似的消息
       let isDuplicate = false;
-      for (const [existingHash, existingMsg] of seen.entries()) {
+      for (const [, existingMsg] of seen.entries()) {
         const existingContent =
           typeof existingMsg.content === "string"
             ? existingMsg.content
@@ -305,9 +290,7 @@ class PromptCompressor {
 
         const similarity = calculateSimilarity(content, existingContent);
         if (similarity >= this.similarityThreshold) {
-          logger.info(
-            `[PromptCompressor] 发现相似消息 (similarity: ${similarity.toFixed(2)}): ${content.substring(0, 50)}...`,
-          );
+          privacy.event("similar-message-detected");
           isDuplicate = true;
           break;
         }
@@ -330,9 +313,7 @@ class PromptCompressor {
       result.push(lastUserMessage);
     }
 
-    logger.info(
-      `[PromptCompressor] 去重: ${messages.length} -> ${result.length} 条消息`,
-    );
+    privacy.event("messages-deduplicated");
     return result;
   }
 
@@ -378,9 +359,7 @@ class PromptCompressor {
       result.push(lastUserMessage);
     }
 
-    logger.info(
-      `[PromptCompressor] 截断: ${messages.length} -> ${result.length} 条消息（保留最近 ${this.maxHistoryMessages} 条）`,
-    );
+    privacy.event("history-truncated");
     return result;
   }
 
@@ -415,7 +394,7 @@ class PromptCompressor {
     });
 
     if (messagesToSummarize.length < 3) {
-      logger.info("[PromptCompressor] 消息太少，跳过总结");
+      privacy.event("summarization-skipped");
       return messages;
     }
 
@@ -438,7 +417,7 @@ ${historyText}
 总结：`;
 
     try {
-      logger.info("[PromptCompressor] 调用 LLM 生成历史总结...");
+      privacy.event("summarization-started");
       const summaryResult = await this.llmManager.query(summaryPrompt, {
         max_tokens: 500,
         temperature: 0.3,
@@ -450,7 +429,7 @@ ${historyText}
         throw new Error("LLM 返回空总结");
       }
 
-      logger.info("[PromptCompressor] 生成总结成功");
+      privacy.event("summarization-completed");
 
       // 创建总结消息
       const summaryMessage = {
@@ -465,12 +444,9 @@ ${historyText}
         result.push(lastUserMessage);
       }
 
-      logger.info(
-        `[PromptCompressor] 总结: ${messages.length} -> ${result.length} 条消息`,
-      );
       return result;
     } catch (error) {
-      logger.error("[PromptCompressor] 生成总结失败:", error.message);
+      privacy.failure("compressor-summarize");
       throw error;
     }
   }
@@ -519,7 +495,7 @@ ${historyText}
       this.similarityThreshold = options.similarityThreshold;
     }
 
-    logger.info("[PromptCompressor] 配置已更新:", this.getStats());
+    privacy.event("compressor-config-updated");
   }
 }
 
