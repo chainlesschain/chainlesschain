@@ -171,6 +171,22 @@ describe("Volcengine function execution authority", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("rejects an invalid authority clock before execution", async () => {
+    const execute = vi.fn();
+    const port = captureVolcengineFunctionExecutionAuthority(
+      createVolcengineFunctionExecutionAuthority({
+        descriptor: descriptor(),
+        execute,
+        now: () => Number.NaN,
+      }),
+    );
+
+    await expect(port.executeFunction(request())).rejects.toThrow(
+      "Volcengine function authority clock is invalid",
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("rejects exact and request-id replays before repeating a side effect", async () => {
     const { execute, port } = setup();
     const first = request();
