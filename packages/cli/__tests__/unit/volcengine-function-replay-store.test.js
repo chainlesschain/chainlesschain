@@ -85,6 +85,8 @@ function revocation(overrides = {}) {
     authorizationEvidenceDigest: sha("authorization-evidence"),
     auditEventDigest: sha("revocation-audit"),
     durabilityReceiptDigest: sha("revocation-durability"),
+    evidenceResolverDigest: sha("revocation-evidence-resolver"),
+    evidenceReadbackDigest: sha("revocation-evidence-readback"),
     revokedAt: new Date(NOW).toISOString(),
     ...overrides,
   };
@@ -386,6 +388,8 @@ describe("Volcengine function replay store", () => {
       revocationId: "revocation-1",
       revocationAuthorityId: "function-revocation:test",
       authorizationRequestDigest: sha("authorization-request"),
+      evidenceResolverDigest: sha("revocation-evidence-resolver"),
+      evidenceReadbackDigest: sha("revocation-evidence-readback"),
       revocationDigest: value.revocationDigest,
     });
     expect(reopened.revoke(value)).toMatchObject({
@@ -399,6 +403,13 @@ describe("Volcengine function replay store", () => {
     expect(() =>
       reopened.revoke(
         revocation({ revocationAuthorityId: "function-revocation:foreign" }),
+      ),
+    ).toThrow("Volcengine function authority revocation is invalid");
+    expect(() =>
+      reopened.revoke(
+        revocation({
+          schema: "chainlesschain.volcengine-function-authority-revocation/v2",
+        }),
       ),
     ).toThrow("Volcengine function authority revocation is invalid");
   });

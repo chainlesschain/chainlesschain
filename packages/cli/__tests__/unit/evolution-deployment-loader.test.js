@@ -869,6 +869,7 @@ describe("signed evolution deployment loader", () => {
       "createVolcengineFunctionProcessExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
       "createVolcengineFunctionRevocationAuthority",
+      "createVolcengineFunctionRevocationEvidenceResolver",
       "createVolcengineFunctionProcessExecutor",
       "createVolcengineFunctionReplayStore",
       "createEvolutionLedgerDurableArtifactResolver",
@@ -1120,7 +1121,7 @@ describe("signed evolution deployment loader", () => {
             factories.createVolcengineFunctionRevocationAuthority({
               descriptor: {
                 schema:
-                  "chainlesschain.volcengine-function-revocation-authority/v1",
+                  "chainlesschain.volcengine-function-revocation-authority/v2",
                 authorityId: "volcengine-function-revocation",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
@@ -1134,6 +1135,13 @@ describe("signed evolution deployment loader", () => {
               },
               authorize: async () => ({ decision: "deny" }),
               now: () => Date.now(),
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionRevocationEvidenceResolver({
+              descriptor: {
+                handlerArtifactDigest: substitutedDigest,
+              },
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>

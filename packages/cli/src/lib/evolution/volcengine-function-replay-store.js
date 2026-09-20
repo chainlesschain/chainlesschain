@@ -12,7 +12,7 @@ export const VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA =
 export const VOLCENGINE_FUNCTION_REPLAY_MODE =
   "cross-process-exclusive-file-fsync";
 export const VOLCENGINE_FUNCTION_REVOCATION_SCHEMA =
-  "chainlesschain.volcengine-function-authority-revocation/v2";
+  "chainlesschain.volcengine-function-authority-revocation/v3";
 export const VOLCENGINE_FUNCTION_REVOCATION_MODE =
   "cross-process-durable-readback-poll";
 
@@ -247,6 +247,8 @@ function normalizeRevocation(value, descriptor) {
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
+      "evidenceResolverDigest",
+      "evidenceReadbackDigest",
       "revokedAt",
       "revocationDigest",
     ],
@@ -310,6 +312,16 @@ function normalizeRevocation(value, descriptor) {
       "durabilityReceiptDigest",
       "Volcengine revocation durability receipt digest",
     ),
+    evidenceResolverDigest: ownData(
+      value,
+      "evidenceResolverDigest",
+      "Volcengine revocation evidence resolver digest",
+    ),
+    evidenceReadbackDigest: ownData(
+      value,
+      "evidenceReadbackDigest",
+      "Volcengine revocation evidence readback digest",
+    ),
     revokedAt: ownData(value, "revokedAt", "Volcengine revocation time"),
   });
   const revocationDigest = ownData(
@@ -332,6 +344,8 @@ function normalizeRevocation(value, descriptor) {
     !DIGEST.test(core.authorizationEvidenceDigest) ||
     !DIGEST.test(core.auditEventDigest) ||
     !DIGEST.test(core.durabilityReceiptDigest) ||
+    !DIGEST.test(core.evidenceResolverDigest) ||
+    !DIGEST.test(core.evidenceReadbackDigest) ||
     !Number.isFinite(revokedAtMs) ||
     new Date(revokedAtMs).toISOString() !== core.revokedAt ||
     revocationDigest !== digest(VOLCENGINE_FUNCTION_REVOCATION_SCHEMA, core)
@@ -472,6 +486,8 @@ function writeRevocation(recordPath, root, revocation) {
     authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
     auditEventDigest: revocation.auditEventDigest,
     durabilityReceiptDigest: revocation.durabilityReceiptDigest,
+    evidenceResolverDigest: revocation.evidenceResolverDigest,
+    evidenceReadbackDigest: revocation.evidenceReadbackDigest,
     revokedAt: revocation.revokedAt,
     revocationDigest: revocation.revocationDigest,
   });
@@ -693,6 +709,8 @@ export function captureVolcengineFunctionReplayStore(value) {
           authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
           auditEventDigest: revocation.auditEventDigest,
           durabilityReceiptDigest: revocation.durabilityReceiptDigest,
+          evidenceResolverDigest: revocation.evidenceResolverDigest,
+          evidenceReadbackDigest: revocation.evidenceReadbackDigest,
           revokedAt: revocation.revokedAt,
           revocationDigest: revocation.revocationDigest,
         });

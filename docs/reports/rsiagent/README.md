@@ -224,3 +224,4 @@
 | 161  | 2026-09-21 | [第一百六十一次工程实施：CLI Volcengine 函数进程隔离与硬终止](./rsiagent-one-hundred-sixty-first-batch-implementation-2026-09-21.md)       |
 | 162  | 2026-09-21 | [第一百六十二次工程实施：CLI Volcengine 进程监督回执绑定](./rsiagent-one-hundred-sixty-second-batch-implementation-2026-09-21.md)         |
 | 163  | 2026-09-21 | [第一百六十三次工程实施：Desktop Volcengine v7 进程回执接线](./rsiagent-one-hundred-sixty-third-batch-implementation-2026-09-21.md)       |
+| 164  | 2026-09-21 | [第一百六十四次工程实施：CLI Volcengine 撤销原始证据回读](./rsiagent-one-hundred-sixty-fourth-batch-implementation-2026-09-21.md)         |

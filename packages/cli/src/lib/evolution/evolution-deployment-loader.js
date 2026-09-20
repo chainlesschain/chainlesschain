@@ -457,6 +457,8 @@ async function loadBuiltInFactories(commandName) {
         volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
       createVolcengineFunctionRevocationAuthority:
         volcengineFunctionExecution.createVolcengineFunctionRevocationAuthority,
+      createVolcengineFunctionRevocationEvidenceResolver:
+        volcengineFunctionExecution.createVolcengineFunctionRevocationEvidenceResolver,
       createVolcengineFunctionProcessExecutor:
         volcengineFunctionProcessExecutor.createVolcengineFunctionProcessExecutor,
       createVolcengineFunctionReplayStore:
@@ -820,6 +822,7 @@ function bindFactoriesToModule(factories, moduleDigest) {
     "createVolcengineFunctionExecutionAuthority",
     "createVolcengineFunctionProcessExecutionAuthority",
     "createVolcengineFunctionRevocationAuthority",
+    "createVolcengineFunctionRevocationEvidenceResolver",
     "createVolcengineFunctionReplayStore",
   ];
   for (const name of providerFactories) {

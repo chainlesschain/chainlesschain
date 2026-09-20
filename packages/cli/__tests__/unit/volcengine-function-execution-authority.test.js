@@ -13,12 +13,16 @@ import {
   VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
   VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
   VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
   VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA,
   captureVolcengineFunctionRevocationAuthority,
   captureVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionRevocationAuthority,
+  createVolcengineFunctionRevocationEvidenceResolver,
+  digestVolcengineFunctionRevocationEvidenceResolverDescriptor,
   digestVolcengineFunctionResult,
   revokeVolcengineFunctionExecutionAuthority,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
@@ -33,6 +37,9 @@ import {
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
 const REPLAY_RETENTION_MS = 65_000;
 const temporaryRoots = [];
+const AUTHORIZATION_EVIDENCE_BYTES = Buffer.from("revocation-authorization");
+const AUDIT_EVENT_BYTES = Buffer.from("revocation-audit-event");
+const DURABILITY_RECEIPT_BYTES = Buffer.from("revocation-durability-receipt");
 
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) {
@@ -257,9 +264,9 @@ function createRevocationPort(
   authorize = async (value) => ({
     decision: "allow",
     requestDigest: value.requestDigest,
-    authorizationEvidenceDigest: sha("revocation-authorization"),
-    auditEventDigest: sha("revocation-audit-event"),
-    durabilityReceiptDigest: sha("revocation-durability-receipt"),
+    authorizationEvidenceDigest: sha(AUTHORIZATION_EVIDENCE_BYTES),
+    auditEventDigest: sha(AUDIT_EVENT_BYTES),
+    durabilityReceiptDigest: sha(DURABILITY_RECEIPT_BYTES),
     authenticated: true,
     durable: true,
     readbackVerified: true,
@@ -267,7 +274,30 @@ function createRevocationPort(
     validUntil: new Date(NOW + 1000).toISOString(),
   }),
   now = () => NOW,
+  evidenceOverrides = {},
 ) {
+  const evidenceResolverDescriptor = {
+    schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
+    resolverId: "revocation-evidence:test",
+    tenantId: targetDescriptor.tenantId,
+    handlerArtifactDigest: targetDescriptor.handlerArtifactDigest,
+    policyRevision: "revocation-evidence-policy-1",
+    mode: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE,
+    maxEvidenceBytes: 4096,
+    ...evidenceOverrides.descriptor,
+  };
+  const evidenceResolver =
+    evidenceOverrides.resolver ||
+    createVolcengineFunctionRevocationEvidenceResolver({
+      descriptor: evidenceResolverDescriptor,
+      resolve:
+        evidenceOverrides.resolve ||
+        (async () => ({
+          authorizationEvidenceBytes: AUTHORIZATION_EVIDENCE_BYTES,
+          auditEventBytes: AUDIT_EVENT_BYTES,
+          durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
+        })),
+    });
   return captureVolcengineFunctionRevocationAuthority(
     createVolcengineFunctionRevocationAuthority({
       descriptor: {
@@ -282,8 +312,15 @@ function createRevocationPort(
         maxGrantTtlMs: 5000,
         approvalMode: VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
         auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
+        evidenceResolverDigest:
+          evidenceOverrides.descriptorDigest ||
+          digestVolcengineFunctionRevocationEvidenceResolverDescriptor(
+            evidenceResolverDescriptor,
+          ),
+        ...evidenceOverrides.authorityDescriptor,
       },
       authorize,
+      evidenceResolver,
       now,
     }),
   );
@@ -523,6 +560,87 @@ describe("Volcengine function execution authority", () => {
     await expect(
       expired.port.executeFunction(request({ requestId: "after-expiry" })),
     ).resolves.toBeDefined();
+  });
+
+  it("resolves and verifies the exact revocation evidence bytes before persisting", async () => {
+    const target = setup();
+    const resolveEvidence = vi.fn(async () => ({
+      authorizationEvidenceBytes: AUTHORIZATION_EVIDENCE_BYTES,
+      auditEventBytes: AUDIT_EVENT_BYTES,
+      durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
+    }));
+
+    const result = await createRevocationPort(
+      descriptor(),
+      undefined,
+      undefined,
+      { resolve: resolveEvidence },
+    ).revokeAuthority(target.authority, revocationRequest());
+
+    expect(resolveEvidence).toHaveBeenCalledOnce();
+    expect(resolveEvidence.mock.calls[0][0]).toMatchObject({
+      resolverId: "revocation-evidence:test",
+      tenantId: "tenant:test",
+      handlerArtifactDigest: sha("signed-deployment"),
+      revocationAuthorityId: "function-revocation:test",
+      authorizationEvidenceDigest: sha(AUTHORIZATION_EVIDENCE_BYTES),
+      auditEventDigest: sha(AUDIT_EVENT_BYTES),
+      durabilityReceiptDigest: sha(DURABILITY_RECEIPT_BYTES),
+      requestDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
+    expect(Object.isFrozen(resolveEvidence.mock.calls[0][0])).toBe(true);
+    expect(result).toMatchObject({
+      status: "revoked",
+      evidenceResolverDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      evidenceReadbackDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
+    expect(result).not.toHaveProperty("authorizationEvidenceBytes");
+    expect(result).not.toHaveProperty("auditEventBytes");
+    expect(result).not.toHaveProperty("durabilityReceiptBytes");
+  });
+
+  it("rejects substituted revocation evidence bytes without revoking the target", async () => {
+    const target = setup();
+    const resolveEvidence = vi.fn(async () => ({
+      authorizationEvidenceBytes: Buffer.from("substituted-authorization"),
+      auditEventBytes: AUDIT_EVENT_BYTES,
+      durabilityReceiptBytes: DURABILITY_RECEIPT_BYTES,
+    }));
+
+    await expect(
+      createRevocationPort(descriptor(), undefined, undefined, {
+        resolve: resolveEvidence,
+      }).revokeAuthority(
+        target.authority,
+        revocationRequest({ requestId: "revocation-substituted-evidence" }),
+      ),
+    ).rejects.toThrow("revocation evidence readback is invalid");
+    expect(resolveEvidence).toHaveBeenCalledOnce();
+    await expect(
+      target.port.executeFunction(
+        request({ requestId: "after-substituted-evidence" }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("binds the revocation authority to one branded evidence resolver", () => {
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        authorityDescriptor: {
+          schema: "chainlesschain.volcengine-function-revocation-authority/v1",
+        },
+      }),
+    ).toThrow("revocation authority descriptor is invalid");
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        descriptorDigest: sha("substituted-evidence-resolver"),
+      }),
+    ).toThrow("evidence resolver does not match authority");
+    expect(() =>
+      createRevocationPort(descriptor(), undefined, undefined, {
+        resolver: Object.freeze({}),
+      }),
+    ).toThrow("branded Volcengine function revocation evidence resolver");
   });
 
   it("binds the revocation authority to one signed execution authority", async () => {

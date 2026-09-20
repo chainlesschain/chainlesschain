@@ -32,11 +32,19 @@ export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
 export const VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-authority/v1";
+  "chainlesschain.volcengine-function-revocation-authority/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA =
   "chainlesschain.volcengine-function-revocation-request/v1";
 export const VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA =
-  "chainlesschain.volcengine-function-revocation-result/v1";
+  "chainlesschain.volcengine-function-revocation-result/v2";
+export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-evidence-resolver/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-evidence-request/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-evidence-readback/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE =
+  "digest-bound-exact-bytes";
 export const VOLCENGINE_FUNCTION_REVOCATION_PURPOSE =
   "revoke-model-tool-execution";
 export const VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE = "operator-signed";
@@ -67,6 +75,7 @@ const BUILTIN_FUNCTIONS = Object.freeze([
 const BUILTIN_FUNCTION_SET = new Set(BUILTIN_FUNCTIONS);
 const authorities = new WeakMap();
 const revocationAuthorities = new WeakMap();
+const revocationEvidenceResolvers = new WeakMap();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") {
@@ -86,6 +95,10 @@ function digest(domain, value) {
     .update(`${domain}\0`)
     .update(canonical(value))
     .digest("hex")}`;
+}
+
+function digestBytes(value) {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
 function exactData(value, keys, label) {
@@ -895,6 +908,239 @@ function reserveRequest(captured, request, nowMs) {
   );
 }
 
+function normalizeRevocationEvidenceResolverDescriptor(value) {
+  exactData(
+    value,
+    [
+      "schema",
+      "resolverId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "mode",
+      "maxEvidenceBytes",
+    ],
+    "Volcengine function revocation evidence resolver descriptor",
+  );
+  const descriptor = Object.freeze({
+    schema: ownData(
+      value,
+      "schema",
+      "Volcengine function revocation evidence resolver schema",
+    ),
+    resolverId: ownData(
+      value,
+      "resolverId",
+      "Volcengine function revocation evidence resolver identifier",
+    ),
+    tenantId: ownData(
+      value,
+      "tenantId",
+      "Volcengine function revocation evidence resolver tenant",
+    ),
+    handlerArtifactDigest: ownData(
+      value,
+      "handlerArtifactDigest",
+      "Volcengine function revocation evidence resolver artifact digest",
+    ),
+    policyRevision: ownData(
+      value,
+      "policyRevision",
+      "Volcengine function revocation evidence resolver policy revision",
+    ),
+    mode: ownData(
+      value,
+      "mode",
+      "Volcengine function revocation evidence resolver mode",
+    ),
+    maxEvidenceBytes: ownData(
+      value,
+      "maxEvidenceBytes",
+      "Volcengine function revocation evidence byte limit",
+    ),
+  });
+  if (
+    descriptor.schema !==
+      VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA ||
+    !ID.test(descriptor.resolverId) ||
+    !ID.test(descriptor.tenantId) ||
+    !DIGEST.test(descriptor.handlerArtifactDigest) ||
+    !ID.test(descriptor.policyRevision) ||
+    descriptor.mode !== VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_MODE ||
+    !Number.isSafeInteger(descriptor.maxEvidenceBytes) ||
+    descriptor.maxEvidenceBytes < 1 ||
+    descriptor.maxEvidenceBytes > 1024 * 1024
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation evidence resolver descriptor is invalid",
+    );
+  }
+  return descriptor;
+}
+
+export function digestVolcengineFunctionRevocationEvidenceResolverDescriptor(
+  value,
+) {
+  return digest(
+    VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
+    normalizeRevocationEvidenceResolverDescriptor(value),
+  );
+}
+
+function copyEvidenceBytes(value, label, maxEvidenceBytes) {
+  if (
+    types.isProxy(value) ||
+    (!Buffer.isBuffer(value) && !(value instanceof Uint8Array)) ||
+    value.byteLength < 1 ||
+    value.byteLength > maxEvidenceBytes
+  ) {
+    throw new TypeError(`${label} bytes are invalid`);
+  }
+  return Buffer.from(value);
+}
+
+export function createVolcengineFunctionRevocationEvidenceResolver(options) {
+  exactData(
+    options,
+    ["descriptor", "resolve"],
+    "Volcengine function revocation evidence resolver",
+  );
+  const descriptor = normalizeRevocationEvidenceResolverDescriptor(
+    ownData(
+      options,
+      "descriptor",
+      "Volcengine function revocation evidence resolver descriptor",
+    ),
+  );
+  const resolve = ownData(
+    options,
+    "resolve",
+    "Volcengine function revocation evidence resolution port",
+  );
+  if (typeof resolve !== "function" || types.isProxy(resolve)) {
+    throw new TypeError(
+      "Volcengine function revocation evidence resolution port is invalid",
+    );
+  }
+  const resolver = Object.freeze({});
+  revocationEvidenceResolvers.set(resolver, {
+    descriptor,
+    descriptorDigest: digest(
+      VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_RESOLVER_SCHEMA,
+      descriptor,
+    ),
+    resolve,
+  });
+  return resolver;
+}
+
+export function inspectVolcengineFunctionRevocationEvidenceResolver(value) {
+  const captured = revocationEvidenceResolvers.get(value);
+  if (!captured) {
+    throw new TypeError(
+      "A branded Volcengine function revocation evidence resolver is required",
+    );
+  }
+  return Object.freeze({
+    descriptor: captured.descriptor,
+    descriptorDigest: captured.descriptorDigest,
+  });
+}
+
+async function resolveRevocationDecisionEvidence(
+  resolver,
+  authorityDescriptor,
+  request,
+  decision,
+) {
+  const captured = revocationEvidenceResolvers.get(resolver);
+  if (!captured) {
+    throw new TypeError(
+      "A branded Volcengine function revocation evidence resolver is required",
+    );
+  }
+  const requestCore = Object.freeze({
+    schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA,
+    resolverId: captured.descriptor.resolverId,
+    tenantId: authorityDescriptor.tenantId,
+    handlerArtifactDigest: authorityDescriptor.handlerArtifactDigest,
+    resolverPolicyRevision: captured.descriptor.policyRevision,
+    revocationAuthorityId: authorityDescriptor.authorityId,
+    authorizationRequestDigest: request.requestDigest,
+    authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
+    auditEventDigest: decision.auditEventDigest,
+    durabilityReceiptDigest: decision.durabilityReceiptDigest,
+  });
+  const resolutionRequest = Object.freeze({
+    ...requestCore,
+    requestDigest: digest(
+      VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_REQUEST_SCHEMA,
+      requestCore,
+    ),
+  });
+  const value = await Reflect.apply(captured.resolve, undefined, [
+    resolutionRequest,
+  ]);
+  exactData(
+    value,
+    ["authorizationEvidenceBytes", "auditEventBytes", "durabilityReceiptBytes"],
+    "Volcengine function revocation evidence readback",
+  );
+  const authorizationEvidenceBytes = copyEvidenceBytes(
+    ownData(
+      value,
+      "authorizationEvidenceBytes",
+      "Volcengine function revocation authorization evidence",
+    ),
+    "Volcengine function revocation authorization evidence",
+    captured.descriptor.maxEvidenceBytes,
+  );
+  const auditEventBytes = copyEvidenceBytes(
+    ownData(
+      value,
+      "auditEventBytes",
+      "Volcengine function revocation audit event",
+    ),
+    "Volcengine function revocation audit event",
+    captured.descriptor.maxEvidenceBytes,
+  );
+  const durabilityReceiptBytes = copyEvidenceBytes(
+    ownData(
+      value,
+      "durabilityReceiptBytes",
+      "Volcengine function revocation durability receipt",
+    ),
+    "Volcengine function revocation durability receipt",
+    captured.descriptor.maxEvidenceBytes,
+  );
+  if (
+    digestBytes(authorizationEvidenceBytes) !==
+      decision.authorizationEvidenceDigest ||
+    digestBytes(auditEventBytes) !== decision.auditEventDigest ||
+    digestBytes(durabilityReceiptBytes) !== decision.durabilityReceiptDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation evidence readback is invalid",
+    );
+  }
+  const readbackCore = Object.freeze({
+    schema: VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA,
+    evidenceResolverDigest: captured.descriptorDigest,
+    resolutionRequestDigest: resolutionRequest.requestDigest,
+    authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
+    auditEventDigest: decision.auditEventDigest,
+    durabilityReceiptDigest: decision.durabilityReceiptDigest,
+    exactBytesVerified: true,
+  });
+  return Object.freeze({
+    ...readbackCore,
+    evidenceReadbackDigest: digest(
+      VOLCENGINE_FUNCTION_REVOCATION_EVIDENCE_READBACK_SCHEMA,
+      readbackCore,
+    ),
+  });
+}
+
 function normalizeRevocationAuthorityDescriptor(value) {
   exactData(
     value,
@@ -910,6 +1156,7 @@ function normalizeRevocationAuthorityDescriptor(value) {
       "maxGrantTtlMs",
       "approvalMode",
       "auditMode",
+      "evidenceResolverDigest",
     ],
     "Volcengine function revocation authority descriptor",
   );
@@ -969,6 +1216,11 @@ function normalizeRevocationAuthorityDescriptor(value) {
       "auditMode",
       "Volcengine function revocation audit mode",
     ),
+    evidenceResolverDigest: ownData(
+      value,
+      "evidenceResolverDigest",
+      "Volcengine function revocation evidence resolver digest",
+    ),
   });
   if (
     descriptor.schema !== VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA ||
@@ -983,7 +1235,8 @@ function normalizeRevocationAuthorityDescriptor(value) {
     descriptor.maxGrantTtlMs < 1 ||
     descriptor.maxGrantTtlMs > 60_000 ||
     descriptor.approvalMode !== VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE ||
-    descriptor.auditMode !== VOLCENGINE_FUNCTION_AUDIT_MODE
+    descriptor.auditMode !== VOLCENGINE_FUNCTION_AUDIT_MODE ||
+    !DIGEST.test(descriptor.evidenceResolverDigest)
   ) {
     throw new TypeError(
       "Volcengine function revocation authority descriptor is invalid",
@@ -1263,6 +1516,8 @@ function synchronizeDurableRevocation(captured) {
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
+      "evidenceResolverDigest",
+      "evidenceReadbackDigest",
       "revokedAt",
       "revocationDigest",
     ],
@@ -1279,6 +1534,8 @@ function synchronizeDurableRevocation(captured) {
       captured.descriptor.handlerArtifactDigest ||
     revocation.policyRevision !== captured.descriptor.policyRevision ||
     !DIGEST.test(revocation.authorizationRequestDigest) ||
+    !DIGEST.test(revocation.evidenceResolverDigest) ||
+    !DIGEST.test(revocation.evidenceReadbackDigest) ||
     !DIGEST.test(revocation.revocationDigest)
   ) {
     throw revocationStatusError();
@@ -1538,6 +1795,8 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
+      "evidenceResolverDigest",
+      "evidenceReadbackDigest",
       "revokedAt",
     ],
     "Volcengine function revocation evidence",
@@ -1584,6 +1843,16 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
       "durabilityReceiptDigest",
       "Volcengine function revocation durability receipt digest",
     ),
+    evidenceResolverDigest: ownData(
+      evidence,
+      "evidenceResolverDigest",
+      "Volcengine function revocation evidence resolver digest",
+    ),
+    evidenceReadbackDigest: ownData(
+      evidence,
+      "evidenceReadbackDigest",
+      "Volcengine function revocation evidence readback digest",
+    ),
     revokedAt: ownData(
       evidence,
       "revokedAt",
@@ -1600,6 +1869,8 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
     !DIGEST.test(core.authorizationEvidenceDigest) ||
     !DIGEST.test(core.auditEventDigest) ||
     !DIGEST.test(core.durabilityReceiptDigest) ||
+    !DIGEST.test(core.evidenceResolverDigest) ||
+    !DIGEST.test(core.evidenceReadbackDigest) ||
     !Number.isFinite(revokedAtMs) ||
     new Date(revokedAtMs).toISOString() !== core.revokedAt ||
     !Number.isFinite(nowMs) ||
@@ -1642,7 +1913,7 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
 export function createVolcengineFunctionRevocationAuthority(options) {
   exactData(
     options,
-    ["descriptor", "authorize", "now"],
+    ["descriptor", "authorize", "evidenceResolver", "now"],
     "Volcengine function revocation authority",
   );
   const descriptor = normalizeRevocationAuthorityDescriptor(
@@ -1657,6 +1928,11 @@ export function createVolcengineFunctionRevocationAuthority(options) {
     "authorize",
     "Volcengine function revocation authorization port",
   );
+  const evidenceResolver = ownData(
+    options,
+    "evidenceResolver",
+    "Volcengine function revocation evidence resolver",
+  );
   const now = ownData(
     options,
     "now",
@@ -1670,8 +1946,26 @@ export function createVolcengineFunctionRevocationAuthority(options) {
   if (typeof now !== "function" || types.isProxy(now)) {
     throw new TypeError("Volcengine function revocation clock is invalid");
   }
+  const evidenceResolverDescriptor =
+    inspectVolcengineFunctionRevocationEvidenceResolver(evidenceResolver);
+  if (
+    evidenceResolverDescriptor.descriptorDigest !==
+      descriptor.evidenceResolverDigest ||
+    evidenceResolverDescriptor.descriptor.tenantId !== descriptor.tenantId ||
+    evidenceResolverDescriptor.descriptor.handlerArtifactDigest !==
+      descriptor.handlerArtifactDigest
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation evidence resolver does not match authority",
+    );
+  }
   const authority = Object.freeze({});
-  revocationAuthorities.set(authority, { descriptor, authorize, now });
+  revocationAuthorities.set(authority, {
+    descriptor,
+    authorize,
+    evidenceResolver,
+    now,
+  });
   return authority;
 }
 
@@ -1712,6 +2006,12 @@ export function captureVolcengineFunctionRevocationAuthority(value) {
         error.code = "CC_VOLCENGINE_FUNCTION_REVOCATION_DENIED";
         throw error;
       }
+      const evidenceReadback = await resolveRevocationDecisionEvidence(
+        captured.evidenceResolver,
+        captured.descriptor,
+        request,
+        decision,
+      );
       const revokedAtMs = captured.now();
       if (
         !Number.isFinite(revokedAtMs) ||
@@ -1735,6 +2035,8 @@ export function captureVolcengineFunctionRevocationAuthority(value) {
             authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
             auditEventDigest: decision.auditEventDigest,
             durabilityReceiptDigest: decision.durabilityReceiptDigest,
+            evidenceResolverDigest: evidenceReadback.evidenceResolverDigest,
+            evidenceReadbackDigest: evidenceReadback.evidenceReadbackDigest,
             revokedAt,
           }),
         );
@@ -1753,6 +2055,8 @@ export function captureVolcengineFunctionRevocationAuthority(value) {
         authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
         auditEventDigest: decision.auditEventDigest,
         durabilityReceiptDigest: decision.durabilityReceiptDigest,
+        evidenceResolverDigest: evidenceReadback.evidenceResolverDigest,
+        evidenceReadbackDigest: evidenceReadback.evidenceReadbackDigest,
         revokedAt,
         status: "revoked",
         authenticated: true,
