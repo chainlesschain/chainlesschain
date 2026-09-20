@@ -545,7 +545,9 @@ describe("native IPC configuration authority continuity", () => {
         expect(managerModule.getLLMManager()).toBe(previous);
         expect(previous.promptCompressor.llmManager).toBe(previous);
       } else {
-        await expect(pending).resolves.toBe(true);
+        await expect(pending).resolves.toEqual(
+          channel === "llm:switch-provider" ? { success: true } : true,
+        );
         const next = managerRef.current;
         expect(next).not.toBe(previous);
         expect(next).toBeInstanceOf(managerModule.LLMManager);

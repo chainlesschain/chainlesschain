@@ -19,7 +19,7 @@
 
 ## 未完成边界
 
-- Selector 的模型特性、报告与选择结果仍按现有成功合同返回，尚未完成字段级 renderer 授权。
+- Selector 的模型特性、报告、选择结果与四入口 renderer/DID tenant/用途授权后续已由第一百七十五批收口。
 - Core/辅助 IPC/Manager 成功 payload，以及 context/session/memory/Manus 等其他 LLM 模块日志与错误通道仍待收口。
 - Electron JavaScript 入口前的原生致命 stderr、tenant HMAC、生产日志保留/访问控制仍未完成。
 - G03 仍为部分完成，真实 Electron/browser/provider E2E 与生产 authority/隐私验收仍不可省略。

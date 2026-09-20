@@ -22,5 +22,5 @@
 ## 未完成边界
 
 - 本批复用现有用途 authority 合同，企业组织 RBAC、生产 purpose policy、身份切换时在途生成中止与撤销仍需目标环境接线和验收。
-- selector、旧 `stream-controller-ipc.js`、其他辅助 LLM IPC 的成功 payload、业务事件和 sender/DID tenant/用途授权仍待处理。
+- Selector 的成功投影与四入口授权后续已由第一百七十五批收口；旧 `stream-controller-ipc.js` 和其他辅助 LLM IPC 的成功 payload、业务事件与 sender/DID tenant/用途授权仍待处理。
 - 真实 Electron renderer/preload、生产 SQLite 大批量/故障注入、provider E2E、tenant HMAC 和生产日志访问治理未在本批执行。

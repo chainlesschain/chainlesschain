@@ -141,11 +141,15 @@ describe("LLM core IPC authorization", () => {
         "clear-context",
         "embeddings",
         "generate-test-data",
+        "generate-report",
         "get-config",
+        "get-selector-info",
         "list-models",
         "query",
         "query-stream",
+        "select-best",
         "set-config",
+        "switch-provider",
       ].sort(),
     );
     expect(OPERATION_AUTHORIZATION["generate-test-data"]).toEqual({

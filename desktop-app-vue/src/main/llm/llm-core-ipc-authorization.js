@@ -57,6 +57,22 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-test-data-delete",
     fields: Object.freeze(["usage-test-data"]),
   }),
+  "get-selector-info": Object.freeze({
+    purpose: "model-selector-catalog-read",
+    fields: Object.freeze(["selector-catalog"]),
+  }),
+  "select-best": Object.freeze({
+    purpose: "model-selector-recommendation",
+    fields: Object.freeze(["provider-selection"]),
+  }),
+  "generate-report": Object.freeze({
+    purpose: "model-selector-report",
+    fields: Object.freeze(["selection-report"]),
+  }),
+  "switch-provider": Object.freeze({
+    purpose: "model-provider-switch",
+    fields: Object.freeze(["provider-configuration"]),
+  }),
 });
 
 function authorizationError() {

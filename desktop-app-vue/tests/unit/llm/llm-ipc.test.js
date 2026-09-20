@@ -155,19 +155,39 @@ describe("LLM Service IPC", () => {
     // 创建 mock llmSelector
     mockLlmSelector = {
       getAllCharacteristics: vi.fn().mockReturnValue({
-        speed: ["fast", "medium", "slow"],
-        accuracy: ["high", "medium", "low"],
+        ollama: {
+          name: "Ollama",
+          cost: 0,
+          speed: 70,
+          quality: 75,
+          contextLength: 4096,
+          capabilities: ["chat", "embedding"],
+          suitable: ["offline", "privacy"],
+          requiresInternet: false,
+        },
       }),
-      getTaskTypes: vi.fn().mockReturnValue(["chat", "coding", "analysis"]),
+      getTaskTypes: vi.fn().mockReturnValue({
+        chat: { name: "Chat", prioritize: ["speed", "cost"] },
+      }),
       selectBestLLM: vi.fn().mockReturnValue({
         provider: "ollama",
         model: "qwen2:7b",
       }),
-      generateSelectionReport: vi.fn().mockReturnValue({
-        taskType: "chat",
-        selectedProvider: "ollama",
-        score: 0.95,
-      }),
+      generateSelectionReport: vi.fn().mockReturnValue([
+        {
+          provider: "ollama",
+          name: "Ollama",
+          score: 95,
+          configured: true,
+          healthy: true,
+          characteristics: {
+            cost: 0,
+            speed: 70,
+            quality: 75,
+            contextLength: 4096,
+          },
+        },
+      ]),
     };
 
     // 创建 mock database
@@ -511,10 +531,13 @@ describe("LLM Service IPC", () => {
 
     it("llm:select-best should invoke llmSelector.selectBestLLM", async () => {
       const handler = handlers["llm:select-best"];
-      const result = await handler({}, { speed: "fast" });
+      const result = await handler({}, { strategy: "speed" });
       expect(mockLlmSelector.selectBestLLM).toHaveBeenCalledWith({
-        speed: "fast",
+        taskType: "chat",
+        strategy: "speed",
+        excludes: [],
       });
+      expect(result).toEqual({ provider: "ollama" });
     });
 
     it("llm:generate-report should invoke llmSelector.generateSelectionReport", async () => {
