@@ -783,6 +783,12 @@ jobs:
             LOCAL_DIR="$READBACK_ROOT/$CHILD/local"
             REGISTRY_DIR="$READBACK_ROOT/$CHILD/registry"
             mkdir -p "$LOCAL_DIR" "$REGISTRY_DIR"
+            # A reused Agent SDK version is not rebuilt by its skipped publish
+            # step, while its immutable npm archive contains generated dist/.
+            # Recreate those deterministic files before comparing archives.
+            if [ "$CHILD" = "agent-sdk" ]; then
+              npm run --workspace packages/agent-sdk build
+            fi
             (
               cd "packages/$CHILD"
               npm pack --ignore-scripts --pack-destination "$LOCAL_DIR" >/dev/null

@@ -91,6 +91,8 @@ describe("CLI release workflow contracts", () => {
     const gate = text.slice(start, publish);
     expect(gate).toContain("set -euo pipefail");
     expect(gate).toContain('cmp "$LOCAL_TARBALL" "$REGISTRY_TARBALL"');
+    expect(gate).toContain('if [ "$CHILD" = "agent-sdk" ]; then');
+    expect(gate).toContain("npm run --workspace packages/agent-sdk build");
     expect(gate).toContain(
       "printf 'package\\tversion\\tsha512\\n' > \"$AUDIT_FILE\"",
     );

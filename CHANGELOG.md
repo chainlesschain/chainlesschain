@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.67: governed browser actions and corrected child releases
+### Added - cc CLI 0.166.68: governed browser actions and corrected child releases
 
 - Govern browser observation, navigation, tab creation, history traversal,
   keyboard actions, and downloads through explicit action authorities instead
@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compare all 13 child package tarballs byte-for-byte with npm before CLI
   publication, and reuse the exact-SHA CLI CI and Strict Sandbox results
   instead of rerunning the complete suite on the release tag.
+- Rebuild Agent SDK's deterministic `dist/` output before auditing a reused
+  public version. The immutable `0.166.67` candidate stopped before CLI
+  publication after its clean checkout lacked these generated files.
 - Keep quarantine byte streams valid across isolated test realms, canonicalize
   macOS temporary workspace aliases, and redact Windows-style backup paths on
   every host.
