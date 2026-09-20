@@ -1,4 +1,5 @@
-const { logger } = require("../utils/logger.js");
+const { createLlmSelectorPrivacy } = require("./llm-selector-privacy");
+const selectorPrivacy = createLlmSelectorPrivacy();
 
 /**
  * LLM 智能选择器
@@ -294,14 +295,12 @@ class LLMSelector {
 
     // 返回得分最高的
     if (scores.length > 0) {
-      logger.info(
-        `[LLMSelector] 智能选择: ${scores[0].provider} (得分: ${scores[0].score.toFixed(2)})`,
-      );
+      selectorPrivacy.event("provider-selected");
       return scores[0].provider;
     }
 
     // 如果都不可用，返回第一个优先级
-    logger.warn("[LLMSelector] 没有可用的LLM，返回默认");
+    selectorPrivacy.event("provider-defaulted");
     return priorityList[0] || "volcengine";
   }
 
@@ -341,7 +340,7 @@ class LLMSelector {
 
     for (const provider of fallbackList) {
       if (!triedProviders.includes(provider)) {
-        logger.info(`[LLMSelector] Fallback到: ${provider}`);
+        selectorPrivacy.event("provider-fallback-selected");
         return provider;
       }
     }
