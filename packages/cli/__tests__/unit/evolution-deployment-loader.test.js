@@ -866,6 +866,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserQuarantinedDownloadExecutor",
       "createBrowserDownloadArtifactDisposalAuthority",
       "createVolcengineFunctionExecutionAuthority",
+      "revokeVolcengineFunctionExecutionAuthority",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
       "createEvolutionLedgerFileBackend",

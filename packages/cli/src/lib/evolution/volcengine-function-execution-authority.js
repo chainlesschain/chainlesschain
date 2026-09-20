@@ -676,7 +676,20 @@ function reserveRequest(captured, request, nowMs) {
   );
 }
 
+function revokedError() {
+  const error = new Error(
+    "Volcengine function execution authority was revoked",
+  );
+  error.code = "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED";
+  return error;
+}
+
+function assertAuthorityActive(captured) {
+  if (captured.revoked) throw revokedError();
+}
+
 async function executeWithinDeadline(captured, request) {
+  assertAuthorityActive(captured);
   const controller = new AbortController();
   const deadlineError = new Error(
     "Volcengine function execution deadline exceeded",
@@ -687,25 +700,31 @@ async function executeWithinDeadline(captured, request) {
     controller.abort(deadlineError);
     throw deadlineError;
   }
+  captured.activeExecutions.add(controller);
   let timer;
-  const timeout = new Promise((_resolve, reject) => {
-    timer = setTimeout(() => {
-      controller.abort(deadlineError);
-      reject(deadlineError);
-    }, remainingMs);
+  let rejectCancellation;
+  const cancellation = new Promise((_resolve, reject) => {
+    rejectCancellation = reject;
   });
+  const onAbort = () => rejectCancellation(controller.signal.reason);
+  controller.signal.addEventListener("abort", onAbort, { once: true });
+  timer = setTimeout(() => controller.abort(deadlineError), remainingMs);
   const context = Object.freeze({
     signal: controller.signal,
     deadlineAt: request.deadlineAt,
     functionPolicyDigest: request.functionPolicyDigest,
   });
   try {
-    return await Promise.race([
+    const response = await Promise.race([
       Promise.resolve().then(() => captured.execute(request, context)),
-      timeout,
+      cancellation,
     ]);
+    assertAuthorityActive(captured);
+    return response;
   } finally {
     clearTimeout(timer);
+    controller.signal.removeEventListener("abort", onAbort);
+    captured.activeExecutions.delete(controller);
   }
 }
 
@@ -727,8 +746,25 @@ export function createVolcengineFunctionExecutionAuthority({
     execute,
     now,
     requests: new Map(),
+    revoked: false,
+    activeExecutions: new Set(),
   });
   return authority;
+}
+
+export function revokeVolcengineFunctionExecutionAuthority(value) {
+  const captured = authorities.get(value);
+  if (!captured) {
+    throw new TypeError(
+      "A branded Volcengine function execution authority is required",
+    );
+  }
+  if (captured.revoked) return false;
+  captured.revoked = true;
+  for (const controller of captured.activeExecutions) {
+    controller.abort(revokedError());
+  }
+  return true;
 }
 
 export function captureVolcengineFunctionExecutionAuthority(value) {
@@ -741,6 +777,7 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
   return Object.freeze({
     descriptor: captured.descriptor,
     executeFunction: async (value) => {
+      assertAuthorityActive(captured);
       const nowMs = captured.now();
       if (!Number.isFinite(nowMs)) {
         throw new TypeError("Volcengine function authority clock is invalid");

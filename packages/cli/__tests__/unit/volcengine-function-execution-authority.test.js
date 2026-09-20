@@ -11,6 +11,7 @@ import {
   captureVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionExecutionAuthority,
   digestVolcengineFunctionResult,
+  revokeVolcengineFunctionExecutionAuthority,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
 
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
@@ -217,6 +218,45 @@ describe("Volcengine function execution authority", () => {
     expect(() =>
       captureVolcengineFunctionExecutionAuthority(Object.freeze({})),
     ).toThrow("branded Volcengine function execution authority");
+    expect(() =>
+      revokeVolcengineFunctionExecutionAuthority(Object.freeze({})),
+    ).toThrow("branded Volcengine function execution authority");
+  });
+
+  it("rejects new execution after the authority is revoked", async () => {
+    const { authority, execute, port } = setup();
+
+    expect(revokeVolcengineFunctionExecutionAuthority(authority)).toBe(true);
+    expect(revokeVolcengineFunctionExecutionAuthority(authority)).toBe(false);
+    await expect(port.executeFunction(request())).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+      message: "Volcengine function execution authority was revoked",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("aborts and rejects in-flight execution when the authority is revoked", async () => {
+    let executionContext;
+    const { authority, execute, port } = setup({
+      execute: async (_value, context) => {
+        executionContext = context;
+        return new Promise(() => {});
+      },
+    });
+    const execution = port.executeFunction(request());
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce());
+
+    expect(revokeVolcengineFunctionExecutionAuthority(authority)).toBe(true);
+
+    await expect(execution).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+      message: "Volcengine function execution authority was revoked",
+    });
+    expect(executionContext.signal.aborted).toBe(true);
+    expect(executionContext.signal.reason).toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
+      message: "Volcengine function execution authority was revoked",
+    });
   });
 
   it("rejects request digest tampering before execution", async () => {

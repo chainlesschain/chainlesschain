@@ -447,6 +447,8 @@ async function loadBuiltInFactories(commandName) {
         browserDownloadArtifactDisposal.createBrowserDownloadArtifactDisposalAuthority,
       createVolcengineFunctionExecutionAuthority:
         volcengineFunctionExecution.createVolcengineFunctionExecutionAuthority,
+      revokeVolcengineFunctionExecutionAuthority:
+        volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
       createEvolutionLedgerDurableArtifactResolver:
         ledgerPorts.createEvolutionLedgerDurableArtifactResolver,
       createEvolutionArtifactPorts: (options) =>
