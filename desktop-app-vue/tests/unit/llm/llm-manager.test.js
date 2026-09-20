@@ -572,7 +572,8 @@ describe("LLMManager", () => {
       const status = await llmManager.checkStatus();
 
       expect(status.available).toBe(false);
-      expect(status.error).toBe("Connection error");
+      expect(status.error).toBe("LLM provider unavailable");
+      expect(status.code).toBe("CC_LLM_MANAGER_UNAVAILABLE");
     });
   });
 

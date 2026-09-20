@@ -11,8 +11,8 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
+const { createLlmManagerPrivacy } = require("./llm-manager-privacy");
 const {
   isDesktopModelIngressHost,
   isDesktopModelIngressClient,
@@ -26,6 +26,7 @@ const budgetListeners = new WeakMap();
 const providerSwitches = new WeakSet();
 const managerCloseEpochs = new WeakMap();
 const governedVisionModelClients = new WeakMap();
+const managerPrivacy = createLlmManagerPrivacy();
 const GOVERNED_VISION_PROVIDERS = new Set([
   "ollama",
   "openai",
@@ -205,7 +206,7 @@ class LLMManager extends EventEmitter {
     // Token 追踪器（可选）
     this.tokenTracker = config.tokenTracker || null;
     if (this.tokenTracker) {
-      logger.info("[LLMManager] Token 追踪已启用");
+      managerPrivacy.event("token-tracking-enabled");
 
       // 🔥 监听预算告警事件
       const listener = this._handleBudgetAlert.bind(this);
@@ -216,13 +217,13 @@ class LLMManager extends EventEmitter {
     // 🔥 响应缓存（可选）
     this.responseCache = config.responseCache || null;
     if (this.responseCache) {
-      logger.info("[LLMManager] 响应缓存已启用");
+      managerPrivacy.event("response-cache-enabled");
     }
 
     // 🔥 Prompt 压缩器（可选）
     this.promptCompressor = config.promptCompressor || null;
     if (this.promptCompressor) {
-      logger.info("[LLMManager] Prompt 压缩已启用");
+      managerPrivacy.event("prompt-compression-enabled");
     }
 
     // 🔥 暂停标志（预算超限时）
@@ -238,11 +239,8 @@ class LLMManager extends EventEmitter {
       try {
         const { getLLMStateBus } = require("./llm-state-bus");
         this._stateBusUnbind = getLLMStateBus().forwardFrom(this);
-      } catch (busError) {
-        logger.warn(
-          "[LLMManager] LLM 状态总线绑定失败（将不广播状态事件）:",
-          busError.message,
-        );
+      } catch {
+        managerPrivacy.event("state-bus-bind-failed");
       }
     }
 
@@ -258,11 +256,9 @@ class LLMManager extends EventEmitter {
             config.enableRecoverableCompression !== false,
           logMaskChanges: config.logMaskChanges !== false,
         });
-        logger.info(
-          "[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)",
-        );
-      } catch (manusError) {
-        logger.warn("[LLMManager] Manus 优化初始化失败:", manusError.message);
+        managerPrivacy.event("manus-optimization-enabled");
+      } catch {
+        managerPrivacy.event("manus-initialization-failed");
       }
     }
   }
@@ -271,8 +267,7 @@ class LLMManager extends EventEmitter {
    * 初始化管理器
    */
   async initialize() {
-    logger.info("[LLMManager] 初始化LLM管理器...");
-    logger.info("[LLMManager] 提供商:", this.provider);
+    managerPrivacy.event("initialization-started");
 
     try {
       this.client = await this.createClient(this.provider);
@@ -294,12 +289,9 @@ class LLMManager extends EventEmitter {
               this.toolsClient,
               modelIngressHosts.get(this),
             );
-          logger.info("[LLMManager] 火山引擎工具调用客户端已初始化");
-        } catch (toolsError) {
-          logger.warn(
-            "[LLMManager] 工具调用客户端初始化失败:",
-            toolsError.message,
-          );
+          managerPrivacy.event("tools-client-initialized");
+        } catch {
+          managerPrivacy.event("tools-client-initialization-failed");
         }
       }
 
@@ -310,20 +302,16 @@ class LLMManager extends EventEmitter {
 
           if (status.available) {
             this.isInitialized = true;
-            logger.info("[LLMManager] LLM服务可用");
-            logger.info("[LLMManager] 可用模型数:", status.models?.length || 0);
+            managerPrivacy.event("service-available");
             this.emit("initialized", status);
           } else {
-            logger.warn("[LLMManager] LLM服务状态检查失败:", status.error);
+            managerPrivacy.event("service-unavailable");
             // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
             this.isInitialized = true;
             this.emit("unavailable", status);
           }
-        } catch (statusError) {
-          logger.warn(
-            "[LLMManager] 无法检查服务状态（将在实际调用时重试）:",
-            statusError.message,
-          );
+        } catch {
+          managerPrivacy.event("service-status-check-failed");
           // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
           this.isInitialized = true;
         }
@@ -331,7 +319,7 @@ class LLMManager extends EventEmitter {
 
       return this.isInitialized;
     } catch (error) {
-      logger.error("[LLMManager] 初始化失败:", error);
+      managerPrivacy.event("initialization-failed");
       this.isInitialized = false;
       throw error;
     }
@@ -432,7 +420,7 @@ class LLMManager extends EventEmitter {
    * @param {Object} config - 配置
    */
   async switchProvider(provider, config = {}) {
-    logger.info("[LLMManager] 切换提供商:", provider);
+    managerPrivacy.event("provider-switch-started");
     if (providerSwitches.has(this))
       throw new Error("LLM provider switch already in progress");
     providerSwitches.add(this);
@@ -462,7 +450,7 @@ class LLMManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      logger.error("[LLMManager] 切换提供商失败:", error);
+      managerPrivacy.event("provider-switch-failed");
       throw error;
     } finally {
       try {
@@ -491,10 +479,11 @@ class LLMManager extends EventEmitter {
         ...status,
         provider: this.provider,
       };
-    } catch (error) {
+    } catch {
       return {
         available: false,
-        error: error.message,
+        error: "LLM provider unavailable",
+        code: "CC_LLM_MANAGER_UNAVAILABLE",
         provider: this.provider,
       };
     }
@@ -638,8 +627,8 @@ class LLMManager extends EventEmitter {
             endpoint: options.endpoint,
             userId: options.userId || "default",
           });
-        } catch (trackError) {
-          logger.error("[LLMManager] Token 追踪失败:", trackError);
+        } catch {
+          managerPrivacy.event("token-tracking-failed");
           // 不阻塞主流程
         }
       }
@@ -652,8 +641,7 @@ class LLMManager extends EventEmitter {
         timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error("[LLMManager] 查询失败:", error);
-      this.emit("query-failed", { prompt, error });
+      this.emit("query-failed", managerPrivacy.failureEvent("query"));
       throw error;
     }
   }
@@ -787,7 +775,7 @@ class LLMManager extends EventEmitter {
             });
           } catch (error) {
             if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-            logger.error("[LLMManager] Token tracking failed:", error);
+            managerPrivacy.event("token-tracking-failed");
           }
         },
       },
@@ -839,7 +827,7 @@ class LLMManager extends EventEmitter {
         );
 
         if (cacheResult.hit) {
-          logger.info("[LLMManager] 缓存命中，跳过 LLM 调用");
+          managerPrivacy.event("cache-hit");
           wasCached = true;
 
           // 🔥 记录 Token 使用（缓存命中）
@@ -860,8 +848,8 @@ class LLMManager extends EventEmitter {
                 endpoint: options.endpoint,
                 userId: options.userId || "default",
               });
-            } catch (trackError) {
-              logger.error("[LLMManager] Token 追踪失败:", trackError);
+            } catch {
+              managerPrivacy.event("token-tracking-failed");
             }
           }
 
@@ -886,7 +874,7 @@ class LLMManager extends EventEmitter {
         !options.skipCompression &&
         messages.length > 5
       ) {
-        logger.info("[LLMManager] 执行 Prompt 压缩...");
+        managerPrivacy.event("prompt-compression-started");
         const compressionResult = await this.promptCompressor.compress(
           messages,
           {
@@ -899,10 +887,7 @@ class LLMManager extends EventEmitter {
         wasCompressed = true;
         compressionRatio = compressionResult.compressionRatio;
 
-        logger.info(
-          `[LLMManager] Prompt 已压缩: ${messages.length} → ${processedMessages.length} 条消息, ` +
-            `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
-        );
+        managerPrivacy.event("prompt-compression-completed");
       }
 
       // 🔥 步骤 3: 调用 LLM API（带模型回退）
@@ -915,9 +900,7 @@ class LLMManager extends EventEmitter {
           throw chatError;
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
-          logger.warn(
-            `[LLMManager] 模型 ${options.model} 不可用（${chatError.message}），回退到默认模型 ${this.config.model}`,
-          );
+          managerPrivacy.event("model-fallback-started");
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
           result = await selectedClient.chat(
@@ -950,9 +933,9 @@ class LLMManager extends EventEmitter {
             },
             options,
           );
-          logger.info("[LLMManager] 响应已缓存");
-        } catch (cacheError) {
-          logger.error("[LLMManager] 缓存保存失败:", cacheError);
+          managerPrivacy.event("response-cached");
+        } catch {
+          managerPrivacy.event("cache-save-failed");
           // 不阻塞主流程
         }
       }
@@ -975,8 +958,8 @@ class LLMManager extends EventEmitter {
             endpoint: options.endpoint,
             userId: options.userId || "default",
           });
-        } catch (trackError) {
-          logger.error("[LLMManager] Token 追踪失败:", trackError);
+        } catch {
+          managerPrivacy.event("token-tracking-failed");
           // 不阻塞主流程
         }
       }
@@ -993,8 +976,7 @@ class LLMManager extends EventEmitter {
         compressionRatio,
       };
     } catch (error) {
-      logger.error("[LLMManager] 聊天失败:", error);
-      this.emit("chat-failed", { messages: processedMessages, error });
+      this.emit("chat-failed", managerPrivacy.failureEvent("chat"));
       throw error;
     }
   }
@@ -1047,7 +1029,7 @@ class LLMManager extends EventEmitter {
         !options.skipCompression &&
         messages.length > 5
       ) {
-        logger.info("[LLMManager] 执行 Prompt 压缩（流式）...");
+        managerPrivacy.event("stream-prompt-compression-started");
         const compressionResult = await this.promptCompressor.compress(
           messages,
           {
@@ -1060,10 +1042,7 @@ class LLMManager extends EventEmitter {
         wasCompressed = true;
         compressionRatio = compressionResult.compressionRatio;
 
-        logger.info(
-          `[LLMManager] Prompt 已压缩（流式）: ${messages.length} → ${processedMessages.length} 条消息, ` +
-            `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
-        );
+        managerPrivacy.event("stream-prompt-compression-completed");
       }
 
       let result;
@@ -1080,9 +1059,7 @@ class LLMManager extends EventEmitter {
           throw streamError;
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
-          logger.warn(
-            `[LLMManager] 流式模型 ${options.model} 不可用（${streamError.message}），回退到默认模型 ${this.config.model}`,
-          );
+          managerPrivacy.event("stream-model-fallback-started");
           const fallbackOptions = { ...options };
           delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
           result = await selectedClient.chatStream(
@@ -1120,8 +1097,8 @@ class LLMManager extends EventEmitter {
             endpoint: options.endpoint,
             userId: options.userId || "default",
           });
-        } catch (trackError) {
-          logger.error("[LLMManager] Token 追踪失败:", trackError);
+        } catch {
+          managerPrivacy.event("token-tracking-failed");
           // 不阻塞主流程
         }
       }
@@ -1137,8 +1114,10 @@ class LLMManager extends EventEmitter {
         compressionRatio,
       };
     } catch (error) {
-      logger.error("[LLMManager] 流式聊天失败:", error);
-      this.emit("chat-stream-failed", { messages: processedMessages, error });
+      this.emit(
+        "chat-stream-failed",
+        managerPrivacy.failureEvent("chat-stream"),
+      );
       throw error;
     }
   }
@@ -1269,8 +1248,8 @@ class LLMManager extends EventEmitter {
             endpoint: options.endpoint,
             userId: options.userId || "default",
           });
-        } catch (trackError) {
-          logger.error("[LLMManager] Token 追踪失败:", trackError);
+        } catch {
+          managerPrivacy.event("token-tracking-failed");
           // 不阻塞主流程
         }
       }
@@ -1283,8 +1262,7 @@ class LLMManager extends EventEmitter {
         timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error("[LLMManager] 流式查询失败:", error);
-      this.emit("stream-failed", { prompt, error });
+      this.emit("stream-failed", managerPrivacy.failureEvent("query-stream"));
       throw error;
     }
   }
@@ -1336,7 +1314,7 @@ class LLMManager extends EventEmitter {
         ) {
           client = this.adapters[resolved.provider];
         }
-      } catch (_e) {
+      } catch {
         // Resolution failure → fall back to current client
       }
     }
@@ -1348,7 +1326,7 @@ class LLMManager extends EventEmitter {
     try {
       return await client.embeddings(text);
     } catch (error) {
-      logger.error("[LLMManager] 生成嵌入失败:", error);
+      managerPrivacy.event("embeddings-failed");
       throw error;
     }
   }
@@ -1373,7 +1351,7 @@ class LLMManager extends EventEmitter {
       ) {
         return { adapter: this.adapters[resolved.provider], ...resolved };
       }
-    } catch (_e) {
+    } catch {
       // Not configured — caller decides whether to error or no-op
     }
     return null;
@@ -1390,8 +1368,8 @@ class LLMManager extends EventEmitter {
     try {
       const status = await this.client.checkStatus();
       return status.models || [];
-    } catch (error) {
-      logger.error("[LLMManager] 列出模型失败:", error);
+    } catch {
+      managerPrivacy.event("model-list-failed");
       return [];
     }
   }
@@ -1403,20 +1381,14 @@ class LLMManager extends EventEmitter {
    */
   selectVolcengineModel(scenario = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      logger.warn(
-        "[LLMManager] 智能选择器仅支持火山引擎，当前提供商:",
-        this.provider,
-      );
+      managerPrivacy.event("volcengine-only-operation-rejected");
       return null;
     }
 
     const selector = _getModelSelector();
     const model = selector.selectByScenario(scenario);
 
-    logger.info("[LLMManager] 智能选择模型:", model.name);
-    logger.info("[LLMManager] 模型ID:", model.id);
-    logger.info("[LLMManager] 能力:", model.capabilities);
-    logger.info("[LLMManager] 价格:", model.pricing);
+    managerPrivacy.event("model-selected");
 
     return {
       modelId: model.id,
@@ -1437,17 +1409,14 @@ class LLMManager extends EventEmitter {
    */
   selectModelByTask(taskType, options = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      logger.warn(
-        "[LLMManager] 智能选择器仅支持火山引擎，当前提供商:",
-        this.provider,
-      );
+      managerPrivacy.event("volcengine-only-operation-rejected");
       return null;
     }
 
     const selector = _getModelSelector();
     const model = selector.selectModel(taskType, options);
 
-    logger.info("[LLMManager] 为任务", taskType, "选择模型:", model.name);
+    managerPrivacy.event("task-model-selected");
 
     return {
       modelId: model.id,
@@ -1468,10 +1437,7 @@ class LLMManager extends EventEmitter {
    */
   estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      logger.warn(
-        "[LLMManager] 成本估算仅支持火山引擎，当前提供商:",
-        this.provider,
-      );
+      managerPrivacy.event("volcengine-only-operation-rejected");
       return 0;
     }
 
@@ -1483,12 +1449,7 @@ class LLMManager extends EventEmitter {
       imageCount,
     );
 
-    logger.info("[LLMManager] 成本估算:");
-    logger.info("  模型:", modelId);
-    logger.info("  输入tokens:", inputTokens);
-    logger.info("  输出tokens:", outputTokens);
-    logger.info("  图片数量:", imageCount);
-    logger.info("  预估成本: ¥", cost.toFixed(4));
+    managerPrivacy.event("cost-estimated");
 
     return cost;
   }
@@ -1500,10 +1461,7 @@ class LLMManager extends EventEmitter {
    */
   listVolcengineModels(filters = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      logger.warn(
-        "[LLMManager] 模型列表仅支持火山引擎，当前提供商:",
-        this.provider,
-      );
+      managerPrivacy.event("volcengine-only-operation-rejected");
       return [];
     }
 
@@ -1531,7 +1489,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    logger.info("[LLMManager] 使用联网搜索对话");
+    managerPrivacy.event("web-search-chat-started");
     return await this.toolsClient.chatWithWebSearch(messages, options);
   }
 
@@ -1551,7 +1509,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    logger.info("[LLMManager] 使用图像处理对话");
+    managerPrivacy.event("image-chat-started");
     return await this.toolsClient.chatWithImageProcess(messages, options);
   }
 
@@ -1572,7 +1530,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    logger.info("[LLMManager] 使用知识库搜索对话");
+    managerPrivacy.event("knowledge-chat-started");
     return await this.toolsClient.chatWithKnowledgeBase(
       messages,
       knowledgeBaseId,
@@ -1597,7 +1555,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    logger.info("[LLMManager] 使用函数调用对话");
+    managerPrivacy.event("function-chat-started");
     return await this.toolsClient.chatWithFunctionCalling(
       messages,
       functions,
@@ -1621,7 +1579,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    logger.info("[LLMManager] 使用多种工具对话");
+    managerPrivacy.event("multi-tool-chat-started");
     return await this.toolsClient.chatWithMultipleTools(messages, toolConfig);
   }
 
@@ -1635,18 +1593,16 @@ class LLMManager extends EventEmitter {
    * @param {Object} alert - 告警详情
    */
   async _handleBudgetAlert(alert) {
-    const { level, period, usage, spent, limit } = alert;
+    const { level } = alert;
 
-    logger.warn(
-      `[LLMManager] 🚨 预算告警: ${period} 使用率 ${(usage * 100).toFixed(1)}% ($${spent.toFixed(2)}/$${limit})`,
-    );
+    managerPrivacy.event("budget-alert-received");
 
     // 发送告警事件给外部监听器
     this.emit("budget-alert", alert);
 
     // 如果是 critical 级别且启用了自动暂停
     if (level === "critical" && this.budgetConfig?.auto_pause_on_limit) {
-      logger.error("[LLMManager] ⛔ 预算超限，自动暂停 LLM 服务");
+      managerPrivacy.event("budget-auto-paused");
       this.paused = true;
       this.emit("service-paused", { reason: "budget-exceeded", alert });
     }
@@ -1656,7 +1612,7 @@ class LLMManager extends EventEmitter {
       level === "warning" &&
       this.budgetConfig?.auto_switch_to_cheaper_model
     ) {
-      logger.warn("[LLMManager] 💡 尝试切换到更便宜的模型");
+      managerPrivacy.event("budget-cheaper-model-attempted");
       await this._switchToCheaperModel();
     }
   }
@@ -1684,7 +1640,7 @@ class LLMManager extends EventEmitter {
       // 如果当前不是最便宜的模型，切换到更便宜的
       if (currentIndex > 0) {
         const newModel = options[currentIndex - 1];
-        logger.info(`[LLMManager] 切换模型: ${currentModel} → ${newModel}`);
+        managerPrivacy.event("model-switched");
 
         this.config.model = newModel;
         await this.initialize();
@@ -1695,7 +1651,7 @@ class LLMManager extends EventEmitter {
           reason: "budget-optimization",
         });
       } else {
-        logger.warn("[LLMManager] 已经在使用最便宜的模型，无法继续降级");
+        managerPrivacy.event("model-downgrade-unavailable");
       }
     }
   }
@@ -1706,11 +1662,11 @@ class LLMManager extends EventEmitter {
    */
   async resumeService(userId = "default") {
     if (!this.paused) {
-      logger.warn("[LLMManager] 服务未暂停，无需恢复");
+      managerPrivacy.event("service-not-paused");
       return { success: false, message: "服务未暂停" };
     }
 
-    logger.info("[LLMManager] 恢复 LLM 服务");
+    managerPrivacy.event("service-resumed");
     this.paused = false;
     this.emit("service-resumed", { userId });
 
@@ -1722,11 +1678,11 @@ class LLMManager extends EventEmitter {
    */
   async pauseService() {
     if (this.paused) {
-      logger.warn("[LLMManager] 服务已经暂停");
+      managerPrivacy.event("service-already-paused");
       return { success: false, message: "服务已暂停" };
     }
 
-    logger.info("[LLMManager] 手动暂停 LLM 服务");
+    managerPrivacy.event("service-paused");
     this.paused = true;
     this.emit("service-paused", { reason: "manual" });
 
@@ -1909,7 +1865,7 @@ class LLMManager extends EventEmitter {
    */
   async close() {
     managerCloseEpochs.set(this, (managerCloseEpochs.get(this) ?? 0) + 1);
-    logger.info("[LLMManager] 关闭LLM管理器");
+    managerPrivacy.event("manager-closing");
 
     // 移除 TokenTracker 监听器
     const budgetBinding = budgetListeners.get(this);
@@ -1925,7 +1881,7 @@ class LLMManager extends EventEmitter {
     if (this._stateBusUnbind) {
       try {
         this._stateBusUnbind();
-      } catch (_unbindError) {
+      } catch {
         /* ignore */
       }
       this._stateBusUnbind = null;
@@ -1935,8 +1891,8 @@ class LLMManager extends EventEmitter {
     if (this.client && typeof this.client.close === "function") {
       try {
         await this.client.close();
-      } catch (closeError) {
-        logger.warn("[LLMManager] 客户端 close 失败:", closeError);
+      } catch {
+        managerPrivacy.event("client-close-failed");
       }
     }
 
@@ -2002,7 +1958,7 @@ function createLLMManagerReplacement(previous, config) {
  */
 LLMManager.prototype.generateTags = async function ({ title, content, url }) {
   if (!this.isInitialized) {
-    logger.warn("[LLMManager] LLM服务未初始化，使用fallback");
+    managerPrivacy.event("tag-fallback-used");
     // Fallback: 简单的关键词提取
     return this.generateTagsFallback({ title, content, url });
   }
@@ -2033,10 +1989,10 @@ URL: ${url}
       .filter((t) => t.length > 0 && t.length < 20)
       .slice(0, 5);
 
-    logger.info("[LLMManager] AI生成标签:", tags);
+    managerPrivacy.event("tag-generated");
     return tags;
-  } catch (error) {
-    logger.error("[LLMManager] 标签生成失败:", error);
+  } catch {
+    managerPrivacy.event("tag-generation-failed");
     // Fallback
     return this.generateTagsFallback({ title, content, url });
   }
@@ -2045,7 +2001,7 @@ URL: ${url}
 /**
  * Fallback标签生成（简单关键词提取）
  */
-LLMManager.prototype.generateTagsFallback = function ({ title, content, url }) {
+LLMManager.prototype.generateTagsFallback = function ({ title, url }) {
   const tags = [];
 
   // 从URL提取域名
@@ -2056,7 +2012,7 @@ LLMManager.prototype.generateTagsFallback = function ({ title, content, url }) {
       if (domain) {
         tags.push(domain);
       }
-    } catch (e) {
+    } catch {
       // 忽略
     }
   }
@@ -2094,7 +2050,7 @@ LLMManager.prototype.generateTagsFallback = function ({ title, content, url }) {
  */
 LLMManager.prototype.generateSummary = async function ({ title, content }) {
   if (!this.isInitialized) {
-    logger.warn("[LLMManager] LLM服务未初始化，使用fallback");
+    managerPrivacy.event("summary-fallback-used");
     // Fallback: 简单截取
     return this.generateSummaryFallback({ content });
   }
@@ -2118,10 +2074,10 @@ LLMManager.prototype.generateSummary = async function ({ title, content }) {
 
     const summary = (result.text || result.message?.content || "").trim();
 
-    logger.info("[LLMManager] AI生成摘要:", summary.substring(0, 50) + "...");
+    managerPrivacy.event("summary-generated");
     return summary;
-  } catch (error) {
-    logger.error("[LLMManager] 摘要生成失败:", error);
+  } catch {
+    managerPrivacy.event("summary-generation-failed");
     // Fallback
     return this.generateSummaryFallback({ content });
   }
@@ -2211,7 +2167,7 @@ LLMManager.prototype.chatWithOptimizedPrompt = async function (
  */
 LLMManager.prototype.startTask = function (task) {
   if (!this.manusOptimizations) {
-    logger.warn("[LLMManager] Manus 优化未启用，无法追踪任务");
+    managerPrivacy.event("manus-disabled");
     return null;
   }
   return this.manusOptimizations.startTask(task);
@@ -2646,9 +2602,7 @@ LLMManager.prototype.resolveCategory = function (category, opts = {}) {
     targetCategory = inferCategoryFromModelHints(opts.skill.modelHints);
   }
   if (!targetCategory || !CATEGORY_PROVIDER_PRIORITY[targetCategory]) {
-    logger.warn(
-      `[LLMManager] resolveCategory: unknown category "${targetCategory}", falling back to quick`,
-    );
+    managerPrivacy.event("category-unknown");
     targetCategory = LLM_CATEGORIES.QUICK;
   }
 
@@ -2664,11 +2618,8 @@ LLMManager.prototype.resolveCategory = function (category, opts = {}) {
   let llmConfig;
   try {
     llmConfig = _loadLLMConfig();
-  } catch (err) {
-    logger.warn(
-      "[LLMManager] resolveCategory: 无法加载 llm-config，使用当前 provider",
-      err && err.message,
-    );
+  } catch {
+    managerPrivacy.event("category-config-load-failed");
     const result = {
       provider: this.provider,
       model: this.config.model || "",
@@ -2707,7 +2658,7 @@ LLMManager.prototype.rebuildCategoryMapping = function () {
   if (this._categoryMappingCache) {
     this._categoryMappingCache.clear();
   }
-  logger.info("[LLMManager] 类别路由缓存已清空");
+  managerPrivacy.event("category-cache-cleared");
 };
 
 module.exports = {
