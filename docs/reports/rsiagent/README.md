@@ -234,3 +234,4 @@
 | 171  | 2026-09-21 | [第一百七十一次工程实施：LLM Manager 原始异常终止边界](./rsiagent-one-hundred-seventy-first-batch-implementation-2026-09-21.md)         |
 | 172  | 2026-09-21 | [第一百七十二次工程实施：LLM Manager 事件回执最小披露](./rsiagent-one-hundred-seventy-second-batch-implementation-2026-09-21.md)         |
 | 173  | 2026-09-21 | [第一百七十三次工程实施：LLM Stream Controller 事件与成功回执最小披露](./rsiagent-one-hundred-seventy-third-batch-implementation-2026-09-21.md) |
+| 174  | 2026-09-21 | [第一百七十四次工程实施：LLM 测试数据输入、授权与成功回执边界](./rsiagent-one-hundred-seventy-fourth-batch-implementation-2026-09-21.md) |

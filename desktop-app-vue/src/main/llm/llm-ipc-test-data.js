@@ -4,11 +4,59 @@
  *
  * @module llm/llm-ipc-test-data
  */
+const { types } = require("node:util");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+
+const TEST_DATA_LIMITS = Object.freeze({
+  maxDays: 90,
+  maxRecordsPerDay: 250,
+});
+const TEST_DATA_OPTION_KEYS = new Set(["days", "recordsPerDay", "clear"]);
+
+function testDataOptions(value) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid test data options");
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== "string" || !TEST_DATA_OPTION_KEYS.has(key)) {
+      throw new TypeError("Invalid test data option");
+    }
+    if (!Object.hasOwn(descriptors[key], "value")) {
+      throw new TypeError("Invalid test data option");
+    }
+  }
+
+  const days = descriptors.days?.value ?? 30;
+  const recordsPerDay = descriptors.recordsPerDay?.value ?? 50;
+  const clear = descriptors.clear?.value ?? false;
+  if (
+    !Number.isInteger(days) ||
+    days < 1 ||
+    days > TEST_DATA_LIMITS.maxDays ||
+    !Number.isInteger(recordsPerDay) ||
+    recordsPerDay < 1 ||
+    recordsPerDay > TEST_DATA_LIMITS.maxRecordsPerDay ||
+    typeof clear !== "boolean"
+  ) {
+    throw new TypeError("Invalid test data option value");
+  }
+
+  return Object.freeze({ clear, days, recordsPerDay });
+}
 
 function registerTestDataHandlers(ctx) {
   const { ipcMain, database } = ctx;
   const privacy = ctx.testDataPrivacy || createLlmIpcPrivacy("test-data");
+  const authorization = ctx.coreAuthorization;
+  if (!authorization || typeof authorization.authorize !== "function") {
+    throw new TypeError("LLM test-data IPC authorization is required");
+  }
 
   // ============================================================
   // Test Data Generation (测试数据生成)
@@ -18,8 +66,28 @@ function registerTestDataHandlers(ctx) {
    * 生成 LLM 测试数据（仅用于开发测试）
    * Channel: 'llm:generate-test-data'
    */
-  ipcMain.handle("llm:generate-test-data", async (_event, options = {}) => {
-    const { days = 30, recordsPerDay = 50, clear = false } = options;
+  ipcMain.handle("llm:generate-test-data", async (event, options = {}) => {
+    try {
+      await authorization.authorize(event, "generate-test-data");
+    } catch {
+      throw privacy.authorizationFailure("generate-test-data");
+    }
+
+    let normalizedOptions;
+    try {
+      normalizedOptions = testDataOptions(options);
+    } catch {
+      throw privacy.failure("generate-test-data");
+    }
+    const { days, recordsPerDay, clear } = normalizedOptions;
+
+    if (clear) {
+      try {
+        await authorization.authorize(event, "clear-test-data");
+      } catch {
+        throw privacy.authorizationFailure("generate-test-data");
+      }
+    }
 
     if (!database) {
       throw privacy.failure("generate-test-data");
@@ -94,12 +162,9 @@ function registerTestDataHandlers(ctx) {
       });
 
       const records = [];
-      let totalRecords = 0;
-      let totalTokens = 0;
-      let totalCostUsd = 0;
 
       for (let day = 0; day < days; day++) {
-        const dailyRecords = recordsPerDay + randomInt(-20, 20);
+        const dailyRecords = Math.max(0, recordsPerDay + randomInt(-20, 20));
 
         for (let i = 0; i < dailyRecords; i++) {
           const provider = randomChoice(providers);
@@ -152,9 +217,6 @@ function registerTestDataHandlers(ctx) {
             timestamp,
           ]);
 
-          totalRecords++;
-          totalTokens += totalTokensVal;
-          totalCostUsd += costUsd;
         }
       }
 
@@ -162,17 +224,14 @@ function registerTestDataHandlers(ctx) {
 
       privacy.event("test-data-generated");
 
-      return {
-        success: true,
-        totalRecords,
-        totalTokens,
-        totalCostUsd,
-        totalCostCny: totalCostUsd * EXCHANGE_RATE,
-      };
+      return Object.freeze({ success: true });
     } catch {
       throw privacy.failure("generate-test-data");
     }
   });
 }
 
-module.exports = { registerTestDataHandlers };
+module.exports = {
+  TEST_DATA_LIMITS,
+  registerTestDataHandlers,
+};

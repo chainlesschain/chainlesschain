@@ -68,6 +68,7 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
     registerTestDataHandlers({
       ipcMain,
       database: null,
+      coreAuthorization: { authorize: vi.fn(async () => true) },
       testDataPrivacy: createLlmIpcPrivacy("test-data", sink),
     });
 
@@ -170,6 +171,77 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       });
     }
 
+    expect(JSON.stringify(sink.error.mock.calls)).not.toContain(secret);
+  });
+
+  it("authorizes and bounds test-data generation before database access", async () => {
+    const secret = "private-test-data-extension";
+    const run = vi.fn();
+    const database = {
+      prepare: vi.fn(() => ({ run })),
+      transaction: vi.fn((operation) => operation),
+    };
+    const authorize = vi.fn(async (_event, operation) => {
+      if (operation === "clear-test-data") {
+        throw new Error(secret);
+      }
+      return true;
+    });
+    const { handlers, ipcMain } = captureHandlers();
+    registerTestDataHandlers({
+      ipcMain,
+      database,
+      coreAuthorization: { authorize },
+      testDataPrivacy: createLlmIpcPrivacy("test-data", sink),
+    });
+    const event = Object.freeze({ sender: "main-renderer" });
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+
+    await expect(
+      handlers.get("llm:generate-test-data")(event, {
+        days: 1,
+        recordsPerDay: 1,
+        clear: false,
+      }),
+    ).resolves.toEqual({ success: true });
+    expect(authorize).toHaveBeenNthCalledWith(
+      1,
+      event,
+      "generate-test-data",
+    );
+    expect(run).toHaveBeenCalledTimes(1);
+
+    database.prepare.mockClear();
+    await expect(
+      handlers.get("llm:generate-test-data")(event, {
+        days: 1,
+        recordsPerDay: 1,
+        clear: true,
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_LLM_IPC_UNAUTHORIZED",
+      component: "test-data",
+      operation: "generate-test-data",
+    });
+    expect(authorize).toHaveBeenLastCalledWith(event, "clear-test-data");
+    expect(database.prepare).not.toHaveBeenCalled();
+
+    for (const options of [
+      { days: 0, recordsPerDay: 1, clear: false },
+      { days: 1, recordsPerDay: 251, clear: false },
+      { days: 1, recordsPerDay: 1, clear: false, extension: secret },
+      Object.defineProperty({}, "days", { get: () => 1 }),
+      new Proxy({}, { getOwnPropertyDescriptor: () => ({ value: secret }) }),
+    ]) {
+      await expect(
+        handlers.get("llm:generate-test-data")(event, options),
+      ).rejects.toMatchObject({
+        code: "CC_LLM_IPC_OPERATION_FAILED",
+        component: "test-data",
+        operation: "generate-test-data",
+      });
+    }
+    expect(database.prepare).not.toHaveBeenCalled();
     expect(JSON.stringify(sink.error.mock.calls)).not.toContain(secret);
   });
 

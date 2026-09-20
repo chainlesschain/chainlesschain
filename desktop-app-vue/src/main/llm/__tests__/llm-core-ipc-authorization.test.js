@@ -137,8 +137,10 @@ describe("LLM core IPC authorization", () => {
         "chat",
         "chat-with-template",
         "check-status",
+        "clear-test-data",
         "clear-context",
         "embeddings",
+        "generate-test-data",
         "get-config",
         "list-models",
         "query",
@@ -146,6 +148,14 @@ describe("LLM core IPC authorization", () => {
         "set-config",
       ].sort(),
     );
+    expect(OPERATION_AUTHORIZATION["generate-test-data"]).toEqual({
+      purpose: "model-test-data-generate",
+      fields: ["usage-test-data"],
+    });
+    expect(OPERATION_AUTHORIZATION["clear-test-data"]).toEqual({
+      purpose: "model-test-data-delete",
+      fields: ["usage-test-data"],
+    });
   });
 
   it("fails closed before invoking the manager", async () => {

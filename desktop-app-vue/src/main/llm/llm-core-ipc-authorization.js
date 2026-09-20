@@ -49,6 +49,14 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-embedding",
     fields: Object.freeze(["embedding-vector", "usage"]),
   }),
+  "generate-test-data": Object.freeze({
+    purpose: "model-test-data-generate",
+    fields: Object.freeze(["usage-test-data"]),
+  }),
+  "clear-test-data": Object.freeze({
+    purpose: "model-test-data-delete",
+    fields: Object.freeze(["usage-test-data"]),
+  }),
 });
 
 function authorizationError() {
