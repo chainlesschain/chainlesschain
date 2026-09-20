@@ -168,6 +168,7 @@ describe("provider log privacy boundary", () => {
       );
       expect(source, file).not.toMatch(/_(?:extract|format)\w*Error\s*\(/u);
       expect(source, file).not.toMatch(/error\s*:\s*error\.message/u);
+      expect(source, file).not.toMatch(/\b(?:error|err)\.message\b/u);
     }
   });
 });

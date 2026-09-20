@@ -19,6 +19,25 @@ const {
   prepareDesktopModelRequest,
 } = require("../evolution/desktop-model-ingress");
 
+const RETRYABLE_TRANSPORT_CODES = new Set([
+  "ECONNABORTED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+  "ERR_NETWORK",
+]);
+
+function isRetryableTransportError(error) {
+  try {
+    return (
+      RETRYABLE_TRANSPORT_CODES.has(error?.code) ||
+      error?.name === "TimeoutError"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * OpenAI兼容客户端类
  */
@@ -135,17 +154,17 @@ class OpenAIClient extends EventEmitter {
           usage: response.data.usage,
           tokens: response.data.usage?.total_tokens || 0,
         };
-        if (governed) await governed.complete(choice.message, result);
+        if (governed) {
+          await governed.complete(choice.message, result);
+        }
         return result;
       } catch (error) {
-        if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-        const isTimeout =
-          error.code === "ECONNABORTED" || error.message?.includes("timeout");
-        const isNetworkError =
-          error.code === "ECONNRESET" || error.code === "ENOTFOUND";
+        if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+          throw error;
+        }
 
         // Only retry on timeout or network errors
-        if ((isTimeout || isNetworkError) && attempt < maxRetries) {
+        if (isRetryableTransportError(error) && attempt < maxRetries) {
           this.providerLog.retry("chat", attempt + 1);
           // Wait before retry (exponential backoff: 2s, 4s)
           await new Promise((resolve) =>
@@ -239,7 +258,9 @@ class OpenAIClient extends EventEmitter {
 
             if (data === "[DONE]") {
               sawTerminal = true;
-              if (governed) continue;
+              if (governed) {
+                continue;
+              }
               resolve({
                 message: fullMessage,
                 model: options.model || this.model,
@@ -251,7 +272,9 @@ class OpenAIClient extends EventEmitter {
             try {
               const parsed = JSON.parse(data);
               const delta = parsed.choices[0]?.delta;
-              if (parsed.model) responseModel = parsed.model;
+              if (parsed.model) {
+                responseModel = parsed.model;
+              }
               if (parsed.choices[0]?.finish_reason) {
                 sawTerminal = true;
                 finishReason = parsed.choices[0].finish_reason;
@@ -283,13 +306,15 @@ class OpenAIClient extends EventEmitter {
         response.data.on("error", (error) => {
           reject(error);
         });
-        if (governed)
+        if (governed) {
           response.data.on("close", () => {
-            if (!response.data.readableEnded)
+            if (!response.data.readableEnded) {
               reject(
                 new Error("Desktop model stream closed before completion"),
               );
+            }
           });
+        }
 
         response.data.on("end", () => {
           if (governed && !sawTerminal) {
@@ -306,10 +331,14 @@ class OpenAIClient extends EventEmitter {
           });
         });
       });
-      if (governed) await governed.complete(result.message);
+      if (governed) {
+        await governed.complete(result.message);
+      }
       return result;
     } catch (error) {
-      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       if (governed) {
         const interrupted = new Error(
           "Governed Desktop model stream did not complete",
@@ -343,7 +372,9 @@ class OpenAIClient extends EventEmitter {
       );
 
       const choice = response.data.choices[0];
-      if (governed) await governed.complete(choice.text);
+      if (governed) {
+        await governed.complete(choice.text);
+      }
 
       return {
         text: choice.text,
@@ -353,7 +384,9 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage?.total_tokens || 0,
       };
     } catch (error) {
-      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       throw this.providerLog.failure("complete");
     }
   }
@@ -379,7 +412,9 @@ class OpenAIClient extends EventEmitter {
         return response.data.data[0].embedding;
       }
     } catch (error) {
-      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") {
+        throw error;
+      }
       throw this.providerLog.failure("embed");
     }
   }
@@ -427,4 +462,5 @@ class DeepSeekClient extends OpenAIClient {
 module.exports = {
   OpenAIClient,
   DeepSeekClient,
+  isRetryableTransportError,
 };

@@ -4,7 +4,7 @@ vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const { OpenAIClient } = require("../openai-client");
+const { isRetryableTransportError, OpenAIClient } = require("../openai-client");
 
 describe("OpenAIClient status ingress", () => {
   const transport = { get: vi.fn(), post: vi.fn() };
@@ -28,5 +28,24 @@ describe("OpenAIClient status ingress", () => {
     });
     expect(transport.get).toHaveBeenCalledWith("/models");
     expect(transport.post).not.toHaveBeenCalled();
+  });
+
+  it("classifies retries only from allowlisted transport identifiers", () => {
+    expect(isRetryableTransportError({ code: "ETIMEDOUT" })).toBe(true);
+    expect(isRetryableTransportError({ code: "ERR_NETWORK" })).toBe(true);
+    expect(isRetryableTransportError({ name: "TimeoutError" })).toBe(true);
+    expect(
+      isRetryableTransportError({
+        code: "PRIVATE_PROVIDER_FAILURE",
+        message: "timeout with private provider payload",
+      }),
+    ).toBe(false);
+
+    const hostile = new Proxy(new Error("private provider payload"), {
+      get() {
+        throw new Error("provider error inspection blocked");
+      },
+    });
+    expect(isRetryableTransportError(hostile)).toBe(false);
   });
 });
