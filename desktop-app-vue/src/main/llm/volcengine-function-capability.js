@@ -3,9 +3,9 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v6";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v7";
 const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v6";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v6";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v7";
 const REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 const REPLAY_MODE = "cross-process-exclusive-file-fsync";
@@ -13,6 +13,7 @@ const REVOCATION_MODE = "cross-process-durable-readback-poll";
 const PURPOSE = "model-tool-execution";
 const AUDIT_MODE = "authenticated-durable-readback";
 const EXECUTOR_TYPE = "capability";
+const EXECUTION_ISOLATION = "process-hard-termination";
 const MAX_ARGUMENT_BYTES = 64 * 1024;
 const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_JSON_DEPTH = 8;
@@ -390,6 +391,10 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       "allowedFunctions",
       "functionPolicies",
       "auditMode",
+      "executionIsolation",
+      "processTargetDigest",
+      "processTargetAuthorityDigest",
+      "processSupervisorAuthorityDigest",
     ],
     "Volcengine function authority descriptor",
   );
@@ -479,6 +484,26 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
       allowedFunctions,
     ),
     auditMode: AUDIT_MODE,
+    executionIsolation: ownData(
+      descriptor,
+      "executionIsolation",
+      "Volcengine function execution isolation",
+    ),
+    processTargetDigest: ownData(
+      descriptor,
+      "processTargetDigest",
+      "Volcengine function process target digest",
+    ),
+    processTargetAuthorityDigest: ownData(
+      descriptor,
+      "processTargetAuthorityDigest",
+      "Volcengine function process target authority digest",
+    ),
+    processSupervisorAuthorityDigest: ownData(
+      descriptor,
+      "processSupervisorAuthorityDigest",
+      "Volcengine function process supervisor authority digest",
+    ),
   });
   if (
     !SHA256_DIGEST.test(normalizedDescriptor.handlerArtifactDigest) ||
@@ -486,7 +511,11 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
     normalizedDescriptor.replayRetentionMs < 65_000 ||
     normalizedDescriptor.replayRetentionMs > 24 * 60 * 60 * 1000 ||
     normalizedDescriptor.replayMode !== REPLAY_MODE ||
-    normalizedDescriptor.revocationMode !== REVOCATION_MODE
+    normalizedDescriptor.revocationMode !== REVOCATION_MODE ||
+    normalizedDescriptor.executionIsolation !== EXECUTION_ISOLATION ||
+    !SHA256_DIGEST.test(normalizedDescriptor.processTargetDigest) ||
+    !SHA256_DIGEST.test(normalizedDescriptor.processTargetAuthorityDigest) ||
+    !SHA256_DIGEST.test(normalizedDescriptor.processSupervisorAuthorityDigest)
   ) {
     throw new TypeError("Volcengine function authority descriptor is invalid");
   }
@@ -578,6 +607,12 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
       "durable",
       "readbackVerified",
       "completedAt",
+      "executionIsolation",
+      "processTargetDigest",
+      "processTargetAuthorityDigest",
+      "processSupervisorAuthorityDigest",
+      "processSupervisionReceiptDigest",
+      "processEvidenceDigest",
     ],
     "Volcengine function execution receipt",
   );
@@ -604,6 +639,11 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     authenticated: true,
     durable: true,
     readbackVerified: true,
+    executionIsolation: descriptor.executionIsolation,
+    processTargetDigest: descriptor.processTargetDigest,
+    processTargetAuthorityDigest: descriptor.processTargetAuthorityDigest,
+    processSupervisorAuthorityDigest:
+      descriptor.processSupervisorAuthorityDigest,
   })) {
     if (
       ownData(receipt, name, `Volcengine function receipt ${name}`) !== expected
@@ -626,10 +666,22 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     "durabilityReceiptDigest",
     "Volcengine function receipt durability digest",
   );
+  const processSupervisionReceiptDigest = ownData(
+    receipt,
+    "processSupervisionReceiptDigest",
+    "Volcengine function process supervision receipt digest",
+  );
+  const processEvidenceDigest = ownData(
+    receipt,
+    "processEvidenceDigest",
+    "Volcengine function process evidence digest",
+  );
   const completedAtMs = Date.parse(completedAt);
   if (
     !SHA256_DIGEST.test(auditEventDigest) ||
     !SHA256_DIGEST.test(durabilityReceiptDigest) ||
+    !SHA256_DIGEST.test(processSupervisionReceiptDigest) ||
+    !SHA256_DIGEST.test(processEvidenceDigest) ||
     typeof completedAt !== "string" ||
     !Number.isFinite(completedAtMs) ||
     new Date(completedAtMs).toISOString() !== completedAt ||
@@ -749,6 +801,7 @@ module.exports = {
   AUDIT_MODE,
   BUILTIN_FUNCTIONS,
   EXECUTOR_TYPE,
+  EXECUTION_ISOLATION,
   PURPOSE,
   RECEIPT_SCHEMA,
   REQUEST_SCHEMA,

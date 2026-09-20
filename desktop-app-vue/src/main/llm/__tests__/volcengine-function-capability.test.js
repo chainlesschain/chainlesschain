@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 const {
   AUTHORITY_SCHEMA,
   AUDIT_MODE,
+  EXECUTION_ISOLATION,
   EXECUTOR_TYPE,
   PURPOSE,
   RECEIPT_SCHEMA,
@@ -18,6 +19,9 @@ const REPLAY_RESERVATION_SCHEMA =
 const REPLAY_MODE = "cross-process-exclusive-file-fsync";
 const REVOCATION_MODE = "cross-process-durable-readback-poll";
 const REPLAY_RETENTION_MS = 65_000;
+const PROCESS_TARGET_DIGEST = sha("process-target");
+const PROCESS_TARGET_AUTHORITY_DIGEST = sha("process-target-authority");
+const PROCESS_SUPERVISOR_AUTHORITY_DIGEST = sha("process-supervisor-authority");
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -115,6 +119,12 @@ function responseFor(request, toolResult, overrides = {}) {
       durable: true,
       readbackVerified: true,
       completedAt: new Date().toISOString(),
+      executionIsolation: EXECUTION_ISOLATION,
+      processTargetDigest: PROCESS_TARGET_DIGEST,
+      processTargetAuthorityDigest: PROCESS_TARGET_AUTHORITY_DIGEST,
+      processSupervisorAuthorityDigest: PROCESS_SUPERVISOR_AUTHORITY_DIGEST,
+      processSupervisionReceiptDigest: sha("process-supervision-receipt"),
+      processEvidenceDigest: sha("process-evidence"),
       ...overrides,
     },
   };
@@ -149,6 +159,10 @@ function setup({
         allowedFunctions,
         functionPolicies: policiesFor(allowedFunctions),
         auditMode: AUDIT_MODE,
+        executionIsolation: EXECUTION_ISOLATION,
+        processTargetDigest: PROCESS_TARGET_DIGEST,
+        processTargetAuthorityDigest: PROCESS_TARGET_AUTHORITY_DIGEST,
+        processSupervisorAuthorityDigest: PROCESS_SUPERVISOR_AUTHORITY_DIGEST,
         ...descriptorOverrides,
       },
       executeFunction,
@@ -169,7 +183,7 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
-  it.each(["v1", "v2", "v3", "v4", "v5"])(
+  it.each(["v1", "v2", "v3", "v4", "v5", "v6"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -181,6 +195,17 @@ describe("Volcengine function capability", () => {
       ).toThrow("Volcengine function authority descriptor is invalid");
     },
   );
+
+  it.each([
+    ["executionIsolation", "in-process"],
+    ["processTargetDigest", "invalid"],
+    ["processTargetAuthorityDigest", "invalid"],
+    ["processSupervisorAuthorityDigest", "invalid"],
+  ])("rejects malformed process authority field %s", (field, value) => {
+    expect(() => setup({ descriptorOverrides: { [field]: value } })).toThrow(
+      "Volcengine function authority descriptor is invalid",
+    );
+  });
 
   it("binds an opaque host to actor, tenant, sender, purpose and result receipt", async () => {
     const { host, executeFunction } = setup();
@@ -423,6 +448,31 @@ describe("Volcengine function capability", () => {
       code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
     });
   });
+
+  it.each([
+    ["executionIsolation", "in-process"],
+    ["processTargetDigest", sha("substituted-target")],
+    ["processTargetAuthorityDigest", sha("substituted-target-authority")],
+    ["processSupervisorAuthorityDigest", sha("substituted-supervisor")],
+    ["processSupervisionReceiptDigest", "invalid"],
+    ["processEvidenceDigest", "invalid"],
+  ])(
+    "fails closed when the receipt substitutes process field %s",
+    async (field, value) => {
+      const { host } = setup({
+        execute: async (request) =>
+          responseFor(request, { success: true }, { [field]: value }),
+      });
+      const executor = createVolcengineFunctionExecutor(host, {
+        authorization: authorization(),
+        executorType: EXECUTOR_TYPE,
+      });
+
+      await expect(executor.execute("create_note", {})).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+    },
+  );
 
   it("fails closed when the durable receipt completes after the signed deadline", async () => {
     const { host } = setup({

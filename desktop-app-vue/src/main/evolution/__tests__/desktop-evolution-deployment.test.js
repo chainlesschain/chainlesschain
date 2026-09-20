@@ -609,7 +609,7 @@ describe("desktop evolution deployment", () => {
   it("narrows a signed Volcengine function authority to an opaque Desktop host", async () => {
     const authority = Object.freeze({});
     const descriptor = Object.freeze({
-      schema: "chainlesschain.volcengine-function-authority/v6",
+      schema: "chainlesschain.volcengine-function-authority/v7",
       authorityId: "volcengine-functions",
       revocationAuthorityId: "volcengine-function-revocation",
       tenantId: "tenant-1",
@@ -631,6 +631,12 @@ describe("desktop evolution deployment", () => {
         }),
       ]),
       auditMode: "authenticated-durable-readback",
+      executionIsolation: "process-hard-termination",
+      processTargetDigest: sha("function-process-target"),
+      processTargetAuthorityDigest: sha("function-process-target-authority"),
+      processSupervisorAuthorityDigest: sha(
+        "function-process-supervisor-authority",
+      ),
     });
     const executeFunction = vi.fn();
     const capture = vi.fn((value) => {
