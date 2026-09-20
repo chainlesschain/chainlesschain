@@ -35,12 +35,14 @@ function policiesFor(allowedFunctions) {
       allowedArgumentKeys: ["content", "title"],
       maxArgumentBytes: 1024,
       maxResultBytes: 1024,
+      maxExecutionMs: 1000,
     },
     read_file: {
       functionName: "read_file",
       allowedArgumentKeys: ["path"],
       maxArgumentBytes: 512,
       maxResultBytes: 2048,
+      maxExecutionMs: 1000,
     },
   };
   return allowedFunctions.map((name) => definitions[name]);
@@ -61,6 +63,7 @@ function responseFor(request, toolResult, overrides = {}) {
       senderId: request.senderId,
       functionName: request.functionName,
       functionPolicyDigest: request.functionPolicyDigest,
+      deadlineAt: request.deadlineAt,
       requestDigest: request.requestDigest,
       resultDigest: digestVolcengineFunctionResult(toolResult),
       auditMode: AUDIT_MODE,
@@ -119,15 +122,18 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
-  it("rejects legacy v1 authority descriptors", () => {
-    expect(() =>
-      setup({
-        descriptorOverrides: {
-          schema: "chainlesschain.volcengine-function-authority/v1",
-        },
-      }),
-    ).toThrow("Volcengine function authority descriptor is invalid");
-  });
+  it.each(["v1", "v2"])(
+    "rejects legacy %s authority descriptors",
+    (version) => {
+      expect(() =>
+        setup({
+          descriptorOverrides: {
+            schema: `chainlesschain.volcengine-function-authority/${version}`,
+          },
+        }),
+      ).toThrow("Volcengine function authority descriptor is invalid");
+    },
+  );
 
   it("binds an opaque host to actor, tenant, sender, purpose and result receipt", async () => {
     const { host, executeFunction } = setup();
@@ -158,6 +164,7 @@ describe("Volcengine function capability", () => {
       executorType: EXECUTOR_TYPE,
       functionName: "create_note",
       functionPolicyDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      deadlineAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/u),
       arguments: { title: "bounded title" },
     });
     expect(request.argumentsDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
@@ -313,6 +320,25 @@ describe("Volcengine function capability", () => {
           {
             functionPolicyDigest: sha("substituted-policy"),
           },
+        ),
+    });
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    await expect(executor.execute("create_note", {})).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+  });
+
+  it("fails closed when the durable receipt completes after the signed deadline", async () => {
+    const { host } = setup({
+      execute: async (request) =>
+        responseFor(
+          request,
+          { success: true },
+          { completedAt: new Date(Date.now() + 60_000).toISOString() },
         ),
     });
     const executor = createVolcengineFunctionExecutor(host, {

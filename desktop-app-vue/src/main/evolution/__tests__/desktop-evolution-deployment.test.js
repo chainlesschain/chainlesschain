@@ -609,7 +609,7 @@ describe("desktop evolution deployment", () => {
   it("narrows a signed Volcengine function authority to an opaque Desktop host", async () => {
     const authority = Object.freeze({});
     const descriptor = Object.freeze({
-      schema: "chainlesschain.volcengine-function-authority/v2",
+      schema: "chainlesschain.volcengine-function-authority/v3",
       authorityId: "volcengine-functions",
       tenantId: "tenant-1",
       handlerArtifactDigest: sha("signed-deployment"),
@@ -622,6 +622,7 @@ describe("desktop evolution deployment", () => {
           allowedArgumentKeys: Object.freeze(["content", "title"]),
           maxArgumentBytes: 1024,
           maxResultBytes: 1024,
+          maxExecutionMs: 1000,
         }),
       ]),
       auditMode: "authenticated-durable-readback",

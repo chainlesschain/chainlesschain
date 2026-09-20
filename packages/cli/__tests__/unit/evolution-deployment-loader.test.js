@@ -1054,7 +1054,7 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionExecutionAuthority({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-authority/v2",
+                schema: "chainlesschain.volcengine-function-authority/v3",
                 authorityId: "volcengine-functions",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
@@ -1067,6 +1067,7 @@ describe("signed evolution deployment loader", () => {
                     allowedArgumentKeys: ["content", "title"],
                     maxArgumentBytes: 1024,
                     maxResultBytes: 1024,
+                    maxExecutionMs: 1000,
                   },
                 ],
                 auditMode: "authenticated-durable-readback",

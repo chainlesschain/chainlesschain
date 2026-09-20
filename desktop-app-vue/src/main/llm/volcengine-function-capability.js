@@ -3,9 +3,9 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v2";
-const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v2";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v2";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v3";
+const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v3";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v3";
 const PURPOSE = "model-tool-execution";
 const AUDIT_MODE = "authenticated-durable-readback";
 const EXECUTOR_TYPE = "capability";
@@ -14,6 +14,7 @@ const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_JSON_DEPTH = 8;
 const MAX_JSON_FIELDS = 512;
 const MAX_POLICY_ARGUMENT_KEYS = 64;
+const MAX_EXECUTION_MS = 120_000;
 const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const BUILTIN_FUNCTIONS = Object.freeze([
   "create_note",
@@ -266,6 +267,7 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
         "allowedArgumentKeys",
         "maxArgumentBytes",
         "maxResultBytes",
+        "maxExecutionMs",
       ],
       "Volcengine function policy",
     );
@@ -293,6 +295,11 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
         "maxResultBytes",
         "Volcengine function policy result budget",
       ),
+      maxExecutionMs: ownData(
+        entry,
+        "maxExecutionMs",
+        "Volcengine function policy execution deadline",
+      ),
     });
     if (
       !BUILTIN_FUNCTION_SET.has(policy.functionName) ||
@@ -301,7 +308,10 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
       policy.maxArgumentBytes > MAX_ARGUMENT_BYTES ||
       !Number.isSafeInteger(policy.maxResultBytes) ||
       policy.maxResultBytes < 1 ||
-      policy.maxResultBytes > MAX_RESULT_BYTES
+      policy.maxResultBytes > MAX_RESULT_BYTES ||
+      !Number.isSafeInteger(policy.maxExecutionMs) ||
+      policy.maxExecutionMs < 1 ||
+      policy.maxExecutionMs > MAX_EXECUTION_MS
     ) {
       throw new TypeError("Volcengine function policy is invalid");
     }
@@ -490,6 +500,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
       "senderId",
       "functionName",
       "functionPolicyDigest",
+      "deadlineAt",
       "requestDigest",
       "resultDigest",
       "auditMode",
@@ -514,6 +525,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     senderId: request.senderId,
     functionName: request.functionName,
     functionPolicyDigest: request.functionPolicyDigest,
+    deadlineAt: request.deadlineAt,
     requestDigest: request.requestDigest,
     resultDigest,
     auditMode: AUDIT_MODE,
@@ -542,12 +554,15 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     "durabilityReceiptDigest",
     "Volcengine function receipt durability digest",
   );
+  const completedAtMs = Date.parse(completedAt);
   if (
     !SHA256_DIGEST.test(auditEventDigest) ||
     !SHA256_DIGEST.test(durabilityReceiptDigest) ||
     typeof completedAt !== "string" ||
-    !Number.isFinite(Date.parse(completedAt)) ||
-    new Date(completedAt).toISOString() !== completedAt
+    !Number.isFinite(completedAtMs) ||
+    new Date(completedAtMs).toISOString() !== completedAt ||
+    completedAtMs < Date.parse(request.requestedAt) ||
+    completedAtMs > Date.parse(request.deadlineAt)
   ) {
     throw new TypeError("Volcengine function execution receipt is invalid");
   }
@@ -583,6 +598,7 @@ function createVolcengineFunctionExecutor(
             { maxBytes: policy.maxArgumentBytes },
           );
           validatePolicyArguments(normalizedArguments, policy);
+          const requestedAtMs = Date.now();
           const requestCore = Object.freeze({
             schema: REQUEST_SCHEMA,
             authorityId: captured.descriptor.authorityId,
@@ -601,12 +617,15 @@ function createVolcengineFunctionExecutor(
               "chainlesschain.volcengine-function-arguments/v1",
               normalizedArguments,
             ),
-            requestedAt: new Date().toISOString(),
+            requestedAt: new Date(requestedAtMs).toISOString(),
+            deadlineAt: new Date(
+              requestedAtMs + policy.maxExecutionMs,
+            ).toISOString(),
           });
           const request = Object.freeze({
             ...requestCore,
             requestDigest: digest(
-              "chainlesschain.volcengine-function-request/v2",
+              "chainlesschain.volcengine-function-request/v3",
               requestCore,
             ),
           });

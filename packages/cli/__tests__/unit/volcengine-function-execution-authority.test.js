@@ -44,20 +44,23 @@ function functionPolicies() {
       allowedArgumentKeys: ["content", "title"],
       maxArgumentBytes: 1024,
       maxResultBytes: 1024,
+      maxExecutionMs: 1000,
     },
     {
       functionName: "read_file",
       allowedArgumentKeys: ["path"],
       maxArgumentBytes: 512,
       maxResultBytes: 2048,
+      maxExecutionMs: 1000,
     },
   ];
 }
 
-function functionPolicyDigest(functionName = "create_note") {
-  const policy = functionPolicies().find(
-    (entry) => entry.functionName === functionName,
-  );
+function functionPolicyDigest(
+  functionName = "create_note",
+  policies = functionPolicies(),
+) {
+  const policy = policies.find((entry) => entry.functionName === functionName);
   if (!policy) return sha(`missing-policy:${functionName}`);
   return domainDigest("chainlesschain.volcengine-function-policy/v1", policy);
 }
@@ -77,8 +80,11 @@ function descriptor(overrides = {}) {
   };
 }
 
-function request(overrides = {}) {
+function request(overrides = {}, policies = functionPolicies()) {
   const args = overrides.arguments || { title: "bounded title" };
+  const selectedPolicy = policies.find(
+    (entry) => entry.functionName === (overrides.functionName || "create_note"),
+  );
   const core = {
     schema: VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
     authorityId: "authority:test",
@@ -93,6 +99,7 @@ function request(overrides = {}) {
     functionName: "create_note",
     functionPolicyDigest: functionPolicyDigest(
       overrides.functionName || "create_note",
+      policies,
     ),
     arguments: args,
     argumentsDigest: domainDigest(
@@ -100,12 +107,15 @@ function request(overrides = {}) {
       args,
     ),
     requestedAt: new Date(NOW).toISOString(),
+    deadlineAt: new Date(
+      NOW + (selectedPolicy?.maxExecutionMs || 1000),
+    ).toISOString(),
     ...overrides,
   };
   return {
     ...core,
     requestDigest: domainDigest(
-      "chainlesschain.volcengine-function-request/v2",
+      "chainlesschain.volcengine-function-request/v3",
       core,
     ),
   };
@@ -123,6 +133,7 @@ function responseFor(value, toolResult, overrides = {}) {
       requestId: value.requestId,
       requestDigest: value.requestDigest,
       functionPolicyDigest: value.functionPolicyDigest,
+      deadlineAt: value.deadlineAt,
       resultDigest: digestVolcengineFunctionResult(toolResult),
       auditEventDigest: sha("audit-event"),
       durabilityReceiptDigest: sha("durability-receipt"),
@@ -154,16 +165,19 @@ function setup(overrides = {}) {
 }
 
 describe("Volcengine function execution authority", () => {
-  it("rejects legacy v1 authority descriptors", () => {
-    expect(() =>
-      createVolcengineFunctionExecutionAuthority({
-        descriptor: descriptor({
-          schema: "chainlesschain.volcengine-function-authority/v1",
+  it.each(["v1", "v2"])(
+    "rejects legacy %s authority descriptors",
+    (version) => {
+      expect(() =>
+        createVolcengineFunctionExecutionAuthority({
+          descriptor: descriptor({
+            schema: `chainlesschain.volcengine-function-authority/${version}`,
+          }),
+          execute: vi.fn(),
         }),
-        execute: vi.fn(),
-      }),
-    ).toThrow("Volcengine function authority descriptor is invalid");
-  });
+      ).toThrow("Volcengine function authority descriptor is invalid");
+    },
+  );
 
   it("issues a result-bound receipt only after authenticated durable readback", async () => {
     const { authority, execute, port } = setup();
@@ -186,6 +200,7 @@ describe("Volcengine function execution authority", () => {
       senderId: 7,
       functionName: "create_note",
       functionPolicyDigest: functionPolicyDigest(),
+      deadlineAt: new Date(NOW + 1000).toISOString(),
       auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
       auditEventDigest: sha("audit-event"),
       durabilityReceiptDigest: sha("durability-receipt"),
@@ -330,6 +345,57 @@ describe("Volcengine function execution authority", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("rejects deadlines outside the signed function policy", async () => {
+    const { execute, port } = setup();
+
+    await expect(
+      port.executeFunction(
+        request({ deadlineAt: new Date(NOW + 1001).toISOString() }),
+      ),
+    ).rejects.toThrow("Volcengine function request is invalid");
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("aborts and rejects execution when the signed function deadline expires", async () => {
+    const policies = functionPolicies();
+    policies[0] = { ...policies[0], maxExecutionMs: 10 };
+    let executionContext;
+    const { execute, port } = setup({
+      descriptor: { functionPolicies: policies },
+      execute: async (_value, context) => {
+        executionContext = context;
+        return new Promise((_resolve, reject) => {
+          context.signal.addEventListener(
+            "abort",
+            () => reject(context.signal.reason),
+            { once: true },
+          );
+        });
+      },
+    });
+
+    const signedRequest = request({}, policies);
+    await expect(port.executeFunction(signedRequest)).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_DEADLINE_EXCEEDED",
+      message: "Volcengine function execution deadline exceeded",
+    });
+    await expect(port.executeFunction(signedRequest)).rejects.toThrow(
+      "Volcengine function request was replayed",
+    );
+    expect(execute).toHaveBeenCalledOnce();
+    expect(executionContext).toMatchObject({
+      deadlineAt: new Date(NOW + 10).toISOString(),
+      functionPolicyDigest: functionPolicyDigest("create_note", policies),
+    });
+    expect(Object.isFrozen(executionContext)).toBe(true);
+    expect(Object.keys(executionContext).sort()).toEqual([
+      "deadlineAt",
+      "functionPolicyDigest",
+      "signal",
+    ]);
+    expect(executionContext.signal.aborted).toBe(true);
+  });
+
   it("rejects results outside the function policy byte budget", async () => {
     const { execute, port } = setup({
       execute: async (value) =>
@@ -347,6 +413,8 @@ describe("Volcengine function execution authority", () => {
       { readbackVerified: false },
       { resultDigest: sha("other-result") },
       { functionPolicyDigest: sha("other-policy") },
+      { deadlineAt: new Date(NOW + 500).toISOString() },
+      { completedAt: new Date(NOW + 1001).toISOString() },
     ]) {
       const { port } = setup({
         execute: async (value) =>

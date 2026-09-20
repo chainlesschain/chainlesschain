@@ -215,3 +215,4 @@
 | 152  | 2026-09-20 | [第一百五十二次工程实施：独立 Token Tracker IPC 固定回执与失败边界](./rsiagent-one-hundred-fifty-second-batch-implementation-2026-09-20.md) |
 | 153  | 2026-09-21 | [第一百五十三次工程实施：CLI Volcengine 函数请求重放门禁](./rsiagent-one-hundred-fifty-third-batch-implementation-2026-09-21.md)            |
 | 154  | 2026-09-21 | [第一百五十四次工程实施：CLI Volcengine 逐函数字段与字节策略](./rsiagent-one-hundred-fifty-fourth-batch-implementation-2026-09-21.md)       |
+| 155  | 2026-09-21 | [第一百五十五次工程实施：CLI Volcengine 函数 Deadline 与协作取消](./rsiagent-one-hundred-fifty-fifth-batch-implementation-2026-09-21.md)    |

@@ -2,13 +2,13 @@ import { createHash } from "node:crypto";
 import { types } from "node:util";
 
 export const VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA =
-  "chainlesschain.volcengine-function-authority/v2";
+  "chainlesschain.volcengine-function-authority/v3";
 export const VOLCENGINE_FUNCTION_REQUEST_SCHEMA =
-  "chainlesschain.volcengine-function-request/v2";
+  "chainlesschain.volcengine-function-request/v3";
 export const VOLCENGINE_FUNCTION_RECEIPT_SCHEMA =
-  "chainlesschain.volcengine-function-receipt/v2";
+  "chainlesschain.volcengine-function-receipt/v3";
 export const VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA =
-  "chainlesschain.volcengine-function-audit-evidence/v2";
+  "chainlesschain.volcengine-function-audit-evidence/v3";
 export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
@@ -18,6 +18,7 @@ const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_JSON_DEPTH = 8;
 const MAX_JSON_FIELDS = 512;
 const MAX_POLICY_ARGUMENT_KEYS = 64;
+const MAX_EXECUTION_MS = 120_000;
 const MAX_REQUEST_AGE_MS = 60_000;
 const MAX_CLOCK_SKEW_MS = 5_000;
 const MAX_REPLAY_ENTRIES = 4_096;
@@ -247,6 +248,7 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
         "allowedArgumentKeys",
         "maxArgumentBytes",
         "maxResultBytes",
+        "maxExecutionMs",
       ],
       "Volcengine function policy",
     );
@@ -274,6 +276,11 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
         "maxResultBytes",
         "Volcengine function policy result budget",
       ),
+      maxExecutionMs: ownData(
+        entry,
+        "maxExecutionMs",
+        "Volcengine function policy execution deadline",
+      ),
     });
     if (
       !BUILTIN_FUNCTION_SET.has(policy.functionName) ||
@@ -282,7 +289,10 @@ function normalizeFunctionPolicies(value, allowedFunctions) {
       policy.maxArgumentBytes > MAX_ARGUMENT_BYTES ||
       !Number.isSafeInteger(policy.maxResultBytes) ||
       policy.maxResultBytes < 1 ||
-      policy.maxResultBytes > MAX_RESULT_BYTES
+      policy.maxResultBytes > MAX_RESULT_BYTES ||
+      !Number.isSafeInteger(policy.maxExecutionMs) ||
+      policy.maxExecutionMs < 1 ||
+      policy.maxExecutionMs > MAX_EXECUTION_MS
     ) {
       throw new TypeError("Volcengine function policy is invalid");
     }
@@ -416,6 +426,7 @@ function normalizeRequest(value, descriptor, nowMs) {
       "arguments",
       "argumentsDigest",
       "requestedAt",
+      "deadlineAt",
       "requestDigest",
     ],
     "Volcengine function request",
@@ -483,6 +494,11 @@ function normalizeRequest(value, descriptor, nowMs) {
       "requestedAt",
       "Volcengine function request time",
     ),
+    deadlineAt: ownData(
+      value,
+      "deadlineAt",
+      "Volcengine function request deadline",
+    ),
   });
   const requestDigest = ownData(
     value,
@@ -490,6 +506,7 @@ function normalizeRequest(value, descriptor, nowMs) {
     "Volcengine function request digest",
   );
   const requestedAtMs = Date.parse(core.requestedAt);
+  const deadlineAtMs = Date.parse(core.deadlineAt);
   if (
     core.schema !== VOLCENGINE_FUNCTION_REQUEST_SCHEMA ||
     core.authorityId !== descriptor.authorityId ||
@@ -510,14 +527,25 @@ function normalizeRequest(value, descriptor, nowMs) {
         normalizedArguments,
       ) ||
     !Number.isFinite(requestedAtMs) ||
+    new Date(requestedAtMs).toISOString() !== core.requestedAt ||
     requestedAtMs < nowMs - MAX_REQUEST_AGE_MS ||
     requestedAtMs > nowMs + MAX_CLOCK_SKEW_MS ||
+    !Number.isFinite(deadlineAtMs) ||
+    new Date(deadlineAtMs).toISOString() !== core.deadlineAt ||
+    deadlineAtMs <= nowMs ||
+    deadlineAtMs <= requestedAtMs ||
+    deadlineAtMs > requestedAtMs + policy.maxExecutionMs ||
     requestDigest !==
-      digest("chainlesschain.volcengine-function-request/v2", core)
+      digest("chainlesschain.volcengine-function-request/v3", core)
   ) {
     throw new TypeError("Volcengine function request is invalid");
   }
-  return Object.freeze({ ...core, requestDigest, requestedAtMs });
+  return Object.freeze({
+    ...core,
+    requestDigest,
+    requestedAtMs,
+    deadlineAtMs,
+  });
 }
 
 function validateAuditEvidence(
@@ -538,6 +566,7 @@ function validateAuditEvidence(
       "requestId",
       "requestDigest",
       "functionPolicyDigest",
+      "deadlineAt",
       "resultDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
@@ -583,6 +612,8 @@ function validateAuditEvidence(
       "functionPolicyDigest",
       "Volcengine function audit policy digest",
     ) !== request.functionPolicyDigest ||
+    ownData(value, "deadlineAt", "Volcengine function audit deadline") !==
+      request.deadlineAt ||
     ownData(
       value,
       "resultDigest",
@@ -614,6 +645,7 @@ function validateAuditEvidence(
     !Number.isFinite(completedAtMs) ||
     new Date(completedAtMs).toISOString() !== completedAt ||
     completedAtMs < request.requestedAtMs ||
+    completedAtMs > request.deadlineAtMs ||
     completedAtMs > nowMs + MAX_CLOCK_SKEW_MS
   ) {
     throw new TypeError("Volcengine function audit evidence is invalid");
@@ -642,6 +674,39 @@ function reserveRequest(captured, request, nowMs) {
       expiresAtMs: nowMs + REPLAY_RETENTION_MS,
     }),
   );
+}
+
+async function executeWithinDeadline(captured, request) {
+  const controller = new AbortController();
+  const deadlineError = new Error(
+    "Volcengine function execution deadline exceeded",
+  );
+  deadlineError.code = "CC_VOLCENGINE_FUNCTION_DEADLINE_EXCEEDED";
+  const remainingMs = request.deadlineAtMs - captured.now();
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+    controller.abort(deadlineError);
+    throw deadlineError;
+  }
+  let timer;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort(deadlineError);
+      reject(deadlineError);
+    }, remainingMs);
+  });
+  const context = Object.freeze({
+    signal: controller.signal,
+    deadlineAt: request.deadlineAt,
+    functionPolicyDigest: request.functionPolicyDigest,
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => captured.execute(request, context)),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function createVolcengineFunctionExecutionAuthority({
@@ -682,7 +747,7 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
       }
       const request = normalizeRequest(value, captured.descriptor, nowMs);
       reserveRequest(captured, request, nowMs);
-      const response = await captured.execute(request);
+      const response = await executeWithinDeadline(captured, request);
       exactData(
         response,
         ["toolResult", "auditEvidence"],
@@ -723,6 +788,7 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
           senderId: request.senderId,
           functionName: request.functionName,
           functionPolicyDigest: request.functionPolicyDigest,
+          deadlineAt: request.deadlineAt,
           requestDigest: request.requestDigest,
           resultDigest,
           auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
