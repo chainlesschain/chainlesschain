@@ -121,6 +121,30 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-stream-buffer-delete",
     fields: Object.freeze(["stream-control-receipt"]),
   }),
+  "create-stream-controller": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-reference"]),
+  }),
+  "pause-stream": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "resume-stream": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "cancel-stream": Object.freeze({
+    purpose: "model-stream-control",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
+  "get-stream-stats": Object.freeze({
+    purpose: "model-stream-stats-read",
+    fields: Object.freeze(["stream-stats"]),
+  }),
+  "destroy-stream-controller": Object.freeze({
+    purpose: "model-stream-delete",
+    fields: Object.freeze(["stream-control-receipt"]),
+  }),
 });
 
 function authorizationError() {

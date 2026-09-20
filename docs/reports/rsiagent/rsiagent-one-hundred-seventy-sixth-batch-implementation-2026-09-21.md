@@ -25,4 +25,4 @@
 
 - 这些旧 `stream:*` channel 当前未由 preload 暴露；本批验证主进程注册和合成 handler 合同，未执行真实 Electron renderer/preload E2E。
 - 复用的 purpose authority 在生产装配中仍为可选策略；企业组织 RBAC、身份切换时在途 controller 中止/撤销、每 tenant 容量配额和耐久审计仍需目标环境接线。
-- 其他辅助 LLM IPC 的 sender/DID tenant/用途授权、其他 LLM 模块日志/错误通道、tenant HMAC 和生产日志访问治理仍待处理。
+- 聚合注册器的六个 `llm:*stream*` handler 后续已由第一百七十七批完成 sender/DID tenant/用途授权与身份切换后的事件抑制；其他辅助 LLM IPC 授权、其他 LLM 模块日志/错误通道、tenant HMAC 和生产日志访问治理仍待处理。

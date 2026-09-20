@@ -170,6 +170,7 @@ function registerLLMIPC({
     agentOrchestrator,
     errorMonitor,
     coreAuthorization,
+    getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
   };
 
   registerCoreHandlers(ctx);

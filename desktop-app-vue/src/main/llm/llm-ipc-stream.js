@@ -4,7 +4,20 @@
  *
  * @module llm/llm-ipc-stream
  */
+const { randomUUID } = require("node:crypto");
+const { types } = require("node:util");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const { HARD_STREAM_CONTROLLER_LIMITS } = require("./stream-controller");
+
+const streamControllerOwners = new WeakMap();
+const SUCCESS_RECEIPT = Object.freeze({ success: true });
+const CREATE_OPTION_KEYS = new Set([
+  "enableBuffering",
+  "maxBufferedChunks",
+  "maxBufferedBytes",
+  "maxBufferedChunkBytes",
+  "maxPauseWaiters",
+]);
 
 const STREAM_STATUSES = new Set([
   "idle",
@@ -24,13 +37,87 @@ const STREAM_EVENT_NAMES = new Set([
 ]);
 
 function ownData(source, key) {
-  if (source === null || typeof source !== "object") {
+  if (
+    source === null ||
+    typeof source !== "object" ||
+    types.isProxy(source) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(source))
+  ) {
     return undefined;
   }
   const descriptor = Object.getOwnPropertyDescriptor(source, key);
   return descriptor && Object.hasOwn(descriptor, "value")
     ? descriptor.value
     : undefined;
+}
+
+function authorizedTenant(request) {
+  const tenantId = ownData(request, "tenantId");
+  if (
+    typeof tenantId !== "string" ||
+    tenantId.length < 1 ||
+    tenantId.length > 512 ||
+    /\p{Cc}/u.test(tenantId)
+  ) {
+    throw new TypeError("Invalid stream tenant");
+  }
+  return tenantId;
+}
+
+function normalizeLimit(descriptors, key, maximum) {
+  const descriptor = descriptors[key];
+  if (descriptor === undefined) {
+    return undefined;
+  }
+  if (!descriptor.enumerable || !Object.hasOwn(descriptor, "value")) {
+    throw new TypeError("Invalid stream option");
+  }
+  const value = descriptor.value;
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    throw new TypeError("Invalid stream limit");
+  }
+  return value;
+}
+
+function normalizeCreateOptions(value) {
+  if (
+    !value ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Invalid stream options");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== "string" || !CREATE_OPTION_KEYS.has(key)) {
+      throw new TypeError("Invalid stream option");
+    }
+  }
+  const buffering = descriptors.enableBuffering;
+  if (
+    buffering &&
+    (!buffering.enumerable ||
+      !Object.hasOwn(buffering, "value") ||
+      typeof buffering.value !== "boolean")
+  ) {
+    throw new TypeError("Invalid stream buffering option");
+  }
+  const options = { enableBuffering: buffering?.value === true };
+  for (const [key, maximum] of [
+    ["maxBufferedChunks", HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunks],
+    ["maxBufferedBytes", HARD_STREAM_CONTROLLER_LIMITS.maxBufferedBytes],
+    [
+      "maxBufferedChunkBytes",
+      HARD_STREAM_CONTROLLER_LIMITS.maxBufferedChunkBytes,
+    ],
+    ["maxPauseWaiters", HARD_STREAM_CONTROLLER_LIMITS.maxPauseWaiters],
+  ]) {
+    const limit = normalizeLimit(descriptors, key, maximum);
+    if (limit !== undefined) {
+      options[key] = limit;
+    }
+  }
+  return Object.freeze(options);
 }
 
 function finiteNonNegative(source, key) {
@@ -62,9 +149,7 @@ function streamEvent(controllerId, event) {
   return Object.freeze({
     controllerId,
     code:
-      event === "stream-error"
-        ? "CC_LLM_STREAM_FAILED"
-        : "CC_LLM_STREAM_EVENT",
+      event === "stream-error" ? "CC_LLM_STREAM_FAILED" : "CC_LLM_STREAM_EVENT",
     component: "stream-controller",
     event: STREAM_EVENT_NAMES.has(event) ? event : "unknown",
   });
@@ -73,6 +158,43 @@ function streamEvent(controllerId, event) {
 function registerStreamHandlers(ctx) {
   const { ipcMain, mainWindow, app } = ctx;
   const privacy = ctx.streamPrivacy || createLlmIpcPrivacy("stream");
+  const authorization = ctx.coreAuthorization;
+  if (!authorization || typeof authorization.authorize !== "function") {
+    throw new TypeError("LLM stream IPC authorization is required");
+  }
+  const currentTenantMatches = (tenantId) => {
+    try {
+      const identity = ctx.getCurrentIdentity();
+      const did = ownData(identity, "did");
+      const currentTenantId = ownData(identity, "tenantId") || did;
+      return currentTenantId === tenantId;
+    } catch {
+      return false;
+    }
+  };
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const operation = channel.replace(/^llm:/u, "");
+      ipcMain.handle(channel, async (event, ...args) => {
+        let tenantId;
+        try {
+          tenantId = authorizedTenant(
+            await authorization.authorize(event, operation),
+          );
+        } catch {
+          throw privacy.authorizationFailure(operation);
+        }
+        return handler(event, tenantId, ...args);
+      });
+    },
+  };
+  const ownedController = (controllerId, tenantId) => {
+    const controller = app?.streamControllers?.get(controllerId);
+    if (!controller || streamControllerOwners.get(controller) !== tenantId) {
+      throw new TypeError("Unknown stream controller");
+    }
+    return controller;
+  };
 
   // ============================================================
   // 流式输出控制 (Stream Control) - 6 handlers
@@ -82,25 +204,28 @@ function registerStreamHandlers(ctx) {
    * 创建流式输出控制器
    * Channel: 'llm:create-stream-controller'
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "llm:create-stream-controller",
-    async (_event, options = {}) => {
+    async (_event, tenantId, options = {}) => {
       try {
         const { createStreamController } = require("./stream-controller");
-        const controller = createStreamController(options);
+        const controller = createStreamController(
+          normalizeCreateOptions(options),
+        );
 
         // 生成唯一ID
-        const controllerId = `stream-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const controllerId = `stream:${randomUUID()}`;
 
         // 存储控制器（在app实例中）
         if (!app.streamControllers) {
           app.streamControllers = new Map();
         }
         app.streamControllers.set(controllerId, controller);
+        streamControllerOwners.set(controller, tenantId);
 
         // 设置事件监听
         controller.on("chunk", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-chunk",
               streamEvent(controllerId, "chunk"),
@@ -109,7 +234,7 @@ function registerStreamHandlers(ctx) {
         });
 
         controller.on("pause", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-pause",
               streamEvent(controllerId, "pause"),
@@ -118,7 +243,7 @@ function registerStreamHandlers(ctx) {
         });
 
         controller.on("resume", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-resume",
               streamEvent(controllerId, "resume"),
@@ -127,7 +252,7 @@ function registerStreamHandlers(ctx) {
         });
 
         controller.on("cancel", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-cancel",
               streamEvent(controllerId, "cancel"),
@@ -136,7 +261,7 @@ function registerStreamHandlers(ctx) {
         });
 
         controller.on("complete", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-complete",
               streamEvent(controllerId, "complete"),
@@ -145,7 +270,7 @@ function registerStreamHandlers(ctx) {
         });
 
         controller.on("stream-error", () => {
-          if (mainWindow) {
+          if (mainWindow && currentTenantMatches(tenantId)) {
             mainWindow.webContents.send(
               "llm:stream-error",
               streamEvent(controllerId, "stream-error"),
@@ -153,7 +278,7 @@ function registerStreamHandlers(ctx) {
           }
         });
 
-        return { controllerId };
+        return Object.freeze({ controllerId });
       } catch {
         throw privacy.failure("create-stream-controller");
       }
@@ -164,98 +289,94 @@ function registerStreamHandlers(ctx) {
    * 暂停流式输出
    * Channel: 'llm:pause-stream'
    */
-  ipcMain.handle("llm:pause-stream", async (_event, controllerId) => {
-    try {
-      if (!app.streamControllers || !app.streamControllers.has(controllerId)) {
-        throw new Error("流控制器不存在");
+  authorizedIpcMain.handle(
+    "llm:pause-stream",
+    async (_event, tenantId, controllerId) => {
+      try {
+        const controller = ownedController(controllerId, tenantId);
+        controller.pause();
+
+        return SUCCESS_RECEIPT;
+      } catch {
+        throw privacy.failure("pause-stream");
       }
-
-      const controller = app.streamControllers.get(controllerId);
-      controller.pause();
-
-      return { success: true };
-    } catch {
-      throw privacy.failure("pause-stream");
-    }
-  });
+    },
+  );
 
   /**
    * 恢复流式输出
    * Channel: 'llm:resume-stream'
    */
-  ipcMain.handle("llm:resume-stream", async (_event, controllerId) => {
-    try {
-      if (!app.streamControllers || !app.streamControllers.has(controllerId)) {
-        throw new Error("流控制器不存在");
+  authorizedIpcMain.handle(
+    "llm:resume-stream",
+    async (_event, tenantId, controllerId) => {
+      try {
+        const controller = ownedController(controllerId, tenantId);
+        controller.resume();
+
+        return SUCCESS_RECEIPT;
+      } catch {
+        throw privacy.failure("resume-stream");
       }
-
-      const controller = app.streamControllers.get(controllerId);
-      controller.resume();
-
-      return { success: true };
-    } catch {
-      throw privacy.failure("resume-stream");
-    }
-  });
+    },
+  );
 
   /**
    * 取消流式输出
    * Channel: 'llm:cancel-stream'
    */
-  ipcMain.handle("llm:cancel-stream", async (_event, controllerId, reason) => {
-    try {
-      if (!app.streamControllers || !app.streamControllers.has(controllerId)) {
-        throw new Error("流控制器不存在");
+  authorizedIpcMain.handle(
+    "llm:cancel-stream",
+    async (_event, tenantId, controllerId) => {
+      try {
+        const controller = ownedController(controllerId, tenantId);
+        controller.cancel();
+
+        return SUCCESS_RECEIPT;
+      } catch {
+        throw privacy.failure("cancel-stream");
       }
-
-      const controller = app.streamControllers.get(controllerId);
-      controller.cancel(reason);
-
-      return { success: true };
-    } catch {
-      throw privacy.failure("cancel-stream");
-    }
-  });
+    },
+  );
 
   /**
    * 获取流式输出统计信息
    * Channel: 'llm:get-stream-stats'
    */
-  ipcMain.handle("llm:get-stream-stats", async (_event, controllerId) => {
-    try {
-      if (!app.streamControllers || !app.streamControllers.has(controllerId)) {
-        throw new Error("流控制器不存在");
+  authorizedIpcMain.handle(
+    "llm:get-stream-stats",
+    async (_event, tenantId, controllerId) => {
+      try {
+        const controller = ownedController(controllerId, tenantId);
+        const stats = controller.getStats();
+
+        return projectStreamStats(stats);
+      } catch {
+        throw privacy.failure("get-stream-stats");
       }
-
-      const controller = app.streamControllers.get(controllerId);
-      const stats = controller.getStats();
-
-      return projectStreamStats(stats);
-    } catch {
-      throw privacy.failure("get-stream-stats");
-    }
-  });
+    },
+  );
 
   /**
    * 销毁流式输出控制器
    * Channel: 'llm:destroy-stream-controller'
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "llm:destroy-stream-controller",
-    async (_event, controllerId) => {
+    async (_event, tenantId, controllerId) => {
       try {
+        const controller = app?.streamControllers?.get(controllerId);
         if (
-          !app.streamControllers ||
-          !app.streamControllers.has(controllerId)
+          !controller ||
+          streamControllerOwners.get(controller) !== tenantId
         ) {
-          return { success: true };
+          return SUCCESS_RECEIPT;
         }
 
-        const controller = app.streamControllers.get(controllerId);
         controller.destroy();
         app.streamControllers.delete(controllerId);
 
-        return { success: true };
+        return SUCCESS_RECEIPT;
       } catch {
         throw privacy.failure("destroy-stream-controller");
       }

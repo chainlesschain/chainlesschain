@@ -131,7 +131,7 @@ describe("LLM core IPC authorization", () => {
     );
   });
 
-  it("defines authorization scopes for every core operation", () => {
+  it("defines authorization scopes for every governed LLM operation", () => {
     expect(Object.keys(OPERATION_AUTHORIZATION).sort()).toEqual(
       [
         "chat",
@@ -139,14 +139,19 @@ describe("LLM core IPC authorization", () => {
         "check-status",
         "clear-test-data",
         "clear-context",
+        "create-stream-controller",
+        "destroy-stream-controller",
         "embeddings",
         "generate-test-data",
         "generate-report",
         "get-config",
         "get-selector-info",
+        "get-stream-stats",
         "list-models",
         "query",
         "query-stream",
+        "pause-stream",
+        "resume-stream",
         "select-best",
         "set-config",
         "stream-cancel",
@@ -161,6 +166,7 @@ describe("LLM core IPC authorization", () => {
         "stream-pause",
         "stream-resume",
         "stream-start",
+        "cancel-stream",
         "switch-provider",
       ].sort(),
     );

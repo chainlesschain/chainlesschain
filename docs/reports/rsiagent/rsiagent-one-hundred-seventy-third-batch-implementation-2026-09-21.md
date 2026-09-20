@@ -22,5 +22,5 @@
 ## 未完成边界
 
 - 启动阶段另行注册的 `stream-controller-ipc.js` 12 个旧 handler 后续已由第一百七十六批完成租户隔离、授权和最小回执。
-- Test-data 的输入、用途授权与成功回执后续已由第一百七十四批收口；selector 及其他 LLM 模块的成功 payload、业务事件、日志/错误通道和订阅授权仍待处理。
+- Test-data 的输入、用途授权与成功回执后续已由第一百七十四批收口，selector 已由第一百七十五批收口，辅助六个 stream handler 的授权、tenant 所有权和身份切换事件抑制已由第一百七十七批收口；其他 LLM 模块的成功 payload、业务事件、日志/错误通道和订阅授权仍待处理。
 - 企业 purpose/RBAC、身份切换中止与撤销、真实 Electron renderer/preload/provider E2E、tenant HMAC 和生产日志访问治理仍需目标环境验收。

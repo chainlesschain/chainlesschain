@@ -204,11 +204,7 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
         clear: false,
       }),
     ).resolves.toEqual({ success: true });
-    expect(authorize).toHaveBeenNthCalledWith(
-      1,
-      event,
-      "generate-test-data",
-    );
+    expect(authorize).toHaveBeenNthCalledWith(1, event, "generate-test-data");
     expect(run).toHaveBeenCalledTimes(1);
 
     database.prepare.mockClear();
@@ -249,11 +245,19 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
     const secret = "private-stream-chunk-and-error";
     const send = vi.fn();
     const app = {};
+    const identity = {
+      current: { did: "did:key:stream-owner", tenantId: "tenant:owner" },
+    };
+    const authorize = vi.fn(async (event) => ({
+      tenantId: event?.tenantId || "tenant:owner",
+    }));
     const { handlers, ipcMain } = captureHandlers();
     registerStreamHandlers({
       ipcMain,
       app,
       mainWindow: { webContents: { send } },
+      coreAuthorization: { authorize },
+      getCurrentIdentity: () => identity.current,
       streamPrivacy: createLlmIpcPrivacy("stream", sink),
     });
 
@@ -290,6 +294,19 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       event: "stream-error",
     });
     expect(JSON.stringify(send.mock.calls)).not.toContain(secret);
+
+    send.mockClear();
+    identity.current = {
+      did: "did:key:different-user",
+      tenantId: "tenant:different",
+    };
+    controller.emit("chunk", { chunk: secret });
+    controller.emit("stream-error", hostileFailure(secret));
+    expect(send).not.toHaveBeenCalled();
+    identity.current = {
+      did: "did:key:stream-owner",
+      tenantId: "tenant:owner",
+    };
 
     controller.getStats = () => ({
       status: "running",
@@ -337,6 +354,58 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       handlers.get("llm:cancel-stream")(null, created.controllerId, secret),
     ).resolves.toEqual({ success: true });
 
+    for (const channel of [
+      "llm:pause-stream",
+      "llm:resume-stream",
+      "llm:cancel-stream",
+      "llm:get-stream-stats",
+    ]) {
+      await expect(
+        handlers.get(channel)(
+          { tenantId: "tenant:different" },
+          created.controllerId,
+          secret,
+        ),
+      ).rejects.toMatchObject({
+        code: "CC_LLM_IPC_OPERATION_FAILED",
+        component: "stream",
+        operation: channel.slice(4),
+      });
+    }
+    expect(controller.pause).toHaveBeenCalledTimes(1);
+    expect(controller.resume).toHaveBeenCalledTimes(1);
+    expect(controller.cancel).toHaveBeenCalledTimes(1);
+
+    authorize.mockRejectedValueOnce(hostileFailure(secret));
+    await expect(
+      handlers.get("llm:pause-stream")(null, created.controllerId),
+    ).rejects.toMatchObject({
+      code: "CC_LLM_IPC_UNAUTHORIZED",
+      component: "stream",
+      operation: "pause-stream",
+    });
+    expect(controller.pause).toHaveBeenCalledTimes(1);
+
+    await expect(
+      handlers.get("llm:destroy-stream-controller")(
+        { tenantId: "tenant:different" },
+        created.controllerId,
+      ),
+    ).resolves.toEqual({ success: true });
+    expect(app.streamControllers.has(created.controllerId)).toBe(true);
+
+    await expect(
+      handlers.get("llm:create-stream-controller")(null, {
+        enableBuffering: true,
+        extension: secret,
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_LLM_IPC_OPERATION_FAILED",
+      component: "stream",
+      operation: "create-stream-controller",
+    });
+    expect(app.streamControllers.size).toBe(1);
+
     await expect(
       handlers.get("llm:pause-stream")(null, "missing-private-controller"),
     ).rejects.toMatchObject({
@@ -344,6 +413,12 @@ describe("LLM auxiliary IPC privacy boundaries", () => {
       component: "stream",
       operation: "pause-stream",
     });
+
+    await expect(
+      handlers.get("llm:destroy-stream-controller")(null, created.controllerId),
+    ).resolves.toEqual({ success: true });
+    expect(app.streamControllers.has(created.controllerId)).toBe(false);
+    expect(authorize).toHaveBeenCalledWith(null, "destroy-stream-controller");
   });
 
   it("keeps every auxiliary source file on the fixed boundary", () => {
