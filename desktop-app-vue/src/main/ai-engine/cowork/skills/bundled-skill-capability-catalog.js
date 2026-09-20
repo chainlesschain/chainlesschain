@@ -1242,7 +1242,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
     ]),
   ]),
   "self-improving-agent": Object.freeze([
-    "56e099bd6d7eb70aea77c1096666168058eaadef8e05bf1890fa51b30da26e5e",
+    "161ee04f249f64fe4c37fdc5ecb2d64c2500bcd202fb68514ac82eb1a302daed",
     Object.freeze([
       "data:result",
       "data:task",
@@ -1251,6 +1251,7 @@ const BUNDLED_SKILL_CAPABILITY_ROWS = Object.freeze({
       "host:environment",
       "host:filesystem",
       "host:logger",
+      "runtime:crypto",
       "runtime:random",
       "runtime:time",
     ]),

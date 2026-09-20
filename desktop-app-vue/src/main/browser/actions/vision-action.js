@@ -28,7 +28,7 @@ const {
 } = require("../../evolution/desktop-browser-vision-action.js");
 const { imageToViewport } = require("./coordinate-mapping.js");
 
-function governedMultimodalIngress(value) {
+function assertGovernedMultimodalIngress(value) {
   try {
     return captureDesktopGovernedVisionModelClient(value);
   } catch (cause) {
@@ -196,7 +196,7 @@ class VisionAction extends EventEmitter {
   ) {
     // The opaque client can only be minted from an initialized LLM manager
     // bound to a signed Desktop model ingress. Check it before page access.
-    governedMultimodalIngress(this.llmService);
+    assertGovernedMultimodalIngress(this.llmService);
     assertGovernedVisionOptions(options);
     if (
       options.maxTokens !== undefined &&
@@ -291,7 +291,7 @@ class VisionAction extends EventEmitter {
    * @private
    */
   async _callVisionLLM(messages, options = {}) {
-    const ingress = governedMultimodalIngress(this.llmService);
+    const ingress = assertGovernedMultimodalIngress(this.llmService);
     assertGovernedVisionOptions(options);
     if (options.signal?.aborted) {
       const error = new Error("Browser vision request was cancelled");
@@ -346,7 +346,7 @@ class VisionAction extends EventEmitter {
   async _analyze(targetId, prompt, options, operation, observationOptions) {
     // Cache entries cannot prove that they describe the current browser
     // pixels. Every governed analysis takes and admits a fresh screenshot.
-    governedMultimodalIngress(this.llmService);
+    assertGovernedMultimodalIngress(this.llmService);
     assertBoundedVisionText(prompt, "Browser vision prompt");
 
     const imageBase64 = await this._captureScreenshot(
@@ -385,7 +385,7 @@ For UI elements, describe their visual appearance, position, and any text they c
    * @returns {Promise<Object>}
    */
   async locateElement(targetId, description, options = {}) {
-    governedMultimodalIngress(this.llmService);
+    assertGovernedMultimodalIngress(this.llmService);
     assertBoundedVisionText(description, "Browser element description", 4096);
     const observationOptions = { ...options, description };
     const imageBase64 = await this._captureScreenshot(
@@ -834,7 +834,7 @@ Be thorough but concise.`;
    * @returns {Promise<Object>}
    */
   async compareWithBaseline(targetId, baselineBase64, options = {}) {
-    governedMultimodalIngress(this.llmService);
+    assertGovernedMultimodalIngress(this.llmService);
     const baselineBytes = decodeGovernedImageBase64(
       baselineBase64,
       this.config.maxImageSize,

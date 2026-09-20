@@ -22,6 +22,11 @@ const {
 } = require("./secure-config-storage");
 const { createSecureStoragePrivacy } = require("./secure-storage-privacy");
 
+function backupIdFromPath(value) {
+  if (typeof value !== "string") return "";
+  return path.posix.basename(value.replaceAll("\\", "/"));
+}
+
 /**
  * 注册安全存储 IPC 处理器
  */
@@ -144,7 +149,7 @@ function registerSecureStorageIPC(dependencies = {}) {
       const backupPath = storage.createBackup();
       return {
         success: !!backupPath,
-        data: backupPath ? { backupId: path.basename(backupPath) } : null,
+        data: backupPath ? { backupId: backupIdFromPath(backupPath) } : null,
         error: backupPath ? null : "没有配置可备份",
       };
     } catch {
@@ -161,7 +166,7 @@ function registerSecureStorageIPC(dependencies = {}) {
       return {
         success: true,
         data: backups.map((backup) => ({
-          backupId: path.basename(backup.filename || backup.path || ""),
+          backupId: backupIdFromPath(backup.filename || backup.path || ""),
         })),
       };
     } catch {
@@ -178,7 +183,7 @@ function registerSecureStorageIPC(dependencies = {}) {
         .listBackups()
         .find(
           (candidate) =>
-            path.basename(candidate.filename || candidate.path || "") ===
+            backupIdFromPath(candidate.filename || candidate.path || "") ===
             backupId,
         );
       if (!backup) {

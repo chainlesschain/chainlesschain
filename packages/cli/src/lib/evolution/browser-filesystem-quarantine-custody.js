@@ -1440,7 +1440,7 @@ async function openQuarantine(state, value) {
     writeChunk: async (chunk) => {
       if (
         session.state !== "writing" ||
-        !(chunk instanceof Uint8Array) ||
+        !types.isUint8Array(chunk) ||
         types.isProxy(chunk) ||
         chunk.byteLength < 1 ||
         chunk.byteLength > input.maxBytes - session.sizeBytes

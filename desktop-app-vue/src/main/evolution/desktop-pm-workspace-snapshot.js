@@ -76,12 +76,6 @@ function positiveInteger(value, label, maximum) {
   return value;
 }
 
-function samePath(left, right) {
-  return process.platform === "win32"
-    ? left.toLowerCase() === right.toLowerCase()
-    : left === right;
-}
-
 function insideRoot(root, candidate) {
   const relative = path.relative(root, candidate);
   return (
@@ -258,11 +252,10 @@ async function canonicalRoot(captured) {
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
     throw new Error("Desktop PM workspace root must be a real directory");
   }
-  if (!samePath(resolved, captured.workspaceRoot)) {
-    throw new Error(
-      "Desktop PM workspace root cannot traverse a symbolic link",
-    );
-  }
+  // macOS exposes /var through the system-owned /private/var alias. lstat()
+  // above still rejects a workspace root that is itself a symbolic link; use
+  // the physical path for every containment check so trusted ancestor aliases
+  // do not make a normal temporary workspace look like a root escape.
   return resolved;
 }
 

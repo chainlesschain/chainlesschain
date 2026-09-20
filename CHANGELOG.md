@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compare all 13 child package tarballs byte-for-byte with npm before CLI
   publication, and reuse the exact-SHA CLI CI and Strict Sandbox results
   instead of rerunning the complete suite on the release tag.
+- Keep quarantine byte streams valid across isolated test realms, canonicalize
+  macOS temporary workspace aliases, and redact Windows-style backup paths on
+  every host.
+- Restore the explicit browser vision ingress boundary and synchronize the
+  Self-Improving Agent's audited crypto capability and handler digest.
 
 ### Fixed - cc CLI 0.166.65: resume after bounded loop-recovery pauses
 
