@@ -113,9 +113,7 @@ class FollowupIntentClassifier {
     // Step 1: 快速规则匹配（覆盖80%的常见场景）
     const ruleResult = this._ruleBasedClassify(userInput);
     if (ruleResult.confidence > 0.8) {
-      logger.info(
-        `[规则匹配] 输入: "${userInput}" → ${ruleResult.intent} (${ruleResult.confidence})`,
-      );
+      logger.info("[FollowupIntentClassifier] rule classification completed");
       return {
         ...ruleResult,
         method: "rule",
@@ -126,16 +124,14 @@ class FollowupIntentClassifier {
     // Step 2: LLM 深度分析（处理模糊场景）
     try {
       const llmResult = await this._llmBasedClassify(userInput, context);
-      logger.info(
-        `[LLM分析] 输入: "${userInput}" → ${llmResult.intent} (${llmResult.confidence})`,
-      );
+      logger.info("[FollowupIntentClassifier] model classification completed");
       return {
         ...llmResult,
         method: "llm",
         latency: Date.now() - startTime,
       };
-    } catch (error) {
-      logger.error("[LLM分析失败] 降级到规则结果:", error);
+    } catch {
+      logger.error("[FollowupIntentClassifier] model classification failed");
       // 降级：返回规则结果或默认为 CLARIFICATION
       return ruleResult.confidence > 0
         ? {
@@ -321,9 +317,9 @@ ${
         reason: parsed.reason || "无理由",
         extractedInfo: parsed.extractedInfo,
       };
-    } catch (error) {
-      logger.error("[JSON解析失败]", error);
-      throw new Error(`Failed to parse LLM response: ${text}`);
+    } catch {
+      logger.error("[FollowupIntentClassifier] model response rejected");
+      throw new Error("Failed to parse intent classification response");
     }
   }
 

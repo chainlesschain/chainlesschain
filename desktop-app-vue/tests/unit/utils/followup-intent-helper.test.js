@@ -197,14 +197,14 @@ describe("createConfirmationDialogConfig", () => {
 });
 
 describe("handleClassificationError", () => {
-  it("returns a CLARIFICATION fallback carrying the error message", () => {
+  it("returns a CLARIFICATION fallback with a fixed error code", () => {
     const r = handleClassificationError(new Error("boom"), "input");
     expect(r.success).toBe(true);
     expect(r.data).toMatchObject({
       intent: "CLARIFICATION",
       confidence: 0.5,
       method: "error_fallback",
-      error: "boom",
+      error: "classification_failed",
     });
   });
 });

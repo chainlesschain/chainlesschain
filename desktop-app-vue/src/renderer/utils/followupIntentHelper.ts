@@ -136,7 +136,7 @@ export interface ClassificationResultData {
   intent: IntentType;
   confidence: number;
   reason: string;
-  method: 'rule' | 'llm' | 'error_fallback';
+  method: 'rule' | 'llm' | 'rule_fallback' | 'default' | 'error_fallback';
   latency?: number;
   error?: string;
 }
@@ -405,7 +405,7 @@ export function needsUserConfirmation(
  */
 export function createConfirmationDialogConfig(
   classifyResult: ClassificationResult,
-  userInput: string
+  _userInput: string
 ): ConfirmationDialogConfig {
   const { intent, confidence, reason } = classifyResult.data;
 
@@ -425,10 +425,10 @@ export function createConfirmationDialogConfig(
  * @returns 降级结果
  */
 export function handleClassificationError(
-  error: Error,
-  userInput: string
+  _error: Error,
+  _userInput: string
 ): ClassificationResult {
-  logger.error('[FollowupIntent] 分类失败:', error as any);
+  logger.error('[FollowupIntent] classification failed');
 
   // 返回默认降级结果
   return {
@@ -438,7 +438,7 @@ export function handleClassificationError(
       confidence: 0.5,
       reason: '分类失败，默认为补充说明',
       method: 'error_fallback',
-      error: error.message
+      error: 'classification_failed'
     }
   };
 }
@@ -451,16 +451,16 @@ export function handleClassificationError(
  */
 export function formatIntentLog(
   classifyResult: ClassificationResult | null | undefined,
-  userInput: string
+  _userInput: string
 ): string {
   if (!classifyResult || !classifyResult.data) {
-    return `[Intent] 输入: "${userInput}" - 分类失败`;
+    return '[Intent] 分类失败';
   }
 
   const { intent, confidence, method, latency } = classifyResult.data;
 
   return [
-    `[Intent] 输入: "${userInput}"`,
+    '[Intent] 分类完成',
     `意图: ${getIntentDescription(intent)} (${intent})`,
     `置信度: ${(confidence * 100).toFixed(1)}%`,
     `方法: ${method}`,
@@ -541,16 +541,14 @@ if (typeof window !== 'undefined') {
       });
 
       logger.info('=== 意图分类结果 ===');
-      logger.info('输入:', { input });
       logger.info('意图:', { description: getIntentDescription(result.data.intent), intent: result.data.intent });
       logger.info('置信度:', { confidence: (result.data.confidence * 100).toFixed(1) + '%' });
       logger.info('方法:', { method: result.data.method });
-      logger.info('理由:', { reason: result.data.reason });
       logger.info('耗时:', { latency: result.data.latency + 'ms' });
 
       return result.data;
-    } catch (error) {
-      logger.error('测试失败:', error as any);
+    } catch {
+      logger.error('[FollowupIntent] test classification failed');
       return null;
     }
   };

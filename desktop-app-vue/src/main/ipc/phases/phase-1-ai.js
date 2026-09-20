@@ -361,7 +361,12 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const {
         registerIPCHandlers: registerFollowupIntentIPC,
       } = require("../../ai-engine/followup-intent-ipc");
-      registerFollowupIntentIPC(llmManager);
+      registerFollowupIntentIPC({
+        llmService: llmManager || null,
+        mainWindow: mainWindow || null,
+        didManager: didManager || null,
+        authorizePurpose: deps.authorizeFollowupIntentPurpose,
+      });
     },
     handlers: 3,
   });

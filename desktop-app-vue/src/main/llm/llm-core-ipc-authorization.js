@@ -233,6 +233,18 @@ const OPERATION_AUTHORIZATION = Object.freeze({
     purpose: "model-prompt-compression-history-delete",
     fields: Object.freeze(["compression-history"]),
   }),
+  "followup-intent-classify": Object.freeze({
+    purpose: "model-followup-intent-classify",
+    fields: Object.freeze(["conversation-context", "intent-result"]),
+  }),
+  "followup-intent-classify-batch": Object.freeze({
+    purpose: "model-followup-intent-classify-batch",
+    fields: Object.freeze(["conversation-context", "intent-result"]),
+  }),
+  "followup-intent-get-stats": Object.freeze({
+    purpose: "model-followup-intent-stats-read",
+    fields: Object.freeze(["intent-classifier-statistics"]),
+  }),
   "get-selector-info": Object.freeze({
     purpose: "model-selector-catalog-read",
     fields: Object.freeze(["selector-catalog"]),

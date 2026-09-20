@@ -335,7 +335,7 @@ describe("FollowupIntentClassifier", () => {
       });
 
       expect(() => classifier._parseJSON(json)).toThrow(
-        "Failed to parse LLM response",
+        "Failed to parse intent classification response",
       );
     });
 
