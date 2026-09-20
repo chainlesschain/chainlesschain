@@ -69,17 +69,31 @@ const SAFE_EVENTS = new Set([
 ]);
 
 const SAFE_FAILURE_OPERATIONS = new Set([
+  "budget",
   "chat",
   "chat-stream",
+  "create-client",
+  "embeddings",
+  "initialize",
+  "provider-switch",
   "query",
   "query-stream",
 ]);
+
+const GOVERNANCE_FAILURE_CODE = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
 
 function allowlisted(value, values) {
   return typeof value === "string" && values.has(value) ? value : "unknown";
 }
 
 function createLlmManagerPrivacy(sink = logger) {
+  const failureReceipt = (operation) =>
+    Object.freeze({
+      code: "CC_LLM_MANAGER_OPERATION_FAILED",
+      component: "manager",
+      operation: allowlisted(operation, SAFE_FAILURE_OPERATIONS),
+    });
+
   return Object.freeze({
     event(event) {
       sink.info("[LLMManager] internal event", {
@@ -88,11 +102,25 @@ function createLlmManagerPrivacy(sink = logger) {
       });
     },
     failureEvent(operation) {
-      return Object.freeze({
-        code: "CC_LLM_MANAGER_OPERATION_FAILED",
-        component: "manager",
-        operation: allowlisted(operation, SAFE_FAILURE_OPERATIONS),
-      });
+      return failureReceipt(operation);
+    },
+    failure(operation, source) {
+      let governed = false;
+      try {
+        governed = source?.code === GOVERNANCE_FAILURE_CODE;
+      } catch {
+        // Hostile errors are opaque and receive the ordinary fixed failure.
+      }
+      const receipt = failureReceipt(operation);
+      const error = new Error(
+        governed
+          ? "Governed Desktop model request failed"
+          : "LLM manager operation failed",
+      );
+      error.code = governed ? GOVERNANCE_FAILURE_CODE : receipt.code;
+      error.component = receipt.component;
+      error.operation = receipt.operation;
+      return error;
     },
   });
 }

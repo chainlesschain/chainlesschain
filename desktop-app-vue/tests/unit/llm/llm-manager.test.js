@@ -206,7 +206,12 @@ describe("LLMManager", () => {
                 () => {},
                 llmManager.client,
               ),
-        ).rejects.toBe(refusal);
+        ).rejects.toMatchObject({
+          message: "Governed Desktop model request failed",
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          component: "manager",
+          operation: stream ? "chat-stream" : "chat",
+        });
         expect(summaryQuery).toHaveBeenCalledOnce();
         expect(call).not.toHaveBeenCalled();
         expect(cacheWrite).not.toHaveBeenCalled();
@@ -255,7 +260,12 @@ describe("LLMManager", () => {
                 () => {},
                 llmManager.client,
               ),
-        ).rejects.toBe(refusal);
+        ).rejects.toMatchObject({
+          message: "Governed Desktop model request failed",
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+          component: "manager",
+          operation: stream ? "chat-stream" : "chat",
+        });
         expect(call).toHaveBeenCalledOnce();
         expect(cacheWrite).not.toHaveBeenCalled();
         expect(published).not.toHaveBeenCalled();
@@ -438,7 +448,12 @@ describe("LLMManager", () => {
     it("应该在初始化失败时抛出错误", async () => {
       llmManager = new LLMManager({ provider: "invalid-provider" });
 
-      await expect(llmManager.initialize()).rejects.toThrow();
+      await expect(llmManager.initialize()).rejects.toMatchObject({
+        message: "LLM manager operation failed",
+        code: "CC_LLM_MANAGER_OPERATION_FAILED",
+        component: "manager",
+        operation: "initialize",
+      });
       expect(llmManager.isInitialized).toBe(false);
     });
   });
@@ -491,9 +506,14 @@ describe("LLMManager", () => {
     });
 
     it("应该为不支持的provider抛出错误", async () => {
-      await expect(llmManager.createClient("unsupported")).rejects.toThrow(
-        "不支持的提供商",
-      );
+      await expect(
+        llmManager.createClient("unsupported"),
+      ).rejects.toMatchObject({
+        message: "LLM manager operation failed",
+        code: "CC_LLM_MANAGER_OPERATION_FAILED",
+        component: "manager",
+        operation: "create-client",
+      });
     });
   });
 
@@ -536,7 +556,12 @@ describe("LLMManager", () => {
     it("应该在切换失败时抛出错误", async () => {
       await expect(
         llmManager.switchProvider("invalid-provider"),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({
+        message: "LLM manager operation failed",
+        code: "CC_LLM_MANAGER_OPERATION_FAILED",
+        component: "manager",
+        operation: "provider-switch",
+      });
     });
   });
 
@@ -604,6 +629,21 @@ describe("LLMManager", () => {
       expect(result.text).toBe("Ollama response");
     });
 
+    it("应该重建 provider 查询异常而不保留原始内容", async () => {
+      mockOllamaClient.generate.mockRejectedValueOnce(
+        Object.assign(new Error("private provider response"), {
+          cause: { apiKey: "private-api-key" },
+        }),
+      );
+
+      await expect(llmManager.query("private prompt")).rejects.toMatchObject({
+        message: "LLM manager operation failed",
+        code: "CC_LLM_MANAGER_OPERATION_FAILED",
+        component: "manager",
+        operation: "query",
+      });
+    });
+
     it("应该创建会话上下文（如果提供conversationId）", async () => {
       await llmManager.query("test prompt", { conversationId: "conv1" });
 
@@ -646,6 +686,21 @@ describe("LLMManager", () => {
 
       expect(mockOllamaClient.embeddings).toHaveBeenCalledWith("test text");
       expect(result.embedding).toBeDefined();
+    });
+
+    it("应该重建 embeddings 异常而不保留原始内容", async () => {
+      mockOllamaClient.embeddings.mockRejectedValueOnce(
+        new Error("private embedding response"),
+      );
+
+      await expect(llmManager.embeddings("private text")).rejects.toMatchObject(
+        {
+          message: "LLM manager operation failed",
+          code: "CC_LLM_MANAGER_OPERATION_FAILED",
+          component: "manager",
+          operation: "embeddings",
+        },
+      );
     });
 
     it("应该在客户端不支持embeddings时抛出错误", async () => {

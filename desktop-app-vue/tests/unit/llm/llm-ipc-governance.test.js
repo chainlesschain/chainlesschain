@@ -360,7 +360,12 @@ describe("native IPC configuration authority continuity", () => {
     const pending = manager.switchProvider("openai");
     await manager.close();
     release({ available: true, models: [] });
-    await expect(pending).rejects.toThrow("closed during provider switch");
+    await expect(pending).rejects.toMatchObject({
+      message: "LLM manager operation failed",
+      code: "CC_LLM_MANAGER_OPERATION_FAILED",
+      component: "manager",
+      operation: "provider-switch",
+    });
     expect(manager.client).toBe(null);
     expect(manager.isInitialized).toBe(false);
     expect(manager.provider).toBe("ollama");

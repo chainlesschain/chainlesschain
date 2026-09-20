@@ -38,6 +38,14 @@ const GOVERNED_VISION_PROVIDERS = new Set([
   "custom",
 ]);
 
+async function runManagerOperation(operation, callback) {
+  try {
+    return await callback();
+  } catch (error) {
+    throw managerPrivacy.failure(operation, error);
+  }
+}
+
 function hasMultimodalMessages(messages) {
   return (
     Array.isArray(messages) &&
@@ -321,7 +329,7 @@ class LLMManager extends EventEmitter {
     } catch (error) {
       managerPrivacy.event("initialization-failed");
       this.isInitialized = false;
-      throw error;
+      throw managerPrivacy.failure("initialize", error);
     }
   }
 
@@ -330,88 +338,90 @@ class LLMManager extends EventEmitter {
    * @param {string} provider - 提供商类型
    */
   async createClient(provider) {
-    const normalizedProvider = normalizeProvider(provider);
+    return await runManagerOperation("create-client", async () => {
+      const normalizedProvider = normalizeProvider(provider);
 
-    switch (normalizedProvider) {
-      case LLMProviders.OLLAMA:
-        return new _OllamaClient({
-          baseURL: this.config.ollamaURL || "http://localhost:11434",
-          model: this.config.model || "llama2",
-          timeout: this.config.timeout,
-        });
+      switch (normalizedProvider) {
+        case LLMProviders.OLLAMA:
+          return new _OllamaClient({
+            baseURL: this.config.ollamaURL || "http://localhost:11434",
+            model: this.config.model || "llama2",
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.ANTHROPIC:
-        return new _AnthropicClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL || "https://api.anthropic.com",
-          model: this.config.model || "claude-opus-4-8",
-          timeout: this.config.timeout,
-          anthropicVersion: this.config.anthropicVersion,
-          maxTokens: this.config.maxTokens,
-        });
+        case LLMProviders.ANTHROPIC:
+          return new _AnthropicClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL || "https://api.anthropic.com",
+            model: this.config.model || "claude-opus-4-8",
+            timeout: this.config.timeout,
+            anthropicVersion: this.config.anthropicVersion,
+            maxTokens: this.config.maxTokens,
+          });
 
-      case LLMProviders.OPENAI:
-        return new _OpenAIClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL,
-          model: this.config.model || "gpt-3.5-turbo",
-          embeddingModel:
-            this.config.embeddingModel || "text-embedding-ada-002",
-          organization: this.config.organization,
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.OPENAI:
+          return new _OpenAIClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL,
+            model: this.config.model || "gpt-3.5-turbo",
+            embeddingModel:
+              this.config.embeddingModel || "text-embedding-ada-002",
+            organization: this.config.organization,
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.DEEPSEEK:
-        return new _DeepSeekClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL,
-          model: this.config.model || "deepseek-chat",
-          embeddingModel:
-            this.config.embeddingModel || "text-embedding-ada-002",
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.DEEPSEEK:
+          return new _DeepSeekClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL,
+            model: this.config.model || "deepseek-chat",
+            embeddingModel:
+              this.config.embeddingModel || "text-embedding-ada-002",
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.VOLCENGINE:
-        return new _OpenAIClient({
-          apiKey: this.config.apiKey,
-          baseURL:
-            this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
-          model: this.config.model || "doubao-seed-1.6-lite",
-          embeddingModel:
-            this.config.embeddingModel || "doubao-embedding-large",
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.VOLCENGINE:
+          return new _OpenAIClient({
+            apiKey: this.config.apiKey,
+            baseURL:
+              this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
+            model: this.config.model || "doubao-seed-1.6-lite",
+            embeddingModel:
+              this.config.embeddingModel || "doubao-embedding-large",
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.GEMINI:
-        return new _GeminiClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL,
-          model: this.config.model || "gemini-1.5-pro",
-          embeddingModel: this.config.embeddingModel || "text-embedding-004",
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.GEMINI:
+          return new _GeminiClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL,
+            model: this.config.model || "gemini-1.5-pro",
+            embeddingModel: this.config.embeddingModel || "text-embedding-004",
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.MISTRAL:
-        return new _MistralClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL,
-          model: this.config.model || "mistral-large-latest",
-          embeddingModel: this.config.embeddingModel || "mistral-embed",
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.MISTRAL:
+          return new _MistralClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL,
+            model: this.config.model || "mistral-large-latest",
+            embeddingModel: this.config.embeddingModel || "mistral-embed",
+            timeout: this.config.timeout,
+          });
 
-      case LLMProviders.CUSTOM:
-        return new _OpenAIClient({
-          apiKey: this.config.apiKey,
-          baseURL: this.config.baseURL,
-          model: this.config.model,
-          embeddingModel: this.config.embeddingModel,
-          timeout: this.config.timeout,
-        });
+        case LLMProviders.CUSTOM:
+          return new _OpenAIClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL,
+            model: this.config.model,
+            embeddingModel: this.config.embeddingModel,
+            timeout: this.config.timeout,
+          });
 
-      default:
-        throw new Error(`不支持的提供商: ${provider}`);
-    }
+        default:
+          throw new Error(`不支持的提供商: ${provider}`);
+      }
+    });
   }
 
   /**
@@ -451,7 +461,7 @@ class LLMManager extends EventEmitter {
       return true;
     } catch (error) {
       managerPrivacy.event("provider-switch-failed");
-      throw error;
+      throw managerPrivacy.failure("provider-switch", error);
     } finally {
       try {
         if (candidate) await candidate.close();
@@ -642,7 +652,7 @@ class LLMManager extends EventEmitter {
       };
     } catch (error) {
       this.emit("query-failed", managerPrivacy.failureEvent("query"));
-      throw error;
+      throw managerPrivacy.failure("query", error);
     }
   }
 
@@ -699,97 +709,105 @@ class LLMManager extends EventEmitter {
       throw new Error(
         "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
       );
-    let publication;
-    const selectedClient = this.client;
-    const publish = (event) => {
-      publication = event;
-    };
-    // Opaque image blocks must enter the Agent v3 multimodal projection in the
-    // provider client. Serializing them through the manager's legacy text
-    // cache workflow would persist the raw base64 as a text prompt first.
-    const result =
-      modelIngressHosts.has(this) && hasMultimodalMessages(messages)
-        ? await this._chatWithMessages(
-            messages,
-            { ...options, skipCache: true, skipCompression: true },
-            true,
-            publish,
-            selectedClient,
-          )
-        : await runDesktopCachedModelWorkflow(
-            selectedClient,
-            {
-              provider: this.provider,
-              model: this.config.model || selectedClient.model || "unknown",
-              connection: selectedClient.baseURL || selectedClient.host || null,
+    try {
+      let publication;
+      const selectedClient = this.client;
+      const publish = (event) => {
+        publication = event;
+      };
+      // Opaque image blocks must enter the Agent v3 multimodal projection in the
+      // provider client. Serializing them through the manager's legacy text
+      // cache workflow would persist the raw base64 as a text prompt first.
+      const result =
+        modelIngressHosts.has(this) && hasMultimodalMessages(messages)
+          ? await this._chatWithMessages(
               messages,
-              options,
-            },
-            this.responseCache,
-            (governed, captured) =>
-              this._chatWithMessages(
-                captured.messages,
-                captured.options,
-                governed,
-                publish,
-                selectedClient,
-              ),
-          );
-    if (publication) this.emit("chat-completed", publication);
-    return result;
+              { ...options, skipCache: true, skipCompression: true },
+              true,
+              publish,
+              selectedClient,
+            )
+          : await runDesktopCachedModelWorkflow(
+              selectedClient,
+              {
+                provider: this.provider,
+                model: this.config.model || selectedClient.model || "unknown",
+                connection:
+                  selectedClient.baseURL || selectedClient.host || null,
+                messages,
+                options,
+              },
+              this.responseCache,
+              (governed, captured) =>
+                this._chatWithMessages(
+                  captured.messages,
+                  captured.options,
+                  governed,
+                  publish,
+                  selectedClient,
+                ),
+            );
+      if (publication) this.emit("chat-completed", publication);
+      return result;
+    } catch (error) {
+      throw managerPrivacy.failure("chat", error);
+    }
   }
 
   async chatWithGovernedFunctions(messages, functions, executor, options = {}) {
     if (!this.isInitialized || this.paused)
       throw new Error("LLM service is unavailable or paused");
-    const tracker = this.tokenTracker;
-    const provider = this.provider;
-    const configuredModel = this.config.model;
-    const result = await runDesktopFunctionWorkflow(
-      this.client,
-      messages,
-      functions,
-      executor,
-      options,
-      {
-        beforeStep: () => {
-          if (!this.isInitialized || this.paused)
-            throw new Error("LLM service is unavailable or paused");
+    return await runManagerOperation("chat", async () => {
+      const tracker = this.tokenTracker;
+      const provider = this.provider;
+      const configuredModel = this.config.model;
+      const result = await runDesktopFunctionWorkflow(
+        this.client,
+        messages,
+        functions,
+        executor,
+        options,
+        {
+          beforeStep: () => {
+            if (!this.isInitialized || this.paused)
+              throw new Error("LLM service is unavailable or paused");
+          },
+          onModelResult: async (response) => {
+            if (!tracker) return;
+            try {
+              await tracker.recordUsage({
+                conversationId: options.conversationId,
+                messageId: options.messageId,
+                provider,
+                model: response.model || configuredModel || "unknown",
+                inputTokens: response.usage?.prompt_tokens || 0,
+                outputTokens: response.usage?.completion_tokens || 0,
+                cachedTokens: response.usage?.cached_tokens || 0,
+                wasCached: false,
+                wasCompressed: false,
+                compressionRatio: 1,
+                endpoint: options.endpoint,
+                userId: options.userId || "default",
+              });
+            } catch (error) {
+              if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
+                throw managerPrivacy.failure("chat", error);
+              managerPrivacy.event("token-tracking-failed");
+            }
+          },
         },
-        onModelResult: async (response) => {
-          if (!tracker) return;
-          try {
-            await tracker.recordUsage({
-              conversationId: options.conversationId,
-              messageId: options.messageId,
-              provider,
-              model: response.model || configuredModel || "unknown",
-              inputTokens: response.usage?.prompt_tokens || 0,
-              outputTokens: response.usage?.completion_tokens || 0,
-              cachedTokens: response.usage?.cached_tokens || 0,
-              wasCached: false,
-              wasCompressed: false,
-              compressionRatio: 1,
-              endpoint: options.endpoint,
-              userId: options.userId || "default",
-            });
-          } catch (error) {
-            if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-            managerPrivacy.event("token-tracking-failed");
-          }
-        },
-      },
-    );
-    this.emit("chat-completed", { messages, result });
-    return {
-      text: result.message?.content ?? result.text,
-      message: result.message,
-      model: result.model,
-      usage: result.usage,
-      tokens: result.tokens || result.usage?.total_tokens || 0,
-      timestamp: Date.now(),
-      wasCached: false,
-    };
+      );
+      this.emit("chat-completed", { messages, result });
+      return {
+        text: result.message?.content ?? result.text,
+        message: result.message,
+        model: result.model,
+        usage: result.usage,
+        tokens: result.tokens || result.usage?.total_tokens || 0,
+        timestamp: Date.now(),
+        wasCached: false,
+      };
+    });
   }
 
   async _chatWithMessages(
@@ -897,7 +915,7 @@ class LLMManager extends EventEmitter {
         result = await selectedClient.chat(processedMessages, options);
       } catch (chatError) {
         if (chatError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
-          throw chatError;
+          throw managerPrivacy.failure("chat", chatError);
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
           managerPrivacy.event("model-fallback-started");
@@ -908,7 +926,7 @@ class LLMManager extends EventEmitter {
             fallbackOptions,
           );
         } else {
-          throw chatError;
+          throw managerPrivacy.failure("chat", chatError);
         }
       }
 
@@ -977,7 +995,7 @@ class LLMManager extends EventEmitter {
       };
     } catch (error) {
       this.emit("chat-failed", managerPrivacy.failureEvent("chat"));
-      throw error;
+      throw managerPrivacy.failure("chat", error);
     }
   }
 
@@ -995,9 +1013,18 @@ class LLMManager extends EventEmitter {
       throw new Error("LLM service is unavailable or paused");
     }
     const selectedClient = this.client;
-    return runDesktopModelWorkflow(selectedClient, { messages }, () =>
-      this._chatWithMessagesStream(messages, onChunk, options, selectedClient),
-    );
+    try {
+      return await runDesktopModelWorkflow(selectedClient, { messages }, () =>
+        this._chatWithMessagesStream(
+          messages,
+          onChunk,
+          options,
+          selectedClient,
+        ),
+      );
+    } catch (error) {
+      throw managerPrivacy.failure("chat-stream", error);
+    }
   }
 
   async _chatWithMessagesStream(
@@ -1056,7 +1083,7 @@ class LLMManager extends EventEmitter {
         );
       } catch (streamError) {
         if (streamError.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED")
-          throw streamError;
+          throw managerPrivacy.failure("chat-stream", streamError);
         // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
         if (options.model && options.model !== this.config.model) {
           managerPrivacy.event("stream-model-fallback-started");
@@ -1068,7 +1095,7 @@ class LLMManager extends EventEmitter {
             fallbackOptions,
           );
         } else {
-          throw streamError;
+          throw managerPrivacy.failure("chat-stream", streamError);
         }
       }
 
@@ -1118,7 +1145,7 @@ class LLMManager extends EventEmitter {
         "chat-stream-failed",
         managerPrivacy.failureEvent("chat-stream"),
       );
-      throw error;
+      throw managerPrivacy.failure("chat-stream", error);
     }
   }
 
@@ -1263,7 +1290,7 @@ class LLMManager extends EventEmitter {
       };
     } catch (error) {
       this.emit("stream-failed", managerPrivacy.failureEvent("query-stream"));
-      throw error;
+      throw managerPrivacy.failure("query-stream", error);
     }
   }
 
@@ -1327,7 +1354,7 @@ class LLMManager extends EventEmitter {
       return await client.embeddings(text);
     } catch (error) {
       managerPrivacy.event("embeddings-failed");
-      throw error;
+      throw managerPrivacy.failure("embeddings", error);
     }
   }
 
@@ -1490,7 +1517,9 @@ class LLMManager extends EventEmitter {
     }
 
     managerPrivacy.event("web-search-chat-started");
-    return await this.toolsClient.chatWithWebSearch(messages, options);
+    return await runManagerOperation("chat", () =>
+      this.toolsClient.chatWithWebSearch(messages, options),
+    );
   }
 
   /**
@@ -1510,7 +1539,9 @@ class LLMManager extends EventEmitter {
     }
 
     managerPrivacy.event("image-chat-started");
-    return await this.toolsClient.chatWithImageProcess(messages, options);
+    return await runManagerOperation("chat", () =>
+      this.toolsClient.chatWithImageProcess(messages, options),
+    );
   }
 
   /**
@@ -1531,10 +1562,12 @@ class LLMManager extends EventEmitter {
     }
 
     managerPrivacy.event("knowledge-chat-started");
-    return await this.toolsClient.chatWithKnowledgeBase(
-      messages,
-      knowledgeBaseId,
-      options,
+    return await runManagerOperation("chat", () =>
+      this.toolsClient.chatWithKnowledgeBase(
+        messages,
+        knowledgeBaseId,
+        options,
+      ),
     );
   }
 
@@ -1556,10 +1589,8 @@ class LLMManager extends EventEmitter {
     }
 
     managerPrivacy.event("function-chat-started");
-    return await this.toolsClient.chatWithFunctionCalling(
-      messages,
-      functions,
-      options,
+    return await runManagerOperation("chat", () =>
+      this.toolsClient.chatWithFunctionCalling(messages, functions, options),
     );
   }
 
@@ -1580,7 +1611,9 @@ class LLMManager extends EventEmitter {
     }
 
     managerPrivacy.event("multi-tool-chat-started");
-    return await this.toolsClient.chatWithMultipleTools(messages, toolConfig);
+    return await runManagerOperation("chat", () =>
+      this.toolsClient.chatWithMultipleTools(messages, toolConfig),
+    );
   }
 
   // ========================================
@@ -1699,7 +1732,9 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    const config = await this.tokenTracker.getBudgetConfig(userId);
+    const config = await runManagerOperation("budget", () =>
+      this.tokenTracker.getBudgetConfig(userId),
+    );
     this.budgetConfig = config; // 缓存配置
     return config;
   }
@@ -1715,10 +1750,14 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    const result = await this.tokenTracker.saveBudgetConfig(userId, config);
+    const result = await runManagerOperation("budget", () =>
+      this.tokenTracker.saveBudgetConfig(userId, config),
+    );
 
     // 更新缓存
-    this.budgetConfig = await this.tokenTracker.getBudgetConfig(userId);
+    this.budgetConfig = await runManagerOperation("budget", () =>
+      this.tokenTracker.getBudgetConfig(userId),
+    );
 
     return result;
   }
@@ -1733,7 +1772,9 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    return await this.tokenTracker.getUsageStats(options);
+    return await runManagerOperation("budget", () =>
+      this.tokenTracker.getUsageStats(options),
+    );
   }
 
   /**
@@ -1746,7 +1787,9 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    return await this.tokenTracker.getTimeSeriesData(options);
+    return await runManagerOperation("budget", () =>
+      this.tokenTracker.getTimeSeriesData(options),
+    );
   }
 
   /**
@@ -1759,7 +1802,9 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    return await this.tokenTracker.getCostBreakdown(options);
+    return await runManagerOperation("budget", () =>
+      this.tokenTracker.getCostBreakdown(options),
+    );
   }
 
   /**
@@ -1772,7 +1817,9 @@ class LLMManager extends EventEmitter {
       throw new Error("Token 追踪未启用");
     }
 
-    return await this.tokenTracker.exportCostReport(options);
+    return await runManagerOperation("budget", () =>
+      this.tokenTracker.exportCostReport(options),
+    );
   }
 
   /**

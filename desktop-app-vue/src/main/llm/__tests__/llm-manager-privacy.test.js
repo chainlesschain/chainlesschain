@@ -56,6 +56,57 @@ describe("LLM manager privacy boundary", () => {
     });
   });
 
+  it("rebuilds caught failures without retaining private error content", () => {
+    const privacy = createLlmManagerPrivacy(sink);
+    const source = new Error("private provider response and prompt");
+    source.code = "PRIVATE_PROVIDER_CODE";
+    source.cause = { apiKey: "private-api-key" };
+
+    const failure = privacy.failure("query", source);
+
+    expect(failure).toMatchObject({
+      message: "LLM manager operation failed",
+      code: "CC_LLM_MANAGER_OPERATION_FAILED",
+      component: "manager",
+      operation: "query",
+    });
+    expect(failure).not.toBe(source);
+    expect(failure).not.toHaveProperty("cause");
+    expect(JSON.stringify(failure)).not.toContain("private");
+  });
+
+  it("preserves only the governed terminal code with fixed content", () => {
+    const privacy = createLlmManagerPrivacy(sink);
+    const source = new Error("private governed failure");
+    source.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+
+    expect(privacy.failure("chat-stream", source)).toMatchObject({
+      message: "Governed Desktop model request failed",
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      component: "manager",
+      operation: "chat-stream",
+    });
+  });
+
+  it("fails closed when an error object has hostile accessors", () => {
+    const privacy = createLlmManagerPrivacy(sink);
+    const source = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("private accessor failure");
+        },
+      },
+    );
+
+    expect(privacy.failure("embeddings", source)).toMatchObject({
+      message: "LLM manager operation failed",
+      code: "CC_LLM_MANAGER_OPERATION_FAILED",
+      component: "manager",
+      operation: "embeddings",
+    });
+  });
+
   it("prevents the manager from bypassing the boundary", () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, "..", "llm-manager.js"),
@@ -71,5 +122,6 @@ describe("LLM manager privacy boundary", () => {
     expect(source).not.toMatch(
       /emit\("(?:query-failed|chat-failed|chat-stream-failed|stream-failed)",\s*\{/u,
     );
+    expect(source).not.toMatch(/throw\s+(?:chatError|streamError)\s*;/u);
   });
 });
