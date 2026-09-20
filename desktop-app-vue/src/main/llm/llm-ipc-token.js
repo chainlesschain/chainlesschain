@@ -4,10 +4,11 @@
  *
  * @module llm/llm-ipc-token
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerTokenHandlers(ctx) {
   const { ipcMain, managerRef, database, tokenTracker, responseCache } = ctx;
+  const privacy = ctx.tokenPrivacy || createLlmIpcPrivacy("token");
 
   // ============================================================
   // Token 追踪与成本管理 (Token Tracking & Cost Management) - 8 handlers
@@ -68,9 +69,8 @@ function registerTokenHandlers(ctx) {
         cacheHitRate: parseFloat(cacheHitRate),
         avgResponseTime: Math.round(stats.avg_response_time || 0),
       };
-    } catch (error) {
-      logger.error("[LLM IPC] 获取使用统计失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-usage-stats");
     }
   });
 
@@ -138,9 +138,8 @@ function registerTokenHandlers(ctx) {
         costUsd: row.cost_usd || 0,
         costCny: row.cost_cny || 0,
       }));
-    } catch (error) {
-      logger.error("[LLM IPC] 获取时间序列数据失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-time-series");
     }
   });
 
@@ -217,9 +216,8 @@ function registerTokenHandlers(ctx) {
           costCny: row.cost_cny || 0,
         })),
       };
-    } catch (error) {
-      logger.error("[LLM IPC] 获取成本分解失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-cost-breakdown");
     }
   });
 
@@ -234,9 +232,8 @@ function registerTokenHandlers(ctx) {
       }
 
       return await tokenTracker.getBudgetConfig(userId);
-    } catch (error) {
-      logger.error("[LLM IPC] 获取预算配置失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-budget");
     }
   });
 
@@ -251,9 +248,8 @@ function registerTokenHandlers(ctx) {
       }
 
       return await tokenTracker.saveBudgetConfig(userId, config);
-    } catch (error) {
-      logger.error("[LLM IPC] 设置预算配置失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("set-budget");
     }
   });
 
@@ -268,9 +264,8 @@ function registerTokenHandlers(ctx) {
       }
 
       return await tokenTracker.exportCostReport(options);
-    } catch (error) {
-      logger.error("[LLM IPC] 导出成本报告失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("export-cost-report");
     }
   });
 
@@ -278,7 +273,7 @@ function registerTokenHandlers(ctx) {
    * 清除响应缓存
    * Channel: 'llm:clear-cache'
    */
-  ipcMain.handle("llm:clear-cache", async (_event) => {
+  ipcMain.handle("llm:clear-cache", async () => {
     try {
       if (!responseCache) {
         throw new Error("响应缓存未初始化");
@@ -286,9 +281,8 @@ function registerTokenHandlers(ctx) {
 
       const deletedCount = await responseCache.clear();
       return { success: true, deletedCount };
-    } catch (error) {
-      logger.error("[LLM IPC] 清除缓存失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("clear-cache");
     }
   });
 
@@ -296,16 +290,15 @@ function registerTokenHandlers(ctx) {
    * 获取缓存统计信息
    * Channel: 'llm:get-cache-stats'
    */
-  ipcMain.handle("llm:get-cache-stats", async (_event) => {
+  ipcMain.handle("llm:get-cache-stats", async () => {
     try {
       if (!responseCache) {
         throw new Error("响应缓存未初始化");
       }
 
       return await responseCache.getStats();
-    } catch (error) {
-      logger.error("[LLM IPC] 获取缓存统计失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-cache-stats");
     }
   });
 
@@ -321,12 +314,11 @@ function registerTokenHandlers(ctx) {
 
       const result = await managerRef.current.resumeService(userId);
 
-      logger.info("[LLM IPC] ✓ LLM 服务已恢复");
+      privacy.event("service-resumed");
 
       return result;
-    } catch (error) {
-      logger.error("[LLM IPC] 恢复 LLM 服务失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("resume-service");
     }
   });
 
@@ -334,7 +326,7 @@ function registerTokenHandlers(ctx) {
    * 暂停 LLM 服务（手动暂停）
    * Channel: 'llm:pause-service'
    */
-  ipcMain.handle("llm:pause-service", async (_event) => {
+  ipcMain.handle("llm:pause-service", async () => {
     try {
       if (!managerRef.current) {
         throw new Error("LLM 服务未初始化");
@@ -342,12 +334,11 @@ function registerTokenHandlers(ctx) {
 
       const result = await managerRef.current.pauseService();
 
-      logger.info("[LLM IPC] ✓ LLM 服务已暂停");
+      privacy.event("service-paused");
 
       return result;
-    } catch (error) {
-      logger.error("[LLM IPC] 暂停 LLM 服务失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("pause-service");
     }
   });
 
@@ -373,9 +364,8 @@ function registerTokenHandlers(ctx) {
           outputTokens,
           cachedTokens,
         );
-      } catch (error) {
-        logger.error("[LLM IPC] 计算成本估算失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("calculate-cost-estimate");
       }
     },
   );
@@ -393,9 +383,8 @@ function registerTokenHandlers(ctx) {
         }
 
         return await managerRef.current.canPerformOperation(estimatedTokens);
-      } catch (error) {
-        logger.error("[LLM IPC] 检查操作权限失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("can-perform-operation");
       }
     },
   );

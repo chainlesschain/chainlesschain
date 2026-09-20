@@ -4,10 +4,11 @@
  *
  * @module llm/llm-ipc-stream
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerStreamHandlers(ctx) {
   const { ipcMain, mainWindow, app } = ctx;
+  const privacy = ctx.streamPrivacy || createLlmIpcPrivacy("stream");
 
   // ============================================================
   // 流式输出控制 (Stream Control) - 6 handlers
@@ -79,19 +80,19 @@ function registerStreamHandlers(ctx) {
           }
         });
 
-        controller.on("stream-error", (data) => {
+        controller.on("stream-error", () => {
           if (mainWindow) {
             mainWindow.webContents.send("llm:stream-error", {
               controllerId,
-              ...data,
+              error: "LLM stream failed",
+              code: "CC_LLM_STREAM_FAILED",
             });
           }
         });
 
         return { controllerId, status: controller.status };
-      } catch (error) {
-        logger.error("[LLM IPC] 创建流控制器失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("create-stream-controller");
       }
     },
   );
@@ -110,9 +111,8 @@ function registerStreamHandlers(ctx) {
       controller.pause();
 
       return { success: true, status: controller.status };
-    } catch (error) {
-      logger.error("[LLM IPC] 暂停流失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("pause-stream");
     }
   });
 
@@ -130,9 +130,8 @@ function registerStreamHandlers(ctx) {
       controller.resume();
 
       return { success: true, status: controller.status };
-    } catch (error) {
-      logger.error("[LLM IPC] 恢复流失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("resume-stream");
     }
   });
 
@@ -150,9 +149,8 @@ function registerStreamHandlers(ctx) {
       controller.cancel(reason);
 
       return { success: true, status: controller.status };
-    } catch (error) {
-      logger.error("[LLM IPC] 取消流失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("cancel-stream");
     }
   });
 
@@ -170,9 +168,8 @@ function registerStreamHandlers(ctx) {
       const stats = controller.getStats();
 
       return stats;
-    } catch (error) {
-      logger.error("[LLM IPC] 获取流统计失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("get-stream-stats");
     }
   });
 
@@ -196,9 +193,8 @@ function registerStreamHandlers(ctx) {
         app.streamControllers.delete(controllerId);
 
         return { success: true };
-      } catch (error) {
-        logger.error("[LLM IPC] 销毁流控制器失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("destroy-stream-controller");
       }
     },
   );

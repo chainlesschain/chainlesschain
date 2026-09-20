@@ -4,10 +4,11 @@
  *
  * @module llm/llm-ipc-test-data
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerTestDataHandlers(ctx) {
   const { ipcMain, database } = ctx;
+  const privacy = ctx.testDataPrivacy || createLlmIpcPrivacy("test-data");
 
   // ============================================================
   // Test Data Generation (测试数据生成)
@@ -21,7 +22,7 @@ function registerTestDataHandlers(ctx) {
     const { days = 30, recordsPerDay = 50, clear = false } = options;
 
     if (!database) {
-      throw new Error("数据库未初始化");
+      throw privacy.failure("generate-test-data");
     }
 
     const { v4: uuidv4 } = require("uuid");
@@ -68,7 +69,7 @@ function registerTestDataHandlers(ctx) {
     try {
       if (clear) {
         database.prepare("DELETE FROM llm_usage_log").run();
-        logger.info("[LLM IPC] 已清除现有测试数据");
+        privacy.event("test-data-cleared");
       }
 
       const now = Date.now();
@@ -159,9 +160,7 @@ function registerTestDataHandlers(ctx) {
 
       insertMany(records);
 
-      logger.info(
-        `[LLM IPC] 测试数据生成完成: ${totalRecords} 条记录, ${totalTokens} tokens, $${totalCostUsd.toFixed(4)}`,
-      );
+      privacy.event("test-data-generated");
 
       return {
         success: true,
@@ -170,9 +169,8 @@ function registerTestDataHandlers(ctx) {
         totalCostUsd,
         totalCostCny: totalCostUsd * EXCHANGE_RATE,
       };
-    } catch (error) {
-      logger.error("[LLM IPC] 生成测试数据失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("generate-test-data");
     }
   });
 }

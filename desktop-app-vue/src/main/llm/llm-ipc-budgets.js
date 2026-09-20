@@ -4,10 +4,11 @@
  *
  * @module llm/llm-ipc-budgets
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerBudgetHandlers(ctx) {
   const { ipcMain, database } = ctx;
+  const privacy = ctx.budgetPrivacy || createLlmIpcPrivacy("budgets");
 
   // ============================================================
   // Model-specific Budgets (按模型预算)
@@ -37,8 +38,8 @@ function registerBudgetHandlers(ctx) {
           alertOnLimit: b.alert_on_limit === 1,
           blockOnLimit: b.block_on_limit === 1,
         }));
-      } catch (error) {
-        logger.error("[LLM IPC] 获取模型预算失败:", error);
+      } catch {
+        privacy.failure("get-model-budgets");
         return [];
       }
     },
@@ -92,9 +93,8 @@ function registerBudgetHandlers(ctx) {
       );
 
       return { success: true };
-    } catch (error) {
-      logger.error("[LLM IPC] 设置模型预算失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("set-model-budget");
     }
   });
 
@@ -117,9 +117,8 @@ function registerBudgetHandlers(ctx) {
           .run(userId, provider, model);
 
         return { success: true };
-      } catch (error) {
-        logger.error("[LLM IPC] 删除模型预算失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("delete-model-budget");
       }
     },
   );

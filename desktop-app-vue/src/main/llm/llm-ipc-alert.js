@@ -4,29 +4,28 @@
  *
  * @module llm/llm-ipc-alert
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 /**
  * Tolerant JSON column parse — a single alert with a corrupt details string must
  * not throw out of the .map and drop the whole alert list. The
  * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
  */
-function safeParse(raw, fallback) {
+function safeParse(raw, fallback, privacy) {
   if (raw == null || raw === "") {
     return fallback;
   }
   try {
     return JSON.parse(raw);
-  } catch (err) {
-    logger.warn(
-      `[LlmIpcAlert] Bad JSON column, using fallback: ${err.message}`,
-    );
+  } catch {
+    privacy.event("malformed-storage-json");
     return fallback;
   }
 }
 
 function registerAlertHandlers(ctx) {
   const { ipcMain, database } = ctx;
+  const privacy = ctx.alertPrivacy || createLlmIpcPrivacy("alert");
 
   // ============================================================
   // Alert History (告警历史)
@@ -71,11 +70,11 @@ function registerAlertHandlers(ctx) {
 
       return alerts.map((alert) => ({
         ...alert,
-        details: safeParse(alert.details, null),
+        details: safeParse(alert.details, null, privacy),
         dismissed: alert.dismissed === 1,
       }));
-    } catch (error) {
-      logger.error("[LLM IPC] 获取告警历史失败:", error);
+    } catch {
+      privacy.failure("get-alert-history");
       return [];
     }
   });
@@ -118,9 +117,8 @@ function registerAlertHandlers(ctx) {
       );
 
       return { success: true, id };
-    } catch (error) {
-      logger.error("[LLM IPC] 添加告警失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("add-alert");
     }
   });
 
@@ -146,9 +144,8 @@ function registerAlertHandlers(ctx) {
         update.run(now, dismissedBy, now, alertId);
 
         return { success: true };
-      } catch (error) {
-        logger.error("[LLM IPC] 忽略告警失败:", error);
-        throw error;
+      } catch {
+        throw privacy.failure("dismiss-alert");
       }
     },
   );
@@ -179,9 +176,8 @@ function registerAlertHandlers(ctx) {
       }
 
       return { success: true };
-    } catch (error) {
-      logger.error("[LLM IPC] 清除告警历史失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("clear-alert-history");
     }
   });
 }

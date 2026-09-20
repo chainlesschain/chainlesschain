@@ -4,10 +4,11 @@
  *
  * @module llm/llm-ipc-retention
  */
-const { logger } = require("../utils/logger.js");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 function registerRetentionHandlers(ctx) {
   const { ipcMain, database } = ctx;
+  const privacy = ctx.retentionPrivacy || createLlmIpcPrivacy("retention");
 
   // ============================================================
   // Data Retention (数据保留设置)
@@ -40,8 +41,8 @@ function registerRetentionHandlers(ctx) {
         }
 
         return null;
-      } catch (error) {
-        logger.error("[LLM IPC] 获取数据保留配置失败:", error);
+      } catch {
+        privacy.failure("get-retention-config");
         return null;
       }
     },
@@ -81,9 +82,8 @@ function registerRetentionHandlers(ctx) {
         );
 
       return { success: true };
-    } catch (error) {
-      logger.error("[LLM IPC] 设置数据保留配置失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("set-retention-config");
     }
   });
 
@@ -157,12 +157,11 @@ function registerRetentionHandlers(ctx) {
         )
         .run(now, now, userId);
 
-      logger.info("[LLM IPC] 数据清理完成:", deletedCounts);
+      privacy.event("data-cleanup-completed");
 
       return { success: true, deletedCounts };
-    } catch (error) {
-      logger.error("[LLM IPC] 清理旧数据失败:", error);
-      throw error;
+    } catch {
+      throw privacy.failure("cleanup-old-data");
     }
   });
 }

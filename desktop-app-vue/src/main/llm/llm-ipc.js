@@ -6,8 +6,8 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
-const { logger } = require("../utils/logger.js");
 const defaultIpcGuard = require("../ipc/ipc-guard");
+const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
 
 /**
  * 🔥 检测任务类型（用于 Multi-Agent 路由）
@@ -18,8 +18,6 @@ function detectTaskType(content) {
   if (!content || typeof content !== "string") {
     return "general";
   }
-
-  const lowerContent = content.toLowerCase();
 
   // 代码相关任务
   if (
@@ -105,17 +103,18 @@ function registerLLMIPC({
 }) {
   // 支持依赖注入，用于测试
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
+  const privacy = createLlmIpcPrivacy("bootstrap");
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("llm-ipc")) {
-    logger.info("[LLM IPC] Handlers already registered, skipping...");
+    privacy.event("handlers-already-registered");
     return;
   }
 
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  logger.info("[LLM IPC] Registering LLM IPC handlers...");
+  privacy.event("handlers-registering");
 
   // 🔥 在测试模式下，如果 llmManager 为 null，创建 Mock LLM 服务
   let effectiveManager = llmManager;
@@ -123,14 +122,14 @@ function registerLLMIPC({
     process.env.NODE_ENV === "test" && process.env.MOCK_LLM === "true";
 
   if (isTestMode && !effectiveManager) {
-    logger.info("[LLM IPC] 测试模式且无 LLM Manager，创建 Mock LLM 服务");
+    privacy.event("mock-service-create-started");
     try {
       const { getTestModeConfig } = require("../config/test-mode-config");
       const testModeConfig = getTestModeConfig();
       effectiveManager = testModeConfig.getMockLLMService();
-      logger.info("[LLM IPC] ✓ Mock LLM 服务已创建");
-    } catch (error) {
-      logger.error("[LLM IPC] 创建 Mock LLM 服务失败:", error);
+      privacy.event("mock-service-created");
+    } catch {
+      privacy.event("mock-service-create-failed");
     }
   }
 
@@ -171,9 +170,7 @@ function registerLLMIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("llm-ipc");
 
-  logger.info(
-    "[LLM IPC] ✓ All LLM IPC handlers registered successfully (44 handlers: 14 basic + 6 stream + 13 token tracking + 4 alerts + 4 model budgets + 3 retention)",
-  );
+  privacy.event("handlers-registered");
 }
 
 module.exports = {
