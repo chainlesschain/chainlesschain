@@ -23,6 +23,10 @@ afterEach(() => {
   managerModule._setLLMManagerInstance(null);
 });
 
+function allowCoreAuthorization() {
+  return { authorize: vi.fn(async () => Object.freeze({})) };
+}
+
 describe("native IPC configuration authority continuity", () => {
   it("routes image blocks to the multimodal Run bridge instead of text projection", async () => {
     const factory = vi.fn(async () => ({}));
@@ -127,6 +131,7 @@ describe("native IPC configuration authority continuity", () => {
       mcpClientManager: { getConnectedServers: () => ["test"] },
       mcpToolAdapter: {},
       errorMonitor: { analyzeError: vi.fn() },
+      coreAuthorization: allowCoreAuthorization(),
     });
 
     await expect(
@@ -199,6 +204,7 @@ describe("native IPC configuration authority continuity", () => {
         managerRef: { current: manager },
         detectTaskType: () => "code",
         errorMonitor,
+        coreAuthorization: allowCoreAuthorization(),
       };
       let execute;
       if (mode.startsWith("mcp")) {
@@ -286,6 +292,7 @@ describe("native IPC configuration authority continuity", () => {
         responseCache: cache,
         promptCompressor: compressor,
         errorMonitor,
+        coreAuthorization: allowCoreAuthorization(),
       });
       const request = {
         messages: Array.from({ length: 6 }, (_, i) => ({
@@ -509,6 +516,7 @@ describe("native IPC configuration authority continuity", () => {
         app,
         database: {},
         getLLMConfig: () => storedConfig,
+        coreAuthorization: allowCoreAuthorization(),
       };
       registerCoreHandlers(ctx);
       registerSelectorHandlers(ctx);

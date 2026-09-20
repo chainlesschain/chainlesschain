@@ -85,6 +85,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
         sessionManager,
         agentOrchestrator,
         errorMonitor,
+        didManager: didManager || null,
       });
       if (!llmManager) {
         logger.info(

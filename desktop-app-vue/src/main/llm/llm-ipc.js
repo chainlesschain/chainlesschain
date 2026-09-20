@@ -8,6 +8,9 @@
 
 const defaultIpcGuard = require("../ipc/ipc-guard");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const {
+  createLlmCoreIpcAuthorization,
+} = require("./llm-core-ipc-authorization");
 
 /**
  * 🔥 检测任务类型（用于 Multi-Agent 路由）
@@ -98,6 +101,9 @@ function registerLLMIPC({
   sessionManager,
   agentOrchestrator,
   errorMonitor,
+  didManager,
+  authorizeCorePurpose,
+  coreAuthorization: injectedCoreAuthorization,
   // 依赖注入支持（用于测试）
   ipcGuard: injectedIpcGuard,
 }) {
@@ -135,6 +141,13 @@ function registerLLMIPC({
 
   // 创建一个可变的引用容器
   const managerRef = { current: effectiveManager };
+  const coreAuthorization =
+    injectedCoreAuthorization ||
+    createLlmCoreIpcAuthorization({
+      getMainWindow: () => mainWindow,
+      getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+      authorizePurpose: authorizeCorePurpose,
+    });
 
   const ctx = {
     ipcMain,
@@ -156,6 +169,7 @@ function registerLLMIPC({
     sessionManager,
     agentOrchestrator,
     errorMonitor,
+    coreAuthorization,
   };
 
   registerCoreHandlers(ctx);

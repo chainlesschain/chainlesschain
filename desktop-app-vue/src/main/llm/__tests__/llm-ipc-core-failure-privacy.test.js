@@ -31,6 +31,7 @@ describe("LLM core IPC failure privacy", () => {
       isTestMode: false,
       getLLMConfig,
       llmPrivacy: createLlmIpcPrivacy("core", sink),
+      coreAuthorization: { authorize: vi.fn(async () => Object.freeze({})) },
     });
   });
 

@@ -204,6 +204,7 @@ describe("LLM Service IPC", () => {
       app: mockApp,
       ipcMain: mockIpcMain,
       ipcGuard: mockIpcGuard,
+      coreAuthorization: { authorize: vi.fn(async () => Object.freeze({})) },
     });
   });
 

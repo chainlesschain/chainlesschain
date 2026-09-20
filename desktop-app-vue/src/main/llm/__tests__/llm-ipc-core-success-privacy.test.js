@@ -17,6 +17,10 @@ function request(overrides = {}) {
   };
 }
 
+function allowCoreAuthorization() {
+  return { authorize: vi.fn(async () => Object.freeze({})) };
+}
+
 describe("LLM core IPC success privacy", () => {
   let handlers;
   let sent;
@@ -89,6 +93,7 @@ describe("LLM core IPC success privacy", () => {
       detectTaskType: () => "general",
       isTestMode: true,
       mainWindow: { webContents: { send: sent } },
+      coreAuthorization: allowCoreAuthorization(),
     });
   });
 
@@ -170,6 +175,7 @@ describe("LLM core IPC success privacy", () => {
       managerRef: { current: manager },
       detectTaskType: () => "general",
       agentOrchestrator,
+      coreAuthorization: allowCoreAuthorization(),
     });
 
     const result = await handlers.get("llm:chat")(
@@ -211,6 +217,7 @@ describe("LLM core IPC success privacy", () => {
       managerRef: { current: manager },
       detectTaskType: () => "general",
       responseCache,
+      coreAuthorization: allowCoreAuthorization(),
     });
 
     const result = await handlers.get("llm:chat")(

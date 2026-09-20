@@ -63,6 +63,23 @@ function registerCoreHandlers(ctx) {
     errorMonitor,
   } = ctx;
   const privacy = ctx.llmPrivacy || createLlmIpcPrivacy("core");
+  const authorization = ctx.coreAuthorization;
+  if (!authorization || typeof authorization.authorize !== "function") {
+    throw new TypeError("LLM core IPC authorization is required");
+  }
+  const authorizedIpcMain = {
+    handle(channel, handler) {
+      const operation = channel.replace(/^llm:/u, "");
+      ipcMain.handle(channel, async (event, ...args) => {
+        try {
+          await authorization.authorize(event, operation);
+        } catch {
+          throw privacy.authorizationFailure(operation);
+        }
+        return handler(event, ...args);
+      });
+    },
+  };
 
   // ============================================================
   // 基础 LLM 服务
@@ -72,7 +89,7 @@ function registerCoreHandlers(ctx) {
    * 检查 LLM 服务状态
    * Channel: 'llm:check-status'
    */
-  ipcMain.handle("llm:check-status", async () => {
+  authorizedIpcMain.handle("llm:check-status", async () => {
     try {
       if (!managerRef.current) {
         return {
@@ -91,22 +108,25 @@ function registerCoreHandlers(ctx) {
    * LLM 查询（简单文本）
    * Channel: 'llm:query'
    */
-  ipcMain.handle("llm:query", async (_event, prompt, options = {}) => {
-    try {
-      if (!managerRef.current) {
-        throw new Error("LLM服务未初始化");
-      }
+  authorizedIpcMain.handle(
+    "llm:query",
+    async (_event, prompt, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("LLM服务未初始化");
+        }
 
-      return projectModelResponse(
-        await managerRef.current.query(prompt, options),
-      );
-    } catch (error) {
-      if (isGovernanceIngressFailure(error)) {
-        throw privacy.governanceFailure("query");
+        return projectModelResponse(
+          await managerRef.current.query(prompt, options),
+        );
+      } catch (error) {
+        if (isGovernanceIngressFailure(error)) {
+          throw privacy.governanceFailure("query");
+        }
+        throw privacy.failure("query");
       }
-      throw privacy.failure("query");
-    }
-  });
+    },
+  );
 
   /**
    * LLM 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
@@ -119,7 +139,7 @@ function registerCoreHandlers(ctx) {
    *
    * Channel: 'llm:chat'
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "llm:chat",
     async (
       _event,
@@ -918,7 +938,7 @@ function registerCoreHandlers(ctx) {
    * 使用提示词模板进行聊天
    * Channel: 'llm:chat-with-template'
    */
-  ipcMain.handle(
+  authorizedIpcMain.handle(
     "llm:chat-with-template",
     async (_event, { templateId, variables, messages = [], ...options }) => {
       try {
@@ -978,40 +998,43 @@ function registerCoreHandlers(ctx) {
    * LLM 流式查询
    * Channel: 'llm:query-stream'
    */
-  ipcMain.handle("llm:query-stream", async (_event, prompt, options = {}) => {
-    try {
-      if (!managerRef.current) {
-        throw new Error("LLM服务未初始化");
-      }
+  authorizedIpcMain.handle(
+    "llm:query-stream",
+    async (_event, prompt, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("LLM服务未初始化");
+        }
 
-      // 流式响应通过事件发送
-      const result = await managerRef.current.queryStream(
-        prompt,
-        (chunk, fullText) => {
-          if (mainWindow) {
-            mainWindow.webContents.send(
-              "llm:stream-chunk",
-              projectStreamChunk(chunk, fullText),
-            );
-          }
-        },
-        options,
-      );
+        // 流式响应通过事件发送
+        const result = await managerRef.current.queryStream(
+          prompt,
+          (chunk, fullText) => {
+            if (mainWindow) {
+              mainWindow.webContents.send(
+                "llm:stream-chunk",
+                projectStreamChunk(chunk, fullText),
+              );
+            }
+          },
+          options,
+        );
 
-      return projectModelResponse(result);
-    } catch (error) {
-      if (isGovernanceIngressFailure(error)) {
-        throw privacy.governanceFailure("query-stream");
+        return projectModelResponse(result);
+      } catch (error) {
+        if (isGovernanceIngressFailure(error)) {
+          throw privacy.governanceFailure("query-stream");
+        }
+        throw privacy.failure("query-stream");
       }
-      throw privacy.failure("query-stream");
-    }
-  });
+    },
+  );
 
   /**
    * 获取 LLM 配置
    * Channel: 'llm:get-config'
    */
-  ipcMain.handle("llm:get-config", async () => {
+  authorizedIpcMain.handle("llm:get-config", async () => {
     try {
       const llmConfig = getConfiguration();
       return projectLlmConfigForRenderer(llmConfig.getAll());
@@ -1024,7 +1047,7 @@ function registerCoreHandlers(ctx) {
    * 设置 LLM 配置
    * Channel: 'llm:set-config'
    */
-  ipcMain.handle("llm:set-config", async (_event, config) => {
+  authorizedIpcMain.handle("llm:set-config", async (_event, config) => {
     try {
       const llmConfig = getConfiguration();
       const submittedConfig = mergeLlmConfigWrite(config, llmConfig.getAll());
@@ -1092,7 +1115,7 @@ function registerCoreHandlers(ctx) {
    * 列出可用模型
    * Channel: 'llm:list-models'
    */
-  ipcMain.handle("llm:list-models", async () => {
+  authorizedIpcMain.handle("llm:list-models", async () => {
     try {
       if (!managerRef.current) {
         return [];
@@ -1109,24 +1132,27 @@ function registerCoreHandlers(ctx) {
    * 清除对话上下文
    * Channel: 'llm:clear-context'
    */
-  ipcMain.handle("llm:clear-context", async (_event, conversationId) => {
-    try {
-      if (!managerRef.current) {
-        throw new Error("LLM服务未初始化");
-      }
+  authorizedIpcMain.handle(
+    "llm:clear-context",
+    async (_event, conversationId) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("LLM服务未初始化");
+        }
 
-      managerRef.current.clearContext(conversationId);
-      return true;
-    } catch {
-      throw privacy.failure("clear-context");
-    }
-  });
+        managerRef.current.clearContext(conversationId);
+        return true;
+      } catch {
+        throw privacy.failure("clear-context");
+      }
+    },
+  );
 
   /**
    * 生成文本嵌入（Embeddings）
    * Channel: 'llm:embeddings'
    */
-  ipcMain.handle("llm:embeddings", async (_event, text) => {
+  authorizedIpcMain.handle("llm:embeddings", async (_event, text) => {
     try {
       if (!managerRef.current) {
         throw new Error("LLM服务未初始化");

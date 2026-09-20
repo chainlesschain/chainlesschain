@@ -167,6 +167,15 @@ function createLlmIpcPrivacy(component, sink = logger) {
         safeDetails,
       );
     },
+    authorizationFailure(operation) {
+      const safeDetails = details(operation);
+      sink.error("[LLM IPC] authorization failed", safeDetails);
+      return fixedError(
+        "LLM IPC request is not authorized",
+        "CC_LLM_IPC_UNAUTHORIZED",
+        safeDetails,
+      );
+    },
     governanceFailure(operation) {
       const safeDetails = details(operation);
       sink.error("[LLM IPC] governed operation failed", safeDetails);
