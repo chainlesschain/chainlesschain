@@ -11,7 +11,7 @@
 
 ## 批次导航
 
-[第 1–25 批](#batch-1-25) | [第 26–50 批](#batch-26-50) | [第 51–75 批](#batch-51-75) | [第 76–100 批](#batch-76-100) | [第 101–125 批](#batch-101-125) | [第 126–148 批](#batch-126-148)
+[第 1–25 批](#batch-1-25) | [第 26–50 批](#batch-26-50) | [第 51–75 批](#batch-51-75) | [第 76–100 批](#batch-76-100) | [第 101–125 批](#batch-101-125) | [第 126–149 批](#batch-126-149)
 
 <a id="batch-1-25"></a>
 
@@ -173,9 +173,9 @@
 | 124  | 2026-09-20 | [第一百二十四次工程实施：Plugin Sandbox Console 源头脱敏](./rsiagent-one-hundred-twenty-fourth-batch-implementation-2026-09-20.md)   |
 | 125  | 2026-09-20 | [第一百二十五次工程实施：Plugin 第三方依赖隔离加载](./rsiagent-one-hundred-twenty-fifth-batch-implementation-2026-09-20.md)          |
 
-<a id="batch-126-148"></a>
+<a id="batch-126-149"></a>
 
-## 第 126–148 批
+## 第 126–149 批
 
 | 批次 | 日期       | 实施记录                                                                                                                                 |
 | ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -202,3 +202,4 @@
 | 146  | 2026-09-20 | [第一百四十六次工程实施：Secure Storage 原子提交与认证恢复](./rsiagent-one-hundred-forty-sixth-batch-implementation-2026-09-20.md)       |
 | 147  | 2026-09-20 | [第一百四十七次工程实施：Secure Storage 有界备份与恢复清单](./rsiagent-one-hundred-forty-seventh-batch-implementation-2026-09-20.md)     |
 | 148  | 2026-09-20 | [第一百四十八次工程实施：Secure Storage 跨进程 Owner Fence](./rsiagent-one-hundred-forty-eighth-batch-implementation-2026-09-20.md)      |
+| 149  | 2026-09-20 | [第一百四十九次工程实施：LLM Core 成功回执白名单投影](./rsiagent-one-hundred-forty-ninth-batch-implementation-2026-09-20.md)             |

@@ -9,6 +9,17 @@ const {
   projectLlmConfigForRenderer,
 } = require("./llm-config-projection");
 const { createLlmIpcPrivacy } = require("./llm-ipc-privacy");
+const {
+  boundedNumber,
+  boundedString,
+  ownData,
+  projectEmbedding,
+  projectModelResponse,
+  projectModels,
+  projectRetrievedDocs,
+  projectStatus,
+  projectStreamChunk,
+} = require("./llm-ipc-success-projection");
 
 function isGovernanceIngressFailure(error) {
   try {
@@ -16,6 +27,18 @@ function isGovernanceIngressFailure(error) {
   } catch {
     return false;
   }
+}
+
+function projectIntegrationResults(value) {
+  const sessionId = boundedString(value.sessionId);
+  return {
+    sessionUsed: value.sessionUsed === true,
+    ...(sessionId === undefined ? {} : { sessionId }),
+    manusOptimized: value.manusOptimized === true,
+    multiAgentRouted: value.multiAgentRouted === true,
+    agentUsed: value.agentUsed !== null,
+    errorPrechecked: value.errorPrechecked === true,
+  };
 }
 
 function registerCoreHandlers(ctx) {
@@ -58,7 +81,7 @@ function registerCoreHandlers(ctx) {
         };
       }
 
-      return await managerRef.current.checkStatus();
+      return projectStatus(await managerRef.current.checkStatus());
     } catch {
       return privacy.unavailable("check-status");
     }
@@ -74,7 +97,9 @@ function registerCoreHandlers(ctx) {
         throw new Error("LLM服务未初始化");
       }
 
-      return await managerRef.current.query(prompt, options);
+      return projectModelResponse(
+        await managerRef.current.query(prompt, options),
+      );
     } catch (error) {
       if (isGovernanceIngressFailure(error)) {
         throw privacy.governanceFailure("query");
@@ -268,18 +293,18 @@ function registerCoreHandlers(ctx) {
                       });
                     }
 
+                    const projectedAgentResponse = projectModelResponse({
+                      text: agentResult.response,
+                      usage: agentResult.usage,
+                    });
                     return {
-                      content: agentResult.response,
-                      message: {
-                        role: "assistant",
-                        content: agentResult.response,
-                      },
-                      usage: agentResult.usage || { total_tokens: 0 },
+                      content: projectedAgentResponse.content,
+                      message: projectedAgentResponse.message,
+                      usage: projectedAgentResponse.usage,
                       retrievedDocs: [],
                       wasCached: false,
                       wasCompressed: false,
-                      ...integrationResults,
-                      agentResult: agentResult,
+                      ...projectIntegrationResults(integrationResults),
                     };
                   }
                 } catch (agentError) {
@@ -334,19 +359,16 @@ function registerCoreHandlers(ctx) {
               }
 
               // 返回缓存的响应
+              const projectedCachedResponse = projectModelResponse(
+                cached.response,
+              );
               return {
-                content: cached.response.content || cached.response.text || "",
-                message: cached.response.message || {
-                  role: "assistant",
-                  content:
-                    cached.response.content || cached.response.text || "",
-                },
-                usage: cached.response.usage || {
-                  total_tokens: 0,
-                },
+                content: projectedCachedResponse.content,
+                message: projectedCachedResponse.message,
+                usage: projectedCachedResponse.usage,
                 wasCached: true,
-                tokensSaved: cached.tokensSaved,
-                cacheAge: cached.cacheAge,
+                tokensSaved: boundedNumber(cached.tokensSaved) ?? 0,
+                cacheAge: boundedNumber(cached.cacheAge) ?? 0,
                 retrievedDocs: [],
               };
             }
@@ -852,40 +874,34 @@ function registerCoreHandlers(ctx) {
         }
 
         // 构建最终响应
+        const projectedResponse = projectModelResponse(response);
         const finalResponse = {
-          content: response.text,
-          message: response.message || {
-            role: "assistant",
-            content: response.text,
-          },
-          usage: response.usage || {
-            total_tokens: response.tokens || 0,
-          },
+          content: projectedResponse.content,
+          message: projectedResponse.message,
+          usage: projectedResponse.usage,
           // 返回检索到的知识库文档，供前端展示引用
-          retrievedDocs: retrievedDocs.map((doc) => ({
-            id: doc.id,
-            title: doc.title,
-            content: doc.content.substring(0, 200), // 只返回摘要
-            score: doc.score,
-          })),
+          retrievedDocs: projectRetrievedDocs(retrievedDocs),
           // 🔥 优化信息
-          wasCached: response.wasCached === true,
+          wasCached: ownData(response, "wasCached") === true,
           wasCompressed:
-            response.wasCompressed === true || compressionResult !== null,
+            ownData(response, "wasCompressed") === true ||
+            compressionResult !== null,
           compressionRatio:
-            response.compressionRatio ??
-            compressionResult?.compressionRatio ??
+            boundedNumber(ownData(response, "compressionRatio")) ??
+            boundedNumber(ownData(compressionResult, "compressionRatio")) ??
             1.0,
           tokensSaved:
-            response.tokensSaved ?? compressionResult?.tokensSaved ?? 0,
-          optimizationStrategy: compressionResult?.strategy || "none",
+            boundedNumber(ownData(response, "tokensSaved")) ??
+            boundedNumber(ownData(compressionResult, "tokensSaved")) ??
+            0,
+          optimizationStrategy:
+            boundedString(ownData(compressionResult, "strategy"), 64) || "none",
           // 🔥 MCP 工具使用信息
           usedMCPTools: usedMCPTools,
           mcpToolsAvailable: mcpFunctions.length,
           // 🔥 高级特性集成信息
-          ...integrationResults,
-          // Manus 优化详情（如果启用）
-          promptOptimization: response.promptOptimization || null,
+          ...projectIntegrationResults(integrationResults),
+          promptOptimized: ownData(response, "promptOptimization") != null,
         };
 
         return finalResponse;
@@ -946,9 +962,8 @@ function registerCoreHandlers(ctx) {
         ];
 
         // 调用标准的聊天方法
-        return await managerRef.current.chatWithMessages(
-          enhancedMessages,
-          options,
+        return projectModelResponse(
+          await managerRef.current.chatWithMessages(enhancedMessages, options),
         );
       } catch (error) {
         if (isGovernanceIngressFailure(error)) {
@@ -974,17 +989,16 @@ function registerCoreHandlers(ctx) {
         prompt,
         (chunk, fullText) => {
           if (mainWindow) {
-            mainWindow.webContents.send("llm:stream-chunk", {
-              chunk,
-              fullText,
-              conversationId: options.conversationId,
-            });
+            mainWindow.webContents.send(
+              "llm:stream-chunk",
+              projectStreamChunk(chunk, fullText),
+            );
           }
         },
         options,
       );
 
-      return result;
+      return projectModelResponse(result);
     } catch (error) {
       if (isGovernanceIngressFailure(error)) {
         throw privacy.governanceFailure("query-stream");
@@ -1084,7 +1098,7 @@ function registerCoreHandlers(ctx) {
         return [];
       }
 
-      return await managerRef.current.listModels();
+      return projectModels(await managerRef.current.listModels());
     } catch {
       privacy.failure("list-models");
       return [];
@@ -1118,7 +1132,7 @@ function registerCoreHandlers(ctx) {
         throw new Error("LLM服务未初始化");
       }
 
-      return await managerRef.current.embeddings(text);
+      return projectEmbedding(await managerRef.current.embeddings(text));
     } catch (error) {
       if (isGovernanceIngressFailure(error)) {
         throw privacy.governanceFailure("embeddings");
