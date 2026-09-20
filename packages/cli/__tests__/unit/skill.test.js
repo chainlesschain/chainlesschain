@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -153,7 +153,7 @@ describe("skill command", () => {
       expect(routed.candidates[0].digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
       expect(routed.candidates[0].reason).toContain("bm25=");
       expect(routed.outcomeAuthority).toMatchObject({
-        schema: "chainlesschain.skill-outcome-transcript-authority/v1",
+        schema: "chainlesschain.skill-outcome-transcript-authority/v2",
         status: expect.stringMatching(/^(verified|unavailable)$/u),
       });
     });

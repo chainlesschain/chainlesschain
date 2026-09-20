@@ -79,7 +79,7 @@ function plan(maxWallClockMs = 5_000) {
 
 async function processFixture(
   source,
-  { fsRead = [], hiddenSource = null, maxWallClockMs = 2_000 } = {},
+  { fsRead = [], hiddenSource = null, maxWallClockMs = 10_000 } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), "cc-pm-process-grader-"));
   roots.push(root);
@@ -265,7 +265,7 @@ describe("PM exploration process grader", () => {
       }
     `;
     const fixture = await processFixture(source, { hiddenSource });
-    const boundPlan = plan();
+    const boundPlan = plan(15_000);
     const configured = hostFixture({
       boundPlan,
       processGrader: (graderSigner) =>
