@@ -10,14 +10,17 @@ const ipcMain = {
 
 const originalLoad = Module._load;
 Module._load = function loadWithElectronMock(request, parent, isMain) {
-  if (request === "electron") return { ipcMain };
+  if (request === "electron") {
+    return { ipcMain };
+  }
   return originalLoad.call(this, request, parent, isMain);
 };
 
+const permanentMemoryIPC = require("../../llm/permanent-memory-ipc.js");
 const {
   registerPermanentMemoryIPC,
   unregisterPermanentMemoryIPC,
-} = require("../../llm/permanent-memory-ipc.js");
+} = permanentMemoryIPC;
 Module._load = originalLoad;
 
 const STAGE_ENV = "CHAINLESSCHAIN_CONTEXT_MEMORY_DESKTOP_STAGE";
@@ -37,11 +40,41 @@ beforeEach(() => {
 
 afterEach(() => {
   unregisterPermanentMemoryIPC();
-  if (originalStage === undefined) delete process.env[STAGE_ENV];
-  else process.env[STAGE_ENV] = originalStage;
+  if (originalStage === undefined) {
+    delete process.env[STAGE_ENV];
+  } else {
+    process.env[STAGE_ENV] = originalStage;
+  }
 });
 
 describe("PermanentMemory IPC canonical cutover", () => {
+  it("registers only the renderer-consumed permanent memory routes", () => {
+    registerPermanentMemoryIPC(null, { canonicalMemory: {} });
+
+    expect([...handlers.keys()].sort()).toEqual(
+      [
+        "memory:append-to-memory",
+        "memory:clear-embedding-cache",
+        "memory:extract-from-conversation",
+        "memory:extract-from-session",
+        "memory:get-index-stats",
+        "memory:get-memory-sections",
+        "memory:get-recent-daily-notes",
+        "memory:get-stats",
+        "memory:read-daily-note",
+        "memory:read-memory",
+        "memory:rebuild-index",
+        "memory:save-to-memory",
+        "memory:search",
+        "memory:update-memory",
+        "memory:write-daily-note",
+      ].sort(),
+    );
+    expect(Object.keys(permanentMemoryIPC).sort()).toEqual(
+      ["registerPermanentMemoryIPC", "unregisterPermanentMemoryIPC"].sort(),
+    );
+  });
+
   it("routes production reads and writes to the canonical adapter", async () => {
     const permanentMemory = {
       writeDailyNote: vi.fn(),
@@ -78,7 +111,6 @@ describe("PermanentMemory IPC canonical cutover", () => {
   it("keeps canonical routes available without a legacy manager", async () => {
     const canonicalMemory = {
       readMemory: vi.fn().mockResolvedValue("canonical only"),
-      getTodayDate: vi.fn().mockReturnValue("2026-08-30"),
     };
     registerPermanentMemoryIPC(null, { canonicalMemory });
 
@@ -86,18 +118,6 @@ describe("PermanentMemory IPC canonical cutover", () => {
       success: true,
       canonical: true,
       content: "canonical only",
-    });
-    await expect(handlers.get("memory:get-today-date")({})).resolves.toEqual({
-      success: true,
-      canonical: true,
-      date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/u),
-    });
-    await expect(
-      handlers.get("memory:get-embedding-cache-stats")({}),
-    ).resolves.toMatchObject({
-      success: true,
-      canonical: true,
-      stats: { authority: "context_memory_kernel" },
     });
   });
 });

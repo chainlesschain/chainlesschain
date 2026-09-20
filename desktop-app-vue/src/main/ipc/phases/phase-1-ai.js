@@ -100,7 +100,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     continueMessage: "Continuing with other IPC registrations...",
   });
 
-  // PermanentMemory 永久记忆管理 (Clawdbot 风格, 7 handlers)
+  // PermanentMemory 永久记忆管理 (Clawdbot 风格, 15 handlers)
   safeRegister("PermanentMemory IPC", {
     register: () => {
       const {
@@ -116,7 +116,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
         );
       }
     },
-    handlers: 7,
+    handlers: 15,
     continueMessage: "Continuing with other IPC registrations...",
   });
 
