@@ -1,12 +1,12 @@
 # Desktop 模型治理与失败闭合
 
-> 适用范围：源码 `main@5da428687f`；公开 CLI `0.166.68@815fdbc0c4`、Open VSX `0.37.110@5860f1e4a4`、JetBrains `0.4.131@5860f1e4a4`（2026-09-20）
+> 适用范围：源码 `main@8e7c45e32e`；公开 CLI `0.166.68@815fdbc0c4`、Open VSX `0.37.110@5860f1e4a4`、JetBrains `0.4.131@5860f1e4a4`（2026-09-20）
 >
-> 发布边界：本页 `ad7567214f`–`5da428687f` 的 Desktop Electron IPC 与安全配置增量晚于当前公共 npm/IDE 制品，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
+> 发布边界：本页 `ad7567214f`–`8e7c45e32e` 的 Desktop Electron IPC 与安全配置增量晚于当前公共 npm/IDE 制品，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
 
 ## 概述
 
-源码 `main@5da428687f` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量尚未进入公开 Desktop native 安装包。
+源码 `main@8e7c45e32e` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量尚未进入公开 Desktop native 安装包。
 
 桌面端的模型请求不再只治理“聊天”入口。普通对话、流式输出、函数工具、多模态、记忆摘要等已接入同一受治理 Run；已识别但尚无可信桥接的旧 embedding、reranker、媒体、项目、文档和 RAG 直连会在发送数据前拒绝。
 
@@ -18,6 +18,7 @@
 - **备份清单**：默认保留最新 10 份，可配置为 1–100。系统只列出严格命名、位于真实备份目录、非符号链接且不超过 16 MiB 的普通文件；恢复只能选择该清单中的路径，裁剪旧备份失败时本次新备份也会撤销。
 - **跨进程写入保护**：同一配置目标由包含进程身份、启动时间、随机 nonce 和目标摘要的 owner 记录互斥。进程退出后，下一写入者必须先取得 recovery fence、复核 owner 未变化且原进程确已死亡，才会回收旧锁。
 - **成功结果最小投影**：核心 query/chat/stream/status/model list/embedding 只向界面返回固定、有界的纯数据字段。provider/Agent/cache 内部对象、额外属性、Proxy、accessor、非有限数值、超长文本和超大向量/集合会被过滤或拒绝，不会因调用成功而绕过隐私边界。
+- **辅助记录最小投影**：告警历史、模型预算和保留策略只返回界面所需 allowlist 字段；数据库额外列、畸形 details、getter、Proxy、负数与非有限统计值不会穿透到 renderer。
 
 这些边界不等于生产 Credential Manager/Keychain/Secret Service 已完成验收。物理断电、目录 ACL、身份切换、多租户撤销和 operator 签名销毁策略仍需在目标 Windows、macOS 和 Linux 环境测试。
 

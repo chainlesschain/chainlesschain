@@ -13,6 +13,7 @@
 - **有界备份清单**（`fe6157d58f`）：默认保留 10 份（配置范围 1–100），只接纳严格命名、备份目录内、非符号链接且不超过 16 MiB 的普通文件；恢复只允许清单内规范路径，保留裁剪失败会撤销新备份并报告失败。
 - **跨进程写入 fence**（`89e180f700`）：原子提交器使用绑定 PID、进程启动时间、随机 nonce 与目标摘要的 owner 记录互斥写入；死亡 owner 只能在独立 recovery fence 下回收，owner 字节变化、活动进程或并发恢复都会失败关闭。
 - **核心 LLM 成功结果投影**（`5da428687f`）：query/chat/stream/status/model list/embedding 的成功结果统一重建为有界 plain data；不再把 provider、Agent 或缓存内部对象直接返回 renderer，并拒绝 Proxy、accessor、非有限数值、超大文本/向量/集合和未声明字段。
+- **辅助数据库行投影**（`8e7c45e32e`）：告警历史、模型预算和数据保留配置只返回显式 allowlist 字段；数据库额外列、畸形详情、非有限/负数数值、getter 与 Proxy 不进入 renderer，布尔值和时间字段统一规范化。
 - **发布边界**：上述三项是公开 CLI/IDE 发布后的 Desktop 源码增量，不代表 Desktop native 已发行。真实 Credential Manager/Keychain/Secret Service、跨进程锁、物理断电和多租户撤销仍需目标环境验收。
 
 #### Released — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131（2026-09-20）

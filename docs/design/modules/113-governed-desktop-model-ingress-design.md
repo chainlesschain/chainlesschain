@@ -2,9 +2,9 @@
 
 > 状态：Desktop 基础入口、Personal Data Hub resolver/Skill IPC、内嵌 Web Shell、Volcengine function capability 与 Secure Storage IPC/原子恢复源码已落地；当前公开 CLI 为 `0.166.68`，Desktop native 生产部署仍待独立验收
 >
-> 核对基线：源码 `main@5da428687f`；最近完成公共 ARM64 证据的祖先为 `45557d27dc`（2026-09-20）
+> 核对基线：源码 `main@8e7c45e32e`；最近完成公共 ARM64 证据的祖先为 `45557d27dc`（2026-09-20）
 >
-> 发布边界：`chainlesschain@0.166.68`、Open VSX `0.37.110` 与 JetBrains `0.4.131` 已公开；`ad7567214f`–`5da428687f` 的 Desktop 增量晚于这些制品，不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
+> 发布边界：`chainlesschain@0.166.68`、Open VSX `0.37.110` 与 JetBrains `0.4.131` 已公开；`ad7567214f`–`8e7c45e32e` 的 Desktop 增量晚于这些制品，不得解释为已公开 Desktop 安装包或目标环境 Workbench 已完成生产部署。
 
 ## 1. 背景与目标
 
@@ -46,7 +46,7 @@ Desktop 主进程现在将 `desktopModelIngressHost` 注入 Personal Data Hub IP
 
 ImageGen 的 15 个 Desktop IPC 覆盖文生图、图生图、变体与超分。状态读取、模型选择、进度与中断属于控制面；任何携带用户文本或图像的内容入口现在在读取缓存、选择 provider 或执行 fallback 前先验证受治理 ingress。缺失或拒绝时返回 `CC_AGENT_EVOLUTION_INGRESS_FAILED`，不会调用 manager provider 或底层 `SDClient`/`DALLEClient` 的 `fetch`。这关闭的是已识别的遗留 Desktop IPC 绕过面，不扩大为所有未来第三方 SDK 或目标部署 authority 已验收的声明。
 
-### 1.4 `ad7567214f`–`5da428687f` 的 IPC、函数能力与密钥文件恢复
+### 1.4 `ad7567214f`–`8e7c45e32e` 的 IPC、函数能力与密钥文件恢复
 
 Volcengine 与 Secure Storage 的 renderer IPC 现在先验证实际主窗口、main frame、可信来源、当前 DID actor/tenant 和操作固定用途，再读取配置、调用 provider、执行函数、访问文件或打开对话框。Secure Storage 写入值必须落在显式敏感字段白名单内，拒绝原型键、accessor、Proxy、跨 provider 路径及越界 payload；读取只返回脱敏状态。Volcengine 模型选择与目录同样只返回有界公开投影。
 
@@ -57,6 +57,8 @@ LLM 加密配置的同步/异步保存、备份、恢复、密码导出和 safeS
 原子目标另有跨进程 owner 与 recovery fence。owner 绑定 PID、进程启动时间、随机 nonce 和目标摘要；活动 owner 拒绝竞争写入，死亡 owner 只有在独立 fence 下复核完整记录和存活状态后才能回收。owner 变化、记录异常或另一个恢复者存活时不会猜测接管。
 
 核心 LLM IPC 的成功结果同样是边界的一部分。query、chat、stream、status、model list 与 embedding 会从底层结果重建固定、冻结且有界的 plain data；provider/Agent/cache 内部对象、额外字段、Proxy、accessor、非有限数值、超限文本、模型列表、引用文档和向量都不会直接进入 renderer。投影错误按固定失败回执终止，不会回退为透传原对象。
+
+告警历史、模型预算和保留策略读取也只投影显式字段。数据库额外列、畸形 details、getter、Proxy、负数或非有限数值被丢弃或规范化；renderer 获得稳定的布尔值、时间、金额、消息及受限详情结构，不获得原始数据库 row。
 
 ## 2. 架构
 

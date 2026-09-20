@@ -171,6 +171,70 @@ describe("Volcengine function execution authority", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("rejects exact and request-id replays before repeating a side effect", async () => {
+    const { execute, port } = setup();
+    const first = request();
+
+    await expect(port.executeFunction(first)).resolves.toBeDefined();
+    await expect(port.executeFunction(first)).rejects.toThrow(
+      "Volcengine function request was replayed",
+    );
+
+    const changedArguments = { title: "different title" };
+    await expect(
+      port.executeFunction(
+        request({
+          requestId: first.requestId,
+          arguments: changedArguments,
+          argumentsDigest: domainDigest(
+            "chainlesschain.volcengine-function-arguments/v1",
+            changedArguments,
+          ),
+        }),
+      ),
+    ).rejects.toThrow("Volcengine function request was replayed");
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it("reserves a request before awaiting execution", async () => {
+    let release;
+    const pending = new Promise((resolve) => {
+      release = resolve;
+    });
+    const { execute, port } = setup({
+      execute: async (value) => {
+        await pending;
+        return responseFor(value, { success: true });
+      },
+    });
+    const signedRequest = request();
+    const first = port.executeFunction(signedRequest);
+
+    await expect(port.executeFunction(signedRequest)).rejects.toThrow(
+      "Volcengine function request was replayed",
+    );
+    release();
+    await expect(first).resolves.toBeDefined();
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a failed request reserved because its side-effect status is unknown", async () => {
+    const { execute, port } = setup({
+      execute: async () => {
+        throw new Error("private downstream failure");
+      },
+    });
+    const signedRequest = request();
+
+    await expect(port.executeFunction(signedRequest)).rejects.toThrow(
+      "private downstream failure",
+    );
+    await expect(port.executeFunction(signedRequest)).rejects.toThrow(
+      "Volcengine function request was replayed",
+    );
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("rejects functions outside the signed descriptor allowlist", async () => {
     const { execute, port } = setup();
     const denied = request({ functionName: "delete_note" });

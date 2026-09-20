@@ -4,7 +4,7 @@
 >
 > - CLI 精确源码：`815fdbc0c49f843c2df1c39ec5937d99d144b970`
 > - CLI 不可变标签：`v-npm-0-166-68`
-> - 文档核对源码：`5da428687f38cf2d47da959c46f1d73a43901b60`
+> - 文档核对源码：`8e7c45e32e4d80ab1fc61f96173d123a6f7747ce`
 > - IDE 精确源码：`5860f1e4a4c7579bc648f9fb665949b8dafc3362`
 > - IDE 源码标签：`ide-vscode-v0.37.110` / `ide-jetbrains-v0.4.131`
 
@@ -36,7 +36,7 @@
 | JetBrains                     | `ide-jetbrains-v0.4.131` → `5860f1e4a4` | Marketplace `0.4.131` 已回读 | 公开                       |
 | Microsoft VS Code Marketplace | 同一扩展                                | 未发现公共记录               | 不作为安装渠道             |
 | Desktop/native                | 仓库源码与 exact-SHA qualification      | 历史资格证据存在             | 不等于当前公共安装包发行   |
-| 源码核对基线                  | `5da428687f`                            | 晚于 npm/IDE release SHA     | 后续 Desktop 安全增量      |
+| 源码核对基线                  | `8e7c45e32e`                            | 晚于 npm/IDE release SHA     | 后续 Desktop 安全增量      |
 
 所有安装口径以公共 registry/Marketplace 实际回读为准。共用源码 SHA 或版本号不表示 npm tarball、VSIX、JetBrains ZIP 与 Desktop 安装包是同一制品。
 
@@ -131,7 +131,7 @@ npm 发布采用显式依赖顺序：先审计 13 个子包，再发布有变化
 
 ARM64 证据聚合从所有 run attempt 下载 artifact，按矩阵 key 分组并选择该 key 的最新 attempt。这样 failed-job rerun 只重跑失败单元时，未重跑单元仍使用早先成功证据，而重跑单元使用新证据；重复 key、缺格、SHA/架构/版本不符或 digest 漂移继续失败关闭。`45557d27dc` 的 11 单元真机矩阵证明这一聚合路径。
 
-### 4.10 发布后 Desktop IPC 与安全配置边界（`5da428687f`）
+### 4.10 发布后 Desktop IPC 与安全配置边界（`8e7c45e32e`）
 
 `ad7567214f` 为 Volcengine 与 Secure Storage IPC 增加主进程授权层。每个操作在读取敏感配置、选择 provider、执行函数、访问文件或打开系统对话框前，绑定实际主窗口、main frame、可信来源、当前 DID actor/tenant 与固定用途。Secure Storage 写入只接受声明过的敏感字段路径，状态读取只返回布尔值和公开 provider 名称。Volcengine 模型目录只投影有界公开字段，renderer 不能提交 actor、tenant、purpose 或任意扩展配置。
 
@@ -142,6 +142,8 @@ ARM64 证据聚合从所有 run attempt 下载 artifact，按矩阵 key 分组�
 `89e180f700` 为每个原子目标增加跨进程 owner 记录，绑定 PID、进程启动时间、随机 nonce 与目标路径摘要。活跃 owner 阻止其他进程写入；死亡 owner 只能在独立 recovery fence 下回收，回收前再次比较完整 owner 字节并复核进程存活。owner 被替换、恢复者仍存活、并发恢复或记录格式异常时均失败关闭；释放时再次验证所有权并同步目录。
 
 `5da428687f` 将核心 LLM IPC 的成功返回统一经过显式投影器。query/chat/stream/status/model list/embedding 只返回 renderer 需要的有界 plain data；provider/Agent/cache 内部对象、额外字段、Proxy、accessor、非有限数值、超限文本、模型清单、引用文档或向量不会跨 IPC 边界。流式事件不再回传调用方提供的 conversation metadata，integration 状态只保留固定布尔值与有界 session 标识。
+
+`8e7c45e32e` 把相同约束扩展到告警历史、模型预算和保留策略数据库行。投影只读取 own enumerable data property，并按固定 allowlist 重建记录；数据库未来增加的列、getter/Proxy、畸形 JSON details、负数或非有限统计值不会到达 renderer。告警 dismissed、预算 enabled/alert/block 与自动清理标志统一转成布尔值，时间和金额使用有界非负数。
 
 这些提交位于公开 CLI/IDE SHA 之后，也没有公开 Desktop native 制品证明。真实 Windows Credential Manager、macOS Keychain、Linux Secret Service、物理断电、目录 ACL、身份切换、多租户撤销及 operator 签名销毁策略仍需目标环境 E2E 与故障矩阵。
 

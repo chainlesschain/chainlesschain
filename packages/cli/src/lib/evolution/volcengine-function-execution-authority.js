@@ -19,6 +19,8 @@ const MAX_JSON_DEPTH = 8;
 const MAX_JSON_FIELDS = 512;
 const MAX_REQUEST_AGE_MS = 60_000;
 const MAX_CLOCK_SKEW_MS = 5_000;
+const MAX_REPLAY_ENTRIES = 4_096;
+const REPLAY_RETENTION_MS = MAX_REQUEST_AGE_MS + MAX_CLOCK_SKEW_MS;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ID = /^[^\p{Cc}]{1,512}$/u;
 const BUILTIN_FUNCTIONS = Object.freeze([
@@ -481,6 +483,25 @@ function validateAuditEvidence(
   });
 }
 
+function reserveRequest(captured, request, nowMs) {
+  for (const [requestId, entry] of captured.requests) {
+    if (entry.expiresAtMs < nowMs) captured.requests.delete(requestId);
+  }
+  if (captured.requests.has(request.requestId)) {
+    throw new TypeError("Volcengine function request was replayed");
+  }
+  if (captured.requests.size >= MAX_REPLAY_ENTRIES) {
+    throw new Error("Volcengine function request replay fence is full");
+  }
+  captured.requests.set(
+    request.requestId,
+    Object.freeze({
+      requestDigest: request.requestDigest,
+      expiresAtMs: nowMs + REPLAY_RETENTION_MS,
+    }),
+  );
+}
+
 export function createVolcengineFunctionExecutionAuthority({
   descriptor,
   execute,
@@ -498,6 +519,7 @@ export function createVolcengineFunctionExecutionAuthority({
     descriptor: normalizedDescriptor,
     execute,
     now,
+    requests: new Map(),
   });
   return authority;
 }
@@ -512,11 +534,12 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
   return Object.freeze({
     descriptor: captured.descriptor,
     executeFunction: async (value) => {
-      const request = normalizeRequest(
-        value,
-        captured.descriptor,
-        captured.now(),
-      );
+      const nowMs = captured.now();
+      if (!Number.isFinite(nowMs)) {
+        throw new TypeError("Volcengine function authority clock is invalid");
+      }
+      const request = normalizeRequest(value, captured.descriptor, nowMs);
+      reserveRequest(captured, request, nowMs);
       const response = await captured.execute(request);
       exactData(
         response,
