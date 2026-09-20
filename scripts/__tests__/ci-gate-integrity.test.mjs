@@ -2094,6 +2094,18 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   );
   assert.match(
     workflow,
+    /name: Install Chromium with system dependencies \(Linux\)\s+if: runner\.os == 'Linux'\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install --with-deps chromium/,
+  );
+  assert.match(
+    workflow,
+    /name: Install Chromium \(Windows\)\s+if: runner\.os == 'Windows'\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install chromium/,
+  );
+  assert.ok(
+    workflow.indexOf("name: Install Chromium (Windows)") <
+      workflow.indexOf("id: primary-tests"),
+  );
+  assert.match(
+    workflow,
     /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?ci-install-cli-production-deps\.sh/,
   );
   assert.match(workflow, /Re-run tests for failure diagnosis/);

@@ -70,7 +70,7 @@ Marketplace approval, listing, and artifact readback have completed.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.130** is the current public release that re-certifies the read-only
+Plugin **0.4.130** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for

@@ -86,6 +86,19 @@ jobs:
           bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
             npm install --legacy-peer-deps
 
+      # The integration suite launches BrowserEngine against the real bundled
+      # Playwright Chromium. npm installs the driver but intentionally does not
+      # guarantee that the matching browser binary or Linux libraries exist.
+      - name: Install Chromium with system dependencies (Linux)
+        if: runner.os == 'Linux'
+        working-directory: ./desktop-app-vue
+        run: npm exec -- playwright install --with-deps chromium
+
+      - name: Install Chromium (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./desktop-app-vue
+        run: npm exec -- playwright install chromium
+
       # Packaging and embedded web-shell tests intentionally require the CLI's
       # standalone production dependency topology; a workspace-hoisted install
       # is not equivalent to the files shipped under Resources/packages/cli.
