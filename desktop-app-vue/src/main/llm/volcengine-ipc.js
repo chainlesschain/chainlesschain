@@ -4,11 +4,13 @@
  * 提供渲染进程与主进程之间的通信桥梁
  */
 
-const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+const { ipcMain: defaultIpcMain } = require("electron");
 const { getLLMConfig } = require("./llm-config");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
+const { createVolcengineIpcPrivacy } = require("./volcengine-ipc-privacy");
 const SqlSecurity = require("../database/sql-security.js");
+
+const defaultPrivacy = createVolcengineIpcPrivacy();
 
 /**
  * 获取或创建工具客户端
@@ -29,8 +31,14 @@ function getToolsClient() {
 /**
  * 注册所有 IPC 处理器
  */
-function registerVolcengineIPC() {
-  logger.info("[VolcengineIPC] 注册火山引擎工具调用IPC处理器");
+function registerVolcengineIPC(dependencies = {}) {
+  const ipcMain = dependencies.ipcMain || defaultIpcMain;
+  const resolveConfig = dependencies.getLLMConfig || getLLMConfig;
+  const resolveModelSelector =
+    dependencies.getModelSelector || getModelSelector;
+  const privacy = dependencies.privacy || defaultPrivacy;
+
+  privacy.event("handlers-registering");
 
   // ========== 模型选择器 ==========
 
@@ -39,7 +47,7 @@ function registerVolcengineIPC() {
    */
   ipcMain.handle("volcengine:select-model", async (event, { scenario }) => {
     try {
-      const selector = getModelSelector();
+      const selector = resolveModelSelector();
       const model = selector.selectByScenario(scenario);
 
       return {
@@ -54,12 +62,8 @@ function registerVolcengineIPC() {
           maxOutputTokens: model.maxOutputTokens,
         },
       };
-    } catch (error) {
-      logger.error("[VolcengineIPC] 模型选择失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("select-model");
     }
   });
 
@@ -70,7 +74,7 @@ function registerVolcengineIPC() {
     "volcengine:select-model-by-task",
     async (event, { taskType, options }) => {
       try {
-        const selector = getModelSelector();
+        const selector = resolveModelSelector();
         const model = selector.selectModel(taskType, options);
 
         return {
@@ -82,12 +86,8 @@ function registerVolcengineIPC() {
             pricing: model.pricing,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 任务模型选择失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("select-model-by-task");
       }
     },
   );
@@ -99,7 +99,7 @@ function registerVolcengineIPC() {
     "volcengine:estimate-cost",
     async (event, { modelId, inputTokens, outputTokens, imageCount }) => {
       try {
-        const selector = getModelSelector();
+        const selector = resolveModelSelector();
         const cost = selector.estimateCost(
           modelId,
           inputTokens,
@@ -114,12 +114,8 @@ function registerVolcengineIPC() {
             formatted: `¥${cost.toFixed(4)}`,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 成本估算失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.failure("estimate-cost");
       }
     },
   );
@@ -129,7 +125,7 @@ function registerVolcengineIPC() {
    */
   ipcMain.handle("volcengine:list-models", async (event, { filters }) => {
     try {
-      const selector = getModelSelector();
+      const selector = resolveModelSelector();
       const models = selector.listModels(filters || {});
 
       return {
@@ -143,12 +139,8 @@ function registerVolcengineIPC() {
           recommended: m.recommended,
         })),
       };
-    } catch (error) {
-      logger.error("[VolcengineIPC] 列出模型失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("list-models");
     }
   });
 
@@ -174,12 +166,8 @@ function registerVolcengineIPC() {
             toolCalls: result.choices?.[0]?.message?.tool_calls,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 联网搜索对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-web-search");
       }
     },
   );
@@ -208,12 +196,8 @@ function registerVolcengineIPC() {
             toolCalls: result.choices?.[0]?.message?.tool_calls,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 图像处理对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-image");
       }
     },
   );
@@ -236,12 +220,8 @@ function registerVolcengineIPC() {
           success: true,
           data: result,
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 图像理解失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("understand-image");
       }
     },
   );
@@ -265,12 +245,8 @@ function registerVolcengineIPC() {
           success: true,
           data: result,
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 配置知识库失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("setup-knowledge-base");
       }
     },
   );
@@ -299,12 +275,8 @@ function registerVolcengineIPC() {
             toolCalls: result.choices?.[0]?.message?.tool_calls,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 知识库搜索对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-knowledge-base");
       }
     },
   );
@@ -335,12 +307,8 @@ function registerVolcengineIPC() {
             finishReason: result.choices?.[0]?.finish_reason,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 函数调用对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-function-calling");
       }
     },
   );
@@ -356,7 +324,7 @@ function registerVolcengineIPC() {
         const client = getToolsClient();
 
         // 根据类型获取函数执行器
-        const functionExecutor = getFunctionExecutor(executorType);
+        const functionExecutor = getFunctionExecutor(executorType, privacy);
 
         const result = await client.executeFunctionCalling(
           messages,
@@ -369,13 +337,8 @@ function registerVolcengineIPC() {
           success: true,
           data: result,
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 执行函数调用流程失败:", error);
-        return {
-          success: false,
-          error: error.message,
-          code: error.code,
-        };
+      } catch {
+        return privacy.governanceFailure("execute-function-calling");
       }
     },
   );
@@ -405,12 +368,8 @@ function registerVolcengineIPC() {
             toolCalls: result.choices?.[0]?.message?.tool_calls,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] MCP对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-mcp");
       }
     },
   );
@@ -440,12 +399,8 @@ function registerVolcengineIPC() {
             toolCalls: result.choices?.[0]?.message?.tool_calls,
           },
         };
-      } catch (error) {
-        logger.error("[VolcengineIPC] 多工具对话失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
+      } catch {
+        return privacy.governanceFailure("chat-with-multiple-tools");
       }
     },
   );
@@ -455,7 +410,7 @@ function registerVolcengineIPC() {
   /**
    * 检查配置状态
    */
-  ipcMain.handle("volcengine:check-config", async (event) => {
+  ipcMain.handle("volcengine:check-config", async (_event) => {
     try {
       const client = getToolsClient();
       const config = client.getConfig();
@@ -464,11 +419,8 @@ function registerVolcengineIPC() {
         success: true,
         data: config,
       };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.governanceFailure("check-config");
     }
   });
 
@@ -478,23 +430,19 @@ function registerVolcengineIPC() {
   ipcMain.handle("volcengine:update-config", async (event, { config }) => {
     try {
       // 更新 LLM 配置
-      const llmConfig = getLLMConfig();
+      const llmConfig = resolveConfig();
       llmConfig.setProviderConfig("volcengine", config);
 
       return {
         success: true,
         message: "配置已更新",
       };
-    } catch (error) {
-      logger.error("[VolcengineIPC] 更新配置失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    } catch {
+      return privacy.failure("update-config");
     }
   });
 
-  logger.info("[VolcengineIPC] IPC处理器注册完成");
+  privacy.event("handlers-registered");
 }
 
 /**
@@ -502,12 +450,12 @@ function registerVolcengineIPC() {
  * @param {string} executorType - 执行器类型
  * @returns {Object} 函数执行器
  */
-function getFunctionExecutor(executorType) {
+function getFunctionExecutor(executorType, privacy = defaultPrivacy) {
   // 这里可以根据类型返回不同的执行器
   // 示例：返回一个简单的执行器
   return {
     async execute(functionName, args) {
-      logger.info(`[FunctionExecutor] 执行函数: ${functionName}`, args);
+      privacy.event("function-execution-started");
 
       // 根据 functionName 调用实际的业务逻辑
       switch (functionName) {
@@ -587,7 +535,7 @@ function getFunctionExecutor(executorType) {
         case "send_p2p_message": {
           // P2P 消息需要通过 IPC 调用，这里记录消息意图
           const id = require("crypto").randomUUID();
-          logger.info(`[FunctionExecutor] P2P message prepared: ${id}`);
+          privacy.event("p2p-message-prepared");
 
           return {
             messageId: id,
@@ -639,8 +587,10 @@ function getFunctionExecutor(executorType) {
 /**
  * 注销所有 IPC 处理器
  */
-function unregisterVolcengineIPC() {
-  logger.info("[VolcengineIPC] 注销火山引擎工具调用IPC处理器");
+function unregisterVolcengineIPC(dependencies = {}) {
+  const ipcMain = dependencies.ipcMain || defaultIpcMain;
+  const privacy = dependencies.privacy || defaultPrivacy;
+  privacy.event("handlers-unregistering");
 
   const channels = [
     "volcengine:select-model",
@@ -664,7 +614,7 @@ function unregisterVolcengineIPC() {
     ipcMain.removeHandler(channel);
   });
 
-  logger.info("[VolcengineIPC] IPC处理器已注销");
+  privacy.event("handlers-unregistered");
 }
 
 module.exports = {
