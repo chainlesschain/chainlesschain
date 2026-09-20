@@ -867,7 +867,7 @@ describe("signed evolution deployment loader", () => {
       "createBrowserDownloadArtifactDisposalAuthority",
       "createVolcengineFunctionExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
-      "revokeVolcengineFunctionExecutionAuthorityDurably",
+      "createVolcengineFunctionRevocationAuthority",
       "createVolcengineFunctionReplayStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
@@ -1096,6 +1096,26 @@ describe("signed evolution deployment loader", () => {
                 auditMode: "authenticated-durable-readback",
               },
               execute: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionRevocationAuthority({
+              descriptor: {
+                schema:
+                  "chainlesschain.volcengine-function-revocation-authority/v1",
+                authorityId: "volcengine-function-revocation",
+                tenantId: "tenant-1",
+                handlerArtifactDigest: substitutedDigest,
+                policyRevision: "revocation-policy-1",
+                targetAuthorityId: "volcengine-functions",
+                targetReplayStoreId: "volcengine-function-replay",
+                targetPolicyRevision: "policy-1",
+                maxGrantTtlMs: 5000,
+                approvalMode: "operator-signed",
+                auditMode: "authenticated-durable-readback",
+              },
+              authorize: async () => ({ decision: "deny" }),
+              now: () => Date.now(),
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>

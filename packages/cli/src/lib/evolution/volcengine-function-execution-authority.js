@@ -21,6 +21,15 @@ export const VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA =
 export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
+export const VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-authority/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-request/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA =
+  "chainlesschain.volcengine-function-revocation-result/v1";
+export const VOLCENGINE_FUNCTION_REVOCATION_PURPOSE =
+  "revoke-model-tool-execution";
+export const VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE = "operator-signed";
 
 const MAX_ARGUMENT_BYTES = 64 * 1024;
 const MAX_RESULT_BYTES = 256 * 1024;
@@ -47,6 +56,7 @@ const BUILTIN_FUNCTIONS = Object.freeze([
 ]);
 const BUILTIN_FUNCTION_SET = new Set(BUILTIN_FUNCTIONS);
 const authorities = new WeakMap();
+const revocationAuthorities = new WeakMap();
 
 function canonical(value) {
   if (value === null || typeof value !== "object") {
@@ -783,6 +793,323 @@ function reserveRequest(captured, request, nowMs) {
   );
 }
 
+function normalizeRevocationAuthorityDescriptor(value) {
+  exactData(
+    value,
+    [
+      "schema",
+      "authorityId",
+      "tenantId",
+      "handlerArtifactDigest",
+      "policyRevision",
+      "targetAuthorityId",
+      "targetReplayStoreId",
+      "targetPolicyRevision",
+      "maxGrantTtlMs",
+      "approvalMode",
+      "auditMode",
+    ],
+    "Volcengine function revocation authority descriptor",
+  );
+  const descriptor = Object.freeze({
+    schema: ownData(
+      value,
+      "schema",
+      "Volcengine function revocation authority schema",
+    ),
+    authorityId: ownData(
+      value,
+      "authorityId",
+      "Volcengine function revocation authority identifier",
+    ),
+    tenantId: ownData(
+      value,
+      "tenantId",
+      "Volcengine function revocation authority tenant",
+    ),
+    handlerArtifactDigest: ownData(
+      value,
+      "handlerArtifactDigest",
+      "Volcengine function revocation authority artifact digest",
+    ),
+    policyRevision: ownData(
+      value,
+      "policyRevision",
+      "Volcengine function revocation policy revision",
+    ),
+    targetAuthorityId: ownData(
+      value,
+      "targetAuthorityId",
+      "Volcengine function revocation target authority",
+    ),
+    targetReplayStoreId: ownData(
+      value,
+      "targetReplayStoreId",
+      "Volcengine function revocation target replay store",
+    ),
+    targetPolicyRevision: ownData(
+      value,
+      "targetPolicyRevision",
+      "Volcengine function revocation target policy revision",
+    ),
+    maxGrantTtlMs: ownData(
+      value,
+      "maxGrantTtlMs",
+      "Volcengine function revocation grant TTL",
+    ),
+    approvalMode: ownData(
+      value,
+      "approvalMode",
+      "Volcengine function revocation approval mode",
+    ),
+    auditMode: ownData(
+      value,
+      "auditMode",
+      "Volcengine function revocation audit mode",
+    ),
+  });
+  if (
+    descriptor.schema !== VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA ||
+    !ID.test(descriptor.authorityId) ||
+    !ID.test(descriptor.tenantId) ||
+    !DIGEST.test(descriptor.handlerArtifactDigest) ||
+    !ID.test(descriptor.policyRevision) ||
+    !ID.test(descriptor.targetAuthorityId) ||
+    !ID.test(descriptor.targetReplayStoreId) ||
+    !ID.test(descriptor.targetPolicyRevision) ||
+    !Number.isSafeInteger(descriptor.maxGrantTtlMs) ||
+    descriptor.maxGrantTtlMs < 1 ||
+    descriptor.maxGrantTtlMs > 60_000 ||
+    descriptor.approvalMode !== VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE ||
+    descriptor.auditMode !== VOLCENGINE_FUNCTION_AUDIT_MODE
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation authority descriptor is invalid",
+    );
+  }
+  return descriptor;
+}
+
+function assertRevocationTargetBinding(target, descriptor) {
+  if (
+    target.authorityId !== descriptor.targetAuthorityId ||
+    target.tenantId !== descriptor.tenantId ||
+    target.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
+    target.policyRevision !== descriptor.targetPolicyRevision ||
+    target.replayStoreId !== descriptor.targetReplayStoreId
+  ) {
+    throw new TypeError(
+      "Volcengine function revocation target does not match authority",
+    );
+  }
+}
+
+function normalizeRevocationRequest(value, descriptor, nowMs) {
+  exactData(
+    value,
+    [
+      "schema",
+      "requestId",
+      "actorDid",
+      "tenantId",
+      "purpose",
+      "reasonDigest",
+      "authorization",
+      "requestedAt",
+    ],
+    "Volcengine function revocation request",
+  );
+  const authorization = normalizeJson(
+    ownData(
+      value,
+      "authorization",
+      "Volcengine function revocation authorization",
+    ),
+    "Volcengine function revocation authorization",
+    16 * 1024,
+  );
+  const requestedAt = ownData(
+    value,
+    "requestedAt",
+    "Volcengine function revocation request time",
+  );
+  const requestedAtMs = Date.parse(requestedAt);
+  const core = Object.freeze({
+    schema: ownData(
+      value,
+      "schema",
+      "Volcengine function revocation request schema",
+    ),
+    authorityId: descriptor.authorityId,
+    tenantId: ownData(
+      value,
+      "tenantId",
+      "Volcengine function revocation request tenant",
+    ),
+    handlerArtifactDigest: descriptor.handlerArtifactDigest,
+    policyRevision: descriptor.policyRevision,
+    targetAuthorityId: descriptor.targetAuthorityId,
+    targetReplayStoreId: descriptor.targetReplayStoreId,
+    targetPolicyRevision: descriptor.targetPolicyRevision,
+    actorDid: ownData(
+      value,
+      "actorDid",
+      "Volcengine function revocation actor",
+    ),
+    purpose: ownData(
+      value,
+      "purpose",
+      "Volcengine function revocation purpose",
+    ),
+    requestId: ownData(
+      value,
+      "requestId",
+      "Volcengine function revocation request identifier",
+    ),
+    reasonDigest: ownData(
+      value,
+      "reasonDigest",
+      "Volcengine function revocation reason digest",
+    ),
+    authorizationDigest: digest(
+      "chainlesschain.volcengine-function-revocation-authorization/v1",
+      authorization,
+    ),
+    requestedAt,
+  });
+  if (
+    core.schema !== VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA ||
+    core.tenantId !== descriptor.tenantId ||
+    !ID.test(core.actorDid) ||
+    core.purpose !== VOLCENGINE_FUNCTION_REVOCATION_PURPOSE ||
+    !ID.test(core.requestId) ||
+    !DIGEST.test(core.reasonDigest) ||
+    !Number.isFinite(requestedAtMs) ||
+    new Date(requestedAtMs).toISOString() !== core.requestedAt ||
+    requestedAtMs < nowMs - MAX_REQUEST_AGE_MS ||
+    requestedAtMs > nowMs + MAX_CLOCK_SKEW_MS
+  ) {
+    throw new TypeError("Volcengine function revocation request is invalid");
+  }
+  return Object.freeze({
+    ...core,
+    requestDigest: digest(VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA, core),
+    authorization,
+  });
+}
+
+function normalizeRevocationDecision(value, request, descriptor, nowMs) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    types.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw new TypeError("Volcengine function revocation decision is invalid");
+  }
+  const decision = ownData(
+    value,
+    "decision",
+    "Volcengine function revocation decision",
+  );
+  if (decision === "deny") {
+    exactData(value, ["decision"], "Volcengine function revocation denial");
+    return Object.freeze({ decision });
+  }
+  exactData(
+    value,
+    [
+      "decision",
+      "requestDigest",
+      "authorizationEvidenceDigest",
+      "auditEventDigest",
+      "durabilityReceiptDigest",
+      "authenticated",
+      "durable",
+      "readbackVerified",
+      "authorizedAt",
+      "validUntil",
+    ],
+    "Volcengine function revocation decision",
+  );
+  const validUntil = ownData(
+    value,
+    "validUntil",
+    "Volcengine function revocation decision expiry",
+  );
+  const authorizedAt = ownData(
+    value,
+    "authorizedAt",
+    "Volcengine function revocation authorization time",
+  );
+  const authorizedAtMs = Date.parse(authorizedAt);
+  const validUntilMs = Date.parse(validUntil);
+  const normalized = Object.freeze({
+    decision,
+    requestDigest: ownData(
+      value,
+      "requestDigest",
+      "Volcengine function revocation decision request digest",
+    ),
+    authorizationEvidenceDigest: ownData(
+      value,
+      "authorizationEvidenceDigest",
+      "Volcengine function revocation authorization evidence digest",
+    ),
+    auditEventDigest: ownData(
+      value,
+      "auditEventDigest",
+      "Volcengine function revocation audit event digest",
+    ),
+    durabilityReceiptDigest: ownData(
+      value,
+      "durabilityReceiptDigest",
+      "Volcengine function revocation durability receipt digest",
+    ),
+    authenticated: ownData(
+      value,
+      "authenticated",
+      "Volcengine function revocation authentication status",
+    ),
+    durable: ownData(
+      value,
+      "durable",
+      "Volcengine function revocation durability status",
+    ),
+    readbackVerified: ownData(
+      value,
+      "readbackVerified",
+      "Volcengine function revocation readback status",
+    ),
+    authorizedAt,
+    authorizedAtMs,
+    validUntil,
+    validUntilMs,
+  });
+  if (
+    normalized.decision !== "allow" ||
+    normalized.requestDigest !== request.requestDigest ||
+    !DIGEST.test(normalized.authorizationEvidenceDigest) ||
+    !DIGEST.test(normalized.auditEventDigest) ||
+    !DIGEST.test(normalized.durabilityReceiptDigest) ||
+    normalized.authenticated !== true ||
+    normalized.durable !== true ||
+    normalized.readbackVerified !== true ||
+    !Number.isFinite(authorizedAtMs) ||
+    new Date(authorizedAtMs).toISOString() !== authorizedAt ||
+    authorizedAtMs < Date.parse(request.requestedAt) ||
+    authorizedAtMs > nowMs + MAX_CLOCK_SKEW_MS ||
+    !Number.isFinite(validUntilMs) ||
+    new Date(validUntilMs).toISOString() !== validUntil ||
+    validUntilMs <= authorizedAtMs ||
+    validUntilMs > authorizedAtMs + descriptor.maxGrantTtlMs
+  ) {
+    throw new TypeError("Volcengine function revocation decision is invalid");
+  }
+  return normalized;
+}
+
 function revokedError() {
   const error = new Error(
     "Volcengine function execution authority was revoked",
@@ -1025,7 +1352,7 @@ export function revokeVolcengineFunctionExecutionAuthority(value) {
   return markAuthorityRevoked(captured);
 }
 
-export async function revokeVolcengineFunctionExecutionAuthorityDurably(
+async function persistVolcengineFunctionExecutionAuthorityRevocation(
   value,
   evidence,
 ) {
@@ -1129,6 +1456,135 @@ export async function revokeVolcengineFunctionExecutionAuthorityDurably(
     revocationDigest: revocation.revocationDigest,
     durable: true,
     readbackVerified: true,
+  });
+}
+
+export function createVolcengineFunctionRevocationAuthority(options) {
+  exactData(
+    options,
+    ["descriptor", "authorize", "now"],
+    "Volcengine function revocation authority",
+  );
+  const descriptor = normalizeRevocationAuthorityDescriptor(
+    ownData(
+      options,
+      "descriptor",
+      "Volcengine function revocation authority descriptor",
+    ),
+  );
+  const authorize = ownData(
+    options,
+    "authorize",
+    "Volcengine function revocation authorization port",
+  );
+  const now = ownData(
+    options,
+    "now",
+    "Volcengine function revocation authority clock",
+  );
+  if (typeof authorize !== "function" || types.isProxy(authorize)) {
+    throw new TypeError(
+      "Volcengine function revocation authorization port is invalid",
+    );
+  }
+  if (typeof now !== "function" || types.isProxy(now)) {
+    throw new TypeError("Volcengine function revocation clock is invalid");
+  }
+  const authority = Object.freeze({});
+  revocationAuthorities.set(authority, { descriptor, authorize, now });
+  return authority;
+}
+
+export function captureVolcengineFunctionRevocationAuthority(value) {
+  const captured = revocationAuthorities.get(value);
+  if (!captured) {
+    throw new TypeError(
+      "A branded Volcengine function revocation authority is required",
+    );
+  }
+  return Object.freeze({
+    descriptor: captured.descriptor,
+    revokeAuthority: async (targetAuthority, value) => {
+      const target = authorities.get(targetAuthority);
+      if (!target) {
+        throw new TypeError(
+          "A branded Volcengine function execution authority is required",
+        );
+      }
+      assertRevocationTargetBinding(target.descriptor, captured.descriptor);
+      const nowMs = captured.now();
+      if (!Number.isFinite(nowMs)) {
+        throw new TypeError("Volcengine function revocation clock is invalid");
+      }
+      const request = normalizeRevocationRequest(
+        value,
+        captured.descriptor,
+        nowMs,
+      );
+      const decision = normalizeRevocationDecision(
+        await Reflect.apply(captured.authorize, undefined, [request]),
+        request,
+        captured.descriptor,
+        nowMs,
+      );
+      if (decision.decision === "deny") {
+        const error = new Error("Volcengine function revocation was denied");
+        error.code = "CC_VOLCENGINE_FUNCTION_REVOCATION_DENIED";
+        throw error;
+      }
+      const revokedAtMs = captured.now();
+      if (
+        !Number.isFinite(revokedAtMs) ||
+        revokedAtMs >= decision.validUntilMs
+      ) {
+        const error = new Error(
+          "Volcengine function revocation grant expired before execution",
+        );
+        error.code = "CC_VOLCENGINE_FUNCTION_REVOCATION_GRANT_EXPIRED";
+        throw error;
+      }
+      const revokedAt = decision.authorizedAt;
+      const acknowledgement =
+        await persistVolcengineFunctionExecutionAuthorityRevocation(
+          targetAuthority,
+          Object.freeze({
+            revocationId: request.requestId,
+            reasonDigest: request.reasonDigest,
+            authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
+            auditEventDigest: decision.auditEventDigest,
+            durabilityReceiptDigest: decision.durabilityReceiptDigest,
+            revokedAt,
+          }),
+        );
+      const resultCore = Object.freeze({
+        schema: VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA,
+        authorityId: captured.descriptor.authorityId,
+        tenantId: captured.descriptor.tenantId,
+        handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
+        policyRevision: captured.descriptor.policyRevision,
+        targetAuthorityId: captured.descriptor.targetAuthorityId,
+        targetReplayStoreId: captured.descriptor.targetReplayStoreId,
+        targetPolicyRevision: captured.descriptor.targetPolicyRevision,
+        requestId: request.requestId,
+        requestDigest: request.requestDigest,
+        revocationDigest: acknowledgement.revocationDigest,
+        authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
+        auditEventDigest: decision.auditEventDigest,
+        durabilityReceiptDigest: decision.durabilityReceiptDigest,
+        revokedAt,
+        status: "revoked",
+        authenticated: true,
+        durable: acknowledgement.durable,
+        readbackVerified: acknowledgement.readbackVerified,
+      });
+      return Object.freeze({
+        ...resultCore,
+        resultDigest: digest(
+          VOLCENGINE_FUNCTION_REVOCATION_RESULT_SCHEMA,
+          resultCore,
+        ),
+      });
+    },
   });
 }
 

@@ -11,11 +11,16 @@ import {
   VOLCENGINE_FUNCTION_PURPOSE,
   VOLCENGINE_FUNCTION_RECEIPT_SCHEMA,
   VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
+  VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
+  VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
+  VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA,
+  captureVolcengineFunctionRevocationAuthority,
   captureVolcengineFunctionExecutionAuthority,
   createVolcengineFunctionExecutionAuthority,
+  createVolcengineFunctionRevocationAuthority,
   digestVolcengineFunctionResult,
   revokeVolcengineFunctionExecutionAuthority,
-  revokeVolcengineFunctionExecutionAuthorityDurably,
 } from "../../src/lib/evolution/volcengine-function-execution-authority.js";
 import {
   VOLCENGINE_FUNCTION_REPLAY_MODE,
@@ -230,16 +235,55 @@ function setup(overrides = {}) {
   };
 }
 
-function revocationEvidence(overrides = {}) {
+function revocationRequest(overrides = {}) {
   return {
-    revocationId: "revocation-1",
+    schema: VOLCENGINE_FUNCTION_REVOCATION_REQUEST_SCHEMA,
+    requestId: "revocation-1",
+    actorDid: "did:test:security-operator",
+    tenantId: "tenant:test",
+    purpose: VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
     reasonDigest: sha("revocation-reason"),
+    authorization: { role: "security-operator", ticket: "INC-100" },
+    requestedAt: new Date(NOW).toISOString(),
+    ...overrides,
+  };
+}
+
+function createRevocationPort(
+  targetDescriptor = descriptor(),
+  authorize = async (value) => ({
+    decision: "allow",
+    requestDigest: value.requestDigest,
     authorizationEvidenceDigest: sha("revocation-authorization"),
     auditEventDigest: sha("revocation-audit-event"),
     durabilityReceiptDigest: sha("revocation-durability-receipt"),
-    revokedAt: new Date(NOW).toISOString(),
-    ...overrides,
-  };
+    authenticated: true,
+    durable: true,
+    readbackVerified: true,
+    authorizedAt: new Date(NOW).toISOString(),
+    validUntil: new Date(NOW + 1000).toISOString(),
+  }),
+  now = () => NOW,
+) {
+  return captureVolcengineFunctionRevocationAuthority(
+    createVolcengineFunctionRevocationAuthority({
+      descriptor: {
+        schema: VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
+        authorityId: "function-revocation:test",
+        tenantId: targetDescriptor.tenantId,
+        handlerArtifactDigest: targetDescriptor.handlerArtifactDigest,
+        policyRevision: "revocation-policy-1",
+        targetAuthorityId: targetDescriptor.authorityId,
+        targetReplayStoreId: targetDescriptor.replayStoreId,
+        targetPolicyRevision: targetDescriptor.policyRevision,
+        maxGrantTtlMs: 5000,
+        approvalMode: VOLCENGINE_FUNCTION_REVOCATION_APPROVAL_MODE,
+        auditMode: VOLCENGINE_FUNCTION_AUDIT_MODE,
+      },
+      authorize,
+      now,
+    }),
+  );
 }
 
 describe("Volcengine function execution authority", () => {
@@ -348,13 +392,14 @@ describe("Volcengine function execution authority", () => {
     });
 
     await expect(
-      revokeVolcengineFunctionExecutionAuthorityDurably(
+      createRevocationPort(authorityDescriptor).revokeAuthority(
         first.authority,
-        revocationEvidence(),
+        revocationRequest(),
       ),
     ).resolves.toMatchObject({
-      revoked: true,
+      status: "revoked",
       revocationDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      authenticated: true,
       durable: true,
       readbackVerified: true,
     });
@@ -391,9 +436,9 @@ describe("Volcengine function execution authority", () => {
     );
     await vi.waitFor(() => expect(sibling.execute).toHaveBeenCalledOnce());
 
-    await revokeVolcengineFunctionExecutionAuthorityDurably(
+    await createRevocationPort(authorityDescriptor).revokeAuthority(
       publisher.authority,
-      revocationEvidence(),
+      revocationRequest(),
     );
 
     await expect(execution).rejects.toMatchObject({
@@ -404,6 +449,96 @@ describe("Volcengine function execution authority", () => {
     expect(executionContext.signal.reason).toMatchObject({
       code: "CC_VOLCENGINE_FUNCTION_AUTHORITY_REVOKED",
     });
+  });
+
+  it("requires an authenticated durable authorization decision before revocation", async () => {
+    const denied = setup();
+    const deny = vi.fn(async () => ({ decision: "deny" }));
+
+    await expect(
+      createRevocationPort(descriptor(), deny).revokeAuthority(
+        denied.authority,
+        revocationRequest(),
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_REVOCATION_DENIED",
+      message: "Volcengine function revocation was denied",
+    });
+    expect(deny).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorDid: "did:test:security-operator",
+        tenantId: "tenant:test",
+        purpose: VOLCENGINE_FUNCTION_REVOCATION_PURPOSE,
+        requestDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+        authorizationDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+        authorization: { role: "security-operator", ticket: "INC-100" },
+      }),
+    );
+    expect(Object.isFrozen(deny.mock.calls[0][0])).toBe(true);
+    expect(Object.isFrozen(deny.mock.calls[0][0].authorization)).toBe(true);
+    await expect(denied.port.executeFunction(request())).resolves.toBeDefined();
+
+    const unverified = setup();
+    const invalidDecision = async (value) => ({
+      decision: "allow",
+      requestDigest: value.requestDigest,
+      authorizationEvidenceDigest: sha("revocation-authorization"),
+      auditEventDigest: sha("revocation-audit-event"),
+      durabilityReceiptDigest: sha("revocation-durability-receipt"),
+      authenticated: true,
+      durable: true,
+      readbackVerified: false,
+      authorizedAt: new Date(NOW).toISOString(),
+      validUntil: new Date(NOW + 1000).toISOString(),
+    });
+    await expect(
+      createRevocationPort(descriptor(), invalidDecision).revokeAuthority(
+        unverified.authority,
+        revocationRequest({ requestId: "revocation-unverified" }),
+      ),
+    ).rejects.toThrow("Volcengine function revocation decision is invalid");
+    expect(unverified.execute).not.toHaveBeenCalled();
+    await expect(
+      unverified.port.executeFunction(request({ requestId: "still-active" })),
+    ).resolves.toBeDefined();
+
+    const expired = setup();
+    const times = [NOW, NOW + 1000];
+    await expect(
+      createRevocationPort(descriptor(), undefined, () =>
+        times.shift(),
+      ).revokeAuthority(
+        expired.authority,
+        revocationRequest({ requestId: "revocation-expired" }),
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_VOLCENGINE_FUNCTION_REVOCATION_GRANT_EXPIRED",
+      message: "Volcengine function revocation grant expired before execution",
+    });
+    expect(expired.execute).not.toHaveBeenCalled();
+    await expect(
+      expired.port.executeFunction(request({ requestId: "after-expiry" })),
+    ).resolves.toBeDefined();
+  });
+
+  it("binds the revocation authority to one signed execution authority", async () => {
+    const target = setup();
+    const authorize = vi.fn();
+    const foreignDescriptor = descriptor({
+      authorityId: "authority:foreign",
+      replayStoreId: "replay:foreign",
+    });
+    const revoker = createRevocationPort(foreignDescriptor, authorize);
+
+    await expect(
+      revoker.revokeAuthority(target.authority, revocationRequest()),
+    ).rejects.toThrow(
+      "Volcengine function revocation target does not match authority",
+    );
+    expect(authorize).not.toHaveBeenCalled();
+    expect(() =>
+      captureVolcengineFunctionRevocationAuthority(Object.freeze({})),
+    ).toThrow("branded Volcengine function revocation authority");
   });
 
   it("fails closed when durable revocation status cannot be verified", async () => {
