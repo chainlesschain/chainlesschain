@@ -89,6 +89,7 @@ function responseFor(request, toolResult, overrides = {}) {
     receipt: {
       schema: RECEIPT_SCHEMA,
       authorityId: "authority:test",
+      revocationAuthorityId: request.revocationAuthorityId,
       tenantId: request.tenantId,
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
@@ -136,6 +137,7 @@ function setup({
       descriptor: {
         schema: AUTHORITY_SCHEMA,
         authorityId: "authority:test",
+        revocationAuthorityId: "function-revocation:test",
         tenantId: "tenant:test",
         handlerArtifactDigest: sha("handler"),
         policyRevision: "policy-1",
@@ -167,7 +169,7 @@ function expectGovernanceFailure(error) {
 }
 
 describe("Volcengine function capability", () => {
-  it.each(["v1", "v2", "v3", "v4"])(
+  it.each(["v1", "v2", "v3", "v4", "v5"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -200,6 +202,7 @@ describe("Volcengine function capability", () => {
     expect(request).toMatchObject({
       schema: REQUEST_SCHEMA,
       authorityId: "authority:test",
+      revocationAuthorityId: "function-revocation:test",
       tenantId: "tenant:test",
       handlerArtifactDigest: sha("handler"),
       policyRevision: "policy-1",
@@ -387,6 +390,27 @@ describe("Volcengine function capability", () => {
           { success: true },
           {
             replayReservationDigest: sha("substituted-replay-reservation"),
+          },
+        ),
+    });
+    const executor = createVolcengineFunctionExecutor(host, {
+      authorization: authorization(),
+      executorType: EXECUTOR_TYPE,
+    });
+
+    await expect(executor.execute("create_note", {})).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+  });
+
+  it("fails closed when the durable receipt substitutes the revocation authority", async () => {
+    const { host } = setup({
+      execute: async (request) =>
+        responseFor(
+          request,
+          { success: true },
+          {
+            revocationAuthorityId: "function-revocation:foreign",
           },
         ),
     });

@@ -59,6 +59,7 @@ function descriptor(overrides = {}) {
     schema: VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
     replayStoreId: "replay:test",
     authorityId: "authority:test",
+    revocationAuthorityId: "function-revocation:test",
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("handler"),
     policyRevision: "policy-1",
@@ -74,11 +75,13 @@ function revocation(overrides = {}) {
     schema: VOLCENGINE_FUNCTION_REVOCATION_SCHEMA,
     replayStoreId: "replay:test",
     authorityId: "authority:test",
+    revocationAuthorityId: "function-revocation:test",
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("handler"),
     policyRevision: "policy-1",
     revocationId: "revocation-1",
     reasonDigest: sha("operator-request"),
+    authorizationRequestDigest: sha("authorization-request"),
     authorizationEvidenceDigest: sha("authorization-evidence"),
     auditEventDigest: sha("revocation-audit"),
     durabilityReceiptDigest: sha("revocation-durability"),
@@ -200,6 +203,18 @@ function runRevocationReader(args) {
 }
 
 describe("Volcengine function replay store", () => {
+  it.each(["v1", "v2"])("rejects legacy %s store descriptors", (version) => {
+    expect(() =>
+      createVolcengineFunctionReplayStore({
+        descriptor: descriptor({
+          schema: `chainlesschain.volcengine-function-replay-store/${version}`,
+        }),
+        rootDir: root(),
+        now: () => NOW,
+      }),
+    ).toThrow("Volcengine function replay store descriptor is invalid");
+  });
+
   it("durably reserves a request and rejects it through a reopened store", () => {
     const rootDir = root();
     const first = store(rootDir, () => NOW);
@@ -369,6 +384,8 @@ describe("Volcengine function replay store", () => {
     );
     expect(reopened.readRevocation()).toMatchObject({
       revocationId: "revocation-1",
+      revocationAuthorityId: "function-revocation:test",
+      authorizationRequestDigest: sha("authorization-request"),
       revocationDigest: value.revocationDigest,
     });
     expect(reopened.revoke(value)).toMatchObject({
@@ -379,6 +396,11 @@ describe("Volcengine function replay store", () => {
     expect(() =>
       reopened.revoke(revocation({ revocationId: "revocation-conflict" })),
     ).toThrow("conflicts with existing record");
+    expect(() =>
+      reopened.revoke(
+        revocation({ revocationAuthorityId: "function-revocation:foreign" }),
+      ),
+    ).toThrow("Volcengine function authority revocation is invalid");
   });
 
   it("publishes durable revocation to a separate process", async () => {

@@ -6,13 +6,13 @@ import { types } from "node:util";
 import { withFileLock } from "../with-file-lock.js";
 
 export const VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA =
-  "chainlesschain.volcengine-function-replay-store/v2";
+  "chainlesschain.volcengine-function-replay-store/v3";
 export const VOLCENGINE_FUNCTION_REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 export const VOLCENGINE_FUNCTION_REPLAY_MODE =
   "cross-process-exclusive-file-fsync";
 export const VOLCENGINE_FUNCTION_REVOCATION_SCHEMA =
-  "chainlesschain.volcengine-function-authority-revocation/v1";
+  "chainlesschain.volcengine-function-authority-revocation/v2";
 export const VOLCENGINE_FUNCTION_REVOCATION_MODE =
   "cross-process-durable-readback-poll";
 
@@ -74,6 +74,7 @@ function normalizeDescriptor(value) {
       "schema",
       "replayStoreId",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -94,6 +95,11 @@ function normalizeDescriptor(value) {
       value,
       "authorityId",
       "Volcengine replay store authority",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine replay store revocation authority",
     ),
     tenantId: ownData(value, "tenantId", "Volcengine replay store tenant"),
     handlerArtifactDigest: ownData(
@@ -122,6 +128,7 @@ function normalizeDescriptor(value) {
     descriptor.schema !== VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA ||
     !ID.test(descriptor.replayStoreId) ||
     !ID.test(descriptor.authorityId) ||
+    !ID.test(descriptor.revocationAuthorityId) ||
     !ID.test(descriptor.tenantId) ||
     !DIGEST.test(descriptor.handlerArtifactDigest) ||
     !ID.test(descriptor.policyRevision) ||
@@ -230,11 +237,13 @@ function normalizeRevocation(value, descriptor) {
       "schema",
       "replayStoreId",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
       "revocationId",
       "reasonDigest",
+      "authorizationRequestDigest",
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
@@ -254,6 +263,11 @@ function normalizeRevocation(value, descriptor) {
       value,
       "authorityId",
       "Volcengine revocation authority",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine revocation decision authority",
     ),
     tenantId: ownData(value, "tenantId", "Volcengine revocation tenant"),
     handlerArtifactDigest: ownData(
@@ -275,6 +289,11 @@ function normalizeRevocation(value, descriptor) {
       value,
       "reasonDigest",
       "Volcengine revocation reason digest",
+    ),
+    authorizationRequestDigest: ownData(
+      value,
+      "authorizationRequestDigest",
+      "Volcengine revocation authorization request digest",
     ),
     authorizationEvidenceDigest: ownData(
       value,
@@ -303,11 +322,13 @@ function normalizeRevocation(value, descriptor) {
     core.schema !== VOLCENGINE_FUNCTION_REVOCATION_SCHEMA ||
     core.replayStoreId !== descriptor.replayStoreId ||
     core.authorityId !== descriptor.authorityId ||
+    core.revocationAuthorityId !== descriptor.revocationAuthorityId ||
     core.tenantId !== descriptor.tenantId ||
     core.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
     core.policyRevision !== descriptor.policyRevision ||
     !ID.test(core.revocationId) ||
     !DIGEST.test(core.reasonDigest) ||
+    !DIGEST.test(core.authorizationRequestDigest) ||
     !DIGEST.test(core.authorizationEvidenceDigest) ||
     !DIGEST.test(core.auditEventDigest) ||
     !DIGEST.test(core.durabilityReceiptDigest) ||
@@ -441,11 +462,13 @@ function writeRevocation(recordPath, root, revocation) {
     schema: revocation.schema,
     replayStoreId: revocation.replayStoreId,
     authorityId: revocation.authorityId,
+    revocationAuthorityId: revocation.revocationAuthorityId,
     tenantId: revocation.tenantId,
     handlerArtifactDigest: revocation.handlerArtifactDigest,
     policyRevision: revocation.policyRevision,
     revocationId: revocation.revocationId,
     reasonDigest: revocation.reasonDigest,
+    authorizationRequestDigest: revocation.authorizationRequestDigest,
     authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
     auditEventDigest: revocation.auditEventDigest,
     durabilityReceiptDigest: revocation.durabilityReceiptDigest,
@@ -481,6 +504,7 @@ function writeRevocation(recordPath, root, revocation) {
     const readback = readRevocationRecord(recordPath, {
       replayStoreId: revocation.replayStoreId,
       authorityId: revocation.authorityId,
+      revocationAuthorityId: revocation.revocationAuthorityId,
       tenantId: revocation.tenantId,
       handlerArtifactDigest: revocation.handlerArtifactDigest,
       policyRevision: revocation.policyRevision,
@@ -659,11 +683,13 @@ export function captureVolcengineFunctionReplayStore(value) {
           schema: revocation.schema,
           replayStoreId: revocation.replayStoreId,
           authorityId: revocation.authorityId,
+          revocationAuthorityId: revocation.revocationAuthorityId,
           tenantId: revocation.tenantId,
           handlerArtifactDigest: revocation.handlerArtifactDigest,
           policyRevision: revocation.policyRevision,
           revocationId: revocation.revocationId,
           reasonDigest: revocation.reasonDigest,
+          authorizationRequestDigest: revocation.authorizationRequestDigest,
           authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
           auditEventDigest: revocation.auditEventDigest,
           durabilityReceiptDigest: revocation.durabilityReceiptDigest,

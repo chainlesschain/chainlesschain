@@ -3,9 +3,9 @@
 const { createHash, randomUUID } = require("node:crypto");
 const { types: utilTypes } = require("node:util");
 
-const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v5";
-const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v5";
-const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v5";
+const AUTHORITY_SCHEMA = "chainlesschain.volcengine-function-authority/v6";
+const REQUEST_SCHEMA = "chainlesschain.volcengine-function-request/v6";
+const RECEIPT_SCHEMA = "chainlesschain.volcengine-function-receipt/v6";
 const REPLAY_RESERVATION_SCHEMA =
   "chainlesschain.volcengine-function-replay-reservation/v1";
 const REPLAY_MODE = "cross-process-exclusive-file-fsync";
@@ -378,6 +378,7 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
     [
       "schema",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -418,6 +419,14 @@ function createVolcengineFunctionExecutionHost(authority, captureAuthority) {
         "Volcengine function authority identifier",
       ),
       "Volcengine function authority identifier",
+    ),
+    revocationAuthorityId: boundedIdentifier(
+      ownData(
+        descriptor,
+        "revocationAuthorityId",
+        "Volcengine function revocation authority identifier",
+      ),
+      "Volcengine function revocation authority identifier",
     ),
     tenantId: boundedIdentifier(
       ownData(descriptor, "tenantId", "Volcengine function authority tenant"),
@@ -546,6 +555,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
     [
       "schema",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -574,6 +584,7 @@ function validateReceipt(receipt, request, descriptor, resultDigest) {
   for (const [name, expected] of Object.entries({
     schema: RECEIPT_SCHEMA,
     authorityId: descriptor.authorityId,
+    revocationAuthorityId: descriptor.revocationAuthorityId,
     tenantId: descriptor.tenantId,
     handlerArtifactDigest: descriptor.handlerArtifactDigest,
     policyRevision: descriptor.policyRevision,
@@ -663,6 +674,7 @@ function createVolcengineFunctionExecutor(
           const requestCore = Object.freeze({
             schema: REQUEST_SCHEMA,
             authorityId: captured.descriptor.authorityId,
+            revocationAuthorityId: captured.descriptor.revocationAuthorityId,
             tenantId: context.tenantId,
             handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
             policyRevision: captured.descriptor.policyRevision,
@@ -688,7 +700,7 @@ function createVolcengineFunctionExecutor(
           const request = Object.freeze({
             ...requestCore,
             requestDigest: digest(
-              "chainlesschain.volcengine-function-request/v5",
+              "chainlesschain.volcengine-function-request/v6",
               requestCore,
             ),
           });

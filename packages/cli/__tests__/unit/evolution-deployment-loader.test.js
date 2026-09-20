@@ -1057,9 +1057,10 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionReplayStore({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-replay-store/v2",
+                schema: "chainlesschain.volcengine-function-replay-store/v3",
                 replayStoreId: "volcengine-function-replay",
                 authorityId: "volcengine-functions",
+                revocationAuthorityId: "volcengine-function-revocation",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
                 policyRevision: "policy-1",
@@ -1073,8 +1074,9 @@ describe("signed evolution deployment loader", () => {
           expect(() =>
             factories.createVolcengineFunctionExecutionAuthority({
               descriptor: {
-                schema: "chainlesschain.volcengine-function-authority/v5",
+                schema: "chainlesschain.volcengine-function-authority/v6",
                 authorityId: "volcengine-functions",
+                revocationAuthorityId: "volcengine-function-revocation",
                 tenantId: "tenant-1",
                 handlerArtifactDigest: substitutedDigest,
                 policyRevision: "policy-1",

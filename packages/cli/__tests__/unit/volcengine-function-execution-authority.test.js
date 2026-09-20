@@ -94,6 +94,7 @@ function descriptor(overrides = {}) {
   return {
     schema: VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA,
     authorityId: "authority:test",
+    revocationAuthorityId: "function-revocation:test",
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("signed-deployment"),
     policyRevision: "policy-1",
@@ -117,6 +118,7 @@ function request(overrides = {}, policies = functionPolicies()) {
   const core = {
     schema: VOLCENGINE_FUNCTION_REQUEST_SCHEMA,
     authorityId: "authority:test",
+    revocationAuthorityId: "function-revocation:test",
     tenantId: "tenant:test",
     handlerArtifactDigest: sha("signed-deployment"),
     policyRevision: "policy-1",
@@ -146,7 +148,7 @@ function request(overrides = {}, policies = functionPolicies()) {
   return {
     ...core,
     requestDigest: domainDigest(
-      "chainlesschain.volcengine-function-request/v5",
+      "chainlesschain.volcengine-function-request/v6",
       core,
     ),
   };
@@ -203,6 +205,7 @@ function createReplayStore(authorityDescriptor, rootDir) {
       schema: VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA,
       replayStoreId: authorityDescriptor.replayStoreId,
       authorityId: authorityDescriptor.authorityId,
+      revocationAuthorityId: authorityDescriptor.revocationAuthorityId,
       tenantId: authorityDescriptor.tenantId,
       handlerArtifactDigest: authorityDescriptor.handlerArtifactDigest,
       policyRevision: authorityDescriptor.policyRevision,
@@ -269,7 +272,7 @@ function createRevocationPort(
     createVolcengineFunctionRevocationAuthority({
       descriptor: {
         schema: VOLCENGINE_FUNCTION_REVOCATION_AUTHORITY_SCHEMA,
-        authorityId: "function-revocation:test",
+        authorityId: targetDescriptor.revocationAuthorityId,
         tenantId: targetDescriptor.tenantId,
         handlerArtifactDigest: targetDescriptor.handlerArtifactDigest,
         policyRevision: "revocation-policy-1",
@@ -287,7 +290,7 @@ function createRevocationPort(
 }
 
 describe("Volcengine function execution authority", () => {
-  it.each(["v1", "v2", "v3", "v4"])(
+  it.each(["v1", "v2", "v3", "v4", "v5"])(
     "rejects legacy %s authority descriptors",
     (version) => {
       expect(() =>
@@ -313,6 +316,7 @@ describe("Volcengine function execution authority", () => {
     expect(response.receipt).toMatchObject({
       schema: VOLCENGINE_FUNCTION_RECEIPT_SCHEMA,
       authorityId: "authority:test",
+      revocationAuthorityId: "function-revocation:test",
       tenantId: "tenant:test",
       handlerArtifactDigest: sha("signed-deployment"),
       policyRevision: "policy-1",
@@ -536,6 +540,20 @@ describe("Volcengine function execution authority", () => {
       "Volcengine function revocation target does not match authority",
     );
     expect(authorize).not.toHaveBeenCalled();
+
+    const issuerMismatch = setup({
+      descriptor: {
+        revocationAuthorityId: "function-revocation:foreign",
+      },
+    });
+    await expect(
+      createRevocationPort(descriptor(), authorize).revokeAuthority(
+        issuerMismatch.authority,
+        revocationRequest({ requestId: "revocation-issuer-mismatch" }),
+      ),
+    ).rejects.toThrow(
+      "Volcengine function revocation target does not match authority",
+    );
     expect(() =>
       captureVolcengineFunctionRevocationAuthority(Object.freeze({})),
     ).toThrow("branded Volcengine function revocation authority");

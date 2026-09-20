@@ -11,13 +11,13 @@ import {
 } from "./volcengine-function-replay-store.js";
 
 export const VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA =
-  "chainlesschain.volcengine-function-authority/v5";
+  "chainlesschain.volcengine-function-authority/v6";
 export const VOLCENGINE_FUNCTION_REQUEST_SCHEMA =
-  "chainlesschain.volcengine-function-request/v5";
+  "chainlesschain.volcengine-function-request/v6";
 export const VOLCENGINE_FUNCTION_RECEIPT_SCHEMA =
-  "chainlesschain.volcengine-function-receipt/v5";
+  "chainlesschain.volcengine-function-receipt/v6";
 export const VOLCENGINE_FUNCTION_AUDIT_EVIDENCE_SCHEMA =
-  "chainlesschain.volcengine-function-audit-evidence/v5";
+  "chainlesschain.volcengine-function-audit-evidence/v6";
 export const VOLCENGINE_FUNCTION_PURPOSE = "model-tool-execution";
 export const VOLCENGINE_FUNCTION_AUDIT_MODE = "authenticated-durable-readback";
 export const VOLCENGINE_FUNCTION_EXECUTOR_TYPE = "capability";
@@ -357,6 +357,7 @@ function normalizeDescriptor(value) {
     [
       "schema",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -384,6 +385,11 @@ function normalizeDescriptor(value) {
       value,
       "authorityId",
       "Volcengine function authority identifier",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine function revocation authority identifier",
     ),
     tenantId: ownData(
       value,
@@ -435,6 +441,7 @@ function normalizeDescriptor(value) {
   if (
     descriptor.schema !== VOLCENGINE_FUNCTION_AUTHORITY_SCHEMA ||
     !ID.test(descriptor.authorityId) ||
+    !ID.test(descriptor.revocationAuthorityId) ||
     !ID.test(descriptor.tenantId) ||
     !DIGEST.test(descriptor.handlerArtifactDigest) ||
     !ID.test(descriptor.policyRevision) ||
@@ -458,6 +465,7 @@ function normalizeRequest(value, descriptor, nowMs) {
     [
       "schema",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -499,6 +507,11 @@ function normalizeRequest(value, descriptor, nowMs) {
       value,
       "authorityId",
       "Volcengine function request authority",
+    ),
+    revocationAuthorityId: ownData(
+      value,
+      "revocationAuthorityId",
+      "Volcengine function request revocation authority",
     ),
     tenantId: ownData(value, "tenantId", "Volcengine function request tenant"),
     handlerArtifactDigest: ownData(
@@ -567,6 +580,7 @@ function normalizeRequest(value, descriptor, nowMs) {
   if (
     core.schema !== VOLCENGINE_FUNCTION_REQUEST_SCHEMA ||
     core.authorityId !== descriptor.authorityId ||
+    core.revocationAuthorityId !== descriptor.revocationAuthorityId ||
     core.tenantId !== descriptor.tenantId ||
     core.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
     core.policyRevision !== descriptor.policyRevision ||
@@ -595,7 +609,7 @@ function normalizeRequest(value, descriptor, nowMs) {
     deadlineAtMs <= requestedAtMs ||
     deadlineAtMs > requestedAtMs + policy.maxExecutionMs ||
     requestDigest !==
-      digest("chainlesschain.volcengine-function-request/v5", core)
+      digest("chainlesschain.volcengine-function-request/v6", core)
   ) {
     throw new TypeError("Volcengine function request is invalid");
   }
@@ -893,6 +907,7 @@ function normalizeRevocationAuthorityDescriptor(value) {
 function assertRevocationTargetBinding(target, descriptor) {
   if (
     target.authorityId !== descriptor.targetAuthorityId ||
+    target.revocationAuthorityId !== descriptor.authorityId ||
     target.tenantId !== descriptor.tenantId ||
     target.handlerArtifactDigest !== descriptor.handlerArtifactDigest ||
     target.policyRevision !== descriptor.targetPolicyRevision ||
@@ -1150,11 +1165,13 @@ function synchronizeDurableRevocation(captured) {
       "schema",
       "replayStoreId",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
       "revocationId",
       "reasonDigest",
+      "authorizationRequestDigest",
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
@@ -1167,10 +1184,13 @@ function synchronizeDurableRevocation(captured) {
     revocation.schema !== VOLCENGINE_FUNCTION_REVOCATION_SCHEMA ||
     revocation.replayStoreId !== captured.descriptor.replayStoreId ||
     revocation.authorityId !== captured.descriptor.authorityId ||
+    revocation.revocationAuthorityId !==
+      captured.descriptor.revocationAuthorityId ||
     revocation.tenantId !== captured.descriptor.tenantId ||
     revocation.handlerArtifactDigest !==
       captured.descriptor.handlerArtifactDigest ||
     revocation.policyRevision !== captured.descriptor.policyRevision ||
+    !DIGEST.test(revocation.authorizationRequestDigest) ||
     !DIGEST.test(revocation.revocationDigest)
   ) {
     throw revocationStatusError();
@@ -1274,6 +1294,7 @@ export function createVolcengineFunctionExecutionAuthority({
       "schema",
       "replayStoreId",
       "authorityId",
+      "revocationAuthorityId",
       "tenantId",
       "handlerArtifactDigest",
       "policyRevision",
@@ -1287,6 +1308,8 @@ export function createVolcengineFunctionExecutionAuthority({
     replayDescriptor.schema !== VOLCENGINE_FUNCTION_REPLAY_STORE_SCHEMA ||
     replayDescriptor.replayStoreId !== normalizedDescriptor.replayStoreId ||
     replayDescriptor.authorityId !== normalizedDescriptor.authorityId ||
+    replayDescriptor.revocationAuthorityId !==
+      normalizedDescriptor.revocationAuthorityId ||
     replayDescriptor.tenantId !== normalizedDescriptor.tenantId ||
     replayDescriptor.handlerArtifactDigest !==
       normalizedDescriptor.handlerArtifactDigest ||
@@ -1367,6 +1390,8 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
     [
       "revocationId",
       "reasonDigest",
+      "revocationAuthorityId",
+      "authorizationRequestDigest",
       "authorizationEvidenceDigest",
       "auditEventDigest",
       "durabilityReceiptDigest",
@@ -1381,6 +1406,11 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
     tenantId: captured.descriptor.tenantId,
     handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
     policyRevision: captured.descriptor.policyRevision,
+    revocationAuthorityId: ownData(
+      evidence,
+      "revocationAuthorityId",
+      "Volcengine function revocation decision authority",
+    ),
     revocationId: ownData(
       evidence,
       "revocationId",
@@ -1390,6 +1420,11 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
       evidence,
       "reasonDigest",
       "Volcengine function revocation reason digest",
+    ),
+    authorizationRequestDigest: ownData(
+      evidence,
+      "authorizationRequestDigest",
+      "Volcengine function revocation authorization request digest",
     ),
     authorizationEvidenceDigest: ownData(
       evidence,
@@ -1416,7 +1451,9 @@ async function persistVolcengineFunctionExecutionAuthorityRevocation(
   const nowMs = captured.now();
   if (
     !ID.test(core.revocationId) ||
+    core.revocationAuthorityId !== captured.descriptor.revocationAuthorityId ||
     !DIGEST.test(core.reasonDigest) ||
+    !DIGEST.test(core.authorizationRequestDigest) ||
     !DIGEST.test(core.authorizationEvidenceDigest) ||
     !DIGEST.test(core.auditEventDigest) ||
     !DIGEST.test(core.durabilityReceiptDigest) ||
@@ -1550,6 +1587,8 @@ export function captureVolcengineFunctionRevocationAuthority(value) {
           Object.freeze({
             revocationId: request.requestId,
             reasonDigest: request.reasonDigest,
+            revocationAuthorityId: captured.descriptor.authorityId,
+            authorizationRequestDigest: request.requestDigest,
             authorizationEvidenceDigest: decision.authorizationEvidenceDigest,
             auditEventDigest: decision.auditEventDigest,
             durabilityReceiptDigest: decision.durabilityReceiptDigest,
@@ -1654,6 +1693,7 @@ export function captureVolcengineFunctionExecutionAuthority(value) {
           handlerArtifactDigest: captured.descriptor.handlerArtifactDigest,
           policyRevision: captured.descriptor.policyRevision,
           replayStoreId: captured.descriptor.replayStoreId,
+          revocationAuthorityId: captured.descriptor.revocationAuthorityId,
           revocationMode: captured.descriptor.revocationMode,
           actorDid: request.actorDid,
           purpose: VOLCENGINE_FUNCTION_PURPOSE,

@@ -220,3 +220,4 @@
 | 157  | 2026-09-21 | [第一百五十七次工程实施：CLI Volcengine 跨进程耐久重放门禁](./rsiagent-one-hundred-fifty-seventh-batch-implementation-2026-09-21.md)        |
 | 158  | 2026-09-21 | [第一百五十八次工程实施：CLI Volcengine 跨进程耐久撤销](./rsiagent-one-hundred-fifty-eighth-batch-implementation-2026-09-21.md)             |
 | 159  | 2026-09-21 | [第一百五十九次工程实施：CLI Volcengine 撤销授权与耐久决策](./rsiagent-one-hundred-fifty-ninth-batch-implementation-2026-09-21.md)          |
+| 160  | 2026-09-21 | [第一百六十次工程实施：CLI Volcengine 撤销签发者链绑定](./rsiagent-one-hundred-sixtieth-batch-implementation-2026-09-21.md)                 |

@@ -609,8 +609,9 @@ describe("desktop evolution deployment", () => {
   it("narrows a signed Volcengine function authority to an opaque Desktop host", async () => {
     const authority = Object.freeze({});
     const descriptor = Object.freeze({
-      schema: "chainlesschain.volcengine-function-authority/v5",
+      schema: "chainlesschain.volcengine-function-authority/v6",
       authorityId: "volcengine-functions",
+      revocationAuthorityId: "volcengine-function-revocation",
       tenantId: "tenant-1",
       handlerArtifactDigest: sha("signed-deployment"),
       policyRevision: "policy-1",
