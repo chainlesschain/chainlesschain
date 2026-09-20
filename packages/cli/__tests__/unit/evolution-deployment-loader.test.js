@@ -868,6 +868,7 @@ describe("signed evolution deployment loader", () => {
       "createVolcengineFunctionExecutionAuthority",
       "revokeVolcengineFunctionExecutionAuthority",
       "createVolcengineFunctionRevocationAuthority",
+      "createVolcengineFunctionProcessExecutor",
       "createVolcengineFunctionReplayStore",
       "createEvolutionLedgerDurableArtifactResolver",
       "createEvolutionArtifactPorts",
@@ -1098,6 +1099,13 @@ describe("signed evolution deployment loader", () => {
                 auditMode: "authenticated-durable-readback",
               },
               execute: async () => null,
+            }),
+          ).toThrow("authenticated deployment module digest");
+          expect(() =>
+            factories.createVolcengineFunctionProcessExecutor({
+              target: {
+                handlerArtifactDigest: substitutedDigest,
+              },
             }),
           ).toThrow("authenticated deployment module digest");
           expect(() =>

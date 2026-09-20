@@ -282,6 +282,7 @@ async function loadBuiltInFactories(commandName) {
       browserQuarantineLockMaintenance,
       browserDownloadArtifactDisposal,
       volcengineFunctionExecution,
+      volcengineFunctionProcessExecutor,
       volcengineFunctionReplay,
       ledgerPorts,
       artifactPorts,
@@ -316,6 +317,7 @@ async function loadBuiltInFactories(commandName) {
       import("./browser-quarantine-lock-maintenance-authority.js"),
       import("./browser-download-artifact-disposal-authority.js"),
       import("./volcengine-function-execution-authority.js"),
+      import("./volcengine-function-process-executor.js"),
       import("./volcengine-function-replay-store.js"),
       import("./evolution-ledger-ports.js"),
       import("./evolution-artifact-ports.js"),
@@ -453,6 +455,8 @@ async function loadBuiltInFactories(commandName) {
         volcengineFunctionExecution.revokeVolcengineFunctionExecutionAuthority,
       createVolcengineFunctionRevocationAuthority:
         volcengineFunctionExecution.createVolcengineFunctionRevocationAuthority,
+      createVolcengineFunctionProcessExecutor:
+        volcengineFunctionProcessExecutor.createVolcengineFunctionProcessExecutor,
       createVolcengineFunctionReplayStore:
         volcengineFunctionReplay.createVolcengineFunctionReplayStore,
       createEvolutionLedgerDurableArtifactResolver:
@@ -925,6 +929,15 @@ function bindFactoriesToModule(factories, moduleDigest) {
           "process Eval supervisor handlerArtifactDigest must equal the authenticated deployment module digest",
         );
       return factories.createEvolutionEvalProcessSupervisor(options);
+    };
+  }
+  if (typeof factories.createVolcengineFunctionProcessExecutor === "function") {
+    result.createVolcengineFunctionProcessExecutor = (options = {}) => {
+      if (options?.target?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          "Volcengine function process target handlerArtifactDigest must equal the authenticated deployment module digest",
+        );
+      return factories.createVolcengineFunctionProcessExecutor(options);
     };
   }
   return Object.freeze(result);
