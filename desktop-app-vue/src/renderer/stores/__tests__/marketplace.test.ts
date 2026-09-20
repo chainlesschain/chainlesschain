@@ -23,7 +23,6 @@ function makePlugin(overrides: Partial<InstalledPlugin> = {}): InstalledPlugin {
     plugin_id: "p1",
     name: "Plugin 1",
     version: "1.0.0",
-    install_path: "/plugins/p1",
     installed_at: 1700000000000,
     enabled: true,
     auto_update: false,

@@ -624,6 +624,42 @@ describe("plugin public projection", () => {
     expect(JSON.stringify(projected)).not.toContain(secret);
   });
 
+  it("projects only host-controlled builtin UI references", () => {
+    const common = { id: "entry-1", pluginId: "plugin-1" };
+    expect(
+      projectPluginV6UiEntries(
+        [{ ...common, type: "note", renderer: "builtin:NoteArtifact" }],
+        "artifact",
+      )[0],
+    ).toMatchObject({ renderer: "builtin:NoteArtifact" });
+    expect(
+      projectPluginV6UiEntries(
+        [{ ...common, trigger: "admin", handler: "builtin:openAdminConsole" }],
+        "slash",
+      )[0],
+    ).toMatchObject({ handler: "builtin:openAdminConsole" });
+    expect(
+      projectPluginV6UiEntries(
+        [{ ...common, component: "builtin:AdminShortcut" }],
+        "status-bar",
+      )[0],
+    ).toMatchObject({ component: "builtin:AdminShortcut" });
+
+    for (const value of [
+      "plugin:CustomWidget",
+      "builtin:../Secret",
+      "builtin:Name<script>",
+      { executable: true },
+    ]) {
+      expect(
+        projectPluginV6UiEntries(
+          [{ ...common, component: value }],
+          "status-bar",
+        )[0],
+      ).not.toHaveProperty("component");
+    }
+  });
+
   it("projects brand and enterprise capability entries", () => {
     const secret = "https://private.example/enterprise-secret";
     const common = {

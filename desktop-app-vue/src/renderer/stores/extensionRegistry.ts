@@ -27,6 +27,7 @@ export interface ArtifactContribution {
   id: string;
   pluginId: string;
   type: string;
+  renderer?: string;
   actions: Array<{ id: string; label: string; icon?: string }>;
   icon: string;
   label: string;
@@ -36,6 +37,7 @@ export interface SlashCommandContribution {
   id: string;
   pluginId: string;
   trigger: string;
+  handler?: string;
   description: string;
   icon: string;
   requirePermissions: string[];
@@ -52,6 +54,7 @@ export interface MentionSourceContribution {
 export interface StatusBarWidgetContribution {
   id: string;
   pluginId: string;
+  component?: string;
   position: "left" | "center" | "right";
   order: number;
   tooltip: string;
@@ -60,6 +63,7 @@ export interface StatusBarWidgetContribution {
 export interface HomeWidgetContribution {
   id: string;
   pluginId: string;
+  component?: string;
   size: "small" | "medium" | "large";
   order: number;
   title: string;
@@ -68,6 +72,7 @@ export interface HomeWidgetContribution {
 export interface ComposerSlotContribution {
   id: string;
   pluginId: string;
+  component?: string;
   position: "left" | "right" | "above" | "below";
   order: number;
 }

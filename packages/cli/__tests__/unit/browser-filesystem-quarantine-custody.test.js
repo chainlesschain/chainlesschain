@@ -6,7 +6,9 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -259,6 +261,39 @@ describe("browser filesystem quarantine custody", () => {
     ])
       await expect(access(directory)).resolves.toBeUndefined();
   });
+
+  it.runIf(process.platform === "darwin")(
+    "accepts the canonical macOS temporary-directory alias",
+    async () => {
+      const { port, stateRoot } = await fixture();
+      expect(path.relative(stateRoot, await realpath(stateRoot))).not.toBe("");
+
+      const session = await port.openQuarantine(openInput());
+      await session.writeChunk(Buffer.from("partial"));
+      await session.discardArtifact();
+    },
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "rejects a linked parent below the temporary-directory root",
+    async () => {
+      const parent = await mkdtemp(path.join(tmpdir(), "cc-browser-parent-"));
+      const target = await mkdtemp(path.join(tmpdir(), "cc-browser-target-"));
+      roots.push(parent, target);
+      await symlink(target, path.join(parent, "linked"), "dir");
+      const port = captureBrowserFilesystemQuarantineCustody(
+        createBrowserFilesystemQuarantineCustody({
+          descriptor: descriptor(),
+          stateRoot: path.join(parent, "linked", "quarantine"),
+          now: () => NOW,
+        }),
+      );
+
+      await expect(port.openQuarantine(openInput())).rejects.toThrow(
+        /state root must not be a link/u,
+      );
+    },
+  );
 
   it("removes every partial artifact when a streaming session is discarded", async () => {
     const { port } = await fixture();

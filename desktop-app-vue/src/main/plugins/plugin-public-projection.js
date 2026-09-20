@@ -12,6 +12,18 @@ function enabledValue(value) {
   return value === true || value === 1;
 }
 
+function builtinReference(value) {
+  return typeof value === "string" &&
+    /^builtin:[A-Za-z][A-Za-z0-9]*$/u.test(value)
+    ? value
+    : null;
+}
+
+function projectBuiltinReference(field, value) {
+  const reference = builtinReference(value);
+  return reference ? { [field]: reference } : {};
+}
+
 function projectPluginPublicRecord(plugin) {
   if (!plugin || typeof plugin !== "object") {
     return null;
@@ -566,6 +578,7 @@ function projectPluginV6UiEntries(entries, kind) {
           {
             ...common,
             type: boundedString(entry.type, 128),
+            ...projectBuiltinReference("renderer", entry.renderer),
             icon: boundedString(entry.icon, 128),
             label: boundedString(entry.label, 512),
             actions: projectV6Actions(entry.actions),
@@ -576,6 +589,7 @@ function projectPluginV6UiEntries(entries, kind) {
           {
             ...common,
             trigger: boundedString(entry.trigger, 128),
+            ...projectBuiltinReference("handler", entry.handler),
             description: boundedString(entry.description, 4096),
             icon: boundedString(entry.icon, 128),
             requirePermissions: projectStringList(
@@ -598,6 +612,7 @@ function projectPluginV6UiEntries(entries, kind) {
         return [
           {
             ...common,
+            ...projectBuiltinReference("component", entry.component),
             position: boundedString(entry.position, 64),
             order,
             tooltip: boundedString(entry.tooltip, 1024),
@@ -607,6 +622,7 @@ function projectPluginV6UiEntries(entries, kind) {
         return [
           {
             ...common,
+            ...projectBuiltinReference("component", entry.component),
             size: boundedString(entry.size, 64),
             order,
             title: boundedString(entry.title, 512),
@@ -616,6 +632,7 @@ function projectPluginV6UiEntries(entries, kind) {
         return [
           {
             ...common,
+            ...projectBuiltinReference("component", entry.component),
             position: boundedString(entry.position, 64),
             order,
           },

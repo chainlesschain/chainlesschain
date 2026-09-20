@@ -111,7 +111,7 @@ const rightWidgets = computed(() =>
   statusBarWidgets.value.filter((w) => w.position === "right"),
 );
 
-function resolveWidget(w: { component: string | null; tooltip: string }) {
+function resolveWidget(w: { component?: string; tooltip: string }) {
   const resolved = resolveWidgetComponent(w.component);
   if (resolved) {
     return resolved;
@@ -143,10 +143,7 @@ async function loadUKey(api: UKeyApi) {
   }
   try {
     const result = (await api.detect()) as
-      | { connected?: boolean; success?: boolean }
-      | boolean
-      | null
-      | undefined;
+      { connected?: boolean; success?: boolean } | boolean | null | undefined;
     if (typeof result === "boolean") {
       ukeyConnected.value = result;
     } else if (result && typeof result === "object") {
@@ -177,10 +174,7 @@ async function loadPeers(api: P2pApi) {
   }
   try {
     const result = (await api.getPeers()) as
-      | unknown[]
-      | { peers?: unknown[] }
-      | null
-      | undefined;
+      unknown[] | { peers?: unknown[] } | null | undefined;
     if (Array.isArray(result)) {
       p2pNodes.value = result.length;
     } else if (Array.isArray((result as { peers?: unknown[] })?.peers)) {
@@ -197,9 +191,7 @@ async function loadLlm(api: LlmApi) {
   }
   try {
     const config = (await api.getConfig()) as
-      | { provider?: unknown }
-      | null
-      | undefined;
+      { provider?: unknown } | null | undefined;
     if (
       config &&
       typeof config === "object" &&

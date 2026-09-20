@@ -13,6 +13,7 @@ import {
   stat,
   unlink,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { types } from "node:util";
 
@@ -289,9 +290,36 @@ async function assertSafeDirectory(root, directory) {
   if (!info.isDirectory() || info.isSymbolicLink())
     throw new Error("filesystem quarantine directory is unsafe");
   const resolved = await realpath(directory);
-  const relative = path.relative(root, resolved);
-  if (relative === ".." || relative.startsWith(`..${path.sep}`))
+  if (!isContainedPath(root, resolved))
     throw new Error("filesystem quarantine directory escapes its state root");
+}
+
+function isContainedPath(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+async function resolveSafeStateRoot(stateRoot) {
+  const resolvedRoot = await realpath(stateRoot);
+  if (path.relative(stateRoot, resolvedRoot) === "") return resolvedRoot;
+
+  // macOS exposes its temporary directory through /var even though the
+  // canonical path starts with /private/var. Accept only that operating-system
+  // alias; a link introduced anywhere below the temp root must still fail.
+  const temporaryRoot = path.resolve(tmpdir());
+  if (!isContainedPath(temporaryRoot, stateRoot))
+    throw new Error("filesystem quarantine state root must not be a link");
+  const relativeRoot = path.relative(temporaryRoot, stateRoot);
+  const resolvedTemporaryRoot = await realpath(temporaryRoot);
+  const expectedRoot = path.resolve(resolvedTemporaryRoot, relativeRoot);
+  if (path.relative(expectedRoot, resolvedRoot) !== "")
+    throw new Error("filesystem quarantine state root must not be a link");
+  return resolvedRoot;
 }
 
 async function prepare(state) {
@@ -301,13 +329,11 @@ async function prepare(state) {
       const rootInfo = await lstat(state.stateRoot);
       if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink())
         throw new Error("filesystem quarantine state root is unsafe");
-      const resolvedRoot = await realpath(state.stateRoot);
-      if (path.relative(state.stateRoot, resolvedRoot) !== "")
-        throw new Error("filesystem quarantine state root must not be a link");
-      await assertSafeDirectory(state.stateRoot, state.objectsRoot);
-      await assertSafeDirectory(state.stateRoot, state.metadataRoot);
-      await assertSafeDirectory(state.stateRoot, state.deletionsRoot);
-      await assertSafeDirectory(state.stateRoot, state.locksRoot);
+      const resolvedRoot = await resolveSafeStateRoot(state.stateRoot);
+      await assertSafeDirectory(resolvedRoot, state.objectsRoot);
+      await assertSafeDirectory(resolvedRoot, state.metadataRoot);
+      await assertSafeDirectory(resolvedRoot, state.deletionsRoot);
+      await assertSafeDirectory(resolvedRoot, state.locksRoot);
     })();
   }
   await state.preparePromise;

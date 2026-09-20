@@ -266,7 +266,7 @@ function onPickSlash(cmd: SlashCommandContribution) {
   }
 }
 
-function resolveSlotComponent(slot: { component: string | null }) {
+function resolveSlotComponent(slot: { component?: string }) {
   const resolved = resolveWidgetComponent(slot.component);
   if (resolved) {
     return resolved;
