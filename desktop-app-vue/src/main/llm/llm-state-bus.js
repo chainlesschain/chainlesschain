@@ -60,6 +60,59 @@ const FORWARD_MAP = Object.freeze({
   "budget-alert": Events.BUDGET_ALERT,
 });
 
+const EVENT_RECEIPT_NAMES = Object.freeze({
+  [Events.PROVIDER_CHANGED]: "provider-changed",
+  [Events.MODEL_SWITCHED]: "model-switched",
+  [Events.SERVICE_PAUSED]: "service-paused",
+  [Events.SERVICE_RESUMED]: "service-resumed",
+  [Events.BUDGET_ALERT]: "budget-alert",
+  [Events.SESSION_INVALIDATED]: "session-invalidated",
+  [Events.ALL_INVALIDATED]: "all-invalidated",
+});
+
+const SESSION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+
+function readSessionId(payload) {
+  try {
+    const prototype =
+      payload !== null && typeof payload === "object"
+        ? Object.getPrototypeOf(payload)
+        : undefined;
+    if (
+      payload === null ||
+      typeof payload !== "object" ||
+      (prototype !== Object.prototype && prototype !== null)
+    ) {
+      return null;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(payload, "sessionId");
+    return descriptor &&
+      Object.hasOwn(descriptor, "value") &&
+      typeof descriptor.value === "string" &&
+      SESSION_ID_PATTERN.test(descriptor.value)
+      ? descriptor.value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function createStateBusReceipt(eventName, payload) {
+  const event = EVENT_RECEIPT_NAMES[eventName] || "unknown";
+  const receipt = {
+    code: "CC_LLM_STATE_EVENT",
+    component: "state-bus",
+    event,
+  };
+
+  if (eventName === Events.SESSION_INVALIDATED) {
+    const sessionId = readSessionId(payload);
+    if (sessionId) receipt.sessionId = sessionId;
+  }
+
+  return Object.freeze(receipt);
+}
+
 class LLMStateBus extends EventEmitter {
   constructor() {
     super();
@@ -71,6 +124,18 @@ class LLMStateBus extends EventEmitter {
     this._forwardedSources = new WeakSet();
     // 统计每个事件的派发次数 (调试 + 监控)
     this._dispatchCounts = new Map();
+  }
+
+  /**
+   * EventEmitter's public emit surface is also projected so callers cannot
+   * bypass dispatch() and broadcast arbitrary provider, model, prompt, error,
+   * or tenant data to every subscriber.
+   */
+  emit(eventName, ...args) {
+    if (eventName === "newListener" || eventName === "removeListener") {
+      return super.emit(eventName, ...args);
+    }
+    return super.emit(eventName, createStateBusReceipt(eventName, args[0]));
   }
 
   /**
@@ -109,12 +174,13 @@ class LLMStateBus extends EventEmitter {
 
   /**
    * 派发一个总线事件 (带统计 + 错误隔离)。
-   * 内部使用 — 外部代码也可直接 emit(),但 dispatch() 会做统计。
+   * 内部使用 — 外部代码直接 emit() 时也会经过同一投影，但不计入统计。
    */
   dispatch(eventName, payload) {
+    const countKey = EVENT_RECEIPT_NAMES[eventName] ? eventName : "unknown";
     this._dispatchCounts.set(
-      eventName,
-      (this._dispatchCounts.get(eventName) || 0) + 1,
+      countKey,
+      (this._dispatchCounts.get(countKey) || 0) + 1,
     );
     try {
       this.emit(eventName, payload);
@@ -128,19 +194,18 @@ class LLMStateBus extends EventEmitter {
    * 触发全局失效。订阅方收到 ALL_INVALIDATED 后应清空所有 LLM 相关缓存。
    * 不会自动触发 SESSION_INVALIDATED — 订阅方按需自己 chain。
    */
-  invalidateAll(reason = "manual") {
-    this.dispatch(Events.ALL_INVALIDATED, { reason, ts: Date.now() });
+  invalidateAll() {
+    this.dispatch(Events.ALL_INVALIDATED);
   }
 
   /**
    * 触发单会话失效。
    */
-  invalidateSession(sessionId, reason = "manual") {
-    this.dispatch(Events.SESSION_INVALIDATED, {
-      sessionId,
-      reason,
-      ts: Date.now(),
-    });
+  invalidateSession(sessionId) {
+    if (typeof sessionId !== "string" || !SESSION_ID_PATTERN.test(sessionId)) {
+      throw new TypeError("invalidateSession requires a valid session ID");
+    }
+    this.dispatch(Events.SESSION_INVALIDATED, { sessionId });
   }
 
   /**

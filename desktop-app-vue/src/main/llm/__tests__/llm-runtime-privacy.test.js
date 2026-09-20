@@ -135,7 +135,7 @@ describe("LLM runtime privacy", () => {
     }
   });
 
-  it("preserves state-bus dispatch and stream state contracts", () => {
+  it("projects state-bus payloads and preserves stream state contracts", () => {
     const bus = new LLMStateBus();
     const listener = vi.fn();
     bus.on(Events.PROVIDER_CHANGED, listener);
@@ -145,7 +145,14 @@ describe("LLM runtime privacy", () => {
     controller.start();
     controller.pause();
 
-    expect(listener).toHaveBeenCalledWith({ provider: "private-provider" });
+    expect(listener).toHaveBeenCalledWith({
+      code: "CC_LLM_STATE_EVENT",
+      component: "state-bus",
+      event: "provider-changed",
+    });
+    expect(JSON.stringify(listener.mock.calls)).not.toContain(
+      "private-provider",
+    );
     expect(controller.isPaused).toBe(true);
   });
 });

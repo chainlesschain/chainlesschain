@@ -44,11 +44,20 @@ describe("LLMStateBus", () => {
   });
 
   describe("dispatch", () => {
-    it("emits the event to listeners", () => {
+    it("emits a frozen fixed receipt instead of the source payload", () => {
       const listener = vi.fn();
       bus.on(Events.PROVIDER_CHANGED, listener);
-      bus.dispatch(Events.PROVIDER_CHANGED, { provider: "openai" });
-      expect(listener).toHaveBeenCalledWith({ provider: "openai" });
+      bus.dispatch(Events.PROVIDER_CHANGED, {
+        provider: "private-provider",
+        prompt: "private-prompt",
+      });
+      const receipt = listener.mock.calls[0][0];
+      expect(receipt).toEqual({
+        code: "CC_LLM_STATE_EVENT",
+        component: "state-bus",
+        event: "provider-changed",
+      });
+      expect(Object.isFrozen(receipt)).toBe(true);
     });
 
     it("counts dispatches per event", () => {
@@ -72,6 +81,29 @@ describe("LLMStateBus", () => {
       // the test verifies dispatch itself does not propagate.)
       expect(() => bus.dispatch(Events.PROVIDER_CHANGED, {})).not.toThrow();
     });
+
+    it("projects direct emit and unknown events through the same boundary", () => {
+      const known = vi.fn();
+      const unknown = vi.fn();
+      bus.on(Events.SERVICE_PAUSED, known);
+      bus.on("tenant-private-event", unknown);
+
+      bus.emit(Events.SERVICE_PAUSED, { reason: "private-reason" });
+      bus.dispatch("tenant-private-event", { secret: "private-value" });
+
+      expect(known).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "service-paused" }),
+      );
+      expect(unknown).toHaveBeenCalledWith({
+        code: "CC_LLM_STATE_EVENT",
+        component: "state-bus",
+        event: "unknown",
+      });
+      expect(bus.getStats().events).toEqual({ unknown: 1 });
+      expect(
+        JSON.stringify([known.mock.calls, unknown.mock.calls]),
+      ).not.toContain("private");
+    });
   });
 
   describe("forwardFrom", () => {
@@ -81,7 +113,11 @@ describe("LLMStateBus", () => {
       bus.on(Events.PROVIDER_CHANGED, listener);
       bus.forwardFrom(source);
       source.emit("provider-changed", "openai");
-      expect(listener).toHaveBeenCalledWith("openai");
+      expect(listener).toHaveBeenCalledWith({
+        code: "CC_LLM_STATE_EVENT",
+        component: "state-bus",
+        event: "provider-changed",
+      });
     });
 
     it("forwards all 5 standard events", () => {
@@ -118,7 +154,9 @@ describe("LLMStateBus", () => {
       unbind();
       source.emit("provider-changed", "b");
       expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener).toHaveBeenCalledWith("a");
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "provider-changed" }),
+      );
     });
 
     it("rejects non-EventEmitter sources", () => {
@@ -130,21 +168,28 @@ describe("LLMStateBus", () => {
       const source = new EventEmitter();
       const listener = vi.fn();
       bus.on(Events.PROVIDER_CHANGED, listener);
-      bus.forwardFrom(source, { map: { "custom-event": Events.PROVIDER_CHANGED } });
+      bus.forwardFrom(source, {
+        map: { "custom-event": Events.PROVIDER_CHANGED },
+      });
       source.emit("custom-event", { x: 1 });
-      expect(listener).toHaveBeenCalledWith({ x: 1 });
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "provider-changed" }),
+      );
     });
   });
 
   describe("invalidateAll / invalidateSession", () => {
-    it("invalidateAll dispatches ALL_INVALIDATED with reason + ts", () => {
+    it("invalidateAll dispatches a fixed receipt", () => {
       const listener = vi.fn();
       bus.on(Events.ALL_INVALIDATED, listener);
       bus.invalidateAll("logout");
       expect(listener).toHaveBeenCalledTimes(1);
       const payload = listener.mock.calls[0][0];
-      expect(payload.reason).toBe("logout");
-      expect(typeof payload.ts).toBe("number");
+      expect(payload).toEqual({
+        code: "CC_LLM_STATE_EVENT",
+        component: "state-bus",
+        event: "all-invalidated",
+      });
     });
 
     it("invalidateSession dispatches SESSION_INVALIDATED with sessionId", () => {
@@ -154,16 +199,54 @@ describe("LLMStateBus", () => {
       expect(listener).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: "sess-123",
-          reason: "user-action",
+          event: "session-invalidated",
         }),
       );
     });
 
-    it("uses 'manual' as default reason", () => {
+    it("does not publish invalidation reasons", () => {
       const listener = vi.fn();
       bus.on(Events.ALL_INVALIDATED, listener);
-      bus.invalidateAll();
-      expect(listener.mock.calls[0][0].reason).toBe("manual");
+      bus.invalidateAll("private-reason");
+      expect(listener.mock.calls[0][0]).not.toHaveProperty("reason");
+    });
+
+    it("rejects invalid session identifiers", () => {
+      expect(() => bus.invalidateSession("private/session/id")).toThrow(
+        TypeError,
+      );
+      expect(() =>
+        bus.invalidateSession({ toString: () => "sess-123" }),
+      ).toThrow(TypeError);
+    });
+
+    it("does not invoke accessors or publish proxy failures", () => {
+      const getter = vi.fn(() => "sess-123");
+      const accessorPayload = {};
+      Object.defineProperty(accessorPayload, "sessionId", { get: getter });
+      const throwingProxy = new Proxy(
+        {},
+        {
+          getPrototypeOf() {
+            throw new Error("private-proxy-failure");
+          },
+        },
+      );
+      const listener = vi.fn();
+      bus.on(Events.SESSION_INVALIDATED, listener);
+
+      expect(() =>
+        bus.dispatch(Events.SESSION_INVALIDATED, accessorPayload),
+      ).not.toThrow();
+      expect(() =>
+        bus.dispatch(Events.SESSION_INVALIDATED, throwingProxy),
+      ).not.toThrow();
+
+      expect(getter).not.toHaveBeenCalled();
+      expect(JSON.stringify(listener.mock.calls)).not.toContain("private");
+      expect(listener.mock.calls.every(([receipt]) => !receipt.sessionId)).toBe(
+        true,
+      );
     });
   });
 
