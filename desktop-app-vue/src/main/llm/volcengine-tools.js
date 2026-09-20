@@ -9,9 +9,10 @@
  * 5. MCP (Model Context Protocol)
  */
 
-const { logger } = require("../utils/logger.js");
 const fetch = require("node-fetch");
 const { getModelSelector } = require("./volcengine-models");
+const { createProviderLogger } = require("./provider-log-privacy");
+const providerLog = createProviderLogger("volcengine");
 
 const _deps = {
   fetch: (...args) => fetch(...args),
@@ -75,8 +76,7 @@ class VolcengineToolsClient {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API调用失败: ${response.status} - ${errorText}`);
+        throw providerLog.failure("chat");
       }
 
       const result = await response.json();
@@ -90,8 +90,9 @@ class VolcengineToolsClient {
       }
       return result;
     } catch (error) {
-      logger.error("[VolcengineTools] API调用错误:", error);
-      throw error;
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (error.code === "CC_LLM_PROVIDER_OPERATION_FAILED") throw error;
+      throw providerLog.failure("chat");
     }
   }
 
@@ -123,8 +124,7 @@ class VolcengineToolsClient {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API调用失败: ${response.status} - ${errorText}`);
+        throw providerLog.failure("chat-stream");
       }
 
       let fullText = "";
@@ -154,7 +154,7 @@ class VolcengineToolsClient {
                   onChunk(delta);
                 }
               }
-            } catch (e) {
+            } catch {
               // 忽略解析错误
             }
           }
@@ -163,8 +163,9 @@ class VolcengineToolsClient {
 
       return { text: fullText };
     } catch (error) {
-      logger.error("[VolcengineTools] 流式API调用错误:", error);
-      throw error;
+      if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
+      if (error.code === "CC_LLM_PROVIDER_OPERATION_FAILED") throw error;
+      throw providerLog.failure("chat-stream");
     }
   }
 
@@ -187,8 +188,7 @@ class VolcengineToolsClient {
       model = this.model,
     } = options;
 
-    logger.info("[VolcengineTools] 启用联网搜索对话");
-    logger.info("[VolcengineTools] 搜索模式:", searchMode);
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     const body = {
       model: model,
@@ -219,13 +219,9 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} API响应
    */
   async chatWithImageProcess(messages, options = {}) {
-    const {
-      model = "doubao-seed-1.6-vision",
-      stream = false,
-      onChunk = null,
-    } = options;
+    const { stream = false, onChunk = null } = options;
 
-    logger.info("[VolcengineTools] 启用图像处理对话");
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     // 自动选择最优视觉模型
     const selectedModel = this.modelSelector.selectByScenario({
@@ -233,8 +229,6 @@ class VolcengineToolsClient {
       userBudget: options.userBudget || "medium",
       needsThinking: options.needsThinking || false,
     });
-
-    logger.info("[VolcengineTools] 选择视觉模型:", selectedModel.name);
 
     const body = {
       model: selectedModel.id,
@@ -299,8 +293,6 @@ class VolcengineToolsClient {
     // attest arbitrary raw document uploads, so this legacy cloud-KB endpoint
     // must remain unavailable until an evidence-ingress bridge is supplied.
     assertGovernedKnowledgeBaseIngress();
-    logger.info("[VolcengineTools] 上传文档到知识库:", knowledgeBaseId);
-
     return await this._callAPI(`/knowledge_base/${knowledgeBaseId}/documents`, {
       documents: documents,
     });
@@ -323,8 +315,7 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    logger.info("[VolcengineTools] 启用知识库搜索对话");
-    logger.info("[VolcengineTools] 知识库ID:", knowledgeBaseId);
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     const body = {
       model: model,
@@ -366,8 +357,7 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    logger.info("[VolcengineTools] 启用函数调用对话");
-    logger.info("[VolcengineTools] 可用函数数量:", functions.length);
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     const tools = functions.map((func) => ({
       type: "function",
@@ -421,7 +411,7 @@ class VolcengineToolsClient {
     functionExecutor,
     options,
   ) {
-    logger.info("[VolcengineTools] 执行完整函数调用流程");
+    providerLog.started("chat");
 
     // 第一次调用：模型决定是否调用函数
     let result = await this.chatWithFunctionCalling(
@@ -441,14 +431,10 @@ class VolcengineToolsClient {
         require("../evolution/desktop-model-ingress").assertDesktopToolLoopComplete(
           this,
         );
-        logger.warn(
-          `[VolcengineTools] 工具调用循环达到上限 (${maxToolIterations})，停止继续调用`,
-        );
+        providerLog.retry("chat", toolIterations);
         break;
       }
       const toolCalls = result.choices[0].message.tool_calls;
-      logger.info("[VolcengineTools] 模型请求调用", toolCalls.length, "个函数");
-
       // 执行所有函数调用
       const functionResults = [];
       for (const toolCall of toolCalls) {
@@ -460,8 +446,6 @@ class VolcengineToolsClient {
           // JSON.parse here threw out of the WHOLE flow instead of being handled
           // per-tool like execution errors below.
           const functionArgs = JSON.parse(toolCall.function.arguments);
-
-          logger.info("[VolcengineTools] 执行函数:", functionName);
 
           const {
             runDesktopToolExecution,
@@ -477,12 +461,15 @@ class VolcengineToolsClient {
           });
         } catch (error) {
           if (error.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
-          logger.error("[VolcengineTools] 函数执行失败:", error);
+          providerLog.failure("chat");
           functionResults.push({
             tool_call_id: toolCall.id,
             role: "tool",
             name: functionName,
-            content: JSON.stringify({ error: error.message }),
+            content: JSON.stringify({
+              error: "Tool execution failed",
+              code: "CC_LLM_TOOL_EXECUTION_FAILED",
+            }),
           });
         }
       }
@@ -523,8 +510,7 @@ class VolcengineToolsClient {
   async chatWithMCP(messages, mcpConfig, options = {}) {
     const { model = this.model, stream = false, onChunk = null } = options;
 
-    logger.info("[VolcengineTools] 启用MCP对话");
-    logger.info("[VolcengineTools] MCP服务器:", mcpConfig.serverURL);
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     const body = {
       model: model,
@@ -568,7 +554,7 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    logger.info("[VolcengineTools] 启用多工具对话");
+    providerLog.started(stream ? "chat-stream" : "chat");
 
     const tools = [];
 
@@ -622,8 +608,6 @@ class VolcengineToolsClient {
       });
     }
 
-    logger.info("[VolcengineTools] 启用工具数量:", tools.length);
-
     const body = {
       model: model,
       messages: messages,
@@ -653,8 +637,9 @@ class VolcengineToolsClient {
    */
   getConfig() {
     return {
-      baseURL: this.baseURL,
-      model: this.model,
+      endpointConfigured:
+        typeof this.baseURL === "string" && this.baseURL.length > 0,
+      modelConfigured: typeof this.model === "string" && this.model.length > 0,
       timeout: this.timeout,
       hasApiKey: !!this.apiKey,
     };
@@ -678,7 +663,7 @@ class VolcengineToolsClient {
       this.timeout = config.timeout;
     }
 
-    logger.info("[VolcengineTools] 配置已更新");
+    providerLog.success("configure");
   }
 }
 
