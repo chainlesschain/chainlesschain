@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.69",
+      "cliVersions": ["0.166.69"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.69: durable Volcengine function authority",
+          "body": "- Bind each governed Volcengine function request to an exact function policy,\n  bounded arguments, a deadline, and a durable replay reservation so repeated\n  or concurrent requests fail closed across processes and restarts.\n- Execute approved functions in supervised child processes with cooperative\n  cancellation, hard termination, fixed result boundaries, and supervision\n  receipts bound to the signed deployment module.\n- Persist function-authority revocations and verify their original evidence,\n  signatures, trust roots, issuer certificate chains, and status snapshots\n  before admitting execution.\n- Prevent signer-status rollback with a durable monotonic floor, including\n  cross-process compare-and-set behavior and fail-closed recovery from stale or\n  conflicting authority state."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.68",
       "cliVersions": ["0.166.68"],
       "date": null,

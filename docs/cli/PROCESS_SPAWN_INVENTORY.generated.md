@@ -124,7 +124,7 @@ Runtime audit: brokered: 213, audited-exemption: 38, non-executable: 49, unrevie
 | `packages/cli/src/lib/ensure-utf8.js` | 39 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {` |
 | `packages/cli/src/lib/eval/tasks.js` | 17 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/eval/tasks.js` | 21 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.execFileSync(process.execPath, [script], {` |
-| `packages/cli/src/lib/evolution/evolution-eval-process-supervisor.js` | 500 | `brokered` | call targets ProcessExecutionBroker | `spawnProcess = (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/lib/evolution/evolution-eval-process-supervisor.js` | 509 | `brokered` | call targets ProcessExecutionBroker | `spawnProcess = (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/evolution/governed-skill-synthesis-process-attestor.js` | 244 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
 | `packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js` | 231 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
 | `packages/cli/src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js` | 1 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
@@ -335,8 +335,8 @@ Runtime audit: brokered: 213, audited-exemption: 38, non-executable: 49, unrevie
 | `desktop-app-vue/scripts/conservative-lint-fix.js` | 15 | `const { execSync } = require("child_process");` |
 | `desktop-app-vue/scripts/conservative-lint-fix.js` | 185 | `const result = execSync("npm run lint 2>&1", {` |
 | `desktop-app-vue/scripts/cowork-ci-test-selector.js` | 4 | `const { spawnSync } = require("child_process");` |
-| `desktop-app-vue/scripts/cowork-ci-test-selector.js` | 772 | `const result = spawn(` |
-| `desktop-app-vue/scripts/cowork-ci-test-selector.js` | 1423 | `const result = spawn(command.executable, command.args, {` |
+| `desktop-app-vue/scripts/cowork-ci-test-selector.js` | 768 | `const result = spawn(` |
+| `desktop-app-vue/scripts/cowork-ci-test-selector.js` | 1419 | `const result = spawn(command.executable, command.args, {` |
 | `desktop-app-vue/scripts/cowork-doc-generator.js` | 16 | `const { execSync } = require("child_process");` |
 | `desktop-app-vue/scripts/cowork-doc-generator.js` | 251 | `const output = execSync(command, { encoding: "utf-8", cwd: process.cwd() });` |
 | `desktop-app-vue/scripts/cowork-doc-generator.js` | 273 | `const tag = execSync(` |

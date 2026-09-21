@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.69: durable Volcengine function authority
+
+- Bind each governed Volcengine function request to an exact function policy,
+  bounded arguments, a deadline, and a durable replay reservation so repeated
+  or concurrent requests fail closed across processes and restarts.
+- Execute approved functions in supervised child processes with cooperative
+  cancellation, hard termination, fixed result boundaries, and supervision
+  receipts bound to the signed deployment module.
+- Persist function-authority revocations and verify their original evidence,
+  signatures, trust roots, issuer certificate chains, and status snapshots
+  before admitting execution.
+- Prevent signer-status rollback with a durable monotonic floor, including
+  cross-process compare-and-set behavior and fail-closed recovery from stale or
+  conflicting authority state.
+
 ### Added - cc CLI 0.166.68: governed browser actions and corrected child releases
 
 - Govern browser observation, navigation, tab creation, history traversal,

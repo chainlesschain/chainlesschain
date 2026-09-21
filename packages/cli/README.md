@@ -2,7 +2,7 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Current release: `chainlesschain@0.166.68`, published only after the exact
+> Current release: `chainlesschain@0.166.69`, published only after the exact
 > source commit passes every configured Linux, Windows, and macOS job in CLI CI
 > and CLI Strict Sandbox. The release publishes Session Core `0.3.13`,
 > Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` first, then
@@ -13,7 +13,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.68
+npm install -g chainlesschain@0.166.69
 chainlesschain setup
 ```
 
@@ -37,7 +37,7 @@ cc
 git diff | cc
 ```
 
-## Long-running tasks and bounded recovery (0.166.68)
+## Long-running tasks and bounded recovery (0.166.69)
 
 Since version 0.166.26, the CLI automatically continues repeated large-file
 requests from an unread region, including after context compaction. Actual character coverage
@@ -159,7 +159,7 @@ source (npm root -g)/chainlesschain/completions/cc.fish
 
 > **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.
 
-### Governed evolution, deployment configuration, and Skill retrieval (`0.166.68`)
+### Governed evolution, deployment configuration, and Skill retrieval (`0.166.69`)
 
 The public command graph now includes digest-bound Evolution Workbench review,
 encrypted governed-knowledge conflict review, and canonical Skill retrieval:
@@ -768,7 +768,7 @@ These receipts prove removal of the managed directory entries only. They do not
 claim secure erasure of external hardlinks, downloads, backups, snapshots, or
 viewer caches; the local JSONL ledgers are not WORM or an off-box transparency
 log. These commands are included in the current exact-gated
-`chainlesschain@0.166.68` release, but a local receipt still does not prove
+`chainlesschain@0.166.69` release, but a local receipt still does not prove
 off-box retention or secure erasure outside the managed store.
 
 Durable budget recovery stores a canonical local receipt for each operator
