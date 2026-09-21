@@ -95,8 +95,8 @@ describe("Skill writer inventory", () => {
 
     expect(report.ok).toBe(true);
     expect(report.writerCount).toBe(SKILL_WRITER_INVENTORY.writers.length);
-    expect(report.writerCount).toBe(39);
-    expect(report.legacyActiveCount).toBe(32);
+    expect(report.writerCount).toBe(37);
+    expect(report.legacyActiveCount).toBe(30);
     expect(report.candidateOnlyCount).toBe(7);
     expect(report.scopeExclusionCount).toBe(3);
     expect(report.directDiscoveredCount).toBeGreaterThan(0);
@@ -143,7 +143,6 @@ describe("Skill writer inventory", () => {
     expect(ids.has("desktop-plugin-install")).toBe(true);
     expect(ids.has("desktop-bundled-skill-filesystem-writer")).toBe(true);
     expect(ids.has("desktop-bundled-skill-process-writer")).toBe(true);
-    expect(ids.has("desktop-skills-enabled-ipc")).toBe(true);
     expect(ids.has("android-managed-skill-install")).toBe(true);
     expect(ids.has("android-managed-skill-uninstall")).toBe(true);
     expect(ids.has("android-skill-loader-activation")).toBe(true);

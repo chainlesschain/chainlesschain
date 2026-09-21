@@ -2816,6 +2816,7 @@ describe("Agent evolution runtime production composition", () => {
         ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
         managerRef: { current: manager },
         responseCache: manager.responseCache,
+        coreAuthorization: { authorize: vi.fn(async () => true) },
       });
       const ipcRequest = {
         messages: [{ role: "user", content: "IPC cache journey" }],
@@ -2941,9 +2942,7 @@ describe("Agent evolution runtime production composition", () => {
       }),
     };
     const completed = [];
-    manager.on("chat-completed", (event) =>
-      completed.push(event.result.message.content),
-    );
+    manager.on("chat-completed", (event) => completed.push(event));
     const alpha = [{ role: "user", content: "alpha" }];
     const beta = [{ role: "user", content: "beta" }];
     const a = manager.chatWithMessages(alpha);
@@ -2956,7 +2955,18 @@ describe("Agent evolution runtime production composition", () => {
       expect((await b).text).toBe("beta-answer");
       releases.get("alpha")();
       expect((await a).text).toBe("alpha-answer");
-      expect(completed).toEqual(["beta-answer", "alpha-answer"]);
+      expect(completed).toEqual([
+        {
+          code: "CC_LLM_MANAGER_EVENT",
+          component: "manager",
+          event: "chat-completed",
+        },
+        {
+          code: "CC_LLM_MANAGER_EVENT",
+          component: "manager",
+          event: "chat-completed",
+        },
+      ]);
       expect(replacement.chat).not.toHaveBeenCalled();
       expect(
         compositions.slice(0, 2).map((c) => c.loadRun().projection.status),
@@ -3274,6 +3284,7 @@ describe("Agent evolution runtime production composition", () => {
       registerCoreHandlers({
         ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
         managerRef: { current: manager },
+        coreAuthorization: { authorize: vi.fn(async () => true) },
         mcpClientManager: {
           getConnectedServers: () => ["test"],
           callTool: execute,

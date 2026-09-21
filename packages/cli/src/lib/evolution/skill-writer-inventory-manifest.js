@@ -605,45 +605,6 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
       },
     }),
     writer({
-      id: "desktop-skills-create-ipc",
-      surface: "desktop",
-      triggerClass: "manual",
-      targetAuthority: "legacy-active",
-      mutationType: "skill-bytes",
-      discoverySymbol: "ipc:skills:create",
-      entrypoint: {
-        file: "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
-        symbol: "ipc:skills:create",
-        evidence: ['ipcMain.handle("skills:create"'],
-      },
-      mutation: {
-        file: "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
-        symbol: "ipc:skills:create",
-        evidence: [
-          'path.join(targetDir, "SKILL.md")',
-          "await fs.writeFile(skillMdPath, content",
-        ],
-      },
-    }),
-    writer({
-      id: "desktop-skills-enabled-ipc",
-      surface: "desktop",
-      triggerClass: "manual",
-      targetAuthority: "legacy-active",
-      mutationType: "active-selection",
-      discoverySymbol: null,
-      entrypoint: {
-        file: "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
-        symbol: "ipc:skills:set-enabled",
-        evidence: ['ipcMain.handle("skills:set-enabled"'],
-      },
-      mutation: {
-        file: "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
-        symbol: "ipc:skills:set-enabled",
-        evidence: ["skill.config.enabled = enabled"],
-      },
-    }),
-    writer({
       id: "desktop-skill-creator-create",
       surface: "desktop",
       triggerClass: "manual",
