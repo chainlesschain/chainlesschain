@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.132] - Pair with governed CLI 0.166.69 (2026-09-21)
+
+- Recommend the publicly verified `chainlesschain@0.166.69` release in runtime
+  upgrade guidance and release metadata.
+- Carry policy-bound Volcengine function requests, durable replay and revocation
+  decisions, supervised child execution, and signer-status rollback protection
+  into IDE-driven Agent sessions while authority remains in the CLI host.
+- Keep the bridge a bounded CLI client; it receives fixed projections and does
+  not gain function execution, revocation, or publication authority.
+
 ## [0.4.131] - Pair with governed CLI 0.166.68 (2026-09-20)
 
 - Recommend the publicly verified `chainlesschain@0.166.68` release in runtime
