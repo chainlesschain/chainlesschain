@@ -8,6 +8,7 @@ const {
 
 function validPPTRequest() {
   return {
+    projectId: "project-123",
     outline: {
       title: "Release plan",
       subtitle: "Autumn",
@@ -22,12 +23,12 @@ function validPPTRequest() {
     },
     theme: "dark",
     author: "Operator",
-    outputPath: "/tmp/release.pptx",
   };
 }
 
 function validWordRequest() {
   return {
+    projectId: "project-123",
     structure: {
       title: "Release plan",
       paragraphs: [
@@ -47,7 +48,6 @@ function validWordRequest() {
         },
       ],
     },
-    outputPath: "/tmp/release.docx",
   };
 }
 
@@ -95,12 +95,12 @@ describe("AI Engine IPC input validation", () => {
       () => ({ ...validPPTRequest(), author: "operator\u0000admin" }),
     ],
     [
-      "wrong extension",
-      () => ({ ...validPPTRequest(), outputPath: "/tmp/release.exe" }),
+      "renderer-supplied output path",
+      () => ({ ...validPPTRequest(), outputPath: "/tmp/release.pptx" }),
     ],
     [
-      "relative output path",
-      () => ({ ...validPPTRequest(), outputPath: "release.pptx" }),
+      "traversal project identifier",
+      () => ({ ...validPPTRequest(), projectId: "../private" }),
     ],
     [
       "sparse section list",
@@ -187,8 +187,8 @@ describe("AI Engine IPC input validation", () => {
       },
     ],
     [
-      "wrong extension",
-      () => ({ ...validWordRequest(), outputPath: "/tmp/release.txt" }),
+      "renderer-supplied output path",
+      () => ({ ...validWordRequest(), outputPath: "/tmp/release.docx" }),
     ],
   ])("rejects unsafe Word %s", (_label, requestFactory) => {
     expect(() => validateWordRequest(requestFactory())).toThrowError(

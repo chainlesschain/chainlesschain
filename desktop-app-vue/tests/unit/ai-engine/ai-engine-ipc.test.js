@@ -30,8 +30,12 @@ describe("ai-engine-ipc", () => {
   let runtime;
   let instance;
   let authorization;
+  let outputResolver;
+  let pptLease;
+  let wordLease;
 
   const pptRequest = () => ({
+    projectId: "project-123",
     outline: {
       title: "Launch",
       subtitle: "Plan",
@@ -42,11 +46,10 @@ describe("ai-engine-ipc", () => {
         },
       ],
     },
-    outputPath: "/tmp/requested.pptx",
   });
 
   const wordRequest = () => ({
-    outputPath: "/tmp/requested.docx",
+    projectId: "project-123",
     structure: {
       title: "Plan",
       paragraphs: [{ text: "a" }, { text: "b" }],
@@ -72,9 +75,6 @@ describe("ai-engine-ipc", () => {
           internalMetadata: "must-not-cross-ipc",
         }),
       },
-      path: {
-        basename: vi.fn((filePath) => filePath.split("/").pop()),
-      },
     };
     authorization = {
       authorize: vi.fn(async (_event, operation) =>
@@ -90,10 +90,28 @@ describe("ai-engine-ipc", () => {
         }),
       ),
     };
+    pptLease = {
+      fileName: "Launch.pptx",
+      outputPath: "/managed/Launch.pptx",
+      commit: vi.fn(async () => Object.freeze({ fileSize: 4096 })),
+      cleanup: vi.fn(async () => {}),
+    };
+    wordLease = {
+      fileName: "Plan.docx",
+      outputPath: "/managed/Plan.docx",
+      commit: vi.fn(async () => Object.freeze({ fileSize: 2048 })),
+      cleanup: vi.fn(async () => {}),
+    };
+    outputResolver = {
+      reserve: vi.fn(async (_context, request) =>
+        request.extension === ".pptx" ? pptLease : wordLease,
+      ),
+    };
     instance = new AIEngineIPC(null, null, null, null, null, {
       ipcMain: ipcMainMock,
       runtime,
       authorization,
+      outputResolver,
     });
   });
 
@@ -122,6 +140,17 @@ describe("ai-engine-ipc", () => {
       "generate-ppt",
     );
     expect(runtime.createPPTEngine).toHaveBeenCalledOnce();
+    expect(outputResolver.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorDid: "did:key:operator",
+        tenantId: "tenant:alpha",
+      }),
+      {
+        projectId: "project-123",
+        title: "Launch",
+        extension: ".pptx",
+      },
+    );
     expect(pptEngine.generateFromOutline).toHaveBeenCalledWith(
       {
         title: "Launch",
@@ -136,13 +165,14 @@ describe("ai-engine-ipc", () => {
       {
         theme: "business",
         author: "作者",
-        outputPath: "/tmp/requested.pptx",
+        outputPath: "/managed/Launch.pptx",
       },
     );
+    expect(pptLease.commit).toHaveBeenCalledOnce();
     expect(result).toEqual({
       success: true,
-      fileName: "slides.pptx",
-      path: "/tmp/slides.pptx",
+      fileName: "Launch.pptx",
+      path: "/managed/Launch.pptx",
       slideCount: 8,
     });
   });
@@ -160,7 +190,7 @@ describe("ai-engine-ipc", () => {
       "generate-word",
     );
     expect(runtime.wordEngine.writeWord).toHaveBeenCalledWith(
-      "/tmp/requested.docx",
+      "/managed/Plan.docx",
       {
         title: "Plan",
         paragraphs: [
@@ -169,10 +199,11 @@ describe("ai-engine-ipc", () => {
         ],
       },
     );
+    expect(wordLease.commit).toHaveBeenCalledOnce();
     expect(result).toEqual({
       success: true,
-      fileName: "plan.docx",
-      path: "/tmp/plan.docx",
+      fileName: "Plan.docx",
+      path: "/managed/Plan.docx",
       fileSize: 2048,
       paragraphCount: 2,
     });
@@ -194,6 +225,7 @@ describe("ai-engine-ipc", () => {
       code: "AI_ENGINE_OPERATION_FAILED",
       error: "AI engine operation failed",
     });
+    expect(pptLease.cleanup).toHaveBeenCalledOnce();
   });
 
   it("uses stable output metadata when generators omit optional metadata", async () => {
@@ -202,29 +234,20 @@ describe("ai-engine-ipc", () => {
     instance.registerHandlers(null);
 
     await expect(
-      ipcMainMock.handlers["aiEngine:generatePPT"](
-        {},
-        { ...pptRequest(), outputPath: "/tmp/fallback.pptx" },
-      ),
+      ipcMainMock.handlers["aiEngine:generatePPT"]({}, pptRequest()),
     ).resolves.toEqual({
       success: true,
-      fileName: "fallback.pptx",
-      path: "/tmp/fallback.pptx",
+      fileName: "Launch.pptx",
+      path: "/managed/Launch.pptx",
       slideCount: 0,
     });
     await expect(
-      ipcMainMock.handlers["aiEngine:generateWord"](
-        {},
-        {
-          ...wordRequest(),
-          outputPath: "/tmp/fallback.docx",
-        },
-      ),
+      ipcMainMock.handlers["aiEngine:generateWord"]({}, wordRequest()),
     ).resolves.toEqual({
       success: true,
-      fileName: "fallback.docx",
-      path: "/tmp/fallback.docx",
-      fileSize: 0,
+      fileName: "Plan.docx",
+      path: "/managed/Plan.docx",
+      fileSize: 2048,
       paragraphCount: 2,
     });
   });
@@ -241,6 +264,7 @@ describe("ai-engine-ipc", () => {
       error: "AI engine operation failed",
     });
     expect(runtime.createPPTEngine).not.toHaveBeenCalled();
+    expect(outputResolver.reserve).not.toHaveBeenCalled();
   });
 
   it("rejects invalid input before constructing an engine", async () => {
@@ -260,6 +284,7 @@ describe("ai-engine-ipc", () => {
       error: "AI engine operation failed",
     });
     expect(runtime.createPPTEngine).not.toHaveBeenCalled();
+    expect(outputResolver.reserve).not.toHaveBeenCalled();
   });
 
   it("builds production authorization from the live window and identity providers", async () => {
@@ -279,6 +304,7 @@ describe("ai-engine-ipc", () => {
         tenantId: "tenant:alpha",
       }),
       authorizePurpose,
+      outputResolver,
     });
     productionInstance.registerHandlers(mainWindow);
 
@@ -287,7 +313,7 @@ describe("ai-engine-ipc", () => {
         { sender: webContents, senderFrame: mainFrame },
         pptRequest(),
       ),
-    ).resolves.toMatchObject({ success: true, fileName: "slides.pptx" });
+    ).resolves.toMatchObject({ success: true, fileName: "Launch.pptx" });
     expect(authorizePurpose).toHaveBeenCalledWith({
       actorDid: "did:key:operator",
       operation: "generate-ppt",

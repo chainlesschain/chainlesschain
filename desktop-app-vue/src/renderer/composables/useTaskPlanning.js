@@ -645,18 +645,11 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
       generatingPPTMsg.content = "⏳ 正在写入PPT文件...";
       messages.value = [...messages.value];
 
-      const { outputPath } = await resolveProjectOutput(
-        props.projectId,
-        outline.title || "presentation",
-        "pptx",
-        "presentation",
-      );
-
       const result = await window.electronAPI.aiEngine.generatePPT({
+        projectId: props.projectId,
         outline,
         theme: "business",
         author: "用户",
-        outputPath,
       });
 
       if (result.success) {
@@ -772,16 +765,9 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
       generatingWordMsg.content = "⏳ 正在写入Word文件...";
       messages.value = [...messages.value];
 
-      const { outputPath } = await resolveProjectOutput(
-        props.projectId,
-        documentStructure.title || "document",
-        "docx",
-        "document",
-      );
-
       const result = await window.electronAPI.aiEngine.generateWord({
+        projectId: props.projectId,
         structure: documentStructure,
-        outputPath,
       });
 
       if (result.success) {

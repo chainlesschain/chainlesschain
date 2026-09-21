@@ -9,6 +9,7 @@ const {
   validatePPTRequest,
   validateWordRequest,
 } = require("./ai-engine-ipc-input");
+const { createAIEngineOutputResolver } = require("./ai-engine-ipc-output");
 
 const AI_ENGINE_IPC_CHANNELS = [
   "aiEngine:generatePPT",
@@ -23,7 +24,6 @@ function createDefaultAIEngineRuntime() {
       return new PPTEngine();
     },
     wordEngine: require("../engines/word-engine"),
-    path: require("path"),
   };
 }
 /* v8 ignore stop */
@@ -61,6 +61,9 @@ class AIEngineIPC {
     this.getMainWindow = options.getMainWindow;
     this.getCurrentIdentity = options.getCurrentIdentity;
     this.authorizePurpose = options.authorizePurpose;
+    this.database = options.database || null;
+    this.authorizeProjectOutput = options.authorizeProjectOutput;
+    this.outputResolver = options.outputResolver || null;
   }
 
   getRuntime(runtimeOverrides = {}) {
@@ -89,9 +92,22 @@ class AIEngineIPC {
             ? this.authorizePurpose
             : options.authorizePurpose,
       });
+    const outputResolver =
+      options.outputResolver ||
+      this.outputResolver ||
+      createAIEngineOutputResolver({
+        database: options.database || this.database,
+        authorizeProjectOutput:
+          options.authorizeProjectOutput === undefined
+            ? this.authorizeProjectOutput
+            : options.authorizeProjectOutput,
+      });
 
     if (!authorization || typeof authorization.authorize !== "function") {
       throw new TypeError("AI Engine IPC authorization is required");
+    }
+    if (!outputResolver || typeof outputResolver.reserve !== "function") {
+      throw new TypeError("AI Engine IPC output resolver is required");
     }
 
     this.ipcMain = ipc;
@@ -120,43 +136,58 @@ class AIEngineIPC {
     safeHandle(
       "aiEngine:generatePPT",
       "generate-ppt",
-      async (_context, request) => {
+      async (context, request) => {
         const input = validatePPTRequest(request);
-        const pptEngine = runtime.createPPTEngine();
-        const result = await pptEngine.generateFromOutline(input.outline, {
-          theme: input.theme,
-          author: input.author,
-          outputPath: input.outputPath,
+        const lease = await outputResolver.reserve(context, {
+          projectId: input.projectId,
+          title: input.outline.title,
+          extension: ".pptx",
         });
-        const outputPath = result?.filePath || input.outputPath;
-
-        return {
-          success: true,
-          fileName: outputPath ? runtime.path.basename(outputPath) : "",
-          path: outputPath,
-          slideCount: normalizeCount(result?.slideCount),
-        };
+        try {
+          const pptEngine = runtime.createPPTEngine();
+          const result = await pptEngine.generateFromOutline(input.outline, {
+            theme: input.theme,
+            author: input.author,
+            outputPath: lease.outputPath,
+          });
+          await lease.commit();
+          return {
+            success: true,
+            fileName: lease.fileName,
+            path: lease.outputPath,
+            slideCount: normalizeCount(result?.slideCount),
+          };
+        } catch (error) {
+          await lease.cleanup();
+          throw error;
+        }
       },
     );
 
     safeHandle(
       "aiEngine:generateWord",
       "generate-word",
-      async (_context, request) => {
+      async (context, request) => {
         const input = validateWordRequest(request);
-        const result = await runtime.wordEngine.writeWord(
-          input.outputPath,
-          input.structure,
-        );
-        const outputPath = result?.filePath || input.outputPath;
-
-        return {
-          success: true,
-          fileName: outputPath ? runtime.path.basename(outputPath) : "",
-          path: outputPath,
-          fileSize: normalizeCount(result?.fileSize),
-          paragraphCount: normalizeCount(input.structure.paragraphs.length),
-        };
+        const lease = await outputResolver.reserve(context, {
+          projectId: input.projectId,
+          title: input.structure.title,
+          extension: ".docx",
+        });
+        try {
+          await runtime.wordEngine.writeWord(lease.outputPath, input.structure);
+          const output = await lease.commit();
+          return {
+            success: true,
+            fileName: lease.fileName,
+            path: lease.outputPath,
+            fileSize: normalizeCount(output?.fileSize),
+            paragraphCount: normalizeCount(input.structure.paragraphs.length),
+          };
+        } catch (error) {
+          await lease.cleanup();
+          throw error;
+        }
       },
     );
 

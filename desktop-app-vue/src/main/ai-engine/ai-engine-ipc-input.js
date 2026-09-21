@@ -3,7 +3,6 @@
 const { types: utilTypes } = require("node:util");
 
 const MAX_REQUEST_BYTES = 512 * 1024;
-const MAX_PATH_LENGTH = 4096;
 const MAX_PPT_SLIDES = 512;
 const MAX_PPT_POINTS = 4096;
 const PPT_THEMES = new Set(["business", "academic", "creative", "dark"]);
@@ -129,27 +128,20 @@ function boundedInteger(value, minimum, maximum) {
   return value;
 }
 
-function validateOutputPath(value, extension, budget) {
-  const outputPath = boundedString(value, budget, {
-    minimum: extension.length + 2,
-    maximum: MAX_PATH_LENGTH,
+function validateProjectId(value, budget) {
+  return boundedString(value, budget, {
+    minimum: 1,
+    maximum: 256,
+    pattern: /^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$/,
   });
-  if (
-    /\p{Cc}/u.test(outputPath) ||
-    !/^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+|\/)/.test(outputPath) ||
-    !outputPath.toLowerCase().endsWith(extension)
-  ) {
-    fail();
-  }
-  return outputPath;
 }
 
 function validatePPTRequest(value) {
   const budget = createBudget();
   const request = readRecord(
     value,
-    ["outline", "theme", "author", "outputPath"],
-    ["outline", "outputPath"],
+    ["projectId", "outline", "theme", "author"],
+    ["projectId", "outline"],
   );
   const outline = readRecord(
     request.outline,
@@ -210,6 +202,7 @@ function validatePPTRequest(value) {
   }
 
   return Object.freeze({
+    projectId: validateProjectId(request.projectId, budget),
     outline: Object.freeze({
       title: boundedString(outline.title, budget, {
         minimum: 1,
@@ -229,7 +222,6 @@ function validatePPTRequest(value) {
       request.author === undefined
         ? "作者"
         : boundedString(request.author, budget, { minimum: 1, maximum: 512 }),
-    outputPath: validateOutputPath(request.outputPath, ".pptx", budget),
   });
 }
 
@@ -291,8 +283,8 @@ function validateWordRequest(value) {
   const budget = createBudget();
   const request = readRecord(
     value,
-    ["structure", "outputPath"],
-    ["structure", "outputPath"],
+    ["projectId", "structure"],
+    ["projectId", "structure"],
   );
   const structure = readRecord(
     request.structure,
@@ -331,6 +323,7 @@ function validateWordRequest(value) {
   );
 
   return Object.freeze({
+    projectId: validateProjectId(request.projectId, budget),
     structure: Object.freeze({
       title: boundedString(structure.title, budget, {
         minimum: 1,
@@ -338,7 +331,6 @@ function validateWordRequest(value) {
       }),
       paragraphs: Object.freeze(paragraphs),
     }),
-    outputPath: validateOutputPath(request.outputPath, ".docx", budget),
   });
 }
 

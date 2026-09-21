@@ -184,6 +184,8 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
           getMainWindow: () => mainWindow || null,
           getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
           authorizePurpose: deps.authorizeAIEnginePurpose,
+          authorizeProjectOutput: deps.authorizeAIEngineProjectOutput,
+          database: database || null,
         },
       );
       aiEngineIPC.registerHandlers(mainWindow);
