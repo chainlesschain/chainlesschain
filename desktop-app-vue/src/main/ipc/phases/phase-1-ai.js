@@ -180,6 +180,11 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
         documentEngine || null,
         dataEngine || null,
         gitAutoCommit || null,
+        {
+          getMainWindow: () => mainWindow || null,
+          getCurrentIdentity: () => didManager?.getCurrentIdentity?.() || null,
+          authorizePurpose: deps.authorizeAIEnginePurpose,
+        },
       );
       aiEngineIPC.registerHandlers(mainWindow);
     },

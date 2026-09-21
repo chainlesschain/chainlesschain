@@ -2,6 +2,13 @@
 
 const { ipcMain: electronIpcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
+const {
+  createAIEngineIpcAuthorization,
+} = require("./ai-engine-ipc-authorization");
+const {
+  validatePPTRequest,
+  validateWordRequest,
+} = require("./ai-engine-ipc-input");
 
 const AI_ENGINE_IPC_CHANNELS = [
   "aiEngine:generatePPT",
@@ -29,7 +36,7 @@ function removeExistingHandlers(ipc) {
   AI_ENGINE_IPC_CHANNELS.forEach((channel) => {
     try {
       ipc.removeHandler(channel);
-    } catch (_error) {
+    } catch {
       // Ignore missing handlers.
     }
   });
@@ -50,6 +57,10 @@ class AIEngineIPC {
   ) {
     this.ipcMain = options.ipcMain || null;
     this.runtime = options.runtime || {};
+    this.authorization = options.authorization || null;
+    this.getMainWindow = options.getMainWindow;
+    this.getCurrentIdentity = options.getCurrentIdentity;
+    this.authorizePurpose = options.authorizePurpose;
   }
 
   getRuntime(runtimeOverrides = {}) {
@@ -60,17 +71,40 @@ class AIEngineIPC {
     };
   }
 
-  registerHandlers(_mainWindow, options = {}) {
+  registerHandlers(mainWindow, options = {}) {
     const ipc = options.ipcMain || this.ipcMain || electronIpcMain;
     const runtime = this.getRuntime(options.runtime);
+    const authorization =
+      options.authorization ||
+      this.authorization ||
+      createAIEngineIpcAuthorization({
+        getMainWindow:
+          options.getMainWindow ||
+          this.getMainWindow ||
+          (() => mainWindow || null),
+        getCurrentIdentity:
+          options.getCurrentIdentity || this.getCurrentIdentity,
+        authorizePurpose:
+          options.authorizePurpose === undefined
+            ? this.authorizePurpose
+            : options.authorizePurpose,
+      });
+
+    if (!authorization || typeof authorization.authorize !== "function") {
+      throw new TypeError("AI Engine IPC authorization is required");
+    }
 
     this.ipcMain = ipc;
 
-    const safeHandle = (channel, handler) => {
-      ipc.handle(channel, async (...args) => {
+    const safeHandle = (channel, operation, handler) => {
+      ipc.handle(channel, async (event, ...args) => {
         try {
-          return await handler(...args);
-        } catch (_error) {
+          const authorizationContext = await authorization.authorize(
+            event,
+            operation,
+          );
+          return await handler(authorizationContext, ...args);
+        } catch {
           logger.error("[AI Engine IPC] operation failed");
           return {
             success: false,
@@ -83,38 +117,48 @@ class AIEngineIPC {
 
     removeExistingHandlers(ipc);
 
-    safeHandle("aiEngine:generatePPT", async (_event, request = {}) => {
-      const pptEngine = runtime.createPPTEngine();
-      const result = await pptEngine.generateFromOutline(request.outline, {
-        theme: request.theme || "business",
-        author: request.author || "作者",
-        outputPath: request.outputPath,
-      });
-      const outputPath = result?.filePath || request.outputPath;
+    safeHandle(
+      "aiEngine:generatePPT",
+      "generate-ppt",
+      async (_context, request) => {
+        const input = validatePPTRequest(request);
+        const pptEngine = runtime.createPPTEngine();
+        const result = await pptEngine.generateFromOutline(input.outline, {
+          theme: input.theme,
+          author: input.author,
+          outputPath: input.outputPath,
+        });
+        const outputPath = result?.filePath || input.outputPath;
 
-      return {
-        success: true,
-        fileName: outputPath ? runtime.path.basename(outputPath) : "",
-        path: outputPath,
-        slideCount: normalizeCount(result?.slideCount),
-      };
-    });
+        return {
+          success: true,
+          fileName: outputPath ? runtime.path.basename(outputPath) : "",
+          path: outputPath,
+          slideCount: normalizeCount(result?.slideCount),
+        };
+      },
+    );
 
-    safeHandle("aiEngine:generateWord", async (_event, request = {}) => {
-      const result = await runtime.wordEngine.writeWord(
-        request.outputPath,
-        request.structure,
-      );
-      const outputPath = result?.filePath || request.outputPath;
+    safeHandle(
+      "aiEngine:generateWord",
+      "generate-word",
+      async (_context, request) => {
+        const input = validateWordRequest(request);
+        const result = await runtime.wordEngine.writeWord(
+          input.outputPath,
+          input.structure,
+        );
+        const outputPath = result?.filePath || input.outputPath;
 
-      return {
-        success: true,
-        fileName: outputPath ? runtime.path.basename(outputPath) : "",
-        path: outputPath,
-        fileSize: normalizeCount(result?.fileSize),
-        paragraphCount: normalizeCount(request.structure?.paragraphs?.length),
-      };
-    });
+        return {
+          success: true,
+          fileName: outputPath ? runtime.path.basename(outputPath) : "",
+          path: outputPath,
+          fileSize: normalizeCount(result?.fileSize),
+          paragraphCount: normalizeCount(input.structure.paragraphs.length),
+        };
+      },
+    );
 
     logger.info(
       `[AI Engine IPC] Registered ${AI_ENGINE_IPC_CHANNELS.length} IPC handlers`,

@@ -29,6 +29,29 @@ describe("ai-engine-ipc", () => {
   let pptEngine;
   let runtime;
   let instance;
+  let authorization;
+
+  const pptRequest = () => ({
+    outline: {
+      title: "Launch",
+      subtitle: "Plan",
+      sections: [
+        {
+          title: "Overview",
+          subsections: [{ title: "Intro", points: ["First point"] }],
+        },
+      ],
+    },
+    outputPath: "/tmp/requested.pptx",
+  });
+
+  const wordRequest = () => ({
+    outputPath: "/tmp/requested.docx",
+    structure: {
+      title: "Plan",
+      paragraphs: [{ text: "a" }, { text: "b" }],
+    },
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,9 +76,24 @@ describe("ai-engine-ipc", () => {
         basename: vi.fn((filePath) => filePath.split("/").pop()),
       },
     };
+    authorization = {
+      authorize: vi.fn(async (_event, operation) =>
+        Object.freeze({
+          actorDid: "did:key:operator",
+          operation,
+          purpose:
+            operation === "generate-ppt"
+              ? "project-presentation-generate"
+              : "project-document-generate",
+          senderId: 17,
+          tenantId: "tenant:alpha",
+        }),
+      ),
+    };
     instance = new AIEngineIPC(null, null, null, null, null, {
       ipcMain: ipcMainMock,
       runtime,
+      authorization,
     });
   });
 
@@ -75,19 +113,32 @@ describe("ai-engine-ipc", () => {
     instance.registerHandlers(null);
 
     const result = await ipcMainMock.handlers["aiEngine:generatePPT"](
-      {},
+      { marker: "ppt-event" },
+      pptRequest(),
+    );
+
+    expect(authorization.authorize).toHaveBeenCalledWith(
+      { marker: "ppt-event" },
+      "generate-ppt",
+    );
+    expect(runtime.createPPTEngine).toHaveBeenCalledOnce();
+    expect(pptEngine.generateFromOutline).toHaveBeenCalledWith(
       {
-        outline: ["Intro"],
+        title: "Launch",
+        subtitle: "Plan",
+        sections: [
+          {
+            title: "Overview",
+            subsections: [{ title: "Intro", points: ["First point"] }],
+          },
+        ],
+      },
+      {
+        theme: "business",
+        author: "作者",
         outputPath: "/tmp/requested.pptx",
       },
     );
-
-    expect(runtime.createPPTEngine).toHaveBeenCalledOnce();
-    expect(pptEngine.generateFromOutline).toHaveBeenCalledWith(["Intro"], {
-      theme: "business",
-      author: "作者",
-      outputPath: "/tmp/requested.pptx",
-    });
     expect(result).toEqual({
       success: true,
       fileName: "slides.pptx",
@@ -100,16 +151,23 @@ describe("ai-engine-ipc", () => {
     instance.registerHandlers(null);
 
     const result = await ipcMainMock.handlers["aiEngine:generateWord"](
-      {},
-      {
-        outputPath: "/tmp/requested.docx",
-        structure: { paragraphs: [{ text: "a" }, { text: "b" }] },
-      },
+      { marker: "word-event" },
+      wordRequest(),
     );
 
+    expect(authorization.authorize).toHaveBeenCalledWith(
+      { marker: "word-event" },
+      "generate-word",
+    );
     expect(runtime.wordEngine.writeWord).toHaveBeenCalledWith(
       "/tmp/requested.docx",
-      { paragraphs: [{ text: "a" }, { text: "b" }] },
+      {
+        title: "Plan",
+        paragraphs: [
+          { text: "a", style: {}, spacing: { after: 200 } },
+          { text: "b", style: {}, spacing: { after: 200 } },
+        ],
+      },
     );
     expect(result).toEqual({
       success: true,
@@ -126,7 +184,10 @@ describe("ai-engine-ipc", () => {
     );
     instance.registerHandlers(null);
 
-    const result = await ipcMainMock.handlers["aiEngine:generatePPT"]({}, {});
+    const result = await ipcMainMock.handlers["aiEngine:generatePPT"](
+      {},
+      pptRequest(),
+    );
 
     expect(result).toEqual({
       success: false,
@@ -135,7 +196,7 @@ describe("ai-engine-ipc", () => {
     });
   });
 
-  it("uses stable defaults when generators omit optional metadata", async () => {
+  it("uses stable output metadata when generators omit optional metadata", async () => {
     pptEngine.generateFromOutline.mockResolvedValueOnce({});
     runtime.wordEngine.writeWord.mockResolvedValueOnce({});
     instance.registerHandlers(null);
@@ -143,9 +204,7 @@ describe("ai-engine-ipc", () => {
     await expect(
       ipcMainMock.handlers["aiEngine:generatePPT"](
         {},
-        {
-          outputPath: "/tmp/fallback.pptx",
-        },
+        { ...pptRequest(), outputPath: "/tmp/fallback.pptx" },
       ),
     ).resolves.toEqual({
       success: true,
@@ -157,6 +216,7 @@ describe("ai-engine-ipc", () => {
       ipcMainMock.handlers["aiEngine:generateWord"](
         {},
         {
+          ...wordRequest(),
           outputPath: "/tmp/fallback.docx",
         },
       ),
@@ -165,7 +225,75 @@ describe("ai-engine-ipc", () => {
       fileName: "fallback.docx",
       path: "/tmp/fallback.docx",
       fileSize: 0,
-      paragraphCount: 0,
+      paragraphCount: 2,
+    });
+  });
+
+  it("fails closed before constructing an engine when authorization is denied", async () => {
+    authorization.authorize.mockRejectedValueOnce(new Error("private policy"));
+    instance.registerHandlers(null);
+
+    await expect(
+      ipcMainMock.handlers["aiEngine:generatePPT"]({}, pptRequest()),
+    ).resolves.toEqual({
+      success: false,
+      code: "AI_ENGINE_OPERATION_FAILED",
+      error: "AI engine operation failed",
+    });
+    expect(runtime.createPPTEngine).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid input before constructing an engine", async () => {
+    instance.registerHandlers(null);
+
+    await expect(
+      ipcMainMock.handlers["aiEngine:generatePPT"](
+        {},
+        {
+          ...pptRequest(),
+          debug: true,
+        },
+      ),
+    ).resolves.toEqual({
+      success: false,
+      code: "AI_ENGINE_OPERATION_FAILED",
+      error: "AI engine operation failed",
+    });
+    expect(runtime.createPPTEngine).not.toHaveBeenCalled();
+  });
+
+  it("builds production authorization from the live window and identity providers", async () => {
+    const mainFrame = {
+      parent: null,
+      url: "http://localhost:5173/#/projects/current",
+    };
+    const webContents = { id: 31, mainFrame };
+    const mainWindow = { webContents };
+    const authorizePurpose = vi.fn(async () => true);
+    const productionInstance = new AIEngineIPC(null, null, null, null, null, {
+      ipcMain: ipcMainMock,
+      runtime,
+      getMainWindow: () => mainWindow,
+      getCurrentIdentity: () => ({
+        did: "did:key:operator",
+        tenantId: "tenant:alpha",
+      }),
+      authorizePurpose,
+    });
+    productionInstance.registerHandlers(mainWindow);
+
+    await expect(
+      ipcMainMock.handlers["aiEngine:generatePPT"](
+        { sender: webContents, senderFrame: mainFrame },
+        pptRequest(),
+      ),
+    ).resolves.toMatchObject({ success: true, fileName: "slides.pptx" });
+    expect(authorizePurpose).toHaveBeenCalledWith({
+      actorDid: "did:key:operator",
+      operation: "generate-ppt",
+      purpose: "project-presentation-generate",
+      senderId: 31,
+      tenantId: "tenant:alpha",
     });
   });
 
