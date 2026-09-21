@@ -144,9 +144,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
 
   // Plan Mode remains an internal coding-agent guard. Its unused renderer IPC
   // surface has been retired, while the manager keeps the shared HookSystem.
-  const {
-    getPlanModeManager,
-  } = require("../../ai-engine/plan-mode");
+  const { getPlanModeManager } = require("../../ai-engine/plan-mode");
   const planModeManager = getPlanModeManager();
   if (planModeManager.hookSystem !== hookSystem) {
     planModeManager.setHookSystem(hookSystem);
@@ -172,7 +170,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
     handlers: 8,
   });
 
-  // 🔥 AI Engine IPC (AI引擎核心, 含Word/PPT生成等, 20+ handlers)
+  // AI Engine IPC (Word/PPT generation)
   safeRegister("AI Engine IPC", {
     register: () => {
       const AIEngineIPC = require("../../ai-engine/ai-engine-ipc");
@@ -186,6 +184,7 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       aiEngineIPC.registerHandlers(mainWindow);
     },
     continueMessage: "Word/PPT generation will not be available",
+    handlers: 2,
   });
 
   // 🔥 Prompt Compressor 系统 (上下文压缩, 10 handlers)

@@ -3351,23 +3351,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("largeFile:getTail", filePath, lineCount || 100),
   },
 
-  // AI引擎
-  ai: {
-    processInput: ({ input, context }) =>
-      ipcRenderer.invoke("ai:processInput", { input, context }),
-    getHistory: (limit) => ipcRenderer.invoke("ai:getHistory", limit),
-    clearHistory: () => ipcRenderer.invoke("ai:clearHistory"),
-    // 事件监听
-    onStepUpdate: (callback) =>
-      ipcRenderer.on("ai:stepUpdate", (_event, step) => callback(step)),
-    offStepUpdate: (callback) =>
-      ipcRenderer.removeListener("ai:stepUpdate", callback),
-  },
-
   // AI引擎扩展功能
   aiEngine: {
-    recognizeIntent: (userInput) =>
-      ipcRenderer.invoke("aiEngine:recognizeIntent", userInput),
     generatePPT: (options) =>
       ipcRenderer.invoke("aiEngine:generatePPT", options),
     generateWord: (options) =>
