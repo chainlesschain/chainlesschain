@@ -1019,13 +1019,16 @@ describe("SecureConfigStorage", () => {
     });
 
     it("删除不存在的配置应成功", () => {
+      const removeSync = vi.fn(() => false);
       const storage = new SecureConfigStorage({
         storagePath: "/nonexistent/config.enc",
+        atomicFile: { removeSync },
       });
 
       const result = storage.delete();
 
       expect(result).toBe(true);
+      expect(removeSync).toHaveBeenCalledWith("/nonexistent/config.enc");
     });
   });
 
