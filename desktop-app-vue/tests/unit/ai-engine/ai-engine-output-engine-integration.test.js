@@ -30,8 +30,8 @@ describe("AI Engine managed output with production document engines", () => {
       await import("../../../src/main/engines/word-engine.js");
     wordEngine = wordEngineModule.default;
 
-    projectRoot = await fs.mkdtemp(
-      path.join(os.tmpdir(), "cc-ai-engine-write-"),
+    projectRoot = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "cc-ai-engine-write-")),
     );
     resolver = createAIEngineOutputResolver({
       database: {
