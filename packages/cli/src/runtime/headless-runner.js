@@ -219,7 +219,10 @@ import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
 import { resolveTeamMessageToolBundle } from "../lib/agent-team/team-message-tools.js";
 import { normalizeDecisionMode } from "../lib/decision-layer/contracts.js";
 import { createSkillDecisionRuntime } from "../lib/decision-layer/runtime.js";
-import { createTypeSafeDecisionProvider } from "../lib/decision-layer/typesafe-provider.js";
+import {
+  createDecisionProvider,
+  resolveDecisionProviderOptions,
+} from "../lib/decision-layer/providers.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -254,7 +257,7 @@ export function validateHeadlessInvocationOptions(options = {}) {
   resolveHeadlessSkillDecisionOptions(options);
 }
 
-/** Normalize the opt-in Jev Skill-routing experiment without acquiring egress. */
+/** Normalize the opt-in typed Skill-routing experiment without acquiring egress. */
 export function resolveHeadlessSkillDecisionOptions(options = {}) {
   let mode;
   try {
@@ -279,8 +282,7 @@ export function resolveHeadlessSkillDecisionOptions(options = {}) {
   }
   return Object.freeze({
     mode,
-    model: options.decisionModel || "jev-latest",
-    baseUrl: options.decisionBaseUrl || "https://api.typesafe.ai",
+    ...resolveDecisionProviderOptions(options),
     timeoutMs,
   });
 }
@@ -561,6 +563,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
       }
       if (
         skillDecision.mode !== "off" &&
+        skillDecision.provider === "typesafe" &&
         !deps.decisionProvider &&
         !options.decisionApiKey &&
         !process.env.TYPESAFE_API_KEY
@@ -2442,8 +2445,14 @@ async function runAgentHeadlessInWorkspace(
   if (skillDecisionOptions.mode !== "off") {
     const decisionProvider =
       deps.decisionProvider ||
-      createTypeSafeDecisionProvider({
-        apiKey: options.decisionApiKey || process.env.TYPESAFE_API_KEY,
+      createDecisionProvider({
+        provider: skillDecisionOptions.provider,
+        apiKey:
+          options.decisionApiKey ||
+          (skillDecisionOptions.provider === "typesafe"
+            ? process.env.TYPESAFE_API_KEY
+            : process.env.DECISION_API_KEY) ||
+          undefined,
         baseUrl: skillDecisionOptions.baseUrl,
         model: skillDecisionOptions.model,
         ...(deps.decisionFetch ? { fetchImpl: deps.decisionFetch } : {}),

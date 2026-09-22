@@ -107,6 +107,7 @@ describe("headless Skill decision wiring", () => {
   it("normalizes CLI decision options and rejects invalid values", () => {
     expect(resolveHeadlessSkillDecisionOptions()).toEqual({
       mode: "off",
+      provider: "typesafe",
       model: "jev-latest",
       baseUrl: "https://api.typesafe.ai",
       timeoutMs: 800,
@@ -123,6 +124,13 @@ describe("headless Skill decision wiring", () => {
     expect(() =>
       resolveHeadlessSkillDecisionOptions({ decisionTimeoutMs: 20 }),
     ).toThrow("Invalid --decision-timeout-ms");
+    expect(
+      resolveHeadlessSkillDecisionOptions({ decisionProvider: "laya" }),
+    ).toMatchObject({
+      provider: "laya",
+      model: "laya",
+      baseUrl: "http://127.0.0.1:8000",
+    });
   });
 
   it("keeps the default off mode provider-free", async () => {
@@ -221,6 +229,149 @@ describe("headless Skill decision wiring", () => {
       vi.unstubAllEnvs();
     }
     expect(harness.deps.agentLoop).not.toHaveBeenCalled();
+  });
+
+  it.each(["shadow", "suggest"])(
+    "runs local Laya in %s mode without sending the TypeSafe key",
+    async (mode) => {
+      const harness = makeHarness({ mode });
+      delete harness.deps.decisionProvider;
+      harness.options.decisionProvider = "laya";
+      const response = await provider().decide();
+      harness.deps.decisionFetch = vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          ...response,
+          model: "laya",
+          usage: { input_tokens: 12, output_tokens: 0 },
+        }),
+      }));
+      vi.stubEnv("TYPESAFE_API_KEY", "cloud-secret-must-not-leak");
+      vi.stubEnv("DECISION_API_KEY", "");
+      try {
+        const outcome = await runAgentHeadless(harness.options, harness.deps);
+        expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+        expect(harness.observed.result).toMatchObject({
+          status: "suggestion",
+          visible: mode === "suggest",
+          selectedSkillId: "repair-tests",
+        });
+        expect(harness.deps.decisionFetch).toHaveBeenCalledExactlyOnceWith(
+          "http://127.0.0.1:8000/v1/systemone",
+          expect.objectContaining({
+            method: "POST",
+            headers: { "content-type": "application/json" },
+          }),
+        );
+        expect(harness.events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "token_usage",
+              data: expect.objectContaining({
+                provider: "laya",
+                model: "laya",
+                usage: expect.objectContaining({ output_tokens: 0 }),
+              }),
+            }),
+            expect.objectContaining({
+              type: "skill_decision_observation",
+              data: expect.objectContaining({ provider: "laya", mode }),
+            }),
+          ]),
+        );
+        expect(JSON.stringify(harness.events)).not.toContain(
+          "cloud-secret-must-not-leak",
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
+  it("uses a separate optional credential for a compatible decision service", async () => {
+    const harness = makeHarness({ mode: "shadow" });
+    delete harness.deps.decisionProvider;
+    Object.assign(harness.options, {
+      decisionProvider: "system-one",
+      decisionBaseUrl: "https://decisions.example.test/v1",
+      decisionModel: "local-checkpoint",
+    });
+    const response = await provider().decide();
+    harness.deps.decisionFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ ...response, model: "local-checkpoint" }),
+    }));
+    vi.stubEnv("TYPESAFE_API_KEY", "unrelated-secret");
+    vi.stubEnv("DECISION_API_KEY", "service-secret");
+    try {
+      const outcome = await runAgentHeadless(harness.options, harness.deps);
+      expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+      expect(harness.deps.decisionFetch).toHaveBeenCalledExactlyOnceWith(
+        "https://decisions.example.test/v1/systemone",
+        expect.objectContaining({
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer service-secret",
+          },
+        }),
+      );
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({
+          type: "skill_decision_observation",
+          data: expect.objectContaining({ provider: "system-one" }),
+        }),
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("keeps an unavailable local decision service local and preserves the run", async () => {
+    const harness = makeHarness({ mode: "suggest" });
+    delete harness.deps.decisionProvider;
+    harness.options.decisionProvider = "laya";
+    harness.deps.decisionFetch = vi.fn(async () => {
+      throw new Error("connection refused");
+    });
+    const outcome = await runAgentHeadless(harness.options, harness.deps);
+    expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result).toMatchObject({
+      status: "unavailable",
+      selectedSkillId: null,
+    });
+    expect(harness.deps.decisionFetch).toHaveBeenCalledTimes(1);
+    expect(harness.deps.decisionFetch.mock.calls[0][0]).toBe(
+      "http://127.0.0.1:8000/v1/systemone",
+    );
+  });
+
+  it("rejects invalid local answers through the existing candidate contract", async () => {
+    const harness = makeHarness({ mode: "suggest" });
+    delete harness.deps.decisionProvider;
+    harness.options.decisionProvider = "laya";
+    const response = await provider().decide();
+    response.answers.best_skill.choice = "unadmitted-skill";
+    harness.deps.decisionFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ ...response, model: "laya" }),
+    }));
+    const outcome = await runAgentHeadless(harness.options, harness.deps);
+    expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result).toMatchObject({
+      status: "unavailable",
+      selectedSkillId: null,
+    });
+  });
+
+  it("keeps local off mode free of decision requests", async () => {
+    const harness = makeHarness();
+    delete harness.deps.decisionProvider;
+    harness.options.decisionProvider = "laya";
+    harness.deps.decisionFetch = vi.fn();
+    const outcome = await runAgentHeadless(harness.options, harness.deps);
+    expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.deps.decisionFetch).not.toHaveBeenCalled();
+    expect(harness.observed.runtime).toBeUndefined();
   });
 
   it("fails the run when decision usage cannot establish its ledger boundary", async () => {

@@ -384,20 +384,25 @@ export function registerAgentCommand(program, dependencies = {}) {
     )
     .option(
       "--decision-mode <mode>",
-      "Jev Skill-routing experiment for durable headless sessions: off | shadow | suggest",
+      "Typed Skill-routing experiment for durable headless sessions: off | shadow | suggest",
       "off",
     )
     .option(
+      "--decision-provider <provider>",
+      "Decision provider: typesafe | laya (local) | system-one (compatible API)",
+      "typesafe",
+    )
+    .option(
       "--decision-model <model>",
-      "TypeSafe decision model (default: jev-latest)",
+      "Decision model (defaults: typesafe=jev-latest, laya=laya; required for system-one)",
     )
     .option(
       "--decision-base-url <url>",
-      "TypeSafe decision API base URL (HTTPS or loopback only)",
+      "System One API base URL (laya: loopback only; other providers: HTTPS or loopback)",
     )
     .option(
       "--decision-timeout-ms <ms>",
-      "Jev decision timeout in milliseconds (50-30000; default: 800)",
+      "Decision timeout in milliseconds (50-30000; default: 800)",
     )
     .option(
       "--capabilities",
@@ -1519,6 +1524,9 @@ export function registerAgentCommand(program, dependencies = {}) {
       try {
         if (
           (options.decisionMode || "off") === "off" &&
+          (options.decisionProvider || "typesafe") === "typesafe" &&
+          options.decisionModel === undefined &&
+          options.decisionBaseUrl === undefined &&
           options.decisionTimeoutMs === undefined
         ) {
           decisionConfig = Object.freeze({ mode: "off" });
@@ -1546,11 +1554,15 @@ export function registerAgentCommand(program, dependencies = {}) {
       let decisionApiKey;
       if (decisionMode !== "off") {
         try {
+          const credentialName =
+            decisionConfig.provider === "typesafe"
+              ? "TYPESAFE_API_KEY"
+              : "DECISION_API_KEY";
           decisionApiKey =
-            (await resolveCredentialEnvironmentValue("TYPESAFE_API_KEY", {
+            (await resolveCredentialEnvironmentValue(credentialName, {
               env: process.env,
             })) || undefined;
-          if (!decisionApiKey) {
+          if (decisionConfig.provider === "typesafe" && !decisionApiKey) {
             throw new Error(
               "TYPESAFE_API_KEY is required when --decision-mode is shadow or suggest",
             );
@@ -2015,6 +2027,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           priceTable,
           sessionBudgetRoot,
           decisionMode,
+          decisionProvider: options.decisionProvider,
           decisionModel: options.decisionModel,
           decisionBaseUrl: options.decisionBaseUrl,
           decisionTimeoutMs: options.decisionTimeoutMs,
