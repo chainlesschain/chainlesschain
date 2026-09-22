@@ -583,10 +583,10 @@ class SecureConfigStorage {
         backupPath,
         fs.readFileSync(this.storagePath),
       );
-      this._enforceBackupRetention(backupPath);
+      const resolvedBackupPath = this._enforceBackupRetention(backupPath);
       storagePrivacy.event("backup-created");
 
-      return backupPath;
+      return resolvedBackupPath;
     } catch {
       if (backupPath) {
         try {
@@ -735,6 +735,7 @@ class SecureConfigStorage {
     if (pruned) {
       storagePrivacy.event("backup-retention-pruned");
     }
+    return resolvedNewBackup;
   }
 
   /**
