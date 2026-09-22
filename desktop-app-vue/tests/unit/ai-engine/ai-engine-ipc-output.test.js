@@ -21,7 +21,9 @@ describe("AI Engine managed output resolver", () => {
   let database;
 
   beforeEach(() => {
-    projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ai-output-"));
+    projectRoot = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-ai-output-")),
+    );
     database = {
       getProjectById: vi.fn((projectId) => ({
         id: projectId,
