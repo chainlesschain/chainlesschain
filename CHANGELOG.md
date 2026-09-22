@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.71: open local Skill decision providers
+
+- Add `--decision-provider` selection for the existing governed Skill decision
+  layer, with `typesafe`, loopback-only `laya`, and compatible `system-one`
+  providers.
+- Run Apache-2.0 Laya models behind a local `/v1/systemone` service without a
+  TypeSafe credential, while preserving the durable-session, candidate-binding,
+  budget, timeout, and observation boundaries introduced by the Jev pilot.
+- Keep TypeSafe and local-service credentials isolated: TypeSafe continues to
+  require `TYPESAFE_API_KEY`; authenticated Laya and compatible services may use
+  `DECISION_API_KEY` and never inherit the TypeSafe secret.
+- Reject redirects, URL credentials, remote plaintext endpoints, and non-loopback
+  Laya endpoints. Invalid or unavailable local decisions leave the existing
+  Skill retrieval result unchanged.
+- Document a pinned real-backend `laya-serve` setup and the limits of model
+  labels, multilingual routing, context windows, and upstream benchmark claims.
+
 ### Added - cc CLI 0.166.70: governed Jev Skill decision shadow pilot
 
 - Add an optional typed decision layer for `list_skills(query)` after the
