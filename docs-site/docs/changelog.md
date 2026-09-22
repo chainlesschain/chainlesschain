@@ -5,7 +5,16 @@
 
 ## [Unreleased]
 
-#### Source main — Desktop governed IPC 与安全配置恢复（2026-09-20）
+#### Released — CLI 0.166.70 / Open VSX 0.37.112 / JetBrains 0.4.133 待审核（2026-09-22）
+
+- **Jev 类型化 Skill 决策试点**：在既有 allow-list、兼容性、撤销与检索之后，对最多五个已准入候选执行有界判断；当前仅支持耐久、单 prompt、headless Agent。
+- **默认关闭且不执行 Skill**：`off` 为默认值；`shadow` 记录观察但不改变路由，`suggest` 仅附加 `routing.decisionSuggestion`，不会替换 `selectedDigest` 或执行 Skill。
+- **凭据与失败闭合**：TypeSafe 凭据只从 `TYPESAFE_API_KEY` 或受管 credential transport 读取；请求/响应绑定候选、策略、会话与 context revision，并纳入预算、取消和模型用量账本。当前项目没有真实 TypeSafe 凭据，不声明 API 兼容性、质量、延迟或费用收益。
+- **CLI 发布证据**：`v-npm-0-166-70@75778a75e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35676770114)与 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35676769861)三系统矩阵成功；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35680764600)和[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35681664508)成功。
+- **IDE 渠道状态**：Open VSX `0.37.112@d3c6ee9ba5` 已公开；JetBrains `0.4.133@d3c6ee9ba5` 的[发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35685611535)完成上传，仍等待 Marketplace 人工审核，当前公开版为 `0.4.132`。Microsoft Marketplace 未发行。
+- **文档**：新增[Jev 用户指南](/chainlesschain/jev-decision-layer)与[模块 114 设计](/design/modules/114-jev-decision-layer-design)。
+
+#### Historical source snapshot — Desktop governed IPC 与安全配置恢复（2026-09-20）
 
 - **IPC 身份与用途授权**（`ad7567214f`）：Volcengine 与 Secure Storage 操作在读取配置、调用 provider、访问文件或打开对话框前绑定主窗口、main frame、可信来源、当前 DID tenant 与固定用途；写入只接受已声明敏感字段，错误回执不泄露动态异常或密钥。
 - **签名函数能力**（`ad7567214f`）：Volcengine Function Calling 移除本地数据库、文件、P2P 和系统信息直连实现，只接受签名 evolution deployment 提供的 opaque capability，并校验 actor、tenant、函数白名单、参数摘要、handler 摘要、策略 revision 与认证耐久回读；未装配时失败关闭。
@@ -14,7 +23,7 @@
 - **跨进程写入 fence**（`89e180f700`）：原子提交器使用绑定 PID、进程启动时间、随机 nonce 与目标摘要的 owner 记录互斥写入；死亡 owner 只能在独立 recovery fence 下回收，owner 字节变化、活动进程或并发恢复都会失败关闭。
 - **核心 LLM 成功结果投影**（`5da428687f`）：query/chat/stream/status/model list/embedding 的成功结果统一重建为有界 plain data；不再把 provider、Agent 或缓存内部对象直接返回 renderer，并拒绝 Proxy、accessor、非有限数值、超大文本/向量/集合和未声明字段。
 - **辅助数据库行投影**（`8e7c45e32e`）：告警历史、模型预算和数据保留配置只返回显式 allowlist 字段；数据库额外列、畸形详情、非有限/负数数值、getter 与 Proxy 不进入 renderer，布尔值和时间字段统一规范化。
-- **发布边界**：上述三项是公开 CLI/IDE 发布后的 Desktop 源码增量，不代表 Desktop native 已发行。真实 Credential Manager/Keychain/Secret Service、跨进程锁、物理断电和多租户撤销仍需目标环境验收。
+- **发布边界**：这些源码增量随后进入 `0.166.69/0.166.70` 的源码祖先，但仍不代表 Desktop native 已发行。真实 Credential Manager/Keychain/Secret Service、跨进程锁、物理断电和多租户撤销仍需目标环境验收。
 
 #### Released — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131（2026-09-20）
 

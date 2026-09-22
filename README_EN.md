@@ -2,16 +2,24 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.68` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.70` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.68 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.70 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-09-20 current release — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131
+## 2026-09-22 current release — CLI 0.166.70 / Open VSX 0.37.112 / JetBrains 0.4.133 pending review
+
+> Release boundary: npm `chainlesschain@0.166.70` and Open VSX `0.37.112` have been publicly read back. JetBrains `0.4.133` was uploaded by a successful release workflow but is still awaiting Marketplace review/listing; the current public version is `0.4.132`. Microsoft VS Code Marketplace remains unpublished because `VSCE_PAT` is not configured, and Desktop native installers remain independently qualified artifacts.
+
+npm latest is `0.166.70`; immutable tag `v-npm-0-166-70` resolves to exact commit `75778a75e1`. Its [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35676770114) and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35676769861) passed every configured Linux, Windows, and macOS job. The [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/35680764600) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/35681664508) succeeded. The paired source boundary is `d3c6ee9ba5`: [Open VSX `0.37.112`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) is public, while the [JetBrains `0.4.133` release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/35685611535) uploaded successfully but the public API does not list it yet.
+
+Commit `80806fd4e9` introduces a default-off Jev typed Skill-decision pilot. It currently supports durable, single-prompt, headless Agent runs only: `--decision-mode shadow` records a bounded decision without changing routing; `suggest` only adds `routing.decisionSuggestion` and never executes the suggested Skill. IDEs do not store a TypeSafe key or receive routing/execution authority. The project does not yet have real TypeSafe API credentials, so this release makes no claim about live API integration or quality, latency, and cost gains. See [module 114 design](docs/design/modules/114-jev-decision-layer-design.md), the [Jev user guide](docs-site/docs/chainlesschain/jev-decision-layer.md), and the [release and upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+
+## 2026-09-20 historical release — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131
 
 > Release boundary: the CLI, VSIX, and JetBrains ZIP are independent artifacts. This section covers only versions that passed exact-commit gates and were read back from their public registries. Desktop native installers, production KMS/PKI, independent witnesses/graders, and automatic active Skill promotion are outside this release.
 

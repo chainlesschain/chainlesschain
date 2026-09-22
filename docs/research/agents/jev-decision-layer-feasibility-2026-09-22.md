@@ -1,9 +1,12 @@
 # Jev 决策层借鉴与接入可行方案
 
 评估日期：2026-09-22
-代码基线：`54773e1209fa54e802b7c48e6e6f2920b276ce7a`
-状态：CLI P0 工程试点已实现；默认仍关闭，尚未运行真实 Jev 模型评测或生产放量。
+当前文档基线：`d3c6ee9ba5a30384574e29555dcf36aa9130d9bb`
+实现提交：`80806fd4e9`；CLI 发布提交：`75778a75e1`（`chainlesschain@0.166.70`）。
+状态：CLI P0 工程试点已公开发布；默认仍关闭。当前维护环境没有真实 TypeSafe API 凭据，尚未完成真实 API 兼容性、Jev 模型评测或生产放量。
 范围：ChainlessChain CLI 优先，后续评估桌面端复用。
+
+正式架构说明见[模块 114：Jev 类型化 Skill 决策层设计](../../design/modules/114-jev-decision-layer-design.md)，使用步骤见[Jev 决策层用户指南](../../../docs-site/docs/chainlesschain/jev-decision-layer.md)。
 
 ## 1. 建议与可行性结论
 
