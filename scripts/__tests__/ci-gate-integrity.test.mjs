@@ -936,7 +936,6 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
     "desktop-app-vue/src/main/ai-engine/cowork/skills/markdown-skill.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skills-ipc.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-sync-manager.js",
-    "desktop-app-vue/src/main/ai-engine/cowork/skills/skill-sync-ipc.js",
     "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js",
     "desktop-app-vue/src/main/ai-engine/cowork/cowork-ipc.js",
   ]) {
