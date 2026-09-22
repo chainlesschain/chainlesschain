@@ -383,6 +383,23 @@ export function registerAgentCommand(program, dependencies = {}) {
       "No session persistence: nothing is written to the session store (headless; a --resume id still replays history read-only)",
     )
     .option(
+      "--decision-mode <mode>",
+      "Jev Skill-routing experiment for durable headless sessions: off | shadow | suggest",
+      "off",
+    )
+    .option(
+      "--decision-model <model>",
+      "TypeSafe decision model (default: jev-latest)",
+    )
+    .option(
+      "--decision-base-url <url>",
+      "TypeSafe decision API base URL (HTTPS or loopback only)",
+    )
+    .option(
+      "--decision-timeout-ms <ms>",
+      "Jev decision timeout in milliseconds (50-30000; default: 800)",
+    )
+    .option(
       "--capabilities",
       "Print a machine-readable capability manifest (JSON: protocol version, tools, permission modes, exit codes) and exit",
     )
@@ -1498,6 +1515,52 @@ export function registerAgentCommand(program, dependencies = {}) {
         await _finishWorktree();
         process.exit(1);
       }
+      let decisionConfig;
+      try {
+        if (
+          (options.decisionMode || "off") === "off" &&
+          options.decisionTimeoutMs === undefined
+        ) {
+          decisionConfig = Object.freeze({ mode: "off" });
+        } else {
+          const { resolveHeadlessSkillDecisionOptions } =
+            await import("../runtime/headless-runner.js");
+          decisionConfig = resolveHeadlessSkillDecisionOptions(options);
+        }
+      } catch (error) {
+        process.stderr.write(`${error.message}\n`);
+        await _finishWorktree();
+        process.exit(1);
+      }
+      const decisionMode = decisionConfig.mode;
+      if (
+        decisionMode !== "off" &&
+        (!options.session || options.ephemeral === true)
+      ) {
+        process.stderr.write(
+          "--decision-mode shadow/suggest requires --session/--resume/--continue and cannot be combined with --ephemeral.\n",
+        );
+        await _finishWorktree();
+        process.exit(1);
+      }
+      let decisionApiKey;
+      if (decisionMode !== "off") {
+        try {
+          decisionApiKey =
+            (await resolveCredentialEnvironmentValue("TYPESAFE_API_KEY", {
+              env: process.env,
+            })) || undefined;
+          if (!decisionApiKey) {
+            throw new Error(
+              "TYPESAFE_API_KEY is required when --decision-mode is shadow or suggest",
+            );
+          }
+        } catch (error) {
+          process.stderr.write(`${error.message}\n`);
+          await _finishWorktree();
+          process.exit(1);
+        }
+      }
       if (maxCostUsd || sessionBudgetRoot.limits.maxUsd != null) {
         const { mergePricing } = await import("../lib/llm-pricing.js");
         priceTable = mergePricing(loadConfig().llm?.pricing);
@@ -1511,6 +1574,14 @@ export function registerAgentCommand(program, dependencies = {}) {
       // stdin; output is always NDJSON. Routed before single-prompt handling
       // so stdin is consumed as events, not as one prompt.
       if (options.inputFormat === "stream-json") {
+        if (decisionMode !== "off") {
+          process.stderr.write(
+            "--decision-mode shadow/suggest currently supports single-prompt headless runs only; --input-format stream-json is not yet supported.\n",
+          );
+          await _finishWorktree();
+          process.exit(1);
+          return;
+        }
         const { runAgentHeadlessStream } =
           await import("../runtime/headless-stream.js");
         const { parseToolList, validateHeadlessInvocationOptions } =
@@ -1943,6 +2014,11 @@ export function registerAgentCommand(program, dependencies = {}) {
           maxCostUsd,
           priceTable,
           sessionBudgetRoot,
+          decisionMode,
+          decisionModel: options.decisionModel,
+          decisionBaseUrl: options.decisionBaseUrl,
+          decisionTimeoutMs: options.decisionTimeoutMs,
+          decisionApiKey,
           observabilityScope: hasObservabilityScope
             ? observabilityScope
             : undefined,
@@ -2038,6 +2114,14 @@ export function registerAgentCommand(program, dependencies = {}) {
         process.stderr.write(
           "--ephemeral is only used in headless mode (-p / a task / piped stdin); ignoring for the interactive session.\n",
         );
+      }
+      if (decisionMode !== "off") {
+        process.stderr.write(
+          "--decision-mode shadow/suggest is only used in single-prompt headless mode (-p / a task / piped stdin).\n",
+        );
+        await _finishWorktree();
+        process.exitCode = 1;
+        return;
       }
       // Reached only for an interactive session, where --image has no turn to
       // attach to 鈥?warn instead of silently dropping the attachment.

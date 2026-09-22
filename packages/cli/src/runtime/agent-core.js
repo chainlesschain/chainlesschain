@@ -86,6 +86,7 @@ import {
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { routeSkillDescriptors } from "../lib/skill-retrieval-router.js";
+import { captureSkillDecisionRuntime } from "../lib/decision-layer/runtime.js";
 import { resolveSkillOutcomeAuthority } from "../lib/skill-outcome-authority.js";
 import {
   captureSkillVectorAuthority,
@@ -3629,6 +3630,7 @@ export async function executeTool(name, args, context = {}) {
       skillAllowlist: context.skillAllowlist ?? null,
       skillOutcomeIndex: context.skillOutcomeIndex,
       skillVectorAuthority: context.skillVectorAuthority,
+      skillDecisionRuntime: context.skillDecisionRuntime,
       skillRuntimeAdmission: context.skillRuntimeAdmission,
       skillRuntimeAdmissionRequired: context.skillRuntimeAdmissionRequired,
       skillRetrievalRevocationReader: context.skillRetrievalRevocationReader,
@@ -5184,6 +5186,7 @@ async function executeToolInner(
     skillAllowlist = null,
     skillOutcomeIndex,
     skillVectorAuthority,
+    skillDecisionRuntime,
     skillRuntimeAdmission,
     skillRuntimeAdmissionRequired = false,
     skillRetrievalRevocationReader,
@@ -8622,6 +8625,45 @@ async function executeToolInner(
         skills = routing.candidates
           .map(({ digest }) => byDigest.get(digest))
           .filter(Boolean);
+        const decisionRuntime =
+          skillDecisionRuntime == null
+            ? null
+            : captureSkillDecisionRuntime(skillDecisionRuntime);
+        if (decisionRuntime !== null && routing.candidates.length > 0) {
+          const decision = await decisionRuntime.suggest({
+            query: args.query,
+            candidates: routing.candidates.slice(0, 5).map((candidate) => {
+              const descriptor = byDigest.get(candidate.digest);
+              return {
+                id: candidate.id,
+                displayName: candidate.displayName,
+                description: descriptor?.description || candidate.displayName,
+                category: candidate.category,
+                digest: candidate.digest,
+                tags: Array.isArray(descriptor?.tags) ? descriptor.tags : [],
+              };
+            }),
+            turnId: turnId || toolCallId || "list-skills",
+            contextRevision: "skill-routing-v1",
+            signal,
+          });
+          if (decision.visible) {
+            routing = Object.freeze({
+              ...routing,
+              decisionSuggestion: Object.freeze({
+                schema: decision.schema,
+                decisionId: decision.decisionId,
+                status: decision.status,
+                reasonCode: decision.reasonCode,
+                selectedDigest: decision.selectedDigest,
+                selectedSkillId: decision.selectedSkillId,
+                needsSkillProbability: decision.needsSkillProbability,
+                choiceConfidence: decision.choiceConfidence,
+                receiptRef: decision.receiptRef,
+              }),
+            });
+          }
+        }
       }
       skillLoader.recordDescriptorUse?.(skills, {
         sessionId,
@@ -8641,6 +8683,9 @@ async function executeToolInner(
                 vectorAuthority:
                   vector?.evidence ?? unavailableSkillVectorEvidence(),
                 outcomeAuthority: outcomeAuthority.evidence,
+                ...(routing.decisionSuggestion
+                  ? { decisionSuggestion: routing.decisionSuggestion }
+                  : {}),
               },
             }
           : {}),
@@ -14029,6 +14074,10 @@ export async function* agentLoop(messages, options) {
         : _defaultSkillLoader),
     skillOutcomeIndex: options.skillOutcomeIndex,
     skillVectorAuthority: options.skillVectorAuthority,
+    skillDecisionRuntime:
+      options.skillDecisionRuntime == null
+        ? null
+        : captureSkillDecisionRuntime(options.skillDecisionRuntime),
     skillRuntimeAdmission: options.skillRuntimeAdmission,
     skillRuntimeAdmissionRequired: options.skillRuntimeAdmissionRequired,
     skillRetrievalRevocationReader: options.skillRetrievalRevocationReader,

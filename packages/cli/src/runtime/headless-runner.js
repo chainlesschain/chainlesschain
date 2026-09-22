@@ -217,6 +217,9 @@ import {
 } from "../lib/runtime-usage-ledger.js";
 import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
 import { resolveTeamMessageToolBundle } from "../lib/agent-team/team-message-tools.js";
+import { normalizeDecisionMode } from "../lib/decision-layer/contracts.js";
+import { createSkillDecisionRuntime } from "../lib/decision-layer/runtime.js";
+import { createTypeSafeDecisionProvider } from "../lib/decision-layer/typesafe-provider.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -248,6 +251,38 @@ export function validateHeadlessInvocationOptions(options = {}) {
     );
   }
   normalizePermissionMode(options.permissionMode);
+  resolveHeadlessSkillDecisionOptions(options);
+}
+
+/** Normalize the opt-in Jev Skill-routing experiment without acquiring egress. */
+export function resolveHeadlessSkillDecisionOptions(options = {}) {
+  let mode;
+  try {
+    mode = normalizeDecisionMode(options.decisionMode || "off");
+  } catch {
+    throw new Error(
+      `Invalid --decision-mode "${options.decisionMode}". Expected one of: off, shadow, suggest`,
+    );
+  }
+  const timeoutMs =
+    options.decisionTimeoutMs === undefined
+      ? 800
+      : Number(options.decisionTimeoutMs);
+  if (
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs < 50 ||
+    timeoutMs > 30_000
+  ) {
+    throw new Error(
+      "Invalid --decision-timeout-ms. Expected an integer from 50 to 30000",
+    );
+  }
+  return Object.freeze({
+    mode,
+    model: options.decisionModel || "jev-latest",
+    baseUrl: options.decisionBaseUrl || "https://api.typesafe.ai",
+    timeoutMs,
+  });
 }
 
 /**
@@ -488,6 +523,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
       `Invalid --output-format "${outputFormat}". Expected one of: ${VALID_OUTPUT_FORMATS.join(", ")}`,
     );
   }
+  const skillDecision = resolveHeadlessSkillDecisionOptions(options);
   let resolution = null;
   let lease = null;
   let budgetRoot = null;
@@ -518,6 +554,21 @@ async function withHeadlessSessionHostLease(options, deps, task) {
         },
         `headless-${Date.now()}-${process.pid}`,
       );
+      if (skillDecision.mode !== "off" && !resolution.persist) {
+        throw new Error(
+          "--decision-mode shadow/suggest requires a durable session; use --session/--resume/--continue and do not use --ephemeral",
+        );
+      }
+      if (
+        skillDecision.mode !== "off" &&
+        !deps.decisionProvider &&
+        !options.decisionApiKey &&
+        !process.env.TYPESAFE_API_KEY
+      ) {
+        throw new Error(
+          "TYPESAFE_API_KEY is required when --decision-mode is shadow or suggest",
+        );
+      }
       const authoritySessionId =
         resolution.resumeId ||
         (resolution.persist ? resolution.sessionId : null);
@@ -2386,6 +2437,33 @@ async function runAgentHeadlessInWorkspace(
     }
   };
 
+  const skillDecisionOptions = resolveHeadlessSkillDecisionOptions(options);
+  let skillDecisionRuntime = null;
+  if (skillDecisionOptions.mode !== "off") {
+    const decisionProvider =
+      deps.decisionProvider ||
+      createTypeSafeDecisionProvider({
+        apiKey: options.decisionApiKey || process.env.TYPESAFE_API_KEY,
+        baseUrl: skillDecisionOptions.baseUrl,
+        model: skillDecisionOptions.model,
+        ...(deps.decisionFetch ? { fetchImpl: deps.decisionFetch } : {}),
+      });
+    const persistDecisionEvent = (type, data) =>
+      persistRuntimeLedgerWrite(() => store.appendEvent(sessionId, type, data));
+    skillDecisionRuntime = createSkillDecisionRuntime({
+      mode: skillDecisionOptions.mode,
+      tenantId:
+        options.decisionTenantId || evolutionIngress?.tenantId || "cli-local",
+      sessionId,
+      provider: decisionProvider,
+      persist: persistDecisionEvent,
+      observe: (observation) =>
+        persistDecisionEvent("skill_decision_observation", observation),
+      sessionBudget: options.sessionBudget || null,
+      timeoutMs: skillDecisionOptions.timeoutMs,
+    });
+  }
+
   // Subagent internals may contain prompts and tool results.  The public
   // stream exposes only stable lifecycle/progress metadata, and only with the
   // explicit --include-hook-events opt-in.
@@ -2513,6 +2591,7 @@ async function runAgentHeadlessInWorkspace(
     apiKey,
     cwd,
     skillLoader: _runtimeSkillLoader,
+    ...(skillDecisionRuntime === null ? {} : { skillDecisionRuntime }),
     ...captureSkillRuntimeDependencies(options, evolutionIngress?.tenantId),
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),
