@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.112] - Pair with governed CLI 0.166.70 (2026-09-22)
+
+- Recommend the publicly verified `chainlesschain@0.166.70` release in runtime
+  upgrade guidance, marketplace metadata, and installation instructions.
+- Pair with the CLI's optional typed Jev Skill-routing pilot while keeping its
+  `off` default, durable-session requirement, budget ledger, and fail-closed
+  provider boundary in the CLI host.
+- Keep `shadow` and `suggest` unavailable in interactive IDE sessions until
+  separate IDE controls and evidence gates are implemented; this release does
+  not add decision-model credentials or execution authority to the extension.
+
 ## [0.37.111] - Pair with governed CLI 0.166.69 (2026-09-21)
 
 - Recommend the publicly verified `chainlesschain@0.166.69` release in runtime
