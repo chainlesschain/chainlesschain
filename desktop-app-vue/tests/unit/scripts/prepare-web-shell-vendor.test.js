@@ -20,6 +20,7 @@ import {
 } from "../../../scripts/prepare-web-shell-vendor.js";
 
 let tempBuildPath;
+let tempRuntimePath;
 
 function silentLog() {
   /* swallow vendor logs during tests */
@@ -27,11 +28,25 @@ function silentLog() {
 
 beforeEach(() => {
   tempBuildPath = fs.mkdtempSync(path.join(os.tmpdir(), "vendor-test-"));
+  // Exercise runtime-dependency copying without duplicating the full
+  // standalone CLI install for every unit-test run.
+  tempRuntimePath = fs.mkdtempSync(
+    path.join(os.tmpdir(), "vendor-runtime-test-"),
+  );
+  const semverPath = path.join(tempRuntimePath, "semver");
+  fs.mkdirSync(semverPath, { recursive: true });
+  fs.writeFileSync(
+    path.join(semverPath, "package.json"),
+    JSON.stringify({ name: "semver", version: "0.0.0-test" }),
+  );
 });
 
 afterEach(() => {
   if (tempBuildPath && fs.existsSync(tempBuildPath)) {
     fs.rmSync(tempBuildPath, { recursive: true, force: true });
+  }
+  if (tempRuntimePath && fs.existsSync(tempRuntimePath)) {
+    fs.rmSync(tempRuntimePath, { recursive: true, force: true });
   }
 });
 
@@ -49,6 +64,7 @@ describe("vendorWebShellInto", () => {
     const stats = vendorWebShellInto(tempBuildPath, {
       dryRun: true,
       log: silentLog,
+      includeRuntimeDependencies: false,
     });
     expect(stats.cli.files).toBeGreaterThan(0);
     expect(stats.webPanel.files).toBeGreaterThan(0);
@@ -66,6 +82,7 @@ describe("vendorWebShellInto", () => {
     const stats = vendorWebShellInto(tempBuildPath, {
       dryRun: false,
       log: silentLog,
+      cliNodeModulesSource: tempRuntimePath,
     });
 
     // Known files the web-shell loaders depend on:
