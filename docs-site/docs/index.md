@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.68 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.70 | Open VSX 0.37.112 | Jev shadow 试点"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,13 +21,17 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.68
-    details: 浏览器动作使用显式 authority，下载先进入耐久隔离区；PM 子进程证据与恢复快照绑定受治理执行上下文。
+    title: Agent Platform 0.166.70
+    details: 新增默认关闭的 Jev 类型化 Skill 决策试点；shadow 不改变路由，suggest 只附加建议且不执行 Skill。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.110 与 JetBrains 0.4.131 自动保存有界任务证据，并将已校验记录交给独立新会话，不复制旧对话或权限。
+    details: VS Code 0.37.112 已公开；JetBrains 0.4.133 已上传待审核。两端不保存 TypeSafe 凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
+  - icon: 🎯
+    title: Jev Skill 决策层试点
+    details: 仅限耐久、单 prompt、headless CLI；先用 shadow 收集真实质量、延迟与费用证据，默认 off。
+    link: /chainlesschain/jev-decision-layer
   - icon: 🧬
     title: 单一协议 Schema 与多语言生成
     details: Agent Protocol v1 以版本化 JSON Schema 统一 TS、Python、Kotlin、Swift 类型、validator、兼容基线与发布门禁。
@@ -46,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 4.7 万下载
-    details: Open VSX 0.37.110 与 JetBrains 0.4.131 已公开并推荐 CLI 0.166.68；Microsoft Marketplace 当前未发行。
+    details: Open VSX 0.37.112 已公开并推荐 CLI 0.166.70；JetBrains 0.4.133 已上传待审核，当前公开版为 0.4.132；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -56,10 +60,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.68@815fdbc0c4；13 个子包完成字节审计，三平台 CLI/Strict、OIDC 发布和公共安装回读均成功。
+    details: npm latest 为 CLI 0.166.70@75778a75e1；三平台 CLI/Strict、OIDC provenance 和公共安装回读均成功。
 ---
 
-> **2026-09-20 发布快照**：npm `latest` 为 `chainlesschain@0.166.68`，不可变标签为 `v-npm-0-166-68@815fdbc0c4`；Open VSX `0.37.110@5860f1e4a4` 与 JetBrains Marketplace `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器动作进入显式 authority，下载字节先进入耐久隔离区；13 个子包完成公共 tarball 字节审计，并先发布 Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62`。CLI/Strict/npm OIDC、IDE 精确提交及最新 11 单元 ARM64 聚合均成功；Microsoft Marketplace 未发行。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 112](/design/modules/112-governed-skill-evolution-design)。
+> **2026-09-22 发布快照**：npm `latest` 为 `chainlesschain@0.166.70`，不可变标签为 `v-npm-0-166-70@75778a75e1`；Open VSX `0.37.112@d3c6ee9ba5` 已公开并可下载。JetBrains `0.4.133@d3c6ee9ba5` 已完成 Windows/Linux/macOS × 2024.2/2025.2 宿主门并上传，当前等待 Marketplace 人工审核，公开 API 仍为 `0.4.132`。CLI 新增默认关闭的 Jev Skill 决策层，仅在耐久、单 prompt、headless 会话支持 `shadow/suggest`；项目当前没有真实 TypeSafe 凭据，未宣称质量、延迟或费用收益。CLI CI、Strict Sandbox、npm OIDC/provenance、公共安装回读与两个 IDE 标签工作流均成功；Microsoft Marketplace 未发行。详见[Jev 用户指南](/chainlesschain/jev-decision-layer)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 114](/design/modules/114-jev-decision-layer-design)。
 
 > **本次源码核对边界**：`main@8e7c45e32e` 在公开制品之后加入 Desktop IPC 身份/tenant/用途授权、签名 Volcengine function capability、带死亡 owner 回收与 recovery fence 的跨进程原子提交、默认 10 份的严格备份清单，以及核心 LLM IPC 成功结果和告警/预算/保留策略数据库行的有界纯数据投影。该源码尚未作为 Desktop native 安装包公开发布；真实系统凭据库、物理断电、目录 ACL 与身份撤销故障矩阵仍需目标环境验收。详见 [Desktop 模型治理](/chainlesschain/desktop-model-governance) 与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 

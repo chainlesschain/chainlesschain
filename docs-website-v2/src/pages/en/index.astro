@@ -25,6 +25,7 @@ const PYTHON_AGENT_SDK_VERSION = releaseStatus.pythonAgentSdkVersion;
 const AGENT_PROTOCOL_VERSION = releaseStatus.agentProtocolVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
+const JETBRAINS_PENDING_VERSION = releaseStatus.jetBrainsPendingVersion;
 const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayEn;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
@@ -150,10 +151,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          Release note: Agent Platform <code class="font-mono">{CLI_VERSION}</code> is npm latest (<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>), tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. Browser actions now require explicit authority, downloads enter durable quarantine first, and PM runner/reviewer/grader evidence plus recovery snapshots bind to the governed execution context. <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html">Read the release and recovery boundary →</a>
+          Release note: Agent Platform <code class="font-mono">{CLI_VERSION}</code> is npm latest (<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>), tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. It adds a default-off Jev typed Skill-decision pilot for durable, single-prompt, headless CLI runs only: <code class="font-mono">shadow</code> does not change routing, while <code class="font-mono">suggest</code> attaches a suggestion without executing a Skill. No real TypeSafe credentials or outcome claims are available yet. <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">Read the Jev usage boundary →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Public IDE builds are Open VSX {VSCODE_VERSION} and JetBrains {JETBRAINS_VERSION}, both from <code class="font-mono">{IDE_RELEASE_COMMIT}</code> and both recommending CLI {CLI_VERSION}. All 13 child packages were byte-audited and changed packages shipped first; CLI three-OS CI/Strict, OIDC/provenance, the exact IDE gate, and both channel publications passed. Ancestor <code class="font-mono">45557d27dc</code> passed the 11-cell ARM64 aggregate. Documented source <code class="font-mono">{SOURCE_HEAD_COMMIT}</code> adds Desktop IPC authority, authenticated encrypted-config recovery, bounded backups, cross-process write fencing, and bounded core plus auxiliary database-row IPC success projections; those changes are not in a public Desktop native artifact. Microsoft Marketplace is not published.
+          Open VSX {VSCODE_VERSION} is public and recommends CLI {CLI_VERSION}. JetBrains {JETBRAINS_PENDING_VERSION}, built from <code class="font-mono">{IDE_RELEASE_COMMIT}</code>, passed its real-host gate and uploaded successfully but still awaits Marketplace review; the current public version is {JETBRAINS_VERSION}. CLI three-OS CI/Strict, OIDC/provenance, and public fresh-install readback passed. The documented source baseline is <code class="font-mono">{SOURCE_HEAD_COMMIT}</code>; Microsoft Marketplace and Desktop native artifacts remain outside this public release.
         </p>
 
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
