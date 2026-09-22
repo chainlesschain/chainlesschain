@@ -112,6 +112,7 @@ describe("secure config backup retention", () => {
     const storage = new SecureConfigStorage(storageOptions(root));
     expect(storage.save({ version: "original" })).toBe(true);
     const backup = storage.createBackup();
+    expect(backup).toBe(storage.listBackups()[0].path);
     expect(storage.save({ version: "changed" })).toBe(true);
 
     expect(storage.restoreFromBackup(backup)).toBe(true);
