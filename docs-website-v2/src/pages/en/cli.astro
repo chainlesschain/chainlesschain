@@ -68,6 +68,7 @@ const categories = [
       ['llm test', 'Test LLM connectivity'],
       ['agent', 'Claude Code-style agent session'],
       ['agent -p', 'Headless one-shot run (claude -p parity)'],
+      ['agent --decision-mode shadow', 'Default-off Jev typed Skill-decision observation (durable, single-prompt, headless)'],
       ['exec -p', 'Governed one-shot Agent Kernel facade'],
       ['agent --think / --ultrathink', 'Anthropic extended thinking (+ --thinking-budget)'],
       ['agent --image', 'Multimodal image input (vision models)'],
@@ -125,7 +126,7 @@ const categories = [
       ['mcp add', 'Add an MCP server'],
       ['mcp serve', 'Expose local file tools as an MCP server (root-confined + Bearer auth)'],
       ['mcp tools', 'List available tools'],
-      ['ide status / doctor', 'IDE bridge discovery + diagnostics (VS Code on Open VSX, JetBrains plugin approved + listed)'],
+      ['ide status / doctor', 'IDE bridge discovery + diagnostics (VS Code on Open VSX; JetBrains update pending review)'],
       ['agent --ide', 'Auto-connect inside the editor: selection shared per prompt, diagnostics fed back, edit approval as native diffs (hunk-level partial accept), Jupyter kernel execution, guided LLM setup (both editors), sidebar chat panel (streaming replies, plan approval, Approve/Deny cards for risky actions, Esc interrupt, session resume + /sessions picker)'],
       ['browse fetch', 'Fetch a web page'],
       ['browse scrape', 'Scrape elements'],
@@ -469,7 +470,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. Ordinary Agent chat works without an evolution deployment; configured governance still validates authenticated ingress and never downgrades on failure. Automatic promotion remains HOLD. TypeScript Agent SDK: {AGENT_SDK_VERSION}.
+          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. This release adds a default-off Jev decision pilot; ordinary Agent chat requires neither Jev nor an evolution deployment. Configured governance still validates authenticated ingress and never downgrades on failure. Automatic promotion remains HOLD. TypeScript Agent SDK: {AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -504,8 +505,22 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} adds browser action authorities, durable download quarantine, and bounded PM child processes on top of existing recovery controls. Publication audits all 13 child packages, ships changed Session Core, Context/Memory Kernel, and Personal Data Hub packages first, then ships the CLI. The tag reuses complete exact-SHA CLI CI/Strict three-OS gates instead of rerunning the full suite. OIDC provenance, public registry, and fresh-install readback all passed.</p>
+      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} retains browser action authorities, durable download quarantine, bounded PM child processes, and recovery controls, while adding the Jev typed-decision pilot. Exact-SHA CLI CI/Strict passed on Linux, Windows, and macOS; OIDC provenance, the public registry, and fresh-install readback all passed.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24 border-y border-line bg-cream/50" id="jev-decision-layer">
+    <div class="container-wide max-w-4xl">
+      <span class="chip">{CLI_VERSION} · default off</span>
+      <h2 class="mt-5 text-4xl md:text-5xl">Shadow first, then decide whether to expose suggestions.</h2>
+      <p class="mt-5 text-lg text-muted leading-relaxed">Jev makes a typed decision over at most five candidates after existing Skill retrieval and admission. It currently supports durable, single-prompt, headless Agent runs only. IDEs do not store the TypeSafe key or receive routing or execution authority.</p>
+      <div class="term-window max-w-3xl mt-8">
+        <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
+        <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "inspect and repair the unit tests"</div>
+      </div>
+      <p class="mt-5 text-sm text-muted"><code class="font-mono">shadow</code> calls the external provider and records a bounded observation without changing routing. <code class="font-mono">suggest</code> only attaches <code class="font-mono">routing.decisionSuggestion</code> and never executes a Skill. The project has no real TypeSafe API credentials yet, so the current release proves wiring, validation, and fail-closed behavior—not quality, latency, or cost gains.</p>
+      <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">Read parameters, data boundaries, and rollout gates →</a>
     </div>
   </section>
 
@@ -690,7 +705,7 @@ const packs = [
           Agent Platform <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> publishes canonical Agent Protocol, CC App Server, Agent Kernel, durable Graph Kernel, Graph trace/diff/eval, the governed <code class="font-mono text-sm">cc exec</code> facade, real-Team-child messaging, and Agent SDK {AGENT_SDK_VERSION}. Exact SHA <code class="font-mono text-sm">{CLI_RELEASE_COMMIT}</code> passed three-OS CLI CI, Strict Sandbox, Trusted Publishing, and independent registry/provenance readback; the preceding `0.166.5` 1,800-second App Server overload/RSS soak and npm/PyPI SDK install readback remain the corresponding focused evidence.
         </p>
         <p class="mt-4 text-lg text-muted">
-          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. PM recovery source {DESKTOP_SOURCE_COMMIT} proves only read-only readiness and test evidence; IDE release source {IDE_RELEASE_COMMIT} aligns with {SOURCE_CLI_VERSION}. Later Desktop security changes in documented source {SOURCE_HEAD_COMMIT} do not authorize native distribution or automatic promotion.
+          A GraphRun is the envelope for run identity, authority, budget, and revision: the Task Graph owns dependencies and the ready frontier, the Agent Tree describes dynamic execution topology, and Artifact/Trace graphs are read-only evidence projections. Occurrence admission success or an empty ready set does not imply Graph success. The CLI authoritative entry cut over in {NPM_LATEST_CLI_VERSION}@{CLI_RELEASE_COMMIT}; fixed-capability Desktop/VS Code App Server surfaces remain separate migration planes. The documented Desktop and IDE source baseline is {SOURCE_HEAD_COMMIT} (Desktop record {DESKTOP_SOURCE_COMMIT}, IDE {IDE_RELEASE_COMMIT}); source and test evidence does not authorize a Desktop native distribution or automatic promotion.
         </p>
       </div>
     </div>

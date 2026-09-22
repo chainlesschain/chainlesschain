@@ -832,6 +832,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-agent",
             },
             {
+              text: "Jev Skill 决策层试点",
+              link: "/chainlesschain/jev-decision-layer",
+            },
+            {
               text: "Agent 网络 (agent-network)",
               link: "/chainlesschain/cli-agent-network",
             },
@@ -2002,6 +2006,10 @@ export default defineConfig({
             {
               text: "113 Desktop 受治理模型入口 ⭐NEW",
               link: "/design/modules/113-governed-desktop-model-ingress-design",
+            },
+            {
+              text: "114 Jev 类型化 Skill 决策层 ⭐NEW",
+              link: "/design/modules/114-jev-decision-layer-design",
             },
             {
               text: "60b CLI指令技能包 ⭐",

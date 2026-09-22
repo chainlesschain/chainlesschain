@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.137 · CLI 0.166.68 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.110 · JetBrains 0.4.131｜发布证据与安全存储";
+        "v5.0.3.137 · CLI 0.166.70 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.112 · JetBrains 0.4.133 待审核｜Jev 决策层与发布证据";
     }
   },
 
@@ -161,6 +161,10 @@ export default defineConfig({
           {
             text: "Record & Replay → Skill 设计 (111) ✅",
             link: "/modules/111-record-replay-skill-design",
+          },
+          {
+            text: "Jev 类型化 Skill 决策层 (114) ⭐NEW",
+            link: "/modules/114-jev-decision-layer-design",
           },
         ],
       },
@@ -1064,6 +1068,10 @@ export default defineConfig({
             {
               text: "113 Desktop 受治理模型入口 ⭐NEW",
               link: "/modules/113-governed-desktop-model-ingress-design",
+            },
+            {
+              text: "114 Jev 类型化 Skill 决策层 ⭐NEW",
+              link: "/modules/114-jev-decision-layer-design",
             },
           ],
         },

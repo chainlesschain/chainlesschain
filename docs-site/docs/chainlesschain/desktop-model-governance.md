@@ -1,12 +1,12 @@
 # Desktop 模型治理与失败闭合
 
-> 适用范围：源码 `main@8e7c45e32e`；公开 CLI `0.166.68@815fdbc0c4`、Open VSX `0.37.110@5860f1e4a4`、JetBrains `0.4.131@5860f1e4a4`（2026-09-20）
+> 适用范围：本文详述的 Desktop 安全实现快照为 `8e7c45e32e`；当前源码为 `main@d3c6ee9ba5`，公开 CLI `0.166.70@75778a75e1`、Open VSX `0.37.112@d3c6ee9ba5`，JetBrains `0.4.133@d3c6ee9ba5` 已上传待审核（当前公开 `0.4.132`）。核对日期：2026-09-22。
 >
-> 发布边界：本页 `ad7567214f`–`8e7c45e32e` 的 Desktop Electron IPC 与安全配置增量晚于当前公共 npm/IDE 制品，也不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
+> 发布边界：本页 `ad7567214f`–`8e7c45e32e` 的 Desktop Electron IPC 与安全配置增量已成为当前源码祖先，但仍不代表公开 Desktop 安装包已经完成发布、升级与回滚验收。
 
 ## 概述
 
-源码 `main@8e7c45e32e` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量尚未进入公开 Desktop native 安装包。
+源码快照 `8e7c45e32e` 已把 Desktop Personal Data Hub 的 resolver/Skill IPC 与内嵌 Web Shell 接入主进程持有的 opaque host，并完成相邻后台与 Coding Agent bridge 入口审计。每次 IPC 调用创建 scoped governed wrapper，内嵌 Web Shell 只获得主进程派生的 factory；renderer 与 WebSocket 消息均无法取得或替换原始 composition factory，缓存 Hub 的全局模型 client 也不会被跨请求改写。ImageGen 的内容入口也在缓存、provider 选择和 fallback 前验证 ingress，拒绝时不会继续调用内容 provider。CLI-owned background、Agenda、Routine、detached worker 与 Desktop Coding Agent 的 `cc serve` bridge 通过 canonical CLI loader 继承部署环境；第三方命令和自行直连 provider 的 SDK worker 不在此证明范围。该源码增量尚未进入公开 Desktop native 安装包。
 
 桌面端的模型请求不再只治理“聊天”入口。普通对话、流式输出、函数工具、多模态、记忆摘要等已接入同一受治理 Run；已识别但尚无可信桥接的旧 embedding、reranker、媒体、项目、文档和 RAG 直连会在发送数据前拒绝。
 
