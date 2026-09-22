@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.70",
+      "cliVersions": ["0.166.70"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.70: governed Jev Skill decision shadow pilot",
+          "body": "- Add an optional typed decision layer for `list_skills(query)` after the\n  existing allow-list, compatibility, revocation, and retrieval checks.\n- Support `off`, `shadow`, and `suggest` modes for durable single-prompt\n  headless Agent sessions. The default remains `off`; `shadow` records a\n  comparison without changing Agent-visible routing, while `suggest` only\n  adds a bounded recommendation and never executes a Skill.\n- Bind TypeSafe `/v1/systemone` requests and responses to the exact candidate\n  set, policy, session, and context revision; validate typed probabilities,\n  model identity, deadlines, and usage before accepting an observation.\n- Read the decision credential only from `TYPESAFE_API_KEY` or the managed\n  credential transport, require HTTPS or loopback endpoints, and settle each\n  request through the durable session budget and model-usage ledger.\n- Include an asynchronous benchmark for suggestion quality, no-match behavior,\n  latency, availability, and estimated cost. No real Jev quality or cost claim\n  is made until shadow evidence reaches the documented promotion gates."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.69",
       "cliVersions": ["0.166.69"],
       "date": null,

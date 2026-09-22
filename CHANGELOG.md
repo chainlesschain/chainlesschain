@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.70: governed Jev Skill decision shadow pilot
+
+- Add an optional typed decision layer for `list_skills(query)` after the
+  existing allow-list, compatibility, revocation, and retrieval checks.
+- Support `off`, `shadow`, and `suggest` modes for durable single-prompt
+  headless Agent sessions. The default remains `off`; `shadow` records a
+  comparison without changing Agent-visible routing, while `suggest` only
+  adds a bounded recommendation and never executes a Skill.
+- Bind TypeSafe `/v1/systemone` requests and responses to the exact candidate
+  set, policy, session, and context revision; validate typed probabilities,
+  model identity, deadlines, and usage before accepting an observation.
+- Read the decision credential only from `TYPESAFE_API_KEY` or the managed
+  credential transport, require HTTPS or loopback endpoints, and settle each
+  request through the durable session budget and model-usage ledger.
+- Include an asynchronous benchmark for suggestion quality, no-match behavior,
+  latency, availability, and estimated cost. No real Jev quality or cost claim
+  is made until shadow evidence reaches the documented promotion gates.
+
 ### Added - cc CLI 0.166.69: durable Volcengine function authority
 
 - Bind each governed Volcengine function request to an exact function policy,
