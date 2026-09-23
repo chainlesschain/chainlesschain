@@ -1,6 +1,6 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
-> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方；默认关闭，真实 TypeSafe/Laya 模型联调及质量、延迟与费用评测尚未完成。<br>
+> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方；默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
 > 核对日期：2026-09-23<br>
 > Jev 历史实现提交：`80806fd4e9`；当前 CLI 发布提交：`fc7d6e102a`；IDE 配套源码提交：`94141e6fef`。
 
@@ -17,16 +17,16 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 
 ## 2. 当前发布范围
 
-| 表面                     | 当前状态                                                            |
-| ------------------------ | ------------------------------------------------------------------- |
-| CLI                      | `0.166.71` 已公开，支持 `off / shadow / suggest` 与三种 provider    |
-| Laya / 通用 System One   | CLI 已发布接线；真实权重联调与中文任务效果评测待完成                 |
-| 会话                     | 仅耐久、单 prompt、headless `cc agent`                              |
-| 交互 REPL                | 不支持；非 `off` 会失败闭合                                         |
-| `stream-json` 输入       | 不支持；非 `off` 会失败闭合                                         |
-| VS Code / JetBrains 对话 | 不直接支持 Jev 模式；IDE 不保存 TypeSafe 凭据                       |
-| TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告 |
-| 自动 Skill 执行          | 不支持；建议不产生执行权限                                          |
+| 表面                     | 当前状态                                                              |
+| ------------------------ | --------------------------------------------------------------------- |
+| CLI                      | `0.166.71` 已公开，支持 `off / shadow / suggest` 与三种 provider      |
+| Laya / 通用 System One   | CLI 已发布接线；Laya 本地真实权重冒烟已完成，中文路由和正式评测待解决 |
+| 会话                     | 仅耐久、单 prompt、headless `cc agent`                                |
+| 交互 REPL                | 不支持；非 `off` 会失败闭合                                           |
+| `stream-json` 输入       | 不支持；非 `off` 会失败闭合                                           |
+| VS Code / JetBrains 对话 | 不直接支持 Jev 模式；IDE 不保存 TypeSafe 凭据                         |
+| TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告   |
+| 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
 公开发行身份彼此独立：npm CLI 为 `0.166.71@fc7d6e102a`；Open VSX `0.37.113@94141e6fef` 已公开；JetBrains `0.4.134@94141e6fef` 已上传并通过发行门，当前公开 listing 仍为 `0.4.133`。Microsoft VS Code Marketplace 未发布。
 
@@ -71,7 +71,7 @@ cc agent --session jev-pilot-1 --decision-mode shadow -p "检查并修复单元�
 | 参数                    | 默认值       | 约束                                                                                         |
 | ----------------------- | ------------ | -------------------------------------------------------------------------------------------- |
 | `--decision-mode`       | `off`        | `off`、`shadow`、`suggest`                                                                   |
-| `--decision-provider`   | `typesafe`   | `typesafe`、`laya`、`system-one`                                                              |
+| `--decision-provider`   | `typesafe`   | `typesafe`、`laya`、`system-one`                                                             |
 | `--decision-model`      | 按提供方选择 | TypeSafe 为 `jev-latest`；Laya 为 `laya`；通用服务必须显式指定                               |
 | `--decision-base-url`   | 按提供方选择 | TypeSafe 为 `https://api.typesafe.ai`；Laya 为 `http://127.0.0.1:8000`；通用服务必须显式指定 |
 | `--decision-timeout-ms` | `800`        | 整数 `50..30000`                                                                             |
@@ -94,6 +94,8 @@ Laya 只接受 loopback 地址；TypeSafe 与通用 System One 接受 HTTPS 或 
 第三方 [laya-serve](https://github.com/stiermid/laya-serve) 可暴露兼容端点，但默认后端为 `fake`，必须显式设置 `LAYA_SERVE_BACKEND=laya`，预加载权重，并通过 Uvicorn 绑定 `127.0.0.1`。部署命令见用户指南。其 Router 自动选择语言；服务 model 别名不能作为实际载入权重的证明。首次运行下载依赖和权重，离线运行需准备本地缓存。
 
 CLI 的字符级有界摘要不等于满足模型的 token 上限。较长中文任务和五个候选可能被上游截断，需要在真实模型上检查保留信息、候选召回、概率校准和延迟。开发时增加 timeout 不能视为已满足正式评测门槛。当前没有把 Laya 上游 benchmark 作为本项目验证结果。
+
+[2026-09-23 本地真实权重冒烟记录](../../research/agents/jev-laya-local-probe-2026-09-23.md)显示：完整 CLI `state` 中的英文候选元数据会使短中文任务被上游 Router 判为英文，载入英文 checkpoint。此 CPU 环境的完整请求热路径约 7–11 秒；仅中文任务文本能触发多语言权重，但改变了 CLI 请求格式，单题结果也不能证明质量。服务返回的模型标签不区分这两种实际权重。默认 800 ms 截止因此仍应失败闭合，不能据此启用 `suggest`。
 
 ## 6. 请求与响应绑定
 
@@ -129,7 +131,7 @@ VS Code `0.37.113` 已公开，JetBrains `0.4.134` 已上传待公开；两端�
 
 ## 9. 评测与放量门
 
-当前没有本项目真实 Jev、Laya 或其他模型的效果与成本结论。进入受控 `suggest` 前，至少冻结 400 条开发/校准任务和 400 条测试任务，其中测试集至少包含 160 条“无需/无匹配 Skill”任务，并为每个提供方、模型版本和部署环境预注册以下门槛：
+本地 Laya 冒烟只证明协议与单题行为；当前没有本项目真实 Jev、Laya 或其他模型的统计效果与成本结论。进入受控 `suggest` 前，至少冻结 400 条开发/校准任务和 400 条测试任务，其中测试集至少包含 160 条“无需/无匹配 Skill”任务，并为每个提供方、模型版本和部署环境预注册以下门槛：
 
 | 门槛         | 要求                                                 |
 | ------------ | ---------------------------------------------------- |
@@ -144,6 +146,8 @@ VS Code `0.37.113` 已公开，JetBrains `0.4.134` 已上传待公开；两端�
 
 `shadow` 只能证明建议、弃权、稳定性和额外开销，不能证明 Agent 采用建议后的任务效果。线上放量前还需隔离端到端试验和小流量复核。
 
+CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数和接受建议错误率、无匹配误建议率的单侧 95% 精确二项上界。零个已接受建议或零个无匹配样本时，对应上界为 `null`，本地质量判定不能通过。报告的 `passed` 只检查传入阈值对应的这两项上界、肯定建议覆盖率和该 benchmark 测量边界内的 p95；它不代表达到本节的冻结样本规模、候选召回、端到端效果、任务成功率、总费用或治理放量门。
+
 ## 10. 代码与验证
 
 核心实现：
@@ -157,11 +161,12 @@ VS Code `0.37.113` 已公开，JetBrains `0.4.134` 已上传待公开；两端�
 - `packages/cli/src/runtime/agent-core.js`
 - `packages/cli/src/runtime/headless-runner.js`
 
-单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该证明包含多提供方接线，不代表真实模型联调或效果评测。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合，不能替代真实权重联调和模型评测。
+单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该发布证明包含多提供方接线，不包含后续本地真实权重冒烟或效果评测。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
 
 ## 11. 相关文档
 
 - [可行性研究与评测方案](../../research/agents/jev-decision-layer-feasibility-2026-09-22.md)
+- [Laya 本地真实权重联调记录](../../research/agents/jev-laya-local-probe-2026-09-23.md)
 - [Jev、Laya 与本地模型决策层用户指南](../../../docs-site/docs/chainlesschain/jev-decision-layer.md)
 - [模块 106：Agent Kernel](106_Agent_Kernel设计.md)
 - [模块 110：发布与证据边界](110-agent-platform-release-boundaries.md)

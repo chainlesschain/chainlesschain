@@ -8,6 +8,8 @@
 
 正式架构说明见[模块 114：Jev 类型化 Skill 决策层设计](../../design/modules/114-jev-decision-layer-design.md)，使用步骤见[Jev 决策层用户指南](../../../docs-site/docs/chainlesschain/jev-decision-layer.md)。
 
+后续进展：CLI `0.166.71` 已公开 Laya 与通用 System One 接线；[2026-09-23 Laya 本地真实权重冒烟](./jev-laya-local-probe-2026-09-23.md)确认协议可用，也发现中文 CLI 请求误路由和本机 CPU 延迟超限。以下方案仍保留 2026-09-22 的研究基线，正式状态以模块 114 为准。
+
 ## 1. 建议与可行性结论
 
 建议先验证 **Skill 候选选择**，再考虑上下文筛选、浏览器动作选择。项目已具备技能检索、版本摘要、撤销检查、模型调用治理、预算和结果记录等基础，适合增加一个可替换的类型化决策适配层。

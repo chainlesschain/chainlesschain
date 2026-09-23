@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.72: local Skill decision evaluation
+
+- Record a local decision deadline as `provider-timeout` with unknown usage and
+  an observation, while preserving user cancellation and ledger failures as
+  terminal errors.
+- Report one-sided 95% exact binomial upper bounds for false Skill suggestions
+  and accepted suggestion errors; missing denominators can no longer pass the
+  offline benchmark quality check.
+- Add a repeatable real-weight Laya smoke probe and document its CPU latency,
+  Chinese routing limitation, and checkpoint identities without claiming a
+  formal quality or cost result.
+
 ### Added - cc CLI 0.166.71: open local Skill decision providers
 
 - Add `--decision-provider` selection for the existing governed Skill decision

@@ -3,9 +3,46 @@ import { performance } from "node:perf_hooks";
 import { decisionDigest } from "./contracts.js";
 
 export const SKILL_DECISION_BENCHMARK_SCHEMA =
-  "chainlesschain.skill-decision-benchmark/v1";
+  "chainlesschain.skill-decision-benchmark/v2";
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const ONE_SIDED_ALPHA = 0.05;
+
+// Exact Clopper-Pearson upper bound: find p where P(Binomial(n, p) <= k)
+// equals alpha. Keep zero-denominator metrics inconclusive.
+function binomialUpperBound(errors, trials) {
+  if (trials === 0) return null;
+  if (errors === trials) return 1;
+  if (errors === 0) return -Math.expm1(Math.log(ONE_SIDED_ALPHA) / trials);
+
+  const logFactorials = [0];
+  for (let i = 1; i <= trials; i += 1) {
+    logFactorials.push(logFactorials[i - 1] + Math.log(i));
+  }
+  const logCombination =
+    logFactorials[trials] -
+    logFactorials[errors] -
+    logFactorials[trials - errors];
+  let lower = errors / trials;
+  let upper = 1;
+  for (let iteration = 0; iteration < 60; iteration += 1) {
+    const probability = (lower + upper) / 2;
+    let term = Math.exp(
+      logCombination +
+        errors * Math.log(probability) +
+        (trials - errors) * Math.log1p(-probability),
+    );
+    let cumulative = term;
+    for (let count = errors; count > 0; count -= 1) {
+      term *=
+        (count / (trials - count + 1)) * ((1 - probability) / probability);
+      cumulative += term;
+    }
+    if (cumulative > ONE_SIDED_ALPHA) lower = probability;
+    else upper = probability;
+  }
+  return (lower + upper) / 2;
+}
 
 function ratio(value, label) {
   const number = Number(value);
@@ -141,6 +178,23 @@ export async function runSkillDecisionBenchmark({
     unavailableRate: unavailable / normalizedCases.length,
     p95Ms: latencies[Math.max(0, Math.ceil(latencies.length * 0.95) - 1)],
   });
+  const counts = Object.freeze({
+    accepted,
+    acceptedErrors,
+    positives,
+    affirmative,
+    noMatches,
+    noMatchFalseSuggestions,
+    abstentions,
+    unavailable,
+  });
+  const oneSided95Upper = Object.freeze({
+    acceptedSuggestionErrorRate: binomialUpperBound(acceptedErrors, accepted),
+    noMatchFalseSuggestionRate: binomialUpperBound(
+      noMatchFalseSuggestions,
+      noMatches,
+    ),
+  });
   const core = {
     schema: SKILL_DECISION_BENCHMARK_SCHEMA,
     caseCount: normalizedCases.length,
@@ -150,9 +204,16 @@ export async function runSkillDecisionBenchmark({
     ),
     thresholds: gate,
     metrics,
+    counts,
+    oneSided95Upper,
     passed:
-      metrics.acceptedSuggestionErrorRate <= gate.acceptedSuggestionErrorRate &&
-      metrics.noMatchFalseSuggestionRate <= gate.noMatchFalseSuggestionRate &&
+      oneSided95Upper.acceptedSuggestionErrorRate !== null &&
+      oneSided95Upper.acceptedSuggestionErrorRate <=
+        gate.acceptedSuggestionErrorRate &&
+      oneSided95Upper.noMatchFalseSuggestionRate !== null &&
+      oneSided95Upper.noMatchFalseSuggestionRate <=
+        gate.noMatchFalseSuggestionRate &&
+      positives > 0 &&
       metrics.affirmativeCoverage >= gate.affirmativeCoverage &&
       metrics.p95Ms <= gate.p95Ms,
     rows: Object.freeze(rows),

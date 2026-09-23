@@ -143,6 +143,7 @@ export function createSkillDecisionRuntime({
         throw new TypeError("decision runtime clock returned an invalid date");
       }
       let outcome;
+      let requestSignal = null;
       try {
         const raw = await runMeteredDirectModelCall({
           sessionId: boundSessionId,
@@ -152,10 +153,12 @@ export function createSkillDecisionRuntime({
           source: "model",
           operationId: `decision:${decisionId}`,
           sessionBudget,
-          call: () =>
-            providerAuthority.decide(request, {
-              signal: timeoutSignal(signal, timeoutMs),
-            }),
+          call: () => {
+            requestSignal = timeoutSignal(signal, timeoutMs);
+            return providerAuthority.decide(request, {
+              signal: requestSignal,
+            });
+          },
         });
         const normalized = normalizeSkillDecisionProviderResult(request, raw);
         const resolved = resolveSkillDecision(request, normalized, thresholds);
@@ -170,7 +173,17 @@ export function createSkillDecisionRuntime({
           resultDigest: resolved.resultDigest,
         };
       } catch (error) {
-        if (signal?.aborted || isTerminalModelFailure(error)) throw error;
+        const localTimeout =
+          !signal?.aborted &&
+          requestSignal?.aborted &&
+          requestSignal.reason === error &&
+          error?.name === "TimeoutError";
+        if (
+          signal?.aborted ||
+          (isTerminalModelFailure(error) && !localTimeout)
+        ) {
+          throw error;
+        }
         outcome = {
           status: "unavailable",
           reasonCode: projectUnavailable(error),
