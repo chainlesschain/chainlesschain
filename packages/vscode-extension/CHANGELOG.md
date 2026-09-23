@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.114] - Pair with CLI 0.166.72 decision timeout fix (2026-09-23)
+
+- Recommend the publicly verified `chainlesschain@0.166.72` release in runtime
+  upgrade guidance, Marketplace metadata, and installation instructions.
+- Describe the CLI's local Skill decision timeout as a recorded
+  `provider-timeout` with unknown usage; the CLI also tightens offline quality
+  checks with one-sided 95% exact binomial bounds.
+- Keep decision modes limited to durable, single-prompt headless CLI sessions.
+  The extension gains no decision-model credentials, routing, or execution
+  authority.
+
 ## [0.37.113] - Pair with governed CLI 0.166.71 (2026-09-23)
 
 - Recommend the publicly verified `chainlesschain@0.166.71` release in runtime
