@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.72 | Open VSX 0.37.113 | 本地 Skill 决策模型"
+  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.72 | Open VSX 0.37.114 | 本地 Skill 决策模型"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -26,7 +26,7 @@ features:
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.113 已公开；JetBrains 0.4.134 已上传待审核，公开版为 0.4.133。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: VS Code 0.37.114 已公开；JetBrains 0.4.135 已上传待审核，公开版为 0.4.133。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 4.8 万下载
-    details: Open VSX 0.37.113 已公开并推荐 CLI 0.166.71；JetBrains 0.4.134 已上传待审核，当前公开版为 0.4.133；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.114 已公开并推荐 CLI 0.166.72；JetBrains 0.4.135 已上传待审核，当前公开版为 0.4.133；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -63,7 +63,7 @@ features:
     details: npm latest 为 CLI 0.166.72@5f411309b2；三平台 CLI/Strict、OIDC provenance 和公共安装回读均成功。
 ---
 
-> **2026-09-23 发布快照**：npm `latest` 为 `chainlesschain@0.166.72`，不可变标签为 `v-npm-0-166-72@5f411309b2`；Open VSX `0.37.113@94141e6fef` 已公开并可下载。JetBrains `0.4.134@94141e6fef` 已完成 Windows/Linux/macOS × 2024.2/2025.2 宿主门并上传，当前等待 Marketplace 人工审核，公开 API 仍为 `0.4.133`。CLI 已公开默认关闭的 TypeSafe、Laya 本地及通用 System One Skill 决策提供方，仅在耐久、单 prompt、headless 会话支持 `shadow/suggest`；本版把本地决策截止记录为 `provider-timeout`，并收紧离线质量统计。Laya 已完成本地真实权重单题联调，正式质量、延迟和费用评测尚未完成。CLI CI、Strict Sandbox、npm OIDC/provenance、公共安装回读与两个 IDE 标签工作流均成功；Microsoft Marketplace 未发行。详见[Skill 决策层用户指南](/chainlesschain/jev-decision-layer)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 114](/design/modules/114-jev-decision-layer-design)。
+> **2026-09-23 发布快照**：npm `latest` 为 `chainlesschain@0.166.72`，不可变标签为 `v-npm-0-166-72@5f411309b2`；Open VSX `0.37.114@94c4c5a634` 已公开并可下载。JetBrains `0.4.135@94c4c5a634` 已完成 Windows/Linux/macOS × 2024.2/2025.2 宿主门并上传，当前等待 Marketplace 人工审核，公开 API 仍为 `0.4.133`。CLI 已公开默认关闭的 TypeSafe、Laya 本地及通用 System One Skill 决策提供方，仅在耐久、单 prompt、headless 会话支持 `shadow/suggest`；本版把本地决策截止记录为 `provider-timeout`，并收紧离线质量统计。Laya 已完成本地真实权重单题联调，正式质量、延迟和费用评测尚未完成。CLI CI、Strict Sandbox、npm OIDC/provenance、公共安装回读与两个 IDE 标签工作流均成功；Microsoft Marketplace 未发行。详见[Skill 决策层用户指南](/chainlesschain/jev-decision-layer)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 114](/design/modules/114-jev-decision-layer-design)。
 
 > **本次源码核对边界**：`main@8e7c45e32e` 在公开制品之后加入 Desktop IPC 身份/tenant/用途授权、签名 Volcengine function capability、带死亡 owner 回收与 recovery fence 的跨进程原子提交、默认 10 份的严格备份清单，以及核心 LLM IPC 成功结果和告警/预算/保留策略数据库行的有界纯数据投影。该源码尚未作为 Desktop native 安装包公开发布；真实系统凭据库、物理断电、目录 ACL 与身份撤销故障矩阵仍需目标环境验收。详见 [Desktop 模型治理](/chainlesschain/desktop-model-governance) 与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 

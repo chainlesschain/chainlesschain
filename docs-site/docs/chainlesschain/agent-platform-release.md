@@ -10,7 +10,7 @@ npm 官方 registry 的 `latest` 为 `0.166.72`，标签 `v-npm-0-166-72` 对应
 
 精确发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862379) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) 已通过 Linux、Windows、macOS 全部配置任务。[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633)与[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440)成功，并验证 `latest=0.166.72`、tarball integrity、签名 provenance 与全新安装。Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`、Agent Protocol `0.1.11` 与 Agent SDK TS/Python `0.2.11/0.2.9` 保持独立发布身份。
 
-CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94141e6fef`：[Open VSX `0.37.113`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，其已发布升级提示仍推荐 CLI `0.166.71`；JetBrains `0.4.134` 已完成 Windows/Linux/macOS × 2024.2/2025.2 真实宿主门并上传，当前等待 Marketplace 人工审核，公开 API 仍为 `0.4.133`。[Open VSX 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35820049096)与 [JetBrains 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35820067327)均成功。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包不在本次发布证明范围。
+CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94c4c5a634`：[Open VSX `0.37.114`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开并推荐 CLI `0.166.72`；JetBrains `0.4.135` 已完成 Windows/Linux/macOS × 2024.2/2025.2 真实宿主门并上传，当前等待 Marketplace 人工审核，公开 API 仍为 `0.4.133`。[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555)、[Open VSX 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921)与 [JetBrains 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631)均成功。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包不在本次发布证明范围。
 
 ## 0.166.72 本次增量
 
@@ -244,7 +244,7 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 | Skill 检索     | `cc skill search ...`                | 命中不等于安装或晋升                                           |
 | Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由       |
 | Agent 能力     | `cc agent --capabilities`            | 显示能力不等于 production composition 已启用                   |
-| IDE 安装       | Open VSX / JetBrains Marketplace     | Open VSX `0.37.113` 已公开；JetBrains `0.4.134` 已上传待审核   |
+| IDE 安装       | Open VSX / JetBrains Marketplace     | Open VSX `0.37.114` 已公开；JetBrains `0.4.135` 已上传待审核   |
 | 更新检查       | `npm view chainlesschain version`    | 应从官方 npm registry 回读                                     |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
@@ -266,11 +266,11 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 | CLI Strict Sandbox（三平台）                    | [`35831862038`](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) | 成功                                                    |
 | npm Trusted Publishing / provenance             | [`35844120633`](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633) | 成功                                                    |
 | npm 公共安装与 provenance 独立回读              | [`35848098440`](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440) | 成功                                                    |
-| IDE `main@94141e6fef` 精确提交门                 | [`35817122518`](https://github.com/chainlesschain/chainlesschain/actions/runs/35817122518) | 成功                                                    |
-| Open VSX `0.37.113` 发布与公开 VSIX 回读        | [`35820049096`](https://github.com/chainlesschain/chainlesschain/actions/runs/35820049096) | 成功；公开可下载                                       |
-| JetBrains `0.4.134` 构建、上传与发布后核验      | [`35820067327`](https://github.com/chainlesschain/chainlesschain/actions/runs/35820067327) | 成功；上传完成，待人工审核/listing                     |
+| IDE `main@94c4c5a634` 精确提交门                 | [`35852117555`](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555) | 成功                                                    |
+| Open VSX `0.37.114` 发布与公开 VSIX 回读        | [`35857926921`](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921) | 成功；公开可下载                                       |
+| JetBrains `0.4.135` 构建、上传与发布后核验      | [`35857955631`](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631) | 成功；上传完成，待人工审核/listing                     |
 
-npm `0.166.72` 与 Open VSX `0.37.113` 已完成公共 listing/制品回读。JetBrains `0.4.134` 的 `publishPlugin` 上传成功，但公开 updates API 尚未显示该版本，因此准确状态是待人工审核/listing，不能写成已公开。Microsoft Marketplace 因未配置 `VSCE_PAT` 在上传前跳过，因此不计为已发布。npm tarball、VSIX、JetBrains ZIP、Desktop native 仍是独立制品身份。历史门禁不代替当前或下一版发布验收。
+npm `0.166.72` 与 Open VSX `0.37.114` 已完成公共 listing/制品回读。JetBrains `0.4.135` 的 `publishPlugin` 上传成功，但公开 updates API 尚未显示该版本，因此准确状态是待人工审核/listing，不能写成已公开。Microsoft Marketplace 因未配置 `VSCE_PAT` 在上传前跳过，因此不计为已发布。npm tarball、VSIX、JetBrains ZIP、Desktop native 仍是独立制品身份。历史门禁不代替当前或下一版发布验收。
 
 ## 安全考虑
 
@@ -289,9 +289,9 @@ npm `0.166.72` 与 Open VSX `0.37.113` 已完成公共 listing/制品回读。Je
 npm install --global chainlesschain@0.166.72 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.113` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.114` VSIX。
 
-**JetBrains 版本过旧**：`0.4.134` 已上传但仍可能处于人工审核；公开 API 未显示前继续使用 `0.4.133`。
+**JetBrains 版本过旧**：`0.4.135` 已上传但仍可能处于人工审核；公开 API 未显示前继续使用 `0.4.133`。
 
 **普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.72`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
