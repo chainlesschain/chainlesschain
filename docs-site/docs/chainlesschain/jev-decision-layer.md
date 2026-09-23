@@ -117,7 +117,7 @@ cc agent --session jev-pilot-1 \
 | `--input-format stream-json`                   | 不支持     |
 | VS Code / JetBrains Chat 面板                  | 不直接支持 |
 
-VS Code `0.37.114` 已在 Open VSX 公开并推荐 CLI `0.166.72`；JetBrains `0.4.135` 已上传并等待 Marketplace 公开，当前公开版为 `0.4.133`。两个 IDE 配套版都不会保存决策模型凭据，也不会替用户打开决策模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
+VS Code `0.37.114` 已在 Open VSX 公开，JetBrains `0.4.135` 已在 Marketplace 公开；两端均推荐 CLI `0.166.72`。两个 IDE 配套版都不会保存决策模型凭据，也不会替用户打开决策模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
 
 ## 系统架构
 

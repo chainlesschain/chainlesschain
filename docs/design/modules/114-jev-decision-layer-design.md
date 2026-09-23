@@ -28,7 +28,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 | TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告   |
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
-公开发行身份彼此独立：npm CLI 为 `0.166.72@5f411309b2`；Open VSX `0.37.114@94c4c5a634` 已公开；JetBrains `0.4.135@94c4c5a634` 已上传并通过发行门，当前公开 listing 仍为 `0.4.133`。Microsoft VS Code Marketplace 未发布。
+公开发行身份彼此独立：npm CLI 为 `0.166.72@5f411309b2`；Open VSX `0.37.114@94c4c5a634` 与 JetBrains `0.4.135@94c4c5a634` 均已公开。Microsoft VS Code Marketplace 未发布。
 
 ## 3. 数据流与所有权
 
@@ -122,7 +122,7 @@ provider 只发送有界任务查询和最多五个已经准入的 Skill 摘要�
 
 ## 8. IDE 边界
 
-VS Code `0.37.114` 已公开，JetBrains `0.4.135` 已上传待公开；两端只携带 CLI 配套版本与能力边界说明：
+VS Code `0.37.114` 与 JetBrains `0.4.135` 均已公开；两端只携带 CLI 配套版本与能力边界说明：
 
 - IDE Webview/JCEF 不读取、保存或转发 `TYPESAFE_API_KEY`；
 - 交互 IDE 会话不会自动添加 `--decision-mode`；

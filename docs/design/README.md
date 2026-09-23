@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-23 当前生产推荐版与 npm `latest` 为 Agent Platform `0.166.72@5f411309b2`；精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox、npm OIDC/provenance 与公共安装回读均完成。IDE 配套源码 `94c4c5a634` 对应 Open VSX `0.37.114`（已公开）和 JetBrains `0.4.135`（上传成功、待 Marketplace 公开；公开版为 `0.4.133`）；Microsoft VS Code Marketplace 与 Desktop native 仍是独立发布面。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-23 当前生产推荐版与 npm `latest` 为 Agent Platform `0.166.72@5f411309b2`；精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox、npm OIDC/provenance 与公共安装回读均完成。IDE 配套源码 `94c4c5a634` 对应 Open VSX `0.37.114` 和 JetBrains `0.4.135`，两者均已公开；Microsoft VS Code Marketplace 与 Desktop native 仍是独立发布面。
 
 ## 当前重点
 
@@ -20,7 +20,7 @@
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX 当前公开 `0.37.114`；JetBrains `0.4.135` 已通过六个真实宿主门并上传，公开 API 当前仍为 `0.4.133`，等待人工审核/公开 listing。两端继续保持 CLI-authoritative 投影；决策模型凭据、路由和 Skill 执行 authority 不进入 IDE。微软 VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.114`；JetBrains `0.4.135` 已通过六个真实宿主门，上传后经公共 API 回读确认批准与上架。两端继续保持 CLI-authoritative 投影；决策模型凭据、路由和 Skill 执行 authority 不进入 IDE。微软 VS Code Marketplace 仍未发布。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
