@@ -20,10 +20,11 @@ const apkArm64 = dl('android-arm64-v8a');
 const apkArmV7 = dl('android-armeabi-v7a');
 const apkUniversal = dl('android-universal');
 const aab = dl('android-aab');
+const ipa = dl('ios-ipa');
 ---
 <BaseLayout
-  title={`移动版 ${ANDROID_VERSION} — Android 原生应用 · DID 钱包 · 移动捕获 · REMOTE 遥控器 | ChainlessChain`}
-  description={`ChainlessChain Android ${ANDROID_VERSION} GA：Jetpack Compose + Kotlin 原生应用。三层定位（L1 StrongBox DID 钱包 / L2 Voice·Camera·Location·Share·Push 移动捕获 / L3 REMOTE 远程调用桌面 skill）+ 25 REMOTE Skills + 383+ 单测 + W3.7 Flow B 真机扫码配对。直接下载 APK，也可上 Google Play (AAB)。`}
+  title={`移动版 ${ANDROID_VERSION} — Android APK 与 iOS ad-hoc IPA | ChainlessChain`}
+  description={`ChainlessChain 移动版 ${ANDROID_VERSION} 已在 GitHub Release 提供 Android APK/AAB 与签名 iOS ad-hoc IPA。AAB 用于开发者提交应用商店，iOS IPA 仅适用于预置授权设备。`}
   canonical="https://www.chainlesschain.com/mobile"
 >
   <!-- HERO -->
@@ -31,7 +32,7 @@ const aab = dl('android-aab');
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">ANDROID · {ANDROID_VERSION} · GA</div>
+        <div class="chip mb-6 animate-fade-in">MOBILE · {ANDROID_VERSION} · GitHub Release</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           手机不是迷你桌面，<br/>
           是<span class="italic text-ember">钥匙 · 捕获器 · 遥控器</span>。
@@ -45,7 +46,7 @@ const aab = dl('android-aab');
           <a href="/desktop" class="btn-ghost">桌面端在这里 →</a>
         </div>
         <div class="mt-6 text-sm text-muted">
-          桌面与移动同版本同步发布：<code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>。每个 release tag 同时挂桌面 8 包 + Android 4 包。
+          桌面、Android 与 iOS 同版本发布于 <code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>。本次公开 Android 3 个 APK、1 个 AAB，以及签名 iOS ad-hoc IPA；应用商店上架另行审核。
         </div>
       </div>
     </div>
@@ -544,11 +545,11 @@ const aab = dl('android-aab');
   <section id="download" class="py-24">
     <div class="container-wide">
       <div class="max-w-3xl mb-12">
-        <div class="chip mb-6">下载 · Android {ANDROID_VERSION}</div>
+        <div class="chip mb-6">下载 · Android / iOS {ANDROID_VERSION}</div>
         <h2 class="text-4xl md:text-5xl leading-tight">挑一个适合你的包。</h2>
         <p class="mt-6 text-muted">
           多数 2019 年后的国行 / 海外设备选 <strong class="text-ink">arm64-v8a</strong>。老设备或不确定就用 universal。
-          Google Play 上架走 AAB（开发者侧）。所有包均由 GitHub Actions release.yml 签名出包。
+          AAB 供开发者提交 Google Play；GitHub Release 已公开签名 Android APK/AAB 和 iOS ad-hoc IPA，商店上架不包含在本次发行中。
         </p>
       </div>
 
@@ -624,13 +625,25 @@ const aab = dl('android-aab');
             <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 AAB ↓</div>
           </a>
         )}
+        {ipa && (
+          <a href={ipa.href} target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">iOS · AD-HOC</div>
+              <span class="font-mono text-xs text-muted">{ipa.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">ChainlessChain.ipa</h3>
+            <div class="text-sm text-ink mb-3">签名 iOS 安装包 · 仅供 provisioning profile 已授权设备</div>
+            <div class="text-xs text-muted">GitHub Release 公开下载；尚未通过 App Store 或 TestFlight 分发</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 IPA ↓</div>
+          </a>
+        )}
       </div>
 
       <div class="mt-10 p-6 rounded-2xl bg-cream/70 border border-line text-sm text-muted leading-relaxed">
         <strong class="text-ink">安装说明：</strong> 国行设备首次安装本地 APK 需在系统设置允许"来自此来源的应用"。
         Android 自更新由应用内 <code class="font-mono bg-paper px-1 rounded">设置 → 检查更新</code> 入口走 GitHub
         Releases <code class="font-mono bg-paper px-1 rounded">{ANDROID_TAG}</code> tag → DownloadManager →
-        REQUEST_INSTALL_PACKAGES 闭环。iOS 版本即将上线。
+        REQUEST_INSTALL_PACKAGES 闭环。iOS ad-hoc IPA 需要设备列入签名配置，普通 iPhone 用户不能直接安装。
       </div>
 
       <p class="mt-6 text-sm text-muted text-center">

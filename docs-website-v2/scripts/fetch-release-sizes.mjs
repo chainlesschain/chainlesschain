@@ -53,6 +53,7 @@ function classify(name) {
   if (/app-armeabi-v7a-release\.apk$/.test(name)) return "android-armeabi-v7a";
   if (/app-universal-release\.apk$/.test(name)) return "android-universal";
   if (/app-release\.aab$/.test(name)) return "android-aab";
+  if (/^ChainlessChain\.ipa$/.test(name)) return "ios-ipa";
   return null;
 }
 

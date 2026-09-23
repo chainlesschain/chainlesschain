@@ -30,6 +30,7 @@ const ANDROID_VERSION = DOWNLOAD_VERSION;
 const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
 const androidArm64 = releaseSizes.sizes['android-arm64-v8a'];
 const androidUniversal = releaseSizes.sizes['android-universal'];
+const iosIpa = releaseSizes.sizes['ios-ipa'];
 
 const templates = [
   { id: 'doc-convert', name: '文档格式转换', tools: 'pandoc · LibreOffice' },
@@ -148,7 +149,7 @@ const badges = [
           发布说明：Agent Platform <code class="font-mono">{CLI_VERSION}</code> 是 npm latest（<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>），标签 <code class="font-mono">{CLI_RELEASE_TAG}</code> 对应提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。本版已支持默认关闭的 TypeSafe、Laya 本地模型及兼容 System One 服务的 Skill 决策接入，仅限耐久、单 prompt、headless CLI；<code class="font-mono">shadow</code> 不改变路由，<code class="font-mono">suggest</code> 只附加建议而不执行 Skill。Laya 已完成一次本地真实权重冒烟联调，但中文路由与默认截止仍有限制；TypeSafe 真实 API 及正式质量、延迟、费用评测尚未完成。<a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">查看接入方法与边界 →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
-          Open VSX {VSCODE_VERSION} 与 JetBrains Marketplace {JETBRAINS_VERSION}（配套源码 <code class="font-mono">{IDE_RELEASE_COMMIT}</code>）均已公开，并推荐 CLI {CLI_VERSION}。CLI 三系统 CI/Strict、OIDC/provenance 与公共安装回读均成功。本次核对源码为 <code class="font-mono">{SOURCE_HEAD_COMMIT}</code>；Microsoft Marketplace 与 Desktop native 制品均不在本次公开范围。
+          Open VSX {VSCODE_VERSION} 与 JetBrains Marketplace {JETBRAINS_VERSION}（配套源码 <code class="font-mono">{IDE_RELEASE_COMMIT}</code>）均已公开，并推荐 CLI {CLI_VERSION}。CLI 三系统 CI/Strict、OIDC/provenance 与公共安装回读均成功。另有独立的 <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138">v5.0.3.138 产品发行</a>：Windows、macOS、Linux 桌面端，Android APK/AAB 与签名 iOS ad-hoc IPA 均来自 <code class="font-mono">{SOURCE_HEAD_COMMIT}</code>；Microsoft Marketplace 尚未发行。
         </p>
 
         <!-- Trust badges -->
@@ -761,7 +762,9 @@ const badges = [
                 class="chip hover:bg-ember hover:text-cream transition-colors"
               >universal · {androidUniversal.label}</a>
             )}
-            <span class="chip opacity-60">iOS 即将</span>
+            {iosIpa && (
+              <a href={`https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${iosIpa.name}`} target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">iOS ad-hoc · {iosIpa.label}</a>
+            )}
           </div>
           <p class="text-sm text-muted mb-3">L1 DID 钱包 · L2 移动捕获 · L3 REMOTE 遥控 · 25 Skills · 383+ 单测</p>
           <a href="/mobile" class="text-sm text-ember hover:underline">查看移动版详情 →</a>

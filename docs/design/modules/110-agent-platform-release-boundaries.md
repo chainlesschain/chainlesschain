@@ -1,4 +1,4 @@
-# 110. Agent Platform 0.166.68 发布与运行时边界设计
+# 110. Agent Platform 发布与运行时边界设计
 
 > 状态：2026-09-20 核对，CLI、发生变化的子 npm 包与双 IDE 已按顺序发布并完成公共注册表回读
 >
@@ -7,6 +7,14 @@
 > - 文档核对源码：`8e7c45e32e4d80ab1fc61f96173d123a6f7747ce`
 > - IDE 精确源码：`5860f1e4a4c7579bc648f9fb665949b8dafc3362`
 > - IDE 源码标签：`ide-vscode-v0.37.110` / `ide-jetbrains-v0.4.131`
+
+## 2026-09-24 产品发行增补
+
+`v5.0.3.138` 已作为独立产品标签在 [GitHub Release](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 公开，标签指向 `eb48ffa31139a826796f4e292135493cd93d88d0`。[精确提交发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35891791525)完成 Windows、macOS、Linux 桌面构建，Android release 签名 APK/AAB、iOS 签名 ad-hoc IPA，重建并覆盖此前草稿的全部 18 个资产。公开 `latest.yml`、`latest-mac.yml`、`latest-linux.yml` 均指向 `5.0.3-alpha.138`。本次手动发版在草稿中固定目标 SHA；更新日志作为可审阅 artifact 留存，不再由 Actions 直接推送受保护的 `main`。
+
+产品制品与 npm CLI `0.166.72@5f411309b2`、Open VSX `0.37.114@94c4c5a634`、JetBrains `0.4.135@94c4c5a634` 保持独立身份。产品工作流重新验证 CLI 的标签、provenance 和精确提交门禁；它不把 Desktop/IDE 源码证明改写成 npm 发行身份。Android 应用版本为 `5.0.3.138`，但内置 `cc-cli.tgz` 仍固定到 `binariesVersion=20260711` 的清单；不能宣称移动内置 CLI 已升级为 `0.166.72`。AAB 只作为开发者商店提交产物，iOS ad-hoc IPA 只供 provisioning profile 已授权设备安装；Google Play、App Store、TestFlight 和 Microsoft VS Code Marketplace 不属于这次公共渠道回读。
+
+产品二进制公开不改变受治理 Skill 演进的生产部署资格：目标环境的 KMS/PKI、独立 witness/grader、物理故障矩阵与 automatic active promotion `HOLD` 仍分别验收。类型化 Skill 决策层运行范围见[模块 114](114-jev-decision-layer-design.md)。下文记录 `0.166.68` 的历史设计与当时证据，不作为本次产品发行的版本声明。
 
 ## 1. 目标
 
