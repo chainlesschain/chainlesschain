@@ -2,10 +2,10 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Current release: `chainlesschain@0.166.71`, published only after the exact
+> Release target: `chainlesschain@0.166.72`, published only after the exact
 > source commit passes every configured Linux, Windows, and macOS job in CLI CI
-> and CLI Strict Sandbox. The release publishes Session Core `0.3.13`,
-> Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` first, then
+> and CLI Strict Sandbox. The release requires Session Core `0.3.13`,
+> Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` to be public, then
 > compares all 13 child tarballs byte-for-byte with the public npm registry
 > before publishing the CLI with signed provenance. IDE marketplace releases
 > follow only after the CLI's fresh-registry install and provenance readback.
@@ -13,7 +13,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.71
+npm install -g chainlesschain@0.166.72
 chainlesschain setup
 ```
 
@@ -93,6 +93,15 @@ Use `--decision-provider system-one` with an explicit `--decision-model` and
 optional `DECISION_API_KEY`. Local provider failure never falls back to TypeSafe
 and leaves the existing Skill retrieval result unchanged. These flags select the
 Skill decision model only; configure the main Agent model separately.
+
+In `0.166.72`, a local decision deadline records `provider-timeout` and unknown
+usage instead of surfacing the timeout as a user cancellation. The offline
+benchmark uses one-sided 95% exact binomial upper bounds for its two error
+rates, so a few error-free examples cannot pass the quality check. A real-weight
+Laya CPU smoke probe found that short Chinese tasks can route to English
+weights when English candidate metadata dominates the state, and complete
+requests can exceed the default 800 ms deadline. Keep the decision mode off
+outside controlled evaluation; the smoke probe is not a quality gate.
 
 ## Governed Jev Skill decision pilot (0.166.70)
 

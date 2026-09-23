@@ -134,6 +134,55 @@ describe("Skill decision runtime", () => {
     expect(options.observe).toHaveBeenCalledOnce();
   });
 
+  it("records its own deadline as an unavailable provider timeout", async () => {
+    const options = runtimeOptions({
+      timeoutMs: 50,
+      provider: successfulProvider(
+        (_request, { signal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      ),
+    });
+    const result = await createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-timeout",
+      selectedDigest: null,
+    });
+    expect(options.persist).toHaveBeenCalledTimes(2);
+    expect(options.persist.mock.calls[1][0]).toContain("unknown");
+    expect(options.observe).toHaveBeenCalledWith(
+      expect.objectContaining({ reasonCode: "provider-timeout" }),
+    );
+  });
+
+  it("keeps user cancellation terminal even when the provider aborts", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const options = runtimeOptions({
+      provider: successfulProvider(async () => {
+        controller.abort(reason);
+        throw reason;
+      }),
+    });
+    await expect(
+      createSkillDecisionRuntime(options).suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-a",
+        signal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+    expect(options.observe).not.toHaveBeenCalled();
+  });
+
   it("fails closed when usage persistence cannot establish the started boundary", async () => {
     const options = runtimeOptions({
       persist: vi.fn(async () => {

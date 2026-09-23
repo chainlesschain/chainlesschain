@@ -1,6 +1,6 @@
 # Skill 决策层试点：Jev、Laya 与本地模型
 
-> 发布边界：`chainlesschain@0.166.71` 已发布 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线。默认关闭；仅支持耐久、单 prompt、headless CLI。尚无真实模型联调或质量、延迟、费用收益结论。
+> 发布边界：`chainlesschain@0.166.71` 已发布 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线。默认关闭；仅支持耐久、单 prompt、headless CLI。后续源码已完成一次本地 Laya 真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
 
 ## 概述
 
@@ -55,7 +55,7 @@ TypeSafe 必须使用 `TYPESAFE_API_KEY`；本地 Laya 默认不需要 key。Lay
 
 [Laya 官方仓库](https://github.com/NandhaKishorM/laya)及[模型权重](https://huggingface.co/convaiinnovations/laya)采用 Apache-2.0 许可证。它是对有限选项输出概率的分类决策模型，不是聊天生成模型；不能直接把 Hugging Face 地址当作 API，也不能通过 Ollama 的普通聊天接口替代本协议。
 
-可使用第三方 [laya-serve](https://github.com/stiermid/laya-serve) 提供 `/v1/systemone`。以下命令按其 `0.1.0` 包与上游源码核对，尚未在本项目运行真实权重完成联调。它的默认后端是 `fake`，必须显式切换到 `laya`；通过 Uvicorn 仅监听本机：
+可使用第三方 [laya-serve](https://github.com/stiermid/laya-serve) 提供 `/v1/systemone`。以下命令已在本地 CPU 环境以 `0.1.0` 和真实权重完成冒烟联调。它的默认后端是 `fake`，必须显式切换到 `laya`；通过 Uvicorn 仅监听本机：
 
 ```powershell
 python -m pip install "laya-serve[inference]==0.1.0"
@@ -73,6 +73,8 @@ cc agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow 
 Laya 根目录英文权重约 421M 参数，最大序列长度 512 tokens；中文等语言使用约 322M 参数、默认 1024 tokens 的[多语言权重](https://huggingface.co/convaiinnovations/laya-multilingual)。该服务通过上游 Router 自动选择语言；请求中的 `model=laya` 是服务别名，不是权重选择器。默认响应标签 `laya-english` 也不能证明实际加载的是英文权重；`LAYA_SERVE_SERVING_MODEL` 仅修改标签。评测须固定并核验实际模型 checkpoint。
 
 较长任务和候选摘要可能被模型截断，必须单独评测中文路由、上下文长度和候选召回。首次加载、CPU 推理可能超过默认 800 ms，可在实验时显式调整超时；调整不代表已满足正式延迟门槛。
+
+[本地联调记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)显示，完整 CLI 请求中的英文候选元数据使一个短中文任务被上游 Router 判为英文，并载入英文权重；该 CPU 环境的完整请求热路径约 7–11 秒。只发送中文任务文本可触发多语言权重，但这不是当前 CLI 的请求格式，单题结果也不支持质量结论。服务响应的 `model` 标签不能证明实际权重。`0.166.71` 发布版的超时可能向上抛出 `TimeoutError`；`0.166.72` 源码修复为记录 `provider-timeout` 和未知用量，安装前应核对 npm 公共版本。
 
 ### 其他本地或自托管模型
 
@@ -131,11 +133,11 @@ VS Code `0.37.113` 已在 Open VSX 公开；JetBrains `0.4.134` 已上传并等�
 
 ## 性能指标
 
-当前没有本项目的真实 Jev、Laya 或其他模型效果与成本结论。进入受控 `suggest` 前，评测至少应覆盖无匹配误建议、接受建议错误、候选召回、任务成功率、增量 p95 延迟与每成功任务费用。拟议门槛包括 Recall@K ≥ 95%、无匹配误建议单侧 95% 置信上界 ≤ 2%、接受建议错误上界 ≤ 5%、增量 p95 ≤ 500 ms，且总截止不超过 800 ms；完整统计方案见模块 114。上游 Laya 的 benchmark 不能作为本项目实测结果。
+本地 Laya 单题冒烟不构成效果与成本结论；当前没有本项目的真实 Jev、Laya 或其他模型统计效果与成本结论。进入受控 `suggest` 前，评测至少应覆盖无匹配误建议、接受建议错误、候选召回、任务成功率、增量 p95 延迟与每成功任务费用。拟议门槛包括 Recall@K ≥ 95%、无匹配误建议单侧 95% 置信上界 ≤ 2%、接受建议错误上界 ≤ 5%、增量 p95 ≤ 500 ms，且总截止不超过 800 ms；完整统计方案见模块 114。上游 Laya 的 benchmark 不能作为本项目实测结果。
 
 ## 测试覆盖
 
-工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线。工程测试不替代真实权重的兼容性和效果评测。
+工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线，不包含后续真实权重冒烟。工程测试和单题冒烟都不能替代冻结数据集评测。
 
 ## 安全考虑
 
