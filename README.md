@@ -11,9 +11,15 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-23 当前发布 — CLI 0.166.72 / Open VSX 0.37.114 / JetBrains 0.4.135 公开
+## 2026-09-24 产品发布 — v5.0.3.138 桌面与移动端
 
-> 发布边界：npm `chainlesschain@0.166.72`、Open VSX `0.37.114` 与 JetBrains Marketplace `0.4.135` 已公开回读。两个 IDE 插件均推荐 CLI `0.166.72`。Microsoft VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行，Desktop 原生安装包继续独立验收。
+[GitHub Release v5.0.3.138](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 已公开，标签对应 `main@eb48ffa311`。[发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35891791525)完成 Windows、macOS、Linux 桌面安装包、Android release 签名 APK/AAB 和 iOS 签名 ad-hoc IPA 的构建与上传，共 18 个资产；三个桌面自动更新清单已从公开地址回读到 `5.0.3-alpha.138`。产品工作流独立校验了公开 CLI `0.166.72` 的标签、provenance 和精确提交门禁。
+
+Android 用户可直接下载对应架构的 APK；AAB 是商店提交产物，当前 GitHub 发行不代表 Google Play 已上架。iOS IPA 采用 ad-hoc 签名，仅限 provisioning profile 已授权设备，尚未通过 App Store 或 TestFlight 分发。Android 内置 `cc-cli.tgz` 仍按 `android-app/binaries-manifest.txt` 的 2026-07-11 清单固定，不能把独立 npm CLI `0.166.72` 的发布身份套用到该内置包。
+
+## 2026-09-23 CLI/IDE 发布 — CLI 0.166.72 / Open VSX 0.37.114 / JetBrains 0.4.135 公开
+
+> 发布边界：npm `chainlesschain@0.166.72`、Open VSX `0.37.114` 与 JetBrains Marketplace `0.4.135` 已公开回读。两个 IDE 插件均推荐 CLI `0.166.72`。Microsoft VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包由上述 `v5.0.3.138` 产品发行单独验收。
 
 npm `latest` 为 `0.166.72`，不可变标签 `v-npm-0-166-72` 对应精确提交 `5f411309b2`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862379) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) 已通过配置的 Linux、Windows、macOS 任务；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633)和[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440)成功。配套 IDE 源码边界为 `94c4c5a634`：[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555)通过；[Open VSX `0.37.114` 发行与公开 VSIX 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921)成功；[JetBrains `0.4.135` 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631)完成上传，后续公共 API 回读确认已批准并上架。
 

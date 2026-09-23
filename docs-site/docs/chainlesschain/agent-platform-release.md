@@ -1,6 +1,6 @@
 # Agent Platform 0.166.72 发布与升级指南
 
-> 核对日期：2026-09-23。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
+> 核对日期：2026-09-24。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
 
 ## 概述
 
@@ -10,7 +10,13 @@ npm 官方 registry 的 `latest` 为 `0.166.72`，标签 `v-npm-0-166-72` 对应
 
 精确发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862379) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) 已通过 Linux、Windows、macOS 全部配置任务。[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633)与[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440)成功，并验证 `latest=0.166.72`、tarball integrity、签名 provenance 与全新安装。Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`、Agent Protocol `0.1.11` 与 Agent SDK TS/Python `0.2.11/0.2.9` 保持独立发布身份。
 
-CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94c4c5a634`：[Open VSX `0.37.114`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains `0.4.135`](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 均已公开并推荐 CLI `0.166.72`；JetBrains 已完成 Windows/Linux/macOS × 2024.2/2025.2 真实宿主门、上传及后续公共 API 批准/上架回读。[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555)、[Open VSX 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921)与 [JetBrains 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631)均成功。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包不在本次发布证明范围。
+CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94c4c5a634`：[Open VSX `0.37.114`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains `0.4.135`](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 均已公开并推荐 CLI `0.166.72`；JetBrains 已完成 Windows/Linux/macOS × 2024.2/2025.2 真实宿主门、上传及后续公共 API 批准/上架回读。[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555)、[Open VSX 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921)与 [JetBrains 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631)均成功。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包由下述产品标签独立发行。
+
+## v5.0.3.138 桌面与移动端产品发行
+
+[GitHub Release v5.0.3.138](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 已公开，标签对应 `eb48ffa31139a826796f4e292135493cd93d88d0`。[产品发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35891791525)完成 Windows Setup/Portable、macOS Intel/Apple Silicon DMG、Linux AppImage/deb/rpm、Android release 签名的三种 APK 与 AAB，以及签名 iOS ad-hoc IPA，共 18 个资产。Windows、macOS、Linux 的公开自动更新清单已回读为 `5.0.3-alpha.138`。产品工作流还重新验证了 CLI `0.166.72` 的 npm provenance、标签及精确提交 CI 门禁，但产品标签不能替代独立 npm/IDE 发行身份。
+
+Android 用户应从 GitHub Release 选择对应架构的 APK；AAB 仅供开发者提交 Google Play，本次没有商店上架证明。iOS IPA 通过 ad-hoc 证书导出，只能安装到 provisioning profile 已登记的设备；未通过 App Store 或 TestFlight 分发。Android 应用版本为 `5.0.3.138`，内置 `cc-cli.tgz` 仍固定到 `binariesVersion=20260711` 的内部二进制清单，不等同于独立安装的 npm CLI `0.166.72`。桌面安装包公开也不意味着生产 KMS/PKI、独立 witness/grader 或 automatic active Skill 晋升已具备。
 
 ## 0.166.72 本次增量
 

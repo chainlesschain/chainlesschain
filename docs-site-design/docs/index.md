@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.137 | Agent Platform CLI 0.166.68 | Agent SDK TS 0.2.11 / Python 0.2.9 | IDE Bridge 4.7 万+下载"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.72 | Open VSX 0.37.114 | JetBrains 0.4.135"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -65,7 +65,9 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-20 设计核对**：npm `latest` 为 `0.166.68@815fdbc0c4`，其三平台 CLI CI、Strict Sandbox、OIDC 发布、provenance 与公共安装回读均成功。Open VSX `0.37.110@5860f1e4a4` 与 JetBrains Marketplace `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器动作使用显式 authority，下载字节进入耐久 quarantine；发布链审计全部 13 个子包并先发布有变化的包。`45557d27dc` 的 11 单元 ARM64 聚合成功，failed-job rerun 可跨 attempt 选择每个矩阵单元的最新证据。本次核对源码 `8e7c45e32e` 再加入 Desktop Secure Storage/Volcengine IPC 授权、签名 function capability、加密配置认证恢复、有界备份清单、跨进程 owner/recovery fence 及核心/辅助 LLM IPC 成功结果投影；这些源码增量尚未进入公共 Desktop native 制品。既有 PM 签名证据、SQLite 状态链、`readyForExecution:false` 与 automatic promotion `HOLD` 不变；Microsoft Marketplace 未发行。详见[模块 112](/modules/112-governed-skill-evolution-design)、[模块 113](/modules/113-governed-desktop-model-ingress-design)、[任务记录与新会话交接](/ide-task-worklog-handoff)和[发布与证据边界](/modules/110-agent-platform-release-boundaries)。
+> **2026-09-24 发行核对**：产品 [v5.0.3.138](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 已从 `eb48ffa311` 公开桌面三平台安装包、Android APK/AAB 和签名 iOS ad-hoc IPA，共 18 个资产；npm CLI `0.166.72@5f411309b2`、Open VSX `0.37.114@94c4c5a634` 与 JetBrains `0.4.135@94c4c5a634` 各自保持独立发行身份。Android 内置 `cc-cli.tgz` 仍由 2026-07-11 二进制清单固定；iOS IPA 仅供已授权设备安装，应用商店未上架。生产 KMS/PKI、独立 witness/grader 与 automatic active promotion `HOLD` 不因安装包公开而改变。详见[模块 110](/modules/110-agent-platform-release-boundaries)、[模块 114](/modules/114-jev-decision-layer-design)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
+
+> **2026-09-20 历史设计核对**：npm `latest` 当时为 `0.166.68@815fdbc0c4`，Open VSX `0.37.110@5860f1e4a4` 与 JetBrains Marketplace `0.4.131@5860f1e4a4` 均已公开。后续 Desktop 代码增量在当时尚未进入公共原生安装包；其发行状态以上述 2026-09-24 快照为准。
 
 > **生产边界**：仓库已从早期 source-only 快照前进到真实文件 Ledger/witness、CLI 三模式 ingress、Graph/WebSocket 接线缝和可恢复状态迁移。部署仍须提供独立 trust root、密钥与身份运营、最终用户审阅面、真实 target runner/grader 和跨主机灾备；这些条件不能由本地测试或 tag 自动推导。
 

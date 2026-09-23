@@ -20,10 +20,11 @@ const apkArm64 = dl('android-arm64-v8a');
 const apkArmV7 = dl('android-armeabi-v7a');
 const apkUniversal = dl('android-universal');
 const aab = dl('android-aab');
+const ipa = dl('ios-ipa');
 ---
 <BaseLayout
-  title={`Mobile ${ANDROID_VERSION} — Native Android app · DID wallet · Mobile capture · REMOTE control | ChainlessChain`}
-  description={`ChainlessChain Android ${ANDROID_VERSION} GA: native Jetpack Compose + Kotlin. Three-layer model (L1 StrongBox DID wallet / L2 Voice·Camera·Location·Share·Push capture / L3 REMOTE invocation of desktop skills) + 25 skills + 383+ unit tests + W3.7 Flow B real-device QR pairing. Direct APK or Google Play (AAB).`}
+  title={`Mobile ${ANDROID_VERSION} — Android APK and iOS ad-hoc IPA | ChainlessChain`}
+  description={`ChainlessChain Mobile ${ANDROID_VERSION} is public on GitHub Releases with Android APK/AAB and a signed iOS ad-hoc IPA. The AAB is for store submission; the IPA installs only on provisioned devices.`}
   canonical="https://www.chainlesschain.com/en/mobile"
   locale="en"
 >
@@ -31,7 +32,7 @@ const aab = dl('android-aab');
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">ANDROID · {ANDROID_VERSION} · GA</div>
+        <div class="chip mb-6 animate-fade-in">MOBILE · {ANDROID_VERSION} · GitHub Release</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           Phones aren't tiny desktops.<br/>
           They're a <span class="italic text-ember">key, a capture rig, a remote</span>.
@@ -46,7 +47,7 @@ const aab = dl('android-aab');
           <a href="/en/desktop" class="btn-ghost">Desktop is here →</a>
         </div>
         <div class="mt-6 text-sm text-muted">
-          Desktop and mobile ship on the same version, same tag: <code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>. Each release tag carries 8 desktop bundles + 4 Android bundles together.
+          Desktop, Android, and iOS ship under <code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>. This release includes three Android APKs, one AAB, and a signed iOS ad-hoc IPA; app-store review is separate.
         </div>
       </div>
     </div>
@@ -358,12 +359,11 @@ const aab = dl('android-aab');
   <section id="download" class="py-24">
     <div class="container-wide">
       <div class="max-w-3xl mb-12">
-        <div class="chip mb-6">Download · Android {ANDROID_VERSION}</div>
+        <div class="chip mb-6">Download · Android / iOS {ANDROID_VERSION}</div>
         <h2 class="text-4xl md:text-5xl leading-tight">Pick the right package.</h2>
         <p class="mt-6 text-muted">
           Most devices since 2019 want <strong class="text-ink">arm64-v8a</strong>. If unsure or older,
-          go universal. Google Play uploads use the AAB (developer-only). Every artifact is signed by
-          GitHub Actions release.yml.
+          go universal. The AAB is for developer submission to Google Play. GitHub Releases publishes signed Android APK/AAB and an iOS ad-hoc IPA; store listings are separate.
         </p>
       </div>
 
@@ -439,6 +439,18 @@ const aab = dl('android-aab');
             <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download AAB ↓</div>
           </a>
         )}
+        {ipa && (
+          <a href={ipa.href} target="_blank" rel="noopener" class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block">
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">iOS · AD-HOC</div>
+              <span class="font-mono text-xs text-muted">{ipa.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">ChainlessChain.ipa</h3>
+            <div class="text-sm text-ink mb-3">Signed iOS build · provisioned devices only</div>
+            <div class="text-xs text-muted">Public GitHub download; no App Store or TestFlight distribution yet</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download IPA ↓</div>
+          </a>
+        )}
       </div>
 
       <div class="mt-10 p-6 rounded-2xl bg-cream/70 border border-line text-sm text-muted leading-relaxed">
@@ -446,7 +458,7 @@ const aab = dl('android-aab');
         requires enabling "install from this source" in system settings. In-app self-update lives at
         <code class="font-mono bg-paper px-1 rounded">Settings → Check for updates</code> — it walks
         GitHub Releases <code class="font-mono bg-paper px-1 rounded">{ANDROID_TAG}</code> → DownloadManager →
-        REQUEST_INSTALL_PACKAGES. iOS coming.
+        REQUEST_INSTALL_PACKAGES. The iOS ad-hoc IPA requires a device included in the signing profile; ordinary iPhones cannot install it directly.
       </div>
 
       <p class="mt-6 text-sm text-muted text-center">
