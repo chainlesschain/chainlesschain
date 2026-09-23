@@ -1,8 +1,8 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
-> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方；默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
+> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
 > 核对日期：2026-09-23<br>
-> Jev 历史实现提交：`80806fd4e9`；当前 CLI 发布提交：`fc7d6e102a`；IDE 配套源码提交：`94141e6fef`。
+> Jev 历史实现提交：`80806fd4e9`；当前 CLI 发布提交：`5f411309b2`；IDE 配套源码提交：`94141e6fef`。
 
 ## 1. 目标与非目标
 
@@ -19,7 +19,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 
 | 表面                     | 当前状态                                                              |
 | ------------------------ | --------------------------------------------------------------------- |
-| CLI                      | `0.166.71` 已公开，支持 `off / shadow / suggest` 与三种 provider      |
+| CLI                      | `0.166.72` 已公开，支持 `off / shadow / suggest` 与三种 provider      |
 | Laya / 通用 System One   | CLI 已发布接线；Laya 本地真实权重冒烟已完成，中文路由和正式评测待解决 |
 | 会话                     | 仅耐久、单 prompt、headless `cc agent`                                |
 | 交互 REPL                | 不支持；非 `off` 会失败闭合                                           |
@@ -28,7 +28,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 | TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告   |
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
-公开发行身份彼此独立：npm CLI 为 `0.166.71@fc7d6e102a`；Open VSX `0.37.113@94141e6fef` 已公开；JetBrains `0.4.134@94141e6fef` 已上传并通过发行门，当前公开 listing 仍为 `0.4.133`。Microsoft VS Code Marketplace 未发布。
+公开发行身份彼此独立：npm CLI 为 `0.166.72@5f411309b2`；Open VSX `0.37.113@94141e6fef` 已公开；JetBrains `0.4.134@94141e6fef` 已上传并通过发行门，当前公开 listing 仍为 `0.4.133`。Microsoft VS Code Marketplace 未发布。
 
 ## 3. 数据流与所有权
 
@@ -76,7 +76,7 @@ cc agent --session jev-pilot-1 --decision-mode shadow -p "检查并修复单元�
 | `--decision-base-url`   | 按提供方选择 | TypeSafe 为 `https://api.typesafe.ai`；Laya 为 `http://127.0.0.1:8000`；通用服务必须显式指定 |
 | `--decision-timeout-ms` | `800`        | 整数 `50..30000`                                                                             |
 
-上述多提供方参数已随 npm `0.166.71` 公开；安装后可以运行：
+上述多提供方参数已随 npm `0.166.71` 公开，`0.166.72` 延续支持；安装后可以运行：
 
 ```powershell
 cc agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow -p "检查并修复单元测试"
@@ -161,7 +161,7 @@ CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数�
 - `packages/cli/src/runtime/agent-core.js`
 - `packages/cli/src/runtime/headless-runner.js`
 
-单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该发布证明包含多提供方接线，不包含后续本地真实权重冒烟或效果评测。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
+单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.72@5f411309b2` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该发布证明包含多提供方接线、本地截止失败闭合与离线统计修复，不证明模型效果合格。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
 
 ## 11. 相关文档
 

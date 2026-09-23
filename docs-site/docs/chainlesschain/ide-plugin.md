@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-09-23）：CLI `0.166.71` 与 VS Code 扩展 `0.37.113`（Open VSX）已公开回读；JetBrains 插件 `0.4.134` 已上传、待 Marketplace 人工审核，当前公开版仍为 `0.4.133`。CLI 制品来自 `fc7d6e102a`，配套 IDE 源码来自 `94141e6fef`；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
+> **当前渠道状态（2026-09-23）：CLI `0.166.72` 与 VS Code 扩展 `0.37.113`（Open VSX）已公开回读；JetBrains 插件 `0.4.134` 已上传、待 Marketplace 人工审核，当前公开版仍为 `0.4.133`。CLI 制品来自 `5f411309b2`，现有 IDE 制品源码来自 `94141e6fef`；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.113` 已公开并推荐 npm `latest` CLI `0.166.71@fc7d6e102a`；JetBrains `0.4.134` 的构建、真实宿主门与 `publishPlugin` 上传成功，但公开 API 尚未列出该版本，因此不能写成已公开。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未公开。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> **发布提示**：Open VSX `0.37.113` 已公开，其内置升级提示仍推荐 CLI `0.166.71`；npm `latest` 现为 `0.166.72@5f411309b2`。JetBrains `0.4.134` 的构建、真实宿主门与 `publishPlugin` 上传成功，但公开 API 尚未列出该版本，因此不能写成已公开。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未公开。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 
@@ -15,7 +15,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 
 两端严格遵循**纯核 + 胶水**分层：协议与业务逻辑是零编辑器依赖的纯模块（VS Code 侧纯 Node、JetBrains 侧纯 JDK），可在无编辑器宿主下测试并做过跨语言 interop 实证；只有薄薄一层 glue 碰编辑器 SDK。因此双端功能面长期保持对齐，会话经**共享 IDE 会话索引**（`~/.chainlesschain/ide/session-index.json`）跨 IDE 可见、可续接。
 
-## 长任务、大文件与聚焦恢复（CLI 0.166.71）
+## 长任务、大文件与聚焦恢复（CLI 0.166.72）
 
 IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务；显式的轮次、费用、环境和会话预算仍会使任务停止。普通无人值守运行保留默认 50 次模型调用上限，按需用正整数明确提高上限：
 
@@ -23,9 +23,9 @@ IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务
 cc agent -p "逐个检查模块并更新迁移说明" --max-turns 100
 ```
 
-VS Code / VSCodium 扩展 `0.37.113` 支持 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.134` 没有同名设置。CLI `0.166.71` 同时承接读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复、浏览器动作治理、可靠 Stop、受治理演进部署配置与默认关闭的 TypeSafe/Laya/System One 决策接入。
+VS Code / VSCodium 扩展 `0.37.113` 支持 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.134` 没有同名设置。CLI `0.166.72` 继承读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复、浏览器动作治理、可靠 Stop、受治理演进部署配置与默认关闭的 TypeSafe/Laya/System One 决策接入，并修复本地决策截止的观察与未知用量结算；IDE 交互会话仍不启用该决策模式。
 
-当 IDE 显示 `Repeated file reads or identical large command outputs` 时，`0.166.71` 继承恢复暂停与真实观察分离的行为，不再将控制结果计入产生暂停的重复读取/输出计数；已知目标仍可用显式小范围继续读取。真正重复整段输出、无关远端枚举或连续六次真实无进展仍会停止，并明确保留“任务未完成”状态。
+当 IDE 显示 `Repeated file reads or identical large command outputs` 时，`0.166.72` 继承恢复暂停与真实观察分离的行为，不再将控制结果计入产生暂停的重复读取/输出计数；已知目标仍可用显式小范围继续读取。真正重复整段输出、无关远端枚举或连续六次真实无进展仍会停止，并明确保留“任务未完成”状态。
 
 大文件按字节和行游标读取，超长 Unicode 单行也可以续读。上下文压缩保留最近读取位置；已读且未变化的页可复用，文件修改后缓存失效。因此续读不会把尚未读取的范围标成已读。慢命令运行时会话心跳继续处理；撤销或接管会话后，原宿主不能继续写入。
 
@@ -38,7 +38,7 @@ VS Code / VSCodium 扩展 `0.37.113` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.71 # 需要 Node ≥ 22.12.0；当前 npm latest
+npm i -g chainlesschain@0.166.72 # 需要 Node ≥ 22.12.0；当前 npm latest
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -60,7 +60,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.133`；`0.4.134` 已上传、待人工审核。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.113` 已从 Open VSX 公开回读并推荐 CLI `0.166.71`；JetBrains `0.4.134` 已上传但仍在 Marketplace 审核中，安装页可能继续提供 `0.4.133`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。TypeSafe/Laya/System One 决策仅由 CLI 的耐久、单 prompt、headless 入口拥有；IDE 不保存决策模型凭据，也不获得路由或 Skill 执行 authority。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.113` 已从 Open VSX 公开回读，其内置提示推荐 CLI `0.166.71`；用户可以安装已公开的 CLI `0.166.72`。JetBrains `0.4.134` 已上传但仍在 Marketplace 审核中，安装页可能继续提供 `0.4.133`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。TypeSafe/Laya/System One 决策仅由 CLI 的耐久、单 prompt、headless 入口拥有；IDE 不保存决策模型凭据，也不获得路由或 Skill 执行 authority。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -400,7 +400,7 @@ cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 | 深链点了没反应                         | 检查 workspace 参数是否与当前打开目录一致；`mode=bypassPermissions` 会被拒                        |
 | JetBrains 装完菜单是英文               | 界面语言跟随 IDE：装中文语言包后重启即中文                                                        |
 | 升级 CLI 后行为不一致                  | 命令面板 **Check for CLI Updates** / **Upgrade CLI**，插件与 CLI 版本步调见 What's New            |
-| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.71` 和配套插件；发送一条消息完成 init 后重试                                    |
+| 接力按钮不可用或提示 CLI 过旧          | 升级到 CLI `0.166.72` 和配套插件；发送一条消息完成 init 后重试                                    |
 | 接力等待超过 60 秒                     | 处理运行中的工具或权限卡后重试；保存成功前旧会话始终保留                                          |
 
 ## 关键文件

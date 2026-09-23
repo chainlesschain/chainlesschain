@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.135] - Pair with CLI 0.166.72 decision timeout fix (2026-09-23)
+
+- Recommend the publicly verified `chainlesschain@0.166.72` release in runtime
+  upgrade guidance and release metadata.
+- Describe the CLI's local Skill decision timeout as a recorded
+  `provider-timeout` with unknown usage; the CLI also tightens offline quality
+  checks with one-sided 95% exact binomial bounds.
+- Keep decision modes limited to durable, single-prompt headless CLI sessions.
+  The plugin gains no decision-model credentials, routing, or execution
+  authority.
+
 ## [0.4.134] - Pair with governed CLI 0.166.71 (2026-09-23)
 
 - Recommend the publicly verified `chainlesschain@0.166.71` release in runtime

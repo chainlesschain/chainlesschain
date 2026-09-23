@@ -1,6 +1,6 @@
 # Skill 决策层试点：Jev、Laya 与本地模型
 
-> 发布边界：`chainlesschain@0.166.71` 已发布 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线。默认关闭；仅支持耐久、单 prompt、headless CLI。后续源码已完成一次本地 Laya 真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
+> 发布边界：`chainlesschain@0.166.72` 继承 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线，并修复本地决策截止时向上抛出超时的行为。默认关闭；仅支持耐久、单 prompt、headless CLI。Laya 已完成一次本地真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
 
 ## 概述
 
@@ -14,10 +14,10 @@
 
 ### 安装已发布的 CLI
 
-公开 CLI `0.166.71` 可选择 TypeSafe、Laya 或兼容 System One 的服务：
+公开 CLI `0.166.72` 可选择 TypeSafe、Laya 或兼容 System One 的服务：
 
 ```bash
-npm i -g chainlesschain@0.166.71 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.72 --registry https://registry.npmjs.org
 cc --version
 ```
 
@@ -74,7 +74,7 @@ Laya 根目录英文权重约 421M 参数，最大序列长度 512 tokens；中�
 
 较长任务和候选摘要可能被模型截断，必须单独评测中文路由、上下文长度和候选召回。首次加载、CPU 推理可能超过默认 800 ms，可在实验时显式调整超时；调整不代表已满足正式延迟门槛。
 
-[本地联调记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)显示，完整 CLI 请求中的英文候选元数据使一个短中文任务被上游 Router 判为英文，并载入英文权重；该 CPU 环境的完整请求热路径约 7–11 秒。只发送中文任务文本可触发多语言权重，但这不是当前 CLI 的请求格式，单题结果也不支持质量结论。服务响应的 `model` 标签不能证明实际权重。`0.166.71` 发布版的超时可能向上抛出 `TimeoutError`；`0.166.72` 源码修复为记录 `provider-timeout` 和未知用量，安装前应核对 npm 公共版本。
+[本地联调记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)显示，完整 CLI 请求中的英文候选元数据使一个短中文任务被上游 Router 判为英文，并载入英文权重；该 CPU 环境的完整请求热路径约 7–11 秒。只发送中文任务文本可触发多语言权重，但这不是当前 CLI 的请求格式，单题结果也不支持质量结论。服务响应的 `model` 标签不能证明实际权重。`0.166.72` 将本地决策截止记录为 `provider-timeout` 和未知用量，不会把它误当作用户取消；用户取消和账本失败仍会终止请求。
 
 ### 其他本地或自托管模型
 
@@ -94,7 +94,7 @@ cc agent --session jev-pilot-1 \
   -p "检查并修复单元测试"
 ```
 
-以上 `cc` 示例均适用于已发布的 `0.166.71`。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。
+以上 `cc` 示例均适用于已发布的 `0.166.72`。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。
 
 `suggest` 会把经过校验的建议附加到 `list_skills(query)` 的 `routing.decisionSuggestion`：
 
@@ -137,7 +137,7 @@ VS Code `0.37.113` 已在 Open VSX 公开；JetBrains `0.4.134` 已上传并等�
 
 ## 测试覆盖
 
-工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线，不包含后续真实权重冒烟。工程测试和单题冒烟都不能替代冻结数据集评测。
+工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.72@5f411309b2` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线、截止观察与离线统计修复。本地真实权重单题冒烟不包含冻结数据集的模型质量结论。
 
 ## 安全考虑
 
