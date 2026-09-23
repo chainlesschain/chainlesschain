@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.71",
+      "cliVersions": ["0.166.71"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.71: open local Skill decision providers",
+          "body": "- Add `--decision-provider` selection for the existing governed Skill decision\n  layer, with `typesafe`, loopback-only `laya`, and compatible `system-one`\n  providers.\n- Run Apache-2.0 Laya models behind a local `/v1/systemone` service without a\n  TypeSafe credential, while preserving the durable-session, candidate-binding,\n  budget, timeout, and observation boundaries introduced by the Jev pilot.\n- Keep TypeSafe and local-service credentials isolated: TypeSafe continues to\n  require `TYPESAFE_API_KEY`; authenticated Laya and compatible services may use\n  `DECISION_API_KEY` and never inherit the TypeSafe secret.\n- Reject redirects, URL credentials, remote plaintext endpoints, and non-loopback\n  Laya endpoints. Invalid or unavailable local decisions leave the existing\n  Skill retrieval result unchanged.\n- Document a pinned real-backend `laya-serve` setup and the limits of model\n  labels, multilingual routing, context windows, and upstream benchmark claims."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.70",
       "cliVersions": ["0.166.70"],
       "date": null,

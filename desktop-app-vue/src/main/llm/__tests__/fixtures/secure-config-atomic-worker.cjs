@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* global require, process, Buffer */
 "use strict";
 
 const fs = require("node:fs");
