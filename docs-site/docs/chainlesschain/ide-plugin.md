@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-09-23）：CLI `0.166.72` 与 VS Code 扩展 `0.37.113`（Open VSX）已公开回读；JetBrains 插件 `0.4.134` 已上传、待 Marketplace 人工审核，当前公开版仍为 `0.4.133`。CLI 制品来自 `5f411309b2`，现有 IDE 制品源码来自 `94141e6fef`；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
+> **当前渠道状态（2026-09-23）：CLI `0.166.72`、VS Code 扩展 `0.37.114`（Open VSX）与 JetBrains 插件 `0.4.135`（Marketplace）均已公开回读。CLI 制品来自 `5f411309b2`，IDE 制品源码来自 `94c4c5a634`；npm tarball、VSIX 与 JetBrains ZIP 仍是独立制品身份。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.113` 已公开，其内置升级提示仍推荐 CLI `0.166.71`；npm `latest` 现为 `0.166.72@5f411309b2`。JetBrains `0.4.134` 的构建、真实宿主门与 `publishPlugin` 上传成功，但公开 API 尚未列出该版本，因此不能写成已公开。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未公开。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> **发布提示**：Open VSX `0.37.114` 与 JetBrains `0.4.135` 均已公开并推荐 CLI `0.166.72`；npm `latest` 为 `0.166.72@5f411309b2`。JetBrains 上传后的公共 API 回读已确认批准、上架且未隐藏。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未公开。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
 ## 概述
 
@@ -23,7 +23,7 @@ IDE 的交互式流式会话可以继续完成超过 50 次模型调用的任务
 cc agent -p "逐个检查模块并更新迁移说明" --max-turns 100
 ```
 
-VS Code / VSCodium 扩展 `0.37.113` 支持 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.134` 没有同名设置。CLI `0.166.72` 继承读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复、浏览器动作治理、可靠 Stop、受治理演进部署配置与默认关闭的 TypeSafe/Laya/System One 决策接入，并修复本地决策截止的观察与未知用量结算；IDE 交互会话仍不启用该决策模式。
+VS Code / VSCodium 扩展 `0.37.114` 支持 `chainlesschain.chat.maxTurns`。默认 `0` 跟随 CLI 交互默认；设为正整数可限制每条消息的模型轮次。设置改变后在下一个空闲回合重启聊天宿主并保留会话历史，不会打断正在执行的任务或待处理审批。它是 VS Code 设置，JetBrains `0.4.135` 没有同名设置。CLI `0.166.72` 继承读取游标恢复、重复输出抑制、长时间探索后的聚焦恢复、浏览器动作治理、可靠 Stop、受治理演进部署配置与默认关闭的 TypeSafe/Laya/System One 决策接入，并修复本地决策截止的观察与未知用量结算；IDE 交互会话仍不启用该决策模式。
 
 当 IDE 显示 `Repeated file reads or identical large command outputs` 时，`0.166.72` 继承恢复暂停与真实观察分离的行为，不再将控制结果计入产生暂停的重复读取/输出计数；已知目标仍可用显式小范围继续读取。真正重复整段输出、无关远端枚举或连续六次真实无进展仍会停止，并明确保留“任务未完成”状态。
 
@@ -48,7 +48,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.113 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.113/file/chainlesschain.chainlesschain-ide-0.37.113.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.114 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.114/file/chainlesschain.chainlesschain-ide-0.37.114.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -57,10 +57,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.133`；`0.4.134` 已上传、待人工审核。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.135`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.113` 已从 Open VSX 公开回读，其内置提示推荐 CLI `0.166.71`；用户可以安装已公开的 CLI `0.166.72`。JetBrains `0.4.134` 已上传但仍在 Marketplace 审核中，安装页可能继续提供 `0.4.133`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。TypeSafe/Laya/System One 决策仅由 CLI 的耐久、单 prompt、headless 入口拥有；IDE 不保存决策模型凭据，也不获得路由或 Skill 执行 authority。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 VS Code `0.37.114` 与 JetBrains `0.4.135` 均已从公共渠道回读，两端内置提示推荐 CLI `0.166.72`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。TypeSafe/Laya/System One 决策仅由 CLI 的耐久、单 prompt、headless 入口拥有；IDE 不保存决策模型凭据，也不获得路由或 Skill 执行 authority。微软 VS Code Marketplace 仍不能扩写为已经发行。
 
 ### 3. 配置大模型（首次）
 
@@ -105,8 +105,8 @@ IDE 插件不会自动生成或激活 Skill，它只消费 CLI/部署宿主提�
 侧边栏（VS Code：Activity Bar → ChainlessChain IDE → Chat；JetBrains：右侧 **ChainlessChain** 工具窗）直接和 agent 对话，内部为每个会话维护一个长驻 `cc agent` stream-json 双工子进程：
 
 - **多会话标签页**：每个 tab 独立进程，随开随切；标签、resume id、审批模式、思考档位**跨 IDE 重启持久化**，首条消息自动命名标签；**Reopen Closed** 按标题 / 日期搜索重开已关会话。
-- **任务记录与新会话接力（VS Code 0.37.113 / JetBrains 0.4.134 源码版）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
-- **PM readiness 与恢复链（VS Code 0.37.113 / JetBrains 0.4.134 源码版）**：只读展示 CLI-owned 的预算、签名 authority、SQLite seal、transition recovery 与 snapshot-store 配置状态。插件不接收 runner、grader、数据库字节、Ledger 或 durability authority；`readyForExecution:false` 与 automatic promotion `HOLD` 仍是预期结果。JetBrains `0.4.134` 公开前请以 Marketplace 实际提供的版本为准。
+- **任务记录与新会话接力（VS Code 0.37.114 / JetBrains 0.4.135）**：运行事件自动写入 Context/Memory Kernel 检查点并投影为有界 `WORKLOG.md`。VS Code `↗` / **Continue in New Conversation with Task Notes** 与 JetBrains **Continue in new chat** 会先保存，再把已校验历史交给独立新会话；不复制完整聊天或临时权限。完整说明见[任务记录用户文档](/chainlesschain/ide-task-worklog)。
+- **PM readiness 与恢复链（VS Code 0.37.114 / JetBrains 0.4.135）**：只读展示 CLI-owned 的预算、签名 authority、SQLite seal、transition recovery 与 snapshot-store 配置状态。插件不接收 runner、grader、数据库字节、Ledger 或 durability authority；`readyForExecution:false` 与 automatic promotion `HOLD` 仍是预期结果。
 - **流式渲染**：逐 token 回复 + 实时工具调用轨迹；XSS 安全的 Markdown 渲染（代码块 / GFM 表格 / 任务列表），代码块带 **Copy / 插入编辑器** 按钮。
 - **扩展思考**：`/think`、`/ultrathink`、`/think-off` 三档，推理过程以可折叠暗色块实时展示。
 - **图片 / 视觉**：Ctrl/Cmd+V 粘贴截图或拖拽图片（单条最多 4 张），走独立视觉模型。
