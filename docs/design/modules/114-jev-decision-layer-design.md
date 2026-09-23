@@ -1,7 +1,7 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
 > 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
-> 核对日期：2026-09-23<br>
+> 核对日期：2026-09-24；文档核对基线：`main@c036888c3c`。<br>
 > Jev 历史实现提交：`80806fd4e9`；当前 CLI 发布提交：`5f411309b2`；IDE 配套源码提交：`94c4c5a634`。
 
 ## 1. 目标与非目标
@@ -29,6 +29,8 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
 公开发行身份彼此独立：npm CLI 为 `0.166.72@5f411309b2`；Open VSX `0.37.114@94c4c5a634` 与 JetBrains `0.4.135@94c4c5a634` 均已公开。Microsoft VS Code Marketplace 未发布。
+
+官网发布页与本设计共用上述制品边界；本次文档同步未产生新的 CLI、IDE 或 Desktop 制品。[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)展示的是已公开版本，部署站点不代表扩大决策层的运行范围。
 
 ## 3. 数据流与所有权
 

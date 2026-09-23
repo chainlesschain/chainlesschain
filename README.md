@@ -19,6 +19,8 @@ npm `latest` 为 `0.166.72`，不可变标签 `v-npm-0-166-72` 对应精确提�
 
 `0.166.71` 在默认关闭的类型化 Skill 决策试点中新增 `--decision-provider typesafe|laya|system-one`，可选用本机 Laya 或兼容 `/v1/systemone` 的服务。`0.166.72` 修复本地决策截止的观察与未知用量结算，并让离线质量评测使用单侧 95% 精确二项上界。仍只支持耐久、单 prompt、headless Agent：`shadow` 只记录有界观察，`suggest` 只附加建议而不执行 Skill。IDE 不保存决策模型凭据，也不取得路由或执行权限。Laya 已完成单题本地真实权重联调；真实 TypeSafe API、冻结数据集质量、目标环境延迟和费用评测尚未完成。详见[模块 114 设计](docs/design/modules/114-jev-decision-layer-design.md)、[Skill 决策层用户指南](docs-site/docs/chainlesschain/jev-decision-layer.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
 
+2026-09-24 文档与官网按 `main@c036888c3c` 核对：[官网 CLI](https://www.chainlesschain.com/cli)及[IDE](https://www.chainlesschain.com/ide)页面同步展示上述已公开版本。此次站点与文档更新不改变 npm、插件或 Desktop 的制品版本。
+
 ## 2026-09-20 历史发布 — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131
 
 > 发布边界：CLI、VSIX 与 JetBrains ZIP 是三个独立制品；本节只描述已经完成精确提交门禁并从公开渠道回读的版本。Desktop 原生安装包、生产 KMS/PKI、独立 witness/grader 与自动 active Skill 晋升不在本次发布范围内。
