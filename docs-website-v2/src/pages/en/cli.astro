@@ -126,7 +126,7 @@ const categories = [
       ['mcp add', 'Add an MCP server'],
       ['mcp serve', 'Expose local file tools as an MCP server (root-confined + Bearer auth)'],
       ['mcp tools', 'List available tools'],
-      ['ide status / doctor', 'IDE bridge discovery + diagnostics (VS Code on Open VSX; JetBrains update pending review)'],
+      ['ide status / doctor', 'IDE bridge discovery + diagnostics (paired Open VSX and JetBrains Marketplace versions are public)'],
       ['agent --ide', 'Auto-connect inside the editor: selection shared per prompt, diagnostics fed back, edit approval as native diffs (hunk-level partial accept), Jupyter kernel execution, guided LLM setup (both editors), sidebar chat panel (streaming replies, plan approval, Approve/Deny cards for risky actions, Esc interrupt, session resume + /sessions picker)'],
       ['browse fetch', 'Fetch a web page'],
       ['browse scrape', 'Scrape elements'],
@@ -514,7 +514,7 @@ const packs = [
     <div class="container-wide max-w-4xl">
       <span class="chip">{CLI_VERSION} · default off</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Shadow first, then decide whether to expose suggestions.</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">TypeSafe, Laya, or a compatible System One service can make a typed decision over at most five admitted Skill candidates. This supports durable, single-prompt, headless Agent runs only. IDEs store no decision-model credential and receive no routing or execution authority. Live-model integration and outcome evaluation remain unfinished.</p>
+      <p class="mt-5 text-lg text-muted leading-relaxed">TypeSafe, Laya, or a compatible System One service can make a typed decision over at most five admitted Skill candidates. This supports durable, single-prompt, headless Agent runs only. IDEs store no decision-model credential and receive no routing or execution authority. One local real-weight Laya smoke run is complete, with Chinese routing and default deadline limitations; live TypeSafe API and formal quality, latency, and cost evaluation remain unfinished. CLI 0.166.72 records local decision deadlines as provider-timeout.</p>
       <div class="term-window max-w-3xl mt-8">
         <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
         <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "inspect and repair the unit tests"</div>

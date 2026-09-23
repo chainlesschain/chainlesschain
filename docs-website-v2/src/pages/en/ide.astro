@@ -7,7 +7,6 @@ const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const VSCODE_SOURCE_VERSION = releaseStatus.sourceVsCodeVersion;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
-const JETBRAINS_SOURCE_VERSION = releaseStatus.sourceJetBrainsVersion;
 const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayEn;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${VSCODE_VERSION}/file/chainlesschain.chainlesschain-ide-${VSCODE_VERSION}.vsix`;
@@ -22,7 +21,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE Integration · Open VSX {VSCODE_VERSION} public · JetBrains {JETBRAINS_SOURCE_VERSION} pending</div>
+        <div class="chip mb-6 animate-fade-in">IDE Integration · Open VSX {VSCODE_VERSION} public · JetBrains {JETBRAINS_VERSION} public</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           The agent in your editor:<br/><span class="italic text-ember">sees what you see, changes what you approve</span>.
         </h1>
@@ -38,7 +37,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           <a href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html" rel="noopener" class="btn-ghost">Skill decision model guide ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is public on Open VSX with <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong> downloads and recommends npm latest CLI <strong class="text-ink">{CLI_VERSION}</strong>. JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong> passed its real-host gate and uploaded successfully but still awaits Marketplace review; the current public version is <strong class="text-ink">{JETBRAINS_VERSION}</strong>. No Microsoft VS Code Marketplace build is published.
+          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is public on Open VSX with <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong> downloads and recommends npm latest CLI <strong class="text-ink">{CLI_VERSION}</strong>. JetBrains Marketplace <strong class="text-ink">{JETBRAINS_VERSION}</strong> is approved and publicly listed, and recommends the same CLI version. No Microsoft VS Code Marketplace build is published.
         </p>
         <p class="mt-3 text-sm text-muted">
           Public VS Code {VSCODE_SOURCE_VERSION} / CLI {SOURCE_CLI_VERSION} automatically save bounded task notes. `↗` / Continue in new chat waits for a completed tool boundary before opening an independent session. It copies neither the full prior transcript nor temporary permissions, and invalid history fails before a model call. TypeSafe, Laya, and compatible System One Skill decisions are limited to durable, single-prompt, headless CLI runs; IDEs store no decision-model credential and receive no routing or Skill-execution authority.
@@ -78,7 +77,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           ['Context', 'Request-level Context Center', `Public ${VSCODE_VERSION} / ${JETBRAINS_VERSION} surface execution location, workspace authority, session, workflow, and recovery identity. With CLI ${CLI_VERSION} they use the actual primary-request window and input/output/cache usage, exclude attributed child calls, and label fallback estimates.`],
           ['Effects', 'Side-effect Center', 'Both IDEs summarize permission activity plus scoped grant and revoke entry points. Every change still executes through CLI commands and exact context; the IDE never bypasses authoritative storage.'],
           ['Inline', 'Ask and edit beside a selection', `Open VSX ${VSCODE_VERSION} provides isolated inline sessions, streaming replies, code-block actions, and interaction recovery while retaining the stable/minimum × Linux/Windows/macOS ARM64 multi-window isolation gate. Explain / Refactor / Fix / Docs / Tests are public.`],
-          ['Sync', 'CLI and channel status', `npm latest is chainlesschain@${CLI_VERSION} at commit ${CLI_RELEASE_COMMIT}. Its three-OS CLI CI, Strict Sandbox, OIDC provenance, and public fresh-install readback passed. Open VSX ${VSCODE_VERSION} is public; JetBrains ${JETBRAINS_SOURCE_VERSION} is uploaded and pending review while ${JETBRAINS_VERSION} remains public; Microsoft Marketplace is not published.`],
+          ['Sync', 'CLI and channel status', `npm latest is chainlesschain@${CLI_VERSION} at commit ${CLI_RELEASE_COMMIT}. Its three-OS CLI CI, Strict Sandbox, OIDC provenance, and public fresh-install readback passed. Open VSX ${VSCODE_VERSION} and JetBrains ${JETBRAINS_VERSION} are both public; Microsoft Marketplace is not published.`],
           ['Complete', 'Governed automatic ghost text', 'Manual Alt+\\ completion is unchanged. The default-off automatic path adds cancellable 650 ms debounce, exact-context dedupe/cache, separate hourly request and context budgets, bounded output, and quality fallback. Results slower than five seconds or below quality fail quiet.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
@@ -131,7 +130,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
         <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
           <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain@{CLI_VERSION}</code> (current npm latest <code class="font-mono text-sm">{CLI_VERSION}</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
-          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (public <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, <code class="font-mono text-sm">{JETBRAINS_SOURCE_VERSION}</code> pending review, 2024.2+). Stock VS Code does not query Open VSX, so do not use Open VSX's generic Install link. Download the <a class="underline" href={VSCODE_VSIX_URL}>versioned {VSCODE_VERSION} VSIX</a>, then run <strong class="text-ink">Extensions: Install from VSIX...</strong>.</li>
+          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (public <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, 2024.2+). Stock VS Code does not query Open VSX, so do not use Open VSX's generic Install link. Download the <a class="underline" href={VSCODE_VSIX_URL}>versioned {VSCODE_VERSION} VSIX</a>, then run <strong class="text-ink">Extensions: Install from VSIX...</strong>.</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           Safe defaults: server binds localhost only + per-instance random Bearer token + 0600 lockfile; on the CLI side <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> switch each behavior off.

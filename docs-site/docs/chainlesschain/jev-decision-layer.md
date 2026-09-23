@@ -2,6 +2,8 @@
 
 > 发布边界：`chainlesschain@0.166.72` 继承 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线，并修复本地决策截止时向上抛出超时的行为。默认关闭；仅支持耐久、单 prompt、headless CLI。Laya 已完成一次本地真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
 
+2026-09-24 文档核对基线为 `main@c036888c3c`；[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)同步展示已公开的 CLI `0.166.72`、Open VSX `0.37.114` 和 JetBrains `0.4.135`。本地决策仍需用户显式启用。
+
 ## 概述
 
 `cc agent` 原本会先按目录、权限、兼容性、摘要、撤销状态和检索分数筛选 Skill。决策层在这条既有链路之后增加一个类型化判断：当前任务是否需要 Skill，以及最多五个已准入候选中哪个更合适。它支持 TypeSafe 托管的 Jev、开源本地 Laya，以及实现相同接口的其他模型服务。
