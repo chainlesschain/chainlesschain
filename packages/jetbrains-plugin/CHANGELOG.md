@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.134] - Pair with governed CLI 0.166.71 (2026-09-23)
+
+- Recommend the publicly verified `chainlesschain@0.166.71` release in runtime
+  upgrade guidance and release metadata.
+- Pair with the CLI's optional local Skill decision provider selection while
+  keeping its default `off`, durable-session, candidate,
+  budget, and fail-closed endpoint boundaries in the CLI.
+- Keep decision-model credentials and routing authority out of interactive IDE
+  sessions and the plugin.
+
 ## [0.4.133] - Pair with governed CLI 0.166.70 (2026-09-22)
 
 - Recommend the publicly verified `chainlesschain@0.166.70` release in runtime
