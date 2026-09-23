@@ -10,12 +10,10 @@ import releaseStatus from '../../data/release-status.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
 const PDH_VERSION = pdhPkg.version;
 const PDH_ADAPTER_COUNT = pdhCatalog.count;
-// Published npm CLI version (release-sizes.json, pinned at build by
-// fetch-release-sizes.mjs from npm's `latest` dist-tag). Falls back to the
-// in-repo package.json only if the registry fetch + cache both failed — that
-// fallback can drift ahead of npm during dev, so the pinned value is the norm.
+// Use the verified release-status snapshot for visible CLI versions. The
+// build-time release-sizes fetch updates download metadata independently.
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
-const NPM_LATEST_CLI_VERSION = releaseSizes.cliVersion || releaseStatus.npmLatestCliVersion;
+const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
 const CLI_RELEASE_TAG = releaseStatus.cliReleaseTag;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const SOURCE_HEAD_COMMIT = releaseStatus.sourceHeadCommit.slice(0, 10);
@@ -151,7 +149,7 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          Release note: Agent Platform <code class="font-mono">{CLI_VERSION}</code> is npm latest (<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>), tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. It adds a default-off Jev typed Skill-decision pilot for durable, single-prompt, headless CLI runs only: <code class="font-mono">shadow</code> does not change routing, while <code class="font-mono">suggest</code> attaches a suggestion without executing a Skill. No real TypeSafe credentials or outcome claims are available yet. <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">Read the Jev usage boundary →</a>
+          Release note: Agent Platform <code class="font-mono">{CLI_VERSION}</code> is npm latest (<code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>), tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. It supports default-off TypeSafe, local Laya, and compatible System One Skill decision services for durable, single-prompt, headless CLI runs only: <code class="font-mono">shadow</code> does not change routing, while <code class="font-mono">suggest</code> attaches a suggestion without executing a Skill. Live-model integration and outcome evaluation remain unfinished. <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">Read the setup and limits →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
           Open VSX {VSCODE_VERSION} is public and recommends CLI {CLI_VERSION}. JetBrains {JETBRAINS_PENDING_VERSION}, built from <code class="font-mono">{IDE_RELEASE_COMMIT}</code>, passed its real-host gate and uploaded successfully but still awaits Marketplace review; the current public version is {JETBRAINS_VERSION}. CLI three-OS CI/Strict, OIDC/provenance, and public fresh-install readback passed. The documented source baseline is <code class="font-mono">{SOURCE_HEAD_COMMIT}</code>; Microsoft Marketplace and Desktop native artifacts remain outside this public release.

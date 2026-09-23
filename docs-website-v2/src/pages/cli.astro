@@ -73,7 +73,7 @@ const categories = [
       ['llm test', '测试 LLM 连通性'],
       ['agent', 'Claude Code 风格 agent 会话'],
       ['agent -p', '无头单次执行（claude -p 平价）'],
-      ['agent --decision-mode shadow', '默认关闭的 Jev 类型化 Skill 决策观察（耐久、单 prompt、headless）'],
+      ['agent --decision-provider laya --decision-mode shadow', '默认关闭的本地 Skill 决策观察（耐久、单 prompt、headless；需兼容 /v1/systemone 服务）'],
       ['exec -p', '受治理的 Agent Kernel 单次执行 facade'],
       ['agent --think / --ultrathink', 'Anthropic 扩展思考（含 --thinking-budget）'],
       ['agent --image', '多模态图像输入（视觉模型）'],
@@ -474,7 +474,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          npm latest 为 Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>，标签 <code class="font-mono">{CLI_RELEASE_TAG}</code> 对应提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。本版新增默认关闭的 Jev 决策试点；普通 Agent 聊天无需 Jev 或演进部署。已配置治理链仍验证认证入口，错误不降级，自动晋升保持 HOLD。TypeScript Agent SDK 为 {AGENT_SDK_VERSION}。
+          npm latest 为 Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>，标签 <code class="font-mono">{CLI_RELEASE_TAG}</code> 对应提交 <code class="font-mono">{CLI_RELEASE_COMMIT}</code>。本版支持默认关闭的 TypeSafe、Laya 本地与通用 System One Skill 决策提供方；普通 Agent 聊天无需决策服务或演进部署。已配置治理链仍验证认证入口，错误不降级，自动晋升保持 HOLD。TypeScript Agent SDK 为 {AGENT_SDK_VERSION}。
         </p>
 
         <!-- Install tabs -->
@@ -509,7 +509,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 继承浏览器 action authority、下载耐久 quarantine、PM 有界子进程和恢复控制，并加入 Jev 类型化决策试点。精确 SHA 的 CLI CI/Strict 已通过 Linux、Windows、macOS；OIDC provenance、公共 registry 与全新安装回读均成功。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 继承浏览器 action authority、下载耐久 quarantine、PM 有界子进程和恢复控制，并支持三种类型化 Skill 决策提供方。精确 SHA 的 CLI CI/Strict 已通过 Linux、Windows、macOS；OIDC provenance、公共 registry 与全新安装回读均成功。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>
@@ -518,7 +518,7 @@ const packs = [
     <div class="container-wide max-w-4xl">
       <span class="chip">{CLI_VERSION} · 默认关闭</span>
       <h2 class="mt-5 text-4xl md:text-5xl">先 shadow，再决定是否采用建议。</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">Jev 在既有 Skill 检索与准入之后，对最多五个候选做类型化判断。当前只支持耐久、单 prompt、headless Agent；IDE 不保存 TypeSafe key，也不取得路由或执行 authority。</p>
+      <p class="mt-5 text-lg text-muted leading-relaxed">TypeSafe、Laya 或兼容 System One 的服务可在既有 Skill 检索与准入之后，对最多五个候选做类型化判断。当前只支持耐久、单 prompt、headless Agent；IDE 不保存决策模型凭据，也不取得路由或执行 authority。真实模型联调与效果评测尚未完成。</p>
       <div class="term-window max-w-3xl mt-8">
         <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
         <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "检查并修复单元测试"</div>

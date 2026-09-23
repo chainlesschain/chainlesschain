@@ -68,7 +68,7 @@ const categories = [
       ['llm test', 'Test LLM connectivity'],
       ['agent', 'Claude Code-style agent session'],
       ['agent -p', 'Headless one-shot run (claude -p parity)'],
-      ['agent --decision-mode shadow', 'Default-off Jev typed Skill-decision observation (durable, single-prompt, headless)'],
+      ['agent --decision-provider laya --decision-mode shadow', 'Default-off local Skill decision observation (durable, single-prompt, headless; requires a compatible /v1/systemone service)'],
       ['exec -p', 'Governed one-shot Agent Kernel facade'],
       ['agent --think / --ultrathink', 'Anthropic extended thinking (+ --thinking-budget)'],
       ['agent --image', 'Multimodal image input (vision models)'],
@@ -470,7 +470,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. This release adds a default-off Jev decision pilot; ordinary Agent chat requires neither Jev nor an evolution deployment. Configured governance still validates authenticated ingress and never downgrades on failure. Automatic promotion remains HOLD. TypeScript Agent SDK: {AGENT_SDK_VERSION}.
+          npm latest is Agent Platform <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>, tagged <code class="font-mono">{CLI_RELEASE_TAG}</code> at <code class="font-mono">{CLI_RELEASE_COMMIT}</code>. This release supports default-off TypeSafe, local Laya, and generic System One Skill decision providers; ordinary Agent chat requires no decision service or evolution deployment. Configured governance still validates authenticated ingress and never downgrades on failure. Automatic promotion remains HOLD. TypeScript Agent SDK: {AGENT_SDK_VERSION}.
         </p>
 
         <!-- Install tabs -->
@@ -505,7 +505,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Keep long tasks moving.</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">Interactive streamed tasks can continue beyond the old 50-model-call default. Large-file reads keep their exact position through compaction, reuse unchanged pages and refresh after edits. Slow commands keep the IDE session responsive.</p>
-      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} retains browser action authorities, durable download quarantine, bounded PM child processes, and recovery controls, while adding the Jev typed-decision pilot. Exact-SHA CLI CI/Strict passed on Linux, Windows, and macOS; OIDC provenance, the public registry, and fresh-install readback all passed.</p>
+      <p class="mt-4 text-sm text-muted">Public CLI {CLI_VERSION} retains browser action authorities, durable download quarantine, bounded PM child processes, and recovery controls, while supporting three typed Skill decision providers. Exact-SHA CLI CI/Strict passed on Linux, Windows, and macOS; OIDC provenance, the public registry, and fresh-install readback all passed.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">Read the settings and upgrade guide →</a>
     </div>
   </section>
@@ -514,7 +514,7 @@ const packs = [
     <div class="container-wide max-w-4xl">
       <span class="chip">{CLI_VERSION} · default off</span>
       <h2 class="mt-5 text-4xl md:text-5xl">Shadow first, then decide whether to expose suggestions.</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">Jev makes a typed decision over at most five candidates after existing Skill retrieval and admission. It currently supports durable, single-prompt, headless Agent runs only. IDEs do not store the TypeSafe key or receive routing or execution authority.</p>
+      <p class="mt-5 text-lg text-muted leading-relaxed">TypeSafe, Laya, or a compatible System One service can make a typed decision over at most five admitted Skill candidates. This supports durable, single-prompt, headless Agent runs only. IDEs store no decision-model credential and receive no routing or execution authority. Live-model integration and outcome evaluation remain unfinished.</p>
       <div class="term-window max-w-3xl mt-8">
         <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
         <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "inspect and repair the unit tests"</div>

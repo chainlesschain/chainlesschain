@@ -1,9 +1,8 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
-> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布；默认关闭，真实 TypeSafe API 兼容性、质量、延迟与费用评测尚未完成。<br>
-> 核对日期：2026-09-22<br>
-> Jev 历史实现提交：`80806fd4e9`；CLI 发布提交：`75778a75e1`；历史文档与 IDE 配套提交：`d3c6ee9ba5`。\
-> 当前源码新增 Laya 本地模型和通用 System One 提供方，尚未发布到 npm；`0.166.70` 的发布验证不涵盖这些新增功能。
+> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 已公开 Laya 本地模型和通用 System One 提供方；默认关闭，真实 TypeSafe/Laya 模型联调及质量、延迟与费用评测尚未完成。<br>
+> 核对日期：2026-09-23<br>
+> Jev 历史实现提交：`80806fd4e9`；当前 CLI 发布提交：`fc7d6e102a`；IDE 配套源码提交：`94141e6fef`。
 
 ## 1. 目标与非目标
 
@@ -14,14 +13,14 @@
 
 决策层不承担复杂规划、代码生成、权限裁决、Skill 安装、发布或执行。即使返回肯定建议，也不能绕过现有 allow-list、兼容性、摘要、撤销、预算、审批和执行边界。
 
-Jev 是初始托管模型实现，不构成决策层的专属模型依赖。当前源码通过 `typesafe | laya | system-one` 提供方选择支持开源本地部署；更换模型仍使用相同的有界问题、响应校验和审计路径。Laya 等分类决策模型必须实现原生 System One 协议，普通聊天接口不能直接替代。
+Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI `0.166.71` 通过 `typesafe | laya | system-one` 提供方选择支持开源本地部署；更换模型仍使用相同的有界问题、响应校验和审计路径。Laya 等分类决策模型必须实现原生 System One 协议，普通聊天接口不能直接替代。
 
 ## 2. 当前发布范围
 
 | 表面                     | 当前状态                                                            |
 | ------------------------ | ------------------------------------------------------------------- |
-| CLI                      | `0.166.70` 已公开，支持 `off / shadow / suggest`                    |
-| Laya / 通用 System One   | 当前源码新增，尚未发布；真实权重联调与中文任务效果评测待完成        |
+| CLI                      | `0.166.71` 已公开，支持 `off / shadow / suggest` 与三种 provider    |
+| Laya / 通用 System One   | CLI 已发布接线；真实权重联调与中文任务效果评测待完成                 |
 | 会话                     | 仅耐久、单 prompt、headless `cc agent`                              |
 | 交互 REPL                | 不支持；非 `off` 会失败闭合                                         |
 | `stream-json` 输入       | 不支持；非 `off` 会失败闭合                                         |
@@ -29,7 +28,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。当�
 | TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告 |
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                          |
 
-公开发行身份彼此独立：npm CLI 为 `0.166.70@75778a75e1`；Open VSX `0.37.112@d3c6ee9ba5` 已公开；JetBrains `0.4.133@d3c6ee9ba5` 已上传并通过发行门，当前仍等待 Marketplace 人工审核/公开 listing。Microsoft VS Code Marketplace 未发布。
+公开发行身份彼此独立：npm CLI 为 `0.166.71@fc7d6e102a`；Open VSX `0.37.113@94141e6fef` 已公开；JetBrains `0.4.134@94141e6fef` 已上传并通过发行门，当前公开 listing 仍为 `0.4.133`。Microsoft VS Code Marketplace 未发布。
 
 ## 3. 数据流与所有权
 
@@ -72,16 +71,16 @@ cc agent --session jev-pilot-1 --decision-mode shadow -p "检查并修复单元�
 | 参数                    | 默认值       | 约束                                                                                         |
 | ----------------------- | ------------ | -------------------------------------------------------------------------------------------- |
 | `--decision-mode`       | `off`        | `off`、`shadow`、`suggest`                                                                   |
-| `--decision-provider`   | `typesafe`   | 当前源码新增；`typesafe`、`laya`、`system-one`                                               |
+| `--decision-provider`   | `typesafe`   | `typesafe`、`laya`、`system-one`                                                              |
 | `--decision-model`      | 按提供方选择 | TypeSafe 为 `jev-latest`；Laya 为 `laya`；通用服务必须显式指定                               |
 | `--decision-base-url`   | 按提供方选择 | TypeSafe 为 `https://api.typesafe.ai`；Laya 为 `http://127.0.0.1:8000`；通用服务必须显式指定 |
 | `--decision-timeout-ms` | `800`        | 整数 `50..30000`                                                                             |
 
-上述多提供方参数表描述当前源码；公开 npm `0.166.70` 不支持新增的 `--decision-provider`。在仓库根目录且依赖已安装时，可以运行：
+上述多提供方参数已随 npm `0.166.71` 公开；安装后可以运行：
 
 ```powershell
-node packages/cli/bin/chainlesschain.js agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow -p "检查并修复单元测试"
-node packages/cli/bin/chainlesschain.js agent --session local-decision-1 --decision-provider system-one --decision-model my-local-router --decision-base-url http://127.0.0.1:9000 --decision-mode shadow -p "检查并修复单元测试"
+cc agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow -p "检查并修复单元测试"
+cc agent --session local-decision-1 --decision-provider system-one --decision-model my-local-router --decision-base-url http://127.0.0.1:9000 --decision-mode shadow -p "检查并修复单元测试"
 ```
 
 非 `off` 模式必须使用 `--session`、`--resume` 或 `--continue` 所代表的耐久会话，不能与 `--ephemeral` 组合。TypeSafe 必须使用 `TYPESAFE_API_KEY` 或对应受管 credential transport；Laya 和通用 System One 只读取可选的 `DECISION_API_KEY`，不会回退到 TypeSafe 凭据。所有提供方都不提供命令行 key 参数。
@@ -121,7 +120,7 @@ provider 只发送有界任务查询和最多五个已经准入的 Skill 摘要�
 
 ## 8. IDE 边界
 
-VS Code `0.37.112` 和 JetBrains `0.4.133` 只携带 CLI 配套版本与能力边界说明：
+VS Code `0.37.113` 已公开，JetBrains `0.4.134` 已上传待公开；两端只携带 CLI 配套版本与能力边界说明：
 
 - IDE Webview/JCEF 不读取、保存或转发 `TYPESAFE_API_KEY`；
 - 交互 IDE 会话不会自动添加 `--decision-mode`；
@@ -158,7 +157,7 @@ VS Code `0.37.112` 和 JetBrains `0.4.133` 只携带 CLI 配套版本与能力�
 - `packages/cli/src/runtime/agent-core.js`
 - `packages/cli/src/runtime/headless-runner.js`
 
-单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.70` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该历史记录不覆盖当前源码新增的多提供方功能。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合，不能替代真实权重联调和模型评测。
+单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线。CLI `0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；该证明包含多提供方接线，不代表真实模型联调或效果评测。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合，不能替代真实权重联调和模型评测。
 
 ## 11. 相关文档
 

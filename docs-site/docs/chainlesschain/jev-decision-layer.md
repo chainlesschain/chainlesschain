@@ -1,6 +1,6 @@
 # Skill 决策层试点：Jev、Laya 与本地模型
 
-> 发布边界：`chainlesschain@0.166.70` 已发布 Jev / TypeSafe 试点；本文新增的 `--decision-provider`、Laya 与通用 System One 接入属于当前源码，尚未发布到 npm。默认关闭；仅支持耐久、单 prompt、headless CLI。尚无真实模型质量、延迟或费用收益结论。
+> 发布边界：`chainlesschain@0.166.71` 已发布 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线。默认关闭；仅支持耐久、单 prompt、headless CLI。尚无真实模型联调或质量、延迟、费用收益结论。
 
 ## 概述
 
@@ -12,12 +12,12 @@
 
 ## 配置参考
 
-### 已发布的 Jev 试点
+### 安装已发布的 CLI
 
-公开 CLI `0.166.70` 仍可按原方式安装和使用 TypeSafe：
+公开 CLI `0.166.71` 可选择 TypeSafe、Laya 或兼容 System One 的服务：
 
 ```bash
-npm i -g chainlesschain@0.166.70 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.71 --registry https://registry.npmjs.org
 cc --version
 ```
 
@@ -35,9 +35,9 @@ Bash：
 export TYPESAFE_API_KEY='<secret>'
 ```
 
-当前项目维护环境尚无该凭据，因此公开版本只证明接线、校验和失败闭合，不证明真实 Jev API 已联调成功。
+当前项目维护环境尚无该凭据，因此发布验证只证明接线、校验和失败闭合，不证明真实 Jev API 已联调成功。
 
-### 当前源码参数参考（尚未发布）
+### 已发布参数参考
 
 | 参数                             | 默认值       | 说明                                                                                         |
 | -------------------------------- | ------------ | -------------------------------------------------------------------------------------------- |
@@ -51,7 +51,7 @@ Laya 提供方只允许 loopback 地址。`typesafe` 和 `system-one` 只接受 
 
 TypeSafe 必须使用 `TYPESAFE_API_KEY`；本地 Laya 默认不需要 key。Laya 和通用 System One 服务只在需要认证时读取可选的 `DECISION_API_KEY`，不会读取或转发 TypeSafe 凭据。删除 `--decision-mode` 或使用 `--decision-mode off` 即恢复原路径，不读取决策凭据，也不发起决策调用。
 
-### Laya 本地接入（当前源码）
+### Laya 本地接入
 
 [Laya 官方仓库](https://github.com/NandhaKishorM/laya)及[模型权重](https://huggingface.co/convaiinnovations/laya)采用 Apache-2.0 许可证。它是对有限选项输出概率的分类决策模型，不是聊天生成模型；不能直接把 Hugging Face 地址当作 API，也不能通过 Ollama 的普通聊天接口替代本协议。
 
@@ -64,22 +64,22 @@ $env:LAYA_SERVE_PRELOAD = "true"
 python -m uvicorn laya_serve.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-首次启动需要下载依赖和权重；离线使用前应准备本地缓存。预加载完成后，在仓库根目录的另一个终端运行当前源码 CLI（依赖须已安装）：
+首次启动需要下载依赖和权重；离线使用前应准备本地缓存。预加载完成后，在另一个终端运行已安装的 CLI：
 
 ```powershell
-node packages/cli/bin/chainlesschain.js agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow -p "检查并修复单元测试"
+cc agent --session laya-pilot-1 --decision-provider laya --decision-mode shadow -p "检查并修复单元测试"
 ```
 
 Laya 根目录英文权重约 421M 参数，最大序列长度 512 tokens；中文等语言使用约 322M 参数、默认 1024 tokens 的[多语言权重](https://huggingface.co/convaiinnovations/laya-multilingual)。该服务通过上游 Router 自动选择语言；请求中的 `model=laya` 是服务别名，不是权重选择器。默认响应标签 `laya-english` 也不能证明实际加载的是英文权重；`LAYA_SERVE_SERVING_MODEL` 仅修改标签。评测须固定并核验实际模型 checkpoint。
 
 较长任务和候选摘要可能被模型截断，必须单独评测中文路由、上下文长度和候选召回。首次加载、CPU 推理可能超过默认 800 ms，可在实验时显式调整超时；调整不代表已满足正式延迟门槛。
 
-### 其他本地或自托管模型（当前源码）
+### 其他本地或自托管模型
 
 服务必须原生实现 `POST /v1/systemone`：请求包含 `model`、`state`、`questions`，响应包含按问题返回的类型化 `answers`、有效 `usage` 和模型标签。仅兼容 OpenAI Chat Completions 的模型服务需要另行实现该适配层。
 
 ```powershell
-node packages/cli/bin/chainlesschain.js agent --session local-decision-1 --decision-provider system-one --decision-model my-local-router --decision-base-url http://127.0.0.1:9000 --decision-mode shadow -p "检查并修复单元测试"
+cc agent --session local-decision-1 --decision-provider system-one --decision-model my-local-router --decision-base-url http://127.0.0.1:9000 --decision-mode shadow -p "检查并修复单元测试"
 ```
 
 `system-one` 不猜测模型名或地址；两者必须显式指定。需要认证时在运行前设置 `$env:DECISION_API_KEY = "<secret>"`。选择远程 HTTPS 服务时，任务文本和候选摘要会发送至该服务。
@@ -92,7 +92,7 @@ cc agent --session jev-pilot-1 \
   -p "检查并修复单元测试"
 ```
 
-以上 `cc` 示例适用于已发布的 Jev 试点；当前源码选择其他提供方时使用前述 `node ... --decision-provider ...` 命令。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。
+以上 `cc` 示例均适用于已发布的 `0.166.71`。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。
 
 `suggest` 会把经过校验的建议附加到 `list_skills(query)` 的 `routing.decisionSuggestion`：
 
@@ -115,7 +115,7 @@ cc agent --session jev-pilot-1 \
 | `--input-format stream-json`                   | 不支持     |
 | VS Code / JetBrains Chat 面板                  | 不直接支持 |
 
-VS Code `0.37.112` 已在 Open VSX 公开；JetBrains `0.4.133` 已上传并等待 Marketplace 审核。两个 IDE 配套版都不会保存 TypeSafe key，也不会替用户打开 Jev 模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
+VS Code `0.37.113` 已在 Open VSX 公开；JetBrains `0.4.134` 已上传并等待 Marketplace 公开，当前公开版为 `0.4.133`。两个 IDE 配套版都不会保存决策模型凭据，也不会替用户打开决策模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
 
 ## 系统架构
 
@@ -135,7 +135,7 @@ VS Code `0.37.112` 已在 Open VSX 公开；JetBrains `0.4.133` 已上传并等�
 
 ## 测试覆盖
 
-工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。历史版本 `0.166.70` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录不涵盖当前源码新增的多提供方功能。新功能发布仍需精确提交通过两个工作流的完整操作系统矩阵。工程测试不替代真实权重的兼容性和效果评测。
+工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.71@fc7d6e102a` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线。工程测试不替代真实权重的兼容性和效果评测。
 
 ## 安全考虑
 

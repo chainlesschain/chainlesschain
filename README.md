@@ -2,22 +2,22 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.70`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.71`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.70 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.71 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-09-22 当前发布 — CLI 0.166.70 / Open VSX 0.37.112 / JetBrains 0.4.133 待审核
+## 2026-09-23 当前发布 — CLI 0.166.71 / Open VSX 0.37.113 / JetBrains 0.4.133 公开
 
-> 发布边界：npm `chainlesschain@0.166.70` 与 Open VSX `0.37.112` 已公开回读；JetBrains `0.4.133` 已上传且发行工作流成功，仍等待 Marketplace 人工审核/listing，当前公开版本为 `0.4.132`。Microsoft VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行，Desktop 原生安装包继续独立验收。
+> 发布边界：npm `chainlesschain@0.166.71` 与 Open VSX `0.37.113` 已公开回读；JetBrains Marketplace 当前公开版本为 `0.4.133`。配套 CLI `0.166.71` 的 JetBrains `0.4.134` 已通过发行工作流并上传，仍待 Marketplace 公开 listing。Microsoft VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行，Desktop 原生安装包继续独立验收。
 
-npm `latest` 为 `0.166.70`，不可变标签 `v-npm-0-166-70` 对应精确提交 `75778a75e1`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35676770114) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35676769861) 已通过 Linux、Windows、macOS 全部配置任务；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35680764600)和[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35681664508)成功。配套源码边界为 `d3c6ee9ba5`：[Open VSX `0.37.112`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开；[JetBrains `0.4.133` 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35685611535)完成上传，但公开 API 尚未列出该版本。
+npm `latest` 为 `0.166.71`，不可变标签 `v-npm-0-166-71` 对应精确提交 `fc7d6e102a`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35805928010) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35805932793) 已通过配置的 Linux、Windows、macOS 任务；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35810795671)和[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35811559611)成功。配套 IDE 源码边界为 `94141e6fef`：[Open VSX `0.37.113`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开；[JetBrains `0.4.134` 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35820067327)完成上传，公开 API 目前仍列出 `0.4.133`。
 
-本版在提交 `80806fd4e9` 引入默认关闭的 Jev 类型化 Skill 决策试点。当前只支持耐久、单 prompt、headless Agent：`--decision-mode shadow` 只记录有界决策、绝不改变既有路由；`suggest` 仅在结果中附加 `routing.decisionSuggestion`，不会执行所建议的 Skill。IDE 不保存 TypeSafe key，也不取得路由或执行 authority。项目目前没有真实 TypeSafe API 凭据，因此发布声明不包含真实 API 联调、质量、延迟或成本收益。详见[模块 114 设计](docs/design/modules/114-jev-decision-layer-design.md)、[Jev 用户指南](docs-site/docs/chainlesschain/jev-decision-layer.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
+`0.166.71` 在默认关闭的类型化 Skill 决策试点中新增 `--decision-provider typesafe|laya|system-one`，可选用本机 Laya 或兼容 `/v1/systemone` 的服务。仍只支持耐久、单 prompt、headless Agent：`shadow` 只记录有界观察，`suggest` 只附加建议而不执行 Skill。IDE 不保存决策模型凭据，也不取得路由或执行权限。项目尚未完成真实 TypeSafe/Laya 模型联调和质量、延迟、成本评测。详见[模块 114 设计](docs/design/modules/114-jev-decision-layer-design.md)、[Skill 决策层用户指南](docs-site/docs/chainlesschain/jev-decision-layer.md)和[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。
 
 ## 2026-09-20 历史发布 — CLI 0.166.68 / Open VSX 0.37.110 / JetBrains 0.4.131
 
