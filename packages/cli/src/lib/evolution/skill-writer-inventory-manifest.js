@@ -166,7 +166,10 @@ export const SKILL_WRITER_INVENTORY = Object.freeze({
         symbol: "_executeRunCode",
         evidence: [
           "async function _executeRunCode(args, cwd)",
-          "output = runCodeProcess(interpreter, [scriptPath]",
+          "output = runCodeProcess(",
+          'bashStdin ? ["-s", "--"] : [scriptPath]',
+          "...(bashStdin ? { input: code } : {})",
+          "...pluginBinSandboxOptions",
         ],
       },
     }),
