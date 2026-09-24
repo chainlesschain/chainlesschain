@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -3115,7 +3116,10 @@ describe("PM effect report from signed Eval Gate evidence", () => {
   fullEvaluationTest(
     "binds signed PM rows and durable preparation settlements without upgrading the decision",
     async () => {
-      const root = mkdtempSync(join(tmpdir(), "pm-effect-provider-bundle-"));
+      // The artifact port requires physical path components; macOS /var is a symlink.
+      const root = mkdtempSync(
+        join(realpathSync(tmpdir()), "pm-effect-provider-bundle-"),
+      );
       try {
         const adapter = preparationSettlementAdapter(root);
         const store = capturePmExplorationProviderSettlementStore(adapter);
