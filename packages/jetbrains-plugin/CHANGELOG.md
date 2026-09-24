@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.136] - Pair with CLI 0.166.73 PM evidence workflow (2026-09-24)
+
+- Recommend `chainlesschain@0.166.73` in runtime upgrade guidance and release metadata.
+- Pair with the CLI's offline, signed PM effect evidence and conservative cohort accounting. Target-environment PM/Pilot outcomes and complete costs remain unverified.
+- Keep Eval authority and provider credentials in the CLI host; the plugin gains no new execution authority.
+
 ## [0.4.135] - Pair with CLI 0.166.72 decision timeout fix (2026-09-23)
 
 - Recommend the publicly verified `chainlesschain@0.166.72` release in runtime
