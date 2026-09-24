@@ -876,20 +876,15 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     input.value = "";
     turnTokens = null; // fresh tally for the new turn
     updateStatus("thinking…");
-    // Arm the send-acknowledgement timeout: if no event arrives within 30
-    // seconds, the agent likely failed to start (wrong cc binary, spawn error,
-    // or C compiler waiting on stdin). The user gets a visible error instead of
-    // an eternal "thinking…" spinner.
+    // This timer measures host acknowledgement, not model response time.
+    // Silence alone cannot diagnose a missing CLI or a failed provider.
     clearSendTimer();
     sendTimer = setTimeout(() => {
       sendTimer = null;
-      log.setAttribute("aria-busy", "false");
-      updateStatus("no response");
-      add("error",
-        "No response from the agent after 30s. The cc CLI may not be installed " +
-        "(npm i -g chainlesschain), or 'cc' on your PATH may be a different " +
-        "tool (e.g., a C compiler). Check the Output panel (ChainlessChain) " +
-        "for details, or set chainlesschain.cli.path in settings."
+      updateStatus("waiting for acknowledgement…");
+      add("info",
+        "No acknowledgement after 30s. The request may still be starting or queued. " +
+        "Check the Output panel (ChainlessChain) for process and connection details."
       );
     }, 30000);
   }
@@ -910,9 +905,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (imeComposing || e.isComposing || e.keyCode === 229) return;
     vscode.postMessage({ type: "interrupt" });
   });
-  // Send timeout guard: if no response event arrives within 30 seconds after
-  // sending, surface a diagnostic error so the user isn't left on "thinking…"
-  // forever (e.g., spawn failed, wrong cc binary, or C compiler hung on stdin).
+  // Send acknowledgement timeout; process errors are reported by the host.
   let sendTimer = null;
   function clearSendTimer() {
     if (sendTimer !== null) { clearTimeout(sendTimer); sendTimer = null; }

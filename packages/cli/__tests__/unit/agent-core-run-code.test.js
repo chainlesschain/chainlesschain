@@ -261,6 +261,37 @@ describe("executeTool — run_code enhancements", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
+  it("passes Bash source literally across native Windows and POSIX path dialects", async () => {
+    const original = _agentToolProcessDeps.runCode;
+    const code = 'printf "%s\\n" "a b" \'literal $HOME; `id`\'\n';
+    const runCode = vi.fn((file, argv, options) => {
+      expect(file).toBe("bash");
+      expect(options.shell).toBe(false);
+      expect(options.cwd).toBe(canonicalTempDir);
+      if (process.platform === "win32") {
+        expect(argv).toEqual(["-s", "--"]);
+        expect(options.input).toBe(code);
+      } else {
+        expect(argv).toHaveLength(1);
+        expect(fs.readFileSync(argv[0], "utf8")).toBe(code);
+      }
+      return "a b\nliteral $HOME; `id`\n";
+    });
+    _agentToolProcessDeps.runCode = runCode;
+    try {
+      const result = await executeTool(
+        "run_code",
+        { language: "bash", code },
+        { cwd: tempDir },
+      );
+      expect(result.success).toBe(true);
+      expect(result.output).toContain("literal $HOME; `id`");
+      expect(runCode).toHaveBeenCalledOnce();
+    } finally {
+      _agentToolProcessDeps.runCode = original;
+    }
+  });
+
   it("fails closed before cli-anything probes Python without the required sandbox policy", async () => {
     installStrictRunCodePolicy(tempDir);
     const original = _agentToolProcessDeps.runCode;

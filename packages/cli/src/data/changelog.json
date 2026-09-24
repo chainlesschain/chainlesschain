@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.74",
+      "cliVersions": ["0.166.74"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.74: recover stalled IDE investigations",
+          "body": "- Count wrapped GitHub queries, saved-log parsing, repository inspection, and\n  fetches as investigation instead of resetting task-progress recovery. Retain\n  evidence through context compaction and direct the next step toward focused\n  validation or an authorized change.\n- Pass Windows Bash source through standard input so Git Bash and WSL do not\n  misinterpret native temporary script paths. Preserve execution approval and\n  sandbox boundaries.\n- Clarify Git argument-only calls, predicate exit codes, actual remote names,\n  explicit PowerShell selection, and UTF-8 BOM handling in saved JSON.\n- Include the PM evidence test's physical temporary-directory fix for macOS\n  and Windows, alongside the offline PM effect evidence prepared in 0.166.73."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.73",
       "cliVersions": ["0.166.73"],
       "date": null,

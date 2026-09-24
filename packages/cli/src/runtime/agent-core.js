@@ -1128,6 +1128,8 @@ Key behaviors:
 - For CI log retrieval, inspect command stderr before retrying. Match syntax to the actual shell: Windows PowerShell 5 does not support &&, cmd treats single quotes literally, and head is not a Windows builtin. Prefer a plain gh metadata/log command without jq or pipelines first, then inspect the saved output. Never switch shells to bypass a policy denial.
 - For long-running commands (builds, full test suites, dev servers) set run_shell { run_in_background: true } to get a task_id back immediately, then poll output and completion with check_shell { task_id }. Kill a backgrounded server with check_shell { task_id, kill: true } when finished
 - When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
+- The git tool accepts ONE Git argument list, without pipes, redirects, &&, semicolons or echo. Use log -n 5 instead of piping to head; inspect the returned exitCode for predicates such as merge-base --is-ancestor (1 means false). Discover remote names with remote -v; do not assume origin exists.
+- On Windows, run_shell defaults to cmd unless configured otherwise. Set shell: "powershell" for PowerShell syntax or shell: "pwsh" for PowerShell 7. Parse saved JSON after stripping an initial UTF-8 BOM; a BOM parse error is not a JavaScript syntax defect.
 - When asked about files or code, use search_files to locate relevant sections, then read_file with offset/limit. Follow nextRead for large files. Reuse unchanged content already in context instead of repeatedly reading the same page; re-read when the file changes or the earlier content is no longer available.
 - For long text files, use search_files with path and pattern to find matching lines/columns and nearby text; read the returned nextRead location instead of paging from the top.
 - For online discovery without a known URL, use web_search with keywords. Return relevant source links and snippets; use web_fetch only when the source needs closer reading. For a known URL, fetch it directly. Download large pages once, then use snapshotId to search or read local chunks. Never invent URLs or claim a blocked search returned no results.
@@ -9396,13 +9398,22 @@ async function _executeRunCode(args, cwd) {
     const start = Date.now();
     let output;
     try {
-      output = runCodeProcess(interpreter, [scriptPath], {
-        cwd,
-        encoding: "utf8",
-        timeout: timeoutSec * 1000,
-        maxBuffer: 5 * 1024 * 1024,
-        ...pluginBinSandboxOptions,
-      });
+      // Windows may resolve bash to Git Bash or WSL. Neither should receive a
+      // native temp pathname as a shell token. Stdin preserves the script bytes
+      // across both path dialects, without an extra shell or path conversion.
+      const bashStdin = lang === "bash" && process.platform === "win32";
+      output = runCodeProcess(
+        interpreter,
+        bashStdin ? ["-s", "--"] : [scriptPath],
+        {
+          cwd,
+          ...(bashStdin ? { input: code } : {}),
+          encoding: "utf8",
+          timeout: timeoutSec * 1000,
+          maxBuffer: 5 * 1024 * 1024,
+          ...pluginBinSandboxOptions,
+        },
+      );
     } catch (err) {
       // Broker boundary errors carry the required/actual/missing guarantees and
       // backend attestation. Preserve that exact structured error for callers
