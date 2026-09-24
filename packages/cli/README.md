@@ -2,7 +2,7 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Release target: `chainlesschain@0.166.72`, published only after the exact
+> Release target: `chainlesschain@0.166.73`, published only after the exact
 > source commit passes every configured Linux, Windows, and macOS job in CLI CI
 > and CLI Strict Sandbox. The release requires Session Core `0.3.13`,
 > Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` to be public, then
@@ -13,7 +13,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.72
+npm install -g chainlesschain@0.166.73
 chainlesschain setup
 ```
 
@@ -36,6 +36,19 @@ cc
 # Piped input runs one non-interactive agent turn
 git diff | cc
 ```
+
+## Offline PM effect evidence (0.166.73)
+
+The CLI package includes `scripts/pm-exploration-effect.mjs` for offline plan,
+report, and frozen cohort slot preparation and verification. The workflow can
+recheck signed Eval receipts, preserve unresolved observations from missing or
+rejected runs, and total signed execution usage. Save the plan and slot
+manifest digests independently before collection; matching digests alone do
+not prove preregistration time or complete launch coverage.
+
+These artifacts do not authorize promotion or Pilot. Target-environment PM/Pilot
+outcomes, full preparation and provider costs, and complete launch coverage
+still require independent validation.
 
 ## Long-running tasks and bounded recovery (0.166.71)
 
