@@ -1,11 +1,20 @@
 import { createHash, createHmac } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { replicaAuthority } from "../fixtures/skill-revocation-release-registry.js";
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -22,6 +31,7 @@ import {
   EVOLUTION_EVAL_LEAKAGE_CODE,
   EVOLUTION_EVAL_PROVENANCE_SCHEMA,
   EVOLUTION_EVAL_REPLAY_SCHEMA,
+  EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA,
   EVOLUTION_EVAL_SAFETY_FAILED_CODE,
   EVOLUTION_EVAL_SAFETY_SCHEMA,
   EVOLUTION_EVAL_SUBJECT_SCHEMA,
@@ -48,13 +58,53 @@ import {
   computeEvolutionEvalSupervisedResultDigest,
   computeEvolutionEvalTargetAuthorityDigest,
   runEvolutionEvalGate,
+  runEvolutionEvalGateWithEvidence,
+  runEvolutionEvalGateWithFailureEvidence,
   verifyEvolutionEvalPolicy,
   verifyEvolutionEvalReceipt,
+  verifyEvolutionEvalResultEvidence,
   verifyEvolutionEvalSuite,
   verifyEvolutionEvalTask,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
+import {
+  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+  EvolutionArtifactPorts,
+} from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { executePmExplorationBudgetedOperation } from "../../src/lib/evolution/pm-exploration-budget-executor.js";
+import {
+  PmExplorationProviderSettlementAdapter,
+  capturePmExplorationProviderSettlementStore,
+} from "../../src/lib/evolution/pm-exploration-provider-settlement-adapter.js";
+import {
+  createPmExplorationVolcengineProvider,
+  invokePmExplorationVolcengine,
+} from "../../src/lib/evolution/pm-exploration-volcengine-provider.js";
+import {
+  buildPmExplorationSuite,
+  buildPmExplorationEffectPlan,
+  buildPmExplorationEffectEvidenceReport,
+  buildPmExplorationEffectAttemptCohort,
+  buildPmExplorationEffectCohortUsageEvidence,
+  buildPmExplorationEffectManifestBoundCohort,
+  buildPmExplorationEffectInterruptedEvidence,
+  buildPmExplorationEffectPreflightRejectionEvidence,
+  buildPmExplorationEffectRuntimeFailureEvidence,
+  buildPmExplorationEffectProviderEvidenceBundle,
+  buildPmExplorationPreparationProviderEvidence,
+  buildPmExplorationEffectSlotManifest,
+  verifyPmExplorationEffectEvidenceReport,
+  verifyPmExplorationEffectAttemptCohort,
+  verifyPmExplorationEffectCohortUsageEvidence,
+  verifyPmExplorationEffectManifestBoundCohort,
+  verifyPmExplorationEffectInterruptedEvidence,
+  verifyPmExplorationEffectPreflightRejectionEvidence,
+  verifyPmExplorationEffectRuntimeFailureEvidence,
+  verifyPmExplorationEffectProviderEvidenceBundle,
+  verifyPmExplorationEffectReport,
+  verifyPmExplorationEffectSlotManifest,
+} from "../../src/lib/evolution/pm-exploration-benchmark.js";
 
 const CANDIDATE_ID = `sha256:${"c".repeat(64)}`;
 const BASELINE_ID = `sha256:${"b".repeat(64)}`;
@@ -1039,6 +1089,8 @@ function makeHarness({
     errors: 0,
   },
   gradeOverride,
+  gradeQualityOverride,
+  primaryGraderId = "objective-grader",
   baselineUnsafe = () => false,
   candidateUnsafe = () => false,
   graderCrashSplit,
@@ -1493,7 +1545,11 @@ function makeHarness({
         taskDigest: request.taskDigest,
         executionDigest: request.executionDigest,
         pass,
-        qualityScore: pass ? 1 : 0,
+        qualityScore: gradeQualityOverride
+          ? gradeQualityOverride({ request, task: evalTask, pass })
+          : pass
+            ? 1
+            : 0,
         detail: pass ? "objective match" : "objective mismatch",
         graderRevision: crypto.revisions.grader,
         issuedAt: request.requestedAt,
@@ -1510,8 +1566,10 @@ function makeHarness({
   });
   registerTarget(graderTarget, objectiveGrader.grade);
   const objectiveGraderPort = targetPort("grade", graderTarget);
-  const graderRegistry = new Map([["objective-grader", objectiveGraderPort]]);
-  const graderPolicies = new Map(crypto.graderAuthorityPolicies);
+  const graderRegistry = new Map([[primaryGraderId, objectiveGraderPort]]);
+  const graderPolicies = new Map([
+    [primaryGraderId, crypto.graderAuthorityPolicies.get("objective-grader")],
+  ]);
   for (const [graderId, graderPolicy] of additionalGraderPolicies) {
     const extraTarget = isolatedTarget({
       handlerId: graderId,
@@ -1899,6 +1957,1831 @@ async function rejectionWithin(operation, maximumMs) {
     clearTimeout(timer);
   }
 }
+
+describe("PM effect report from signed Eval Gate evidence", () => {
+  let harness;
+  let source;
+  let registered;
+  let report;
+  let planInput;
+  const hash = (value) =>
+    `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  const metrics = {
+    tokens: 100,
+    latencyMs: 100,
+    toolCalls: 4,
+    costMicrounits: 10,
+    errors: 1,
+  };
+  const gradeQualityOverride = ({ task, pass }) =>
+    task.id === "pm-test-0" ? 0.5 : pass ? 1 : 0;
+  const fixtureOptions = () => ({
+    suite: source.suite,
+    evalPolicy: source.policy,
+    primaryGraderId: "pm-objective-outcome-v1",
+    baselineMetrics: metrics,
+    candidateMetrics: metrics,
+    gradeQualityOverride,
+  });
+  const expectedFor = (receipt) => ({
+    planDigest: source.plan.planDigest,
+    targetMatrixRoot: TARGET_MATRIX_ROOT,
+    cellId: RUN_REQUEST.evaluationContext.cellId,
+    runtimeId: RUN_REQUEST.evaluationContext.runtimeId,
+    receiptContext: expectedReceiptContext(receipt),
+  });
+  const build = (
+    value = structuredClone(source),
+    expected = structuredClone(registered),
+    verifier = harness.receiptVerifier,
+  ) => buildPmExplorationEffectEvidenceReport(verifier, value, expected);
+
+  function preparationSettlementAdapter(root) {
+    const now = Date.parse("2026-09-18T06:00:00.000Z");
+    const artifactTenantId = "pm-effect-provider-artifact-tenant";
+    const authority = replicaAuthority(join(root, "replica"));
+    const keyId = "test:pm-effect-provider-artifact";
+    const policyDigest = hash("pm-effect-provider-artifact-policy");
+    const sign = (message) =>
+      createHmac("sha256", "test-only-pm-effect-provider-artifact-key")
+        .update(message)
+        .digest("base64url");
+    const canonical = (value) =>
+      value === null || typeof value !== "object"
+        ? JSON.stringify(value)
+        : Array.isArray(value)
+          ? `[${value.map(canonical).join(",")}]`
+          : `{${Object.keys(value)
+              .sort()
+              .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+              .join(",")}}`;
+    const artifactPorts = new EvolutionArtifactPorts({
+      artifactStore: new ArtifactStore({
+        dir: join(root, "artifacts"),
+        now: () => now,
+      }),
+      audience: "evolution-runtime",
+      tenantId: artifactTenantId,
+      now: () => now,
+      envelopeSigner: {
+        sign: ({ message }) => ({
+          algorithm: "hmac-sha256",
+          keyId,
+          value: sign(message),
+        }),
+      },
+      envelopeVerifier: {
+        verify: ({ message, signature }) =>
+          signature.algorithm === "hmac-sha256" &&
+          signature.keyId === keyId &&
+          signature.value === sign(message),
+      },
+      currentAuthorityResolver: {
+        resolve(request) {
+          const core = {
+            action: request.action,
+            algorithm: "hmac-sha256",
+            allowed: true,
+            audience: request.audience,
+            checkedAt: "2026-09-18T06:00:00.000Z",
+            decisionExpiresAt: "2026-09-18T06:01:00.000Z",
+            digest: request.digest,
+            issuedAt: request.issuedAt,
+            issuedPolicyDigest: request.issuedPolicyDigest,
+            issuedPolicyRevision: request.issuedPolicyRevision,
+            issuedPolicyTrusted: true,
+            keyId: request.keyId || keyId,
+            policyDigest,
+            policyRevision: 1,
+            purpose: request.purpose,
+            requestedAt: request.requestedAt,
+            retention: request.retention,
+            revocationRevision: 1,
+            revoked: false,
+            schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+            tenantId: request.tenantId,
+            type: request.type,
+          };
+          return {
+            ...core,
+            receiptDigest: hash(
+              `chainlesschain.evolution-artifact-authority-decision/v1\0${canonical(core)}`,
+            ),
+          };
+        },
+      },
+    });
+    return new PmExplorationProviderSettlementAdapter({
+      descriptor: {
+        tenantId: "pm-effect-provider-tenant",
+        artifactTenantId,
+        audience: "evolution-runtime",
+        purpose: "evolution-ledger",
+        durabilityAuthorityId: authority.id,
+        handlerArtifactDigest: hash("signed-pm-effect-provider-handler"),
+      },
+      artifactPorts,
+      artifactDurabilityAuthority: authority,
+    });
+  }
+
+  beforeAll(async () => {
+    const suite = buildPmExplorationSuite({
+      suiteId: "pm-signed-effect",
+      datasetVersion: "pm-test-dataset-v1",
+      tasks: ["training", "validation", "test"].flatMap((split) =>
+        Array.from({ length: split === "training" ? 30 : 20 }, (_, index) => {
+          const id = `pm-${split}-${index}`;
+          return {
+            id,
+            split,
+            groups: Object.fromEntries(
+              ["template", "project", "principal", "timeWindow"].map((key) => [
+                key,
+                `${key}-${id}`,
+              ]),
+            ),
+            prompt: `Complete ${id}`,
+            expected: {
+              kind: "project-state",
+              id: `private-${id}`,
+              name: `private-${id}`,
+              status: "completed",
+            },
+          };
+        }),
+      ),
+    });
+    planInput = {
+      experimentId: "pm-signed-comparison",
+      suite,
+      policy: policy(),
+      baselineVersion: { id: "pm-baseline", artifactDigest: BASELINE_ID },
+      candidateVersion: { id: "pm-candidate", artifactDigest: CANDIDATE_ID },
+      actorConfigDigest: hash("actor"),
+      modelConfigDigest: hash("model"),
+      toolPolicyDigest: hash("tools"),
+      permissionPolicyDigest: hash("permissions"),
+      environmentDigest: ENVIRONMENT_DIGEST,
+      resetProtocolDigest: hash("reset"),
+      seeds: [101, 202, 303],
+      budgetPerArmPerSeed: {
+        maxTokens: 4500,
+        maxToolCalls: 1000,
+        maxWallClockMs: 60000,
+        maxCostMicrounits: 10000,
+      },
+      minimumPassRateDelta: 0.05,
+      minimumIndependentGroups: 4,
+    };
+    const plan = buildPmExplorationEffectPlan(planInput);
+    const phaseUsage = plan.seeds.map((seed) => ({
+      seed,
+      ...Object.fromEntries(
+        ["baseline", "candidate"].map((arm) => [
+          arm,
+          plan.costPhases.map((phase) => ({
+            phase,
+            usage:
+              arm === "candidate"
+                ? {
+                    receiptDigest: hash(`${arm}-${seed}-${phase}`),
+                    tokens: 10,
+                    toolCalls: 1,
+                    wallClockMs: 5,
+                    costMicrounits: 2,
+                  }
+                : {
+                    receiptDigest: null,
+                    tokens: 0,
+                    toolCalls: 0,
+                    wallClockMs: 0,
+                    costMicrounits: 0,
+                  },
+          })),
+        ]),
+      ),
+    }));
+    source = { plan, suite, policy: planInput.policy, phaseUsage };
+    harness = makeHarness(fixtureOptions());
+    const result = await runEvolutionEvalGateWithEvidence(harness.gate, {
+      ...RUN_REQUEST,
+      evaluationContext: {
+        ...RUN_REQUEST.evaluationContext,
+        planDigest: plan.planDigest,
+      },
+    });
+    source = { ...source, ...result };
+    registered = expectedFor(result.receipt);
+    report = await build();
+  }, FULL_EVALUATION_TEST_TIMEOUT_MS);
+
+  it("projects signed PM tasks into strict completion statistics and retains source bindings", () => {
+    expect(source.receipt.test.candidate.passCount).toBe(60);
+    expect(report).toMatchObject({
+      planDigest: source.plan.planDigest,
+      sourceEvalRunId: source.receipt.runId,
+      sourceEvalReceiptDigest: source.receipt.receiptDigest,
+      sourceResultEvidenceDigest: source.resultEvidence.evidenceDigest,
+      sourceEvalDecision: "accepted",
+      executionEvidenceAuthenticated: true,
+      preparationEvidenceAuthenticated: false,
+      reportAuthenticated: false,
+      evidenceDecision: "insufficient-evidence",
+      blockingReasons: ["preparation-costs-unverified"],
+      requiresIndependentPilotApproval: true,
+      qualifiesForPromotion: false,
+      report: {
+        runCount: 3,
+        independentGroupCount: 20,
+        pairedObservationCount: 60,
+        candidate: { passCount: 57, failureCounts: { incomplete: 3 } },
+        baseline: { passCount: 0, failureCounts: { unknown: 60 } },
+        evidenceDecision: "threshold-met",
+      },
+      testExecutionErrors: { baseline: 60, candidate: 60 },
+    });
+    expect(
+      verifyPmExplorationEffectReport({
+        plan: source.plan,
+        report: report.report,
+      }),
+    ).toEqual(report.report);
+    for (const run of report.report.runs) {
+      expect(run.cases).toHaveLength(20);
+      const partial = run.cases.find((row) => row.taskId === "pm-test-0");
+      expect(partial.candidate).toMatchObject({
+        score: 0.5,
+        passed: false,
+        failureClass: "none",
+      });
+      const task = source.suite.tasks.find(
+        (task) => task.id === partial.taskId,
+      );
+      const original = source.resultEvidence.test.candidate.find(
+        (row) => row.seed === run.seed && row.taskDigest === task.taskDigest,
+      );
+      expect(partial.candidate.outcomeReceiptDigest).toBe(
+        original.executionDigest,
+      );
+      expect(partial.candidate.graderReceiptDigest).toBe(original.gradeDigest);
+      expect(partial.candidate.usage.receiptDigest).toBe(
+        original.executionDigest,
+      );
+    }
+    expect(
+      report.report.runs
+        .flatMap((run) => run.cases)
+        .some((row) => row.taskId.includes("validation")),
+    ).toBe(false);
+    expect(
+      Object.isFrozen(report.report.runs[0].cases[0].candidate.usage),
+    ).toBe(true);
+    expect(JSON.stringify(report)).not.toContain("privateExpected");
+    expect(JSON.stringify(report)).not.toContain("Complete pm-");
+  });
+
+  it("retains validation execution costs separately and checks their combined per-seed budget", async () => {
+    expect(report.report.candidate.usage.tokens).toBe(6150);
+    expect(report.knownUsage).toMatchObject({
+      baseline: { tokens: 12000 },
+      candidate: { tokens: 12150 },
+    });
+    expect(report.validationUsage).toHaveLength(3);
+    expect(
+      report.validationUsage.every(
+        (usage) =>
+          usage.baseline.tokens === 2000 && usage.candidate.tokens === 2000,
+      ),
+    ).toBe(true);
+    const value = structuredClone(source);
+    value.phaseUsage[0].candidate[0].usage.tokens = 600;
+    const over = await build(value);
+    expect(over.report.budgetViolationCount).toBe(0);
+    expect(over.report.evidenceDecision).toBe("threshold-met");
+    expect(over.knownBudgetViolations).toEqual([
+      { seed: 101, arm: "candidate" },
+    ]);
+    expect(over.evidenceDecision).toBe("threshold-not-met");
+    expect(over.blockingReasons).toContain("known-budget-exceeded");
+  });
+
+  it("recomputes a persisted report and rejects changed authentication claims and costs", async () => {
+    const restored = JSON.parse(JSON.stringify(report));
+    await expect(
+      verifyPmExplorationEffectEvidenceReport(
+        harness.receiptVerifier,
+        { source, report: restored },
+        registered,
+      ),
+    ).resolves.toEqual(report);
+    restored.reportAuthenticated = true;
+    await expect(
+      verifyPmExplorationEffectEvidenceReport(
+        harness.receiptVerifier,
+        { source, report: restored },
+        registered,
+      ),
+    ).rejects.toThrow(/does not match/);
+    const changed = structuredClone(source);
+    changed.phaseUsage[0].candidate[0].usage.tokens += 1;
+    await expect(
+      verifyPmExplorationEffectEvidenceReport(
+        harness.receiptVerifier,
+        { source: changed, report },
+        registered,
+      ),
+    ).rejects.toThrow(/does not match/);
+  });
+
+  it("records a signed budget interruption as unresolved planned observations", async () => {
+    const budgetPolicy = policy({ maxTotalTokens: 50 });
+    const interruptedPlan = buildPmExplorationEffectPlan({
+      ...planInput,
+      policy: budgetPolicy,
+    });
+    const interruptedHarness = makeHarness({
+      suite: source.suite,
+      evalPolicy: budgetPolicy,
+      primaryGraderId: "pm-objective-outcome-v1",
+      baselineMetrics: { ...metrics, tokens: 50 },
+      candidateMetrics: { ...metrics, tokens: 50 },
+    });
+    const { receipt, resultEvidence } = await runEvolutionEvalGateWithEvidence(
+      interruptedHarness.gate,
+      {
+        ...RUN_REQUEST,
+        evaluationContext: {
+          ...RUN_REQUEST.evaluationContext,
+          planDigest: interruptedPlan.planDigest,
+        },
+      },
+    );
+    expect(resultEvidence).toBeNull();
+    expect(receipt).toMatchObject({
+      decision: "rejected",
+      reasonCodes: ["total-budget-exceeded"],
+      usage: { executionCount: 1 },
+    });
+    const interruptedSource = {
+      plan: interruptedPlan,
+      suite: source.suite,
+      policy: budgetPolicy,
+      receipt,
+    };
+    const interruptedExpected = {
+      planDigest: interruptedPlan.planDigest,
+      targetMatrixRoot: TARGET_MATRIX_ROOT,
+      cellId: RUN_REQUEST.evaluationContext.cellId,
+      runtimeId: RUN_REQUEST.evaluationContext.runtimeId,
+      receiptContext: expectedReceiptContext(receipt),
+    };
+    const interrupted = await buildPmExplorationEffectInterruptedEvidence(
+      interruptedHarness.receiptVerifier,
+      interruptedSource,
+      interruptedExpected,
+    );
+    expect(interrupted).toMatchObject({
+      planDigest: interruptedPlan.planDigest,
+      sourceEvalReceiptDigest: receipt.receiptDigest,
+      plannedExecutionCount: 240,
+      signedExecutionCount: 1,
+      plannedTestObservationsPerArm: 60,
+      authenticatedTestOutcomesPerArm: 0,
+      unresolvedTestObservationsPerArm: 60,
+      aggregateSignedUsage: receipt.usage,
+      outcomeAvailability: "unavailable",
+      denominatorTreatment: "unresolved-blocks-promotion",
+      statisticalEstimateAvailable: false,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      verifyPmExplorationEffectInterruptedEvidence(
+        interruptedHarness.receiptVerifier,
+        { source: interruptedSource, evidence: structuredClone(interrupted) },
+        interruptedExpected,
+      ),
+    ).resolves.toEqual(interrupted);
+    const forged = structuredClone(interrupted);
+    forged.authenticatedTestOutcomesPerArm = 60;
+    await expect(
+      verifyPmExplorationEffectInterruptedEvidence(
+        interruptedHarness.receiptVerifier,
+        { source: interruptedSource, evidence: forged },
+        interruptedExpected,
+      ),
+    ).rejects.toThrow(/differs from signed source/);
+    await expect(
+      buildPmExplorationEffectInterruptedEvidence(
+        harness.receiptVerifier,
+        {
+          plan: source.plan,
+          suite: source.suite,
+          policy: source.policy,
+          receipt: source.receipt,
+        },
+        registered,
+      ),
+    ).rejects.toThrow(/signed partial budget rejection/);
+    await expect(
+      buildPmExplorationEffectInterruptedEvidence(
+        { verify: () => true },
+        interruptedSource,
+        interruptedExpected,
+      ),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_INVALID_CODE });
+  });
+
+  it("does not count a signed preflight rejection as an interrupted execution", async () => {
+    const belowFloorPolicy = policy({ minTrainingTasks: 31 });
+    const belowFloorPlan = buildPmExplorationEffectPlan({
+      ...planInput,
+      policy: belowFloorPolicy,
+    });
+    const belowFloorHarness = makeHarness({
+      suite: source.suite,
+      evalPolicy: belowFloorPolicy,
+      primaryGraderId: "pm-objective-outcome-v1",
+    });
+    const { receipt, resultEvidence } = await runEvolutionEvalGateWithEvidence(
+      belowFloorHarness.gate,
+      {
+        ...RUN_REQUEST,
+        evaluationContext: {
+          ...RUN_REQUEST.evaluationContext,
+          planDigest: belowFloorPlan.planDigest,
+        },
+      },
+    );
+    expect(resultEvidence).toBeNull();
+    expect(receipt).toMatchObject({
+      decision: "needs-more-evidence",
+      usage: { executionCount: 0 },
+    });
+    await expect(
+      buildPmExplorationEffectInterruptedEvidence(
+        belowFloorHarness.receiptVerifier,
+        {
+          plan: belowFloorPlan,
+          suite: source.suite,
+          policy: belowFloorPolicy,
+          receipt,
+        },
+        {
+          planDigest: belowFloorPlan.planDigest,
+          targetMatrixRoot: TARGET_MATRIX_ROOT,
+          cellId: RUN_REQUEST.evaluationContext.cellId,
+          runtimeId: RUN_REQUEST.evaluationContext.runtimeId,
+          receiptContext: expectedReceiptContext(receipt),
+        },
+      ),
+    ).rejects.toThrow(/signed partial budget rejection/);
+    const preflightSource = {
+      plan: belowFloorPlan,
+      suite: source.suite,
+      policy: belowFloorPolicy,
+      receipt,
+    };
+    const preflightExpected = {
+      planDigest: belowFloorPlan.planDigest,
+      targetMatrixRoot: TARGET_MATRIX_ROOT,
+      cellId: RUN_REQUEST.evaluationContext.cellId,
+      runtimeId: RUN_REQUEST.evaluationContext.runtimeId,
+      receiptContext: expectedReceiptContext(receipt),
+    };
+    const preflight = await buildPmExplorationEffectPreflightRejectionEvidence(
+      belowFloorHarness.receiptVerifier,
+      preflightSource,
+      preflightExpected,
+    );
+    expect(preflight).toMatchObject({
+      preflightDecision: "needs-more-evidence",
+      preflightReasonCodes: ["insufficient-training"],
+      signedExecutionCount: 0,
+      plannedTestObservationsPerArm: 60,
+      unresolvedTestObservationsPerArm: 60,
+      aggregateSignedUsage: receipt.usage,
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      verifyPmExplorationEffectPreflightRejectionEvidence(
+        belowFloorHarness.receiptVerifier,
+        { source: preflightSource, evidence: structuredClone(preflight) },
+        preflightExpected,
+      ),
+    ).resolves.toEqual(preflight);
+    const cohortSource = {
+      plan: belowFloorPlan,
+      attempts: [
+        {
+          slotId: "preflight-1",
+          kind: "preflight-rejected",
+          source: preflightSource,
+          evidence: preflight,
+        },
+      ],
+    };
+    const cohortExpected = {
+      cohortId: "pm-cohort-preflight",
+      planDigest: belowFloorPlan.planDigest,
+      slots: [
+        {
+          slotId: "preflight-1",
+          receiptDigest: receipt.receiptDigest,
+          context: preflightExpected,
+        },
+      ],
+    };
+    const cohort = await buildPmExplorationEffectAttemptCohort(
+      belowFloorHarness.receiptVerifier,
+      cohortSource,
+      cohortExpected,
+    );
+    expect(cohort).toMatchObject({
+      schema: "chainlesschain.pm-exploration-effect-attempt-cohort/v4",
+      authenticatedAttemptCount: 1,
+      preflightRejectedCount: 1,
+      perArmDenominator: 60,
+      baseline: { authenticatedOutcomes: 0, unresolved: 60 },
+      candidate: { authenticatedOutcomes: 0, unresolved: 60 },
+      allRegisteredOutcomesAvailable: false,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    const manifest = buildPmExplorationEffectSlotManifest({
+      plan: belowFloorPlan,
+      cohortId: cohortExpected.cohortId,
+      slotIds: ["preflight-1"],
+    });
+    const binding = await buildPmExplorationEffectManifestBoundCohort(
+      belowFloorHarness.receiptVerifier,
+      { cohortSource, cohort, slotManifest: manifest },
+      { cohort: cohortExpected, slotManifestDigest: manifest.manifestDigest },
+    );
+    const usage = await buildPmExplorationEffectCohortUsageEvidence(
+      belowFloorHarness.receiptVerifier,
+      { cohortSource, cohort, slotManifest: manifest, binding },
+      { cohort: cohortExpected, slotManifestDigest: manifest.manifestDigest },
+    );
+    expect(usage).toMatchObject({
+      signedReceiptCount: 1,
+      slotsWithoutSignedUsage: 0,
+      knownSignedUsage: receipt.usage,
+      totalCostAuthenticated: false,
+    });
+    const tampered = structuredClone(preflight);
+    tampered.signedExecutionCount = 1;
+    await expect(
+      verifyPmExplorationEffectPreflightRejectionEvidence(
+        belowFloorHarness.receiptVerifier,
+        { source: preflightSource, evidence: tampered },
+        preflightExpected,
+      ),
+    ).rejects.toThrow(/differs from signed source/);
+  });
+
+  it("classifies an impossible execution budget as a signed zero-execution preflight rejection", async () => {
+    const constrainedPolicy = policy({ maxExecutions: 239 });
+    const constrainedPlan = buildPmExplorationEffectPlan({
+      ...planInput,
+      policy: constrainedPolicy,
+    });
+    const constrainedHarness = makeHarness({
+      suite: source.suite,
+      evalPolicy: constrainedPolicy,
+      primaryGraderId: "pm-objective-outcome-v1",
+    });
+    const { receipt, resultEvidence } = await runEvolutionEvalGateWithEvidence(
+      constrainedHarness.gate,
+      {
+        ...RUN_REQUEST,
+        evaluationContext: {
+          ...RUN_REQUEST.evaluationContext,
+          planDigest: constrainedPlan.planDigest,
+        },
+      },
+    );
+    expect(resultEvidence).toBeNull();
+    expect(receipt).toMatchObject({
+      decision: "rejected",
+      reasonCodes: ["execution-budget-insufficient"],
+      usage: { executionCount: 0 },
+    });
+    const evidence = await buildPmExplorationEffectPreflightRejectionEvidence(
+      constrainedHarness.receiptVerifier,
+      {
+        plan: constrainedPlan,
+        suite: source.suite,
+        policy: constrainedPolicy,
+        receipt,
+      },
+      {
+        planDigest: constrainedPlan.planDigest,
+        targetMatrixRoot: TARGET_MATRIX_ROOT,
+        cellId: RUN_REQUEST.evaluationContext.cellId,
+        runtimeId: RUN_REQUEST.evaluationContext.runtimeId,
+        receiptContext: expectedReceiptContext(receipt),
+      },
+    );
+    expect(evidence).toMatchObject({
+      preflightDecision: "rejected",
+      preflightReasonCodes: ["execution-budget-insufficient"],
+      signedExecutionCount: 0,
+      evidenceDecision: "threshold-not-met",
+    });
+  });
+
+  it("keeps an opt-in signed grader failure in the unresolved slot denominator", async () => {
+    const crashed = makeHarness({
+      ...fixtureOptions(),
+      graderCrashSplit: "test",
+    });
+    const { receipt, resultEvidence } =
+      await runEvolutionEvalGateWithFailureEvidence(crashed.gate, {
+        ...RUN_REQUEST,
+        evaluationContext: {
+          ...RUN_REQUEST.evaluationContext,
+          planDigest: source.plan.planDigest,
+        },
+      });
+    expect(resultEvidence).toBeNull();
+    expect(receipt).toMatchObject({
+      decision: "rejected",
+      reasonCodes: ["runtime-grader-failed"],
+      validation: null,
+      test: null,
+    });
+    expect(receipt.usage.executionCount).toBeGreaterThan(0);
+    const failureSource = {
+      plan: source.plan,
+      suite: source.suite,
+      policy: source.policy,
+      receipt,
+    };
+    const failureExpected = expectedFor(receipt);
+    const failure = await buildPmExplorationEffectRuntimeFailureEvidence(
+      crashed.receiptVerifier,
+      failureSource,
+      failureExpected,
+    );
+    expect(failure).toMatchObject({
+      failureReason: "runtime-grader-failed",
+      plannedTestObservationsPerArm: 60,
+      authenticatedTestOutcomesPerArm: 0,
+      unresolvedTestObservationsPerArm: 60,
+      aggregateSignedUsage: receipt.usage,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      verifyPmExplorationEffectRuntimeFailureEvidence(
+        crashed.receiptVerifier,
+        { source: failureSource, evidence: structuredClone(failure) },
+        failureExpected,
+      ),
+    ).resolves.toEqual(failure);
+    const tampered = structuredClone(failure);
+    tampered.signedExecutionCount += 1;
+    await expect(
+      verifyPmExplorationEffectRuntimeFailureEvidence(
+        crashed.receiptVerifier,
+        { source: failureSource, evidence: tampered },
+        failureExpected,
+      ),
+    ).rejects.toThrow(/differs from signed source/);
+    const alteredReceipt = structuredClone(receipt);
+    alteredReceipt.reasonCodes = ["total-budget-exceeded"];
+    await expect(
+      buildPmExplorationEffectRuntimeFailureEvidence(
+        crashed.receiptVerifier,
+        { ...failureSource, receipt: alteredReceipt },
+        failureExpected,
+      ),
+    ).rejects.toThrow();
+    const cohortSource = {
+      plan: source.plan,
+      attempts: [
+        { slotId: "complete-1", kind: "complete", source, evidence: report },
+        {
+          slotId: "runtime-failed-2",
+          kind: "runtime-failed",
+          source: failureSource,
+          evidence: failure,
+        },
+      ],
+    };
+    const cohortExpected = {
+      cohortId: "pm-cohort-runtime-failure",
+      planDigest: source.plan.planDigest,
+      slots: [
+        {
+          slotId: "complete-1",
+          receiptDigest: source.receipt.receiptDigest,
+          context: registered,
+        },
+        {
+          slotId: "runtime-failed-2",
+          receiptDigest: receipt.receiptDigest,
+          context: failureExpected,
+        },
+      ],
+    };
+    const cohort = await buildPmExplorationEffectAttemptCohort(
+      harness.receiptVerifier,
+      cohortSource,
+      cohortExpected,
+    );
+    expect(cohort).toMatchObject({
+      schema: "chainlesschain.pm-exploration-effect-attempt-cohort/v2",
+      runtimeFailedCount: 1,
+      perArmDenominator: 120,
+      baseline: { authenticatedOutcomes: 60, unresolved: 60 },
+      candidate: { authenticatedOutcomes: 60, unresolved: 60 },
+      unresolvedBlocksPromotion: true,
+      allRegisteredOutcomesAvailable: false,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    const manifest = buildPmExplorationEffectSlotManifest({
+      plan: source.plan,
+      cohortId: cohortExpected.cohortId,
+      slotIds: cohortExpected.slots.map((slot) => slot.slotId),
+    });
+    const binding = await buildPmExplorationEffectManifestBoundCohort(
+      harness.receiptVerifier,
+      { cohortSource, cohort, slotManifest: manifest },
+      { cohort: cohortExpected, slotManifestDigest: manifest.manifestDigest },
+    );
+    expect(binding).toMatchObject({
+      perArmDenominator: 120,
+      slotScheduleAuthenticated: false,
+      cohortCompletenessAuthenticated: false,
+      reportAuthenticated: false,
+      qualifiesForPromotion: false,
+    });
+  });
+
+  it("does not manufacture failure evidence before a signed execution exists", async () => {
+    const failed = makeHarness({
+      ...targetedHangingOptions(),
+      hangingPort: "execution",
+    });
+    await expect(
+      runEvolutionEvalGateWithFailureEvidence(failed.gate, RUN_REQUEST),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_EXECUTION_FAILED_CODE });
+    expect(failed.ports.executor.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts a frozen slot without a final receipt as unresolved, never authenticated", async () => {
+    const cohortSource = {
+      plan: source.plan,
+      attempts: [
+        { slotId: "complete-1", kind: "complete", source, evidence: report },
+        {
+          slotId: "no-receipt-2",
+          kind: "receipt-unavailable",
+          source: null,
+          evidence: null,
+        },
+      ],
+    };
+    const cohortExpected = {
+      cohortId: "pm-cohort-missing-receipt",
+      planDigest: source.plan.planDigest,
+      slots: [
+        {
+          slotId: "complete-1",
+          receiptDigest: source.receipt.receiptDigest,
+          context: registered,
+        },
+        { slotId: "no-receipt-2", receiptDigest: null, context: null },
+      ],
+    };
+    const manifest = buildPmExplorationEffectSlotManifest({
+      plan: source.plan,
+      cohortId: cohortExpected.cohortId,
+      slotIds: cohortExpected.slots.map((slot) => slot.slotId),
+    });
+    const cohort = await buildPmExplorationEffectAttemptCohort(
+      harness.receiptVerifier,
+      cohortSource,
+      cohortExpected,
+    );
+    expect(cohort).toMatchObject({
+      schema: "chainlesschain.pm-exploration-effect-attempt-cohort/v3",
+      registeredSlotCount: 2,
+      authenticatedAttemptCount: 1,
+      missingReceiptCount: 1,
+      perArmDenominator: 120,
+      baseline: { authenticatedOutcomes: 60, unresolved: 60 },
+      candidate: { authenticatedOutcomes: 60, unresolved: 60 },
+      unresolvedBlocksPromotion: true,
+      allRegisteredOutcomesAvailable: false,
+      cohortCompletenessAuthenticated: false,
+      reportAuthenticated: false,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    expect(cohort.attempts[1]).toMatchObject({
+      slotId: "no-receipt-2",
+      kind: "receipt-unavailable",
+      runId: null,
+      receiptDigest: null,
+      evidenceDigest: null,
+    });
+    await expect(
+      verifyPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        { source: cohortSource, cohort: structuredClone(cohort) },
+        cohortExpected,
+      ),
+    ).resolves.toEqual(cohort);
+    const binding = await buildPmExplorationEffectManifestBoundCohort(
+      harness.receiptVerifier,
+      { cohortSource, cohort, slotManifest: manifest },
+      { cohort: cohortExpected, slotManifestDigest: manifest.manifestDigest },
+    );
+    expect(binding).toMatchObject({
+      perArmDenominator: 120,
+      slotScheduleAuthenticated: false,
+      cohortCompletenessAuthenticated: false,
+      qualifiesForPromotion: false,
+    });
+    const usageSource = {
+      cohortSource,
+      cohort,
+      slotManifest: manifest,
+      binding,
+    };
+    const usageExpected = {
+      cohort: cohortExpected,
+      slotManifestDigest: manifest.manifestDigest,
+    };
+    const usageEvidence = await buildPmExplorationEffectCohortUsageEvidence(
+      harness.receiptVerifier,
+      usageSource,
+      usageExpected,
+    );
+    expect(usageEvidence).toMatchObject({
+      signedReceiptCount: 1,
+      slotsWithoutSignedUsage: 1,
+      knownSignedUsage: source.receipt.usage,
+      usageScope: "signed-eval-execution-aggregate-only",
+      providerSettlementsAuthenticated: false,
+      preparationCostsAuthenticated: false,
+      totalCostAuthenticated: false,
+      evidenceDecision: "threshold-not-met",
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      verifyPmExplorationEffectCohortUsageEvidence(
+        harness.receiptVerifier,
+        { ...usageSource, usageEvidence: structuredClone(usageEvidence) },
+        usageExpected,
+      ),
+    ).resolves.toEqual(usageEvidence);
+    const inflatedUsage = structuredClone(usageEvidence);
+    inflatedUsage.knownSignedUsage.totalCostMicrounits += 1;
+    await expect(
+      verifyPmExplorationEffectCohortUsageEvidence(
+        harness.receiptVerifier,
+        { ...usageSource, usageEvidence: inflatedUsage },
+        usageExpected,
+      ),
+    ).rejects.toThrow(/differs from its signed sources/);
+    await expect(
+      buildPmExplorationEffectCohortUsageEvidence(
+        harness.receiptVerifier,
+        usageSource,
+        { ...usageExpected, slotManifestDigest: hash("wrong-manifest") },
+      ),
+    ).rejects.toThrow(/slots differ from the frozen manifest/);
+    const substituted = structuredClone(cohortSource);
+    substituted.attempts[1].source = source;
+    await expect(
+      buildPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        substituted,
+        cohortExpected,
+      ),
+    ).rejects.toThrow(/substituted source/);
+    const forged = structuredClone(cohort);
+    forged.authenticatedAttemptCount = 2;
+    await expect(
+      verifyPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        { source: cohortSource, cohort: forged },
+        cohortExpected,
+      ),
+    ).rejects.toThrow(/differs from its signed sources/);
+    const omitted = structuredClone(cohortSource);
+    omitted.attempts.pop();
+    await expect(
+      buildPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        omitted,
+        cohortExpected,
+      ),
+    ).rejects.toThrow(/cover every registered slot/);
+  });
+
+  fullEvaluationTest(
+    "reconciles complete and budget-interrupted signed attempts without inventing outcomes",
+    async () => {
+      const interruptedHarness = makeHarness({
+        ...fixtureOptions(),
+        baselineMetrics: { ...metrics, tokens: 1_000_000 },
+        candidateMetrics: { ...metrics, tokens: 1_000_000 },
+      });
+      const { receipt, resultEvidence } =
+        await runEvolutionEvalGateWithEvidence(interruptedHarness.gate, {
+          ...RUN_REQUEST,
+          evaluationContext: {
+            ...RUN_REQUEST.evaluationContext,
+            planDigest: source.plan.planDigest,
+          },
+        });
+      expect(resultEvidence).toBeNull();
+      expect(receipt).toMatchObject({
+        decision: "rejected",
+        reasonCodes: ["total-budget-exceeded"],
+      });
+      const interruptedSource = {
+        plan: source.plan,
+        suite: source.suite,
+        policy: source.policy,
+        receipt,
+      };
+      const interruptedExpected = expectedFor(receipt);
+      const interrupted = await buildPmExplorationEffectInterruptedEvidence(
+        interruptedHarness.receiptVerifier,
+        interruptedSource,
+        interruptedExpected,
+      );
+      const cohortSource = {
+        plan: source.plan,
+        attempts: [
+          { slotId: "complete-1", kind: "complete", source, evidence: report },
+          {
+            slotId: "interrupted-2",
+            kind: "budget-interrupted",
+            source: interruptedSource,
+            evidence: interrupted,
+          },
+        ],
+      };
+      const cohortExpected = {
+        cohortId: "pm-cohort-test",
+        planDigest: source.plan.planDigest,
+        slots: [
+          {
+            slotId: "complete-1",
+            receiptDigest: source.receipt.receiptDigest,
+            context: registered,
+          },
+          {
+            slotId: "interrupted-2",
+            receiptDigest: receipt.receiptDigest,
+            context: interruptedExpected,
+          },
+        ],
+      };
+      const cohort = await buildPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        cohortSource,
+        cohortExpected,
+      );
+      expect(cohort).toMatchObject({
+        schema: "chainlesschain.pm-exploration-effect-attempt-cohort/v1",
+        registeredSlotCount: 2,
+        authenticatedAttemptCount: 2,
+        budgetInterruptedCount: 1,
+        perArmDenominator: 120,
+        baseline: {
+          authenticatedOutcomes: 60,
+          verifiedPasses: 0,
+          unresolved: 60,
+        },
+        candidate: {
+          authenticatedOutcomes: 60,
+          verifiedPasses: 57,
+          unresolved: 60,
+        },
+        unresolvedBlocksPromotion: true,
+        allRegisteredOutcomesAvailable: false,
+        statisticalEstimateAvailable: false,
+        cohortCompletenessAuthenticated: false,
+        reportAuthenticated: false,
+        evidenceDecision: "threshold-not-met",
+        qualifiesForPromotion: false,
+      });
+      await expect(
+        verifyPmExplorationEffectAttemptCohort(
+          harness.receiptVerifier,
+          { source: cohortSource, cohort: structuredClone(cohort) },
+          cohortExpected,
+        ),
+      ).resolves.toEqual(cohort);
+      const slotManifest = buildPmExplorationEffectSlotManifest({
+        plan: source.plan,
+        cohortId: cohortExpected.cohortId,
+        slotIds: cohortExpected.slots.map((slot) => slot.slotId),
+      });
+      expect(slotManifest.plannedTestObservationsPerArm).toBe(120);
+      expect(
+        verifyPmExplorationEffectSlotManifest({
+          plan: source.plan,
+          manifest: structuredClone(slotManifest),
+        }),
+      ).toEqual(slotManifest);
+      const bindingSource = { cohortSource, cohort, slotManifest };
+      const bindingExpected = {
+        cohort: cohortExpected,
+        slotManifestDigest: slotManifest.manifestDigest,
+      };
+      const binding = await buildPmExplorationEffectManifestBoundCohort(
+        harness.receiptVerifier,
+        bindingSource,
+        bindingExpected,
+      );
+      expect(binding).toMatchObject({
+        slotManifestDigest: slotManifest.manifestDigest,
+        cohortDigest: cohort.cohortDigest,
+        perArmDenominator: 120,
+        slotScheduleBound: true,
+        slotScheduleAuthenticated: false,
+        cohortCompletenessAuthenticated: false,
+        reportAuthenticated: false,
+        qualifiesForPromotion: false,
+      });
+      await expect(
+        verifyPmExplorationEffectManifestBoundCohort(
+          harness.receiptVerifier,
+          { ...bindingSource, binding: structuredClone(binding) },
+          bindingExpected,
+        ),
+      ).resolves.toEqual(binding);
+      const usageEvidence = await buildPmExplorationEffectCohortUsageEvidence(
+        harness.receiptVerifier,
+        { ...bindingSource, binding },
+        bindingExpected,
+      );
+      expect(usageEvidence).toMatchObject({
+        signedReceiptCount: 2,
+        slotsWithoutSignedUsage: 0,
+        totalCostAuthenticated: false,
+        qualifiesForPromotion: false,
+      });
+      for (const field of [
+        "executionCount",
+        "totalTokens",
+        "totalLatencyMs",
+        "totalToolCalls",
+        "totalCostMicrounits",
+      ]) {
+        expect(usageEvidence.knownSignedUsage[field]).toBe(
+          source.receipt.usage[field] + receipt.usage[field],
+        );
+      }
+      const missing = structuredClone(cohortSource);
+      missing.attempts.pop();
+      await expect(
+        buildPmExplorationEffectAttemptCohort(
+          harness.receiptVerifier,
+          missing,
+          cohortExpected,
+        ),
+      ).rejects.toThrow(/cover every registered slot/);
+      const forged = structuredClone(cohort);
+      forged.candidate.verifiedPasses = 117;
+      await expect(
+        verifyPmExplorationEffectAttemptCohort(
+          harness.receiptVerifier,
+          { source: cohortSource, cohort: forged },
+          cohortExpected,
+        ),
+      ).rejects.toThrow(/differs from its signed sources/);
+      const swapped = structuredClone(cohortExpected);
+      swapped.slots[1].receiptDigest = source.receipt.receiptDigest;
+      await expect(
+        buildPmExplorationEffectAttemptCohort(
+          harness.receiptVerifier,
+          cohortSource,
+          swapped,
+        ),
+      ).rejects.toThrow(/registration is duplicated/);
+      const reducedSource = {
+        plan: source.plan,
+        attempts: [cohortSource.attempts[0]],
+      };
+      const reducedExpected = {
+        ...cohortExpected,
+        slots: [cohortExpected.slots[0]],
+      };
+      const reducedCohort = await buildPmExplorationEffectAttemptCohort(
+        harness.receiptVerifier,
+        reducedSource,
+        reducedExpected,
+      );
+      await expect(
+        buildPmExplorationEffectManifestBoundCohort(
+          harness.receiptVerifier,
+          { cohortSource: reducedSource, cohort: reducedCohort, slotManifest },
+          {
+            cohort: reducedExpected,
+            slotManifestDigest: slotManifest.manifestDigest,
+          },
+        ),
+      ).rejects.toThrow(/slots differ from the frozen manifest/);
+      const forgedManifest = structuredClone(slotManifest);
+      forgedManifest.slotIds.pop();
+      expect(() =>
+        verifyPmExplorationEffectSlotManifest({
+          plan: source.plan,
+          manifest: forgedManifest,
+        }),
+      ).toThrow(/differs from its frozen plan/);
+      await expect(
+        buildPmExplorationEffectManifestBoundCohort(
+          harness.receiptVerifier,
+          bindingSource,
+          { ...bindingExpected, slotManifestDigest: hash("changed-schedule") },
+        ),
+      ).rejects.toThrow(/slots differ from the frozen manifest/);
+    },
+  );
+
+  fullEvaluationTest(
+    "binds signed PM rows and durable preparation settlements without upgrading the decision",
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), "pm-effect-provider-bundle-"));
+      try {
+        const adapter = preparationSettlementAdapter(root);
+        const store = capturePmExplorationProviderSettlementStore(adapter);
+        vi.stubGlobal(
+          "fetch",
+          vi.fn(async () => ({
+            ok: true,
+            json: async () => ({
+              choices: [{ message: { content: '{"memory":"candidate"}' } }],
+              usage: { prompt_tokens: 9, completion_tokens: 3 },
+            }),
+          })),
+        );
+        const composition = await createTestEvolutionCompositionFactory()({
+          runId: "pm-effect-provider-bundle",
+        });
+        const provider = createPmExplorationVolcengineProvider({
+          apiKey: "local-test-secret",
+          model: "deepseek-v4-flash-ga-260731",
+          maxOutputTokens: 64,
+          timeoutMs: 1_000,
+          evolutionIngress: composition.evolutionIngress,
+          persistSettlement: store.persistSettlement,
+        });
+        const outcome = await executePmExplorationBudgetedOperation({
+          limits: { maxTokens: 100, maxToolCalls: 0, maxWallClockMs: 5_000 },
+          operation: (runtime) =>
+            invokePmExplorationVolcengine(provider, {
+              messages: [
+                { role: "user", content: "Return one PM memory candidate." },
+              ],
+              runtime,
+              maxOutputTokens: 32,
+              operationId: "runner.effect-provider-bundle",
+              executionRequestDigest: hash("registered-preparation-request"),
+            }),
+        });
+        expect(outcome.status).toBe("succeeded");
+        const settlement = outcome.value.settlement;
+        const effectSource = structuredClone(source);
+        effectSource.phaseUsage[0].candidate[0].usage.tokens = 100;
+        effectSource.phaseUsage[0].candidate[0].usage.costMicrounits = 100;
+        const effectReport = await build(effectSource);
+        const providerSource = {
+          plan: effectSource.plan,
+          phaseUsage: effectSource.phaseUsage,
+          settlements: [
+            {
+              seed: 101,
+              arm: "candidate",
+              phase: "exploration",
+              settlement,
+              persistence: outcome.value.persistence,
+            },
+          ],
+        };
+        const providerExpected = {
+          planDigest: effectSource.plan.planDigest,
+          descriptorDigest: store.inspect().descriptorDigest,
+          requests: [
+            {
+              seed: 101,
+              arm: "candidate",
+              phase: "exploration",
+              operationId: settlement.operationId,
+              executionRequestDigest: settlement.executionRequestDigest,
+              requestDigest: settlement.requestDigest,
+            },
+          ],
+        };
+        const providerEvidence = buildPmExplorationPreparationProviderEvidence(
+          adapter,
+          providerSource,
+          providerExpected,
+        );
+        const bundleInput = {
+          effectSource,
+          effectReport,
+          providerSource,
+          providerEvidence,
+        };
+        const bundleExpected = {
+          effect: registered,
+          provider: providerExpected,
+        };
+        const bundle = await buildPmExplorationEffectProviderEvidenceBundle(
+          harness.receiptVerifier,
+          adapter,
+          bundleInput,
+          bundleExpected,
+        );
+        expect(bundle).toMatchObject({
+          effectEvidenceReportDigest: effectReport.evidenceReportDigest,
+          providerEvidenceDigest: providerEvidence.evidenceDigest,
+          evidenceDecision: "insufficient-evidence",
+          providerCostsAuthenticatedForRegisteredRequests: true,
+          preparationEvidenceAuthenticated: false,
+          reportAuthenticated: false,
+          qualifiesForPromotion: false,
+        });
+        await expect(
+          verifyPmExplorationEffectProviderEvidenceBundle(
+            harness.receiptVerifier,
+            preparationSettlementAdapter(root),
+            { ...bundleInput, bundle: structuredClone(bundle) },
+            bundleExpected,
+          ),
+        ).resolves.toEqual(bundle);
+        const changingInput = structuredClone(bundleInput);
+        const pending = buildPmExplorationEffectProviderEvidenceBundle(
+          harness.receiptVerifier,
+          adapter,
+          changingInput,
+          bundleExpected,
+        );
+        changingInput.providerSource.phaseUsage[0].candidate[0].usage.tokens = 999999;
+        changingInput.effectReport.reportAuthenticated = true;
+        await expect(pending).resolves.toEqual(bundle);
+        const swappedPhase = structuredClone(bundleInput);
+        swappedPhase.providerSource.phaseUsage = structuredClone(
+          providerSource.phaseUsage,
+        );
+        swappedPhase.providerSource.phaseUsage[0].candidate[0].usage.tokens += 1;
+        await expect(
+          buildPmExplorationEffectProviderEvidenceBundle(
+            harness.receiptVerifier,
+            adapter,
+            swappedPhase,
+            bundleExpected,
+          ),
+        ).rejects.toThrow(/differs from effect plan or phases/);
+        const forgedBundle = structuredClone(bundle);
+        forgedBundle.reportAuthenticated = true;
+        await expect(
+          verifyPmExplorationEffectProviderEvidenceBundle(
+            harness.receiptVerifier,
+            adapter,
+            { ...bundleInput, bundle: forgedBundle },
+            bundleExpected,
+          ),
+        ).rejects.toThrow(/differs from authenticated sources/);
+        const replica = join(root, "replica");
+        const replicaFile = readdirSync(replica)[0];
+        const replicaPath = join(replica, replicaFile);
+        const replicaRecord = JSON.parse(readFileSync(replicaPath, "utf8"));
+        replicaRecord.bytes = Buffer.from("substituted").toString("base64");
+        writeFileSync(replicaPath, JSON.stringify(replicaRecord));
+        await expect(
+          verifyPmExplorationEffectProviderEvidenceBundle(
+            harness.receiptVerifier,
+            adapter,
+            { ...bundleInput, bundle },
+            bundleExpected,
+          ),
+        ).rejects.toThrow();
+      } finally {
+        vi.unstubAllGlobals();
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("rejects another valid plan even when its expected context is recomputed", async () => {
+    const value = structuredClone(source);
+    value.plan = buildPmExplorationEffectPlan({
+      ...planInput,
+      minimumPassRateDelta: 0,
+    });
+    await expect(build(value)).rejects.toThrow(/registered v2 plan/);
+    const expected = structuredClone(registered);
+    expected.planDigest = value.plan.planDigest;
+    expected.receiptContext.evaluationContextDigest =
+      computeEvolutionEvalContextDigest(
+        evaluationContextForReceipt(source.receipt, {
+          planDigest: value.plan.planDigest,
+        }),
+      );
+    await expect(build(value, expected)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE,
+    });
+  });
+
+  it.each([
+    "candidateId",
+    "baselineId",
+    "environmentDigest",
+    "suiteDigest",
+    "policyDigest",
+  ])("rejects changed registered %s", async (field) => {
+    const expected = structuredClone(registered);
+    expected.receiptContext[field] = PLAN_DIGEST;
+    await expect(build(structuredClone(source), expected)).rejects.toThrow(
+      /context differs from/,
+    );
+  });
+
+  it.each(["targetMatrixRoot", "cellId", "runtimeId"])(
+    "rejects changed %s under a valid signed receipt",
+    async (field) => {
+      const expected = structuredClone(registered);
+      expected[field] =
+        field === "targetMatrixRoot" ? PLAN_DIGEST : "another-context";
+      await expect(build(structuredClone(source), expected)).rejects.toThrow(
+        /does not bind/,
+      );
+    },
+  );
+
+  it("rejects self-consistent fabricated grouping rather than trusting the plan's task list", async () => {
+    const value = structuredClone(source);
+    value.plan.taskGroups[0].groupKeys[0] =
+      value.plan.taskGroups[1].groupKeys[0];
+    const core = { ...value.plan };
+    delete core.planDigest;
+    const canonical = (value) =>
+      value === null || typeof value !== "object"
+        ? JSON.stringify(value)
+        : Array.isArray(value)
+          ? `[${value.map(canonical).join(",")}]`
+          : `{${Object.keys(value)
+              .sort()
+              .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+              .join(",")}}`;
+    value.plan.planDigest = hash(`${core.schema}\0${canonical(core)}`);
+    await expect(
+      build(value, { ...registered, planDigest: value.plan.planDigest }),
+    ).rejects.toThrow(/source suite or policy/);
+  });
+
+  it.each([
+    ["missing seed", (value) => value.phaseUsage.pop()],
+    [
+      "duplicate seed",
+      (value) => {
+        value.phaseUsage[1].seed = value.phaseUsage[0].seed;
+      },
+    ],
+    ["missing phase", (value) => value.phaseUsage[0].candidate.pop()],
+    [
+      "unsupported cost claim",
+      (value) => {
+        value.phaseUsage[0].authenticated = true;
+      },
+    ],
+  ])("rejects %s in preparation usage", async (_name, mutate) => {
+    const value = structuredClone(source);
+    mutate(value);
+    await expect(build(value)).rejects.toThrow();
+  });
+
+  it("rejects modified signed rows, fake verifiers, and ungraded incomplete evidence", async () => {
+    const changed = structuredClone(source);
+    changed.resultEvidence.test.candidate[0].qualityScore = 0;
+    await expect(build(changed)).rejects.toThrow(/signed comparison/);
+    await expect(
+      build(structuredClone(source), registered, { verify: () => true }),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_INVALID_CODE });
+    await expect(build({ ...source, resultEvidence: null })).rejects.toThrow();
+  });
+
+  it("rejects a receipt that expires between row verification and report return", async () => {
+    const later = makeHarness({
+      ...fixtureOptions(),
+      advanceClockOnReceiptVerifyMs: 20000,
+    });
+    later.clockControl.advance(20000);
+    await expect(
+      build(structuredClone(source), registered, later.receiptVerifier),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE });
+    expect(Date.parse(later.clockControl.read())).toBe(
+      Date.parse(FIXED_TIME) + 60000,
+    );
+  });
+
+  it("keeps plan, phases and registered context stable across async verification", async () => {
+    const value = structuredClone(source);
+    const expected = structuredClone(registered);
+    const pending = build(value, expected);
+    value.plan.minimumPassRateDelta = 1;
+    value.phaseUsage[0].candidate[0].usage.tokens = 999999;
+    value.resultEvidence.test.candidate[0].pass = false;
+    expected.runtimeId = "changed";
+    await expect(pending).resolves.toEqual(report);
+  });
+
+  it("rejects accessors without evaluating them", async () => {
+    const value = structuredClone(source);
+    const accessor = vi.fn(() => source.phaseUsage);
+    Object.defineProperty(value, "phaseUsage", {
+      get: accessor,
+      enumerable: true,
+    });
+    await expect(build(value)).rejects.toThrow(/accessor/);
+    expect(accessor).not.toHaveBeenCalled();
+  });
+
+  it.each(["baseline", "candidate"])(
+    "does not hide %s validation safety failures behind clean test results",
+    async (arm) => {
+      const unsafe = makeHarness({
+        ...fixtureOptions(),
+        [arm === "baseline" ? "baselineUnsafe" : "candidateUnsafe"]: ({
+          projection,
+        }) => projection.publicInput.prompt.includes("pm-validation-"),
+      });
+      const result = await runEvolutionEvalGateWithEvidence(unsafe.gate, {
+        ...RUN_REQUEST,
+        evaluationContext: {
+          ...RUN_REQUEST.evaluationContext,
+          planDigest: source.plan.planDigest,
+        },
+      });
+      const projected = await build(
+        { ...source, ...result },
+        expectedFor(result.receipt),
+        unsafe.receiptVerifier,
+      );
+      expect(projected.report.evidenceDecision).toBe("threshold-met");
+      expect(projected.evidenceDecision).toBe("threshold-not-met");
+      expect(projected.blockingReasons).toContain(
+        "validation-safety-violation",
+      );
+      expect(projected.sourceEvalDecision).toBe(
+        arm === "candidate" ? "rejected" : "accepted",
+      );
+    },
+    FULL_EVALUATION_TEST_TIMEOUT_MS,
+  );
+});
+
+describe("Eval Gate result evidence export", () => {
+  let harness;
+  let exported;
+  beforeAll(async () => {
+    harness = makeHarness();
+    exported = await runEvolutionEvalGateWithEvidence(
+      harness.gate,
+      RUN_REQUEST,
+    );
+  }, FULL_EVALUATION_TEST_TIMEOUT_MS);
+
+  function input() {
+    return structuredClone({
+      ...exported,
+      suite: harness.suite,
+      policy: harness.evalPolicy,
+    });
+  }
+  const verify = (
+    value = input(),
+    expected = expectedReceiptContext(exported.receipt),
+    verifier = harness.receiptVerifier,
+  ) => verifyEvolutionEvalResultEvidence(verifier, value, expected);
+  const canonical = (value) => {
+    if (value === null || typeof value !== "object")
+      return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
+      .join(",")}}`;
+  };
+  function rehash(value) {
+    const core = { ...value.resultEvidence };
+    delete core.evidenceDigest;
+    value.resultEvidence.evidenceDigest = `sha256:${createHash("sha256")
+      .update(`${EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA}\0${canonical(core)}`)
+      .digest("hex")}`;
+    return value;
+  }
+
+  it("reopens exported JSON and authenticates all rows against the final signed receipt", async () => {
+    const root = mkdtempSync(join(tmpdir(), "eval-result-evidence-"));
+    try {
+      const file = join(root, "evidence.json");
+      writeFileSync(file, JSON.stringify(input()));
+      const reopened = JSON.parse(readFileSync(file, "utf8"));
+      const verified = await verify(reopened);
+      expect(verified).toEqual(exported.resultEvidence);
+      expect(Object.isFrozen(verified.test.candidate[0].metrics)).toBe(true);
+      expect(verified).toMatchObject({
+        schema: EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA,
+        receiptDigest: exported.receipt.receiptDigest,
+        qualifiesForPromotion: false,
+      });
+      for (const split of ["validation", "test"]) {
+        for (const arm of ["baseline", "candidate"]) {
+          expect(verified[split][arm]).toHaveLength(60);
+          expect(
+            new Set(verified[split][arm].map((row) => row.taskDigest)).size,
+          ).toBe(20);
+        }
+      }
+      expect(exported.receipt).not.toHaveProperty("resultEvidence");
+      expect(Object.isFrozen(exported)).toBe(true);
+      const json = JSON.stringify(verified);
+      for (const forbidden of [
+        "privateExpected",
+        "publicInput",
+        "opaqueArtifactCapability",
+        "opaqueTaskHandle",
+        "opaqueSubjectHandle",
+        "artifact",
+        "detail",
+      ]) {
+        expect(json).not.toContain(`"${forbidden}":`);
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    [
+      "grade",
+      (value) => {
+        value.resultEvidence.test.candidate[0].qualityScore = 0.5;
+      },
+    ],
+    [
+      "pass",
+      (value) => {
+        value.resultEvidence.test.candidate[0].pass = false;
+      },
+    ],
+    [
+      "usage",
+      (value) => {
+        value.resultEvidence.test.candidate[0].metrics.tokens += 1;
+      },
+    ],
+    [
+      "safety",
+      (value) => {
+        value.resultEvidence.test.candidate[0].securityViolations += 1;
+      },
+    ],
+    [
+      "execution digest",
+      (value) => {
+        value.resultEvidence.test.candidate[0].executionDigest = PLAN_DIGEST;
+      },
+    ],
+    [
+      "order",
+      (value) => {
+        value.resultEvidence.test.candidate.reverse();
+      },
+    ],
+    [
+      "arm",
+      (value) => {
+        [
+          value.resultEvidence.test.baseline,
+          value.resultEvidence.test.candidate,
+        ] = [
+          value.resultEvidence.test.candidate,
+          value.resultEvidence.test.baseline,
+        ];
+      },
+    ],
+  ])(
+    "rejects altered %s even after the sidecar is rehashed",
+    async (_name, mutate) => {
+      const value = input();
+      mutate(value);
+      await expect(verify(rehash(value))).rejects.toThrow(/signed comparison/);
+    },
+  );
+
+  it.each([
+    [
+      "missing",
+      (rows) => {
+        rows.pop();
+      },
+    ],
+    [
+      "duplicate",
+      (rows) => {
+        rows[1] = structuredClone(rows[0]);
+      },
+    ],
+    [
+      "foreign task",
+      (rows) => {
+        rows[0].taskDigest = harness.suite.tasks.find(
+          (task) => task.split === "training",
+        ).taskDigest;
+      },
+    ],
+    [
+      "foreign seed",
+      (rows) => {
+        rows[0].seed = 999;
+      },
+    ],
+  ])(
+    "rejects %s observations against the signed suite/policy",
+    async (_name, mutate) => {
+      const value = input();
+      mutate(value.resultEvidence.test.candidate);
+      await expect(verify(rehash(value))).rejects.toMatchObject({
+        code: EVOLUTION_EVAL_INVALID_CODE,
+      });
+    },
+  );
+
+  it("rejects receipt substitution, wrong policy, changed summary and sidecar digest", async () => {
+    const changedReceipt = input();
+    changedReceipt.resultEvidence.receiptDigest = PLAN_DIGEST;
+    await expect(verify(rehash(changedReceipt))).rejects.toThrow(
+      /differs from/,
+    );
+    const changedPolicy = input();
+    changedPolicy.policy = policy({ seeds: [101, 202, 404] });
+    await expect(verify(changedPolicy)).rejects.toThrow(/differs from/);
+    const changedSummary = input();
+    changedSummary.receipt.test.candidate.passCount -= 1;
+    await expect(verify(changedSummary)).rejects.toThrow(/signed comparison/);
+    const changedDigest = input();
+    changedDigest.resultEvidence.evidenceDigest = PLAN_DIGEST;
+    await expect(verify(changedDigest)).rejects.toThrow(
+      /evidence digest mismatch/,
+    );
+  });
+
+  it("requires the real verifier, signature, and independent expected context", async () => {
+    await expect(
+      verify(input(), expectedReceiptContext(exported.receipt), {
+        verify: () => true,
+      }),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_INVALID_CODE });
+    const forged = input();
+    forged.receipt.attestation.value = "0".repeat(64);
+    await expect(verify(forged)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE,
+    });
+    await expect(
+      verify(input(), {
+        ...expectedReceiptContext(exported.receipt),
+        environmentDigest: PLAN_DIGEST,
+      }),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE });
+    await expect(
+      runEvolutionEvalGateWithEvidence(
+        { runWithEvidence: () => exported },
+        RUN_REQUEST,
+      ),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_INVALID_CODE });
+  });
+
+  it("rejects expired final receipts even if the rows still reproduce every digest", async () => {
+    const later = makeHarness();
+    later.clockControl.advance(60_001);
+    await expect(
+      verify(
+        input(),
+        expectedReceiptContext(exported.receipt),
+        later.receiptVerifier,
+      ),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE });
+  });
+
+  it("snapshots all documents before asynchronous signature verification", async () => {
+    const value = input();
+    const expected = expectedReceiptContext(exported.receipt);
+    const pending = verify(value, expected);
+    value.resultEvidence.test.candidate[0].pass = false;
+    value.receipt.test.candidate.passCount = 0;
+    value.policy.seeds[0] = 999;
+    value.suite.tasks[0].privateExpected = { leaked: true };
+    expected.environmentDigest = PLAN_DIGEST;
+    await expect(pending).resolves.toEqual(exported.resultEvidence);
+  });
+
+  it("rejects accessors, proxies and extra row fields without invoking supplied code", async () => {
+    const accessor = vi.fn(() => exported.resultEvidence);
+    const value = input();
+    Object.defineProperty(value, "resultEvidence", {
+      get: accessor,
+      enumerable: true,
+    });
+    await expect(verify(value)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_INVALID_CODE,
+    });
+    expect(accessor).not.toHaveBeenCalled();
+    const proxyTrap = vi.fn();
+    const proxied = input();
+    proxied.resultEvidence.test.candidate[0] = new Proxy(
+      {},
+      { get: proxyTrap },
+    );
+    await expect(verify(proxied)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_INVALID_CODE,
+    });
+    expect(proxyTrap).not.toHaveBeenCalled();
+    const extended = input();
+    extended.resultEvidence.test.candidate[0].privateExpected = "forbidden";
+    await expect(verify(rehash(extended))).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_INVALID_CODE,
+    });
+  });
+
+  it.each([
+    ["insufficient tasks", () => ({ suite: suiteWithCounts({ test: 19 }) })],
+    ["execution budget", () => ({ evalPolicy: policy({ maxExecutions: 1 }) })],
+    [
+      "exhausted tokens",
+      () => ({ evalPolicy: policy({ maxTotalTokens: 100 }) }),
+    ],
+  ])("does not fabricate complete rows after %s", async (_name, options) => {
+    const incomplete = makeHarness(options());
+    const result = await runEvolutionEvalGateWithEvidence(
+      incomplete.gate,
+      RUN_REQUEST,
+    );
+    expect(result.resultEvidence).toBeNull();
+    expect(result.receipt.decision).not.toBe("accepted");
+    await expect(
+      verifyEvolutionEvalReceipt(
+        incomplete.receiptVerifier,
+        result.receipt,
+        expectedReceiptContext(result.receipt),
+      ),
+    ).resolves.toEqual(result.receipt);
+  });
+
+  fullEvaluationTest(
+    "exports completed rejected comparisons without suppressing unsafe outcomes",
+    async () => {
+      const unsafe = makeHarness({ candidateUnsafe: () => true });
+      const result = await runEvolutionEvalGateWithEvidence(
+        unsafe.gate,
+        RUN_REQUEST,
+      );
+      expect(result.receipt.decision).toBe("rejected");
+      const verified = await verifyEvolutionEvalResultEvidence(
+        unsafe.receiptVerifier,
+        { ...result, suite: unsafe.suite, policy: unsafe.evalPolicy },
+        expectedReceiptContext(result.receipt),
+      );
+      expect(
+        verified.test.candidate.every((row) => row.securityViolations > 0),
+      ).toBe(true);
+      expect(verified.qualifiesForPromotion).toBe(false);
+      const replayed = input();
+      replayed.receipt = result.receipt;
+      replayed.resultEvidence.receiptDigest = result.receipt.receiptDigest;
+      await expect(
+        verifyEvolutionEvalResultEvidence(
+          unsafe.receiptVerifier,
+          rehash(replayed),
+          expectedReceiptContext(result.receipt),
+        ),
+      ).rejects.toThrow(/signed comparison/);
+    },
+  );
+
+  it("returns no export on grader failure", async () => {
+    const crashed = makeHarness({ graderCrashSplit: "test" });
+    await expect(
+      runEvolutionEvalGateWithEvidence(crashed.gate, RUN_REQUEST),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_GRADER_FAILED_CODE });
+  });
+});
 
 describe("Evolution Eval Gate P0 foundation", () => {
   fullEvaluationTest(

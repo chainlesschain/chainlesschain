@@ -1,0 +1,542 @@
+{
+  "plan": {
+    "schema": "chainlesschain.pm-exploration-effect-plan/v1",
+    "experimentId": "pm-equal-budget-v1",
+    "suiteDigest": "sha256:2459f27f4ba6713b9c079d978dfc758b4967db234e65880dbe243d1d799ef659",
+    "policyDigest": "sha256:63ccce717d086fe46c5ddc5dd0442ef452af73206bd0dd09ffc0f7d1d97b16d1",
+    "testTaskIds": ["pm-test"],
+    "baselineVersion": {
+      "id": "baseline-memory-v1",
+      "artifactDigest": "sha256:4c8c800731adf48e5b874271f3650ce6eb1438662a9c7b439e9528a71d0a1f0d"
+    },
+    "candidateVersion": {
+      "id": "candidate-memory-v2",
+      "artifactDigest": "sha256:2365464276fa2f77177551e97324fa0a2f3884471b6deb79725195e578d7b31a"
+    },
+    "actorConfigDigest": "sha256:5d5ea9cc79f15e991df95537ddf6bd7eeac51569d907c6911a40202e2890425b",
+    "modelConfigDigest": "sha256:74544cb9f7117721379760baa5416f83d1e49698cc0a5fa598dd283c5375f93f",
+    "toolPolicyDigest": "sha256:5f1378ca34aab2aa91998743a793e4d3f4e517f124038c1e2a76cd5f3f488bdd",
+    "permissionPolicyDigest": "sha256:f5f36d5c591cf8fb0e8f91538d62315efc6703c0e773d65a6f2fc03b9f126db7",
+    "environmentDigest": "sha256:ba5285161ba6eed0085fb13784ce5c92f70ebc268b94fd66aa1d68a32884204d",
+    "resetProtocolDigest": "sha256:caeec458f3c135840e9f713e237dd3e4063c07c40ada9389d124908bd31a8af0",
+    "seeds": [101, 202, 303],
+    "budgetPerArmPerSeed": {
+      "maxTokens": 10000,
+      "maxToolCalls": 100,
+      "maxWallClockMs": 60000,
+      "maxCostMicrounits": 100000
+    },
+    "costPhases": [
+      "exploration",
+      "curriculum-planning",
+      "memory-distillation",
+      "failure-retry",
+      "environment-reset"
+    ],
+    "minimumScoreDelta": 0.05,
+    "bootstrapSamples": 1000,
+    "equalBudget": true,
+    "promotionAuthority": false,
+    "planDigest": "sha256:43b5d708a1e53a069e2d47ff14be044136f270974a06108b1899f8d266ad7c6d"
+  },
+  "report": {
+    "schema": "chainlesschain.pm-exploration-effect-report/v1",
+    "planDigest": "sha256:43b5d708a1e53a069e2d47ff14be044136f270974a06108b1899f8d266ad7c6d",
+    "runCount": 3,
+    "pairedObservationCount": 3,
+    "baseline": {
+      "sampleCount": 3,
+      "passCount": 3,
+      "passRate": 1,
+      "meanScore": 0.5,
+      "usage": {
+        "tokens": 300,
+        "toolCalls": 6,
+        "wallClockMs": 150,
+        "costMicrounits": 60
+      },
+      "securityViolations": 0,
+      "permissionViolations": 0
+    },
+    "candidate": {
+      "sampleCount": 3,
+      "passCount": 3,
+      "passRate": 1,
+      "meanScore": 0.75,
+      "usage": {
+        "tokens": 390,
+        "toolCalls": 15,
+        "wallClockMs": 195,
+        "costMicrounits": 78
+      },
+      "securityViolations": 0,
+      "permissionViolations": 0
+    },
+    "perTask": [
+      {
+        "taskId": "pm-test",
+        "sampleCount": 3,
+        "baselineScore": 0.5,
+        "candidateScore": 0.75,
+        "scoreDelta": 0.25,
+        "baselinePassRate": 1,
+        "candidatePassRate": 1
+      }
+    ],
+    "pairedScoreDelta": {
+      "mean": 0.25,
+      "bootstrap95Ci": [0.25, 0.25]
+    },
+    "budgetViolationCount": 0,
+    "evidenceDecision": "threshold-met",
+    "requiresIndependentPilotApproval": true,
+    "qualifiesForPromotion": false,
+    "runs": [
+      {
+        "runId": "run-101",
+        "seed": 101,
+        "phases": {
+          "baseline": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ],
+          "candidate": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": "sha256:771d39363187b4e5954cc0fe5efbf83dc00e82796d3eba1047c96ddcd6557797",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": "sha256:aa5716a42c8937849c2ff1844077616e67609f7f77cff5b87dd0af63620587d1",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": "sha256:0a1e5228bdc23d38f920cd5fdee42f9bec5cc15dee779a8f31d5a5f283045c1f",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ]
+        },
+        "cases": [
+          {
+            "taskId": "pm-test",
+            "baseline": {
+              "outcomeReceiptDigest": "sha256:8a2496a5da497e5e26166563ca3a3bb7a0e7de7139ea5402cf58bb7afa0620b5",
+              "graderReceiptDigest": "sha256:f8812ba6877696a8b0b0e7d1057ec1ab37b11ef058938916cd706e0f36750f38",
+              "score": 0.5,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:dcf79a48e813d81671ec38366158c268751bb2550c76eacf7d97bf0d8002114e",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            },
+            "candidate": {
+              "outcomeReceiptDigest": "sha256:158c96d0619a7c8e50069bc2c866e7c75835c6c47b5f2ed57589d6e1ff5695bd",
+              "graderReceiptDigest": "sha256:097920d4844e10f2b5c7b04a5947c83242304283d45dd8212273c94b8aec3521",
+              "score": 0.75,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:9f49e63060aa65f2565351b75ba9e8ba1d273bc65dd36b8cc96964d2bbf27090",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            }
+          }
+        ],
+        "budgetViolations": []
+      },
+      {
+        "runId": "run-202",
+        "seed": 202,
+        "phases": {
+          "baseline": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ],
+          "candidate": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": "sha256:771d39363187b4e5954cc0fe5efbf83dc00e82796d3eba1047c96ddcd6557797",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": "sha256:aa5716a42c8937849c2ff1844077616e67609f7f77cff5b87dd0af63620587d1",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": "sha256:0a1e5228bdc23d38f920cd5fdee42f9bec5cc15dee779a8f31d5a5f283045c1f",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ]
+        },
+        "cases": [
+          {
+            "taskId": "pm-test",
+            "baseline": {
+              "outcomeReceiptDigest": "sha256:7ed3ec1ba582da8b0303352ee3ddac71285c984ccf2afc226cfbe4f45467a0e6",
+              "graderReceiptDigest": "sha256:36854a6441d9a4cad3b4f0a1850a13cdd8b6217eca32951e809afc118b01c38e",
+              "score": 0.5,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:b4bbfe9311aba2056671c9a5cf7db89341d14819e13f80c19f729d7d102579b8",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            },
+            "candidate": {
+              "outcomeReceiptDigest": "sha256:972908ab29242a8c14ee0e20a69892e6fa1823fd886cf9122b2ef2f11e5d5f09",
+              "graderReceiptDigest": "sha256:204401fc268347a428b0a172aa3a2b9ad7171c265185cee7b0988bbcba902b31",
+              "score": 0.75,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:5ebcf02f012f11a48a8bd189c223c39e2ea52dc719d5ce3e9bd47864d5ff63b7",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            }
+          }
+        ],
+        "budgetViolations": []
+      },
+      {
+        "runId": "run-303",
+        "seed": 303,
+        "phases": {
+          "baseline": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ],
+          "candidate": [
+            {
+              "phase": "exploration",
+              "usage": {
+                "receiptDigest": "sha256:771d39363187b4e5954cc0fe5efbf83dc00e82796d3eba1047c96ddcd6557797",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "curriculum-planning",
+              "usage": {
+                "receiptDigest": "sha256:aa5716a42c8937849c2ff1844077616e67609f7f77cff5b87dd0af63620587d1",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "memory-distillation",
+              "usage": {
+                "receiptDigest": "sha256:0a1e5228bdc23d38f920cd5fdee42f9bec5cc15dee779a8f31d5a5f283045c1f",
+                "tokens": 10,
+                "toolCalls": 1,
+                "wallClockMs": 5,
+                "costMicrounits": 2
+              }
+            },
+            {
+              "phase": "failure-retry",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            },
+            {
+              "phase": "environment-reset",
+              "usage": {
+                "receiptDigest": null,
+                "tokens": 0,
+                "toolCalls": 0,
+                "wallClockMs": 0,
+                "costMicrounits": 0
+              }
+            }
+          ]
+        },
+        "cases": [
+          {
+            "taskId": "pm-test",
+            "baseline": {
+              "outcomeReceiptDigest": "sha256:48e8c4e483427c7f80e6da880e5f4544aa2cfbb2c7796f08f1ae8e2b71296acd",
+              "graderReceiptDigest": "sha256:15944f3ad80c7dee27fbbd39ae9b9f35f44f959ab6b487523876bb186b5b5e83",
+              "score": 0.5,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:88d7a36730b5acf4f8608cdfa44327906685c79476b4b51c16a4416b15fd3be8",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            },
+            "candidate": {
+              "outcomeReceiptDigest": "sha256:973362d6b9ec4de0e2b495586483eeada898038a8ef85404043c9215debae609",
+              "graderReceiptDigest": "sha256:6b7266e2708c043b5c399b8e195355c5fd87a27aa950fa8a8f97d4ba0fcb384d",
+              "score": 0.75,
+              "passed": true,
+              "usage": {
+                "receiptDigest": "sha256:8fe2d9e33a3e3bd7a74d1112b7df7f453af54da6361f37cd91a6b27a3ae7ec2a",
+                "tokens": 100,
+                "toolCalls": 2,
+                "wallClockMs": 50,
+                "costMicrounits": 20
+              },
+              "securityViolations": 0,
+              "permissionViolations": 0,
+              "failureClass": "none"
+            }
+          }
+        ],
+        "budgetViolations": []
+      }
+    ],
+    "reportDigest": "sha256:eab35f11b5cd8d138651cdf131a6148f2bf36f6d97bab86a07cb2e667d60b240"
+  }
+}
