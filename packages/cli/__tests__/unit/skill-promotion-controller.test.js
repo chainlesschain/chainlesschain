@@ -1059,7 +1059,9 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
           operationId: `promotion:${suffix}`,
           candidateId: candidate.candidateId,
           dependencyLockDigest: candidate.dependencyLockDigest,
-          validityMs: 180_000,
+          // Keep authorization valid beyond the test's 180s limit even when
+          // Windows CI spends time creating and checking 100 candidates.
+          validityMs: 300_000,
         }),
       };
     });
@@ -1077,12 +1079,25 @@ describe("SkillPromotionController with SkillMutationAuthority", () => {
     );
     const fulfilled = results.filter(({ status }) => status === "fulfilled");
     const rejected = results.filter(({ status }) => status === "rejected");
-    const state = releases.readState("repair-unit-tests");
-    const active = releases.readRelease(state.activeReleaseDigest);
-
-    expect(fulfilled).toHaveLength(1);
+    const rejectionCodes = Object.fromEntries(
+      [...new Set(rejected.map(({ reason }) => reason?.code || reason?.name))]
+        .filter(Boolean)
+        .map((code) => [
+          code,
+          rejected.filter(
+            ({ reason }) => (reason?.code || reason?.name) === code,
+          ).length,
+        ]),
+    );
+    expect(
+      fulfilled,
+      `promotion outcomes: ${JSON.stringify({ fulfilled: fulfilled.length, rejectionCodes })}`,
+    ).toHaveLength(1);
     expect(rejected).toHaveLength(99);
+    const state = releases.readState("repair-unit-tests");
     expect(state).toMatchObject({ revision: 1, fence: 1 });
+    expect(state.activeReleaseDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    const active = releases.readRelease(state.activeReleaseDigest);
     expect(active.releaseDigest).toBe(state.activeReleaseDigest);
     expect(ledger.snapshot()).toHaveLength(1);
     expect(ledger.snapshot()[0].committed).not.toBeNull();
