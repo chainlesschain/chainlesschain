@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.73",
+      "cliVersions": ["0.166.73"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.73: offline PM effect evidence",
+          "body": "- Add frozen PM effect plans and cohort slot manifests with independently\n  verifiable digests, signed Eval receipts, and conservative unresolved\n  denominators for missing or rejected runs.\n- Recheck signed per-item reports, preparation settlement attribution, and\n  signed Eval execution usage without granting the offline tooling Pilot or\n  release authority.\n- Keep target-environment PM/Pilot outcomes, complete launch coverage, and\n  total provider/tool costs unverified until their independent evidence exists."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.72",
       "cliVersions": ["0.166.72"],
       "date": null,

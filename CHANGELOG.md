@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.73: offline PM effect evidence
+
+- Add frozen PM effect plans and cohort slot manifests with independently
+  verifiable digests, signed Eval receipts, and conservative unresolved
+  denominators for missing or rejected runs.
+- Recheck signed per-item reports, preparation settlement attribution, and
+  signed Eval execution usage without granting the offline tooling Pilot or
+  release authority.
+- Keep target-environment PM/Pilot outcomes, complete launch coverage, and
+  total provider/tool costs unverified until their independent evidence exists.
+
 ### Fixed - cc CLI 0.166.72: local Skill decision evaluation
 
 - Record a local decision deadline as `provider-timeout` with unknown usage and
