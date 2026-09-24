@@ -22,6 +22,13 @@ import {
   createPmExplorationVolcengineProvider,
   invokePmExplorationVolcengine,
 } from "../../src/lib/evolution/pm-exploration-volcengine-provider.js";
+import {
+  buildPmExplorationEffectPlan,
+  buildPmExplorationPreparationProviderEvidence,
+  buildPmExplorationSuite,
+  verifyPmExplorationPreparationProviderEvidence,
+} from "../../src/lib/evolution/pm-exploration-benchmark.js";
+import { buildEvolutionEvalPolicy } from "../../src/lib/evolution/evolution-eval-gate.js";
 
 const ARTIFACT_TENANT_ID = "artifact-tenant-pm-provider-settlement";
 const NOW = Date.parse("2026-09-18T06:00:00.000Z");
@@ -172,6 +179,134 @@ async function invokeProvider(persistSettlement) {
   return outcome.value;
 }
 
+function preparationInput(result, descriptorDigest) {
+  const suite = buildPmExplorationSuite({
+    suiteId: "provider-preparation-test",
+    datasetVersion: "v1",
+    tasks: ["training", "validation", "test", "test"].map((split, index) => ({
+      id: `pm-${split}-${index}`,
+      split,
+      groups: {
+        template: `${split}-${index}-template`,
+        project: `${split}-${index}-project`,
+        principal: `${split}-${index}-principal`,
+        timeWindow: `${split}-${index}-window`,
+      },
+      prompt: `Complete the ${split} PM workflow ${index}`,
+      expected: {
+        kind: "project-state",
+        id: `private-${split}-${index}`,
+        name: `private-${split}-${index}`,
+        status: "completed",
+      },
+    })),
+  });
+  const policy = buildEvolutionEvalPolicy({
+    policyId: "provider-preparation-test",
+    minTrainingTasks: 30,
+    minValidationTasks: 20,
+    minTestTasks: 20,
+    seeds: [101, 202, 303],
+    minimumAbsoluteImprovement: 0.05,
+    minimumEfficiencyImprovement: 0.1,
+    confidenceZ: 1.96,
+    maxAverageTokens: 10_000,
+    maxAverageLatencyMs: 60_000,
+    maxAverageToolCalls: 100,
+    maxTotalTokens: 1_000_000,
+    maxTotalLatencyMs: 10_000_000,
+    maxTotalToolCalls: 100_000,
+    maxTotalCostMicrounits: 1_000_000,
+    maxExecutions: 240,
+    maxWallClockMs: 30_000,
+    portReceiptTtlMs: 60_000,
+    receiptTtlMs: 60_000,
+  });
+  const plan = buildPmExplorationEffectPlan({
+    experimentId: "provider-preparation-test",
+    suite,
+    policy,
+    baselineVersion: { id: "baseline", artifactDigest: sha("baseline") },
+    candidateVersion: { id: "candidate", artifactDigest: sha("candidate") },
+    actorConfigDigest: sha("actor"),
+    modelConfigDigest: sha("model"),
+    toolPolicyDigest: sha("tool"),
+    permissionPolicyDigest: sha("permissions"),
+    environmentDigest: sha("environment"),
+    resetProtocolDigest: sha("reset"),
+    seeds: [101, 202, 303],
+    budgetPerArmPerSeed: {
+      maxTokens: 10_000,
+      maxToolCalls: 100,
+      maxWallClockMs: 60_000,
+      maxCostMicrounits: 100_000,
+    },
+    minimumPassRateDelta: 0.05,
+    minimumIndependentGroups: 2,
+  });
+  const phases = (used) =>
+    [
+      "exploration",
+      "curriculum-planning",
+      "memory-distillation",
+      "failure-retry",
+      "environment-reset",
+    ].map((phase, index) => ({
+      phase,
+      usage:
+        used && index === 0
+          ? {
+              receiptDigest: sha("phase-usage"),
+              tokens: result.settlement.usage.totalTokens,
+              toolCalls: 0,
+              wallClockMs: result.elapsedMs,
+              costMicrounits: Math.ceil(
+                result.settlement.estimatedCost.total * 1e6,
+              ),
+            }
+          : {
+              receiptDigest: null,
+              tokens: 0,
+              toolCalls: 0,
+              wallClockMs: 0,
+              costMicrounits: 0,
+            },
+    }));
+  return {
+    source: {
+      plan,
+      phaseUsage: [101, 202, 303].map((seed) => ({
+        seed,
+        baseline: phases(false),
+        candidate: phases(seed === 101),
+      })),
+      settlements: [
+        {
+          seed: 101,
+          arm: "candidate",
+          phase: "exploration",
+          settlement: result.settlement,
+          persistence: result.persistence,
+        },
+      ],
+    },
+    expected: {
+      planDigest: plan.planDigest,
+      descriptorDigest,
+      requests: [
+        {
+          seed: 101,
+          arm: "candidate",
+          phase: "exploration",
+          operationId: result.settlement.operationId,
+          executionRequestDigest: result.settlement.executionRequestDigest,
+          requestDigest: result.settlement.requestDigest,
+        },
+      ],
+    },
+  };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -261,5 +396,122 @@ describe("PM provider settlement adapter", () => {
     expect(() => capturePmExplorationProviderSettlementStore({})).toThrow(
       /real PmExplorationProviderSettlementAdapter/,
     );
+  });
+
+  it("binds a registered preparation request to durable token and cost evidence", async () => {
+    const resources = fixture();
+    const { adapter, store } = resources.create();
+    const result = await invokeProvider(store.persistSettlement);
+    const { source, expected } = preparationInput(
+      result,
+      store.inspect().descriptorDigest,
+    );
+    const evidence = buildPmExplorationPreparationProviderEvidence(
+      adapter,
+      source,
+      expected,
+    );
+    expect(evidence).toMatchObject({
+      planDigest: source.plan.planDigest,
+      authenticationScope: "registered-provider-tokens-and-estimated-cost-only",
+      preparationEvidenceAuthenticated: false,
+      reportAuthenticated: false,
+      phaseTotals: [
+        {
+          seed: 101,
+          arm: "candidate",
+          phase: "exploration",
+          tokens: result.settlement.usage.totalTokens,
+        },
+      ],
+    });
+    const reopened = resources.create();
+    expect(
+      verifyPmExplorationPreparationProviderEvidence(
+        reopened.adapter,
+        { source, evidence: JSON.parse(JSON.stringify(evidence)) },
+        expected,
+      ),
+    ).toEqual(evidence);
+  });
+
+  it("rejects forged attribution, partial registry, undercounting and damaged readback", async () => {
+    const resources = fixture();
+    const { adapter, store } = resources.create();
+    const result = await invokeProvider(store.persistSettlement);
+    const original = preparationInput(result, store.inspect().descriptorDigest);
+    const attempt = (change) => {
+      const source = structuredClone(original.source);
+      const expected = structuredClone(original.expected);
+      change(source, expected);
+      return () =>
+        buildPmExplorationPreparationProviderEvidence(
+          adapter,
+          source,
+          expected,
+        );
+    };
+    expect(
+      attempt((source) => (source.settlements[0].phase = "failure-retry")),
+    ).toThrow();
+    expect(
+      attempt(
+        (_, expected) => (expected.requests[0].requestDigest = sha("other")),
+      ),
+    ).toThrow();
+    expect(
+      attempt(
+        (_, expected) => (expected.descriptorDigest = sha("different-store")),
+      ),
+    ).toThrow();
+    expect(
+      attempt((_, expected) => expected.requests.push(expected.requests[0])),
+    ).toThrow();
+    expect(
+      attempt((source) => (source.phaseUsage[0].candidate[0].usage.tokens = 1)),
+    ).toThrow();
+    expect(
+      attempt(
+        (source) =>
+          (source.phaseUsage[0].candidate[0].usage.costMicrounits = 0),
+      ),
+    ).toThrow();
+    expect(
+      attempt((source) => (source.settlements[0].persistence.durable = false)),
+    ).toThrow();
+    expect(() =>
+      buildPmExplorationPreparationProviderEvidence(
+        {},
+        original.source,
+        original.expected,
+      ),
+    ).toThrow(/real PmExplorationProviderSettlementAdapter/);
+
+    const evidence = buildPmExplorationPreparationProviderEvidence(
+      adapter,
+      original.source,
+      original.expected,
+    );
+    const forged = structuredClone(evidence);
+    forged.phaseTotals[0].tokens += 1;
+    expect(() =>
+      verifyPmExplorationPreparationProviderEvidence(
+        adapter,
+        { source: original.source, evidence: forged },
+        original.expected,
+      ),
+    ).toThrow();
+    const replica = fs.readdirSync(resources.replicaDir)[0];
+    const replicaPath = path.join(resources.replicaDir, replica);
+    const record = JSON.parse(fs.readFileSync(replicaPath, "utf8"));
+    record.bytes = Buffer.from("substituted").toString("base64");
+    fs.writeFileSync(replicaPath, JSON.stringify(record));
+    expect(() =>
+      verifyPmExplorationPreparationProviderEvidence(
+        adapter,
+        { source: original.source, evidence },
+        original.expected,
+      ),
+    ).toThrow();
   });
 });

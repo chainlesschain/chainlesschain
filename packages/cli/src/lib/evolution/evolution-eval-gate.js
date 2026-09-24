@@ -18,6 +18,8 @@ export const EVOLUTION_EVAL_POLICY_SCHEMA =
   "chainlesschain.evolution-eval-policy/v2";
 export const EVOLUTION_EVAL_RECEIPT_SCHEMA =
   "chainlesschain.evolution-eval-receipt/v4";
+export const EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA =
+  "chainlesschain.evolution-eval-result-evidence/v1";
 export const EVOLUTION_EVAL_SUITE_AUTHORITY_SCHEMA =
   "chainlesschain.evolution-eval-suite-authority-receipt/v1";
 export const EVOLUTION_EVAL_ENVIRONMENT_SCHEMA =
@@ -2647,6 +2649,27 @@ function comparisonSummary(results, confidenceZ, seedCount) {
   });
 }
 
+function resultEvidenceCore(receipt, results) {
+  return {
+    schema: EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA,
+    receiptDigest: receipt.receiptDigest,
+    validation: results.validation,
+    test: results.test,
+    qualifiesForPromotion: false,
+  };
+}
+
+function buildResultEvidence(receipt, results) {
+  const core = resultEvidenceCore(receipt, results);
+  const evidence = {
+    ...core,
+    evidenceDigest: digest(core, EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA),
+  };
+  // Include the digest envelope in the same bound used by the readback path.
+  canonicalJson(evidence);
+  return deepFreeze(evidence);
+}
+
 function decideSplit(summary, policy) {
   const { baseline, candidate } = summary;
   if (candidate.securityViolations > 0 || candidate.permissionViolations > 0) {
@@ -5149,6 +5172,7 @@ export class EvolutionEvalGate {
         this.#policy.confidenceZ,
         this.#policy.seeds.length,
       ),
+      ...(run.includeResultEvidence ? { results } : {}),
     });
   }
 
@@ -5271,10 +5295,46 @@ export class EvolutionEvalGate {
       signedReceipt.receiptDigest,
       "receiptDigest",
     );
+    if (run.includeResultEvidence) {
+      // Export only completed validation + test sets, after the final receipt
+      // was independently signed and verified. No observer runs during grading.
+      const resultEvidence = run.results
+        ? buildResultEvidence(signedReceipt, run.results)
+        : null;
+      const exportedAt = readClock(this.#clock).milliseconds;
+      if (
+        exportedAt >= run.deadlineMs ||
+        NATIVE_MONOTONIC_NOW() >= run.runLocalDeadlineMs ||
+        Date.parse(signedReceipt.expiresAt) <= exportedAt ||
+        run.portExpiries.some(
+          (expiresAt) => Date.parse(expiresAt) <= exportedAt,
+        )
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_EXECUTION_FAILED_CODE,
+          "evaluation evidence export crossed the evaluation deadline",
+        );
+      }
+      return deepFreeze({ receipt: signedReceipt, resultEvidence });
+    }
     return signedReceipt;
   }
 
   async run(request) {
+    return this.#run(request, false);
+  }
+
+  /** Trusted evaluator host only. Never expose hidden-test rows to the Actor. */
+  async runWithEvidence(request) {
+    return this.#run(request, true);
+  }
+
+  /** Trusted host opt-in: best-effort signed rejection after measured execution. */
+  async runWithFailureEvidence(request) {
+    return this.#run(request, true, true);
+  }
+
+  async #run(request, includeResultEvidence, signRuntimeFailures = false) {
     const runLocalDeadlineMs =
       NATIVE_MONOTONIC_NOW() + this.#policy.maxWallClockMs;
     assertExactRecord(request, RUN_REQUEST_KEYS, "evaluation run request");
@@ -5628,6 +5688,7 @@ export class EvolutionEvalGate {
     const run = {
       runId,
       runNonce,
+      includeResultEvidence,
       deadlineAt,
       deadlineMs,
       runLocalDeadlineMs,
@@ -5713,43 +5774,13 @@ export class EvolutionEvalGate {
     }
 
     const sandboxInstances = new Set();
+    let evaluated;
     try {
-      const evaluated = await this.#evaluateBlindedWorkPlan(
+      evaluated = await this.#evaluateBlindedWorkPlan(
         run,
         usage,
         sandboxInstances,
       );
-      const { validation, test } = evaluated;
-      const validationDecision = decideSplit(validation, this.#policy);
-      if (!validationDecision.accepted) {
-        return this.#buildReceipt(run, {
-          decision: "rejected",
-          reasonCodes: [`validation-${validationDecision.reason}`],
-          validation,
-          test,
-          usage,
-        });
-      }
-      const testDecision = decideSplit(test, this.#policy);
-      if (!testDecision.accepted) {
-        return this.#buildReceipt(run, {
-          decision: "rejected",
-          reasonCodes: [`test-${testDecision.reason}`],
-          validation,
-          test,
-          usage,
-        });
-      }
-      return this.#buildReceipt(run, {
-        decision: "accepted",
-        reasonCodes: [
-          `validation-${validationDecision.reason}`,
-          `test-${testDecision.reason}`,
-        ],
-        validation,
-        test,
-        usage,
-      });
     } catch (cause) {
       if (cause instanceof EvaluationBudgetExceeded) {
         return this.#buildReceipt(run, {
@@ -5760,8 +5791,65 @@ export class EvolutionEvalGate {
           usage: cause.usage,
         });
       }
+      const failureReason =
+        cause instanceof EvolutionEvalGateError
+          ? new Map([
+              [
+                EVOLUTION_EVAL_EXECUTION_FAILED_CODE,
+                "runtime-execution-failed",
+              ],
+              [EVOLUTION_EVAL_GRADER_FAILED_CODE, "runtime-grader-failed"],
+              [EVOLUTION_EVAL_SAFETY_FAILED_CODE, "runtime-safety-failed"],
+            ]).get(cause.code)
+          : undefined;
+      if (signRuntimeFailures && failureReason && usage.executionCount > 0) {
+        try {
+          return await this.#buildReceipt(run, {
+            decision: "rejected",
+            reasonCodes: [failureReason],
+            validation: null,
+            test: null,
+            usage,
+          });
+        } catch {
+          // A deadline, expired authority, or signer failure cannot be
+          // represented as authenticated outcome evidence.
+        }
+      }
       throw cause;
     }
+    const { validation, test } = evaluated;
+    if (includeResultEvidence) run.results = evaluated.results;
+    const validationDecision = decideSplit(validation, this.#policy);
+    if (!validationDecision.accepted) {
+      return this.#buildReceipt(run, {
+        decision: "rejected",
+        reasonCodes: [`validation-${validationDecision.reason}`],
+        validation,
+        test,
+        usage,
+      });
+    }
+    const testDecision = decideSplit(test, this.#policy);
+    if (!testDecision.accepted) {
+      return this.#buildReceipt(run, {
+        decision: "rejected",
+        reasonCodes: [`test-${testDecision.reason}`],
+        validation,
+        test,
+        usage,
+      });
+    }
+    return this.#buildReceipt(run, {
+      decision: "accepted",
+      reasonCodes: [
+        `validation-${validationDecision.reason}`,
+        `test-${testDecision.reason}`,
+      ],
+      validation,
+      test,
+      usage,
+    });
   }
 }
 
@@ -6461,6 +6549,28 @@ export async function runEvolutionEvalGate(gate, request) {
   return EvolutionEvalGate.prototype.run.call(gate, request);
 }
 
+/** Opt-in export for the trusted evaluation host, after the whole run settles. */
+export async function runEvolutionEvalGateWithEvidence(gate, request) {
+  if (!GATE_INSTANCES.has(gate)) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "result evidence export requires a trusted EvolutionEvalGate instance",
+    );
+  }
+  return EvolutionEvalGate.prototype.runWithEvidence.call(gate, request);
+}
+
+/** Opt-in for trusted hosts; an unsigned failure still rejects the promise. */
+export async function runEvolutionEvalGateWithFailureEvidence(gate, request) {
+  if (!GATE_INSTANCES.has(gate)) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "failure evidence export requires a trusted EvolutionEvalGate instance",
+    );
+  }
+  return EvolutionEvalGate.prototype.runWithFailureEvidence.call(gate, request);
+}
+
 export async function verifyEvolutionEvalReceipt(verifier, value, expected) {
   if (!RECEIPT_VERIFIER_INSTANCES.has(verifier)) {
     throw evalError(
@@ -6473,4 +6583,151 @@ export async function verifyEvolutionEvalReceipt(verifier, value, expected) {
     value,
     expected,
   );
+}
+
+const RESULT_ROW_KEYS = new Set([
+  "taskDigest",
+  "seed",
+  "pass",
+  "qualityScore",
+  "securityViolations",
+  "permissionViolations",
+  "outputArtifactDigest",
+  "subjectBindingDigest",
+  "subjectReservationDigest",
+  "executionDigest",
+  "gradeDigest",
+  "safetyDigest",
+  "metrics",
+]);
+
+function verifyResultRows(rows, tasks, seeds) {
+  if (!Array.isArray(rows) || rows.length !== tasks.size * seeds.size) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "result evidence must cover every task and seed in each arm",
+    );
+  }
+  const seen = new Set();
+  for (const row of rows) {
+    assertExactRecord(row, RESULT_ROW_KEYS, "evaluation result row");
+    for (const field of RESULT_ROW_KEYS) {
+      if (field.endsWith("Digest")) normalizeDigest(row[field], field);
+    }
+    normalizeInteger(row.seed, "result seed", { maximum: 0x7fffffff });
+    const pair = `${row.taskDigest}\0${row.seed}`;
+    if (!tasks.has(row.taskDigest) || !seeds.has(row.seed) || seen.has(pair)) {
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "result evidence contains a foreign or duplicate task/seed pair",
+      );
+    }
+    seen.add(pair);
+    if (typeof row.pass !== "boolean") {
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "result pass must be boolean",
+      );
+    }
+    normalizeRatio(row.qualityScore, "result qualityScore");
+    normalizeInteger(row.securityViolations, "result securityViolations");
+    normalizeInteger(row.permissionViolations, "result permissionViolations");
+    normalizeMetrics(row.metrics);
+  }
+}
+
+/**
+ * Authenticate raw rows through the existing final receipt's signed result
+ * digests. This does not fetch/reverify the underlying execution/grader/safety
+ * receipts, attest preparation costs, or turn the rows into promotion approval.
+ * `expected` must come from the trusted host's registered run context.
+ */
+export async function verifyEvolutionEvalResultEvidence(
+  verifier,
+  input,
+  expected,
+) {
+  assertExactRecord(
+    input,
+    new Set(["receipt", "resultEvidence", "suite", "policy"]),
+    "evaluation result evidence input",
+  );
+  // Capture every graph before invoking any asynchronous authority, using the
+  // existing independent bounds for each canonical document.
+  const receipt = deepFreeze(cloneCanonical(input.receipt));
+  const evidence = deepFreeze(cloneCanonical(input.resultEvidence));
+  const suite = verifyEvolutionEvalSuite(input.suite);
+  const policy = verifyEvolutionEvalPolicy(input.policy);
+  const expectedSnapshot = deepFreeze(cloneCanonical(expected));
+  assertExactRecord(
+    evidence,
+    new Set([
+      "schema",
+      "receiptDigest",
+      "validation",
+      "test",
+      "qualifiesForPromotion",
+      "evidenceDigest",
+    ]),
+    "evaluation result evidence",
+  );
+  if (
+    evidence.schema !== EVOLUTION_EVAL_RESULT_EVIDENCE_SCHEMA ||
+    evidence.qualifiesForPromotion !== false ||
+    evidence.receiptDigest !== receipt.receiptDigest ||
+    receipt.suiteDigest !== suite.suiteDigest ||
+    receipt.policyDigest !== policy.policyDigest ||
+    receipt.confidenceZ !== policy.confidenceZ ||
+    !receipt.validation ||
+    !receipt.test ||
+    digest(receipt.splitCounts, "split-counts") !==
+      digest(countSplits(suite.tasks), "split-counts")
+  ) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "result evidence differs from its receipt, suite, or policy",
+    );
+  }
+  const seeds = new Set(policy.seeds);
+  for (const split of ["validation", "test"]) {
+    const results = evidence[split];
+    assertExactRecord(
+      results,
+      new Set(["baseline", "candidate"]),
+      "split results",
+    );
+    const tasks = new Set(
+      suite.tasks
+        .filter((task) => task.split === split)
+        .map((task) => task.taskDigest),
+    );
+    for (const arm of ["baseline", "candidate"]) {
+      verifyResultRows(results[arm], tasks, seeds);
+    }
+    const recomputed = comparisonSummary(
+      results,
+      policy.confidenceZ,
+      seeds.size,
+    );
+    if (
+      digest(recomputed, "chainlesschain.evolution-eval-comparison/v2") !==
+      digest(receipt[split], "chainlesschain.evolution-eval-comparison/v2")
+    ) {
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "result rows do not reproduce the signed comparison",
+      );
+    }
+  }
+  const rebuilt = buildResultEvidence(receipt, evidence);
+  if (rebuilt.evidenceDigest !== evidence.evidenceDigest) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "result evidence digest mismatch",
+    );
+  }
+  // Verify freshness last so a receipt that expires during recomputation cannot
+  // be returned as verified. The same check authenticates signature and context.
+  await verifyEvolutionEvalReceipt(verifier, receipt, expectedSnapshot);
+  return evidence;
 }

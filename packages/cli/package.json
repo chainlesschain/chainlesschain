@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.166.72",
+  "version": "0.166.73",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -69,6 +69,7 @@
     "src/",
     "completions/",
     "scripts/postinstall.mjs",
+    "scripts/pm-exploration-effect.mjs",
     "scripts/repair-node-pty.mjs",
     "scripts/build-windows-sandbox-helper.ps1",
     "scripts/macos-mcp-launcher-build.mjs",
