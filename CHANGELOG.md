@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.74: recover stalled IDE investigations
+
+- Count wrapped GitHub queries, saved-log parsing, repository inspection, and
+  fetches as investigation instead of resetting task-progress recovery. Retain
+  evidence through context compaction and direct the next step toward focused
+  validation or an authorized change.
+- Pass Windows Bash source through standard input so Git Bash and WSL do not
+  misinterpret native temporary script paths. Preserve execution approval and
+  sandbox boundaries.
+- Clarify Git argument-only calls, predicate exit codes, actual remote names,
+  explicit PowerShell selection, and UTF-8 BOM handling in saved JSON.
+- Include the PM evidence test's physical temporary-directory fix for macOS
+  and Windows, alongside the offline PM effect evidence prepared in 0.166.73.
+
 ### Added - cc CLI 0.166.73: offline PM effect evidence
 
 - Add frozen PM effect plans and cohort slot manifests with independently

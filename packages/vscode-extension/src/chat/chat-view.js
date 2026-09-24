@@ -3463,6 +3463,9 @@ class ChatViewProvider {
             })
           : session.send(m.text);
       if (ok === true) {
+        // Persistent sessions may queue a follow-up or wait on a slow provider
+        // without emitting another init event. Acknowledge stdin delivery now.
+        this._post({ kind: "sendAccepted" });
         if (history) sendingConv.worklogSourceSent = true;
         this._activeConv().turnActive = true;
         if (!this._imgTurns) this._imgTurns = new Map();

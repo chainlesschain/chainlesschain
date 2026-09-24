@@ -10,6 +10,63 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it.each([
+    "fetch github main",
+    "branch -a",
+    "branch --show-current",
+    "branch --contains abc",
+    "tag --sort=-creatordate",
+    "status -sb",
+    "show abc --stat",
+  ])("does not count repository discovery as delivery: %s", (command) => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    expect(tracker.record("git", { exitCode: 0 }, { command })).toBe(false);
+    expect(tracker.intervention.recovery).toBe(true);
+  });
+
+  it.each([
+    'execSync("gh run view 36002210130 --json jobs");',
+    'function gh(args) { return execSync("gh " + args); } console.log(gh("run view 36002210130 --log-failed"));',
+    'subprocess.check_output("gh run list --limit 15", shell=True)',
+    'const run = JSON.parse(fs.readFileSync("runlist.json", "utf8")); console.log(run);',
+    'console.log(fs.readdirSync(".github/workflows"));',
+    'execSync("gh workflow list --limit 50");',
+  ])("keeps recovery active across changing script output: %s", (code) => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    for (let i = 0; i < 4; i++) {
+      expect(
+        tracker.record(
+          "run_code",
+          { success: true, output: `evidence ${i}` },
+          { code },
+        ),
+      ).toBe(false);
+    }
+    expect(tracker.explorationCalls).toBe(28);
+    expect(tracker.intervention.recovery).toBe(true);
+    expect(tracker.checkpointFor()).toContain("evidence 3");
+    expect(
+      JSON.parse(tracker.checkpointFor().split("\n")[1]).recentToolOutcomes,
+    ).toEqual([]);
+  });
+
+  it.each([
+    'const data = fs.readFileSync("fix.js"); fs.writeFileSync("fix.js", transform(data));',
+    'const data = JSON.parse(fs.readFileSync("actual.json")); assert.equal(data.ok, true);',
+    'execSync("gh pr merge 123 --merge");',
+    'execSync("npm test");',
+    'execSync("gh run rerun 123 --failed");',
+  ])("allows changes and verification to end recovery: %s", (code) => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    expect(
+      tracker.record("run_code", { success: true, output: "done" }, { code }),
+    ).toBe(true);
+    expect(tracker.intervention).toBeNull();
+  });
+
   it("keeps investigation recovery active across the issue-351 Git query sequence", () => {
     const tracker = new TaskProgressTracker();
     observe(tracker, 24);

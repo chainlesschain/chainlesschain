@@ -84,105 +84,120 @@ describe("read_file offset/limit line ranges", () => {
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
 
-  it("recovers from repeated Git inspection after compaction with usable source evidence", async () => {
-    const source = 'export const python = "python";';
-    writeFileSync(join(dir, "gate.mjs"), source);
-    const git = vi.spyOn(_gitProcessDeps, "run").mockReturnValue({
-      status: 0,
-      stdout: "",
-      stderr: "",
-    });
-    let calls = 0;
-    let wrote = false;
-    let recovered = false;
-    const tool = (name, args) => ({
-      message: {
-        role: "assistant",
-        tool_calls: [
-          {
-            id: `git-recovery-${calls}`,
-            type: "function",
-            function: { name, arguments: JSON.stringify(args) },
-          },
-        ],
-      },
-    });
-    try {
-      for await (const event of agentLoop(
-        [
-          {
-            role: "user",
-            content: "Fix gate.mjs to use the configured Python path",
-          },
-        ],
-        {
-          cwd: dir,
-          contextMemorySkipPlanning: true,
-          autoMicroCompact: false,
-          _autoCompactor: {
-            shouldAutoCompact: (messages) => messages.length > 4,
-            compress: async (messages) => ({
-              messages: [messages[0]],
-              stats: {
-                originalMessages: messages.length,
-                compressedMessages: 1,
-                saved: 1,
-              },
-            }),
-          },
-          chatFn: async (messages, options) => {
-            expect(++calls).toBeLessThan(28);
-            if (calls === 1) return tool("read_file", { path: "gate.mjs" });
-            if (wrote)
-              return {
-                message: { role: "assistant", content: "Change written" },
-              };
-            if (options.disabledTools?.includes("list_dir")) {
-              recovered = true;
-              const findings = retainedContext(
-                messages,
-                "[File excerpts retained across compaction",
-              );
-              expect(
-                JSON.parse(findings.content.split("\n")[1])[0].excerpts[0]
-                  .content,
-              ).toBe(source);
-              const checkpoint = retainedContext(
-                messages,
-                "[Task execution checkpoint",
-              );
-              expect(checkpoint.content).toContain("merge-base --is-ancestor");
-              return tool("write_file", {
-                path: "gate.mjs",
-                content:
-                  'export const python = process.env.PYTHON || "python";',
-              });
-            }
-            return tool("git", {
-              command: [
-                "merge-base --is-ancestor fix HEAD",
-                'grep -n "python" -- gate.mjs',
-                "remote -v",
-              ][calls % 3],
-            });
-          },
+  it.each(["git", "script"])(
+    "recovers from repeated %s inspection after compaction with usable source evidence",
+    async (route) => {
+      const source = 'export const python = "python";';
+      writeFileSync(join(dir, "gate.mjs"), source);
+      const git = vi.spyOn(_gitProcessDeps, "run").mockReturnValue({
+        status: 0,
+        stdout: "",
+        stderr: "",
+      });
+      let scriptReads = 0;
+      const runCode = vi
+        .spyOn(_agentToolProcessDeps, "runCode")
+        .mockImplementation(() => `CI metadata ${++scriptReads}`);
+      let calls = 0;
+      let wrote = false;
+      let recovered = false;
+      const tool = (name, args) => ({
+        message: {
+          role: "assistant",
+          tool_calls: [
+            {
+              id: `git-recovery-${calls}`,
+              type: "function",
+              function: { name, arguments: JSON.stringify(args) },
+            },
+          ],
         },
-      )) {
-        if (event.type === "tool-result" && event.tool === "write_file") {
-          expect(event.result.error).toBeUndefined();
-          wrote = true;
+      });
+      try {
+        for await (const event of agentLoop(
+          [
+            {
+              role: "user",
+              content: "Fix gate.mjs to use the configured Python path",
+            },
+          ],
+          {
+            cwd: dir,
+            contextMemorySkipPlanning: true,
+            autoMicroCompact: false,
+            _autoCompactor: {
+              shouldAutoCompact: (messages) => messages.length > 4,
+              compress: async (messages) => ({
+                messages: [messages[0]],
+                stats: {
+                  originalMessages: messages.length,
+                  compressedMessages: 1,
+                  saved: 1,
+                },
+              }),
+            },
+            chatFn: async (messages, options) => {
+              expect(++calls).toBeLessThan(28);
+              if (calls === 1) return tool("read_file", { path: "gate.mjs" });
+              if (wrote)
+                return {
+                  message: { role: "assistant", content: "Change written" },
+                };
+              if (options.disabledTools?.includes("list_dir")) {
+                recovered = true;
+                const findings = retainedContext(
+                  messages,
+                  "[File excerpts retained across compaction",
+                );
+                expect(
+                  JSON.parse(findings.content.split("\n")[1])[0].excerpts[0]
+                    .content,
+                ).toBe(source);
+                const checkpoint = retainedContext(
+                  messages,
+                  "[Task execution checkpoint",
+                );
+                expect(checkpoint.content).toContain(
+                  route === "git" ? "merge-base --is-ancestor" : "gh run view",
+                );
+                return tool("write_file", {
+                  path: "gate.mjs",
+                  content:
+                    'export const python = process.env.PYTHON || "python";',
+                });
+              }
+              if (route === "script")
+                return tool("run_code", {
+                  language: "node",
+                  code: 'console.log(require("child_process").execSync("gh run view 36002210130 --json jobs").toString());',
+                });
+              return tool("git", {
+                command: [
+                  "merge-base --is-ancestor fix HEAD",
+                  'grep -n "python" -- gate.mjs',
+                  "remote -v",
+                ][calls % 3],
+              });
+            },
+          },
+        )) {
+          if (event.type === "tool-result" && event.tool === "write_file") {
+            expect(event.result.error).toBeUndefined();
+            wrote = true;
+          }
         }
+        expect(recovered).toBe(true);
+        expect(wrote).toBe(true);
+        expect(calls).toBe(26);
+        expect(fs.readFileSync(join(dir, "gate.mjs"), "utf8")).toContain(
+          "process.env.PYTHON",
+        );
+      } finally {
+        git.mockRestore();
+        runCode.mockRestore();
       }
-      expect(recovered).toBe(true);
-      expect(wrote).toBe(true);
-      expect(calls).toBe(26);
-      expect(fs.readFileSync(join(dir, "gate.mjs"), "utf8")).toContain(
-        "process.env.PYTHON",
-      );
-    } finally {
-      git.mockRestore();
-    }
-  });
+    },
+  );
 
   it("recovers broad investigation through compaction, retains the plan and lands a real change", async () => {
     for (let i = 0; i < 30; i++)

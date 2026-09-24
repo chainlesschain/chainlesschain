@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.137] - Recover stalled investigations with CLI 0.166.74 (2026-09-25)
+
+- Recommend `chainlesschain@0.166.74` in runtime upgrade guidance and release
+  metadata, including when the npm version lookup is unavailable.
+- Include the paired CLI's recovery for repeated Git/CI queries and saved-log
+  parsing, retained evidence across compaction, Windows Bash stdin execution,
+  and guidance for Git arguments, PowerShell selection, and JSON BOMs.
+- Retain the CLI's offline PM effect evidence and existing execution approval
+  and sandbox boundaries. The plugin receives these runtime fixes through the
+  updated CLI pairing.
+
 ## [0.4.136] - Pair with CLI 0.166.73 PM evidence workflow (2026-09-24)
 
 - Recommend `chainlesschain@0.166.73` in runtime upgrade guidance and release metadata.

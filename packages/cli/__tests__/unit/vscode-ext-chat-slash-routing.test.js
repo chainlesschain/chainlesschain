@@ -113,6 +113,29 @@ afterEach(() => {
 });
 
 describe("VS Code chat session slash-command routing", () => {
+  it("acknowledges every accepted send while a persistent agent is silent", () => {
+    const { provider, posted, createSession } = makeProvider();
+    provider._handleMessage({ type: "send", text: "inspect the failure" });
+    provider._handleMessage({ type: "send", text: "continue until fixed" });
+    expect(createSession).toHaveBeenCalledOnce();
+    expect(createSession.sessions[0].sent).toHaveLength(2);
+    expect(
+      posted.filter((message) => message.kind === "sendAccepted"),
+    ).toHaveLength(2);
+    expect(provider._activeConv().turnActive).toBe(true);
+  });
+
+  it("reports a failed send without acknowledging delivery", () => {
+    const { provider, posted, createSession } = makeProvider();
+    provider._ensureSession();
+    createSession.sessions[0].send.mockReturnValue(false);
+    provider._handleMessage({ type: "send", text: "continue" });
+    expect(posted.some((message) => message.kind === "sendAccepted")).toBe(
+      false,
+    );
+    expect(posted.some((message) => message.kind === "error")).toBe(true);
+  });
+
   it("routes a normalized unique /sta fallback through the manifest to /status", () => {
     const { provider, posted, createSession, runCliResult } = makeProvider();
 

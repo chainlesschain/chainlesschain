@@ -47,11 +47,13 @@ function isGitInspection(result, args) {
     .trim()
     .replace(/^git\s+/i, "");
   return (
-    /^(?:merge-base|grep|rev-list|ls-files|ls-tree|ls-remote|cat-file|describe|name-rev)\b/i.test(
+    /^(?:status|diff|log|show|rev-parse|merge-base|grep|rev-list|ls-files|ls-tree|ls-remote|cat-file|describe|name-rev|fetch)\b/i.test(
       command,
     ) ||
     /^remote\s*(?:-v|--verbose)?\s*$/i.test(command) ||
-    /^(?:branch|tag)\s+(?:--list|-l)(?:\s|$)/i.test(command)
+    /^(?:branch|tag)\s*(?:$|(?:--list|-l|--show-current|--contains|--no-merged|--merged|-a|-r|--all|--sort)(?:[=\s]|$))/i.test(
+      command,
+    )
   );
 }
 
@@ -61,7 +63,7 @@ function isGitInspection(result, args) {
 function isRemoteInspectionCommand(command) {
   if (typeof command !== "string") return false;
   if (
-    /(?:^|[\s;&|])gh(?:\.exe)?\s+(?:run\s+(?:view|list|watch)|pr\s+(?:view|list|diff|checks)|auth\s+status)\b/i.test(
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+(?:run\s+(?:view|list|watch)|pr\s+(?:view|list|diff|checks)|workflow\s+(?:view|list)|auth\s+status)\b/i.test(
       command,
     )
   )
@@ -73,6 +75,43 @@ function isRemoteInspectionCommand(command) {
     ) &&
     !/(?:^|\s)(?:--method|-X)(?:=|\s*)["']?(?!GET\b)\w+/i.test(command) &&
     !/(?:^|\s)(?:(?:--field|--raw-field|--input)(?:=|\s)|-[fF])/.test(command)
+  );
+}
+
+// Advisory classification, never execution parsing or permission approval.
+// A retry wrapper or JSON filter is still investigation, even when each call
+// prints a different small result. Unknown computations remain available.
+function isInspectionScript(code) {
+  if (typeof code !== "string") return false;
+  // Keep actual changes and focused verification eligible to advance the task.
+  if (
+    /\b(?:writeFile(?:Sync)?|appendFile(?:Sync)?|unlink(?:Sync)?|rename(?:Sync)?|mkdir(?:Sync)?|rmSync|rmdirSync|assert|pytest|vitest|unittest)\b/.test(
+      code,
+    ) ||
+    /\b(?:npm\s+(?:test|run|publish)|git\s+(?:commit|merge|cherry-pick|push)|gh\s+(?:pr\s+(?:create|merge|close)|run\s+rerun))\b/i.test(
+      code,
+    )
+  )
+    return false;
+  // Direct exec("gh ...") and helpers such as gh("run view ...") both occur
+  // in recovery loops. Do not execute/extract these strings as commands.
+  const literals = [...code.matchAll(/["'`]([^"'`\r\n]+)["'`]/g)].map(
+    (match) => match[1],
+  );
+  if (literals.some((value) => isRemoteInspectionCommand(value))) return true;
+  if (
+    /\bgh\s*\(/.test(code) &&
+    literals.some((value) => isRemoteInspectionCommand(`gh ${value}`))
+  )
+    return true;
+  // Parsing previously saved logs/metadata is evidence collection too.
+  return (
+    /\b(?:readFileSync|readFile|readdirSync|readdir|read_text|read_bytes|json\.load)\s*\(/.test(
+      code,
+    ) &&
+    !/\b(?:execSync|execFileSync|spawnSync|exec|spawn|subprocess|system)\s*[.(]/.test(
+      code,
+    )
   );
 }
 
@@ -180,7 +219,9 @@ export class TaskProgressTracker {
               ? "git-inspection"
               : remoteTarget?.github || isRemoteInspectionCommand(command)
                 ? "remote-inspection"
-                : "local-execution"),
+                : tool === "run_code" && isInspectionScript(command)
+                  ? "script-inspection"
+                  : "local-execution"),
           invocation: boundedText(command || previous?.invocation, 1000),
           invocationTruncated: command
             ? command.length > 1000
@@ -293,6 +334,7 @@ export class TaskProgressTracker {
       exploration =
         !!remoteReadTarget(tool, args) ||
         remoteInspection ||
+        (tool === "run_code" && isInspectionScript(args.code)) ||
         output.length >= 8000 ||
         this.commandOutputs.has(digest);
       if (!failed) remember(this.commandOutputs, digest, true, 64);
@@ -356,6 +398,7 @@ export class TaskProgressTracker {
         "For research/review, synthesize evidence-backed findings; do not write files merely to clear this warning. " +
         "If evidence is insufficient, name the exact missing fact and use a focused search or bounded computation. " +
         "Do not restart general investigation, rewrite the plan, or delegate the same research. " +
+        "Re-reading the same commit, completed CI run or saved metadata through a different script is still investigation. Once a failure and candidate fix are established, run the focused validation or perform the next authorized action; do not repeatedly announce that the root cause is confirmed. For monitoring, poll a compact status at a reasonable interval and investigate again only when the state changes. " +
         "A child exhausting its budget is not task completion. Preserve useful partial findings and continue the original task. " +
         "During recovery, broad discovery stays paused until an actionable tool outcome; a focused search, another status query or a failed command does not end recovery. " +
         "Use search_files for an exact missing local fact, read_file with an explicit offset and limit of at most 80 lines for a known target section, or run a bounded computation/verification, then act on the result. " +
