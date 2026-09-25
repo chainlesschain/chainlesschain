@@ -118,6 +118,7 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+.work/
 *.tmp
 *.bak
 *.bak*
