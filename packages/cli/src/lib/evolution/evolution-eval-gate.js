@@ -9,6 +9,10 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { isProxy } from "node:util/types";
+import {
+  admitEvolutionEvalLaunch,
+  isEvolutionEvalLaunchAdmissionAuthority,
+} from "./evolution-eval-launch-admission.js";
 
 export const EVOLUTION_EVAL_TASK_SCHEMA =
   "chainlesschain.evolution-eval-task/v1";
@@ -3631,6 +3635,7 @@ export class EvolutionEvalGate {
   #authorityPolicies;
   #supervision;
   #clock;
+  #launchAdmission;
 
   constructor({
     policy,
@@ -3655,7 +3660,18 @@ export class EvolutionEvalGate {
     invocationEvidenceVerifier,
     revocationEvidenceVerifier,
     clock,
+    launchAdmission,
   }) {
+    if (
+      launchAdmission !== undefined &&
+      !isEvolutionEvalLaunchAdmissionAuthority(launchAdmission)
+    ) {
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "launchAdmission must be a trusted admission authority",
+      );
+    }
+    this.#launchAdmission = launchAdmission;
     this.#policy = verifyEvolutionEvalPolicy(policy);
     this.#authorityPolicies = normalizeAuthorityPolicies(authorityPolicies);
     const supervisorPolicy = this.#authorityPolicies.supervisor;
@@ -5439,6 +5455,46 @@ export class EvolutionEvalGate {
     const runNonce = randomIdentifier("nonce");
     const deadlineMs = started.milliseconds + this.#policy.maxWallClockMs;
     const deadlineAt = new Date(deadlineMs).toISOString();
+
+    if (this.#launchAdmission) {
+      if (
+        this.#launchAdmission.descriptor.planDigest !==
+        evaluationContext.planDigest
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_INVALID_CODE,
+          "launch admission plan differs from the evaluation run context",
+        );
+      }
+      await admitEvolutionEvalLaunch(this.#launchAdmission, {
+        runId,
+        runNonce,
+        requestDigest: digest(
+          {
+            suiteRef,
+            candidateId,
+            baselineId,
+            targetEnvironmentRef,
+            evaluationContext,
+          },
+          "chainlesschain.evolution-eval-launch-request/v1",
+        ),
+        policyDigest: this.#policy.policyDigest,
+        evaluationAuthorityRoot: this.#evaluationAuthorityRoot,
+        tenantId: this.#tenantId,
+        admittedAt: started.timestamp,
+        deadlineAt,
+      });
+      if (
+        NATIVE_MONOTONIC_NOW() >= runLocalDeadlineMs ||
+        readClock(this.#clock).milliseconds >= deadlineMs
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_AUTHORITY_FAILED_CODE,
+          "launch admission crossed the evaluation deadline",
+        );
+      }
+    }
 
     const suiteRequest = deepFreeze({
       runId,

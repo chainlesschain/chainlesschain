@@ -1,6 +1,7 @@
 # ChainlessChain 对照 RSIAgent 的差距、方案审计与优化建议
 
 > 审计日期：2026-09-17（Asia/Shanghai）<br>
+> 最新 G08 启动前准入（2026-09-25）：[第二百一十五次工程实施：Eval 启动前签名准入与耐久回读](./rsiagent-two-hundred-fifteenth-batch-implementation-2026-09-25.md)。可信宿主可为三个 Eval Gate 运行入口配置同一单槽 Ed25519 签名、Ledger CAS 和耐久 artifact 精确回读门禁；失败或重复启动在 suite 调用前关闭。此入口尚未在目标部署强制覆盖全部实际启动，完整成本及真实 PM/Pilot 结论未认证，G08 仍为部分完成。<br>
 > 最新 G08 零执行预检槽位（2026-09-24）：[第二百一十四次工程实施：零执行预检拒绝的签名槽位证据](./rsiagent-two-hundred-fourteenth-batch-implementation-2026-09-24.md)。数据集不足或计划执行数超预算的最终签名预检拒绝，可按冻结清单计入未解析分母并保留签名零用量；不再与完全无回执的槽位混淆。全部实际启动覆盖、准备成本及真实 PM/Pilot 结论仍未认证。<br>
 > 最新 G08 cohort 执行用量（2026-09-24）：[第二百一十三次工程实施：冻结 cohort 的签名执行用量小计](./rsiagent-two-hundred-thirteenth-batch-implementation-2026-09-24.md)。可在冻结清单与逐槽签名回执重新认证后汇总已签名 Eval 执行用量，并明确列出无回执、成本未知的槽位。准备成本、真实 provider 账单、总成本、全部启动覆盖和 PM/Pilot 效果结论仍未认证。<br>
 > 最新 G08 无回执槽位分母（2026-09-24）：[第二百一十二次工程实施：无最终回执槽位的保守分母](./rsiagent-two-hundred-twelfth-batch-implementation-2026-09-24.md)。冻结清单中没有最终签名回执的槽位现在可明确登记为 `receipt-unavailable`，按计划测试观察数计入未解析分母，不计作认证运行，阻断晋级。此记录不证明实际启动或耗费；清单签发与完整启动覆盖、完整报告及真实 PM/Pilot 仍未认证。<br>
