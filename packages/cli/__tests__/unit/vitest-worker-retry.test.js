@@ -62,6 +62,19 @@ const ansiWorkerEpipeFailure = [
   "\u001b[31mError: [vitest-pool]: Worker forks emitted error.\u001b[39m",
   "\u001b[31mCaused by: Error\u001b[22m: write EPIPE\u001b[39m",
 ].join("\n");
+// CLI CI run 36073410039: Vitest crashed before writing a usable JUnit report.
+const rawWorkerEpipeFailure = [
+  "node:events:497",
+  "      throw er; // Unhandled 'error' event",
+  "Error: write EPIPE",
+  "    at ForksPoolWorker.send (file:///home/runner/work/chainlesschain/chainlesschain/node_modules/vitest/dist/chunks/cli-api.BK8pd4xc.js:3081:13)",
+  "    at PoolRunner.postMessage (file:///home/runner/work/chainlesschain/chainlesschain/node_modules/vitest/dist/chunks/cli-api.BK8pd4xc.js:2862:63)",
+  "Emitted 'error' event at:",
+  "    at ChildProcess.emitWorkerError (file:///home/runner/work/chainlesschain/chainlesschain/node_modules/vitest/dist/chunks/cli-api.BK8pd4xc.js:3011:22)",
+  "  code: 'EPIPE',",
+].join("\n");
+const emptyJunit =
+  '<?xml version="1.0"?><testsuites tests="0" failures="0" errors="0"></testsuites>';
 
 describe("Vitest worker infrastructure retry", () => {
   it("recognizes only a completed zero-failure JUnit run with the exact worker error", () => {
@@ -108,6 +121,99 @@ describe("Vitest worker infrastructure retry", () => {
         junitXml: cleanJunit,
       }),
     ).toBe(false);
+  });
+
+  it("recognizes only the raw Vitest IPC EPIPE stack without recorded assertion failures", () => {
+    for (const junitXml of [null, emptyJunit, "truncated report"]) {
+      expect(
+        isRetryableVitestWorkerFailure({
+          exitCode: 1,
+          output: rawWorkerEpipeFailure,
+          junitXml,
+        }),
+      ).toBe(true);
+    }
+    expect(
+      isRetryableVitestWorkerFailure({
+        exitCode: 1,
+        output: `\u001b[31m${rawWorkerEpipeFailure}\u001b[39m`,
+        junitXml: emptyJunit,
+      }),
+    ).toBe(true);
+    for (const output of [
+      rawWorkerEpipeFailure.replace("ForksPoolWorker.send", "application.send"),
+      rawWorkerEpipeFailure.replace(
+        "ChildProcess.emitWorkerError",
+        "application.error",
+      ),
+      rawWorkerEpipeFailure.replace("node_modules/vitest", "src/app"),
+      `${rawWorkerEpipeFailure}\nAssertionError: expected true to be false`,
+      `${rawWorkerEpipeFailure}\nFailed Tests 1`,
+    ]) {
+      expect(isRetryableVitestWorkerFailure({ exitCode: 1, output })).toBe(
+        false,
+      );
+    }
+    for (const junitXml of [
+      cleanJunit,
+      cleanJunit.replace('failures="0"', 'failures="1"'),
+      cleanJunit.replace('errors="0"', 'errors="1"'),
+    ]) {
+      expect(
+        isRetryableVitestWorkerFailure({
+          exitCode: 1,
+          output: rawWorkerEpipeFailure,
+          junitXml,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  it("retries the full shard once and accepts raw EPIPE only after a complete clean JUnit report", async () => {
+    const args = [
+      "run",
+      "--shard=2/8",
+      "--reporter=default",
+      "--reporter=junit",
+      "--outputFile.junit=test-results/integration-2.xml",
+      "--silent=passed-only",
+      "__tests__/integration/",
+    ];
+    for (const retryReport of [
+      cleanJunit,
+      emptyJunit,
+      cleanJunit.replace('failures="0"', 'failures="1"'),
+      null,
+    ]) {
+      const runOnce = vi
+        .fn()
+        .mockResolvedValueOnce({ exitCode: 1, output: rawWorkerEpipeFailure })
+        .mockResolvedValueOnce({ exitCode: 0, output: "done" });
+      const readFile = vi
+        .fn()
+        .mockReturnValueOnce(emptyJunit)
+        .mockReturnValueOnce(retryReport);
+      await expect(
+        runVitestWithWorkerRetry(args, { runOnce, readFile, warn: vi.fn() }),
+      ).resolves.toBe(retryReport === cleanJunit ? 0 : 1);
+      expect(runOnce).toHaveBeenCalledTimes(2);
+      expect(runOnce.mock.calls[1][0]).toEqual([
+        ...args,
+        "--no-file-parallelism",
+      ]);
+    }
+    const runOnce = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 1, output: rawWorkerEpipeFailure })
+      .mockResolvedValueOnce({ exitCode: 1, output: rawWorkerEpipeFailure });
+    await expect(
+      runVitestWithWorkerRetry(args, {
+        runOnce,
+        readFile: vi.fn().mockReturnValue(emptyJunit),
+        warn: vi.fn(),
+      }),
+    ).resolves.toBe(1);
+    expect(runOnce).toHaveBeenCalledTimes(2);
   });
 
   it("extracts both supported JUnit reporter argument forms", () => {
