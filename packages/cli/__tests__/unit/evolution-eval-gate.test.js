@@ -3116,9 +3116,10 @@ describe("PM effect report from signed Eval Gate evidence", () => {
   fullEvaluationTest(
     "binds signed PM rows and durable preparation settlements without upgrading the decision",
     async () => {
-      // The artifact port requires physical path components; macOS /var is a symlink.
+      // Match the artifact port's native physical paths: resolve macOS /var
+      // symlinks and expand Windows 8.3 TEMP aliases before creating the store.
       const root = mkdtempSync(
-        join(realpathSync(tmpdir()), "pm-effect-provider-bundle-"),
+        join(realpathSync.native(tmpdir()), "pm-effect-provider-bundle-"),
       );
       try {
         const adapter = preparationSettlementAdapter(root);
