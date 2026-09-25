@@ -9,6 +9,11 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { isProxy } from "node:util/types";
+import {
+  admitEvolutionEvalLaunch,
+  captureEvolutionEvalLaunchAdmissionBinding,
+  isEvolutionEvalLaunchAdmissionAuthority,
+} from "./evolution-eval-launch-admission.js";
 
 export const EVOLUTION_EVAL_TASK_SCHEMA =
   "chainlesschain.evolution-eval-task/v1";
@@ -713,6 +718,7 @@ const RECEIPT_KEYS = new Set([
 const SPLIT_COUNT_KEYS = new Set(SPLITS);
 
 const GATE_INSTANCES = new WeakSet();
+const GATE_LAUNCH_BINDINGS = new WeakMap();
 const RECEIPT_VERIFIER_INSTANCES = new WeakSet();
 const IMMUTABLE_ISOLATED_TARGET_BINDINGS = new WeakMap();
 
@@ -1811,6 +1817,26 @@ function normalizeRunEvaluationContext(value) {
     cellId: normalizeId(value.cellId, "evaluationContext.cellId", 256),
     runtimeId: normalizeId(value.runtimeId, "evaluationContext.runtimeId", 256),
   });
+}
+
+/** Freeze the exact caller-controlled part of a launch before a run ID exists. */
+export function computeEvolutionEvalLaunchRequestDigest(input) {
+  preflightCanonicalStructure(input);
+  assertExactRecord(input, RUN_REQUEST_KEYS, "evaluation launch request");
+  return digest(
+    {
+      suiteRef: normalizeId(input.suiteRef, "suiteRef", 256),
+      candidateId: normalizeDigest(input.candidateId, "candidateId"),
+      baselineId: normalizeDigest(input.baselineId, "baselineId"),
+      targetEnvironmentRef: normalizeId(
+        input.targetEnvironmentRef,
+        "targetEnvironmentRef",
+        256,
+      ),
+      evaluationContext: normalizeRunEvaluationContext(input.evaluationContext),
+    },
+    "chainlesschain.evolution-eval-launch-request/v1",
+  );
 }
 
 function normalizeEvaluationContext(value) {
@@ -3631,6 +3657,7 @@ export class EvolutionEvalGate {
   #authorityPolicies;
   #supervision;
   #clock;
+  #launchAdmission;
 
   constructor({
     policy,
@@ -3655,7 +3682,24 @@ export class EvolutionEvalGate {
     invocationEvidenceVerifier,
     revocationEvidenceVerifier,
     clock,
+    launchAdmission,
   }) {
+    if (
+      launchAdmission !== undefined &&
+      !isEvolutionEvalLaunchAdmissionAuthority(launchAdmission)
+    ) {
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "launchAdmission must be a trusted admission authority",
+      );
+    }
+    this.#launchAdmission = launchAdmission;
+    GATE_LAUNCH_BINDINGS.set(
+      this,
+      launchAdmission === undefined
+        ? null
+        : captureEvolutionEvalLaunchAdmissionBinding(launchAdmission),
+    );
     this.#policy = verifyEvolutionEvalPolicy(policy);
     this.#authorityPolicies = normalizeAuthorityPolicies(authorityPolicies);
     const supervisorPolicy = this.#authorityPolicies.supervisor;
@@ -5440,6 +5484,54 @@ export class EvolutionEvalGate {
     const deadlineMs = started.milliseconds + this.#policy.maxWallClockMs;
     const deadlineAt = new Date(deadlineMs).toISOString();
 
+    if (this.#launchAdmission) {
+      const binding = GATE_LAUNCH_BINDINGS.get(this);
+      const requestDigest = computeEvolutionEvalLaunchRequestDigest({
+        suiteRef,
+        candidateId,
+        baselineId,
+        targetEnvironmentRef,
+        evaluationContext,
+      });
+      if (binding.descriptor.planDigest !== evaluationContext.planDigest) {
+        throw evalError(
+          EVOLUTION_EVAL_INVALID_CODE,
+          "launch admission plan differs from the evaluation run context",
+        );
+      }
+      if (
+        binding.expectedRequest &&
+        (binding.expectedRequest.requestDigest !== requestDigest ||
+          binding.expectedRequest.policyDigest !== this.#policy.policyDigest ||
+          binding.expectedRequest.evaluationAuthorityRoot !==
+            this.#evaluationAuthorityRoot)
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_INVALID_CODE,
+          "evaluation run differs from its enrolled launch request",
+        );
+      }
+      await admitEvolutionEvalLaunch(this.#launchAdmission, {
+        runId,
+        runNonce,
+        requestDigest,
+        policyDigest: this.#policy.policyDigest,
+        evaluationAuthorityRoot: this.#evaluationAuthorityRoot,
+        tenantId: this.#tenantId,
+        admittedAt: started.timestamp,
+        deadlineAt,
+      });
+      if (
+        NATIVE_MONOTONIC_NOW() >= runLocalDeadlineMs ||
+        readClock(this.#clock).milliseconds >= deadlineMs
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_AUTHORITY_FAILED_CODE,
+          "launch admission crossed the evaluation deadline",
+        );
+      }
+    }
+
     const suiteRequest = deepFreeze({
       runId,
       runNonce,
@@ -6533,6 +6625,17 @@ Object.freeze(EvolutionEvalReceiptVerifier.prototype);
 
 export function isEvolutionEvalGate(value) {
   return GATE_INSTANCES.has(value);
+}
+
+/** Read-only composition check; the authority capability itself stays private. */
+export function captureEvolutionEvalGateLaunchAdmissionBinding(gate) {
+  if (!GATE_INSTANCES.has(gate)) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "a branded EvolutionEvalGate is required",
+    );
+  }
+  return GATE_LAUNCH_BINDINGS.get(gate);
 }
 
 export function isEvolutionEvalReceiptVerifier(value) {

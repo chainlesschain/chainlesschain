@@ -42,6 +42,7 @@ import {
   buildEvolutionEvalSuite,
   computeEvolutionEvalEnvironmentDigest,
   computeEvolutionEvalHandleReservationSetDigest,
+  computeEvolutionEvalLaunchRequestDigest,
   computeEvolutionEvalIsolatedTargetDigest,
   computeEvolutionEvalOutputArtifactDigest,
   computeEvolutionEvalTaskBindingRandomnessCommitment,
@@ -51,6 +52,15 @@ import {
   runEvolutionEvalGate,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
+import {
+  createEvolutionEvalCohortEnrollmentAuthority,
+  createEvolutionEvalCohortSlotAdmissionAuthority,
+  enrollEvolutionEvalCohort,
+  sealEvolutionEvalCohort,
+} from "../../src/lib/evolution/evolution-eval-cohort-enrollment.js";
+import { cleanupEvalLaunchAdmissionFixtures } from "./evolution-eval-launch-admission-fixture.js";
+import { setupEvalCohortEnrollmentFixture } from "./evolution-eval-cohort-enrollment-fixture.js";
+import { buildPmExplorationEffectSlotManifest } from "../../src/lib/evolution/pm-exploration-benchmark.js";
 import {
   EVOLUTION_EVAL_COMPOSITION_UNAVAILABLE_CODE,
   captureEvolutionEvalRuntimeComposition,
@@ -150,6 +160,7 @@ const TRAINER_REVISION = "trainer-revision-v7";
 const promotionRoots = [];
 const memoryRootFixtures = [];
 afterEach(() => {
+  cleanupEvalLaunchAdmissionFixtures();
   for (const root of promotionRoots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -1101,6 +1112,7 @@ function makeHarness({
   trustedClockPortOverride = null,
   terminationResponseDelayMs = 0,
   completedResponseDelayMs = 0,
+  launchAdmission,
 } = {}) {
   let clockMilliseconds = new Date(FIXED_TIME).getTime();
   const crypto = makeAttestationAuthority({
@@ -1739,6 +1751,7 @@ function makeHarness({
   );
 
   const gate = new EvolutionEvalGate({
+    ...(launchAdmission ? { launchAdmission } : {}),
     policy: evalPolicy,
     suiteVerifier: suitePortOverride || suiteVerifierPort,
     artifactResolver: artifactResolverPort,
@@ -2707,6 +2720,80 @@ function makeMatrixComposition({
   };
 }
 
+async function makeEnrolledMatrixComposition({
+  substituteFirstRequest = false,
+} = {}) {
+  const calibrationHarness = makeHarness();
+  const spareHarness = makeHarness();
+  const calibration = await runEvolutionEvalGate(
+    calibrationHarness.gate,
+    RUN_REQUEST,
+  );
+  const planned = makeMatrixComposition({
+    calibration,
+    firstHarness: calibrationHarness,
+    secondHarness: spareHarness,
+    fixtureId: "enrolled-cohort",
+  });
+  const enrollmentFixture = setupEvalCohortEnrollmentFixture({
+    now: FIXED_TIME,
+    tenantId: TENANT_ID,
+  });
+  const authority = createEvolutionEvalCohortEnrollmentAuthority(
+    enrollmentFixture.cohortOptions,
+  );
+  const manifest = buildPmExplorationEffectSlotManifest({
+    plan: enrollmentFixture.registration.plan,
+    cohortId: "cohort:one",
+    slotIds: planned.plan.cells.map((cell) => cell.cellId),
+  });
+  const slots = planned.plan.cells.map((cell, index) => {
+    const request = {
+      suiteRef: cell.suiteRef,
+      candidateId: planned.plan.candidateId,
+      baselineId: planned.plan.baselineId,
+      targetEnvironmentRef: cell.targetEnvironmentRef,
+      evaluationContext: {
+        planDigest: planned.plan.planDigest,
+        targetMatrixRoot: planned.plan.targetMatrixRoot,
+        cellId: cell.cellId,
+        runtimeId: cell.runtimeId,
+      },
+    };
+    return {
+      slotId: cell.cellId,
+      evaluationPlanDigest: planned.plan.planDigest,
+      requestDigest:
+        substituteFirstRequest && index === 0
+          ? matrixDigest("wrong-enrolled-request", cell.cellId)
+          : computeEvolutionEvalLaunchRequestDigest(request),
+      policyDigest: cell.policyDigest,
+      evaluationAuthorityRoot: cell.evaluationAuthorityRoot,
+    };
+  });
+  enrollEvolutionEvalCohort(authority, {
+    plan: enrollmentFixture.registration.plan,
+    manifest,
+    slots,
+  });
+  const [firstHarness, secondHarness] = planned.plan.cells.map((cell) =>
+    makeHarness({
+      launchAdmission: createEvolutionEvalCohortSlotAdmissionAuthority(
+        authority,
+        { cohortId: "cohort:one", slotId: cell.cellId },
+      ),
+    }),
+  );
+  const fixture = makeMatrixComposition({
+    calibration,
+    firstHarness,
+    secondHarness,
+    fixtureId: "enrolled-cohort",
+  });
+  expect(fixture.plan.planDigest).toBe(planned.plan.planDigest);
+  return { fixture, authority, firstHarness, secondHarness };
+}
+
 function withoutFields(value, excluded) {
   return Object.fromEntries(
     Object.entries(value).filter(([key]) => !excluded.has(key)),
@@ -3502,6 +3589,73 @@ describe("Skill target matrix evaluation foundation", () => {
     },
     60_000,
   );
+
+  it("requires enrolled Gate authorities before constructing a strict matrix", async () => {
+    const firstHarness = makeHarness();
+    const secondHarness = makeHarness();
+    const calibration = await runEvolutionEvalGate(
+      firstHarness.gate,
+      RUN_REQUEST,
+    );
+    const fixture = makeMatrixComposition({
+      calibration,
+      firstHarness,
+      secondHarness,
+      fixtureId: "unenrolled-rejected",
+    });
+    expect(
+      () =>
+        new SkillTargetMatrixEvalAggregator({
+          ...fixture.aggregatorOptions,
+          launchAdmissionMode: "enrolled-cohort",
+        }),
+    ).toThrow(/enrolled cohort launch authority/);
+    expect(
+      secondHarness.ports.suiteVerifier.resolveSuite,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("runs enrolled matrix cells and seals their complete admission inventory", async () => {
+    const { fixture, authority } = await makeEnrolledMatrixComposition();
+    const aggregator = new SkillTargetMatrixEvalAggregator({
+      ...fixture.aggregatorOptions,
+      launchAdmissionMode: "enrolled-cohort",
+    });
+    const receipt = await evaluateSkillTargetMatrix(
+      aggregator,
+      fixture.planRef,
+    );
+    expect(receipt.decision).toBe("accepted");
+    const reconciliation = await sealEvolutionEvalCohort(authority, {
+      cohortId: "cohort:one",
+    });
+    expect(
+      reconciliation.inventory.admissions.map((entry) => entry.slotId),
+    ).toEqual(fixture.plan.cells.map((cell) => cell.cellId));
+    expect(reconciliation.inventory.unadmittedSlotIds).toEqual([]);
+    expect(reconciliation.executionCoverageAuthenticated).toBe(false);
+    expect(reconciliation.cohortCompletenessAuthenticated).toBe(false);
+  }, 60_000);
+
+  it("rejects a substituted enrolled matrix request before entering either Gate", async () => {
+    const { fixture, firstHarness, secondHarness } =
+      await makeEnrolledMatrixComposition({ substituteFirstRequest: true });
+    const aggregator = new SkillTargetMatrixEvalAggregator({
+      ...fixture.aggregatorOptions,
+      launchAdmissionMode: "enrolled-cohort",
+    });
+    await expect(
+      evaluateSkillTargetMatrix(aggregator, fixture.planRef),
+    ).rejects.toThrow(/differs from its enrolled launch request/);
+    expect(
+      firstHarness.ports.suiteVerifier.resolveSuite,
+    ).not.toHaveBeenCalled();
+    expect(
+      secondHarness.ports.suiteVerifier.resolveSuite,
+    ).not.toHaveBeenCalled();
+    expect(firstHarness.calls.executorCalls).toEqual([]);
+    expect(secondHarness.calls.executorCalls).toEqual([]);
+  }, 60_000);
 
   it("runs two real accepted Gate cells sharing an environment and verifies the signed conjunction receipt", async () => {
     const firstHarness = makeHarness();

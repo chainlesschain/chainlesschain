@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { replicaAuthority } from "../fixtures/skill-revocation-release-registry.js";
 import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
@@ -52,6 +52,8 @@ import {
   computeEvolutionEvalHandleReservationSetDigest,
   computeEvolutionEvalIsolatedTargetDigest,
   computeEvolutionEvalContextDigest,
+  computeEvolutionEvalLaunchRequestDigest,
+  captureEvolutionEvalGateLaunchAdmissionBinding,
   computeEvolutionEvalOutputArtifactDigest,
   computeEvolutionEvalReceiptDigest,
   computeEvolutionEvalTaskBindingRandomnessCommitment,
@@ -69,6 +71,21 @@ import {
 } from "../../src/lib/evolution/evolution-eval-gate.js";
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
+import {
+  createEvolutionEvalLaunchAdmissionAuthority,
+  resolveEvolutionEvalLaunch,
+} from "../../src/lib/evolution/evolution-eval-launch-admission.js";
+import {
+  cleanupEvalLaunchAdmissionFixtures,
+  setupEvalLaunchAdmissionFixture,
+} from "./evolution-eval-launch-admission-fixture.js";
+import {
+  createEvolutionEvalCohortEnrollmentAuthority,
+  enrollEvolutionEvalCohort,
+  createEvolutionEvalCohortSlotAdmissionAuthority,
+  sealEvolutionEvalCohort,
+} from "../../src/lib/evolution/evolution-eval-cohort-enrollment.js";
+import { setupEvalCohortEnrollmentFixture } from "./evolution-eval-cohort-enrollment-fixture.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
@@ -1138,8 +1155,10 @@ function makeHarness({
   completedResponseDelayMs = 0,
   executorTargetTransform = null,
   deadlineSupervisorFactory = null,
+  launchAdmission,
+  initialTime = FIXED_TIME,
 } = {}) {
-  let clockMilliseconds = new Date(FIXED_TIME).getTime();
+  let clockMilliseconds = new Date(initialTime).getTime();
   const crypto = makeAttestationAuthority({
     hangingReceiptSigner,
     hangingVerifierPurpose: hangingAttestationVerifierPurpose,
@@ -1815,6 +1834,7 @@ function makeHarness({
     invocationEvidenceVerifier,
     revocationEvidenceVerifier,
     clock: trustedClockPort,
+    launchAdmission,
   });
   const receiptVerifier = new EvolutionEvalReceiptVerifier({
     attestationVerifier: attestationVerifierPort,
@@ -3785,6 +3805,175 @@ describe("Eval Gate result evidence export", () => {
     await expect(
       runEvolutionEvalGateWithEvidence(crashed.gate, RUN_REQUEST),
     ).rejects.toMatchObject({ code: EVOLUTION_EVAL_GRADER_FAILED_CODE });
+  });
+});
+
+afterEach(cleanupEvalLaunchAdmissionFixtures);
+
+describe("Evolution Eval Gate launch admission", () => {
+  it("binds a strict enrolled slot to the actual Gate request and sealed Ledger inventory", async () => {
+    const fixture = setupEvalCohortEnrollmentFixture();
+    const reference = makeHarness({ initialTime: fixture.input.admittedAt });
+    expect(
+      captureEvolutionEvalGateLaunchAdmissionBinding(reference.gate),
+    ).toBeNull();
+    const referenceReceipt = await reference.gate.run(RUN_REQUEST);
+    const registration = {
+      ...fixture.registration,
+      slots: fixture.registration.slots.map((slot, index) =>
+        index === 0
+          ? {
+              ...slot,
+              evaluationPlanDigest: PLAN_DIGEST,
+              requestDigest:
+                computeEvolutionEvalLaunchRequestDigest(RUN_REQUEST),
+              policyDigest: referenceReceipt.policyDigest,
+              evaluationAuthorityRoot: referenceReceipt.evaluationAuthorityRoot,
+            }
+          : slot,
+      ),
+    };
+    const authority = createEvolutionEvalCohortEnrollmentAuthority({
+      ...fixture.cohortOptions,
+      descriptor: { ...fixture.cohortOptions.descriptor, tenantId: TENANT_ID },
+    });
+    enrollEvolutionEvalCohort(authority, registration);
+    const launchAdmission = createEvolutionEvalCohortSlotAdmissionAuthority(
+      authority,
+      { cohortId: registration.manifest.cohortId, slotId: "slot:one" },
+    );
+    const harness = makeHarness({
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+    expect(
+      captureEvolutionEvalGateLaunchAdmissionBinding(harness.gate),
+    ).toMatchObject({
+      mode: "enrolled-cohort",
+      expectedRequest: {
+        requestDigest: computeEvolutionEvalLaunchRequestDigest(RUN_REQUEST),
+        policyDigest: referenceReceipt.policyDigest,
+        evaluationAuthorityRoot: referenceReceipt.evaluationAuthorityRoot,
+      },
+    });
+
+    await expect(
+      harness.gate.run({
+        ...RUN_REQUEST,
+        candidateId: `sha256:${"e".repeat(64)}`,
+      }),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_INVALID_CODE });
+    expect(fixture.backend.ledger.verify().sequence).toBe(1);
+    expect(harness.ports.suiteVerifier.resolveSuite).not.toHaveBeenCalled();
+
+    const result = await harness.gate.run(RUN_REQUEST);
+    expect(result.evaluationAuthorityRoot).toBe(
+      referenceReceipt.evaluationAuthorityRoot,
+    );
+    expect(harness.ports.suiteVerifier.resolveSuite).toHaveBeenCalledTimes(1);
+    const sealed = await sealEvolutionEvalCohort(authority, {
+      cohortId: registration.manifest.cohortId,
+    });
+    expect(sealed).toMatchObject({
+      admissionInventoryAuthenticated: true,
+      cohortCompletenessAuthenticated: false,
+      inventory: {
+        admissions: [{ slotId: "slot:one", runId: result.runId }],
+        unadmittedSlotIds: ["slot:two", "slot:three"],
+      },
+    });
+  });
+
+  it("records a signed durable attempt before suite resolution and rejects every second entrypoint", async () => {
+    const fixture = setupEvalLaunchAdmissionFixture();
+    const launchAdmission = createEvolutionEvalLaunchAdmissionAuthority({
+      ...fixture.options,
+      descriptor: {
+        ...fixture.options.descriptor,
+        tenantId: TENANT_ID,
+        planDigest: PLAN_DIGEST,
+      },
+    });
+    const harness = makeHarness({
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+
+    const receipt = await harness.gate.run(RUN_REQUEST);
+    expect(receipt.runId).toMatch(/^eval-/);
+    expect(fixture.backend.ledger.verify().sequence).toBe(1);
+    expect(harness.ports.suiteVerifier.resolveSuite).toHaveBeenCalledTimes(1);
+    await expect(
+      resolveEvolutionEvalLaunch(launchAdmission, {
+        runId: receipt.runId,
+        runNonce: receipt.runNonce,
+        requestDigest: computeEvolutionEvalLaunchRequestDigest(RUN_REQUEST),
+      }),
+    ).resolves.toMatchObject({
+      authenticated: true,
+      durable: true,
+      evidence: { policyDigest: harness.evalPolicy.policyDigest },
+    });
+
+    for (const run of [
+      () => harness.gate.run(RUN_REQUEST),
+      () => harness.gate.runWithEvidence(RUN_REQUEST),
+      () => harness.gate.runWithFailureEvidence(RUN_REQUEST),
+    ]) {
+      await expect(run()).rejects.toMatchObject({
+        code: "CC_EVOLUTION_EVAL_LAUNCH_ADMISSION_FAILED",
+      });
+    }
+    expect(fixture.backend.ledger.verify().sequence).toBe(1);
+    expect(harness.ports.suiteVerifier.resolveSuite).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a mismatched plan and an untrusted admission authority before any suite call", async () => {
+    const fixture = setupEvalLaunchAdmissionFixture();
+    const launchAdmission = createEvolutionEvalLaunchAdmissionAuthority(
+      fixture.options,
+    );
+    const harness = makeHarness({
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+    await expect(harness.gate.run(RUN_REQUEST)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_INVALID_CODE,
+    });
+    expect(fixture.backend.ledger.verify().sequence).toBe(0);
+    expect(harness.ports.suiteVerifier.resolveSuite).not.toHaveBeenCalled();
+    expect(() =>
+      makeHarness({ launchAdmission: { ...launchAdmission } }),
+    ).toThrow(/trusted admission authority/);
+  });
+
+  it("keeps a committed attempt occupied when admission crosses the Gate deadline", async () => {
+    const fixture = setupEvalLaunchAdmissionFixture();
+    let harness;
+    const launchAdmission = createEvolutionEvalLaunchAdmissionAuthority({
+      ...fixture.options,
+      descriptor: {
+        ...fixture.options.descriptor,
+        tenantId: TENANT_ID,
+        planDigest: PLAN_DIGEST,
+      },
+      signer: {
+        sign(request) {
+          harness.clockControl.advance(31_000);
+          return fixture.options.signer.sign(request);
+        },
+      },
+    });
+    harness = makeHarness({
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+
+    await expect(harness.gate.run(RUN_REQUEST)).rejects.toMatchObject({
+      code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE,
+    });
+    expect(fixture.backend.ledger.verify().sequence).toBe(1);
+    expect(harness.ports.suiteVerifier.resolveSuite).not.toHaveBeenCalled();
   });
 });
 
