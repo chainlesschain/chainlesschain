@@ -11,6 +11,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { isProxy } from "node:util/types";
 import {
   admitEvolutionEvalLaunch,
+  captureEvolutionEvalLaunchAdmissionBinding,
   isEvolutionEvalLaunchAdmissionAuthority,
 } from "./evolution-eval-launch-admission.js";
 
@@ -717,6 +718,7 @@ const RECEIPT_KEYS = new Set([
 const SPLIT_COUNT_KEYS = new Set(SPLITS);
 
 const GATE_INSTANCES = new WeakSet();
+const GATE_LAUNCH_BINDINGS = new WeakMap();
 const RECEIPT_VERIFIER_INSTANCES = new WeakSet();
 const IMMUTABLE_ISOLATED_TARGET_BINDINGS = new WeakMap();
 
@@ -1815,6 +1817,26 @@ function normalizeRunEvaluationContext(value) {
     cellId: normalizeId(value.cellId, "evaluationContext.cellId", 256),
     runtimeId: normalizeId(value.runtimeId, "evaluationContext.runtimeId", 256),
   });
+}
+
+/** Freeze the exact caller-controlled part of a launch before a run ID exists. */
+export function computeEvolutionEvalLaunchRequestDigest(input) {
+  preflightCanonicalStructure(input);
+  assertExactRecord(input, RUN_REQUEST_KEYS, "evaluation launch request");
+  return digest(
+    {
+      suiteRef: normalizeId(input.suiteRef, "suiteRef", 256),
+      candidateId: normalizeDigest(input.candidateId, "candidateId"),
+      baselineId: normalizeDigest(input.baselineId, "baselineId"),
+      targetEnvironmentRef: normalizeId(
+        input.targetEnvironmentRef,
+        "targetEnvironmentRef",
+        256,
+      ),
+      evaluationContext: normalizeRunEvaluationContext(input.evaluationContext),
+    },
+    "chainlesschain.evolution-eval-launch-request/v1",
+  );
 }
 
 function normalizeEvaluationContext(value) {
@@ -3672,6 +3694,12 @@ export class EvolutionEvalGate {
       );
     }
     this.#launchAdmission = launchAdmission;
+    GATE_LAUNCH_BINDINGS.set(
+      this,
+      launchAdmission === undefined
+        ? null
+        : captureEvolutionEvalLaunchAdmissionBinding(launchAdmission),
+    );
     this.#policy = verifyEvolutionEvalPolicy(policy);
     this.#authorityPolicies = normalizeAuthorityPolicies(authorityPolicies);
     const supervisorPolicy = this.#authorityPolicies.supervisor;
@@ -5457,28 +5485,36 @@ export class EvolutionEvalGate {
     const deadlineAt = new Date(deadlineMs).toISOString();
 
     if (this.#launchAdmission) {
-      if (
-        this.#launchAdmission.descriptor.planDigest !==
-        evaluationContext.planDigest
-      ) {
+      const binding = GATE_LAUNCH_BINDINGS.get(this);
+      const requestDigest = computeEvolutionEvalLaunchRequestDigest({
+        suiteRef,
+        candidateId,
+        baselineId,
+        targetEnvironmentRef,
+        evaluationContext,
+      });
+      if (binding.descriptor.planDigest !== evaluationContext.planDigest) {
         throw evalError(
           EVOLUTION_EVAL_INVALID_CODE,
           "launch admission plan differs from the evaluation run context",
         );
       }
+      if (
+        binding.expectedRequest &&
+        (binding.expectedRequest.requestDigest !== requestDigest ||
+          binding.expectedRequest.policyDigest !== this.#policy.policyDigest ||
+          binding.expectedRequest.evaluationAuthorityRoot !==
+            this.#evaluationAuthorityRoot)
+      ) {
+        throw evalError(
+          EVOLUTION_EVAL_INVALID_CODE,
+          "evaluation run differs from its enrolled launch request",
+        );
+      }
       await admitEvolutionEvalLaunch(this.#launchAdmission, {
         runId,
         runNonce,
-        requestDigest: digest(
-          {
-            suiteRef,
-            candidateId,
-            baselineId,
-            targetEnvironmentRef,
-            evaluationContext,
-          },
-          "chainlesschain.evolution-eval-launch-request/v1",
-        ),
+        requestDigest,
         policyDigest: this.#policy.policyDigest,
         evaluationAuthorityRoot: this.#evaluationAuthorityRoot,
         tenantId: this.#tenantId,
@@ -6589,6 +6625,17 @@ Object.freeze(EvolutionEvalReceiptVerifier.prototype);
 
 export function isEvolutionEvalGate(value) {
   return GATE_INSTANCES.has(value);
+}
+
+/** Read-only composition check; the authority capability itself stays private. */
+export function captureEvolutionEvalGateLaunchAdmissionBinding(gate) {
+  if (!GATE_INSTANCES.has(gate)) {
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "a branded EvolutionEvalGate is required",
+    );
+  }
+  return GATE_LAUNCH_BINDINGS.get(gate);
 }
 
 export function isEvolutionEvalReceiptVerifier(value) {

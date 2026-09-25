@@ -1,6 +1,7 @@
 /** Signed admission of one registered attempt; never evidence of Actor execution. */
 import { createHash, createPublicKey, KeyObject, verify } from "node:crypto";
 import { isProxy } from "node:util/types";
+import { captureEvolutionEvalCohortSlotBinding } from "./evolution-eval-cohort-enrollment.js";
 import {
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   EvolutionArtifactPorts,
@@ -14,6 +15,8 @@ import {
 
 export const EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA =
   "chainlesschain.evolution-eval-launch-admission/v1";
+export const EVOLUTION_EVAL_ENROLLED_LAUNCH_ADMISSION_SCHEMA =
+  "chainlesschain.evolution-eval-launch-admission/v2";
 export const EVOLUTION_EVAL_LAUNCH_ADMISSION_PURPOSE =
   "chainlesschain.evolution-eval.attempt-admission/v1";
 export const EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE =
@@ -165,7 +168,13 @@ function message(core) {
 function verifyEvidence(value, state) {
   const evidence = record(
     value,
-    ["schema", "descriptorDigest", ...INPUT_KEYS, "attestation"],
+    [
+      "schema",
+      "descriptorDigest",
+      ...INPUT_KEYS,
+      ...(state.enrollment ? ["enrollmentDigest", "descriptor"] : []),
+      "attestation",
+    ],
     "admission evidence",
   );
   const input = request(
@@ -173,7 +182,10 @@ function verifyEvidence(value, state) {
     state,
   );
   if (
-    evidence.schema !== EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA ||
+    evidence.schema !==
+      (state.enrollment
+        ? EVOLUTION_EVAL_ENROLLED_LAUNCH_ADMISSION_SCHEMA
+        : EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA) ||
     evidence.descriptorDigest !== state.descriptorDigest
   )
     fail("admission scope is substituted");
@@ -196,6 +208,22 @@ function verifyEvidence(value, state) {
     descriptorDigest: evidence.descriptorDigest,
     ...input,
   };
+  if (state.enrollment) {
+    if (
+      evidence.enrollmentDigest !== state.enrollment.enrollmentDigest ||
+      canonical(evidence.descriptor) !== canonical(state.descriptor)
+    )
+      fail("admission enrollment scope is substituted");
+    for (const key of [
+      "requestDigest",
+      "policyDigest",
+      "evaluationAuthorityRoot",
+    ])
+      if (input[key] !== state.enrollment.expectedRequest[key])
+        fail("admission request differs from the enrolled slot");
+    core.enrollmentDigest = evidence.enrollmentDigest;
+    core.descriptor = state.descriptor;
+  }
   const bytes = Buffer.from(signature.value, "base64url");
   if (
     bytes.length !== 64 ||
@@ -238,7 +266,8 @@ function resolveEvent(state, event) {
     event.decision !== "accepted" ||
     event.skillName !== "evolution-eval" ||
     !Array.isArray(event.sourceRefs) ||
-    event.sourceRefs.length !== 0
+    canonical(event.sourceRefs) !==
+      canonical(state.enrollment ? [state.enrollment.enrollmentRef] : [])
   )
     fail("admission ledger event is substituted");
   const identity = EvolutionLedger.prototype.verify.call(state.ledger);
@@ -277,7 +306,9 @@ function resolveEvent(state, event) {
     fail("admission event timestamp differs");
   return frozen({
     schema: "chainlesschain.evolution-eval-launch-admission-resolution/v1",
-    admissionDigest: hash(EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA, evidence),
+    eventId: event.eventId,
+    eventSequence: event.sequence,
+    admissionDigest: hash(evidence.schema, evidence),
     evidence,
     authenticated: true,
     durable: true,
@@ -295,6 +326,7 @@ export function createEvolutionEvalLaunchAdmissionAuthority({
   ledger,
   ledgerArtifactResolver,
   now = Date.now,
+  cohortSlotBinding,
 } = {}) {
   const scope = descriptor(input);
   if (
@@ -327,6 +359,16 @@ export function createEvolutionEvalLaunchAdmissionAuthority({
     ledger,
     resolveArtifact: ledgerArtifactResolver,
     now,
+    enrollment:
+      cohortSlotBinding === undefined
+        ? null
+        : captureEvolutionEvalCohortSlotBinding(cohortSlotBinding, {
+            descriptor: scope,
+            ledger,
+            artifactPorts,
+            ledgerArtifactResolver,
+            publicKey: key,
+          }),
   };
   const authority = Object.freeze({ descriptor: scope });
   AUTHORITIES.set(authority, state);
@@ -335,6 +377,19 @@ export function createEvolutionEvalLaunchAdmissionAuthority({
 
 export function isEvolutionEvalLaunchAdmissionAuthority(value) {
   return AUTHORITIES.has(value);
+}
+
+/** Captured identity for strict production composition; copies cannot forge enrollment. */
+export function captureEvolutionEvalLaunchAdmissionBinding(authority) {
+  const state = authorityState(authority);
+  return frozen({
+    mode: state.enrollment ? "enrolled-cohort" : "legacy-single-slot",
+    descriptor: state.descriptor,
+    expectedRequest: state.enrollment?.expectedRequest ?? null,
+    enrollmentDigest: state.enrollment?.enrollmentDigest ?? null,
+    cohortCompletenessAuthenticated: false,
+    promotionAuthority: false,
+  });
 }
 
 function authorityState(authority) {
@@ -349,11 +404,20 @@ export async function admitEvolutionEvalLaunch(authority, input) {
   const captured = request(input, state, true);
   // Capture head BEFORE the occupancy read: a concurrent append cannot escape CAS.
   const head = EvolutionLedger.prototype.verify.call(state.ledger);
+  if (state.enrollment) state.enrollment.assertOpen(captured);
   if (events(state).length !== 0) fail("admission slot is already occupied");
   const core = {
-    schema: EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA,
+    schema: state.enrollment
+      ? EVOLUTION_EVAL_ENROLLED_LAUNCH_ADMISSION_SCHEMA
+      : EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA,
     descriptorDigest: state.descriptorDigest,
     ...captured,
+    ...(state.enrollment
+      ? {
+          enrollmentDigest: state.enrollment.enrollmentDigest,
+          descriptor: state.descriptor,
+        }
+      : {}),
   };
   const signature = state.sign(
     Object.freeze({ message: message(core).toString("utf8") }),
@@ -390,6 +454,7 @@ export async function admitEvolutionEvalLaunch(authority, input) {
   )
     fail("admission artifact persistence failed");
   request(captured, state, true);
+  if (state.enrollment) state.enrollment.assertOpen(captured);
   const receipt = EvolutionLedger.prototype.appendDomainEvent.call(
     state.ledger,
     {
@@ -401,7 +466,7 @@ export async function admitEvolutionEvalLaunch(authority, input) {
       decision: "accepted",
       skillName: "evolution-eval",
       reason: "signed attempt admission; Actor execution is unproven",
-      sourceRefs: [],
+      sourceRefs: state.enrollment ? [state.enrollment.enrollmentRef] : [],
       subjectRef: published.ref,
       timestamp: captured.admittedAt,
     },

@@ -5,6 +5,8 @@ import { types as utilTypes } from "node:util";
 import {
   EVOLUTION_EVAL_AUTHORITY_DESCRIPTOR_SCHEMA,
   isEvolutionEvalGate,
+  captureEvolutionEvalGateLaunchAdmissionBinding,
+  computeEvolutionEvalLaunchRequestDigest,
   isEvolutionEvalReceiptVerifier,
   computeEvolutionEvalContextDigest,
   runEvolutionEvalGate,
@@ -183,6 +185,10 @@ const AGGREGATOR_OPTION_KEYS = new Set([
   "clockPolicy",
   "maximumMatrixWallClockMs",
   "childReceiptStore",
+]);
+const ENROLLED_AGGREGATOR_OPTION_KEYS = new Set([
+  ...AGGREGATOR_OPTION_KEYS,
+  "launchAdmissionMode",
 ]);
 const CELL_RUNTIME_KEYS = new Set([
   "gate",
@@ -1680,7 +1686,10 @@ function captureComposition(options) {
   });
 }
 
-function captureCellRuntimes(value) {
+function captureCellRuntimes(
+  value,
+  { requireEnrolledLaunchAdmission = false, tenantId } = {},
+) {
   rejectProxy(value, "cellRuntimes");
   if (
     !(value instanceof Map) ||
@@ -1713,6 +1722,18 @@ function captureCellRuntimes(value) {
         `${label}.gate must be a branded EvolutionEvalGate`,
       );
     }
+    const launchAdmissionBinding =
+      captureEvolutionEvalGateLaunchAdmissionBinding(gate);
+    if (
+      requireEnrolledLaunchAdmission &&
+      (launchAdmissionBinding?.mode !== "enrolled-cohort" ||
+        launchAdmissionBinding.descriptor.tenantId !== tenantId)
+    ) {
+      throw matrixError(
+        SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+        `${label}.gate requires an enrolled cohort launch authority`,
+      );
+    }
     if (!isEvolutionEvalReceiptVerifier(receiptVerifier)) {
       throw matrixError(
         SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
@@ -1731,6 +1752,7 @@ function captureCellRuntimes(value) {
     );
     const config = Object.freeze({
       gate,
+      launchAdmissionBinding,
       receiptVerifier,
       suiteRef: normalizeId(rawConfig.suiteRef, `${label}.suiteRef`),
       suiteDigest: normalizeDigest(
@@ -2876,11 +2898,28 @@ export class SkillTargetMatrixEvalAggregator {
   #used = false;
 
   constructor(options) {
+    rejectProxy(options, "matrix aggregator options");
+    const requireEnrolledLaunchAdmission = Boolean(
+      options &&
+      typeof options === "object" &&
+      Object.hasOwn(options, "launchAdmissionMode"),
+    );
     assertExactRecord(
       options,
-      AGGREGATOR_OPTION_KEYS,
+      requireEnrolledLaunchAdmission
+        ? ENROLLED_AGGREGATOR_OPTION_KEYS
+        : AGGREGATOR_OPTION_KEYS,
       "matrix aggregator options",
     );
+    if (
+      requireEnrolledLaunchAdmission &&
+      options.launchAdmissionMode !== "enrolled-cohort"
+    ) {
+      throw matrixError(
+        SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+        "matrix launch admission mode must be enrolled-cohort",
+      );
+    }
     const tenantId = normalizeId(
       options.tenantId,
       "matrix aggregator tenantId",
@@ -2903,7 +2942,32 @@ export class SkillTargetMatrixEvalAggregator {
         "matrix composition artifacts must belong to the captured tenant",
       );
     }
-    const cells = captureCellRuntimes(options.cellRuntimes);
+    const cells = captureCellRuntimes(options.cellRuntimes, {
+      requireEnrolledLaunchAdmission,
+      tenantId,
+    });
+    if (requireEnrolledLaunchAdmission) {
+      const enrollments = new Set();
+      const slots = new Set();
+      for (const runtime of cells.runtimes.values()) {
+        const binding = runtime.launchAdmissionBinding;
+        enrollments.add(binding.enrollmentDigest);
+        const slot = `${binding.descriptor.cohortId}\0${binding.descriptor.slotId}`;
+        if (slots.has(slot)) {
+          throw matrixError(
+            SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+            "matrix cells cannot reuse one enrolled admission slot",
+          );
+        }
+        slots.add(slot);
+      }
+      if (enrollments.size !== 1) {
+        throw matrixError(
+          SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+          "matrix cells must share one enrolled cohort",
+        );
+      }
+    }
     const matrixCellIds = targetMatrix.cells.map((cell) => cell.cellId);
     const runtimeCellIds = [...cells.runtimes.keys()].sort();
     if (!sameCanonical(matrixCellIds, runtimeCellIds)) {
@@ -2948,6 +3012,7 @@ export class SkillTargetMatrixEvalAggregator {
       runtimeManifest,
       targetMatrix,
       cellRuntimes: cells.runtimes,
+      requireEnrolledLaunchAdmission,
       composition,
       matrixAuthorityRoot,
       maximumMatrixWallClockMs,
@@ -3033,6 +3098,22 @@ export class SkillTargetMatrixEvalAggregator {
           runtimeId: planCell.runtimeId,
         }),
       });
+      if (state.requireEnrolledLaunchAdmission) {
+        const binding = runtime.launchAdmissionBinding;
+        if (
+          binding.descriptor.planDigest !== plan.planDigest ||
+          binding.expectedRequest.requestDigest !==
+            computeEvolutionEvalLaunchRequestDigest(gateRequest) ||
+          binding.expectedRequest.policyDigest !== planCell.policyDigest ||
+          binding.expectedRequest.evaluationAuthorityRoot !==
+            planCell.evaluationAuthorityRoot
+        ) {
+          throw matrixError(
+            SKILL_TARGET_MATRIX_EVAL_INVALID_CODE,
+            `matrix cell ${planCell.cellId} differs from its enrolled launch request`,
+          );
+        }
+      }
       // The preregistered invocation identity is the signed plan cell plus the
       // durable reservation. Gate-generated runId/runNonce are only exact
       // child-verifier parameters read from this captured Promise result; they

@@ -108,12 +108,12 @@ function durableFilesystem() {
   };
 }
 
-function storage() {
+function storage(fixtureNow = NOW) {
   const root = fs.mkdtempSync(
     path.join(fs.realpathSync.native(os.tmpdir()), "cc-eval-launch-admission-"),
   );
   roots.push(root);
-  const now = Date.parse(NOW);
+  const now = Date.parse(fixtureNow);
   const secret = "test-only-eval-child-artifact-key";
   const algorithm = "hmac-sha256";
   const keyId = "test:key/eval-child-artifacts";
@@ -144,8 +144,8 @@ function storage() {
           algorithm,
           allowed: true,
           audience: request.audience,
-          checkedAt: NOW,
-          decisionExpiresAt: "2026-09-05T08:00:30.000Z",
+          checkedAt: fixtureNow,
+          decisionExpiresAt: new Date(now + 30_000).toISOString(),
           digest: request.digest,
           issuedAt: request.issuedAt,
           issuedPolicyDigest: request.issuedPolicyDigest,
@@ -193,13 +193,16 @@ function storage() {
   return { artifactPorts, backendOptions, resolver, root };
 }
 
-export function setupEvalLaunchAdmissionFixture() {
+export function setupEvalLaunchAdmissionFixture({
+  now = NOW,
+  tenantId = TENANT_ID,
+} = {}) {
   // TEST authorities and a Windows directory-fsync shim; no production durability claim.
-  const resources = storage();
+  const resources = storage(now);
   const backend = createEvolutionLedgerFileBackend(resources.backendOptions);
   const keys = generateKeyPairSync("ed25519");
   const descriptor = {
-    tenantId: TENANT_ID,
+    tenantId,
     artifactTenantId: ARTIFACT_TENANT_ID,
     streamId: "eval-launch:stream",
     audience: "evolution-runtime",
@@ -224,7 +227,7 @@ export function setupEvalLaunchAdmissionFixture() {
     artifactPorts: resources.artifactPorts,
     ledger: backend.ledger,
     ledgerArtifactResolver: resources.resolver,
-    now: () => Date.parse(NOW),
+    now: () => Date.parse(now),
   };
   const input = {
     runId: "eval:one",
@@ -232,9 +235,9 @@ export function setupEvalLaunchAdmissionFixture() {
     requestDigest: digest("request:one"),
     policyDigest: digest("eval-policy"),
     evaluationAuthorityRoot: digest("eval-authority-root"),
-    tenantId: TENANT_ID,
-    admittedAt: NOW,
-    deadlineAt: "2026-09-05T08:00:20.000Z",
+    tenantId,
+    admittedAt: now,
+    deadlineAt: new Date(Date.parse(now) + 20_000).toISOString(),
   };
   return { resources, backend, options, input };
 }
