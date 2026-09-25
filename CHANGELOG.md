@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.75: evaluation module initialization
+
+- Move shared evaluation contracts into a dependency-free module so circular
+  runtime imports cannot read attestation purposes before initialization.
+- Preserve existing evaluation gate exports and add fresh-process import-order
+  coverage for gate, evidence, supervision, admission, matrix, and promotion
+  entry points.
+
 ### Fixed - cc CLI 0.166.74: recover stalled IDE investigations
 
 - Count wrapped GitHub queries, saved-log parsing, repository inspection, and
