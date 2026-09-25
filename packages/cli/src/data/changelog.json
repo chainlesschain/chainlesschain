@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.75",
+      "cliVersions": ["0.166.75"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.75: evaluation module initialization",
+          "body": "- Move shared evaluation contracts into a dependency-free module so circular\n  runtime imports cannot read attestation purposes before initialization.\n- Preserve existing evaluation gate exports and add fresh-process import-order\n  coverage for gate, evidence, supervision, admission, matrix, and promotion\n  entry points."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.74",
       "cliVersions": ["0.166.74"],
       "date": null,
