@@ -8,6 +8,8 @@ import {
   EVOLUTION_EVAL_SUPERVISION_SCHEMA,
   EVOLUTION_EVAL_TARGET_INVOCATION_SCHEMA,
   EVOLUTION_EVAL_TARGET_REVOCATION_SCHEMA,
+} from "./evolution-eval-contracts.js";
+import {
   computeEvolutionEvalReceiptDigest,
   computeEvolutionEvalSignedEvidenceDigest,
 } from "./evolution-eval-gate.js";
