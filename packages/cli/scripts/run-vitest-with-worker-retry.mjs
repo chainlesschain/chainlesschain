@@ -11,6 +11,17 @@ const OUTPUT_TAIL_LIMIT = 1024 * 1024;
 const WORKER_POOL_ERROR = "[vitest-pool]: Worker forks emitted error.";
 const UNEXPECTED_EXIT_ERROR = "Worker exited unexpectedly";
 const WORKER_EPIPE_ERROR = "Caused by: Error: write EPIPE";
+const RAW_WORKER_EPIPE_FRAMES = [
+  "ForksPoolWorker\\.send",
+  "PoolRunner\\.postMessage",
+  "ChildProcess\\.emitWorkerError",
+].map(
+  (frame) =>
+    new RegExp(
+      `\\bat ${frame} \\(file:\\/\\/\\/[^\\r\\n]*\\/node_modules\\/vitest\\/dist\\/chunks\\/cli-api\\.[^\\r\\n:]+\\.js:\\d+:\\d+\\)`,
+      "u",
+    ),
+);
 const require = createRequire(import.meta.url);
 const vitestCliPath = path.join(
   path.dirname(require.resolve("vitest/package.json")),
@@ -120,6 +131,43 @@ export function jsonHasTestsAndNoFailures(
   );
 }
 
+function reportRecordsFailures(junitXml, jsonReport) {
+  const root =
+    typeof junitXml === "string"
+      ? junitXml.match(/<testsuites\b[^>]*>/u)?.[0]
+      : null;
+  if (
+    root &&
+    (numericXmlAttribute(root, "failures") > 0 ||
+      numericXmlAttribute(root, "errors") > 0)
+  ) {
+    return true;
+  }
+  try {
+    const report = JSON.parse(jsonReport);
+    return report?.numFailedTests > 0 || report?.numFailedTestSuites > 0;
+  } catch {
+    return false;
+  }
+}
+
+function isRawVitestWorkerEpipe(output, junitXml, jsonReport) {
+  const normalized =
+    typeof output === "string" ? stripVTControlCharacters(output) : "";
+  return (
+    /(?:^|\n)Error: write EPIPE(?:\r?\n|$)/u.test(normalized) &&
+    normalized.includes("Emitted 'error' event at:") &&
+    /\bcode: ['"]EPIPE['"]/u.test(normalized) &&
+    RAW_WORKER_EPIPE_FRAMES.every((frame) => frame.test(normalized)) &&
+    !/\bAssertionError\b|\bFailed Tests\b|(?:^|\n)\s*FAIL(?:\s|$)/u.test(
+      normalized,
+    ) &&
+    !reportRecordsFailures(junitXml, jsonReport) &&
+    !junitHasTestsAndNoFailures(junitXml) &&
+    !jsonHasTestsAndNoFailures(jsonReport)
+  );
+}
+
 export function isRetryableVitestWorkerFailure({
   exitCode,
   output,
@@ -135,9 +183,10 @@ export function isRetryableVitestWorkerFailure({
       normalizedOutput.includes(WORKER_EPIPE_ERROR));
   return (
     exitCode !== 0 &&
-    exactWorkerFailure &&
-    (junitHasTestsAndNoFailures(junitXml) ||
-      jsonHasTestsAndNoFailures(jsonReport, { allowInterrupted: true }))
+    ((exactWorkerFailure &&
+      (junitHasTestsAndNoFailures(junitXml) ||
+        jsonHasTestsAndNoFailures(jsonReport, { allowInterrupted: true }))) ||
+      isRawVitestWorkerEpipe(output, junitXml, jsonReport))
   );
 }
 
@@ -223,10 +272,46 @@ export async function runVitestWithWorkerRetry(
     return first.exitCode;
   }
 
+  const rawWorkerEpipe = isRawVitestWorkerEpipe(
+    first.output,
+    junitXml,
+    jsonReport,
+  );
+
   warn(
     "::warning title=Vitest worker failure::No assertion failures were recorded, but the worker exited abnormally and tests may be incomplete; rerunning the entire suite once without file parallelism.",
   );
   const second = await runOnce(singleWorkerRetryArgs(args));
+  if (rawWorkerEpipe) {
+    if (second.exitCode !== 0) return second.exitCode;
+    try {
+      if (
+        reportPath &&
+        junitHasTestsAndNoFailures(
+          readFile(path.resolve(process.cwd(), reportPath)),
+        )
+      ) {
+        return 0;
+      }
+      if (jsonReportPath) {
+        const retryReport = readFile(
+          path.resolve(process.cwd(), jsonReportPath),
+        );
+        if (
+          jsonHasTestsAndNoFailures(retryReport) &&
+          JSON.parse(retryReport).success === true
+        ) {
+          return 0;
+        }
+      }
+    } catch {
+      // This retry is valid only with a newly completed, zero-failure report.
+    }
+    warn(
+      "::error::Vitest worker retry did not produce a complete zero-failure report.",
+    );
+    return 1;
+  }
   if (jsonReportPath) {
     try {
       const retryReport = readFile(path.resolve(process.cwd(), jsonReportPath));
