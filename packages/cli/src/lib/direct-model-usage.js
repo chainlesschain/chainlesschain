@@ -54,6 +54,7 @@ function unknownUsageEvent({
  * Meter one direct provider call that runs outside agentLoop. The started row is
  * durable before the callback resumes into provider work; every outcome then
  * settles known or unknown without persisting prompts, responses, or errors.
+ * Opt-in includeSettlement returns that persisted status with the raw result.
  */
 export async function runMeteredDirectModelCall({
   sessionId,
@@ -63,6 +64,7 @@ export async function runMeteredDirectModelCall({
   source = "model",
   operationId = undefined,
   sessionBudget = null,
+  includeSettlement = false,
   call,
 }) {
   if (typeof call !== "function") {
@@ -78,7 +80,12 @@ export async function runMeteredDirectModelCall({
       );
     }
   }
-  if (!sessionId) return call();
+  if (!sessionId) {
+    if (includeSettlement) {
+      throw new TypeError("direct model settlement requires a session");
+    }
+    return call();
+  }
   if (typeof persist !== "function") {
     throw new TypeError("metered direct model call requires persistence");
   }
@@ -96,6 +103,9 @@ export async function runMeteredDirectModelCall({
     `direct model call ${source}`,
   );
   let result;
+  let settlement = "unknown";
+  const returnSettled = (status) =>
+    includeSettlement ? Object.freeze({ result, settlement: status }) : result;
   try {
     result = await call();
   } catch (error) {
@@ -139,7 +149,7 @@ export async function runMeteredDirectModelCall({
       if (markSessionBudgetUsageUnknown(sessionBudget, unknown)) {
         rejectSessionBudgetUsageUnknown(unknown, `direct model call ${source}`);
       }
-      return result;
+      return returnSettled("unknown");
     }
     await persistUsageEvent(persist, "token_usage", event);
     recordSessionBudgetUsage(
@@ -147,6 +157,7 @@ export async function runMeteredDirectModelCall({
       event,
       `direct model call ${source} usage settlement`,
     );
+    settlement = "known";
   } else {
     const unknown = unknownUsageEvent({
       callId,
@@ -161,5 +172,5 @@ export async function runMeteredDirectModelCall({
       rejectSessionBudgetUsageUnknown(unknown, `direct model call ${source}`);
     }
   }
-  return result;
+  return returnSettled(settlement);
 }

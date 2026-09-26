@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { captureDecisionProviderAuthority } from "../../src/lib/decision-layer/provider-authority.js";
 import {
   createDecisionProvider,
+  MAX_DECISION_REQUEST_BYTES,
+  MAX_DECISION_RESPONSE_BYTES,
   resolveDecisionProviderOptions,
 } from "../../src/lib/decision-layer/providers.js";
 
@@ -177,6 +179,64 @@ describe("System One transport", () => {
     );
   });
 
+  it("rejects an oversized UTF-8 request before fetching", async () => {
+    const fetchImpl = successfulFetch();
+    const provider = createDecisionProvider({ provider: "laya", fetchImpl });
+    await expect(
+      provider.decide({
+        payload: {
+          state: { task: "repair tests" },
+          questions: { verdict: "测".repeat(MAX_DECISION_REQUEST_BYTES / 3) },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_DECISION_REQUEST_TOO_LARGE",
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("cancels an oversized streamed response before parsing JSON", async () => {
+    const cancel = vi.fn();
+    let chunks = 0;
+    const response = new Response(
+      new ReadableStream({
+        pull(controller) {
+          controller.enqueue(Buffer.alloc(64 * 1024, 0x20));
+          chunks += 1;
+          if (chunks === 6) controller.close();
+        },
+        cancel,
+      }),
+    );
+    const provider = createDecisionProvider({
+      provider: "laya",
+      fetchImpl: async () => response,
+    });
+    await expect(provider.decide(REQUEST)).rejects.toMatchObject({
+      code: "CC_DECISION_RESPONSE_TOO_LARGE",
+    });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a declared oversized response without reading its body", async () => {
+    const cancel = vi.fn(async () => {});
+    const json = vi.fn(async () => ({}));
+    const provider = createDecisionProvider({
+      provider: "laya",
+      fetchImpl: async () => ({
+        ok: true,
+        headers: { get: () => String(MAX_DECISION_RESPONSE_BYTES + 1) },
+        body: { cancel },
+        json,
+      }),
+    });
+    await expect(provider.decide(REQUEST)).rejects.toMatchObject({
+      code: "CC_DECISION_RESPONSE_TOO_LARGE",
+    });
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(json).not.toHaveBeenCalled();
+  });
+
   it("continues to require an explicit TypeSafe API key", () => {
     vi.stubEnv("TYPESAFE_API_KEY", "not-read-by-the-factory");
     expect(() => createDecisionProvider()).toThrow(
@@ -299,6 +359,24 @@ describe("System One transport", () => {
 });
 
 describe("Laya loopback HTTP transport", () => {
+  it("rejects an oversized chunked response from a real HTTP server", async () => {
+    await withLocalServer(
+      (_request, response) => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.write(Buffer.alloc(MAX_DECISION_RESPONSE_BYTES / 2, 0x20));
+        response.end(Buffer.alloc(MAX_DECISION_RESPONSE_BYTES / 2 + 1, 0x20));
+      },
+      async (baseUrl) => {
+        const provider = createDecisionProvider({ provider: "laya", baseUrl });
+        await expect(
+          provider.decide(REQUEST, { signal: AbortSignal.timeout(5000) }),
+        ).rejects.toMatchObject({
+          code: "CC_DECISION_RESPONSE_TOO_LARGE",
+        });
+      },
+    );
+  });
+
   it("round trips the real protocol and preserves zero output tokens and server model", async () => {
     vi.stubEnv("TYPESAFE_API_KEY", "unrelated-cloud-secret");
     const received = [];

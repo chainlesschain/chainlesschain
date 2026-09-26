@@ -14,6 +14,9 @@ const PROVIDERS = Object.freeze({
   "system-one": { label: "System One" },
 });
 
+export const MAX_DECISION_REQUEST_BYTES = 256 * 1024;
+export const MAX_DECISION_RESPONSE_BYTES = 256 * 1024;
+
 function boundedText(value, label, limit = 160) {
   if (
     typeof value !== "string" ||
@@ -98,6 +101,71 @@ function providerError(status, provider) {
   return error;
 }
 
+function bodyTooLarge(kind, maximum) {
+  const error = new Error(`decision ${kind} exceeds ${maximum} bytes`);
+  error.code = `CC_DECISION_${kind.toUpperCase()}_TOO_LARGE`;
+  return error;
+}
+
+async function readBoundedJsonResponse(response) {
+  const declared = response.headers?.get?.("content-length");
+  if (
+    declared != null &&
+    /^\d+$/u.test(declared) &&
+    BigInt(declared) > BigInt(MAX_DECISION_RESPONSE_BYTES)
+  ) {
+    try {
+      await response.body?.cancel?.();
+    } catch {
+      // The declared size remains authoritative even if cancellation fails.
+    }
+    throw bodyTooLarge("response", MAX_DECISION_RESPONSE_BYTES);
+  }
+
+  // A real Fetch Response has a stream; injected test transports may only
+  // expose json(). The latter is checked after parsing because it is trusted.
+  if (!response.body?.getReader) {
+    const value = await response.json();
+    if (
+      Buffer.byteLength(JSON.stringify(value), "utf8") >
+      MAX_DECISION_RESPONSE_BYTES
+    ) {
+      throw bodyTooLarge("response", MAX_DECISION_RESPONSE_BYTES);
+    }
+    return value;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunkBytes = value?.byteLength;
+      if (
+        !Number.isSafeInteger(chunkBytes) ||
+        total + chunkBytes > MAX_DECISION_RESPONSE_BYTES
+      ) {
+        throw bodyTooLarge("response", MAX_DECISION_RESPONSE_BYTES);
+      }
+      const chunk = Buffer.from(value);
+      total += chunk.length;
+      chunks.push(chunk);
+    }
+    return JSON.parse(new TextDecoder().decode(Buffer.concat(chunks, total)));
+  } catch (error) {
+    try {
+      await reader.cancel();
+    } catch {
+      // The original read, size, or JSON error remains authoritative.
+    }
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export function createDecisionProvider({
   provider,
   model,
@@ -119,6 +187,14 @@ export function createDecisionProvider({
     provider: options.provider,
     model: options.model,
     decide: async (request, { signal } = {}) => {
+      const body = JSON.stringify({
+        model: options.model,
+        state: request.payload.state,
+        questions: request.payload.questions,
+      });
+      if (Buffer.byteLength(body, "utf8") > MAX_DECISION_REQUEST_BYTES) {
+        throw bodyTooLarge("request", MAX_DECISION_REQUEST_BYTES);
+      }
       const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
@@ -127,23 +203,22 @@ export function createDecisionProvider({
             : { authorization: `Bearer ${secret}` }),
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          model: options.model,
-          state: request.payload.state,
-          questions: request.payload.questions,
-        }),
+        body,
         signal,
         redirect: "error",
       });
       if (!response?.ok) {
         throw providerError(response?.status ?? 0, options.provider);
       }
-      const body = await response.json();
+      const responseBody = await readBoundedJsonResponse(response);
       return {
         provider: options.provider,
-        model: typeof body?.model === "string" ? body.model : options.model,
-        answers: body?.answers,
-        usage: body?.usage,
+        model:
+          typeof responseBody?.model === "string"
+            ? responseBody.model
+            : options.model,
+        answers: responseBody?.answers,
+        usage: responseBody?.usage,
       };
     },
   });

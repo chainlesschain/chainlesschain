@@ -199,6 +199,29 @@ describe("direct model usage ledger", () => {
     expect(records[1].event.callId).toBe(records[0].event.callId);
   });
 
+  it.each([
+    ["known", { usage: { input_tokens: 2, output_tokens: 1 } }, "known"],
+    ["missing", {}, "unknown"],
+    ["malformed", { usage: { input_tokens: "2" } }, "unknown"],
+  ])(
+    "returns the durable %s settlement when requested",
+    async (_label, result, settlement) => {
+      const records = [];
+      const returned = await runMeteredDirectModelCall({
+        ...BASE,
+        includeSettlement: true,
+        persist: (type) => records.push(type),
+        call: async () => result,
+      });
+
+      expect(returned).toEqual({ result, settlement });
+      expect(records).toEqual([
+        "model_usage_started",
+        settlement === "known" ? "token_usage" : "model_usage_unknown",
+      ]);
+    },
+  );
+
   it("marks a started persistence failure and never invokes the provider", async () => {
     const persistenceError = new Error("disk full");
     const call = vi.fn();
