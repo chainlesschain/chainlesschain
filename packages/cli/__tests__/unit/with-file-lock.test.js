@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import * as realFs from "node:fs";
 import {
   mkdtempSync,
   mkdirSync,
@@ -876,65 +877,336 @@ describe("withFileLock", () => {
     ).toEqual(cleanupClaim);
   });
 
-  it("lets a contender release only after the owner's exact staging path disappears", () => {
+  it("preserves a replacement lock when a prepublished releaser resumes after a stale read", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";
-    const pendingPath = "/state.pending-transaction";
-    const ownerToken = "early-release-owner-token-001";
-    let blockedContender;
-    let completedContender;
+    const ownerToken = "prepublished-stale-reader-001";
+    const replacement = {
+      pid: 7474,
+      startedAt: 7,
+      token: "replacement-after-read-001",
+    };
+    const originalRead = _fs.readFileSync;
+    let armed = false;
+    let handedOff = false;
+    _fs.readFileSync = vi.fn((target, ...args) => {
+      const value = originalRead(target, ...args);
+      const normalized = String(target).replaceAll("\\", "/");
+      if (
+        armed &&
+        !handedOff &&
+        (normalized === `${lockDir}/owner.json` ||
+          normalized === `${lockDir}/.release-${ownerToken}`) &&
+        !_fs.files.has(`${lockDir}/.release-claim-${ownerToken}`)
+      ) {
+        handedOff = true;
+        // Model a contender completing the published release and acquiring
+        // the shared path while the old owner's read result is still stale.
+        _fs.renameSync(lockDir, `${lockDir}.completed-handoff`);
+        _fs.mkdirSync(lockDir);
+        _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(replacement));
+      }
+      return value;
+    });
 
-    const committed = withFileLock(
-      "/critical.json",
-      ({ publishReleaseAfterPathRemoved }) => {
-        _fs.files.set(pendingPath, "pending replacement");
-        expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
-
-        let blockedNow = 0;
-        try {
-          withFileLock("/critical.json", () => "too-early", {
-            _fs,
-            timeoutMs: 1,
-            _now: () => (blockedNow += 2),
-            _sleep: () => {},
-            _isProcessAlive: () => true,
-            _ownerToken: () => "blocked-contender-token-001",
-            failIfUnavailable: true,
-          });
-        } catch (error) {
-          blockedContender = error;
-        }
-
-        _fs.files.delete(pendingPath);
-        completedContender = withFileLock(
-          "/critical.json",
-          () => "after-commit",
-          {
-            _fs,
-            timeoutMs: 10,
-            _now: (() => {
-              let now = 0;
-              return () => now++;
-            })(),
-            _sleep: () => {},
-            _isProcessAlive: () => true,
-            _ownerToken: () => "completed-contender-token-01",
-            failIfUnavailable: true,
-          },
-        );
-        return "committed";
-      },
-      {
-        _fs,
-        _isProcessAlive: () => true,
-        _ownerToken: () => ownerToken,
-        failIfUnavailable: true,
-      },
+    expect(
+      withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          const pendingPath = "/state.pending-handoff";
+          _fs.files.set(pendingPath, "replacement");
+          expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+          _fs.files.delete(pendingPath);
+          armed = true;
+          return "committed";
+        },
+        { _fs, _ownerToken: () => ownerToken, failIfUnavailable: true },
+      ),
+    ).toBe("committed");
+    expect(handedOff).toBe(true);
+    expect(JSON.parse(originalRead(`${lockDir}/owner.json`))).toEqual(
+      replacement,
     );
+    expect(
+      [..._fs.files.keys()].filter((key) => key.startsWith(`${lockDir}/`)),
+    ).toEqual([`${lockDir}/owner.json`]);
+  });
 
-    expect(blockedContender).toMatchObject({ code: "STATE_LOCK_UNAVAILABLE" });
-    expect(completedContender).toBe("after-commit");
-    expect(committed).toBe("committed");
+  it.each(["after-marker-write", "before-marker-read"])(
+    "accepts completed fallback handoff %s without touching the replacement",
+    (handoffPoint) => {
+      const _fs = fakeLockFs();
+      const lockDir = "/critical.json.lock";
+      const ownerToken = "fallback-published-owner-001";
+      const markerPath = `${lockDir}/.release-${ownerToken}`;
+      const replacement = {
+        pid: 7474,
+        startedAt: 7,
+        token: "fallback-replacement-owner-001",
+      };
+      const originalRename = _fs.renameSync;
+      const originalRead = _fs.readFileSync;
+      const originalWrite = _fs.writeFileSync;
+      let handedOff = false;
+      const handoff = () => {
+        handedOff = true;
+        originalRename(lockDir, `${lockDir}.completed-handoff`);
+        _fs.mkdirSync(lockDir);
+        originalWrite(`${lockDir}/owner.json`, JSON.stringify(replacement));
+      };
+      _fs.renameSync = vi.fn((from, to) => {
+        if (
+          String(to).replaceAll("\\", "/") ===
+          `${lockDir}.release-${ownerToken}`
+        ) {
+          throw Object.assign(new Error("Windows sharing violation"), {
+            code: "EPERM",
+          });
+        }
+        return originalRename(from, to);
+      });
+      _fs.writeFileSync = vi.fn((target, value, options) => {
+        originalWrite(target, value, options);
+        if (
+          handoffPoint === "after-marker-write" &&
+          String(target).replaceAll("\\", "/") === markerPath
+        )
+          handoff();
+      });
+      _fs.readFileSync = vi.fn((target, ...args) => {
+        if (
+          handoffPoint === "before-marker-read" &&
+          !handedOff &&
+          String(target).replaceAll("\\", "/") === markerPath
+        )
+          handoff();
+        return originalRead(target, ...args);
+      });
+
+      expect(
+        withFileLock("/critical.json", () => "committed", {
+          _fs,
+          _ownerToken: () => ownerToken,
+          failIfUnavailable: true,
+        }),
+      ).toBe("committed");
+      expect(handedOff).toBe(true);
+      expect(JSON.parse(originalRead(`${lockDir}/owner.json`))).toEqual(
+        replacement,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    "lets a contender release only after the owner's exact staging path disappears (mismatched ended-body proof=%s)",
+    (mismatchedProof) => {
+      const _fs = fakeLockFs();
+      const lockDir = "/critical.json.lock";
+      const pendingPath = "/state.pending-transaction";
+      const ownerToken = "early-release-owner-token-001";
+      let blockedContender;
+      let completedContender;
+
+      const committed = withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          _fs.files.set(pendingPath, "pending replacement");
+          expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+          if (mismatchedProof) {
+            _fs.files.set(
+              `${lockDir}/.release-body-finished-${ownerToken}`,
+              JSON.stringify({
+                pid: process.pid,
+                startedAt: 0,
+                token: "other-owner-ended-body-001",
+              }),
+            );
+          }
+
+          let blockedNow = 0;
+          try {
+            withFileLock("/critical.json", () => "too-early", {
+              _fs,
+              timeoutMs: 1,
+              _now: () => (blockedNow += 2),
+              _sleep: () => {},
+              _isProcessAlive: () => true,
+              _ownerToken: () => "blocked-contender-token-001",
+              failIfUnavailable: true,
+            });
+          } catch (error) {
+            blockedContender = error;
+          }
+
+          _fs.files.delete(pendingPath);
+          completedContender = withFileLock(
+            "/critical.json",
+            () => "after-commit",
+            {
+              _fs,
+              timeoutMs: 10,
+              _now: (() => {
+                let now = 0;
+                return () => now++;
+              })(),
+              _sleep: () => {},
+              _isProcessAlive: () => true,
+              _ownerToken: () => "completed-contender-token-01",
+              failIfUnavailable: true,
+            },
+          );
+          return "committed";
+        },
+        {
+          _fs,
+          _isProcessAlive: () => true,
+          _ownerToken: () => ownerToken,
+          failIfUnavailable: true,
+        },
+      );
+
+      expect(blockedContender).toMatchObject({
+        code: "STATE_LOCK_UNAVAILABLE",
+      });
+      expect(completedContender).toBe("after-commit");
+      expect(committed).toBe("committed");
+      expect(_fs.dirs.has(lockDir)).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    "releases a finished owner with an uncommitted staging path (throws=%s)",
+    (bodyThrows) => {
+      const _fs = fakeLockFs();
+      const pendingPath = "/state.pending-uncommitted";
+      const bodyError = new Error("final commit failed");
+      const run = () =>
+        withFileLock(
+          "/critical.json",
+          ({ publishReleaseAfterPathRemoved }) => {
+            _fs.files.set(pendingPath, "uncommitted replacement");
+            expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+            if (bodyThrows) throw bodyError;
+            return "abandoned";
+          },
+          { _fs, failIfUnavailable: true },
+        );
+      if (bodyThrows) expect(run).toThrow(bodyError);
+      else expect(run()).toBe("abandoned");
+      expect(_fs.files.get(pendingPath)).toBe("uncommitted replacement");
+      expect(_fs.dirs.has("/critical.json.lock")).toBe(false);
+    },
+  );
+
+  it("keeps an abandoned staging handoff recoverable after a real-fs marker read sharing error", () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-lock-marker-read-"));
+    const target = join(root, "state.json");
+    const pendingPath = join(root, "pending.json");
+    const ownerToken = "marker-read-sharing-owner-001";
+    let armed = false;
+    let failedRead = false;
+    const _fs = {
+      ...realFs,
+      readFileSync(file, ...args) {
+        if (
+          armed &&
+          !failedRead &&
+          String(file).endsWith(`.release-${ownerToken}`)
+        ) {
+          failedRead = true;
+          throw Object.assign(new Error("Windows sharing violation"), {
+            code: "EACCES",
+          });
+        }
+        return realFs.readFileSync(file, ...args);
+      },
+    };
+    try {
+      expect(
+        withFileLock(
+          target,
+          ({ publishReleaseAfterPathRemoved }) => {
+            writeFileSync(pendingPath, "abandoned private stage");
+            expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+            armed = true;
+            return "finished";
+          },
+          { _fs, _ownerToken: () => ownerToken, failIfUnavailable: true },
+        ),
+      ).toBe("finished");
+      expect(failedRead).toBe(true);
+      expect(
+        withFileLock(target, () => "next owner", {
+          failIfUnavailable: true,
+          timeoutMs: 100,
+        }),
+      ).toBe("next owner");
+      expect(realFs.readFileSync(pendingPath, "utf8")).toBe(
+        "abandoned private stage",
+      );
+      expect(realFs.existsSync(`${target}.lock`)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat a sharing error reading owner identity as a completed handoff", () => {
+    const _fs = fakeLockFs();
+    const originalRead = _fs.readFileSync;
+    let armed = false;
+    _fs.readFileSync = vi.fn((target, ...args) => {
+      if (
+        armed &&
+        String(target).replaceAll("\\", "/") ===
+          "/critical.json.lock/owner.json"
+      ) {
+        throw Object.assign(
+          new Error("owner identity temporarily unreadable"),
+          { code: "EACCES" },
+        );
+      }
+      return originalRead(target, ...args);
+    });
+    expect(() =>
+      withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          _fs.files.set("/state.pending", "pending");
+          expect(publishReleaseAfterPathRemoved("/state.pending")).toBe(true);
+          armed = true;
+        },
+        { _fs, failIfUnavailable: true },
+      ),
+    ).toThrow(expect.objectContaining({ code: "EACCES" }));
+    expect(_fs.dirs.has("/critical.json.lock")).toBe(true);
+  });
+
+  it("accepts a handoff completed before the ended-body proof can be written", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const pendingPath = "/state.pending-ended-body";
+    const originalWrite = _fs.writeFileSync;
+    let handedOff = false;
+    _fs.writeFileSync = vi.fn((target, value, options) => {
+      if (String(target).includes(".release-body-finished-")) {
+        _fs.files.delete(pendingPath);
+        _fs.renameSync(lockDir, `${lockDir}.completed-handoff`);
+        handedOff = true;
+      }
+      return originalWrite(target, value, options);
+    });
+    expect(
+      withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          _fs.files.set(pendingPath, "pending replacement");
+          expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+          return "finished";
+        },
+        { _fs, failIfUnavailable: true },
+      ),
+    ).toBe("finished");
+    expect(handedOff).toBe(true);
     expect(_fs.dirs.has(lockDir)).toBe(false);
   });
 
@@ -970,41 +1242,53 @@ describe("withFileLock", () => {
     expect(_fs.files.get(pendingPath)).toBe("uncommitted private replacement");
   });
 
-  it("completes a prepublished handoff after a transient direct-release failure", () => {
-    const _fs = fakeLockFs();
-    const lockDir = "/critical.json.lock";
-    const pendingPath = "/state.pending-rename";
-    const originalRename = _fs.renameSync;
-    let blockRelease = true;
-    _fs.renameSync = vi.fn((from, to) => {
-      if (String(from).replaceAll("\\", "/") === lockDir && blockRelease) {
-        blockRelease = false;
-        const error = new Error("transient Windows sharing violation");
-        error.code = "EPERM";
-        throw error;
-      }
-      return originalRename(from, to);
-    });
+  it.each([false, true])(
+    "leaves a prepublished handoff retryable after a transient claimed-release failure (staging remains=%s)",
+    (stagingRemains) => {
+      const _fs = fakeLockFs();
+      const lockDir = "/critical.json.lock";
+      const pendingPath = "/state.pending-rename";
+      const originalRename = _fs.renameSync;
+      let blockRelease = true;
+      _fs.renameSync = vi.fn((from, to) => {
+        if (String(from).replaceAll("\\", "/") === lockDir && blockRelease) {
+          blockRelease = false;
+          const error = new Error("transient Windows sharing violation");
+          error.code = "EPERM";
+          throw error;
+        }
+        return originalRename(from, to);
+      });
 
-    expect(
-      withFileLock(
-        "/critical.json",
-        ({ publishReleaseAfterPathRemoved }) => {
-          _fs.files.set(pendingPath, "pending replacement");
-          expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
-          _fs.files.delete(pendingPath);
-          return "committed";
-        },
-        {
+      expect(
+        withFileLock(
+          "/critical.json",
+          ({ publishReleaseAfterPathRemoved }) => {
+            _fs.files.set(pendingPath, "pending replacement");
+            expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+            if (!stagingRemains) _fs.files.delete(pendingPath);
+            return "committed";
+          },
+          {
+            _fs,
+            _isProcessAlive: () => true,
+            _ownerToken: () => "prepublished-owner-token-001",
+            failIfUnavailable: true,
+          },
+        ),
+      ).toBe("committed");
+      expect(_fs.dirs.has(lockDir)).toBe(true);
+      expect(
+        withFileLock("/critical.json", () => "after-handoff", {
           _fs,
           _isProcessAlive: () => true,
-          _ownerToken: () => "prepublished-owner-token-001",
+          _ownerToken: () => "prepublished-retry-owner-001",
           failIfUnavailable: true,
-        },
-      ),
-    ).toBe("committed");
-    expect(_fs.dirs.has(lockDir)).toBe(false);
-  });
+        }),
+      ).toBe("after-handoff");
+      expect(_fs.dirs.has(lockDir)).toBe(false);
+    },
+  );
 
   it("does not complete a published release whose marker token mismatches the live owner", () => {
     const _fs = fakeLockFs();

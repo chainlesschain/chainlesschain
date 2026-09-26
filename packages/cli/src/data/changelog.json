@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.76",
+      "cliVersions": ["0.166.76"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.76: concurrent state lock handoff",
+          "body": "- Preserve a replacement owner's lock when another process completes a\n  published release before the original owner finishes cleanup.\n- Treat a completed release handoff as success instead of reporting lost\n  ownership after the guarded state transaction has already committed.\n- Include the evaluation module initialization fix prepared in 0.166.75."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.75",
       "cliVersions": ["0.166.75"],
       "date": null,

@@ -2491,6 +2491,39 @@ export async function runSchedulerKernelSoak(options = {}) {
     });
     return report;
   } catch (error) {
+    // Preserve the failed claim/fence timeline before temporary state is removed.
+    // The report otherwise contains only completed rounds, hiding the evidence
+    // needed to distinguish expired-lease replay from concurrent live claims.
+    if (store && temporaryRoot) {
+      try {
+        report.failureDiagnostics = {
+          deadLetters: store
+            .listDeadLetters({ limit: 100 })
+            .map((occurrence) => {
+              const effectFile = effectPath(
+                path.join(temporaryRoot, "effects"),
+                occurrence.id,
+              );
+              let effect = null;
+              try {
+                if (fs.existsSync(effectFile)) effect = readJson(effectFile);
+              } catch (readError) {
+                effect = { readError: safeError(readError) };
+              }
+              return {
+                occurrence,
+                history: store.history({
+                  occurrenceId: occurrence.id,
+                  limit: 100,
+                }),
+                effect,
+              };
+            }),
+        };
+      } catch (diagnosticError) {
+        report.failureDiagnostics = { error: safeError(diagnosticError) };
+      }
+    }
     const emergencyWorkers = [...activeWorkers];
     for (const worker of emergencyWorkers) {
       try {

@@ -34,7 +34,14 @@ jobs:
 
       - name: Run CLI tests
         id: cli
-        run: npm test
+        working-directory: packages/cli
+        # Match CLI CI: retry a Vitest worker teardown crash once with files
+        # serialized, only when the recorded assertions contain no failures.
+        run: >-
+          node scripts/run-vitest-with-worker-retry.mjs -- run
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/pr-tests.xml
+          --silent=passed-only
 
       - name: Run Vitest tests (no coverage)
         id: vitest

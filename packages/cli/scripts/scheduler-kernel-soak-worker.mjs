@@ -233,8 +233,17 @@ export function createSchedulerSoakWorker({
     }
   };
 
-  const writeEffect = (context, result) => {
-    fs.mkdirSync(normalized.effectsDir, { recursive: true, mode: 0o700 });
+  const writeEffect = async (context, result) => {
+    // Disk flushes can exceed a short soak lease on hosted Windows runners.
+    // Keep the event loop available for the real runtime heartbeat during I/O.
+    await fs.promises.mkdir(normalized.effectsDir, {
+      recursive: true,
+      mode: 0o700,
+    });
+    // A delayed checkpoint/timer callback must not let a stale owner reach the
+    // effect boundary merely because its abort signal has not been updated yet.
+    context.renewLease();
+    if (context.signal.aborted) throw context.signal.reason;
     const effectPath = path.join(
       normalized.effectsDir,
       `${context.occurrence.id}.json`,
@@ -255,9 +264,9 @@ export function createSchedulerSoakWorker({
     };
     let descriptor;
     try {
-      descriptor = fs.openSync(effectPath, "wx", 0o600);
-      fs.writeFileSync(descriptor, `${JSON.stringify(effect)}\n`, "utf8");
-      fs.fsyncSync(descriptor);
+      descriptor = await fs.promises.open(effectPath, "wx", 0o600);
+      await descriptor.writeFile(`${JSON.stringify(effect)}\n`, "utf8");
+      await descriptor.sync();
     } catch (error) {
       if (error?.code === "EEXIST") {
         const duplicate = new Error(
@@ -270,7 +279,7 @@ export function createSchedulerSoakWorker({
       }
       throw error;
     } finally {
-      if (descriptor !== undefined) fs.closeSync(descriptor);
+      if (descriptor !== undefined) await descriptor.close();
     }
     return { path: effectPath, ...effect };
   };
@@ -304,8 +313,8 @@ export function createSchedulerSoakWorker({
           throw error;
         }
       }
-      // Deliberately local and deterministic: no network, model, filesystem,
-      // subprocess, or user-controlled side effect occurs at this boundary.
+      // Deliberately local and deterministic: the only side effect is the
+      // exclusive evidence file below, with no network/model/subprocess work.
       const result = {
         kind: "scheduler-soak-local-result",
         occurrenceId: context.occurrence.id,
@@ -315,7 +324,7 @@ export function createSchedulerSoakWorker({
         owner: normalized.owner,
         resultValue: payload?.resultValue ?? null,
       };
-      const effect = writeEffect(context, result);
+      const effect = await writeEffect(context, result);
       await emit({
         type: "effect-written",
         occurrence: occurrenceEvidence(context.occurrence),
