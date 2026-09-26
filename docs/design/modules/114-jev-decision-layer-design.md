@@ -1,8 +1,8 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
-> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 增加 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；当前公开 CLI 为 `0.166.76`，决策模式仍默认关闭。本次工作区新增决策 HTTP 请求与响应各 256 KiB 的上限，并使未知用量的答案及后续决策模型调用失败闭合；这些改动尚未发布。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
-> 发行与 CLI 契约核对日期：2026-09-26；原文基线：`main@c036888c3c`；本次代码基线：`main@8786290ab9`。<br>
-> Jev 历史实现提交：`80806fd4e9`；Jev 截止与评测修复发布提交：`5f411309b2`；当前公开 CLI 发布提交：`b9d64ffd92`。
+> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 增加 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；当前公开 CLI `0.166.77` 已将决策 HTTP 请求与响应各限制为 256 KiB，并使未知用量的答案及后续决策模型调用失败闭合。决策模式仍默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
+> 发行与 CLI 契约核对日期：2026-09-27；原文基线：`main@c036888c3c`；当前主线基线：`main@1777dadc0b`。<br>
+> Jev 历史实现提交：`80806fd4e9`；Jev 截止与评测修复发布提交：`5f411309b2`；当前公开 CLI 发布提交：`8d97c58153`。
 
 ## 1. 目标与非目标
 
@@ -19,7 +19,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 
 | 表面                     | 当前状态                                                              |
 | ------------------------ | --------------------------------------------------------------------- |
-| CLI                      | `0.166.76` 已公开，延续 `off / shadow / suggest` 与三种 provider      |
+| CLI                      | `0.166.77` 已公开，延续 `off / shadow / suggest` 与三种 provider      |
 | Laya / 通用 System One   | CLI 已发布接线；Laya 本地真实权重冒烟已完成，中文路由和正式评测待解决 |
 | 会话                     | 仅耐久、单 prompt、headless `cc agent`                                |
 | 交互 REPL                | 不支持；非 `off` 会失败闭合                                           |
@@ -28,7 +28,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 | TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告   |
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
-公开发行身份彼此独立：npm CLI 当前为 `0.166.76@b9d64ffd92`，其中 Jev 修复的首次发行是 `0.166.72@5f411309b2`；Open VSX `0.37.117@f88fb58fc3` 与 JetBrains `0.4.137@0bc6186742` 已公开。JetBrains `0.4.138` 的发布流程已完成，但公开列表尚未回读到；Microsoft VS Code Marketplace 未发布。上述后续版本不扩大 Jev 的 headless 接入范围，精确发行证据见[2026-09-26 运行时增量设计](../agent-runtime-update-2026-09-26.md)。
+公开发行身份彼此独立：npm CLI 当前为 `0.166.77@8d97c58153`，其中 Jev 修复的首次发行是 `0.166.72@5f411309b2`；Open VSX `0.37.118@a7d582cd89` 已公开并推荐 CLI `0.166.77`。JetBrains Marketplace 当前公开 `0.4.138@f88fb58fc3`，推荐 CLI `0.166.76`；`0.4.139@a7d582cd89` 已成功上传并推荐 CLI `0.166.77`，但公开列表尚未回读到该版。Microsoft VS Code Marketplace 未发布。上述后续版本不扩大 Jev 的 headless 接入范围，精确发行证据见[2026-09-26 运行时增量设计](../agent-runtime-update-2026-09-26.md)。
 
 官网发布页与本设计共用上述制品边界；本次文档同步未产生新的 CLI、IDE 或 Desktop 制品。[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)展示的是已公开版本，部署站点不代表扩大决策层的运行范围。
 
@@ -109,7 +109,7 @@ CLI 在本地构造的 `chainlesschain.skill-decision-request/v1` 绑定以下�
 - 有序候选集合及每个候选的内容摘要，形成 `candidateSetDigest`；
 - `policyDigest`、请求摘要 `requestDigest` 与 `decisionId`。
 
-本地候选 ID 按检索顺序生成 `c1..c5`，与 Skill ID 和摘要的映射留在 CLI。当前入口每次最多发送五个当前可见候选；契约层容许至多八个，但不是 CLI 当前配置。外发 `state` 含最多 4096 字符的任务查询以及候选名称、描述、类别和标签，不包含 Skill 正文、仓库文件或会话全文。每条描述在本地最多 16384 字符，`state` 的 UTF-8 序列化上限为 96 KiB；`choice.criteria` 又会引用描述。公开的 `0.166.76` 没有对完整 HTTP 请求体单独设限；本次工作区在最终 `{model, state, questions}` JSON 序列化后增加 256 KiB 的 UTF-8 上限，超限不发起 `fetch`。这些是字符/字节保护，不是模型 token 上限，也不保证 Laya 不截断。
+本地候选 ID 按检索顺序生成 `c1..c5`，与 Skill ID 和摘要的映射留在 CLI。当前入口每次最多发送五个当前可见候选；契约层容许至多八个，但不是 CLI 当前配置。外发 `state` 含最多 4096 字符的任务查询以及候选名称、描述、类别和标签，不包含 Skill 正文、仓库文件或会话全文。每条描述在本地最多 16384 字符，`state` 的 UTF-8 序列化上限为 96 KiB；`choice.criteria` 又会引用描述。CLI `0.166.77` 在最终 `{model, state, questions}` JSON 序列化后限制为 256 KiB UTF-8，超限不发起 `fetch`。这些是字符/字节保护，不是模型 token 上限，也不保证 Laya 不截断。
 
 同一请求固定提出 `needs_skill`（Noul）、`best_skill`（含 `none` 的 Choice）和每个候选的 `fits_cN`（Noul），合计候选数加两个问题。`none` 表示模型明确判断全部候选不适合；`abstain` 表示证据不足；`unavailable` 表示本次调用未得到可用判断，三者不能合并统计。
 
@@ -121,7 +121,7 @@ CLI 在本地构造的 `chainlesschain.skill-decision-request/v1` 绑定以下�
 
 ### 6.1 出口与凭据边界
 
-当前 provider 由 CLI 宿主创建并直接通过 `fetch` 发送固定投影 `{model, state, questions}`，使用 `AbortSignal`，且禁止 HTTP 重定向。配置阶段只允许 TypeSafe/通用服务使用 HTTPS 或 loopback，Laya 限 loopback；通用服务仍需显式选择地址和模型。TypeSafe 凭据与本地/通用服务的可选凭据分别读取，Bearer 头只交给所选 provider，观察与用量事件不保存密钥。地址校验发生在配置阶段；本地审计摘要不等于网络出口已受 `agent-evolution-ingress` 准入。公开的 `0.166.76` 对完整请求体和原始响应体没有独立上限；本次工作区对最终请求 JSON 限制 256 KiB，并在真实 Fetch 响应流解析 JSON 前限制 256 KiB，超限取消读取且不返回模型答案。注入的测试 transport 若只提供 `json()` 而没有响应流，则在解析后校验序列化大小；它不是生产 Fetch 的流读取路径。
+当前 provider 由 CLI 宿主创建并直接通过 `fetch` 发送固定投影 `{model, state, questions}`，使用 `AbortSignal`，且禁止 HTTP 重定向。配置阶段只允许 TypeSafe/通用服务使用 HTTPS 或 loopback，Laya 限 loopback；通用服务仍需显式选择地址和模型。TypeSafe 凭据与本地/通用服务的可选凭据分别读取，Bearer 头只交给所选 provider，观察与用量事件不保存密钥。地址校验发生在配置阶段；本地审计摘要不等于网络出口已受 `agent-evolution-ingress` 准入。CLI `0.166.77` 对最终请求 JSON 限制 256 KiB，并在真实 Fetch 响应流解析 JSON 前限制 256 KiB，超限取消读取且不返回模型答案。注入的测试 transport 若只提供 `json()` 而没有响应流，则在解析后校验序列化大小；它不是生产 Fetch 的流读取路径。
 
 这条决策调用目前没有接入 `agent-evolution-ingress` 的 `prepareModelRequest()`、外发证据投影和准入回读；现有模型投影接受聊天消息与工具，不接受原生 `state + questions`。因此，本地请求摘要、会话用量事件和 `skill_decision_observation` 不能被描述为已经完成同一 `EvolutionRun` 的受治理模型入口。要将决策层纳入要求该入口的部署，需先增加类型化请求投影，绑定**最终外发字节**、tenant、策略和目标 endpoint，并在准入回读成功后发送；拒绝或证据持久化失败必须在网络前终止，不能回退到直连 `fetch`。这属于后续工程门，不改变当前默认关闭的 CLI 试点事实。
 
@@ -151,11 +151,11 @@ CLI 在本地构造的 `chainlesschain.skill-decision-request/v1` 绑定以下�
 
 当前 `skill_decision_observation` 为 `chainlesschain.skill-decision-observation/v1`，记录 `decisionId`、模式、tenant/session/turn、请求和候选集摘要、配置的 provider/model、状态、原因码、选中摘要、结果摘要、起止时间、延迟与 `observationDigest`。它不保存任务原文、候选描述、API key 或完整模型答案。`receiptRef` 指向该观察摘要；用量由同一持久会话的独立账本事件记录，而不是嵌入观察事件。观察写入失败也按持久化错误终止调用。
 
-未知用量是独立账本状态；是否终止还取决于会话预算宿主的 unknown-settlement 策略。CLI 不指定 `--session-budget` 或 `--session-max-*` 时默认没有该预算根。公开的 `0.166.76` 中，直接调用包装器在这种配置下可能把没有有效用量的模型答案返回决策层。本次工作区让直接调用包装器在账本持久化后向决策运行时返回 `known / unknown` 结算状态：缺失或畸形 usage 已写 `model_usage_unknown` 时，结果只形成 `unavailable / provider-usage-unknown` 观察，选中项和结果摘要均为空，不成为 Skill 建议；启用预算根时原有终止错误仍优先传播。任一决策调用持久化 `model_usage_unknown` 后，同一运行时后续查询只写 `unavailable / provider-usage-unknown-blocked` 观察而不请求 provider；恢复 headless 会话时也从已验证的历史事件检查 `decision:` 用量边界并初始化该阻断。真实 JSONL 集成测试已证明正常恢复时不再次调用决策 provider，篡改记录时在模型调用前拒绝恢复。并发中已经发出的调用无法追溯取消；阻断只覆盖此决策 provider，不是主 Agent 的全会话费用熔断。受控 `suggest` 放量前仍须以预算根和异常退出测试证明预算终态、跨进程后续调用限制，并将 observation 与账本事件按 `decisionId`/`operationId` 关联复核。
+未知用量是独立账本状态；是否终止还取决于会话预算宿主的 unknown-settlement 策略。CLI 不指定 `--session-budget` 或 `--session-max-*` 时默认没有该预算根。CLI `0.166.77` 让直接调用包装器在账本持久化后向决策运行时返回 `known / unknown` 结算状态：缺失或畸形 usage 已写 `model_usage_unknown` 时，结果只形成 `unavailable / provider-usage-unknown` 观察，选中项和结果摘要均为空，不成为 Skill 建议；启用预算根时原有终止错误仍优先传播。任一决策调用持久化 `model_usage_unknown` 后，同一运行时后续查询只写 `unavailable / provider-usage-unknown-blocked` 观察而不请求 provider；恢复 headless 会话时也从已验证的历史事件检查 `decision:` 用量边界并初始化该阻断。真实 JSONL 集成测试已证明正常恢复时不再次调用决策 provider，篡改记录时在模型调用前拒绝恢复。并发中已经发出的调用无法追溯取消；阻断只覆盖此决策 provider，不是主 Agent 的全会话费用熔断。受控 `suggest` 放量前仍须以预算根和异常退出测试证明预算终态、跨进程后续调用限制，并将 observation 与账本事件按 `decisionId`/`operationId` 关联复核。
 
 ## 8. IDE 边界
 
-当前公开的 Open VSX `0.37.117` 与 JetBrains `0.4.137` 不直接接入 Jev 对话；两端只携带 CLI 配套版本与能力边界说明：
+当前公开的 Open VSX `0.37.118` 与 JetBrains `0.4.138` 不直接接入 Jev 对话；已上传待公开的 JetBrains `0.4.139` 同样不接入。IDE 只携带 CLI 配套版本与能力边界说明：
 
 - IDE Webview/JCEF 不读取、保存或转发 `TYPESAFE_API_KEY`；
 - 交互 IDE 会话不会自动添加 `--decision-mode`；
@@ -199,7 +199,7 @@ CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数�
 - `packages/cli/src/runtime/agent-core.js`
 - `packages/cli/src/runtime/headless-runner.js`
 
-单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线；本次另验证请求预检、分块响应超限取消、声明长度超限拒绝、真实 loopback HTTP 超限响应、缺失/畸形 usage 的失败闭合，以及同一运行时和恢复的注入会话不再调用决策 provider。真实 JSONL 集成测试覆盖未知决策用量后的恢复阻断与篡改记录的恢复拒绝，使用隔离的临时 CLI home 和安全锚目录。CLI `0.166.72@5f411309b2` 首次发行了多提供方接线、本地截止失败闭合与离线统计修复；当前公开的 `0.166.76@b9d64ffd92` 也已在其精确提交上通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读。这些发行门证明当时的代码与制品，不覆盖本次未发布的报文与用量修复，也不证明模型效果合格。后续 npm 发布必须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
+单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线；另验证请求预检、分块响应超限取消、声明长度超限拒绝、真实 loopback HTTP 超限响应、缺失/畸形 usage 的失败闭合，以及同一运行时和恢复的注入会话不再调用决策 provider。真实 JSONL 集成测试覆盖未知决策用量后的恢复阻断与篡改记录的恢复拒绝，使用隔离的临时 CLI home 和安全锚目录。CLI `0.166.72@5f411309b2` 首次发行了多提供方接线、本地截止失败闭合与离线统计修复；当前公开的 `0.166.77@8d97c58153` 已在其精确提交上通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共制品回读，覆盖本节的报文与用量修复。这些发行门证明代码与制品一致，不证明模型效果合格。后续 npm 发布仍须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
 
 在 `packages/cli` 运行定向回归可用 `npm.cmd test -- __tests__/unit/decision-layer-contracts.test.js __tests__/unit/decision-layer-providers.test.js __tests__/unit/decision-layer-typesafe-provider.test.js __tests__/unit/decision-layer-runtime.test.js __tests__/unit/decision-layer-benchmark.test.js __tests__/unit/direct-model-usage.test.js __tests__/unit/agent-core-skill-decision.test.js __tests__/unit/headless-skill-decision.test.js __tests__/integration/headless-decision-usage-resume.test.js`。它覆盖本地契约与失败路径，不会调用真实 TypeSafe/Laya 服务。
 
@@ -208,9 +208,9 @@ CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数�
 | 工作项           | 当前依据                                                                                      | 完成条件                                                                               |
 | ---------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | 受治理类型化出口 | 决策 provider 当前直接 `fetch`，聊天模型投影不覆盖 `state + questions`                        | 最终外发字节先投影、准入并回读；拒绝及持久化失败时无网络请求；真实宿主回归覆盖         |
-| 用量闭合         | 工作区已阻断未知用量的建议与同会话后续决策 provider 调用；真实 JSONL 恢复和篡改拒绝测试已通过 | 异常退出/预算根验证及账本与观察关联；全会话费用仍由预算根约束，并通过新提交发行门      |
+| 用量闭合         | CLI `0.166.77` 已阻断未知用量的建议与同会话后续决策 provider 调用；真实 JSONL 恢复和篡改拒绝测试已通过 | 异常退出/预算根验证及账本与观察关联；全会话费用仍由预算根约束 |
 | 全程截止         | 当前 800 ms 只覆盖 provider 调用                                                              | 从查询到观察写入测量增量延迟；慢 started、网络和慢观察均纳入截止/迟到建议测试          |
-| 报文大小         | 工作区已对最终请求 JSON 与响应流设 256 KiB 上限，并通过 loopback HTTP 回归；尚未发布          | 在新精确提交通过三平台发行门并核对公开制品                                             |
+| 报文大小         | CLI `0.166.77` 已对最终请求 JSON 与响应流设 256 KiB 上限，并通过 loopback HTTP 回归及三平台发行门 | 继续监测真实服务对边界报文的兼容性 |
 | 请求新鲜度       | `contextRevision` 固定、默认 `policyDigest` 静态，服务不回显绑定                              | 消费建议前复核实时候选摘要、撤销和策略；若跨进程复用，增加版本化请求回显和过期拒绝测试 |
 | 模型适配         | Laya 中文 CLI 输入误路由，完整请求超过默认截止                                                | 固定并记录实际 checkpoint；按真实 tokenizer 验证完整请求、截断、语言路由与冷/热延迟    |
 | 效果资格         | TypeSafe 真实 API 与冻结数据集报告缺失                                                        | 各提供方按第 9 节独立完成校准、冻结测试、隔离端到端对照及小流量复核                    |

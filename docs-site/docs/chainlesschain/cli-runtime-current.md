@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.166.76）
+# CLI Runtime 当前实现（0.166.77）
 
-> **2026-09-26 当前版本**：npm `latest` 为 CLI `0.166.76`，完整门禁与独立公开回读已完成。新增冻结 PM 效果计划、签名 Eval 证据、启动准入/cohort 登记，并修复调查循环、循环导入与并发锁交接。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
+> **2026-09-27 当前版本**：npm `latest` 为 CLI `0.166.77`，完整门禁与独立公开回读已完成。新增可选 Skill 决策 HTTP 请求/响应各 256 KiB 上限及未知用量失败闭合；此前的冻结 PM 效果计划、签名 Eval 证据、启动准入/cohort 登记，以及调查循环、循环导入和并发锁交接修复仍保留。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 
@@ -50,20 +50,20 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 
 | 用途                    | 版本                                             | 说明                                                                                              |
 | ----------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用     | CLI `0.166.76`                                   | `v-npm-0-166-76@b9d64ffd92` 的三系统 CLI CI、Strict Sandbox、OIDC/provenance 和公共安装回读均成功 |
-| npm `latest`            | `0.166.76`                                       | 2026-09-26 从官方 registry 回读                                                                   |
+| 生产 / 日常稳定使用     | CLI `0.166.77`                                   | `v-npm-0-166-77@8d97c58153` 的三系统 CLI CI、Strict Sandbox、OIDC/provenance 和公共安装回读均成功 |
+| npm `latest`            | `0.166.77`                                       | 2026-09-27 从官方 registry 回读                                                                   |
 | Agent SDK / Protocol    | TS `0.2.11` / Python `0.2.9` / Protocol `0.1.11` | 各自保持独立发行身份                                                                              |
-| IDE 工作台              | Open VSX `0.37.117` / JetBrains `0.4.137`        | Open VSX 推荐 CLI `0.166.76`；JetBrains 内置推荐仍为 `0.166.74`                                   |
+| IDE 工作台              | Open VSX `0.37.118` / JetBrains `0.4.138`        | Open VSX 推荐 CLI `0.166.77`；JetBrains 内置推荐仍为 `0.166.76`，`0.4.139` 已上传待公开          |
 | JetBrains 新版          | `0.4.138`                                        | 发布工作流成功，尚待公共列表回读                                                                  |
 | Desktop / Android / iOS | `v5.0.3.138@eb48ffa311`                          | 独立产品发行；iOS ad-hoc IPA 仅限已授权设备                                                       |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.166.76 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.77 --registry https://registry.npmjs.org
 ```
 
-旧版用户可升级到 `0.166.76`。SDK、Protocol、IDE 与 CLI 独立安装和发版；完整门禁、商店状态和限制见[发布与升级指南](./agent-platform-release)。
+旧版用户可升级到 `0.166.77`。SDK、Protocol、IDE 与 CLI 独立安装和发版；完整门禁、商店状态和限制见[发布与升级指南](./agent-platform-release)。
 
 ## 核心特性
 

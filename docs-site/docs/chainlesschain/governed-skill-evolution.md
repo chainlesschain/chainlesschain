@@ -1,12 +1,12 @@
 # 受治理的 Skill 自进化
 
-> **2026-09-26 当前版本**：npm `latest` 为 CLI `0.166.76`，完整门禁与独立公开回读已完成。新增冻结 PM 效果计划、签名 Eval 证据、启动准入/cohort 登记，并修复调查循环、循环导入与并发锁交接。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
+> **2026-09-27 当前版本**：npm `latest` 为 CLI `0.166.77`，完整门禁与独立公开回读已完成。新增可选 Skill 决策请求/响应各 256 KiB 上限及未知用量失败闭合；此前的冻结 PM 效果计划、签名 Eval 证据、启动准入/cohort 登记，以及调查循环、循环导入和并发锁交接修复仍保留。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
 
-> 适用版本：Agent Platform CLI `0.166.76`；更新：2026-09-26
+> 适用版本：Agent Platform CLI `0.166.77`；更新：2026-09-27
 >
 > 适用对象：使用学习合成、Evolution Workbench、证据排序 Skill Retrieval、Desktop Skill Creator、Skill Sync 或加密知识同步的用户与管理员
 
-> 发布状态：npm `chainlesschain@0.166.76` 是当前 `latest`，对应标签 `v-npm-0-166-76` 与提交 `b9d64ffd92`。安装或升级 CLI：`npm i -g chainlesschain@0.166.76`。Open VSX `0.37.117` 已公开；JetBrains `0.4.138` 已完成发布流程，公开列表仍为 `0.4.137`。
+> 发布状态：npm `chainlesschain@0.166.77` 是当前 `latest`，对应标签 `v-npm-0-166-77` 与提交 `8d97c58153`。安装或升级 CLI：`npm i -g chainlesschain@0.166.77`。Open VSX `0.37.118` 已公开；JetBrains `0.4.138` 已公开，`0.4.139` 上传成功但公开列表待回读。
 
 > `0.166.63` 在既有 Evolution ledger v2、TEST→managed 部署轮换和 PM Broad/Deep 恢复合同上，新增宿主强制预算、签名执行/评分回执、provider settlement、独立 PM 业务 grader、Desktop 只读 SQLite 结果源、执行前后 seal、失败污染门禁、耐久迁移与恢复快照。无需为普通对话部署治理宿主；Explorer、candidate/Eval、Workbench、知识合并和发布仍需要受信配置，automatic active promotion 仍为 `HOLD`。完整变化见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
@@ -443,11 +443,11 @@ if ($LASTEXITCODE -ne 0) {
 公开 CLI `0.166.63` 包含 PM 场景的受治理 Broad/Deep 轮次、宿主强制预算、四角色签名回执、provider usage/费用结算、独立业务评分、静止点 Journal 恢复，以及 Desktop SQLite 状态迁移/恢复快照链。配套 Open VSX `0.37.108` 与 JetBrains `0.4.129` 推荐同一 CLI，但当前没有向普通用户开放“一键自主探索”入口。
 
 ```bash
-npm install --global chainlesschain@0.166.76 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.77 --registry https://registry.npmjs.org
 cc --version
 ```
 
-`cc --version` 应输出 `0.166.76`。公开版本的正确行为是：
+`cc --version` 应输出 `0.166.77`。公开版本的正确行为是：
 
 - Desktop readiness 只读取签名 deployment 提供的品牌化执行、评分、迁移与快照能力，不向 renderer、IPC、模型或 IDE 暴露通用写端口、Ledger、authority、密钥、任意 SQL、数据库字节或目录。
 - 即使本地配置检查全部满足，`readyForExecution`、`runtimeVerified`、`authenticated` 与 `qualifiesForPromotion` 仍为 `false`，状态保持 `requires-runtime-evidence`；这表示 operator authority、隔离工作区、真实身份/RBAC、远端 durability 和目标环境恢复证据尚未齐备，不是安装故障。
