@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.118] - Pair with CLI 0.166.77 bounded Skill decisions (2026-09-27)
+
+- Recommend `chainlesschain@0.166.77` in runtime upgrade guidance and release
+  metadata, including when npm lookup is unavailable.
+- Carry the CLI's 256 KiB request/response limits for optional local Skill
+  decisions and its fail-closed handling of unknown model usage across durable
+  session resume. The extension does not invoke decision modes in IDE chat.
+- Keep approval, sandbox, and editor bridge authority in the CLI host.
+
 ## [0.37.117] - Pair with CLI 0.166.76 state lock and evaluation fixes (2026-09-26)
 
 - Recommend `chainlesschain@0.166.76` in runtime upgrade guidance and release
