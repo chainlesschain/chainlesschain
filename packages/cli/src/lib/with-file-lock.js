@@ -519,7 +519,14 @@ function reclaimLegacyDirectory(_fs, lockDir, stat) {
   return true;
 }
 
-function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
+function completePublishedRelease(
+  _fs,
+  lockDir,
+  owner,
+  claimant,
+  ownerAlive,
+  ownerBodyFinished = false,
+) {
   const markerPath = path.join(lockDir, `.release-${owner.token}`);
   const marker = readOwner(_fs, markerPath);
   if (!sameOwner(marker, owner)) {
@@ -536,7 +543,36 @@ function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
     marker.releaseAfterPathRemoved &&
     pathStatus(_fs, marker.releaseAfterPathRemoved) !== "absent"
   ) {
-    return { published: true, completed: false };
+    const finishedPath = path.join(
+      lockDir,
+      `.release-body-finished-${owner.token}`,
+    );
+    if (ownerBodyFinished) {
+      // Persist the ended-body proof before cleanup so a transient rename
+      // failure cannot strand a live owner behind its abandoned staging file.
+      try {
+        writeOwnerMarker(_fs, finishedPath, owner);
+      } catch (error) {
+        if (error?.code === "ENOENT") {
+          const current = readOwnerResult(
+            _fs,
+            path.join(lockDir, "owner.json"),
+          );
+          if (
+            current.error?.code === "ENOENT" ||
+            (current.owner && !sameOwner(current.owner, owner))
+          ) {
+            return { published: true, completed: true };
+          }
+        }
+        if (error?.code !== "EEXIST") throw error;
+        if (!sameOwner(readOwner(_fs, finishedPath), owner)) {
+          return { published: true, completed: false };
+        }
+      }
+    } else if (!sameOwner(readOwner(_fs, finishedPath), owner)) {
+      return { published: true, completed: false };
+    }
   }
   const claimPath = path.join(lockDir, `.release-claim-${owner.token}`);
   for (;;) {
@@ -602,13 +638,20 @@ function releaseOwnedDirectory(
   ownerAlive,
   releaseWasPublished = false,
 ) {
+  if (releaseWasPublished) {
+    // A contender can already detach this directory. Never use the direct
+    // read-owner -> rename path after publication: it could rename a new
+    // owner's lock if a contender completes the handoff between those calls.
+    // The exclusive cleanup claim serializes all published-release helpers.
+    // The owner's body has ended even when its final commit threw and left
+    // the staging path behind. Only this owner may bypass that guard; other
+    // contenders must continue waiting until commit or claimed cleanup.
+    completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive, true);
+    return true;
+  }
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
-    // Once this exact owner published a guarded handoff, a contender is allowed
-    // to detach the old directory as soon as the final staging path disappears.
-    // A missing or replacement lock therefore proves successful release, not
-    // ownership loss. Without that publication the strict legacy verdict stays
-    // fail-closed.
-    return releaseWasPublished;
+    // Without a published handoff, missing or replaced ownership fails closed.
+    return false;
   }
   // Atomically move the exact owned directory out of the acquisition path,
   // then remove that uniquely-tokened directory. A replacement owner may
@@ -627,7 +670,7 @@ function releaseOwnedDirectory(
       }
       return true;
     } catch (error) {
-      if (error?.code === "ENOENT") return releaseWasPublished;
+      if (error?.code === "ENOENT") return false;
       // Windows sharing transients fall back to the marker-based release.
     }
   }
@@ -635,18 +678,19 @@ function releaseOwnedDirectory(
   try {
     writeOwnerMarker(_fs, markerPath, owner);
   } catch (error) {
-    if (error?.code === "ENOENT") return releaseWasPublished;
+    if (error?.code === "ENOENT") return false;
     if (error?.code === "EEXIST") {
       const existing = readOwner(_fs, markerPath);
       if (!sameOwner(existing, owner)) return false;
-      return completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive)
-        .published;
+      completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive);
+      return true;
     }
     throw error;
   }
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
-    removeOwnMarker(_fs, markerPath, owner);
-    return false;
+    // The successful marker write above already handed release to contenders.
+    // A replacement owner is therefore a completed handoff, not lock loss.
+    return true;
   }
   if (typeof _fs.renameSync === "function") {
     // After publishing the marker, use the same exclusive claim protocol as a
@@ -657,8 +701,8 @@ function releaseOwnedDirectory(
     // contender may win the cleanup claim before this owner does; that is a
     // successful release, not lost ownership, because every acquirer must
     // complete or wait behind the published marker before entering its body.
-    return completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive)
-      .published;
+    completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive);
+    return true;
   }
   _fs.rmSync(lockDir, { recursive: true, force: true });
   return true;

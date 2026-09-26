@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { spawn } from "node:child_process";
+import { PassThrough, Writable } from "node:stream";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +9,11 @@ import {
   openSchedulerStore,
   SCHEDULER_STORE_SCHEMA_VERSION,
 } from "../../src/lib/scheduler-kernel/store.js";
-import { parseSchedulerSoakWorkerOptions } from "../../scripts/scheduler-kernel-soak-worker.mjs";
+import {
+  createSchedulerSoakWorker,
+  parseSchedulerSoakWorkerOptions,
+} from "../../scripts/scheduler-kernel-soak-worker.mjs";
+import { SchedulerRuntime } from "../../src/lib/scheduler-kernel/runtime.js";
 
 const WORKER_PATH = fileURLToPath(
   new URL("../../scripts/scheduler-kernel-soak-worker.mjs", import.meta.url),
@@ -147,6 +152,7 @@ describe("scheduler kernel soak worker", () => {
   const cleanups = [];
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     while (cleanups.length > 0) await cleanups.pop()();
   });
 
@@ -245,6 +251,117 @@ describe("scheduler kernel soak worker", () => {
       leaseOwner: null,
     });
     store.close();
+  });
+
+  it("does not write an effect when execution resumes after its lease expired before the heartbeat ran", async () => {
+    const f = fixture();
+    const kind = "soak.expired";
+    const seeded = seedOccurrence(f.db, kind, "expired-job", {
+      executionDelayMs: 25,
+    });
+    let clock = Date.now();
+    const events = [];
+    const input = new PassThrough();
+    const output = new Writable({
+      write(chunk, encoding, callback) {
+        events.push(JSON.parse(chunk.toString()));
+        callback();
+      },
+    });
+    class DelayedHeartbeatRuntime extends SchedulerRuntime {
+      constructor(options) {
+        super({
+          ...options,
+          setIntervalFn: () => ({ unref() {} }),
+          clearIntervalFn: () => {},
+        });
+      }
+    }
+    const worker = createSchedulerSoakWorker({
+      options: {
+        db: f.db,
+        effectsDir: f.effectsDir,
+        owner: "expired-owner",
+        jobKind: kind,
+        leaseMs: 1000,
+        once: true,
+      },
+      input,
+      output,
+      errorOutput: new PassThrough(),
+      openStore: (options) =>
+        openSchedulerStore({ ...options, clock: () => clock }),
+      Runtime: DelayedHeartbeatRuntime,
+      delay: async () => {
+        clock += 1001;
+        return true;
+      },
+    });
+    expect(await worker.run()).toBe(1);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "fatal",
+        error: expect.objectContaining({ code: "SCHEDULER_LEASE_LOST" }),
+      }),
+    );
+    expect(fs.existsSync(path.join(f.effectsDir, `${seeded.id}.json`))).toBe(
+      false,
+    );
+  });
+
+  it("continues renewing while an effect flush takes longer than the lease", async () => {
+    const f = fixture();
+    const kind = "soak.slow-flush";
+    const seeded = seedOccurrence(f.db, kind, "slow-flush-job");
+    const open = fs.promises.open.bind(fs.promises);
+    let flushStarted;
+    let flushEnded;
+    vi.spyOn(fs.promises, "open").mockImplementation(async (...args) => {
+      const handle = await open(...args);
+      const sync = handle.sync.bind(handle);
+      vi.spyOn(handle, "sync").mockImplementation(async () => {
+        flushStarted = Date.now();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await sync();
+        flushEnded = Date.now();
+      });
+      return handle;
+    });
+    const worker = createSchedulerSoakWorker({
+      options: {
+        db: f.db,
+        effectsDir: f.effectsDir,
+        owner: "slow-flush-owner",
+        jobKind: kind,
+        leaseMs: 1000,
+        once: true,
+      },
+      input: new PassThrough(),
+      output: new PassThrough(),
+      errorOutput: new PassThrough(),
+    });
+    expect(await worker.run()).toBe(0);
+    expect(flushEnded - flushStarted).toBeGreaterThanOrEqual(1000);
+    const store = openSchedulerStore({ file: f.db });
+    try {
+      expect(store.getOccurrence(seeded.id)).toMatchObject({
+        status: "succeeded",
+        attempt: 1,
+        fence: 1,
+      });
+      expect(
+        store
+          .history({ occurrenceId: seeded.id })
+          .filter(
+            (event) =>
+              event.type === "occurrence_renewed" &&
+              event.occurredAt > flushStarted &&
+              event.occurredAt < flushEnded,
+          ).length,
+      ).toBeGreaterThan(0);
+    } finally {
+      store.close();
+    }
   });
 
   it("pauses before any effect and resumes through NDJSON control", async () => {

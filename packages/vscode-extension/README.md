@@ -6,25 +6,27 @@ MCP bridge.
 
 ## Current release
 
-> Extension release `0.37.117` pairs with `chainlesschain@0.166.75`. The CLI
-> fixes circular evaluation module imports that could fail before the runtime
-> initialized. Upgrade the CLI to receive the fix; existing chat acknowledgement
-> and investigation recovery behavior is retained.
+> Extension release `0.37.117` pairs with `chainlesschain@0.166.76`. The CLI
+> fixes concurrent state lock handoffs and circular evaluation module imports
+> that could fail before the runtime initialized. Upgrade the CLI to receive
+> these fixes; existing chat acknowledgement and investigation recovery remain.
 
-Release `0.37.117` recommends CLI `0.166.75`. These runtime capabilities remain
+Release `0.37.117` recommends CLI `0.166.76`. These runtime capabilities remain
 owned by the CLI host; this release does not add new editor controls for every
 CLI option.
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.117**; CLI 0.166.75 pairing release                |
-| Recommended CLI           | **`chainlesschain@0.166.75`**                             |
+| VS Code extension         | **0.37.117**; CLI 0.166.76 pairing release                |
+| Recommended CLI           | **`chainlesschain@0.166.76`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
 
 ### What's new in 0.37.117
 
+- **Preserve state locks during concurrent handoff.** The paired CLI protects
+  replacement owners and recognizes a release already completed by a contender.
 - **Fix evaluation module loading through the paired CLI.** Shared evaluation
   contracts initialize independently of circular runtime imports, preserving
   the gate and evidence interfaces used by evaluation and promotion.
@@ -36,8 +38,8 @@ CLI option.
   Git argument syntax, explicit PowerShell selection, and saved JSON BOMs.
 - **Acknowledge queued chat messages.** Every accepted send gets a host reply;
   a slow acknowledgement no longer falsely reports that the CLI is missing.
-- **Pair with the verified CLI 0.166.75 release.** Recommend the publicly
-  verified `chainlesschain@0.166.75` release in runtime upgrade guidance,
+- **Pair with the verified CLI 0.166.76 release.** Recommend the publicly
+  verified `chainlesschain@0.166.76` release in runtime upgrade guidance,
   marketplace metadata, and installation instructions.
 - **Carry the CLI PM evidence workflow.** The CLI can verify signed per-item
   Eval reports, frozen cohort slots, unresolved denominators, and signed usage
@@ -124,7 +126,7 @@ CLI option.
 - **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
   evidence across compaction, offers a focused recovery turn, and stops persistent
   retries as an incomplete task. Status queries and fresh log evidence remain available.
-- Older CLI installations receive the normal upgrade prompt for `0.166.75`.
+- Older CLI installations receive the normal upgrade prompt for `0.166.76`.
 
 ### Retained workspace and connection features
 
@@ -166,7 +168,7 @@ CLI option.
 - **Large files advance without rereading earlier pages.** Exact line/column
   cursors survive context compression, unchanged pages are referenced instead
   of reinjected, and edits invalidate the bounded read cache.
-- On startup, an installed CLI older than `0.166.75` receives an explicit
+- On startup, an installed CLI older than `0.166.76` receives an explicit
   **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
   works even when the best-effort npm registry lookup is unavailable.
 
@@ -192,7 +194,7 @@ CLI option.
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can install by extension ID.
 
-Paired CLI `0.166.75` is the recommended install. It routes Graph, Team,
+Paired CLI `0.166.76` is the recommended install. It routes Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
 fences stale writers and takeover/recovery receipts, preserves explicitly
@@ -255,7 +257,7 @@ with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
 follow-ups, recipients, bytes, and pressure); message content and attempt
 credentials never enter the Webview. For those reasons, `0.166.34` is the
-retained compatibility floor. The publicly verified `0.166.75` release is the
+retained compatibility floor. The publicly verified `0.166.76` release is the
 preferred CLI for this extension.
 
 The release package excludes local Extension Host evidence and diagnostics
@@ -335,11 +337,11 @@ Open VSX listing remains the public registry source.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.166.75
+npm i -g chainlesschain@0.166.76
 cc --version
 ```
 
-Using `@0.166.75` reproduces the preferred, fully gated public CLI pairing,
+Using `@0.166.76` reproduces the preferred, fully gated public CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.

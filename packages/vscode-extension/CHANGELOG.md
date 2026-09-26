@@ -2,10 +2,12 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.117] - Pair with CLI 0.166.75 evaluation loading fix (2026-09-26)
+## [0.37.117] - Pair with CLI 0.166.76 state lock and evaluation fixes (2026-09-26)
 
-- Recommend `chainlesschain@0.166.75` in runtime upgrade guidance and release
+- Recommend `chainlesschain@0.166.76` in runtime upgrade guidance and release
   metadata, including when the npm version lookup is unavailable.
+- Include the paired CLI's concurrent state lock handoff fix, preserving a
+  replacement owner's lock and recognizing completed release handoffs.
 - Include the paired CLI's fix for circular evaluation module imports that
   could fail before evaluation, evidence, supervision, or promotion initialized.
 - Keep existing execution approval, sandbox boundaries, and bridge compatibility;

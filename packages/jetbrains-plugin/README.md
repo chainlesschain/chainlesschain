@@ -14,8 +14,10 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Release candidate `0.4.138` pairs with public CLI `0.166.75`. Upgrade the CLI
-to fix circular evaluation module imports that could fail before evaluation,
+Release candidate `0.4.138` pairs with public CLI `0.166.76`. Upgrade the CLI
+to fix concurrent state lock handoffs that could remove a replacement owner's
+lock or misreport a completed release. The CLI also fixes circular evaluation
+module imports that could fail before evaluation,
 evidence, supervision, or promotion initialized. Shared contracts now load
 independently while preserving existing gate interfaces. The CLI also supports
 recovery from repeated Git/CI queries and saved-log parsing without resetting
@@ -44,7 +46,7 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.75` for older installations, including when the
+- Recommend `chainlesschain@0.166.76` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -63,7 +65,7 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.75` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.76` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -100,7 +102,7 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.75`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.76`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
 permission/budget enforcement. Version `0.4.138` accepts only the exact

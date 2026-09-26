@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.76: concurrent state lock handoff
+
+- Preserve a replacement owner's lock when another process completes a
+  published release before the original owner finishes cleanup.
+- Treat a completed release handoff as success instead of reporting lost
+  ownership after the guarded state transaction has already committed.
+- Include the evaluation module initialization fix prepared in 0.166.75.
+
 ### Fixed - cc CLI 0.166.75: evaluation module initialization
 
 - Move shared evaluation contracts into a dependency-free module so circular
