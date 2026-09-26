@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import * as realFs from "node:fs";
 import {
   mkdtempSync,
   mkdirSync,
@@ -1096,6 +1097,89 @@ describe("withFileLock", () => {
       expect(_fs.dirs.has("/critical.json.lock")).toBe(false);
     },
   );
+
+  it("keeps an abandoned staging handoff recoverable after a real-fs marker read sharing error", () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-lock-marker-read-"));
+    const target = join(root, "state.json");
+    const pendingPath = join(root, "pending.json");
+    const ownerToken = "marker-read-sharing-owner-001";
+    let armed = false;
+    let failedRead = false;
+    const _fs = {
+      ...realFs,
+      readFileSync(file, ...args) {
+        if (
+          armed &&
+          !failedRead &&
+          String(file).endsWith(`.release-${ownerToken}`)
+        ) {
+          failedRead = true;
+          throw Object.assign(new Error("Windows sharing violation"), {
+            code: "EACCES",
+          });
+        }
+        return realFs.readFileSync(file, ...args);
+      },
+    };
+    try {
+      expect(
+        withFileLock(
+          target,
+          ({ publishReleaseAfterPathRemoved }) => {
+            writeFileSync(pendingPath, "abandoned private stage");
+            expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+            armed = true;
+            return "finished";
+          },
+          { _fs, _ownerToken: () => ownerToken, failIfUnavailable: true },
+        ),
+      ).toBe("finished");
+      expect(failedRead).toBe(true);
+      expect(
+        withFileLock(target, () => "next owner", {
+          failIfUnavailable: true,
+          timeoutMs: 100,
+        }),
+      ).toBe("next owner");
+      expect(realFs.readFileSync(pendingPath, "utf8")).toBe(
+        "abandoned private stage",
+      );
+      expect(realFs.existsSync(`${target}.lock`)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat a sharing error reading owner identity as a completed handoff", () => {
+    const _fs = fakeLockFs();
+    const originalRead = _fs.readFileSync;
+    let armed = false;
+    _fs.readFileSync = vi.fn((target, ...args) => {
+      if (
+        armed &&
+        String(target).replaceAll("\\", "/") ===
+          "/critical.json.lock/owner.json"
+      ) {
+        throw Object.assign(
+          new Error("owner identity temporarily unreadable"),
+          { code: "EACCES" },
+        );
+      }
+      return originalRead(target, ...args);
+    });
+    expect(() =>
+      withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          _fs.files.set("/state.pending", "pending");
+          expect(publishReleaseAfterPathRemoved("/state.pending")).toBe(true);
+          armed = true;
+        },
+        { _fs, failIfUnavailable: true },
+      ),
+    ).toThrow(expect.objectContaining({ code: "EACCES" }));
+    expect(_fs.dirs.has("/critical.json.lock")).toBe(true);
+  });
 
   it("accepts a handoff completed before the ended-body proof can be written", () => {
     const _fs = fakeLockFs();

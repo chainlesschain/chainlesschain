@@ -527,6 +527,54 @@ function completePublishedRelease(
   ownerAlive,
   ownerBodyFinished = false,
 ) {
+  const finishedPath = path.join(
+    lockDir,
+    `.release-body-finished-${owner.token}`,
+  );
+  if (ownerBodyFinished) {
+    // Publication is already known by the owner. Persist its ended-body proof
+    // before reading the release marker: a sharing error on that read must not
+    // strand an abandoned staging path behind a still-live owner.
+    const ownerPath = path.join(lockDir, "owner.json");
+    const current = readOwnerResult(_fs, ownerPath);
+    if (
+      current.error?.code === "ENOENT" ||
+      (current.owner && !sameOwner(current.owner, owner))
+    ) {
+      return { published: true, completed: true };
+    }
+    if (current.error) throw current.error;
+    try {
+      writeOwnerMarker(_fs, finishedPath, owner);
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        const latest = readOwnerResult(_fs, ownerPath);
+        if (
+          latest.error?.code === "ENOENT" ||
+          (latest.owner && !sameOwner(latest.owner, owner))
+        ) {
+          return { published: true, completed: true };
+        }
+      }
+      if (error?.code !== "EEXIST") throw error;
+      const existing = readOwnerResult(_fs, finishedPath);
+      if (existing.error) throw existing.error;
+      if (!sameOwner(existing.owner, owner)) {
+        throw new Error("Mismatched ended-body release proof");
+      }
+    }
+    // A contender can finish the handoff after the first owner read. Remove
+    // only our own proof if its write raced with a replacement directory.
+    const latest = readOwnerResult(_fs, ownerPath);
+    if (
+      latest.error?.code === "ENOENT" ||
+      (latest.owner && !sameOwner(latest.owner, owner))
+    ) {
+      removeOwnMarker(_fs, finishedPath, owner);
+      return { published: true, completed: true };
+    }
+    if (latest.error) throw latest.error;
+  }
   const markerPath = path.join(lockDir, `.release-${owner.token}`);
   const marker = readOwner(_fs, markerPath);
   if (!sameOwner(marker, owner)) {
@@ -543,34 +591,7 @@ function completePublishedRelease(
     marker.releaseAfterPathRemoved &&
     pathStatus(_fs, marker.releaseAfterPathRemoved) !== "absent"
   ) {
-    const finishedPath = path.join(
-      lockDir,
-      `.release-body-finished-${owner.token}`,
-    );
-    if (ownerBodyFinished) {
-      // Persist the ended-body proof before cleanup so a transient rename
-      // failure cannot strand a live owner behind its abandoned staging file.
-      try {
-        writeOwnerMarker(_fs, finishedPath, owner);
-      } catch (error) {
-        if (error?.code === "ENOENT") {
-          const current = readOwnerResult(
-            _fs,
-            path.join(lockDir, "owner.json"),
-          );
-          if (
-            current.error?.code === "ENOENT" ||
-            (current.owner && !sameOwner(current.owner, owner))
-          ) {
-            return { published: true, completed: true };
-          }
-        }
-        if (error?.code !== "EEXIST") throw error;
-        if (!sameOwner(readOwner(_fs, finishedPath), owner)) {
-          return { published: true, completed: false };
-        }
-      }
-    } else if (!sameOwner(readOwner(_fs, finishedPath), owner)) {
+    if (!sameOwner(readOwner(_fs, finishedPath), owner)) {
       return { published: true, completed: false };
     }
   }
