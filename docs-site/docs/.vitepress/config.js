@@ -6,13 +6,6 @@ export default defineConfig({
   lang: "zh-CN",
   ignoreDeadLinks: true,
 
-  transformPageData(pageData) {
-    if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
-      pageData.frontmatter.hero.tagline =
-        "v5.0.3.137 · CLI 0.166.71 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.113 · JetBrains 0.4.133｜本地 Skill 决策层与发布证据";
-    }
-  },
-
   head: [
     ["meta", { charset: "utf-8" }],
     // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
@@ -187,12 +180,20 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.68（npm latest）",
+          text: "🧩 Agent Platform 0.166.76（npm latest）",
           collapsed: false,
           items: [
             {
-              text: "0.166.68 发布、升级与证据边界 ⭐NEW",
+              text: "0.166.76 发布、升级与证据边界 ⭐NEW",
               link: "/chainlesschain/agent-platform-release",
+            },
+            {
+              text: "PM 效果评测与证据核验",
+              link: "/chainlesschain/pm-effect-evaluation",
+            },
+            {
+              text: "2026-09-26 运行时增量设计",
+              link: "/design/agent-runtime-update-2026-09-26",
             },
             {
               text: "受治理的 Skill 自进化 ⭐NEW",

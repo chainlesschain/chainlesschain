@@ -1,5 +1,7 @@
 # chainlesschain CLI
 
+> **2026-09-26**：当前公开 npm `latest` 为 `0.166.76`。本版修复并发文件锁交接与评测循环导入，并包含 PM 效果证据、启动准入/cohort 登记、调查循环恢复和 Windows Bash stdin 执行修复。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [PM 效果评测](https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html)。自动 active Skill 晋升保持 HOLD；下文旧版本记录按历史时点阅读。
+
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
 > Release target: `chainlesschain@0.166.73`, published only after the exact

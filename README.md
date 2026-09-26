@@ -1,12 +1,22 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-09-26 最新发布与代码核对
+
+当前 npm `latest` 为 **CLI 0.166.76**，不可变标签 `v-npm-0-166-76` 指向 `b9d64ffd92`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36211826047)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36211825883)通过全部配置的 Linux/Windows/macOS 任务；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36215737936)与[公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36216267726)成功。
+
+Open VSX **0.37.117** 已公开并推荐 CLI `0.166.76`。JetBrains Marketplace 公开列表仍为 **0.4.137**（内置推荐 CLI `0.166.74`）；`0.4.138` 的发布工作流成功，但尚未公开回读到。Microsoft Marketplace 未发行。桌面与移动端继续使用独立产品发行 **v5.0.3.138**；iOS ad-hoc IPA 仅限已授权设备。
+
+本次按 `main@a231bc79df` 核对：新增 PM 效果计划、冻结 cohort 槽位、签名 Eval 证据和保守分母核算；可信宿主可接入 suite 执行前的启动准入与 cohort 登记。运行时修复调查循环停滞、Windows Bash 临时路径、评测模块循环导入和并发文件锁交接。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，automatic active Skill promotion 保持 HOLD。
+
+详见[增量设计](docs/design/agent-runtime-update-2026-09-26.md)、[PM 效果评测指南](docs-site/docs/chainlesschain/pm-effect-evaluation.md)与[发布升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。下方带日期的旧版本记录保留其当时状态。
+
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.72`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.76`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.72 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.76 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.72 | Open VSX 0.37.114 | JetBrains 0.4.135"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.76 | Open VSX 0.37.117 | JetBrains 0.4.137"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,7 +25,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.68
+    title: Agent Platform 0.166.76
     details: 浏览器 action authority、下载耐久隔离、PM 有界子进程和子包先发审计共同约束运行与发布边界。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
@@ -64,6 +64,8 @@ features:
     title: 企业级功能
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
+
+> **2026-09-26 最新核对**：CLI `0.166.76` 与 Open VSX `0.37.117` 已公开；JetBrains 商店为 `0.4.137`，新版 `0.4.138` 已上传，尚待公开回读。源码基线 `main@a231bc79df` 新增 PM 效果证据、Eval 启动准入/cohort 登记，并修复循环导入和并发锁交接。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待验收，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)和[PM 效果评测指南](https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html)。
 
 > **2026-09-24 发行核对**：产品 [v5.0.3.138](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 已从 `eb48ffa311` 公开桌面三平台安装包、Android APK/AAB 和签名 iOS ad-hoc IPA，共 18 个资产；npm CLI `0.166.72@5f411309b2`、Open VSX `0.37.114@94c4c5a634` 与 JetBrains `0.4.135@94c4c5a634` 各自保持独立发行身份。Android 内置 `cc-cli.tgz` 仍由 2026-07-11 二进制清单固定；iOS IPA 仅供已授权设备安装，应用商店未上架。生产 KMS/PKI、独立 witness/grader 与 automatic active promotion `HOLD` 不因安装包公开而改变。详见[模块 110](/modules/110-agent-platform-release-boundaries)、[模块 114](/modules/114-jev-decision-layer-design)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 
