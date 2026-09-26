@@ -2,7 +2,7 @@
 
 ## 概述
 
-截至 2026-09-26，公开 CLI `0.166.76` 包含 PM 效果证据和 Eval 准入代码。本页的离线工具从仓库 `packages/cli` 目录运行，供实验维护者冻结对照计划、检查任务分组和复算报告；它不启动模型，也不提供一键自主探索或 Skill 自动晋升。
+截至 2026-09-27，公开 CLI `0.166.77` 包含 PM 效果证据和 Eval 准入代码。本页的离线工具从仓库 `packages/cli` 目录运行，供实验维护者冻结对照计划、检查任务分组和复算报告；它不启动模型，也不提供一键自主探索或 Skill 自动晋升。
 
 ## 核心特性
 
@@ -57,7 +57,7 @@ node scripts/pm-exploration-effect.mjs verify --plan plan.json --plan-digest sha
 
 ## 测试覆盖
 
-仓库回归覆盖 plan → inspect → report → verify、槽位清单复算、UTF-8/BOM、摘要替换、缺失任务、签名篡改、重复启动、CAS 竞争和 fresh-process 导入次序。公开 `0.166.76` 的三平台 CI 与 Strict Sandbox 证据见[发布与升级指南](./agent-platform-release)。本地 fixture 是工程验证输入，不能替代真实 PM/Pilot 采样。
+仓库回归覆盖 plan → inspect → report → verify、槽位清单复算、UTF-8/BOM、摘要替换、缺失任务、签名篡改、重复启动、CAS 竞争和 fresh-process 导入次序。公开 `0.166.77` 的三平台 CI 与 Strict Sandbox 证据见[发布与升级指南](./agent-platform-release)。本地 fixture 是工程验证输入，不能替代真实 PM/Pilot 采样。
 
 ## 安全考虑
 
