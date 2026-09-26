@@ -2443,6 +2443,13 @@ async function runAgentHeadlessInWorkspace(
   const skillDecisionOptions = resolveHeadlessSkillDecisionOptions(options);
   let skillDecisionRuntime = null;
   if (skillDecisionOptions.mode !== "off") {
+    const previousUnknownDecisionUsage = store.findLatestEvent(
+      sessionId,
+      "model_usage_unknown",
+      (event) =>
+        typeof event?.data?.operationId === "string" &&
+        event.data.operationId.startsWith("decision:"),
+    );
     const decisionProvider =
       deps.decisionProvider ||
       createDecisionProvider({
@@ -2469,6 +2476,7 @@ async function runAgentHeadlessInWorkspace(
       observe: (observation) =>
         persistDecisionEvent("skill_decision_observation", observation),
       sessionBudget: options.sessionBudget || null,
+      initialUsageUnknown: previousUnknownDecisionUsage != null,
       timeoutMs: skillDecisionOptions.timeoutMs,
     });
   }

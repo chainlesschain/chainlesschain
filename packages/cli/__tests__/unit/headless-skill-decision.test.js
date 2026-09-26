@@ -200,6 +200,72 @@ describe("headless Skill decision wiring", () => {
     },
   );
 
+  it("keeps an unmetered model answer out of suggest-mode routing", async () => {
+    const harness = makeHarness({ mode: "suggest" });
+    const valid = await provider().decide();
+    harness.deps.decisionProvider = provider(async () => ({
+      ...valid,
+      usage: undefined,
+    }));
+
+    const outcome = await runAgentHeadless(harness.options, harness.deps);
+
+    expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown",
+      selectedDigest: null,
+    });
+    expect(harness.events.map(({ type }) => type)).toContain(
+      "model_usage_unknown",
+    );
+    expect(harness.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "skill_decision_observation",
+          data: expect.objectContaining({
+            status: "unavailable",
+            selectedDigest: null,
+          }),
+        }),
+      ]),
+    );
+    expect(harness.events.some(({ type }) => type === "token_usage")).toBe(
+      false,
+    );
+  });
+
+  it("blocks another paid decision when resuming a session with unknown decision usage", async () => {
+    const harness = makeHarness({ mode: "suggest" });
+    const valid = await provider().decide();
+    const decide = vi
+      .fn()
+      .mockResolvedValueOnce({ ...valid, usage: undefined })
+      .mockResolvedValue(valid);
+    harness.deps.decisionProvider = provider(decide);
+
+    const first = await runAgentHeadless(harness.options, harness.deps);
+    expect(first).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result.reasonCode).toBe("provider-usage-unknown");
+
+    const second = await runAgentHeadless(harness.options, harness.deps);
+    expect(second).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+      selectedDigest: null,
+    });
+    expect(decide).toHaveBeenCalledOnce();
+    expect(
+      harness.events.filter(({ type }) => type === "model_usage_started"),
+    ).toHaveLength(1);
+    expect(
+      harness.events.filter(
+        ({ type }) => type === "skill_decision_observation",
+      ),
+    ).toHaveLength(2);
+  });
+
   it("rejects enabled decisions without durable persistence", async () => {
     const harness = makeHarness({ mode: "shadow" });
 

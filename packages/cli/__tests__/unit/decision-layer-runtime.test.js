@@ -134,6 +134,82 @@ describe("Skill decision runtime", () => {
     expect(options.observe).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ["missing", undefined],
+    ["malformed", { input_tokens: "10", output_tokens: 3 }],
+  ])("does not expose a valid answer with %s usage", async (_label, usage) => {
+    const valid = await successfulProvider().decide();
+    const options = runtimeOptions({
+      provider: successfulProvider(async () => ({ ...valid, usage })),
+    });
+    const result = await createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown",
+      selectedDigest: null,
+      selectedSkillId: null,
+      resultDigest: null,
+    });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "model_usage_unknown",
+    ]);
+    expect(options.observe).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "unavailable",
+        reasonCode: "provider-usage-unknown",
+        selectedDigest: null,
+      }),
+    );
+  });
+
+  it.each(["missing-usage", "provider-failure"])(
+    "blocks a second provider call after %s was durably unknown",
+    async (firstOutcome) => {
+      const valid = await successfulProvider().decide();
+      const decide = vi.fn(async () => {
+        if (firstOutcome === "provider-failure") {
+          throw new Error("provider unavailable");
+        }
+        return { ...valid, usage: undefined };
+      });
+      let sequence = 0;
+      const options = runtimeOptions({
+        provider: successfulProvider(decide),
+        idGenerator: () => `decision-${++sequence}`,
+      });
+      const runtime = createSkillDecisionRuntime(options);
+      const first = await runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-a",
+      });
+      const second = await runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-b",
+      });
+
+      expect(first.status).toBe("unavailable");
+      expect(second).toMatchObject({
+        status: "unavailable",
+        reasonCode: "provider-usage-unknown-blocked",
+        selectedDigest: null,
+      });
+      expect(decide).toHaveBeenCalledOnce();
+      expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+        "model_usage_started",
+        "model_usage_unknown",
+      ]);
+      expect(options.observe).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it("records its own deadline as an unavailable provider timeout", async () => {
     const options = runtimeOptions({
       timeoutMs: 50,

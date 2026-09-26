@@ -38,10 +38,26 @@ function timeoutSignal(signal, timeoutMs) {
 
 function projectUnavailable(error) {
   if (error?.name === "TimeoutError") return "provider-timeout";
+  if (error?.code === "CC_DECISION_USAGE_UNKNOWN_BLOCKED") {
+    return "provider-usage-unknown-blocked";
+  }
   if (error?.code === "CC_DECISION_PROVIDER_HTTP_ERROR") {
     return "provider-http-error";
   }
   return "provider-unavailable";
+}
+
+function unavailableOutcome(reasonCode) {
+  return {
+    status: "unavailable",
+    reasonCode,
+    selectedCandidateId: null,
+    selectedDigest: null,
+    selectedSkillId: null,
+    needsSkillProbability: null,
+    choiceConfidence: null,
+    resultDigest: null,
+  };
 }
 
 function asPersistenceError(error) {
@@ -63,6 +79,7 @@ export function createSkillDecisionRuntime({
   persist = null,
   observe = null,
   sessionBudget = null,
+  initialUsageUnknown = false,
   thresholds = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
   idGenerator = () => randomUUID(),
@@ -84,6 +101,7 @@ export function createSkillDecisionRuntime({
   let providerAuthority = null;
   let boundTenantId = null;
   let boundSessionId = null;
+  let unknownUsageSeen = initialUsageUnknown === true;
   if (normalizedMode !== "off") {
     providerAuthority = captureDecisionProviderAuthority(provider);
     boundTenantId = requiredText(tenantId, "tenantId");
@@ -102,6 +120,11 @@ export function createSkillDecisionRuntime({
     } catch (error) {
       throw asPersistenceError(error);
     }
+  };
+
+  const persistDecisionUsage = async (type, event) => {
+    await persist(type, event);
+    if (type === "model_usage_unknown") unknownUsageSeen = true;
   };
 
   const runtime = Object.freeze({
@@ -144,56 +167,70 @@ export function createSkillDecisionRuntime({
       }
       let outcome;
       let requestSignal = null;
-      try {
-        const raw = await runMeteredDirectModelCall({
-          sessionId: boundSessionId,
-          persist,
-          provider: providerAuthority.provider,
-          model: providerAuthority.model,
-          source: "model",
-          operationId: `decision:${decisionId}`,
-          sessionBudget,
-          call: () => {
-            requestSignal = timeoutSignal(signal, timeoutMs);
-            return providerAuthority.decide(request, {
-              signal: requestSignal,
-            });
-          },
-        });
-        const normalized = normalizeSkillDecisionProviderResult(request, raw);
-        const resolved = resolveSkillDecision(request, normalized, thresholds);
-        outcome = {
-          status: resolved.status,
-          reasonCode: resolved.reasonCode,
-          selectedCandidateId: resolved.selectedCandidateId,
-          selectedDigest: resolved.selectedDigest,
-          selectedSkillId: resolved.selectedSkillId,
-          needsSkillProbability: resolved.needsSkillProbability,
-          choiceConfidence: resolved.choiceConfidence,
-          resultDigest: resolved.resultDigest,
-        };
-      } catch (error) {
-        const localTimeout =
-          !signal?.aborted &&
-          requestSignal?.aborted &&
-          requestSignal.reason === error &&
-          error?.name === "TimeoutError";
-        if (
-          signal?.aborted ||
-          (isTerminalModelFailure(error) && !localTimeout)
-        ) {
-          throw error;
+      if (unknownUsageSeen) {
+        outcome = unavailableOutcome("provider-usage-unknown-blocked");
+      } else {
+        try {
+          const { result: raw, settlement } = await runMeteredDirectModelCall({
+            sessionId: boundSessionId,
+            persist: persistDecisionUsage,
+            provider: providerAuthority.provider,
+            model: providerAuthority.model,
+            source: "model",
+            operationId: `decision:${decisionId}`,
+            sessionBudget,
+            includeSettlement: true,
+            call: () => {
+              if (unknownUsageSeen) {
+                const error = new Error("decision usage recovery is required");
+                error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
+                throw error;
+              }
+              requestSignal = timeoutSignal(signal, timeoutMs);
+              return providerAuthority.decide(request, {
+                signal: requestSignal,
+              });
+            },
+          });
+          if (settlement !== "known") {
+            // The metered call already persisted model_usage_unknown. Without a
+            // budget root it may return the answer; never expose that answer.
+            outcome = unavailableOutcome("provider-usage-unknown");
+          } else {
+            const normalized = normalizeSkillDecisionProviderResult(
+              request,
+              raw,
+            );
+            const resolved = resolveSkillDecision(
+              request,
+              normalized,
+              thresholds,
+            );
+            outcome = {
+              status: resolved.status,
+              reasonCode: resolved.reasonCode,
+              selectedCandidateId: resolved.selectedCandidateId,
+              selectedDigest: resolved.selectedDigest,
+              selectedSkillId: resolved.selectedSkillId,
+              needsSkillProbability: resolved.needsSkillProbability,
+              choiceConfidence: resolved.choiceConfidence,
+              resultDigest: resolved.resultDigest,
+            };
+          }
+        } catch (error) {
+          const localTimeout =
+            !signal?.aborted &&
+            requestSignal?.aborted &&
+            requestSignal.reason === error &&
+            error?.name === "TimeoutError";
+          if (
+            signal?.aborted ||
+            (isTerminalModelFailure(error) && !localTimeout)
+          ) {
+            throw error;
+          }
+          outcome = unavailableOutcome(projectUnavailable(error));
         }
-        outcome = {
-          status: "unavailable",
-          reasonCode: projectUnavailable(error),
-          selectedCandidateId: null,
-          selectedDigest: null,
-          selectedSkillId: null,
-          needsSkillProbability: null,
-          choiceConfidence: null,
-          resultDigest: null,
-        };
       }
       const finishedAt = now();
       if (
