@@ -72,6 +72,7 @@ import {
 import { createEvolutionEvalChildEvidenceStorePort } from "../../src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js";
 import { createEvolutionEvalProcessSupervisor } from "../../src/lib/evolution/evolution-eval-process-supervisor.js";
 import {
+  admitEvolutionEvalLaunch,
   createEvolutionEvalLaunchAdmissionAuthority,
   resolveEvolutionEvalLaunch,
 } from "../../src/lib/evolution/evolution-eval-launch-admission.js";
@@ -86,6 +87,10 @@ import {
   sealEvolutionEvalCohort,
 } from "../../src/lib/evolution/evolution-eval-cohort-enrollment.js";
 import { setupEvalCohortEnrollmentFixture } from "./evolution-eval-cohort-enrollment-fixture.js";
+import {
+  reconcileEvolutionEvalCohortReceipts,
+  reconcilePmExplorationAdmissionBoundCohort,
+} from "../../src/lib/evolution/evolution-eval-cohort-receipt-reconciliation.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EvolutionArtifactPorts,
@@ -2562,6 +2567,208 @@ describe("PM effect report from signed Eval Gate evidence", () => {
     ).rejects.toThrow(/differs from signed source/);
   });
 
+  it("binds the PM unresolved denominator to admitted and unadmitted slots", async () => {
+    const belowFloorPolicy = policy({ minTrainingTasks: 31 });
+    const plan = buildPmExplorationEffectPlan({
+      ...planInput,
+      policy: belowFloorPolicy,
+    });
+    const fixture = setupEvalCohortEnrollmentFixture();
+    const request = {
+      ...RUN_REQUEST,
+      evaluationContext: {
+        ...RUN_REQUEST.evaluationContext,
+        planDigest: plan.planDigest,
+        cellId: "slot:one",
+      },
+    };
+    const reference = makeHarness({
+      suite: source.suite,
+      evalPolicy: belowFloorPolicy,
+      primaryGraderId: "pm-objective-outcome-v1",
+      initialTime: fixture.input.admittedAt,
+    });
+    const referenceReceipt = await reference.gate.run(request);
+    const manifest = buildPmExplorationEffectSlotManifest({
+      plan,
+      cohortId: fixture.registration.manifest.cohortId,
+      slotIds: fixture.registration.manifest.slotIds,
+    });
+    const registration = {
+      plan,
+      manifest,
+      slots: fixture.registration.slots.map((slot, index) => ({
+        ...slot,
+        evaluationPlanDigest: plan.planDigest,
+        requestDigest:
+          index === 0
+            ? computeEvolutionEvalLaunchRequestDigest(request)
+            : slot.requestDigest,
+        policyDigest: referenceReceipt.policyDigest,
+        evaluationAuthorityRoot: referenceReceipt.evaluationAuthorityRoot,
+      })),
+    };
+    const authority = createEvolutionEvalCohortEnrollmentAuthority({
+      ...fixture.cohortOptions,
+      descriptor: { ...fixture.cohortOptions.descriptor, tenantId: TENANT_ID },
+    });
+    enrollEvolutionEvalCohort(authority, registration);
+    await admitEvolutionEvalLaunch(
+      createEvolutionEvalCohortSlotAdmissionAuthority(authority, {
+        cohortId: manifest.cohortId,
+        slotId: "slot:two",
+      }),
+      {
+        ...fixture.input,
+        runId: "eval:admitted-missing",
+        runNonce: "nonce:admitted-missing",
+        requestDigest: registration.slots[1].requestDigest,
+        policyDigest: referenceReceipt.policyDigest,
+        evaluationAuthorityRoot: referenceReceipt.evaluationAuthorityRoot,
+        tenantId: TENANT_ID,
+      },
+    );
+    const launchAdmission = createEvolutionEvalCohortSlotAdmissionAuthority(
+      authority,
+      { cohortId: manifest.cohortId, slotId: "slot:one" },
+    );
+    const gateHarness = makeHarness({
+      suite: source.suite,
+      evalPolicy: belowFloorPolicy,
+      primaryGraderId: "pm-objective-outcome-v1",
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+    const { receipt } = await runEvolutionEvalGateWithEvidence(
+      gateHarness.gate,
+      request,
+    );
+    expect(receipt).toMatchObject({
+      decision: "needs-more-evidence",
+      usage: { executionCount: 0 },
+    });
+    await sealEvolutionEvalCohort(authority, { cohortId: manifest.cohortId });
+    const expected = {
+      planDigest: plan.planDigest,
+      targetMatrixRoot: TARGET_MATRIX_ROOT,
+      cellId: "slot:one",
+      runtimeId: request.evaluationContext.runtimeId,
+      receiptContext: expectedReceiptContext(receipt),
+    };
+    const preflightSource = {
+      plan,
+      suite: source.suite,
+      policy: belowFloorPolicy,
+      receipt,
+    };
+    const preflight = await buildPmExplorationEffectPreflightRejectionEvidence(
+      gateHarness.receiptVerifier,
+      preflightSource,
+      expected,
+    );
+    const cohortSource = {
+      plan,
+      attempts: registration.slots.map((slot, index) =>
+        index === 0
+          ? {
+              slotId: slot.slotId,
+              kind: "preflight-rejected",
+              source: preflightSource,
+              evidence: preflight,
+            }
+          : {
+              slotId: slot.slotId,
+              kind: "receipt-unavailable",
+              source: null,
+              evidence: null,
+            },
+      ),
+    };
+    const cohortRegistration = {
+      cohortId: manifest.cohortId,
+      planDigest: plan.planDigest,
+      slots: registration.slots.map((slot, index) => ({
+        slotId: slot.slotId,
+        receiptDigest: index === 0 ? receipt.receiptDigest : null,
+        context: index === 0 ? expected : null,
+      })),
+    };
+    const cohort = await buildPmExplorationEffectAttemptCohort(
+      gateHarness.receiptVerifier,
+      cohortSource,
+      cohortRegistration,
+    );
+    const receiptSlots = registration.slots.map((slot, index) => ({
+      slotId: slot.slotId,
+      launchRequest: index === 0 ? request : null,
+      receipt: index === 0 ? receipt : null,
+      receiptContext: index === 0 ? expectedReceiptContext(receipt) : null,
+    }));
+    const input = {
+      cohortId: manifest.cohortId,
+      receiptSlots,
+      cohortSource,
+      cohort,
+      registration: cohortRegistration,
+    };
+    const joined = await reconcilePmExplorationAdmissionBoundCohort(
+      authority,
+      gateHarness.receiptVerifier,
+      input,
+    );
+    expect(joined).toMatchObject({
+      admissionAndAttemptBindingAuthenticated: true,
+      signedReceiptCount: 1,
+      admittedMissingReceiptCount: 1,
+      unadmittedSlotCount: 1,
+      perArmDenominator: 180,
+      baseline: { authenticatedOutcomes: 0, unresolved: 180 },
+      candidate: { authenticatedOutcomes: 0, unresolved: 180 },
+      receiptSetCompletenessAuthenticated: false,
+      cohortCompletenessAuthenticated: false,
+      qualifiesForPromotion: false,
+    });
+    await expect(
+      reconcilePmExplorationAdmissionBoundCohort(
+        authority,
+        gateHarness.receiptVerifier,
+        {
+          ...input,
+          receiptSlots: receiptSlots.map((slot, index) =>
+            index === 0
+              ? {
+                  ...slot,
+                  launchRequest: null,
+                  receipt: null,
+                  receiptContext: null,
+                }
+              : slot,
+          ),
+        },
+      ),
+    ).rejects.toThrow(/PM attempt differs/);
+    const reorderedRegistration = {
+      ...cohortRegistration,
+      slots: [...cohortRegistration.slots].reverse(),
+    };
+    const reorderedCohort = await buildPmExplorationEffectAttemptCohort(
+      gateHarness.receiptVerifier,
+      cohortSource,
+      reorderedRegistration,
+    );
+    await expect(
+      reconcilePmExplorationAdmissionBoundCohort(
+        authority,
+        gateHarness.receiptVerifier,
+        {
+          ...input,
+          cohort: reorderedCohort,
+          registration: reorderedRegistration,
+        },
+      ),
+    ).rejects.toThrow(/denominator differs/);
+  });
+
   it("classifies an impossible execution budget as a signed zero-execution preflight rejection", async () => {
     const constrainedPolicy = policy({ maxExecutions: 239 });
     const constrainedPlan = buildPmExplorationEffectPlan({
@@ -3811,6 +4018,135 @@ describe("Eval Gate result evidence export", () => {
 afterEach(cleanupEvalLaunchAdmissionFixtures);
 
 describe("Evolution Eval Gate launch admission", () => {
+  it("binds a sealed slot to its signed final receipt while keeping missing slots unresolved", async () => {
+    const fixture = setupEvalCohortEnrollmentFixture();
+    const request = {
+      ...RUN_REQUEST,
+      evaluationContext: {
+        ...RUN_REQUEST.evaluationContext,
+        cellId: "slot:one",
+      },
+    };
+    const reference = makeHarness({ initialTime: fixture.input.admittedAt });
+    const referenceReceipt = await reference.gate.run(request);
+    const registration = {
+      ...fixture.registration,
+      slots: fixture.registration.slots.map((slot, index) =>
+        index === 0
+          ? {
+              ...slot,
+              evaluationPlanDigest: PLAN_DIGEST,
+              requestDigest: computeEvolutionEvalLaunchRequestDigest(request),
+              policyDigest: referenceReceipt.policyDigest,
+              evaluationAuthorityRoot: referenceReceipt.evaluationAuthorityRoot,
+            }
+          : slot,
+      ),
+    };
+    const authority = createEvolutionEvalCohortEnrollmentAuthority({
+      ...fixture.cohortOptions,
+      descriptor: { ...fixture.cohortOptions.descriptor, tenantId: TENANT_ID },
+    });
+    enrollEvolutionEvalCohort(authority, registration);
+    const launchAdmission = createEvolutionEvalCohortSlotAdmissionAuthority(
+      authority,
+      { cohortId: registration.manifest.cohortId, slotId: "slot:one" },
+    );
+    const harness = makeHarness({
+      launchAdmission,
+      initialTime: fixture.input.admittedAt,
+    });
+    const receipt = await harness.gate.run(request);
+    await sealEvolutionEvalCohort(authority, {
+      cohortId: registration.manifest.cohortId,
+    });
+    const slots = registration.slots.map((slot, index) => ({
+      slotId: slot.slotId,
+      launchRequest: index === 0 ? request : null,
+      receipt: index === 0 ? receipt : null,
+      receiptContext: index === 0 ? expectedReceiptContext(receipt) : null,
+    }));
+    const source = { cohortId: registration.manifest.cohortId, slots };
+    const result = await reconcileEvolutionEvalCohortReceipts(
+      authority,
+      harness.receiptVerifier,
+      source,
+    );
+    expect(result).toMatchObject({
+      signedReceiptCount: 1,
+      receiptUnavailableCount: 0,
+      unadmittedSlotCount: 2,
+      presentedReceiptsAuthenticated: true,
+      receiptSetCompletenessAuthenticated: false,
+      executionCoverageAuthenticated: false,
+      cohortCompletenessAuthenticated: false,
+      promotionAuthority: false,
+      slots: [
+        {
+          slotId: "slot:one",
+          status: "signed-receipt",
+          runId: receipt.runId,
+          receiptDigest: receipt.receiptDigest,
+        },
+        { slotId: "slot:two", status: "unadmitted" },
+        { slotId: "slot:three", status: "unadmitted" },
+      ],
+    });
+    const missing = await reconcileEvolutionEvalCohortReceipts(
+      authority,
+      harness.receiptVerifier,
+      {
+        ...source,
+        slots: slots.map((slot) => ({
+          ...slot,
+          launchRequest: null,
+          receipt: null,
+          receiptContext: null,
+        })),
+      },
+    );
+    expect(missing).toMatchObject({
+      signedReceiptCount: 0,
+      receiptUnavailableCount: 1,
+    });
+    expect(missing.slots[0]).toMatchObject({
+      slotId: "slot:one",
+      status: "receipt-unavailable",
+    });
+    await expect(
+      reconcileEvolutionEvalCohortReceipts(authority, harness.receiptVerifier, {
+        ...source,
+        slots: slots.map((slot, index) =>
+          index === 0 ? { ...slot, receipt: referenceReceipt } : slot,
+        ),
+      }),
+    ).rejects.toThrow(/expected runId/);
+    await expect(
+      reconcileEvolutionEvalCohortReceipts(authority, harness.receiptVerifier, {
+        ...source,
+        slots: slots.map((slot, index) =>
+          index === 0
+            ? {
+                ...slot,
+                launchRequest: {
+                  ...request,
+                  candidateId: `sha256:${"e".repeat(64)}`,
+                },
+              }
+            : slot,
+        ),
+      }),
+    ).rejects.toThrow(/admitted request/);
+    await expect(
+      reconcileEvolutionEvalCohortReceipts(authority, harness.receiptVerifier, {
+        ...source,
+        slots: slots.map((slot, index) =>
+          index === 1 ? { ...slot, receipt } : slot,
+        ),
+      }),
+    ).rejects.toThrow(/matching admitted slot/);
+  });
+
   it("binds a strict enrolled slot to the actual Gate request and sealed Ledger inventory", async () => {
     const fixture = setupEvalCohortEnrollmentFixture();
     const reference = makeHarness({ initialTime: fixture.input.admittedAt });
