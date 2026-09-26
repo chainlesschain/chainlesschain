@@ -1,8 +1,8 @@
 # Skill 决策层试点：Jev、Laya 与本地模型
 
-> 发布边界：`chainlesschain@0.166.72` 继承 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线，并修复本地决策截止时向上抛出超时的行为。默认关闭；仅支持耐久、单 prompt、headless CLI。Laya 已完成一次本地真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
+> 发布边界：`chainlesschain@0.166.77` 继承 TypeSafe、Laya 与通用 System One 的 `--decision-provider` 接线，将决策 HTTP 请求与响应分别限制为 256 KiB，并在模型用量未知时阻断建议及同一耐久会话后续决策调用。默认关闭；仅支持耐久、单 prompt、headless CLI。Laya 已完成一次本地真实权重冒烟联调，尚无冻结数据集的质量、延迟或费用收益结论。
 
-2026-09-24 文档核对基线为 `main@c036888c3c`；[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)同步展示已公开的 CLI `0.166.72`、Open VSX `0.37.114` 和 JetBrains `0.4.135`。本地决策仍需用户显式启用。
+2026-09-27 文档核对基线为 CLI 发布提交 `8d97c58153`；[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)展示的商店版本以各自公开渠道为准。本地决策仍需用户显式启用。
 
 ## 概述
 
@@ -16,10 +16,10 @@
 
 ### 安装已发布的 CLI
 
-公开 CLI `0.166.72` 可选择 TypeSafe、Laya 或兼容 System One 的服务：
+公开 CLI `0.166.77` 可选择 TypeSafe、Laya 或兼容 System One 的服务：
 
 ```bash
-npm i -g chainlesschain@0.166.72 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.77 --registry https://registry.npmjs.org
 cc --version
 ```
 
@@ -96,7 +96,7 @@ cc agent --session jev-pilot-1 \
   -p "检查并修复单元测试"
 ```
 
-以上 `cc` 示例均适用于已发布的 `0.166.72`。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。
+以上 `cc` 示例均适用于已发布的 `0.166.77`。`shadow` 会调用所选服务并产生数据处理和推理开销，但不会改变 Agent 看到的 Skill 路由。决策观察写入耐久会话，用于后续离线对照。请求或响应超过 256 KiB 时不接受模型答案；模型用量缺失或畸形时不产生建议，并阻断同一耐久会话后续决策调用，包括已验证的 JSONL 恢复。
 
 `suggest` 会把经过校验的建议附加到 `list_skills(query)` 的 `routing.decisionSuggestion`：
 
@@ -119,7 +119,7 @@ cc agent --session jev-pilot-1 \
 | `--input-format stream-json`                   | 不支持     |
 | VS Code / JetBrains Chat 面板                  | 不直接支持 |
 
-VS Code `0.37.114` 已在 Open VSX 公开，JetBrains `0.4.135` 已在 Marketplace 公开；两端均推荐 CLI `0.166.72`。两个 IDE 配套版都不会保存决策模型凭据，也不会替用户打开决策模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
+VS Code `0.37.118` 已在 Open VSX 公开并推荐 CLI `0.166.77`。JetBrains Marketplace 当前公开 `0.4.138`，推荐 CLI `0.166.76`；配套 CLI `0.166.77` 的 `0.4.139` 已上传，仍待公开列表回读。两个 IDE 都不会保存决策模型凭据，也不会替用户打开决策模式。官方 Microsoft VS Code Marketplace 当前未发布该扩展。
 
 ## 系统架构
 
@@ -139,7 +139,7 @@ VS Code `0.37.114` 已在 Open VSX 公开，JetBrains `0.4.135` 已在 Marketpla
 
 ## 测试覆盖
 
-工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.72@5f411309b2` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共安装回读；这些记录覆盖多提供方接线、截止观察与离线统计修复。本地真实权重单题冒烟不包含冻结数据集的模型质量结论。
+工程测试覆盖契约、provider、决策 runtime、benchmark、Agent `list_skills` 接线与 headless runner。`0.166.77@8d97c58153` 的精确发布提交已通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共制品回读；这些记录覆盖多提供方接线、截止观察、离线统计修复，以及请求/响应上限与未知用量的失败闭合。本地真实权重单题冒烟不包含冻结数据集的模型质量结论。
 
 ## 安全考虑
 
