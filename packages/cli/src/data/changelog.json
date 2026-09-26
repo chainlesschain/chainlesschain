@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.77",
+      "cliVersions": ["0.166.77"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.77: bounded Skill decision usage",
+          "body": "- Reject decision HTTP requests and streamed responses above 256 KiB before\n  accepting a model answer.\n- Keep an answer with missing or malformed model usage out of Skill suggestions,\n  and block later decision-provider calls in the same durable session, including\n  after verified JSONL resume.\n- Add real JSONL recovery and tamper tests. Decision mode remains opt-in and\n  does not grant Skill execution authority."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.76",
       "cliVersions": ["0.166.76"],
       "date": null,

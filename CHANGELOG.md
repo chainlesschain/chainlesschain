@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.77: bounded Skill decision usage
+
+- Reject decision HTTP requests and streamed responses above 256 KiB before
+  accepting a model answer.
+- Keep an answer with missing or malformed model usage out of Skill suggestions,
+  and block later decision-provider calls in the same durable session, including
+  after verified JSONL resume.
+- Add real JSONL recovery and tamper tests. Decision mode remains opt-in and
+  does not grant Skill execution authority.
+
 ### Fixed - cc CLI 0.166.76: concurrent state lock handoff
 
 - Preserve a replacement owner's lock when another process completes a
