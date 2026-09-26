@@ -1,10 +1,10 @@
 # chainlesschain CLI
 
-> **2026-09-26**：当前公开 npm `latest` 为 `0.166.76`。本版修复并发文件锁交接与评测循环导入，并包含 PM 效果证据、启动准入/cohort 登记、调查循环恢复和 Windows Bash stdin 执行修复。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [PM 效果评测](https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html)。自动 active Skill 晋升保持 HOLD；下文旧版本记录按历史时点阅读。
+> **0.166.77 发布说明**：决策模型 HTTP 请求和响应各限制为 256 KiB；模型用量未知时不会生成 Skill 建议，同一耐久会话的后续决策调用也会被阻断。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [决策层设计](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/114-jev-decision-layer-design.md)。决策模式仍默认关闭，不授予 Skill 执行权限；自动 active Skill 晋升保持 HOLD。
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Release target: `chainlesschain@0.166.73`, published only after the exact
+> Release target: `chainlesschain@0.166.77`, published only after the exact
 > source commit passes every configured Linux, Windows, and macOS job in CLI CI
 > and CLI Strict Sandbox. The release requires Session Core `0.3.13`,
 > Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` to be public, then
@@ -15,7 +15,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.73
+npm install -g chainlesschain@0.166.77
 chainlesschain setup
 ```
 
