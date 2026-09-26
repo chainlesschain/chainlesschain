@@ -1,5 +1,7 @@
 # 112 受治理的 Skill 自进化设计
 
+> **2026-09-26 当前核对**：源码 `main@a231bc79df`；公开 CLI `0.166.76@b9d64ffd92`、Open VSX `0.37.117`、JetBrains `0.4.137`。JetBrains `0.4.138` 已完成发布流程，尚待公开列表回读。最新 PM 效果证据、Eval 启动准入/cohort 登记、循环导入和并发锁修复见[增量设计](../agent-runtime-update-2026-09-26.md)。下文较早的版本与证据按历史时点阅读。
+
 > 2026-09-20 增量：公开 CLI 已升至 `0.166.68@815fdbc0c4`，Open VSX `0.37.110@5860f1e4a4` 与 JetBrains `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器观察、导航、标签、历史、键盘与下载均要求显式 action authority；下载字节进入带跨进程锁、认证保留/撤销、崩溃恢复、到期清理与可审计销毁的耐久隔离区。PM runner/reviewer/grader 的证据与恢复快照绑定有界子进程和受治理上下文。Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62` 已先于 CLI 发布；13 个子包全部通过公共 tarball 字节审计。`readyForExecution:false`、`qualifiesForPromotion:false` 和 automatic promotion `HOLD` 不变。
 >
 > 2026-09-19 增量：公开 CLI `0.166.65@17509017a2` 将恢复控制结果与真实工具观察分开，允许已知目标的显式有界续读，并阻止合成暂停反向推进重复读取/相同大输出计数；真实重复、无关远端发现、策略拒绝和六次真实无进展仍失败闭合。

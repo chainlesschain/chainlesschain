@@ -6,13 +6,6 @@ export default defineConfig({
   lang: "zh-CN",
   ignoreDeadLinks: true,
 
-  transformPageData(pageData) {
-    if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
-      pageData.frontmatter.hero.tagline =
-        "v5.0.3.137 · CLI 0.166.71 · Agent SDK TS/Python 0.2.11/0.2.9 · Protocol 0.1.11 · Open VSX 0.37.113 · JetBrains 0.4.133 公开｜本地 Skill 决策层与发布证据";
-    }
-  },
-
   head: [
     // Umami self-hosted analytics (data stays on our server; /u/ → 127.0.0.1:3017)
     [
@@ -157,6 +150,10 @@ export default defineConfig({
           {
             text: "Agent Platform 发布与证据边界 (110) ⭐NEW",
             link: "/modules/110-agent-platform-release-boundaries",
+          },
+          {
+            text: "2026-09-26 运行时与评测证据",
+            link: "/agent-runtime-update-2026-09-26",
           },
           {
             text: "Record & Replay → Skill 设计 (111) ✅",

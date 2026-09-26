@@ -36,7 +36,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           <a href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html" rel="noopener" class="btn-ghost">Skill 决策模型指南 ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>，推荐 npm latest CLI <strong class="text-ink">{CLI_VERSION}</strong>。JetBrains Marketplace <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已批准并公开上架，同样推荐 CLI <strong class="text-ink">{CLI_VERSION}</strong>。微软 VS Code Marketplace 版本仍未发布。
+          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>，推荐 npm latest CLI <strong class="text-ink">{CLI_VERSION}</strong>。JetBrains Marketplace <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已批准并公开上架，内置推荐 CLI <strong class="text-ink">{releaseStatus.jetBrainsRecommendedCliVersion}</strong>。新版 {releaseStatus.sourceJetBrainsVersion} 发布流程成功，尚待公开列表回读。微软 VS Code Marketplace 版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
           公开 VS Code {VSCODE_SOURCE_VERSION} / CLI {SOURCE_CLI_VERSION} 会自动保存有界任务记录；`↗` / Continue in new chat 在完整工具边界保存后打开独立会话。新会话不复制完整旧聊天或临时权限，历史校验失败时不会调用模型。TypeSafe、Laya 与兼容 System One 的 Skill 决策仅限 CLI 的耐久、单 prompt、headless 入口；IDE 不保存决策模型凭据，也不取得路由或 Skill 执行 authority。

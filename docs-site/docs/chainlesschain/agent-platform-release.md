@@ -1,16 +1,26 @@
-# Agent Platform 0.166.72 发布与升级指南
+# Agent Platform 0.166.76 发布与升级指南
 
-> 核对日期：2026-09-24。公开安装版本、源码和历史资格证据分别记录，不能相互继承发布授权。
+> 核对日期：2026-09-26；源码基线 `main@a231bc79df`。公开制品、源码和历史资格证据分别记录。
 
 ## 概述
 
-npm 官方 registry 的 `latest` 为 `0.166.72`，标签 `v-npm-0-166-72` 对应提交 `5f411309b261dea5d8cadb801902f7cf526e3068`。本版修复本地 Skill 决策截止的失败闭合语义，并收紧离线质量统计。TypeSafe、Laya 本地模型与兼容 System One 服务继续保持默认关闭，且仅限耐久、单 prompt、headless Agent。`shadow` 不改变既有路由，`suggest` 只附加有界建议且不执行 Skill。
+npm `latest` 为 `0.166.76`，标签 `v-npm-0-166-76` 对应精确提交 `b9d64ffd92106681d6e71451d87bbf13eacc9b28`。本版修复并发文件锁交接和评测模块循环导入，并包含调查循环恢复、Windows Bash stdin 执行、PM 效果证据以及 Eval 启动准入/cohort 登记。
 
-普通聊天只需要有效模型配置。candidate、Eval、Workbench、知识合并和 Skill 发布仍需管理员配置受信治理宿主；已配置治理链发生验证错误时不会降级。automatic active promotion 继续保持 HOLD。
+Open VSX `0.37.117@f88fb58fc3` 已公开并推荐 CLI `0.166.76`。JetBrains Marketplace 当前公开 `0.4.137@0bc6186742`，内置推荐 CLI `0.166.74`；`0.4.138@f88fb58fc3` 已完成发布工作流，但尚未在公开列表回读到。Microsoft Marketplace 未发行；官方 VS Code 用户可从 Open VSX 下载 VSIX 手动安装。
 
-精确发布提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862379) 和 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) 已通过 Linux、Windows、macOS 全部配置任务。[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633)与[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440)成功，并验证 `latest=0.166.72`、tarball integrity、签名 provenance 与全新安装。Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`、Agent Protocol `0.1.11` 与 Agent SDK TS/Python `0.2.11/0.2.9` 保持独立发布身份。
+普通聊天只需有效模型配置。candidate、Eval、Workbench、知识合并和发布仍需受信治理宿主；类型化 Skill 决策仍默认关闭且限耐久、单 prompt、headless 会话。真实 PM/Pilot 收益、完整启动覆盖和总成本尚未认证；automatic active promotion 保持 HOLD。
 
-CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94c4c5a634`：[Open VSX `0.37.114`](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains `0.4.135`](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 均已公开并推荐 CLI `0.166.72`；JetBrains 已完成 Windows/Linux/macOS × 2024.2/2025.2 真实宿主门、上传及后续公共 API 批准/上架回读。[IDE 精确提交门](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555)、[Open VSX 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921)与 [JetBrains 发行工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631)均成功。微软 VS Code Marketplace 因未配置 `VSCE_PAT` 仍未发行；Desktop 原生安装包由下述产品标签独立发行。
+## 0.166.73–0.166.76 增量
+
+| 增量           | 用户可见行为                                                                        |
+| -------------- | ----------------------------------------------------------------------------------- |
+| PM 效果证据    | 先冻结对照计划和 cohort 槽位，复算报告与签名证据；缺失/失败不能从分母删除           |
+| Eval 启动准入  | 管理员可在 suite resolver 前接入签名、Ledger CAS 与耐久回读，并绑定 cohort 登记     |
+| 调查循环恢复   | Git/CI 查询和日志解析统一计入进展，压缩后保留已收集证据；Windows Bash 经 stdin 执行 |
+| 评测导入修复   | 无依赖合同模块避免循环导入读取尚未初始化的 attestation purpose                      |
+| 文件锁交接修复 | 保留接替 owner 的锁，已提交事务不再因交接清理误报 ownership 丢失                    |
+
+上述范围按提交记录描述，不代表每个中间版本都完成 npm 发行。安装请直接使用已核验的 `0.166.76`。离线操作见 [PM 效果评测指南](./pm-effect-evaluation)，实现与限制见[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 ## v5.0.3.138 桌面与移动端产品发行
 
@@ -18,7 +28,7 @@ CLI 制品源码边界为 `5f411309b2`。IDE 配套源码边界为 `94c4c5a634`�
 
 Android 用户应从 GitHub Release 选择对应架构的 APK；AAB 仅供开发者提交 Google Play，本次没有商店上架证明。iOS IPA 通过 ad-hoc 证书导出，只能安装到 provisioning profile 已登记的设备；未通过 App Store 或 TestFlight 分发。Android 应用版本为 `5.0.3.138`，内置 `cc-cli.tgz` 仍固定到 `binariesVersion=20260711` 的内部二进制清单，不等同于独立安装的 npm CLI `0.166.72`。桌面安装包公开也不意味着生产 KMS/PKI、独立 witness/grader 或 automatic active Skill 晋升已具备。
 
-## 0.166.72 本次增量
+## 0.166.72 历史增量
 
 ### 本地 Skill 决策截止与离线评测
 
@@ -83,7 +93,7 @@ Evolution 部署新增 `init-test` 和 `replace-test`，可在正式 PKI/KMS 未
 升级或固定安装：
 
 ```bash
-npm i -g chainlesschain@0.166.72 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.76 --registry https://registry.npmjs.org
 cc --version
 cc evolution deployment status --json
 ```
@@ -103,7 +113,7 @@ cc evolution deployment status --json
 
 新建 Volcengine 文本配置延续 DeepSeek V4 Flash GA 默认值；已有配置不迁移。Responses 使用 `store:false`，不完整工具调用不会进入执行器，加密 reasoning item 仅用于协议连续性。
 
-普通聊天报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 时先确认已升级 `0.166.72`；若配置了治理部署，应检查描述符、trust root、摘要及授权范围。不要为普通聊天部署测试 authority。Agent shell 的 Docker/bubblewrap 不支持域名级 allow/deny；Docker 也不支持细粒度文件规则，不支持组合在启动前拒绝。
+普通聊天报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 时先确认已升级 `0.166.76`；若配置了治理部署，应检查描述符、trust root、摘要及授权范围。不要为普通聊天部署测试 authority。Agent shell 的 Docker/bubblewrap 不支持域名级 allow/deny；Docker 也不支持细粒度文件规则，不支持组合在启动前拒绝。
 
 完整源码边界见[运行时增量设计](/design/agent-runtime-update-2026-09-13)。
 
@@ -145,7 +155,7 @@ REPL / headless / stream / AgentRuntime
 
 ## 历史公开组合（2026-09-09）
 
-下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.72，IDE 与其他组件的商店版本需按各自发布渠道核对。
+下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.76，IDE 与其他组件的商店版本需按各自发布渠道核对。
 
 | 组件                  | 公开版本   | 获取渠道              |
 | --------------------- | ---------- | --------------------- |
@@ -206,7 +216,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.72 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.76 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -217,12 +227,12 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.72 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.76 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.72`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.76`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
@@ -240,18 +250,18 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 
 ## 配置参考
 
-| 目标           | 配置或命令                           | 当前边界                                                       |
-| -------------- | ------------------------------------ | -------------------------------------------------------------- |
-| 普通本地 Agent | `cc agent`                           | 默认禁网 `workspace-write`，不探测 Docker                      |
-| 显式容器隔离   | CLI flag、settings 或 managed policy | 引擎不可用时失败关闭                                           |
-| Skill 候选合成 | `cc learning synthesize --json`      | 缺可信 LLM/store/evaluator/active roots 时 unavailable         |
-| Workbench      | `cc evolution workbench ...`         | 缺 trusted deployment host 时 unavailable                      |
-| 知识冲突审核   | `cc evolution knowledge ...`         | 只返回删节投影；merge 由宿主复核                               |
-| Skill 检索     | `cc skill search ...`                | 命中不等于安装或晋升                                           |
-| Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由       |
-| Agent 能力     | `cc agent --capabilities`            | 显示能力不等于 production composition 已启用                   |
-| IDE 安装       | Open VSX / JetBrains Marketplace     | Open VSX `0.37.114` 与 JetBrains `0.4.135` 均已公开   |
-| 更新检查       | `npm view chainlesschain version`    | 应从官方 npm registry 回读                                     |
+| 目标           | 配置或命令                                              | 当前边界                                               |
+| -------------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| 普通本地 Agent | `cc agent`                                              | 默认禁网 `workspace-write`，不探测 Docker              |
+| 显式容器隔离   | CLI flag、settings 或 managed policy                    | 引擎不可用时失败关闭                                   |
+| Skill 候选合成 | `cc learning synthesize --json`                         | 缺可信 LLM/store/evaluator/active roots 时 unavailable |
+| Workbench      | `cc evolution workbench ...`                            | 缺 trusted deployment host 时 unavailable              |
+| 知识冲突审核   | `cc evolution knowledge ...`                            | 只返回删节投影；merge 由宿主复核                       |
+| Skill 检索     | `cc skill search ...`                                   | 命中不等于安装或晋升                                   |
+| Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由        |
+| Agent 能力     | `cc agent --capabilities`                               | 显示能力不等于 production composition 已启用           |
+| IDE 安装       | Open VSX / JetBrains Marketplace                        | Open VSX `0.37.117` 与 JetBrains `0.4.137` 均已公开    |
+| 更新检查       | `npm view chainlesschain version`                       | 应从官方 npm registry 回读                             |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
 - 客户端 option、环境变量和本地测试密钥不能创建 production composition。
@@ -264,19 +274,19 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 
 ## 测试覆盖
 
-当前 `0.166.72` 与配套 IDE 的精确提交、三平台门和公共渠道状态如下：
+当前 CLI `0.166.76@b9d64ffd92` 的所有配置三平台门禁已成功，IDE 单独按 `f88fb58fc3` 验收：
 
-| 门禁                                            | GitHub Actions run                                                                         | 状态                                                    |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| CLI CI（Linux/Windows/macOS）                   | [`35831862379`](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862379) | 成功                                                    |
-| CLI Strict Sandbox（三平台）                    | [`35831862038`](https://github.com/chainlesschain/chainlesschain/actions/runs/35831862038) | 成功                                                    |
-| npm Trusted Publishing / provenance             | [`35844120633`](https://github.com/chainlesschain/chainlesschain/actions/runs/35844120633) | 成功                                                    |
-| npm 公共安装与 provenance 独立回读              | [`35848098440`](https://github.com/chainlesschain/chainlesschain/actions/runs/35848098440) | 成功                                                    |
-| IDE `main@94c4c5a634` 精确提交门                 | [`35852117555`](https://github.com/chainlesschain/chainlesschain/actions/runs/35852117555) | 成功                                                    |
-| Open VSX `0.37.114` 发布与公开 VSIX 回读        | [`35857926921`](https://github.com/chainlesschain/chainlesschain/actions/runs/35857926921) | 成功；公开可下载                                       |
-| JetBrains `0.4.135` 构建、上传与发布后核验      | [`35857955631`](https://github.com/chainlesschain/chainlesschain/actions/runs/35857955631) | 成功；后续公共 API 确认批准/上架                     |
+| 门禁                        | GitHub Actions                                                                           | 状态                             |
+| --------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
+| CLI CI，Linux/Windows/macOS | [36211826047](https://github.com/chainlesschain/chainlesschain/actions/runs/36211826047) | 全部配置任务成功                 |
+| CLI Strict Sandbox，三平台  | [36211825883](https://github.com/chainlesschain/chainlesschain/actions/runs/36211825883) | 成功                             |
+| npm OIDC/provenance         | [36215737936](https://github.com/chainlesschain/chainlesschain/actions/runs/36215737936) | 成功                             |
+| npm 公共安装独立回读        | [36216267726](https://github.com/chainlesschain/chainlesschain/actions/runs/36216267726) | 成功                             |
+| IDE 精确提交门              | [36214721590](https://github.com/chainlesschain/chainlesschain/actions/runs/36214721590) | 成功                             |
+| Open VSX 0.37.117           | [36216442080](https://github.com/chainlesschain/chainlesschain/actions/runs/36216442080) | 成功，公共 API 已回读            |
+| JetBrains 0.4.138           | [36216442040](https://github.com/chainlesschain/chainlesschain/actions/runs/36216442040) | 工作流成功，公开列表仍为 0.4.137 |
 
-npm `0.166.72` 与 Open VSX `0.37.114` 已完成公共 listing/制品回读。JetBrains `0.4.135` 的 `publishPlugin` 上传成功，后续公开 updates API 返回 `approve=true`、`listed=true`、`hidden=false`，因此已公开。Microsoft Marketplace 因未配置 `VSCE_PAT` 在上传前跳过，因此不计为已发布。npm tarball、VSIX、JetBrains ZIP、Desktop native 仍是独立制品身份。历史门禁不代替当前或下一版发布验收。
+JetBrains `0.4.137` 的公开 API 返回 `approve=true`、`listed=true`、`hidden=false`。新版上传不等于已上架。npm、VSIX、JetBrains ZIP 与 Desktop/native 保持独立发行身份。
 
 ## 安全考虑
 
@@ -287,19 +297,19 @@ npm `0.166.72` 与 Open VSX `0.37.114` 已完成公共 listing/制品回读。Je
 
 ## 故障排查
 
-**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.72`，再运行 `cc agent --capabilities`。
+**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.76`，再运行 `cc agent --capabilities`。
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.72 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.76 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.114` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.117` VSIX。
 
-**JetBrains 版本过旧**：Marketplace 当前公开 `0.4.135`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
+**JetBrains 版本过旧**：Marketplace 当前公开 `0.4.137`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
 
-**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.72`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.76`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **Workbench/Knowledge 提示 trusted deployment host required**：当前进程未接入部署治理宿主。保持失败闭合，由管理员配置 identity/policy/ledger/KMS authority；不要回退到本地直写。
 

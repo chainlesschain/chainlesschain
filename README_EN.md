@@ -1,5 +1,15 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-09-26 current release and source review
+
+Install **CLI 0.166.76**, the public npm `latest`, with `npm i -g chainlesschain@0.166.76 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-76` resolves to `b9d64ffd92`; [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36211826047), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36211825883), [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36215737936), and [public installation readback](https://github.com/chainlesschain/chainlesschain/actions/runs/36216267726) succeeded on the exact release identity.
+
+Open VSX **0.37.117** is public and recommends CLI `0.166.76`. JetBrains publicly lists **0.4.137**, recommending `0.166.74`; the `0.4.138` publication workflow succeeded, but public listing has not been observed. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release; the iOS ad-hoc IPA supports provisioned devices only.
+
+Reviewed against `main@a231bc79df`: frozen PM effect plans, cohort slots, signed Eval evidence, conservative missing-run accounting, and optional host-owned launch admission/cohort enrollment. Runtime fixes cover stalled investigations, Windows Bash paths, evaluation import cycles, and concurrent file-lock handoffs. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion remains HOLD.
+
+See the [design update](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Older dated sections below describe historical states.
+
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
 > **📦 CLI install**: `npm i -g chainlesschain@0.166.71` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
