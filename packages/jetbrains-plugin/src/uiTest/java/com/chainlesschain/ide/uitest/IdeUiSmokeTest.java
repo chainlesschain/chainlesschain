@@ -235,8 +235,14 @@ final class IdeUiSmokeTest {
     }
 
     private static void closeModelForm(RemoteRobot robot, ComponentFixture form) throws InterruptedException {
+        String dialogTitle = String.valueOf(form.callJs(
+                "Packages.javax.swing.SwingUtilities.getWindowAncestor(component).getTitle()"));
+        // Vendor notifications can expose another visible Close control. Bind
+        // the action to the window containing the form we just exercised.
         clickButton(robot.find(ComponentFixture.class,
-                Locators.byXpath("//div[(@text='Close' or @text='关闭') and @visible='true']"), FIND_BUDGET));
+                Locators.byXpath("//div[@title=" + xpathString(dialogTitle)
+                        + " and @visible='true' and .//div[@class='LlmConnectionPanel']]"
+                        + "//div[(@text='Close' or @text='关闭') and @visible='true']"), FIND_BUDGET));
         waitUntilHidden(form, "model configuration form", FIND_BUDGET);
     }
 
