@@ -11,6 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const { createStreamingTranscript } = require("./streaming-transcript");
+const { createQuestionForms } = require("./question-form-drafts");
 const MD_LITE_SOURCE = fs.readFileSync(
   path.join(__dirname, "md-lite.js"),
   "utf8",
@@ -36,7 +37,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 4;
+const CHAT_UI_PROTOCOL_VERSION = 5;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -777,7 +778,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (id !== tabKey() || !draft.key || draft.text.length > 100000) return;
     // Small text-only fallback for a Webview reload before the host save ACK.
     // Attachments live in bounded host files, never in Webview/Memento state.
-    vscode.setState?.({ draftTextBackup: { key: draft.key, text: draft.text, pendingId: draft.pendingSend?.id || null, hadImages: draft.images.length > 0 } });
+    vscode.setState?.({ ...vscode.getState?.(), draftTextBackup: { key: draft.key, text: draft.text, pendingId: draft.pendingSend?.id || null, hadImages: draft.images.length > 0 } });
   }
   function composerDraft(id = tabKey()) {
     return composerDrafts[id] || (composerDrafts[id] = { text: "", images: [], imagesLoaded: false, reads: 0, readingBytes: 0, revision: 0, dirty: false, pending: [] });
@@ -824,6 +825,15 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       clear.addEventListener("click", () => { draft.missingImages = false; draft.images = []; pendingImages = []; queueDraft(tabKey(), draft, true); renderDraftPanel(); });
       draftPanel.appendChild(document.createTextNode("Saved attachments are unavailable. Attach them again or discard them before sending. "));
       draftPanel.appendChild(clear);
+    }
+    for (const item of draft.questions || []) {
+      const row = document.createElement("div");
+      row.textContent = "Saved question: " + item.title + " ";
+      const copy = document.createElement("button"); copy.textContent = "Copy answer text to composer";
+      copy.addEventListener("click", () => vscode.postMessage({ type: "questionDraftCopy", convId: activeTabId, draftKey: draft.key, questionId: item.id })); row.appendChild(copy);
+      const discard = document.createElement("button"); discard.textContent = "Discard";
+      discard.addEventListener("click", () => vscode.postMessage({ type: "questionDraftDiscard", convId: activeTabId, draftKey: draft.key, questionId: item.id })); row.appendChild(discard);
+      draftPanel.appendChild(row);
     }
     for (const item of draft.pending || []) {
       const row = document.createElement("div");
@@ -1201,8 +1211,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     ) { e.preventDefault(); send(); }
   });
 
+  const questionForms = (${createQuestionForms.toString()})({ document, vscode });
   window.addEventListener("message", (e) => {
     const m = e.data || {};
+    if (questionForms.receive(m)) return;
     if (
       m.kind === "hostDomCommand" &&
       CC_HOST_DOM_TOKEN &&
@@ -1304,6 +1316,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         } else if (m.kind === "draftSaveError") { draft.saveError = String(m.text || "storage error"); if (m.imagesChanged) draft.imagesChanged = true; }
         else if (m.kind === "draftSnapshot" || m.kind === "draftCopy") {
           if (Array.isArray(m.pending)) draft.pending = m.pending;
+          if (Array.isArray(m.questions)) draft.questions = m.questions;
           if (draftBackup && draftBackup.key === draft.key && draftBackup.pendingId) { draft.backupResolved = draft.backupResolved || draft.pending.some((item) => item.id === draftBackup.pendingId); draft.backupUnconfirmed = !draft.backupResolved; }
           if (m.composer && !draft.imagesLoaded && !draft.imagesChanged) {
             draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true;
@@ -1466,14 +1479,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         // text input — and reply {type:"answer",id,answer} (null = Skip).
         flushStream(); // finalize any streamed text before the question card
         streamEl = null;
-        const existing = document.getElementById("q-" + m.id);
+        const existing = document.getElementById("q-" + m.questionInstance);
         if (existing) {
           existing.scrollIntoView({ block: "nearest" });
           break;
         }
         const card = document.createElement("div");
         card.className = "approval"; // reuse the card styling
-        card.id = "q-" + m.id;
+        card.id = "q-" + m.questionInstance;
         const q = document.createElement("div");
         q.className = "q";
         q.textContent = "❓ " + (m.question || "(question)");
@@ -1487,21 +1500,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
          const opts = Array.isArray(m.options) ? m.options : [];
         const labelOf = (o) => (typeof o === "string" ? o : (o && o.label != null ? String(o.label) : String(o)));
         const reply = (answer) => {
-          vscode.postMessage({
-            type: "answer",
-            id: m.id,
-            answer,
-            ...(m.binding && typeof m.binding === "object"
-              ? { binding: m.binding }
-              : {}),
-          });
-          for (const b of card.querySelectorAll("button,input")) b.disabled = true;
-          const note = document.createElement("div");
-          note.className = "info";
-          note.textContent = answer == null ? "✗ skipped"
-            : "✓ " + (Array.isArray(answer) ? answer.join(", ") : answer);
-          card.appendChild(note);
-          card.className = "approval done";
+          questionForms.submit(card, m, "answer", answer);
          };
          const btns = document.createElement("div");
          btns.className = "buttons";
@@ -1517,19 +1516,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
            const open = document.createElement("button");
            open.textContent = "Open secure page";
            open.addEventListener("click", () => {
-             vscode.postMessage({
-               type: "openElicitationUrl",
-               id: m.id,
-               url: m.url,
-               ...(m.binding && typeof m.binding === "object"
-                 ? { binding: m.binding }
-                 : {}),
-             });
-             for (const b of card.querySelectorAll("button,input")) b.disabled = true;
-             const note = document.createElement("div");
-             note.className = "info";
-             note.textContent = "Opening the reviewed URL…";
-             card.appendChild(note);
+             questionForms.submit(card, m, "openElicitationUrl");
            });
            btns.appendChild(open);
            const skipUrl = document.createElement("button");
@@ -1539,6 +1526,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
            btns.appendChild(skipUrl);
            card.appendChild(btns);
            log.appendChild(card);
+           questionForms.attach(card, m);
            followTranscript();
            break;
          }
@@ -1625,6 +1613,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         btns.appendChild(skip);
         card.appendChild(btns);
         log.appendChild(card);
+        questionForms.attach(card, m);
         followTranscript();
         break;
       }

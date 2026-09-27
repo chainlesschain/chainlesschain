@@ -10,6 +10,7 @@
  */
 const crypto = require("crypto");
 const { DraftStore } = require("./draft-store");
+const { QuestionDrafts } = require("./question-drafts");
 const {
   modeState,
   acceptModeAcknowledgement,
@@ -103,6 +104,12 @@ class ChatViewProvider {
     // resume id + per-turn reducer state. One is bootstrapped on demand so
     // single-tab behavior (and every existing flow) is preserved.
     this._convs = new ConversationManager({ createTurnState });
+    this._questions = new QuestionDrafts({
+      store: this._draftStore,
+      getConversation: (id) => this._convs.get(id),
+      post: (message) => this._post(message),
+      refresh: (conv) => this._restoreDraft(conv, { composer: false }),
+    });
     // Injectable for tests: returns a STARTED session for the given config.
     this._createSession =
       opts.deps?.createSession || ((cfg) => new AgentChatSession(cfg).start());
@@ -305,6 +312,11 @@ class ChatViewProvider {
         draftKey: key,
         ...(composer ? { composer: saved.composer } : {}),
         pending: saved.pending,
+        questions: saved.questions.map(({ id, title, text }) => ({
+          id,
+          title,
+          text,
+        })),
       });
     } catch (error) {
       this._postFrom(
@@ -915,6 +927,7 @@ class ChatViewProvider {
    */
   _stopSession(conv, { requireConfirmation = false } = {}) {
     if (!conv) return false;
+    this._questions.archiveConversation(conv);
     for (const waiter of conv.inputInitWaiters || [])
       waiter.reject(new Error("Agent stopped; input was not dispatched"));
     conv.inputReceiptVersion = undefined;
@@ -999,6 +1012,7 @@ class ChatViewProvider {
   /** Clear state that belongs to a particular resumed session, not the tab. */
   _clearSessionState(conv, { clearGoal = false } = {}) {
     if (!conv) return;
+    this._questions.archiveConversation(conv);
     conv.draftKey = crypto.randomUUID();
     this._invalidateAsync(conv);
     conv.transcript = [];
@@ -1203,7 +1217,16 @@ class ChatViewProvider {
       if (evt?.type === "plan_update" && evt.note) {
         conv.turnActive = false;
       }
-      const ui = mapAgentEvent(evt, conv.turnState);
+      let ui = mapAgentEvent(evt, conv.turnState);
+      if (ui?.kind === "question") {
+        this._draftKey(conv);
+        try {
+          ui = this._questions.register(conv, ui);
+        } catch (error) {
+          this._postFrom(convId, { kind: "error", text: error.message });
+          return;
+        }
+      }
       this._postFrom(
         convId,
         ui,
@@ -1274,6 +1297,13 @@ class ChatViewProvider {
         }
       }
       if (evt?.type === "question_resolved" && evt.id) {
+        this._questions.archiveConversation(conv, {
+          id: evt.id,
+          reason:
+            evt.via === "user-answer"
+              ? "Answered — confirmed by agent"
+              : "Question closed: " + (evt.via || "resolved"),
+        });
         const changed = this._convs.clearApproval(convId, evt.id);
         this._indexConversation(
           conv,
@@ -1288,8 +1318,11 @@ class ChatViewProvider {
         );
         if (changed) this._postTabs();
       }
+      if (evt?.type === "question_response_rejected" && evt.id)
+        this._questions.rejected(conv, evt.id, evt.reason);
       if (evt?.type === "result") {
         this._clearInterruptTimer(conv);
+        this._questions.archiveConversation(conv, { blockingOnly: true });
         if (this._convs.clearBlockingInteractions(convId)) this._postTabs();
         conv.turnActive = false;
         this._indexConversation(conv, evt.is_error ? "errored" : "completed");
@@ -2001,6 +2034,13 @@ class ChatViewProvider {
           if (!current || current._sessionToken !== sessionToken) {
             return;
           }
+          this._questions.archiveConversation(current, {
+            reason: "Agent exited; saved answer text remains editable",
+          });
+          for (const pending of this._convs.pendingInteractions(current.id))
+            if (pending.kind === "question")
+              this._convs.clearApproval(current.id, pending.id);
+          this._postTabs();
           for (const waiter of current.inputInitWaiters || [])
             waiter.reject(new Error("Agent exited; input was not dispatched"));
           current.inputReceiptVersion = undefined;
@@ -4001,6 +4041,45 @@ class ChatViewProvider {
         return;
       }
     }
+    if (m.type === "questionDraftLoad") return this._questions.restore(m);
+    if (m.type === "questionDraftUpdate") {
+      return this._questions.save(m).catch((error) => {
+        const request = this._questions.match(m);
+        if (request)
+          this._questions.message(request, "questionDraftError", {
+            text: error.message,
+          });
+      });
+    }
+    if (m.type === "questionDraftCopy" || m.type === "questionDraftDiscard") {
+      const conv = this._convs.get(m.convId);
+      if (!this._draftStore || !conv || conv.draftKey !== m.draftKey) return;
+      return (async () => {
+        try {
+          if (m.type === "questionDraftDiscard") {
+            await this._draftStore.discardQuestion(m.draftKey, m.questionId);
+            return this._restoreDraft(conv, { composer: false });
+          }
+          const saved = await this._draftStore.view(m.draftKey, {
+            includeComposer: false,
+          });
+          const q = saved.questions.find((q) => q.id === m.questionId);
+          if (
+            q &&
+            this._convs.get(m.convId) === conv &&
+            conv.draftKey === m.draftKey
+          )
+            this._post({
+              kind: "draftCopy",
+              convId: conv.id,
+              draftKey: m.draftKey,
+              composer: { text: q.text, images: [] },
+            });
+        } catch (error) {
+          this._postFrom(conv.id, { kind: "error", text: error.message });
+        }
+      })();
+    }
     if (m.type === "draftBrowse" && this._draftStore) {
       return (async () => {
         const drafts = await this._draftStore.list();
@@ -4215,60 +4294,10 @@ class ChatViewProvider {
         );
       });
     } else if (m.type === "answer") {
-      // The in-panel question card's answer (option / text / multi-select, or
-      // null when skipped) → unblock the agent's ask_user_question.
-      this.session?.sendEvent({
-        type: "answer",
-        id: String(m.id || ""),
-        answer: m.answer === undefined ? null : m.answer,
-        ...(m.binding && typeof m.binding === "object"
-          ? { binding: m.binding }
-          : {}),
-      });
+      return this._questions.answer(m);
     } else if (m.type === "openElicitationUrl") {
-      let target;
-      try {
-        target = new URL(String(m.url || ""));
-        if (
-          target.protocol !== "https:" ||
-          !target.hostname ||
-          target.username ||
-          target.password
-        ) {
-          throw new Error("unsafe URL");
-        }
-      } catch {
-        this.session?.sendEvent({
-          type: "answer",
-          id: String(m.id || ""),
-          answer: null,
-          ...(m.binding && typeof m.binding === "object"
-            ? { binding: m.binding }
-            : {}),
-        });
-        return;
-      }
-      Promise.resolve(
-        this.vscode.env.openExternal(this.vscode.Uri.parse(target.href)),
-      ).then(
-        (opened) =>
-          this.session?.sendEvent({
-            type: "answer",
-            id: String(m.id || ""),
-            answer: opened === false ? null : {},
-            ...(m.binding && typeof m.binding === "object"
-              ? { binding: m.binding }
-              : {}),
-          }),
-        () =>
-          this.session?.sendEvent({
-            type: "answer",
-            id: String(m.id || ""),
-            answer: null,
-            ...(m.binding && typeof m.binding === "object"
-              ? { binding: m.binding }
-              : {}),
-          }),
+      return this._questions.answer(m, (url) =>
+        this.vscode.env.openExternal(this.vscode.Uri.parse(url)),
       );
     } else if (m.type === "interrupt") {
       // Abort the in-flight turn only — the conversation/child stays alive.

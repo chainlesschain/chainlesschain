@@ -179,7 +179,9 @@ describe("chat Webview UI protocol self-heal", () => {
     expect(html).toContain("uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION");
     expect(html).toContain("CcElicitationSchema");
     expect(html).toContain("CcElicitationForm");
-    expect(html).toContain('type: "openElicitationUrl"');
+    expect(html).toContain(
+      'questionForms.submit(card, m, "openElicitationUrl")',
+    );
     expect(html).toContain("Open secure page");
   });
 
@@ -190,7 +192,7 @@ describe("chat Webview UI protocol self-heal", () => {
       type: "ready",
       uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
     });
-    const session = { sendEvent: vi.fn(() => true) };
+    const session = { running: true, sendEvent: vi.fn(() => true) };
     harness.provider.session = session;
     const binding = {
       backgroundAgentId: null,
@@ -200,7 +202,16 @@ describe("chat Webview UI protocol self-heal", () => {
       sequence: 1,
     };
 
-    harness.receive({
+    const conv = harness.provider._activeConv();
+    const request = harness.provider._questions.register(conv, {
+      id: "question-url-1",
+      url: "https://accounts.example.test/authorize",
+      elicitation: true,
+      mode: "url",
+      binding,
+    });
+    await harness.provider._handleMessage({
+      ...request,
       type: "openElicitationUrl",
       id: "question-url-1",
       url: "https://accounts.example.test/authorize",
@@ -222,17 +233,25 @@ describe("chat Webview UI protocol self-heal", () => {
     harness.disposeView();
   });
 
-  it("rejects credential-bearing elicitation URLs without opening them", () => {
+  it("rejects credential-bearing elicitation URLs without opening them", async () => {
     const harness = makeHarness();
     harness.provider.resolveWebviewView(harness.view);
     harness.receive({
       type: "ready",
       uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
     });
-    const session = { sendEvent: vi.fn(() => true) };
+    const session = { running: true, sendEvent: vi.fn(() => true) };
     harness.provider.session = session;
 
-    harness.receive({
+    const conv = harness.provider._activeConv();
+    const request = harness.provider._questions.register(conv, {
+      id: "question-url-unsafe",
+      url: "https://user:secret@accounts.example.test/authorize",
+      elicitation: true,
+      mode: "url",
+    });
+    await harness.provider._handleMessage({
+      ...request,
       type: "openElicitationUrl",
       id: "question-url-unsafe",
       url: "https://user:secret@accounts.example.test/authorize",

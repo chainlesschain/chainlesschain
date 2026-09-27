@@ -56,6 +56,7 @@ let _treeProvider = null;
 let _preview = null;
 let _remoteControl = null;
 let _appServerPilot = null;
+let _questionDraftStore = null;
 const {
   createWorkbenchProfileManager,
   PROFILE_SETTING: WORKBENCH_PROFILE_SETTING,
@@ -128,7 +129,10 @@ async function ensureAppServerPilot() {
       clientVersion: require("../package.json").version,
       env: contextMemoryAuthority.cliEnvironment,
       reviewApproval: (request) => reviewAppServerApproval(vscode, request),
-      answerQuestion: (request) => answerAppServerQuestion(vscode, request),
+      answerQuestion: (request) =>
+        answerAppServerQuestion(vscode, request, {
+          store: _questionDraftStore,
+        }),
     });
     _appServerPilot.on("stderr", (message) =>
       log(`App Server emitted stderr (${String(message).length} chars)`),
@@ -350,6 +354,12 @@ async function startBridge(context) {
 }
 
 async function activate(context) {
+  if (context.storageUri?.fsPath) {
+    const { DraftStore } = require("./chat/draft-store");
+    _questionDraftStore = new DraftStore(
+      require("path").join(context.storageUri.fsPath, "chat-drafts-v1"),
+    );
+  }
   _output = vscode.window.createOutputChannel("ChainlessChain IDE");
   context.subscriptions.push(_output);
   _activityLog = new ActivityLog({ max: 200 });
@@ -490,6 +500,7 @@ async function activate(context) {
         : {},
     state: context.workspaceState, // per-workspace chat session resume
     storagePath: context.storageUri?.fsPath,
+    deps: { draftStore: _questionDraftStore },
     enableSessionIndex: true,
     hostDomToken,
     log,

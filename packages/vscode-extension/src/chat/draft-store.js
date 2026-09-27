@@ -62,6 +62,37 @@ function validImages(images) {
   );
 }
 
+function validQuestion(q) {
+  if (
+    !q ||
+    !KEY.test(q.id) ||
+    !/^[a-f0-9]{64}$/.test(q.digest || "") ||
+    typeof q.sessionId !== "string" ||
+    typeof q.requestId !== "string" ||
+    typeof q.title !== "string" ||
+    q.title.length > 1024 ||
+    !["draft", "archived"].includes(q.status) ||
+    !Array.isArray(q.fields) ||
+    q.fields.length > 128 ||
+    Buffer.byteLength(JSON.stringify(q)) > 128 * 1024
+  )
+    throw new Error("Invalid question draft");
+  text(q.text);
+  const keys = new Set();
+  for (const f of q.fields) {
+    if (
+      !f ||
+      typeof f.key !== "string" ||
+      f.key.length > 8192 ||
+      keys.has(f.key) ||
+      (typeof f.value !== "boolean" &&
+        (typeof f.value !== "string" || f.value.length > 32768))
+    )
+      throw new Error("Invalid question draft field");
+    keys.add(f.key);
+  }
+}
+
 /** UI recovery data only. Never grants execution or approval authority. */
 class DraftStore {
   constructor(root) {
@@ -121,6 +152,9 @@ class DraftStore {
       )
         throw new Error("Invalid draft record");
       text(record.composer.text);
+      for (const q of record.questions) {
+        validQuestion(q);
+      }
       for (const p of record.pending) {
         text(p.text);
         if (
@@ -403,6 +437,51 @@ class DraftStore {
       await this._write(record);
     });
   }
+  saveQuestion(key, question) {
+    validQuestion(question);
+    return this._serial(async () => {
+      if (
+        !KEY.test(question.id) ||
+        !/^[a-f0-9]{64}$/.test(question.digest || "") ||
+        Buffer.byteLength(JSON.stringify(question)) > 128 * 1024
+      )
+        throw new Error("Invalid or oversized question draft");
+      const record = await this._read(key);
+      const old = record.questions.find((q) => q.id === question.id);
+      if (old && old.digest !== question.digest)
+        throw new Error("Question draft identity changed");
+      if (!old && record.questions.length >= 16)
+        throw new Error(
+          "Discard an old question draft before saving more than 16 questions",
+        );
+      record.questions = record.questions.filter((q) => q.id !== question.id);
+      record.questions.push({
+        ...question,
+        status: old?.status === "archived" ? "archived" : question.status,
+      });
+      record.sessionId ||= question.sessionId;
+      await this._write(record);
+    });
+  }
+  archiveQuestion(key, id, digest = null) {
+    return this._serial(async () => {
+      const record = await this._read(key);
+      const found = record.questions.filter(
+        (q) => q.id === id || (digest && q.digest === digest),
+      );
+      if (found.length) {
+        for (const q of found) q.status = "archived";
+        await this._write(record);
+      }
+    });
+  }
+  discardQuestion(key, id) {
+    return this._serial(async () => {
+      const record = await this._read(key);
+      record.questions = record.questions.filter((q) => q.id !== id);
+      await this._write(record);
+    });
+  }
   list() {
     return this._serial(async () => {
       const entries = await fs
@@ -419,7 +498,8 @@ class DraftStore {
         if (
           !record.composer.text &&
           !record.composer.images.length &&
-          !record.pending.length
+          !record.pending.length &&
+          !record.questions.length
         )
           continue;
         result.push({
@@ -428,6 +508,7 @@ class DraftStore {
           label: (
             record.composer.text ||
             record.pending[0]?.text ||
+            record.questions[0]?.title ||
             "Image draft"
           ).slice(0, 100),
           description: `${record.pending.length} saved submissions`,
