@@ -1018,6 +1018,30 @@ function targetCommandFailureCategory(result) {
   );
 }
 
+function targetProcessFailure(result) {
+  // Native spawn errors include executable paths and argv. Preserve only fixed
+  // categories and the same content-free diagnostics as a nonzero target exit.
+  // A timeout is an unknown outcome: this function never retries the command.
+  const categories = new Map([
+    ["ETIMEDOUT", "process-timeout"],
+    ["ENOBUFS", "process-output-limit"],
+    ["ENOENT", "process-unavailable"],
+    ["EACCES", "process-access"],
+    ["EPERM", "process-access"],
+  ]);
+  const failureCategory = categories.get(result.error.code) || "process-spawn";
+  const failureSite = readExecutionLocationFailureSite(result.stderr);
+  const storageFailure = readExecutionLocationStorageFailure(result.stderr);
+  const error = new Error(
+    `target process failed (${failureCategory})${failureSite ? ` at ${failureSite}` : ""}${storageFailure ? ` [${storageFailure}]` : ""}`,
+  );
+  error.code = "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED";
+  error.failureCategory = failureCategory;
+  if (failureSite) error.failureSite = failureSite;
+  if (storageFailure) error.storageFailure = storageFailure;
+  return error;
+}
+
 function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
   const invocation = targetInvocation(profile, cliArgs, deps, options);
   const spawnSync =
@@ -1065,7 +1089,7 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
           ],
       ...(invocation.spawnOptions || {}),
     });
-    if (result?.error) throw result.error;
+    if (result?.error) throw targetProcessFailure(result);
     if (!result || result.status !== 0) {
       const failureCategory = targetCommandFailureCategory(result);
       const failureSite = readExecutionLocationFailureSite(result?.stderr);
@@ -1252,7 +1276,7 @@ export function probeExecutionLocationTargetResourceLimit(
   } finally {
     invocation.cleanup?.();
   }
-  if (result?.error) throw result.error;
+  if (result?.error) throw targetProcessFailure(result);
   const expectedMarker = `CC_EXECUTION_LOCATION_RESOURCE_PROBE_ARMED:${kind}`;
   const status = Number(result?.status);
   const signal = result?.signal == null ? null : String(result.signal);

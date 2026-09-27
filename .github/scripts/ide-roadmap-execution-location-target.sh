@@ -83,7 +83,7 @@ if [[ -n "${CC_EXECUTION_LOCATION_RUNNER_ID:-}" ]]; then
     echo "execution-location target CPU limit is unavailable" >&2
     exit 75
   }
-  target_supervisor="$(dirname -- "$CC_IDE_TARGET_ENTRY")/lib/execution-location-local-supervisor.mjs"
+  target_supervisor="$(dirname -- "$CC_IDE_TARGET_ENTRY")/../src/lib/execution-location-local-supervisor.mjs"
   if [[ ! -f "$target_supervisor" || -L "$target_supervisor" ]]; then
     echo "execution-location target supervisor is unavailable" >&2
     exit 70

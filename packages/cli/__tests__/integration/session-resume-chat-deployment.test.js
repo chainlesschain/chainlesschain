@@ -8,7 +8,10 @@ import { afterEach, expect, it } from "vitest";
 const helper = fileURLToPath(
   new URL("./helpers/session-resume-chat-process.mjs", import.meta.url),
 );
-const cli = fileURLToPath(new URL("../../src/index.js", import.meta.url));
+// Exercise the installed command's lazy dispatch and canonical defaults.
+const cli = fileURLToPath(
+  new URL("../../bin/chainlesschain.js", import.meta.url),
+);
 const roots = [];
 afterEach(() => {
   for (const root of roots.splice(0))

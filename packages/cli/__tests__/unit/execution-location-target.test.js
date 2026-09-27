@@ -408,6 +408,80 @@ describe("execution location target launch and resume", () => {
     expect(spawnSync).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["ETIMEDOUT", "process-timeout"],
+    ["ENOBUFS", "process-output-limit"],
+    ["ENOENT", "process-unavailable"],
+    ["EACCES", "process-access"],
+    ["EPERM", "process-access"],
+    ["private-spawn-code", "process-spawn"],
+  ])(
+    "bounds native spawn failures without leaking argv (%s)",
+    (code, category) => {
+      const secret = "target-private-path-and-credential-sentinel";
+      const nativeError = Object.assign(new Error(secret), {
+        code,
+        path: secret,
+        spawnargs: [secret],
+      });
+      const spawnSync = vi.fn(() => ({
+        error: nativeError,
+        status: null,
+        stdout: secret,
+        stderr: `${secret}\nCC_EXECUTION_LOCATION_FAILURE_SITE=private-storage:961\n[windows-acl:timeout-lookup]\n`,
+      }));
+      let failure;
+      try {
+        attestExecutionLocationTarget(
+          { profile: rawProfile(), handoff: handoff() },
+          { spawnSync },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({
+        code: "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED",
+        failureCategory: category,
+        failureSite: "private-storage:961",
+        storageFailure: "timeout-lookup",
+      });
+      expect(failure.message).toBe(
+        `target process failed (${category}) at private-storage:961 [timeout-lookup]`,
+      );
+      expect(JSON.stringify(failure)).not.toContain(secret);
+      expect(failure.stack).not.toContain(secret);
+      expect(failure.cause).toBeUndefined();
+      expect(spawnSync).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("does not accept a resource probe killed by the transport timeout", () => {
+    const profile = rawLifecycleProfile();
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce({
+        error: Object.assign(new Error("private-command"), {
+          code: "ETIMEDOUT",
+        }),
+        status: 137,
+        signal: "SIGKILL",
+        stdout: "CC_EXECUTION_LOCATION_RESOURCE_PROBE_ARMED:memory\n",
+        stderr: "private-command",
+      });
+    expect(() =>
+      probeExecutionLocationTargetResourceLimit(
+        { profile, kind: "memory" },
+        {
+          spawnSync,
+          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      ),
+    ).toThrow("target process failed (process-timeout)");
+    expect(spawnSync).toHaveBeenCalledTimes(2);
+  });
+
   it("reports a bounded native ACL failure without target paths or messages", () => {
     const spawnSync = vi.fn(() => ({
       status: 1,

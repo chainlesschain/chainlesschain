@@ -334,6 +334,14 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(localRunner).toContain('"--transport",\n    "local"');
     expect(localRunner).toContain('runMatrix(commonArguments, "campaign"');
     expect(localRunner).toContain("fs.renameSync(targetCli, offlineCli)");
+    const cliManifest = JSON.parse(
+      fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    );
+    const cliEntry = `packages/cli/${cliManifest.bin.chainlesschain.replace(/^\.\//u, "")}`;
+    for (const runner of [localRunner, linuxRunner, wslRunner]) {
+      expect(runner).toContain(cliEntry);
+      expect(runner).not.toContain("packages/cli/src/index.js");
+    }
     const sessionStore = fs.readFileSync(
       path.resolve(
         import.meta.dirname,

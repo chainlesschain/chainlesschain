@@ -455,7 +455,13 @@ describe("Claude Code increment unified audit", () => {
     const locationProfile = contract.lockedProfiles["LOCATION-DRAIN"];
     expect(locationProfile.profileVersion).toBe("location-drain-v1");
     expect(locationProfile.testIds).toHaveLength(6);
-    expect(locationProfile.producerPaths).toHaveLength(14);
+    expect(locationProfile.producerPaths).toHaveLength(23);
+    expect(locationProfile.producerPaths).toEqual(
+      expect.arrayContaining([
+        "packages/cli/bin/chainlesschain.js",
+        "packages/cli/src/lazy-dispatch.js",
+      ]),
+    );
     expect(Object.keys(locationProfile.thresholds)).toEqual([
       "requiredOperatingSystems",
       "requiredTargets",

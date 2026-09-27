@@ -81,7 +81,7 @@ async function main() {
   const sourceSecurityHome = path.join(runRoot, "source-security");
   const targetHome = path.join(runRoot, "target-home");
   const targetSecurityHome = path.join(runRoot, "target-security");
-  const targetCli = path.resolve("packages/cli/src/index.js");
+  const targetCli = path.resolve("packages/cli/bin/chainlesschain.js");
   const offlineCli = `${targetCli}.location-offline`;
   for (const directory of [
     options.artifactDir,

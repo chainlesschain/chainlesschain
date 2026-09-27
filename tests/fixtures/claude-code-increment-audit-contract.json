@@ -529,19 +529,28 @@
       ],
       "producerPaths": [
         ".github/scripts/ide-roadmap-execution-location-target.sh",
+        ".github/scripts/prepare-ide-roadmap-location-deployment.mjs",
         ".github/scripts/run-ide-roadmap-execution-location-linux.sh",
         ".github/scripts/run-ide-roadmap-execution-location-local.mjs",
         ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1",
         ".github/workflows/ide-roadmap-execution-location.yml",
+        "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js",
+        "packages/cli/bin/chainlesschain.js",
         "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs",
         "packages/cli/scripts/verify-ide-roadmap-execution-location.mjs",
         "packages/cli/src/commands/session-location.js",
+        "packages/cli/src/commands/session.js",
         "packages/cli/src/harness/jsonl-session-store.js",
+        "packages/cli/src/lazy-dispatch.js",
+        "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+        "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "packages/cli/src/lib/execution-location-failure-site.js",
         "packages/cli/src/lib/execution-location-local-supervisor.mjs",
         "packages/cli/src/lib/execution-location-runner-lifecycle.js",
         "packages/cli/src/lib/execution-location-target-preflight.js",
         "packages/cli/src/lib/execution-location-target.js",
-        "packages/cli/src/lib/process-execution-broker/credential-agent.js"
+        "packages/cli/src/lib/process-execution-broker/credential-agent.js",
+        "packages/cli/src/lib/secure-fs.js"
       ]
     },
     "BROWSER-EVIDENCE": {
