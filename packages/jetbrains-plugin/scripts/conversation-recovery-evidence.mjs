@@ -190,9 +190,11 @@ function assertStopContinuation(initial, records) {
   assert.equal(released.command, "init-gate-released");
   assert.equal(waiting.nonce, released.nonce);
   assert.match(waiting.nonce, /^[a-zA-Z0-9-]{1,80}$/u);
+  const fixtureProcessId = String(waiting.processId);
+  assert.match(fixtureProcessId, /^[1-9]\d*$/u);
   for (const event of [waiting, released]) {
     assert.equal(event.sessionId, sessionId);
-    assert.equal(String(event.processId), ready.childProcessId);
+    assert.equal(String(event.processId), fixtureProcessId);
     assert.ok(records.some((r) => JSON.stringify(r) === JSON.stringify(event)));
   }
   for (const state of [
@@ -209,6 +211,13 @@ function assertStopContinuation(initial, records) {
     assert.equal(state.processId, initial.a.processId);
     assert.equal(state.childProcessId, ready.childProcessId);
     assert.match(state.childProcessId, /^\d+$/u);
+    assert.ok(Array.isArray(state.childProcessIds));
+    for (const id of state.childProcessIds) assert.match(id, /^[1-9]\d*$/u);
+    assert.ok(state.childProcessIds.includes(state.childProcessId));
+    assert.ok(
+      state.childProcessIds.includes(fixtureProcessId),
+      "fixture must remain in the observed child process tree",
+    );
     assert.equal(state.childRunning, true);
     assert.equal(state.visible, true);
     assert.equal(state.tabs.filter((tab) => tab.selected).length, 1);
@@ -243,13 +252,11 @@ function assertStopContinuation(initial, records) {
     ["user", "interrupt"],
   );
   assert.equal(incoming[0].event.text, "journey:stop-after-cancel");
-  for (const r of incoming)
-    assert.equal(String(r.processId), ready.childProcessId);
+  for (const r of incoming) assert.equal(String(r.processId), fixtureProcessId);
   assert.ok(Date.parse(incoming[0].at) >= Date.parse(ready.observedAt));
   assert.ok(Date.parse(incoming[1].at) >= Date.parse(running.observedAt));
   const emitted = records.filter(
-    (r) =>
-      r.direction === "out" && String(r.processId) === ready.childProcessId,
+    (r) => r.direction === "out" && String(r.processId) === fixtureProcessId,
   );
   const inits = emitted.filter((r) => r.event?.subtype === "init");
   assert.equal(inits.length, 1);

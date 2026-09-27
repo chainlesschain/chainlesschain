@@ -170,6 +170,7 @@ function withContinuation() {
     } else {
       event.observedAt = at;
       event.childProcessId = "400";
+      event.childProcessIds = ["400"];
       event.interruptPending = false;
       event.text ??= "";
     }
@@ -231,6 +232,26 @@ test("v3 proves an explicit next send receives a soft first Stop on the same chi
   assert.equal(verify(withStop()).firstStopPreservesChild, undefined);
 });
 
+test("v3 associates fixture events with an observed descendant of a stable launcher", () => {
+  const value = withContinuation();
+  const { preparation, idleStopped, running, stopped } =
+    value.initial.stopContinuation;
+  for (const state of [
+    preparation.preparing,
+    preparation.stopped,
+    preparation.ready,
+    idleStopped,
+    running,
+    stopped,
+  ]) {
+    state.childProcessId = "399";
+    state.childProcessIds = ["399", "400"];
+  }
+  assert.equal(verify(value).firstStopPreservesChild, true);
+  stopped.childProcessIds = ["399", "401"];
+  assert.throws(() => verify(value), /observed child process tree/u);
+});
+
 for (const [name, change] of [
   [
     "missing continuation",
@@ -260,6 +281,18 @@ for (const [name, change] of [
     "dead child",
     (v) => {
       v.initial.stopContinuation.stopped.childRunning = false;
+    },
+  ],
+  [
+    "missing process tree",
+    (v) => {
+      delete v.initial.stopContinuation.running.childProcessIds;
+    },
+  ],
+  [
+    "unrelated fixture process",
+    (v) => {
+      v.initial.stopContinuation.stopped.childProcessIds = ["401"];
     },
   ],
   [

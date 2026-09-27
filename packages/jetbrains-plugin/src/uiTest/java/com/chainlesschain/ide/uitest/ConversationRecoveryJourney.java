@@ -37,6 +37,15 @@ final class ConversationRecoveryJourney {
         var index = tabs.getSelectedIndex(), view = views.get(ids.get(index)), conv = field(view, 'conv');
         var receipt = field(view, 'receiptSupport'), child = field(conv, 'session');
         var process = child == null ? null : field(child, 'child');
+        var processIds = [];
+        if (process != null) {
+            processIds.push(String(process.pid()));
+            var descendants = process.descendants();
+            try {
+                var iterator = descendants.iterator();
+                while (iterator.hasNext()) processIds.push(String(iterator.next().pid()));
+            } finally { descendants.close(); }
+        }
         var transcript = field(view, 'transcript'), pane = field(transcript, 'pane');
         var spans = field(field(transcript, 'savedHistory'), 'spans'), rows = [], tabList = [];
         for (var i = 0; i < spans.size(); i++) {
@@ -58,6 +67,7 @@ final class ConversationRecoveryJourney {
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
             sendInFlight:String(field(view,'sendInFlight')) === 'true', childRunning:child != null && child.isRunning(),
             childProcessId:process == null ? '' : String(process.pid()),
+            childProcessIds:processIds,
             turnActive:String(field(view,'turnActive')) === 'true',
             interruptPending:child != null && field(view,'interruptRequested') != null && field(view,'interruptRequested').equals(child),
             receiptReady:receipt != null && receipt.isDone() && !receipt.isCompletedExceptionally() && String(receipt.getNow(false)) === 'true',
