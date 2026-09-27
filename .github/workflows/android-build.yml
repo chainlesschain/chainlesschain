@@ -24,6 +24,11 @@ env:
   JAVA_VERSION: "17"
   GRADLE_VERSION: "8.2"
 
+# Supersede obsolete PR checks; isolate pushes, tags, and manual runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Job 1: Code Quality & Linting
   lint:

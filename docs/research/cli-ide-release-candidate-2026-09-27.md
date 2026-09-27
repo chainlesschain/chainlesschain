@@ -4,6 +4,8 @@
 
 2026-09-28 环境补充：本机虚拟化未开启，Docker 不可用；无编译器容器 / ARM64 验收等待托管 Actions。WSL1 canonical workspace trust 在目录编辑/移动后仍有身份变化缺陷（扩大集 3 项失败），`doctor` 已增加明确诊断，但不作为身份修复或发布通过。详见[实施台账](./cli-ide-gap-implementation-2026-09-27.md)及[诊断回执](./cli/evidence/workspace-trust-wsl1-diagnostic-e931170f51.json)。
 
+同日核查并清理旧提交 Actions 积压，修复按 SHA 隔离导致不能替代旧 PR 检查，以及 `always()` 汇总在取消后继续排队的问题。清理时旧提交活跃数归零，保留当时最新 head；这不等于候选检查通过。27 个 workflow 的并发/取消条件变更与回执见[实施台账](./cli-ide-gap-implementation-2026-09-27.md)，发布门和版本冻结要求保持不变。
+
 实施分支：`feature/cli-ide-gap-closure-2026-09-27`。当前清单版本为 CLI `0.166.77`、VS Code `0.37.118`、JetBrains `0.4.139`；这些数值仅来自源码，不能代表 registry 最新版本。候选号应在冻结提交、核对已发布版本与渠道后确定。
 
 ## 1. 候选功能范围

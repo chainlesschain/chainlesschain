@@ -56,9 +56,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.commit_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   SUPPLY_CHAIN_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
@@ -181,7 +182,7 @@ jobs:
   trusted-supply-chain-aggregate:
     name: Trusted three-OS twelve-cell supply-chain aggregate
     needs: [supply-chain]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !cancelled())
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

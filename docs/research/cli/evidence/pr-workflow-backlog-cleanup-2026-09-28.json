@@ -1,0 +1,1243 @@
+{
+  "schema": "chainlesschain.superseded-pr-workflow-cleanup/v1",
+  "protectedHead": "e931170f5138b41939b3569892d33e7b0bfc70cd",
+  "repository": "chainlesschain/chainlesschain",
+  "pr": 383,
+  "branch": "feature/cli-ide-gap-closure-2026-09-27",
+  "releaseEligible": false,
+  "localDockerAvailable": false,
+  "cleanup": {
+    "prOrdinaryAccepted": 171,
+    "alreadyCompleted": [
+      {
+        "id": 36330695400,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e",
+        "reason": "HTTP 409: already completed"
+      },
+      {
+        "id": 36330695555,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e",
+        "reason": "HTTP 409: already completed"
+      }
+    ],
+    "prForceAccepted": 79,
+    "oldFeaturePushCancelled": [36339341369, 36339341357],
+    "oldFeaturePushForceCancelled": [36339341357],
+    "remainingOldQueuedPendingOrRunning": 0,
+    "preservedCurrentRuns": [
+      {
+        "id": 36340477517,
+        "name": "Python Agent SDK",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477503,
+        "name": "IDE Roadmap Execution Location",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477519,
+        "name": "CLI Background Agent Keeper Soak",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477568,
+        "name": "Android CI/CD Pipeline",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477617,
+        "name": "CLI Session Scale",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477586,
+        "name": "CLI Scheduler Kernel Soak",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477615,
+        "name": "IDE Roadmap Accessibility Performance",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477650,
+        "name": "CLI Agent Team Soak",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477658,
+        "name": "PDH Bundle Staleness Check (hard gate, traps",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477610,
+        "name": "Code Quality & Security",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477560,
+        "name": "PR Tests",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477652,
+        "name": "CLI Background Interaction E2E",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477474,
+        "name": "ESM require() Audit (hard gate, trap",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477556,
+        "name": "Full Test Automation with Diagnostics",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477621,
+        "name": "Workspace Publish Staleness Check (PR mandatory)",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477488,
+        "name": "CLI Clipboard Image Host Matrix",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477565,
+        "name": "CLI Session Host Consistency",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477582,
+        "name": "CLI Reliability Soak",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477571,
+        "name": "IDE ARM64 Host Validation",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477642,
+        "name": "IDE Roadmap Safety Matrix",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477667,
+        "name": "IDE Roadmap Live Provider Trajectory",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477846,
+        "name": "CLI CI",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477600,
+        "name": "Codex App Server Compatibility",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477483,
+        "name": "CLI macOS MCP Launcher Release Gate",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477562,
+        "name": "CLI npm release readback",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477647,
+        "name": "CLI Native Release Readback",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477548,
+        "name": "Android Tests",
+        "event": "pull_request",
+        "status": "pending"
+      },
+      {
+        "id": 36340477526,
+        "name": "IDE Extensions",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477452,
+        "name": "Context Memory Kernel CI",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477459,
+        "name": "Agent Protocol CI",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477465,
+        "name": "CI Mask Audit (PR advisory)",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477422,
+        "name": "CLI Strict Sandbox",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477433,
+        "name": "Secret Scan Audit (PR advisory)",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477440,
+        "name": "SQLite Number→TEXT Bind Audit (PR advisory)",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477462,
+        "name": "App Server Overload Soak",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477445,
+        "name": "CI Tests",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477457,
+        "name": "Record Replay UI Journey",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340477467,
+        "name": "E2E Tests",
+        "event": "pull_request",
+        "status": "queued"
+      },
+      {
+        "id": 36340473065,
+        "name": "Record Replay UI Journey",
+        "event": "push",
+        "status": "queued"
+      },
+      {
+        "id": 36340473085,
+        "name": "Context Memory Kernel CI",
+        "event": "push",
+        "status": "in_progress"
+      }
+    ],
+    "ordinaryCancelledRuns": [
+      {
+        "id": 36338473230,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473375,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473362,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473266,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36337235172,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36330563940,
+        "sha": "cffa13fe81fde7cd566619ed868c19d87ed53538"
+      },
+      {
+        "id": 36339344880,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344872,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344861,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344912,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344897,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344904,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344920,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344943,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344936,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344903,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344959,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344967,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344960,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344964,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344947,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344965,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344881,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36339344859,
+        "sha": "6971b97c985ff14e4d37245222f8907b47a9df48"
+      },
+      {
+        "id": 36338473220,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473239,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473238,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473302,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473264,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473275,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473358,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473303,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473263,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338473323,
+        "sha": "1996d1870e76a83954b17537cb237615d18b9a6c"
+      },
+      {
+        "id": 36338211525,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211555,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211434,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211482,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211423,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211519,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211438,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211464,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211513,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211539,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211509,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211496,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36338211461,
+        "sha": "3385b2871dfaad491bddd539fea44308f09611dc"
+      },
+      {
+        "id": 36337235177,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235334,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235297,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235253,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235225,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235197,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235268,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235203,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235348,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235360,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36337235219,
+        "sha": "a2b9ac612ad0129b16f49c3d4b75f4b669eb23ef"
+      },
+      {
+        "id": 36336971692,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971665,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971655,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971672,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971637,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971633,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971686,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971705,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971634,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971673,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971737,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36336971706,
+        "sha": "59ef6116e447adaeac1fa56b719df0170e08eaaa"
+      },
+      {
+        "id": 36335746867,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747010,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747102,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747119,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335746910,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747226,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747142,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335746935,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335746961,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747235,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747164,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335747046,
+        "sha": "0f39bce5024390526c4504567c0f4d443d58b7b3"
+      },
+      {
+        "id": 36335493438,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493510,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493425,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493553,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493436,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493535,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493394,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493472,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493591,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493427,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493439,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36335493491,
+        "sha": "ee4dc2b54b297c7ec456ca716c7e95274ac7c55c"
+      },
+      {
+        "id": 36334304016,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334304073,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334304070,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334304038,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334304079,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303896,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303910,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303877,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334304010,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303928,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303937,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36334303990,
+        "sha": "67a0c2af352ffde8958f8e8ed0d6673578245bb9"
+      },
+      {
+        "id": 36333299031,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299024,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333298831,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299021,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333298868,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333298994,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299015,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299009,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333298946,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299053,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333298851,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36333299039,
+        "sha": "4358456deb009b503e8a4431808b5c739db27250"
+      },
+      {
+        "id": 36332498082,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497897,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332498016,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332498031,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332498001,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497943,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497944,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332498011,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497920,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497898,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497976,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332497910,
+        "sha": "b79af67f7aa003e7138f5e5919f89ea88f3f8845"
+      },
+      {
+        "id": 36332254658,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254741,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254723,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254636,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254740,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254722,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254766,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254678,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254767,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254669,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254745,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36332254614,
+        "sha": "f61a1a548052ac971e9293f22294d25f6fddd9ac"
+      },
+      {
+        "id": 36331401136,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331401127,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331401128,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331401158,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331401026,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331400999,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331400899,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331400993,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331401108,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36331400971,
+        "sha": "7ed75ae5f071e187dca4dfabcb6916f0fbc990f0"
+      },
+      {
+        "id": 36330695432,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e"
+      },
+      {
+        "id": 36330695370,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e"
+      },
+      {
+        "id": 36330695482,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e"
+      },
+      {
+        "id": 36330695394,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e"
+      },
+      {
+        "id": 36330695462,
+        "sha": "b50bad21b5cc425000c15e26045b069c943f528e"
+      },
+      {
+        "id": 36330563927,
+        "sha": "cffa13fe81fde7cd566619ed868c19d87ed53538"
+      },
+      {
+        "id": 36330563917,
+        "sha": "cffa13fe81fde7cd566619ed868c19d87ed53538"
+      },
+      {
+        "id": 36330564003,
+        "sha": "cffa13fe81fde7cd566619ed868c19d87ed53538"
+      },
+      {
+        "id": 36330563987,
+        "sha": "cffa13fe81fde7cd566619ed868c19d87ed53538"
+      },
+      {
+        "id": 36330529614,
+        "sha": "795434f14427cdf813201f19e0469cc5c20a0c83"
+      },
+      {
+        "id": 36330529661,
+        "sha": "795434f14427cdf813201f19e0469cc5c20a0c83"
+      },
+      {
+        "id": 36330529536,
+        "sha": "795434f14427cdf813201f19e0469cc5c20a0c83"
+      },
+      {
+        "id": 36330529485,
+        "sha": "795434f14427cdf813201f19e0469cc5c20a0c83"
+      },
+      {
+        "id": 36329903208,
+        "sha": "2c4fe5206393d02b8527c45f75846709e48a2cd1"
+      },
+      {
+        "id": 36329903276,
+        "sha": "2c4fe5206393d02b8527c45f75846709e48a2cd1"
+      },
+      {
+        "id": 36329903301,
+        "sha": "2c4fe5206393d02b8527c45f75846709e48a2cd1"
+      },
+      {
+        "id": 36329903323,
+        "sha": "2c4fe5206393d02b8527c45f75846709e48a2cd1"
+      },
+      {
+        "id": 36329168066,
+        "sha": "4b9be3c6f4788fcf3d3eb68444c487f523d54cdd"
+      },
+      {
+        "id": 36329168151,
+        "sha": "4b9be3c6f4788fcf3d3eb68444c487f523d54cdd"
+      }
+    ],
+    "forceCancelledRuns": [
+      36332254658, 36339344861, 36339344912, 36339344943, 36339344881,
+      36339344947, 36339344964, 36339344960, 36338473230, 36338473266,
+      36338473220, 36338473264, 36338473302, 36338473323, 36338211519,
+      36338211539, 36338211496, 36338211461, 36338211555, 36338211434,
+      36337235172, 36337235334, 36337235225, 36337235348, 36337235360,
+      36337235253, 36336971637, 36336971672, 36336971692, 36336971673,
+      36336971686, 36336971706, 36335747119, 36335747226, 36335747010,
+      36335747235, 36335747046, 36335746910, 36335493510, 36335493425,
+      36335493472, 36335493394, 36335493427, 36335493439, 36334304016,
+      36334304073, 36334303896, 36334303877, 36334303910, 36334303990,
+      36333299039, 36333298851, 36333298946, 36333299031, 36333299021,
+      36333299015, 36332498082, 36332497976, 36332497910, 36332498016,
+      36332498011, 36332254678, 36332254722, 36332254614, 36332254745,
+      36332254741, 36332254723, 36331401128, 36331400999, 36331401026,
+      36331400993, 36331401108, 36330695432, 36330695394, 36330563917,
+      36330529661, 36329903208, 36329168066, 36332497943
+    ]
+  },
+  "verification": {
+    "schema": "chainlesschain.pr-concurrency-validation/v1",
+    "baseCommit": "f404aec4a696252bd3178d2fd8e612877d5452cb",
+    "evaluator": "@actions/expressions@0.3.61",
+    "workflows": 27,
+    "scenarios": 272,
+    "aggregateScenarios": 280,
+    "results": [
+      {
+        "file": ".github/workflows/app-server-overload-soak.yml",
+        "sha256": "94cce66801bfc336705c7b8ae21f0d02893c12a64c507aa6a3f3323a634ea9bf",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-background-agent-keeper-soak.yml",
+        "sha256": "c3909e8deb1995843a0e51382686235a94e9c4a72c47f847329e184e68ad32a6",
+        "scenarios": 10,
+        "aggregateJobs": ["keeper-soak-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-clipboard-image.yml",
+        "sha256": "1d2cb2c75c2e4ce0306325b43f12f36cd40f0eb2d28d3efd03ab8614877617ac",
+        "scenarios": 10,
+        "aggregateJobs": ["clipboard-image-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-macos-mcp-launcher-release.yml",
+        "sha256": "6c8595d7c3d12d180ea74a025ab95d9d3e4cc3d21518d75c337cf39e942e9cba",
+        "scenarios": 10,
+        "aggregateJobs": ["aggregate-signed-root-evidence"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-native-release-readback.yml",
+        "sha256": "8c5ccb93f4905eee26c68eaae7c33820362d75e5eda987acbb104fc8b88fbe90",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-npm-release-readback.yml",
+        "sha256": "a187523fb315f4852d6b2e1e797a83dc8e7a76ee63507eb9a312e19e1a590f57",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-reliability-soak.yml",
+        "sha256": "042daa82bf3b2ea21587d74e1b489ead56a92a5760b7ad5307f0b927665a3254",
+        "scenarios": 10,
+        "aggregateJobs": [
+          "session-message-fabric-aggregate",
+          "scheduler-reliability-soak-aggregate",
+          "mcp-security-soak-aggregate"
+        ],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-scheduler-soak.yml",
+        "sha256": "047eb27a58eab2d77cf2c0cc50f4352aa64069b3f4cee6ccf204ba36a6c9164d",
+        "scenarios": 10,
+        "aggregateJobs": ["scheduler-soak-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-session-host-consistency.yml",
+        "sha256": "38ac8136e91418295e3985c92bf7481800a29b38d86b534405fe3eae2cf44e71",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-session-scale.yml",
+        "sha256": "3b923b477f48b664676828318de53033b7e98e78141f209777856c4048cd6276",
+        "scenarios": 10,
+        "aggregateJobs": ["session-runtime-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-team-fairness-soak.yml",
+        "sha256": "1680d0b336fc0f0b0da469b44e3230c94ac01b8d0ed3e630c1d24e0f0198cc6e",
+        "scenarios": 10,
+        "aggregateJobs": ["fairness-soak-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/cli-team-soak.yml",
+        "sha256": "d9f4f7acbe55b226b47dd0f71d4a2271f0a377e0ed679b803a88db6b33f0ff41",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-arm64-validation.yml",
+        "sha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-accessibility-performance.yml",
+        "sha256": "2f02ff54af7d43b4d55c52e303a1c9b788a62b1a09c02e2824d987131e2d4b9f",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-context-permission.yml",
+        "sha256": "49d43bbb0475c520e5f3c2a4b4840495a931b99d816b73dfbc6c2f7df5668c18",
+        "scenarios": 10,
+        "aggregateJobs": ["trusted-context-permission-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-execution-location.yml",
+        "sha256": "f9b1e30e45bb24d1ed734649d1137a63d936a6881b99c9f8c8ec8d7d671ccc42",
+        "scenarios": 10,
+        "aggregateJobs": ["trusted-execution-location-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-host-recovery.yml",
+        "sha256": "0d9b17605c1d00dc795d086b78fdc349e75383044fd03446e72d29553080a3e7",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-live-provider.yml",
+        "sha256": "a30a5cfc9b8db88290c23abf447f4aa457267cd8d305f0cf7fc865e3396b8677",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-marketplace-supply-chain.yml",
+        "sha256": "209caef0d2d61bc8252f021b7c5b82132a94f9d77c6a5f5379b127004e1c01a4",
+        "scenarios": 10,
+        "aggregateJobs": ["trusted-supply-chain-aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-roadmap-safety.yml",
+        "sha256": "529b9fe24822d8e47763eb5964cffda536cfe9b89403c6b8c6c8501780b52f66",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/ide-extensions.yml",
+        "sha256": "fab8bd7ed8bb34a571444cf86633ed9e48e98eaf144addf77a440d4a270bb733",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/android-build.yml",
+        "sha256": "600e9263ba2d370bc3ef23c6c730f77aff844860e19d18d8c1af1ed3b7e2c8aa",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/python-agent-sdk.yml",
+        "sha256": "3ffe8d9d7f08962167a39abb5861f947f97b2548c2a483169e624e17b01f531e",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/agent-protocol-ci.yml",
+        "sha256": "2f76a9b3eafffbb6eb2e270e5a3ea02559f97873c8d1621a3090cf8b69bf2cbb",
+        "scenarios": 10,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/context-memory-kernel.yml",
+        "sha256": "7e75ac294ad62c52f8b9407f4d0293c8fb7df9051aab94ca7bd5b6420ee19585",
+        "scenarios": 12,
+        "aggregateJobs": [],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/codex-app-server-compatibility.yml",
+        "sha256": "9a2d8def63a4a945d68cbfb8f337a2b69ffdf63085bd2dc6c55400509273c02c",
+        "scenarios": 10,
+        "aggregateJobs": ["aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      },
+      {
+        "file": ".github/workflows/record-replay-ui-journey.yml",
+        "sha256": "fed58339a25117c11aa6f18459ebc70eedc6f5400a2062f4a41756f7ffeea897",
+        "scenarios": 10,
+        "aggregateJobs": ["aggregate"],
+        "prSuperseded": true,
+        "releaseAndManualPreserved": true,
+        "checksUnchanged": true
+      }
+    ],
+    "testReportSha256": "2dd0b9640b122b7aedfab48459c615ab3ca4607cce10cc5db72abf33f557a941",
+    "contractTests": {
+      "passed": 34,
+      "failed": 0
+    },
+    "actionlint": "passed",
+    "prettier": "passed"
+  },
+  "limitations": [
+    "Cancellation removes obsolete queue work; it does not prove the current candidate passed.",
+    "Source/version publish-staleness failures remain until candidate freeze.",
+    "The next pushed head must acquire its own complete required checks."
+  ]
+}

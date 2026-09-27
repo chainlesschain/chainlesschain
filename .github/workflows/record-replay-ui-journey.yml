@@ -112,7 +112,7 @@ jobs:
 
   aggregate:
     name: Exact-SHA three-platform replay gate
-    if: always()
+    if: always() && (github.event_name != 'pull_request' && github.event_name != 'push' || !cancelled())
     needs: replay
     runs-on: ubuntu-latest
     timeout-minutes: 10

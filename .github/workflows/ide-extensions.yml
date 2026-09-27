@@ -129,6 +129,11 @@ env:
   IDE_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   CC_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
+# Supersede obsolete PR checks; isolate pushes, tags, and manual runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   capability-manifest:
     name: Public IDE capability manifest (drift gate)

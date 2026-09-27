@@ -139,9 +139,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.commit_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   reliability:
@@ -327,7 +328,7 @@ jobs:
 
   session-message-fabric-aggregate:
     name: Cross-session message fabric aggregate
-    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'session-message')
+    if: always() && (github.event_name != 'pull_request' || !cancelled()) && (github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'session-message')
     needs: session-message-fabric
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -433,7 +434,7 @@ jobs:
 
   scheduler-reliability-soak-aggregate:
     name: Scheduler reliability soak aggregate
-    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
+    if: always() && (github.event_name != 'pull_request' || !cancelled()) && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
     needs: scheduler-reliability-soak
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -560,7 +561,7 @@ jobs:
 
   mcp-security-soak-aggregate:
     name: Malicious MCP security soak aggregate
-    if: always() && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
+    if: always() && (github.event_name != 'pull_request' || !cancelled()) && (github.event_name != 'workflow_dispatch' || inputs.component == 'all')
     needs: mcp-security-soak
     runs-on: ubuntu-latest
     timeout-minutes: 15

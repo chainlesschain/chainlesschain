@@ -613,3 +613,15 @@ Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 
 现有 `doctor` 的 execution section 新增 WSL1 限制诊断，说明目录编辑/移动可能丢失授权，并建议使用原生 Windows CLI。它不执行修复命令、不删除授权、不修改身份算法，也不将 WSL2 或其他系统的未命中视为完整支持证明。内核读取异常只报告固定错误，避免泄露原始错误内容。新增六个场景中，两个缺少诊断的反例先失败；实现后四文件回归为 Windows 63 通过 / 3 平台跳过、WSL 66 通过。ESLint 无错误（保留既有六个 unused warning）、Prettier 和进程调用清单检查通过。
 
 用户确认本机未开启虚拟化，Docker 暂时无法使用。本轮尝试启动的 Docker Desktop 和等待进程均已停止，不继续尝试本地容器，也不更改虚拟化设置。无编译器 x64 / ARM64 容器验收继续由托管 Actions 承担，当前没有新增通过回执。未升版本、未发布，20 组任务状态不变。
+
+### Actions：旧提交积压与取消后仍排队的汇总任务（2026-09-28）
+
+用户反馈最新 Actions 一直没有通过。核查发现同一分支大量旧提交任务仍在排队：首次快照为 168 个旧 PR run 排队及 6 个运行中；后续按 PR #383、来源仓库、分支和当前 head 的祖先关系筛选，锁定 173 个旧 PR run。根因之一是多项长矩阵按 commit SHA 分组且 `cancel-in-progress:false`，新提交不会替代旧提交；IDE Extensions、Android 等另有未设置 workflow 并发组的路径。
+
+先使用普通取消 API：171 个旧 PR run 接受取消，2 个已在请求前结束；另取消 2 个旧 feature push 检查。复查发现部分 run 又停在下游汇总队列：例如 `36338473230` 的 Windows 单元已 cancelled，但 `Trusted Local/WSL/Container/SSH location aggregate` 仍 queued；`36339344861` 同样只剩 `SESSION-RUNTIME three-OS aggregate`。这些 job 的 `if: always()` 使其在 workflow 取消后继续排队，普通取消响应不代表整个 run 已结束。
+
+对普通取消后仍活跃的 79 个旧 PR run、1 个旧 push run 使用 force-cancel，保留当前 head、手工验收、tag / 发布任务及其他分支。最后重新分页读取 queued / pending / in-progress，旧提交活跃数为 0，保留 `e931170f51` 的 40 个当前活跃 run。[清理及验证回执](./cli/evidence/pr-workflow-backlog-cleanup-2026-09-28.json)保存受保护提交、run ID、源码摘要与检查范围。该记录是本次清理时点，不代表后续新提交的 CI 通过。
+
+修正 27 个 workflow 中的 25 项并发策略：同一 PR 按 PR 号替代旧检查，现有非 PR 分组和手工 / 发布取消规则保持原样；原先无并发策略的非 PR run 使用独立 run ID。Context Memory 同时为同一 `feature/*` 分支 push 增加替代，保留 main、tag 和手工运行。14 个 job 级汇总条件在取消的自动检查上停止；普通失败仍进入汇总、step 级产物上传保持原条件，手工验收的原条件不变。
+
+使用 GitHub 官方 `@actions/expressions@0.3.61` 实际求值，272 个分组/隔离场景和 280 个汇总状态场景通过；逐个比较 YAML 数据，除并发策略及这些 job 的取消条件外，矩阵、权限、验证命令、超时、样本阈值与发布前置检查均未变化。27 个 workflow 的 actionlint / Prettier 通过，既有发布及 soak 合同 34 项通过。推送后仍需最终准确 SHA 的完整 CLI CI、Strict Sandbox 及 IDE 检查；源码已改但版本未递增的 publish-staleness 失败继续在候选冻结时处理，不能靠取消任务解除。

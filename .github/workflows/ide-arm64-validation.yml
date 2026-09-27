@@ -28,9 +28,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ide-arm64-validation-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ide-arm64-validation-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.commit_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   IDE_ARM64_RELEASE_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}

@@ -25,9 +25,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   compile-contract:
@@ -501,7 +502,7 @@ jobs:
 
   aggregate-signed-root-evidence:
     name: sealed x64 + arm64 release evidence
-    if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
+    if: always() && (github.event_name != 'pull_request' || !cancelled()) && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
     needs: [release-readiness, signed-root-live]
     runs-on: ubuntu-latest
     timeout-minutes: 15

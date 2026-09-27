@@ -189,7 +189,7 @@ jobs:
 
   aggregate:
     name: Exact-SHA three-platform compatibility gate
-    if: always()
+    if: always() && (github.event_name != 'pull_request' && github.event_name != 'push' || !cancelled())
     needs:
       - contracts
       - compatibility

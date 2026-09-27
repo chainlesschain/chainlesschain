@@ -19,9 +19,10 @@ on:
       - "packages/cli/__tests__/unit/npm-release-provenance.test.js"
       - "packages/cli/__tests__/unit/release-workflow-contract.test.js"
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: cli-npm-readback-${{ github.event.pull_request.number || inputs.version || github.ref }}
-  cancel-in-progress: false
+  group: cli-npm-readback-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.version || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   actions: read

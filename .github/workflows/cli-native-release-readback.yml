@@ -59,9 +59,10 @@ permissions:
   actions: read
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: cli-native-readback-${{ github.event.pull_request.number || inputs.tag || github.ref }}
-  cancel-in-progress: false
+  group: cli-native-readback-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   trusted-context:

@@ -42,9 +42,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.commit_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CONTEXT_PERMISSION_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
@@ -138,7 +139,7 @@ jobs:
   trusted-context-permission-aggregate:
     name: Trusted Context/Permission three-OS aggregate
     needs: [context-permission]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !cancelled())
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

@@ -26,9 +26,10 @@ on:
 permissions:
   contents: read
 
+# Supersede obsolete PR checks; preserve explicit-SHA and release runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || inputs.commit_sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   fairness-soak:
@@ -87,7 +88,7 @@ jobs:
 
   fairness-soak-aggregate:
     name: Team fairness soak aggregate
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !cancelled())
     needs: fairness-soak
     runs-on: ubuntu-latest
     timeout-minutes: 20
