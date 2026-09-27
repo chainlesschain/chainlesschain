@@ -259,6 +259,8 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 
 UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有宿主夹具 11 项 Vitest 测试通过；修改的 JS 文件 ESLint 无错误。真实 GUI 执行结果尚未取得，不能将准备完成计作宿主验收通过。
 
+首次 Windows IntelliJ 2024.2 实际宿主运行（源码 `bf5829ba7f`）失败于驱动读取第一个快照：`String.valueOf(frame.callJs(...))` 的 Java 泛型推断选中 `char[]` 重载，对实际 String 返回值强转失败。改为先接收 Object 再转换，UI 驱动重新编译通过。失败证据保留在 `.tmp/jetbrains-canonical-recovery-bf5829ba7f`，digest `sha256:a6e81d3ca9a256d5197d5a645f1d213baef5831d42d4bbfa1531153631f5badc`；该次未取得恢复验收结果，须用新提交重跑。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

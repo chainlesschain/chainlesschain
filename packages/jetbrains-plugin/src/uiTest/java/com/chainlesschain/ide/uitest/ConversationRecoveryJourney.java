@@ -58,7 +58,8 @@ final class ConversationRecoveryJourney {
         """;
 
     private JsonObject snapshot() {
-        return JsonParser.parseString(String.valueOf(frame.callJs(SNAPSHOT, true))).getAsJsonObject();
+        Object result = frame.callJs(SNAPSHOT, true);
+        return JsonParser.parseString(String.valueOf(result)).getAsJsonObject();
     }
     private static String text(JsonObject value, String key) { return value.get(key).getAsString(); }
     private JsonObject waitFor(String label, Predicate<JsonObject> condition) throws Exception {
