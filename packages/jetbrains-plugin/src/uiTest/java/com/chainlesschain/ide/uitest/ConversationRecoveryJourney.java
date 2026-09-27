@@ -53,7 +53,7 @@ final class ConversationRecoveryJourney {
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
             draftStatus:String(field(field(view,'drafts'),'status').getText()),
-            text:String(pane.getText()), visible:pane.isShowing(), savedRows:rows
+            text:String(pane.getDocument().getText(0,pane.getDocument().getLength())), visible:pane.isShowing(), savedRows:rows
         });
         """;
 
