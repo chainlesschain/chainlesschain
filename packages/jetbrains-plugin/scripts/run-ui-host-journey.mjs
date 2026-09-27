@@ -830,7 +830,7 @@ export async function runJourney(options) {
   }
   const gradleOptions = [
     `-PhostIdeVersion=${options.ideVersion}`,
-    `-PuiJourneyRunId=${path.basename(logRoot)}`,
+    `-PuiJourneyRunId=${path.basename(logRoot).replaceAll(".", "-")}`,
     ...(localIdePath ? [`-PhostIdeLocalPath=${localIdePath}`] : []),
     "--no-daemon",
     "--stacktrace",
