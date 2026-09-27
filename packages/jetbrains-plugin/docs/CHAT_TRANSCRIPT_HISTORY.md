@@ -46,6 +46,9 @@ old or unverifiable snapshot branches display **History begins at a saved snapsh
 are retained after a verified rewind. See the shared [CLI history contract and
 bounds](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md); complete ancestry
 across the remaining boundaries and durable/live incremental merging are pending.
+The CLI's [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md)
+is available separately. This reader still uses snapshot pages; it does not yet
+consume sync cursors or merge streamed partial output with canonical row IDs.
 
 Verification includes a shared real CLI page fixture also consumed by VS Code,
 real Java subprocess output/error/cancellation/timeout tests, Swing component

@@ -33,9 +33,14 @@ export function registerSessionShowSubcommand(session, program) {
       "--before <cursor>",
       "Load the previous page in the selected view (requires --json)",
     )
+    .option(
+      "--after <cursor>",
+      "Read new display messages after a history sync cursor (requires --json --history)",
+    )
     .action(async (id, options) => {
       let ctx = null;
       let shutdown = null;
+      let changesSessionId = id;
       try {
         let sess = null;
 
@@ -44,7 +49,15 @@ export function registerSessionShowSubcommand(session, program) {
         // if JSONL_SESSION is later disabled.
         const authority = resolveSessionAuthority(id);
         const jsonlId = authority?.readable ? authority.id : null;
+        changesSessionId = authority?.id || id;
         if (authority && !authority.readable) {
+          if (options.after !== undefined && options.json)
+            throw Object.assign(
+              new Error("Canonical transcript is unavailable"),
+              {
+                code: "SESSION_TRANSCRIPT_UNAVAILABLE",
+              },
+            );
           logger.error(
             `Session ${authority.id} has canonical persistence evidence but no readable transcript (${authority.presence}).`,
           );
@@ -52,11 +65,19 @@ export function registerSessionShowSubcommand(session, program) {
           return;
         }
         if (jsonlId) {
+          if (
+            options.after !== undefined &&
+            (!options.json || !options.history || options.before)
+          )
+            throw new Error(
+              "History changes require --json --history without --before",
+            );
           if (options.inputReceipt !== undefined) {
             if (
               !options.json ||
               options.pageSize ||
               options.before ||
+              options.after !== undefined ||
               options.history ||
               options.limit
             )
@@ -70,7 +91,12 @@ export function registerSessionShowSubcommand(session, program) {
             );
             return;
           }
-          if (options.pageSize || options.before || options.history) {
+          if (
+            options.pageSize ||
+            options.before ||
+            options.history ||
+            options.after !== undefined
+          ) {
             if (!options.json)
               throw new Error("Transcript pagination requires --json");
             if (options.limit)
@@ -89,6 +115,7 @@ export function registerSessionShowSubcommand(session, program) {
                 max: 100,
               }),
               cursor: options.before || null,
+              ...(options.after !== undefined ? { after: options.after } : {}),
             });
             console.log(JSON.stringify(page));
             return;
@@ -112,6 +139,7 @@ export function registerSessionShowSubcommand(session, program) {
           if (
             options.pageSize ||
             options.before ||
+            options.after !== undefined ||
             options.history ||
             options.inputReceipt !== undefined
           )
@@ -181,7 +209,19 @@ export function registerSessionShowSubcommand(session, program) {
           logger.log("");
         }
       } catch (error) {
-        logger.error(`Failed: ${error.message}`);
+        if (options.after !== undefined && options.json) {
+          console.log(
+            JSON.stringify({
+              schema: "chainlesschain.session-transcript-changes-error/v1",
+              sessionId: changesSessionId,
+              code:
+                typeof error.code === "string" && error.code.length <= 128
+                  ? error.code
+                  : "SESSION_TRANSCRIPT_CHANGES_FAILED",
+              error: String(error.message).slice(0, 1000),
+            }),
+          );
+        } else logger.error(`Failed: ${error.message}`);
         process.exitCode = 1;
       } finally {
         if (ctx && shutdown) await shutdown();

@@ -77,6 +77,16 @@ CLI timeline `restore-conversation` / `restore-both` 在既有同步会话事务
 
 本批最终 9 文件 252 项：250 通过、2 项既有 Windows 目录 fsync 条件跳过、0 失败。覆盖两种摘要后的原行身份与旧游标、连续摘要、system 来源移动/交叉/缺失、压缩前后摘要、分支幂等与父会话删除后读取、完整复制 fork、v1/v2 来源规则、非法证书/输出、映射超量及旧记录快照边界；同时回归 canonical store、checkpoint 权威路径、v1/v2 分页与输入回执。CLI 旅程在 Vitest 中直接执行实际 Commander 预览/确认实现，未启动已安装 CLI 子进程。修改源文件 ESLint 0 errors/warnings（只有根 package.json 既有 ESM 提示）；Prettier 与 diff 检查通过。本批未修改 IDE 实现、重建或发布插件；真实双 IDE GUI、durable/live 增量合并、精确提交跨平台 Actions、生产观察和发布验收仍未完成。
 
+### IDE-REPLAY 持久历史增量读取
+
+最新 v2 history 页增加 `syncCursor`，绑定 session/generation、实际 head/eventCount 和下一条显示 ordinal；旧页导航返回 null，不推进最新视图的同步基线。新增 `session show --json --history --after <cursor> --page-size 50 -- <id>`，返回 `chainlesschain.session-transcript-changes/v1`，包括 `from`、连续显示行、`nextCursor` 与 `hasMore`。每次返回游标之后的首个有界批次；达到条数或字节限制时将下一行留给续页，不能跳过大消息后返回更晚的小消息。
+
+消费者需按 session/event/item 身份去重重试；批次之间继续追加不会遗漏。只有元数据变化时可返回空行并推进 verified revision。规范压缩和已验证 timeline summary 保持游标；回退、快照替换、跨 session/fork 或错误版本明确失败，不能把新路径追加到旧 durable 视图。增量命令的 JSON 错误对象与非零退出码保留 stale/不可读/存储错误的区分，完整性错误不能伪装成普通游标过期。即使当前批次已满，仍验证完整尾链及 anchor；既有历史回退需要的同锁重扫不变。单批至多 100 行 / 1 MiB 行 JSON，单行至多 200K 字符，复杂度仍是 O(N) 验证，不声称索引或延迟改善。
+
+协议与消费规则见 [CLI transcript changes](../../packages/cli/docs/SESSION_TRANSCRIPT_CHANGES.md)。本批是后续 durable/live 合并所需的持久读取合同；双 IDE 仍使用快照页，尚未接入现场流输出与 canonical 行的稳定对应及增量合并，不将新增 API 计为 IDE-REPLAY 全部完成。
+
+相关 7 文件 89 项通过；补充 JSON 错误路径后，相关 2 文件 34 项再次通过，结果有重叠不相加。新增 9 项场景包括真实磁盘、Kernel 压缩、timeline 摘要/回退、批次间追加、重试、同正文身份、metadata-only 空页、快照覆盖、字节上限、跨 fork/错误游标及满页之后的坏尾链。独立 Node 进程实际运行仓库 CLI 入口，验证只读增量、参数互斥、stale JSON 与完整性错误区别；不是已安装发布包或真实 IDE 宿主。修改源文件 ESLint 0 errors/warnings（只有根 package.json 既有 ESM 提示）；Prettier、diff 与四项命令生成 drift check 通过。生成器记录顶层命令信息，本次子命令选项没有产生生成文件变更。真实宿主、当前跨平台、发布与完整增量合并仍待验收。
+
 ### IDE-REPLAY JetBrains 历史恢复与只读分页
 
 JetBrains 重建/选择已有会话读取 v2 page；Older 使用独立历史面板，Live 回到保留的现场正文，Latest 显式读取最新页。发送输入回到现场，不将新回复拼接到旧页。后台完成仍保留各自正文，迟到读取按 session/view epoch/request/live revision 隔离；活动 turn 推迟替换，重置/切换 session/关闭取消旧请求。自动更新保留选中文字及向上阅读位置；失败、interrupt 和退出提示不被自动快照清掉。历史替换不执行工具、不重发审批、不重复播报结束事件。
@@ -203,5 +213,6 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 | `0616351a36` | JetBrains v2 历史页、独立有界读取与取消、历史/现场切换、选择及滚动保留；共享 CLI fixture、真实子进程及 Swing 回归     |
 | `e873b93667` | 新 timeline 回退前缀来源校验、跨规范压缩的有效祖先范围、同锁有界重扫与旧游标失效；真实 CLI / store 回归               |
 | `c5cff5f5df` | 分支流式复制独立显示历史、上下文来源与创建摘要校验、失败重试和父会话删除后读取；完整文字分片及 v1/v2 页字节边界修复   |
+| `f60236db18` | timeline 摘要来源证书、原始正文与游标保留、system 摘要依赖的回退检查及 branch-history v2；连续摘要/分支/压缩回归      |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。

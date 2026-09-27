@@ -22,6 +22,7 @@ import {
 
 const HASH = /^[a-f0-9]{64}$/u;
 const SCHEMA = "chainlesschain.session-transcript-page/v2";
+const CHANGES_SCHEMA = "chainlesschain.session-transcript-changes/v1";
 const MAX_PAGE_BYTES = 1024 * 1024;
 const MAX_HISTORY_RANGES = 16384;
 
@@ -90,29 +91,46 @@ function staleCursor() {
 
 export function createSessionTranscriptHistoryProjection(
   sessionId,
-  { limit = 50, cursor = null } = {},
+  { limit = 50, cursor = null, after = null } = {},
   branch = null,
 ) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
     throw new TypeError("transcript page limit must be 1–100");
+  if (cursor !== null && after !== null)
+    throw new TypeError(
+      "History before and after cursors are mutually exclusive",
+    );
+  const incremental = after !== null;
+  const encodedCursor = incremental ? after : cursor;
   let anchor = null;
-  if (cursor !== null) {
-    if (typeof cursor !== "string" || !/^[\w-]{1,1024}$/u.test(cursor))
+  if (encodedCursor !== null) {
+    if (
+      typeof encodedCursor !== "string" ||
+      !/^[\w-]{1,1024}$/u.test(encodedCursor)
+    )
       throw new TypeError("invalid transcript history cursor");
     try {
-      anchor = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+      anchor = JSON.parse(
+        Buffer.from(encodedCursor, "base64url").toString("utf8"),
+      );
     } catch {
       throw new TypeError("invalid transcript history cursor");
     }
     if (
-      anchor?.v !== 2 ||
+      !anchor ||
       anchor.sessionId !== sessionId ||
       !HASH.test(anchor.generation) ||
       !HASH.test(anchor.revision) ||
       !Number.isSafeInteger(anchor.eventCount) ||
       anchor.eventCount < 1 ||
-      !Number.isSafeInteger(anchor.before) ||
-      anchor.before < 1
+      (incremental
+        ? anchor.v !== 1 ||
+          anchor.view !== "history-sync" ||
+          !Number.isSafeInteger(anchor.offset) ||
+          anchor.offset < 0
+        : anchor.v !== 2 ||
+          !Number.isSafeInteger(anchor.before) ||
+          anchor.before < 1)
     )
       throw new TypeError("invalid transcript history cursor");
   }
@@ -121,6 +139,7 @@ export function createSessionTranscriptHistoryProjection(
   let count = 0;
   let bytes = 0;
   let rows = [];
+  let incrementalFull = false;
   let anchored = !anchor;
   let coverage = { kind: "from-origin", boundaryEvent: null, reason: null };
   const origins = createSessionHistoryOrigins();
@@ -140,10 +159,22 @@ export function createSessionTranscriptHistoryProjection(
     });
   }
   function collect(message, event, index, ordinal) {
-    if (anchor && ordinal >= anchor.before) return;
+    if (incremental) {
+      if (ordinal < anchor.offset || incrementalFull) return;
+    } else if (anchor && ordinal >= anchor.before) return;
     const row = displayRow(message, event, index, ordinal);
+    const rowBytes = Buffer.byteLength(JSON.stringify(row));
+    if (
+      incremental &&
+      (rows.length >= limit || bytes + rowBytes > MAX_PAGE_BYTES)
+    ) {
+      // Keep the FIRST contiguous prefix after the cursor. Skipping an oversized
+      // next row and admitting later small rows would permanently omit messages.
+      incrementalFull = true;
+      return;
+    }
     rows.push(row);
-    bytes += Buffer.byteLength(JSON.stringify(row));
+    bytes += rowBytes;
     while (rows.length > limit || bytes > MAX_PAGE_BYTES)
       bytes -= Buffer.byteLength(JSON.stringify(rows.shift()));
   }
@@ -175,6 +206,7 @@ export function createSessionTranscriptHistoryProjection(
     count = cutoff;
     rows = [];
     bytes = 0;
+    incrementalFull = false;
     needsReplay = true;
   }
   function boundary(event, reason) {
@@ -253,6 +285,7 @@ export function createSessionTranscriptHistoryProjection(
           count = 0;
           bytes = 0;
           rows = [];
+          incrementalFull = false;
           ranges = [];
           needsReplay = false;
           origins.snapshot(messages);
@@ -275,7 +308,7 @@ export function createSessionTranscriptHistoryProjection(
       if (anchor && eventCount === anchor.eventCount) {
         anchored =
           event.hash === anchor.revision &&
-          anchor.before <= count &&
+          (incremental ? anchor.offset : anchor.before) <= count &&
           generation === anchor.generation;
       }
     },
@@ -333,17 +366,51 @@ export function createSessionTranscriptHistoryProjection(
         // Even a rewind into a prefix older than the page buffer stays bounded.
         rows = [];
         bytes = 0;
+        incrementalFull = false;
         visitSelected(authority, collect);
       }
       const first = rows[0]?.ordinal ?? 0;
-      return {
-        schema: SCHEMA,
+      const snapshot = {
         sessionId,
         generation,
         revision: authority.headHash,
         eventCount: authority.eventCount,
         totalMessages: count,
         messages: rows,
+        contextOnly: false,
+        coverage,
+      };
+      const syncCursor = (offset) =>
+        Buffer.from(
+          JSON.stringify({
+            v: 1,
+            view: "history-sync",
+            sessionId,
+            generation,
+            revision: authority.headHash,
+            eventCount: authority.eventCount,
+            offset,
+          }),
+        ).toString("base64url");
+      if (incremental) {
+        const nextOffset = rows.length
+          ? rows.at(-1).ordinal + 1
+          : anchor.offset;
+        return {
+          schema: CHANGES_SCHEMA,
+          ...snapshot,
+          from: anchor.offset,
+          nextCursor: syncCursor(nextOffset),
+          hasMore: nextOffset < count,
+        };
+      }
+      return {
+        schema: SCHEMA,
+        ...snapshot,
+        // Only the latest page establishes an update baseline. Older navigation
+        // must not advance it past messages the latest view has not received.
+        syncCursor:
+          !anchor && authority.eventCount > 0 ? syncCursor(count) : null,
         nextCursor:
           first > 0
             ? Buffer.from(
@@ -357,8 +424,6 @@ export function createSessionTranscriptHistoryProjection(
                 }),
               ).toString("base64url")
             : null,
-        contextOnly: false,
-        coverage,
       };
     },
   };
