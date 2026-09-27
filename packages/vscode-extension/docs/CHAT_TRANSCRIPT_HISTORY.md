@@ -24,14 +24,37 @@ cut the original archive before the selected user turn. Retained rows keep their
 IDs; rewinds invalidate old cursors. A rescan under the same lock can recover a
 prefix older than the page buffer without reviving discarded paths.
 
+New timeline branches copy the selected display archive into their own verified
+chain. Archive records are separate from model context and execution events;
+permissions, input receipts, tool requests and usage authority are not inherited.
+The copied context keeps the previous branch semantics. Context-origin markers
+support later compaction, rewind and nested branches. Deleting the parent does
+not remove the child's copied history, and each branch has its own row IDs.
+
+Archive text is copied in 128K-character chunks, preserving surrogate pairs and
+the full display text beyond the page's rendering cap. A logical row is identified
+by its final chunk event; its provenance points to the immediate parent row.
+Readers validate chunk ordering, source identity, counts, context message digests
+and the complete creation digest. They assemble at most 16 MiB of text / 256 chunks
+per row, within the canonical source-record bound. Images retain their display
+placeholder; this is not a copy of all original media or tool-event payloads.
+
+Creation streams under the source and destination locks and revalidates the
+source. Exact crash prefixes can resume; incomplete copies remain unpublished,
+and an existing higher authority anchor cannot be lowered. Existing legacy
+snapshot branches remain idempotent and are not rewritten into new histories.
+This requires several full scans and per-record durable appends; it does not
+establish a branch-creation latency SLO.
+
 Legacy compact snapshots, rewinds without verifiable prefix ancestry, timeline
-summary actions and snapshot branches establish an explicit history boundary.
+summary actions and old or unverifiable snapshot branches establish a history boundary.
 The view says **History begins at a saved snapshot**. Equal text does not establish
 ancestry. A verified rewind retains any earlier snapshot coverage restriction.
 Complete ancestry across the remaining boundaries is still pending.
 
 Each page retains at most 100 rows / 1 MiB of row JSON, with 200,000 characters per
-row. The host requests 50 rows and caps CLI output at 2 MiB. Full hash-chain and
+row. Escaping can shorten a row further to meet its JSON byte budget; the row
+remains present with `truncated=true`. The host requests 50 rows and caps CLI output at 2 MiB. Full hash-chain and
 anti-rollback verification still scans the transcript. This is bounded snapshot
 paging, not an indexed query or durable/live incremental merge. During an active
 turn the host retains its bounded live cache, then reloads the canonical snapshot.

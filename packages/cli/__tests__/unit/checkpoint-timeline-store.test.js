@@ -136,7 +136,32 @@ describe("checkpoint timeline atomic session commit", () => {
         );
         return JSON.parse(output.mock.calls.at(-1)[0]);
       };
-      const timeline = await invoke(["timeline"]);
+      let timeline = await invoke(["timeline"]);
+      const branchSubmission = timeline.entries[0].actions.find(
+        (action) => action.action === "branch",
+      ).submission;
+      const branchPreview = await invoke([
+        "action",
+        "--preview",
+        "--submission",
+        JSON.stringify(branchSubmission),
+      ]);
+      const branchResult = await invoke([
+        "action",
+        "--confirm",
+        "--submission",
+        JSON.stringify(branchPreview.confirmationSubmission),
+      ]);
+      expect(branchResult.ok).toBe(true);
+      const branchPage = readSessionTranscriptHistory(
+        branchResult.result.branch.branchSessionId,
+      );
+      expect(branchPage.messages.map((row) => row.text)).toEqual(
+        original.messages.slice(0, -1).map((row) => row.text),
+      );
+      expect(branchPage.coverage.kind).toBe("from-origin");
+      expect(store.readVerifiedMessages(id)).toEqual(active);
+      timeline = await invoke(["timeline"]);
       const submission = timeline.entries[0].actions.find(
         (action) => action.action === "restore-conversation",
       ).submission;

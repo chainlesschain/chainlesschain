@@ -1,5 +1,12 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Command } from "commander";
@@ -16,6 +23,7 @@ const store = await import("../../src/harness/jsonl-session-store.js");
 const {
   readSessionTranscriptHistory,
   createSessionTranscriptHistoryProjection,
+  createSessionTranscriptBranchProjection,
 } = await import("../../src/lib/session-transcript-history.js");
 const { readSessionTranscriptPage } =
   await import("../../src/lib/session-transcript-page.js");
@@ -88,8 +96,379 @@ function rewind(id, retainedMessageCount, patch = {}) {
     }),
   );
 }
+function historyBranch(parentSessionId, branchSessionId, retainedMessageCount) {
+  const messages = store
+    .readVerifiedMessages(parentSessionId)
+    .slice(0, retainedMessageCount);
+  const head = store.findLatestEvent(parentSessionId, null).hash;
+  return store.withSessionAuthorityTransaction(
+    parentSessionId,
+    head,
+    (transaction) =>
+      transaction.readProjection(() =>
+        createSessionTranscriptBranchProjection(
+          parentSessionId,
+          messages,
+          (history) =>
+            store.createBranchSession({
+              parentSessionId,
+              branchSessionId,
+              parentTurnId: "selected",
+              messages,
+              history,
+            }),
+        ),
+      ),
+  );
+}
 
 describe("canonical display history", () => {
+  it("keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback", () => {
+    const parent = "history-crash-parent";
+    const child = "history-crash-child";
+    start(parent, 2);
+    const metaPath = join(root, "home", "sessions", `${child}.meta.json`);
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterTranscriptAppend = ({
+      sessionId,
+      type,
+    }) => {
+      if (sessionId === child && type === "session_history_message")
+        throw new Error("archive crash");
+    };
+    try {
+      expect(() => historyBranch(parent, child, 2)).toThrow("archive crash");
+      expect(existsSync(metaPath)).toBe(false);
+      expect(() => readSessionTranscriptHistory(child)).toThrow();
+      store._sessionScaleFaultHooks.afterTranscriptAppend = null;
+      store._sessionScaleFaultHooks.beforeTranscriptAppend = ({
+        sessionId,
+        type,
+      }) => {
+        if (sessionId === child && type === "session_history_message")
+          throw new Error("retry before append");
+      };
+      expect(() => historyBranch(parent, child, 2)).toThrow(
+        "retry before append",
+      );
+      expect(existsSync(metaPath)).toBe(false);
+      expect(() => store.readVerifiedMessages(child)).toThrow();
+    } finally {
+      store._sessionScaleFaultHooks.afterTranscriptAppend = null;
+      store._sessionScaleFaultHooks.beforeTranscriptAppend = null;
+      delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+    }
+    expect(historyBranch(parent, child, 2).created).toBe(true);
+    expect(texts(readSessionTranscriptHistory(child))).toEqual(
+      texts(readSessionTranscriptHistory(parent)).slice(0, 2),
+    );
+    store.appendUserMessage(child, "later branch turn");
+    const meta = readFileSync(metaPath, "utf8");
+    const file = join(root, "home", "sessions", `${child}.jsonl`);
+    const lines = readFileSync(file, "utf8").trimEnd().split(/\r?\n/u);
+    writeFileSync(file, lines.slice(0, -1).join("\n") + "\n", "utf8");
+    expect(() => historyBranch(parent, child, 2)).toThrow();
+    expect(readFileSync(metaPath, "utf8")).toBe(meta);
+  });
+
+  it("does not publish a branch when its source changes during the copy", () => {
+    const parent = "history-source-mutated";
+    const child = "history-source-mutated-child";
+    start(parent, 2);
+    let injected = false;
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterTranscriptAppend = ({
+      sessionId,
+      type,
+    }) => {
+      if (
+        sessionId === child &&
+        type === "session_history_message" &&
+        !injected
+      ) {
+        injected = true;
+        appendFileSync(
+          join(root, "home", "sessions", `${parent}.jsonl`),
+          "{}\n",
+        );
+      }
+    };
+    try {
+      expect(() => historyBranch(parent, child, 2)).toThrow();
+      expect(injected).toBe(true);
+      expect(
+        existsSync(join(root, "home", "sessions", `${child}.meta.json`)),
+      ).toBe(false);
+      expect(() => store.readVerifiedMessages(child)).toThrow();
+    } finally {
+      store._sessionScaleFaultHooks.afterTranscriptAppend = null;
+      delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+    }
+  });
+
+  it("preserves legacy branch idempotency and inherited snapshot coverage", () => {
+    const id = "history-legacy-import";
+    start(id, 2);
+    const messages = store.readVerifiedMessages(id).slice(0, 2);
+    store.createBranchSession({
+      parentSessionId: id,
+      branchSessionId: "legacy-child",
+      parentTurnId: "selected",
+      messages,
+    });
+    const before = store.readVerifiedEvents("legacy-child");
+    expect(historyBranch(id, "legacy-child", 2).created).toBe(false);
+    expect(store.readVerifiedEvents("legacy-child")).toEqual(before);
+    expect(readSessionTranscriptHistory("legacy-child").coverage.reason).toBe(
+      "branch-snapshot",
+    );
+    store.appendUserMessage("legacy-child", "new branch point");
+    historyBranch("legacy-child", "legacy-grandchild", 2);
+    expect(
+      readSessionTranscriptHistory("legacy-grandchild").coverage.reason,
+    ).toBe("branch-snapshot");
+  });
+
+  it("carries truncation through inheritance and keeps escaped text within a page", () => {
+    const id = "history-large-import";
+    store.startSession(id, {});
+    store.appendUserMessage(id, "\u0001".repeat(210000));
+    store.appendAssistantMessage(id, "answer");
+    store.appendUserMessage(id, "branch point");
+    const original = readSessionTranscriptHistory(id, { limit: 1 });
+    historyBranch(id, "large-child", 2);
+    const latest = readSessionTranscriptHistory("large-child", { limit: 1 });
+    const older = readSessionTranscriptHistory("large-child", {
+      limit: 1,
+      cursor: latest.nextCursor,
+    });
+    expect(older.messages).toHaveLength(1);
+    expect(older.messages[0].truncated).toBe(true);
+    expect(older.messages[0].text.length).toBeGreaterThan(100000);
+    expect(
+      Buffer.byteLength(JSON.stringify(older.messages[0])),
+    ).toBeLessThanOrEqual(1024 * 1024);
+    parseTranscriptPage(JSON.stringify(older), "large-child");
+    const fullInheritedText = (sessionId) =>
+      store
+        .readVerifiedEvents(sessionId)
+        .filter(
+          (event) =>
+            event.type === "session_history_message" &&
+            event.data.role === "user",
+        )
+        .map((event) => event.data.text)
+        .join("");
+    expect(fullInheritedText("large-child")).toBe("\u0001".repeat(210000));
+    store.appendUserMessage("large-child", "next branch point");
+    historyBranch("large-child", "large-grandchild", 2);
+    expect(fullInheritedText("large-grandchild")).toBe("\u0001".repeat(210000));
+    expect(() =>
+      readSessionTranscriptHistory("large-child", {
+        cursor: original.nextCursor,
+      }),
+    ).toThrow();
+  });
+
+  it("validates imported completion digests and context origins before returning a page", () => {
+    const id = "history-import-contract";
+    start(id, 2);
+    historyBranch(id, "history-import-contract-child", 2);
+    const events = store.readVerifiedEvents("history-import-contract-child");
+    for (const change of [
+      (copy) => {
+        copy.find(
+          (event) => event.type === "session_history_message",
+        ).data.text = "changed";
+      },
+      (copy) => {
+        copy.find(
+          (event) => event.type === "session_history_origin",
+        ).data.origin.last = 100;
+      },
+      (copy) => {
+        copy.pop();
+      },
+      (copy) => {
+        copy.find(
+          (event) => event.type === "session_history_message",
+        ).data.part = 1;
+      },
+      (copy) => {
+        copy.push(copy.at(-1));
+      },
+    ]) {
+      const copy = structuredClone(events);
+      change(copy);
+      const projection = createSessionTranscriptHistoryProjection(
+        "history-import-contract-child",
+      );
+      expect(() => {
+        copy.forEach((event) => projection.accept(event));
+        projection.finish({
+          headHash: copy.at(-1).hash,
+          eventCount: copy.length,
+        });
+      }).toThrow("incomplete or inconsistent");
+    }
+  });
+
+  it("preserves emoji at archive chunk boundaries", () => {
+    const id = "history-emoji-chunks";
+    store.startSession(id, {});
+    const text = "a".repeat(128 * 1024 - 1) + "😀" + "b".repeat(128 * 1024);
+    store.appendUserMessage(id, text);
+    store.appendAssistantMessage(id, "answer");
+    store.appendUserMessage(id, "branch point");
+    historyBranch(id, "emoji-child", 2);
+    const chunks = store
+      .readVerifiedEvents("emoji-child")
+      .filter(
+        (event) =>
+          event.type === "session_history_message" &&
+          event.data.role === "user",
+      );
+    expect(chunks).toHaveLength(3);
+    expect(chunks.map((event) => event.data.text).join("")).toBe(text);
+    expect(chunks[1].data.text.startsWith("😀")).toBe(true);
+    expect(
+      readSessionTranscriptHistory("emoji-child").messages[0].truncated,
+    ).toBe(true);
+  });
+  it("makes a compacted branch independent of its parent, without inheriting execution authority", async () => {
+    const id = "history-import-parent";
+    start(id, 6);
+    store.appendUserMessage(id, "selected turn");
+    store.appendAuthorityEvent(id, "permission_grant", {
+      allow: "all",
+      marker: "must-not-inherit",
+    });
+    const original = readSessionTranscriptHistory(id);
+    await compact(id, "branch-parent-compact");
+    const active = store.readVerifiedMessages(id);
+    const parentEvents = store.readVerifiedEvents(id);
+    const branchId = "history-import-child";
+    expect(historyBranch(id, branchId, active.length - 1).created).toBe(true);
+    expect(store.readVerifiedEvents(id)).toEqual(parentEvents);
+    const branch = readSessionTranscriptHistory(branchId, { limit: 100 });
+    expect(texts(branch)).toEqual(texts(original).slice(0, -1));
+    expect(branch.coverage.kind).toBe("from-origin");
+    expect(store.readVerifiedMessages(branchId)).toEqual(active.slice(0, -1));
+    expect(
+      store
+        .readVerifiedEvents(branchId)
+        .some((event) => event.type === "permission_grant"),
+    ).toBe(false);
+    expect(branch.messages[0].id).not.toBe(original.messages[0].id);
+    expect(historyBranch(id, branchId, active.length - 1).created).toBe(false);
+    store.appendUserMessage(branchId, "branch turn");
+    store.appendAssistantMessage(branchId, "branch answer");
+    expect(historyBranch(id, branchId, active.length - 1).created).toBe(false);
+    store.deleteJsonlSession(id);
+    const after = readSessionTranscriptHistory(branchId, { limit: 100 });
+    expect(texts(after)).toEqual([
+      ...texts(branch),
+      "branch turn",
+      "branch answer",
+    ]);
+    parseTranscriptPage(JSON.stringify(after), branchId);
+    const fork = store.forkSession(branchId, {
+      requestId: "history-import-full-fork",
+    });
+    expect(
+      texts(
+        readSessionTranscriptHistory(typeof fork === "string" ? fork : fork.id),
+      ),
+    ).toEqual(texts(after));
+  });
+
+  it("retains summary ancestry across nested branches and a later rewind", async () => {
+    const id = "history-nested-parent";
+    store.startSession(id, {});
+    store.appendUserMessage(id, "old " + "x".repeat(2000));
+    store.appendAssistantMessage(id, "answer " + "y".repeat(2000));
+    store.appendUserMessage(id, "branch point");
+    const original = readSessionTranscriptHistory(id);
+    await compact(id, "nested-summary", {
+      modelWindowTokens: 400,
+      summarizer: async (parents, context) => ({
+        items: [
+          createSummaryContextItem({
+            messages: [{ role: "assistant", content: "summary" }],
+            parents,
+            operationId: context.operationId,
+            now: "2026-09-27T00:00:00.000Z",
+          }),
+        ],
+        usageReceipt: { outcome: "settled", callId: "nested-summary" },
+      }),
+    });
+    historyBranch(id, "nested-child", 1);
+    expect(texts(readSessionTranscriptHistory("nested-child"))).toEqual(
+      texts(original).slice(0, -1),
+    );
+    store.appendUserMessage("nested-child", "new question");
+    store.appendAssistantMessage("nested-child", "new answer");
+    await compact("nested-child", "nested-child-compact", {
+      modelWindowTokens: 900,
+    });
+    historyBranch("nested-child", "nested-grandchild", 1);
+    expect(texts(readSessionTranscriptHistory("nested-grandchild"))).toEqual(
+      texts(original).slice(0, -1),
+    );
+    rewind("nested-child", 1);
+    expect(texts(readSessionTranscriptHistory("nested-child"))).toEqual(
+      texts(original).slice(0, -1),
+    );
+    expect(store.readVerifiedMessages("nested-grandchild")).toEqual([
+      { role: "assistant", content: "summary" },
+    ]);
+  });
+
+  it("expires source capabilities and prevents source writes inside a read projection", () => {
+    const id = "history-capability";
+    start(id, 2);
+    const messages = store.readVerifiedMessages(id).slice(0, 2);
+    let capability;
+    let reader;
+    const head = store.findLatestEvent(id, null).hash;
+    store.withSessionAuthorityTransaction(id, head, (transaction) => {
+      reader = transaction.readProjection;
+      transaction.readProjection(() =>
+        createSessionTranscriptBranchProjection(id, messages, (history) => {
+          capability = history;
+          expect(() => transaction.appendAuthorityEvent("invalid", {})).toThrow(
+            "during",
+          );
+          expect(() => transaction.readProjection(() => ({}))).toThrow(
+            "closed",
+          );
+        }),
+      );
+    });
+    expect(capability).toBeTruthy();
+    expect(() =>
+      createSessionTranscriptBranchProjection(id, messages, async () => {}),
+    ).toThrow("synchronous");
+    expect(() => reader(() => ({}))).toThrow("closed");
+    expect(() =>
+      store.createBranchSession({
+        branchSessionId: "expired-child",
+        parentSessionId: id,
+        messages,
+        history: capability,
+      }),
+    ).toThrow("expired");
+    expect(() =>
+      store.createBranchSession({
+        branchSessionId: "forged-child",
+        parentSessionId: id,
+        messages,
+        history: {},
+      }),
+    ).toThrow("expired");
+    expect(store.sessionExists("expired-child")).toBe(false);
+  });
   it("accepts the shared real CLI history fixture used by the JetBrains reader", () => {
     const page = parseTranscriptPage(
       readFileSync(

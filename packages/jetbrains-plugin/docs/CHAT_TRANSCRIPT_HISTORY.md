@@ -33,9 +33,12 @@ headings, with 200K characters per row. The next live append resumes the live ca
 History is plain selectable text, including explicit notices for shortened rows.
 Canonical compaction keeps prior original messages. New CLI timeline rewinds can
 retain verified ancestors through indexed compaction sources and summary parent
-digests, while invalidating old cursors and excluding discarded paths. Older or
-unverifiable rewinds, timeline summary actions, legacy replacements and snapshot
-branches display **History begins at a saved snapshot**. Earlier coverage limits
+digests, while invalidating old cursors and excluding discarded paths. New CLI
+timeline branches carry their selected display archive independently of the
+parent, including complete text stored in chunks, and support subsequent rewind
+or nested branching. The view still applies its normal page rendering limits.
+Older or unverifiable rewinds, timeline summary actions, legacy replacements and
+old or unverifiable snapshot branches display **History begins at a saved snapshot**. Earlier coverage limits
 are retained after a verified rewind. See the shared [CLI history contract and
 bounds](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md); complete ancestry
 across the remaining boundaries and durable/live incremental merging are pending.

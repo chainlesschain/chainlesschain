@@ -91,6 +91,13 @@ import {
 } from "../lib/execution-location-result.js";
 import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-location-result-store.js";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
+import {
+  BRANCH_HISTORY_MESSAGE,
+  BRANCH_HISTORY_ORIGIN,
+  resolveSessionBranchHistory,
+  branchMessageDigest,
+  createBranchHistoryImport,
+} from "../lib/session-branch-history.js";
 
 const { verifySkillInvocationReceipt } = skillInvocationReceipt;
 
@@ -2187,10 +2194,36 @@ export function withSessionAuthorityTransaction(
       let appendAttempts = 0;
       let writerActive = true;
       let writerPoisoned = false;
+      let readingProjection = false;
       let transactionRecoveryEvidence = null;
       const writer = Object.freeze({
         initialHeadHash: currentHeadHash,
         currentHeadHash: () => currentHeadHash,
+        readProjection(createProjection) {
+          if (!writerActive || writerPoisoned || readingProjection) {
+            throw new Error(
+              "Session authority reader lease is closed or poisoned",
+            );
+          }
+          readingProjection = true;
+          try {
+            const result = readVerifiedProjectionLocked(
+              sessionId,
+              filePath,
+              createProjection,
+              {
+                expectedHeadHash: currentHeadHash,
+              },
+            );
+            if (result && typeof result.then === "function")
+              throw new TypeError(
+                "Session authority projection must be synchronous",
+              );
+            return result;
+          } finally {
+            readingProjection = false;
+          }
+        },
         retainRecoveryEvidence(evidence) {
           if (!writerActive) {
             const error = new Error(
@@ -2209,6 +2242,10 @@ export function withSessionAuthorityTransaction(
           return transactionRecoveryEvidence;
         },
         appendAuthorityEvent(type, data) {
+          if (readingProjection)
+            throw new Error(
+              "Cannot append during a session authority projection",
+            );
           if (!writerActive) {
             const error = new Error(
               `Session authority transaction is already closed: ${sessionId}`,
@@ -3521,109 +3558,12 @@ export function readVerifiedProjection(
   return withFileLock(
     filePath,
     () => {
-      const projection = createProjection();
-      if (
-        !projection ||
-        typeof projection.accept !== "function" ||
-        typeof projection.finish !== "function"
-      ) {
-        throw new TypeError(
-          "Verified transcript projection must provide accept() and finish()",
-        );
-      }
-      if (!existsSync(filePath)) {
-        const presence = getSessionPresence(sessionId);
-        if (presence === SESSION_PRESENCE.TOMBSTONED) {
-          throw sessionDeletedError(sessionId);
-        }
-        if (presence === SESSION_PRESENCE.MISSING_TRANSCRIPT) {
-          throw unverifiedTranscriptError(
-            sessionId,
-            missingTranscriptVerification(),
-          );
-        }
-        return projection.finish(
-          Object.freeze({
-            headHash: null,
-            eventCount: 0,
-            readMessages: () => [],
-          }),
-        );
-      }
-      const structure = createSessionTranscriptStructureProjection(sessionId);
-      const verification = verifyTranscriptFile(filePath, {
-        ioMetrics: options.ioMetrics,
-        onVerifiedEvent: (event) => {
-          structure.accept(event);
-          projection.accept(event);
-        },
-      });
-      assertVerifiedTranscriptAnchor(sessionId, verification);
-      structure.finish({ assertValid: true });
-      let replayLeaseActive = true;
-      let replaying = false;
-      try {
-        return projection.finish(
-          Object.freeze({
-            headHash: verification.lastHash,
-            eventCount: verification.chainedEvents,
-            readMessages: () =>
-              rebuildVerifiedMessagesFromFile(filePath, {
-                ioMetrics: options.messageIoMetrics,
-              }),
-            // Rewinds can discard the entire bounded page buffer. A second scan
-            // collects the selected prefix without retaining the archive in RAM.
-            // This lease is synchronous and expires before releasing the lock.
-            replayEvents(accept) {
-              if (!replayLeaseActive || replaying) {
-                throw new Error(
-                  "Verified replay lease is closed or already in use",
-                );
-              }
-              if (
-                typeof accept !== "function" ||
-                accept.constructor?.name === "AsyncFunction"
-              ) {
-                throw new TypeError(
-                  "Verified replay requires a synchronous visitor",
-                );
-              }
-              replaying = true;
-              try {
-                const replayStructure =
-                  createSessionTranscriptStructureProjection(sessionId);
-                const replayVerification = verifyTranscriptFile(filePath, {
-                  ioMetrics: options.replayIoMetrics,
-                  onVerifiedEvent(event) {
-                    replayStructure.accept(event);
-                    const result = accept(event);
-                    if (result && typeof result.then === "function")
-                      throw new TypeError(
-                        "Verified replay visitor must be synchronous",
-                      );
-                  },
-                });
-                assertVerifiedTranscriptAnchor(sessionId, replayVerification);
-                replayStructure.finish({ assertValid: true });
-                if (
-                  replayVerification.lastHash !== verification.lastHash ||
-                  replayVerification.chainedEvents !==
-                    verification.chainedEvents
-                ) {
-                  throw unverifiedTranscriptError(
-                    sessionId,
-                    replayVerification,
-                  );
-                }
-              } finally {
-                replaying = false;
-              }
-            },
-          }),
-        );
-      } finally {
-        replayLeaseActive = false;
-      }
+      return readVerifiedProjectionLocked(
+        sessionId,
+        filePath,
+        createProjection,
+        options,
+      );
     },
     {
       failIfUnavailable: true,
@@ -3634,6 +3574,119 @@ export function readVerifiedProjection(
       yieldAfterReleaseMs: 2,
     },
   );
+}
+
+function readVerifiedProjectionLocked(
+  sessionId,
+  filePath,
+  createProjection,
+  options = {},
+) {
+  const projection = createProjection();
+  if (
+    !projection ||
+    typeof projection.accept !== "function" ||
+    typeof projection.finish !== "function"
+  ) {
+    throw new TypeError(
+      "Verified transcript projection must provide accept() and finish()",
+    );
+  }
+  if (!existsSync(filePath)) {
+    const presence = getSessionPresence(sessionId);
+    if (presence === SESSION_PRESENCE.TOMBSTONED) {
+      throw sessionDeletedError(sessionId);
+    }
+    if (presence === SESSION_PRESENCE.MISSING_TRANSCRIPT) {
+      throw unverifiedTranscriptError(
+        sessionId,
+        missingTranscriptVerification(),
+      );
+    }
+    return projection.finish(
+      Object.freeze({
+        headHash: null,
+        eventCount: 0,
+        readMessages: () => [],
+      }),
+    );
+  }
+  const structure = createSessionTranscriptStructureProjection(sessionId);
+  const verification = verifyTranscriptFile(filePath, {
+    ioMetrics: options.ioMetrics,
+    onVerifiedEvent: (event) => {
+      structure.accept(event);
+      projection.accept(event);
+    },
+  });
+  assertVerifiedTranscriptAnchor(sessionId, verification);
+  structure.finish({ assertValid: true });
+  if (
+    options.expectedHeadHash !== undefined &&
+    verification.lastHash !== options.expectedHeadHash
+  ) {
+    throw unverifiedTranscriptError(sessionId, verification);
+  }
+  let replayLeaseActive = true;
+  let replaying = false;
+  try {
+    return projection.finish(
+      Object.freeze({
+        headHash: verification.lastHash,
+        eventCount: verification.chainedEvents,
+        readMessages: () =>
+          rebuildVerifiedMessagesFromFile(filePath, {
+            ioMetrics: options.messageIoMetrics,
+          }),
+        // Rewinds can discard the entire bounded page buffer. A second scan
+        // collects the selected prefix without retaining the archive in RAM.
+        // This lease is synchronous and expires before releasing the lock.
+        replayEvents(accept) {
+          if (!replayLeaseActive || replaying) {
+            throw new Error(
+              "Verified replay lease is closed or already in use",
+            );
+          }
+          if (
+            typeof accept !== "function" ||
+            accept.constructor?.name === "AsyncFunction"
+          ) {
+            throw new TypeError(
+              "Verified replay requires a synchronous visitor",
+            );
+          }
+          replaying = true;
+          try {
+            const replayStructure =
+              createSessionTranscriptStructureProjection(sessionId);
+            const replayVerification = verifyTranscriptFile(filePath, {
+              ioMetrics: options.replayIoMetrics,
+              onVerifiedEvent(event) {
+                replayStructure.accept(event);
+                const result = accept(event);
+                if (result && typeof result.then === "function")
+                  throw new TypeError(
+                    "Verified replay visitor must be synchronous",
+                  );
+              },
+            });
+            assertVerifiedTranscriptAnchor(sessionId, replayVerification);
+            replayStructure.finish({ assertValid: true });
+            if (
+              replayVerification.lastHash !== verification.lastHash ||
+              replayVerification.chainedEvents !== verification.chainedEvents
+            ) {
+              throw unverifiedTranscriptError(sessionId, replayVerification);
+            }
+          } finally {
+            replaying = false;
+          }
+        },
+      }),
+    );
+  } finally {
+    replayLeaseActive = false;
+  }
 }
 
 /**
@@ -6728,6 +6781,8 @@ export function forkSession(sourceId, options = {}) {
  * @param {string|null} [params.parentTurnId]
  * @param {Array<{role:string,content:any}>} [params.messages]  pre-branch turns
  * @param {{title?:string,provider?:string,model?:string}} [params.meta]
+ * @param {object|null} [params.history] Scoped display-history capability from
+ *   createSessionTranscriptBranchProjection(), consumed under the source lock.
  * @returns {{branchSessionId:string, created:boolean, messages:number}}
  */
 export function createBranchSession({
@@ -6736,6 +6791,7 @@ export function createBranchSession({
   parentTurnId = null,
   messages = [],
   meta = {},
+  history = null,
 } = {}) {
   if (isUnsafeSessionId(branchSessionId)) {
     throw new Error(
@@ -6748,6 +6804,18 @@ export function createBranchSession({
   const canonicalMessages = projectCanonicalResumeMessages(messages, {
     strict: true,
   });
+  const historyPlan = resolveSessionBranchHistory(
+    history,
+    parentSessionId,
+    messages,
+  );
+  if (
+    historyPlan &&
+    (process.platform === "win32"
+      ? branchSessionId.toLowerCase() === parentSessionId.toLowerCase()
+      : branchSessionId === parentSessionId)
+  )
+    throw new Error("A history branch must be independent of its parent");
   if (
     (parentSessionId !== null && typeof parentSessionId !== "string") ||
     (parentTurnId !== null && typeof parentTurnId !== "string")
@@ -6802,36 +6870,10 @@ export function createBranchSession({
     // Host prompts and tool scaffolding are re-established on resume. The
     // canonical projection above retains only explicitly durable systems.
   }
-  const inputDigest = `sha256:${createHash("sha256")
-    .update(JSON.stringify(digestEvents), "utf8")
-    .digest("hex")}`;
   const branchGenerationId = `generation-${createHash("sha256")
     .update(`branch-generation\0${branchSessionId}`, "utf8")
     .digest("hex")
     .slice(0, 32)}`;
-  const plannedEvents = digestEvents.map((event, index) =>
-    index === 0
-      ? {
-          ...event,
-          data: encodeSessionGenerationData(
-            event.data,
-            createSessionGenerationAuthority(
-              branchSessionId,
-              null,
-              branchGenerationId,
-            ),
-          ),
-        }
-      : event,
-  );
-  plannedEvents.push({
-    type: "session_branch_complete",
-    data: {
-      schemaVersion: 1,
-      inputDigest,
-      messageCount: count,
-    },
-  });
 
   const filePath = sessionPath(branchSessionId);
   const sessionsDir = getSessionsDir();
@@ -6856,8 +6898,22 @@ export function createBranchSession({
         );
       }
       if (existsSync(filePath)) inspectPhysicalTail(filePath);
+      const anchoredMeta = readSessionMeta(sessionsDir, branchSessionId);
+      const anchoredCount = Number(anchoredMeta?.event_count);
+      let anchoredEventHash = null;
+      let existingBranchData = null;
+      let seenEvents = 0;
+      const existingHistoryImport = createBranchHistoryImport();
       let verification = existsSync(filePath)
-        ? verifyTranscriptFile(filePath)
+        ? verifyTranscriptFile(filePath, {
+            onVerifiedEvent(event) {
+              existingHistoryImport.accept(event);
+              seenEvents += 1;
+              if (seenEvents === anchoredCount) anchoredEventHash = event.hash;
+              if (seenEvents === 2 && event.type === "session_branch")
+                existingBranchData = event.data;
+            },
+          })
         : {
             status: TRANSCRIPT_CHAIN_STATUS.EMPTY,
             chainedEvents: 0,
@@ -6871,27 +6927,146 @@ export function createBranchSession({
       ) {
         throw unverifiedTranscriptError(branchSessionId, verification);
       }
-      const existingEvents = existsSync(filePath)
-        ? readEvents(branchSessionId)
-        : [];
-      const prefixMatches = existingEvents
-        .slice(0, Math.min(existingEvents.length, plannedEvents.length))
-        .every((event, index) => {
-          let plannedData = plannedEvents[index].data;
-          // Existing v1 branches predate generation authority. They remain
-          // idempotently readable; only newly created branches publish it.
-          if (
-            index === 0 &&
-            event?.data?.[SESSION_GENERATION_AUTHORITY_FIELD] === undefined
-          ) {
-            plannedData = { ...plannedData };
-            delete plannedData[SESSION_GENERATION_AUTHORITY_FIELD];
-          }
-          return (
-            event.type === plannedEvents[index].type &&
-            JSON.stringify(event.data) === JSON.stringify(plannedData)
+      const existingCount = verification.chainedEvents;
+      // Keep old deterministic snapshot branches idempotent. Never retrofit
+      // archive data into an already published branch's execution history.
+      const inherited =
+        existingBranchData && existingBranchData.history == null
+          ? null
+          : historyPlan;
+      if (inherited && inherited.contextOrigins.length !== count)
+        throw new Error("Branch history context does not match its snapshot");
+      const visitDigestEvents = (visit) => {
+        visit(digestEvents[0]);
+        visit(
+          inherited
+            ? {
+                ...digestEvents[1],
+                data: {
+                  ...digestEvents[1].data,
+                  history: inherited.descriptor,
+                },
+              }
+            : digestEvents[1],
+        );
+        if (inherited) {
+          let inheritedRows = 0;
+          inherited.visit((row) => {
+            // Preserve all display text, independently of the page's 200K
+            // rendering cap. Chunks also keep escaped text below record limits.
+            const chunkChars = 128 * 1024;
+            let offset = 0;
+            let part = 0;
+            do {
+              let end = Math.min(row.text.length, offset + chunkChars);
+              const before = row.text.charCodeAt(end - 1);
+              const after = row.text.charCodeAt(end);
+              if (
+                before >= 0xd800 &&
+                before <= 0xdbff &&
+                after >= 0xdc00 &&
+                after <= 0xdfff
+              )
+                end -= 1;
+              visit({
+                type: BRANCH_HISTORY_MESSAGE,
+                data: {
+                  ...row,
+                  text: row.text.slice(offset, end),
+                  part: part++,
+                  last: end === row.text.length,
+                },
+              });
+              offset = end;
+            } while (offset < row.text.length);
+            inheritedRows += 1;
+          });
+          if (inheritedRows !== inherited.descriptor.totalMessages)
+            throw new Error("Branch history source changed while streaming");
+        }
+        digestEvents.slice(2).forEach((event, index) => {
+          visit(event);
+          if (inherited)
+            visit({
+              type: BRANCH_HISTORY_ORIGIN,
+              data: {
+                messageDigest: branchMessageDigest(event.data),
+                origin: inherited.contextOrigins[index],
+              },
+            });
+        });
+      };
+      const inputHash = createHash("sha256").update("[");
+      let plannedCount = 0;
+      visitDigestEvents((event) => {
+        if (plannedCount > 0) inputHash.update(",");
+        inputHash.update(JSON.stringify(event));
+        plannedCount += 1;
+      });
+      const inputDigest = `sha256:${inputHash.update("]").digest("hex")}`;
+      plannedCount += 1;
+      const visitPlannedEvents = (visit) => {
+        let index = 0;
+        visitDigestEvents((event) => {
+          visit(
+            index === 0
+              ? {
+                  ...event,
+                  data: encodeSessionGenerationData(
+                    event.data,
+                    createSessionGenerationAuthority(
+                      branchSessionId,
+                      null,
+                      branchGenerationId,
+                    ),
+                  ),
+                }
+              : event,
+            index++,
           );
         });
+        visit(
+          {
+            type: "session_branch_complete",
+            data: {
+              schemaVersion: inherited ? 2 : 1,
+              inputDigest,
+              messageCount: count,
+            },
+          },
+          index,
+        );
+      };
+      const existingIterator =
+        existingCount > 0 ? iterateCanonicalJsonlLinesSync(filePath) : null;
+      let prefixMatches = true;
+      try {
+        if (existingCount > 0)
+          visitPlannedEvents((planned, index) => {
+            if (index >= existingCount) return;
+            const record = existingIterator.next();
+            if (record.done) {
+              prefixMatches = false;
+              return;
+            }
+            const event = parseCanonicalJsonlRecord(record.value.line);
+            let plannedData = planned.data;
+            // Existing v1 branches predate generation authority. They remain
+            // idempotently readable; only newly created branches publish it.
+            if (
+              index === 0 &&
+              event?.data?.[SESSION_GENERATION_AUTHORITY_FIELD] === undefined
+            ) {
+              plannedData = { ...plannedData };
+              delete plannedData[SESSION_GENERATION_AUTHORITY_FIELD];
+            }
+            prefixMatches &&=
+              event.type === planned.type &&
+              JSON.stringify(event.data) === JSON.stringify(plannedData);
+          });
+      } finally {
+        existingIterator?.return?.();
+      }
       if (!prefixMatches) {
         const error = new Error(
           `Branch session conflicts with its deterministic input: ${branchSessionId}`,
@@ -6899,11 +7074,12 @@ export function createBranchSession({
         error.code = "SESSION_BRANCH_CONFLICT";
         throw error;
       }
+      if (existingCount >= plannedCount) existingHistoryImport.finish();
 
       // Once the exact completion marker is anchored, later branch turns are
       // outside the idempotent creation transaction. A replay resolves to that
       // progressed branch, but an unanchored suffix is never re-blessed.
-      if (existingEvents.length > plannedEvents.length) {
+      if (existingCount > plannedCount) {
         assertVerifiedTranscriptAnchor(branchSessionId, verification);
         return { branchSessionId, created: false, messages: 0 };
       }
@@ -6912,8 +7088,6 @@ export function createBranchSession({
       // sidecar. Only advance an existing anchor along that exact prefix. Never
       // lower or replace a higher/different anchor: doing so would legitimize a
       // truncated deterministic branch and permanently discard later turns.
-      const anchoredMeta = readSessionMeta(sessionsDir, branchSessionId);
-      const anchoredCount = Number(anchoredMeta?.event_count);
       const anchorMatchesCurrent =
         anchoredMeta?.deleted !== true &&
         anchoredMeta?.last_hash === verification.lastHash &&
@@ -6923,11 +7097,9 @@ export function createBranchSession({
         Number.isSafeInteger(anchoredCount) &&
         anchoredCount >= 0 &&
         anchoredCount < verification.chainedEvents &&
-        verification.chainedEvents === existingEvents.length &&
         (anchoredCount === 0
           ? anchoredMeta?.last_hash === null
-          : existingEvents[anchoredCount - 1]?.hash ===
-            anchoredMeta?.last_hash);
+          : anchoredEventHash === anchoredMeta?.last_hash);
       if (
         anchoredMeta !== null &&
         !anchorMatchesCurrent &&
@@ -6935,13 +7107,22 @@ export function createBranchSession({
       ) {
         throw unverifiedTranscriptError(branchSessionId, verification);
       }
-      if (existsSync(filePath) && !anchorMatchesCurrent) {
+      const unpublishedHistoryPrefix =
+        inherited && existingCount < plannedCount;
+      // A second failed attempt must not make an incomplete history branch
+      // resumable. Its first usable sidecar/witness is published only after the
+      // complete archive, execution snapshot and completion digest validate.
+      if (
+        existsSync(filePath) &&
+        !anchorMatchesCurrent &&
+        !unpublishedHistoryPrefix
+      ) {
         rebuildSessionMetaUnlocked(sessionsDir, branchSessionId, filePath);
       }
-      if (existingEvents.length > 0) {
+      if (existingCount > 0 && !unpublishedHistoryPrefix) {
         assertVerifiedTranscriptAnchor(branchSessionId, verification);
       }
-      if (existingEvents.length === plannedEvents.length) {
+      if (existingCount === plannedCount) {
         return { branchSessionId, created: false, messages: 0 };
       }
 
@@ -6949,12 +7130,8 @@ export function createBranchSession({
       let expectedTranscriptState = existsSync(filePath)
         ? readPhysicalTranscriptState(filePath)
         : null;
-      for (
-        let index = existingEvents.length;
-        index < plannedEvents.length;
-        index += 1
-      ) {
-        const planned = plannedEvents[index];
+      visitPlannedEvents((planned, index) => {
+        if (index < existingCount) return;
         const core = {
           type: planned.type,
           timestamp: Date.now(),
@@ -6970,12 +7147,16 @@ export function createBranchSession({
           expectedTranscriptState,
         );
         prevHash = hash;
-      }
+      });
 
-      verification = verifyTranscriptFile(filePath);
+      const completedHistoryImport = createBranchHistoryImport();
+      verification = verifyTranscriptFile(filePath, {
+        onVerifiedEvent: (event) => completedHistoryImport.accept(event),
+      });
+      completedHistoryImport.finish();
       if (
         verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
-        verification.chainedEvents !== plannedEvents.length ||
+        verification.chainedEvents !== plannedCount ||
         verification.lastHash !== prevHash ||
         verification.malformedLines > 0 ||
         verification.truncatedTail

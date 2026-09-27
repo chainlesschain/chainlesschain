@@ -60,6 +60,7 @@ import {
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 import { registerCheckpointRestoreRecoveryCommands } from "./checkpoint-restore-recovery.js";
 import { HISTORY_PREFIX_SCHEMA } from "../lib/session-history-origins.js";
+import { createSessionTranscriptBranchProjection } from "../lib/session-transcript-history.js";
 
 function stableCheckpointRestoreValue(value) {
   if (value === undefined) return "null";
@@ -771,13 +772,22 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                 }
 
                 if (planned.commit.branchPlan) {
-                  result.branch = createBranchSession({
-                    branchSessionId: planned.commit.branchPlan.branchSessionId,
-                    parentSessionId: options.session,
-                    parentTurnId: submission.turnId,
-                    messages: planned.commit.messages,
-                    meta: { title: `Branch of ${options.session}` },
-                  });
+                  result.branch = transaction.readProjection(() =>
+                    createSessionTranscriptBranchProjection(
+                      options.session,
+                      planned.commit.messages,
+                      (history) =>
+                        createBranchSession({
+                          branchSessionId:
+                            planned.commit.branchPlan.branchSessionId,
+                          parentSessionId: options.session,
+                          parentTurnId: submission.turnId,
+                          messages: planned.commit.messages,
+                          meta: { title: `Branch of ${options.session}` },
+                          history,
+                        }),
+                    ),
+                  );
                   transaction.retainRecoveryEvidence({
                     branchSessionId:
                       result.branch?.branchSessionId ||

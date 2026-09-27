@@ -4,8 +4,20 @@ import {
   projectWsTurnMessages,
 } from "../harness/jsonl-session-store.js";
 import { contextItemsToMessages } from "./context-memory-kernel/message-adapter.js";
-import { displayTranscriptText } from "./session-transcript-page.js";
+import {
+  displayTranscriptText,
+  transcriptTextParts,
+  boundTranscriptRow,
+} from "./session-transcript-page.js";
 import { createSessionHistoryOrigins } from "./session-history-origins.js";
+import { getDurableSystemMessageProvenance } from "./session-message-provenance.js";
+import {
+  BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_MESSAGE,
+  branchContextDigest,
+  withSessionBranchHistory,
+  createBranchHistoryImport,
+} from "./session-branch-history.js";
 
 const HASH = /^[a-f0-9]{64}$/u;
 const SCHEMA = "chainlesschain.session-transcript-page/v2";
@@ -14,7 +26,9 @@ const MAX_HISTORY_RANGES = 16384;
 
 // Enumerate all possible display sources, including replacement snapshots.
 // Their physical sequence never changes when the selected history rewinds.
-function eventMessages(event) {
+function eventMessages(event, imported = null) {
+  if (event.type === BRANCH_HISTORY_MESSAGE)
+    return imported?.kind === "archive" ? [imported.message] : [];
   if (
     ["compact", "checkpoint_timeline_commit"].includes(event.type) &&
     Array.isArray(event.data?.messages)
@@ -76,6 +90,7 @@ function staleCursor() {
 export function createSessionTranscriptHistoryProjection(
   sessionId,
   { limit = 50, cursor = null } = {},
+  branch = null,
 ) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
     throw new TypeError("transcript page limit must be 1–100");
@@ -108,20 +123,24 @@ export function createSessionTranscriptHistoryProjection(
   let anchored = !anchor;
   let coverage = { kind: "from-origin", boundaryEvent: null, reason: null };
   const origins = createSessionHistoryOrigins();
+  const branchImport = createBranchHistoryImport();
   let physical = 0;
   let ranges = [];
   let needsReplay = false;
 
-  function collect(message, event, index, ordinal) {
-    if (anchor && ordinal >= anchor.before) return;
-    const row = {
+  function displayRow(message, event, index, ordinal) {
+    return boundTranscriptRow({
       id: `${sessionId}:${event.hash}:${index}`,
       eventId: event.hash,
       itemIndex: index,
       ordinal,
       role: message.role,
       ...displayTranscriptText(message.content),
-    };
+    });
+  }
+  function collect(message, event, index, ordinal) {
+    if (anchor && ordinal >= anchor.before) return;
+    const row = displayRow(message, event, index, ordinal);
     rows.push(row);
     bytes += Buffer.byteLength(JSON.stringify(row));
     while (rows.length > limit || bytes > MAX_PAGE_BYTES)
@@ -160,14 +179,48 @@ export function createSessionTranscriptHistoryProjection(
   function boundary(event, reason) {
     coverage = { kind: "snapshot-boundary", boundaryEvent: event.hash, reason };
   }
+  function visitSelected(authority, visit) {
+    let source = 0;
+    let rangeIndex = 0;
+    let ordinal = 0;
+    const replayImport = createBranchHistoryImport();
+    authority.replayEvents((event) => {
+      const imported = replayImport.accept(event);
+      eventMessages(event, imported).forEach((message, index) => {
+        if (!displayable(message)) return;
+        while (ranges[rangeIndex] && source >= ranges[rangeIndex].end)
+          rangeIndex += 1;
+        const range = ranges[rangeIndex];
+        if (range && source >= range.start)
+          visit(message, event, index, ordinal++);
+        source += 1;
+      });
+    });
+    replayImport.finish();
+    if (ordinal !== count || source !== physical)
+      throw new Error("Transcript history replay did not match its selection");
+  }
   return {
     accept(event) {
       if (!HASH.test(event.hash))
         throw new TypeError("verified event hash required");
       eventCount += 1;
       generation ||= event.hash;
-      const messages = eventMessages(event);
-      if (
+      const imported = branchImport.accept(event);
+      const messages = eventMessages(event, imported);
+      if (imported?.kind === "start") {
+        coverage = { ...imported.coverage };
+      } else if (imported?.kind === "archive") {
+        append(messages[0], event, 0);
+      } else if (imported?.kind === "archive-part") {
+        // A logical row may span several bounded persistence records.
+      } else if (imported?.kind === "context") {
+        physical += messages.filter(displayable).length;
+      } else if (imported?.kind === "origin") {
+        origins.appendMappedPersisted(imported.message, imported.origin);
+      } else if (imported?.kind === "complete") {
+        // The complete import is independently anchored in this session.
+      } else if (
         ["compact", "checkpoint_timeline_commit"].includes(event.type) &&
         Array.isArray(event.data?.messages)
       ) {
@@ -219,6 +272,49 @@ export function createSessionTranscriptHistoryProjection(
       }
     },
     finish(authority) {
+      branchImport.finish();
+      if (branch) {
+        const prefix = origins.branchPrefix(
+          branch.messages,
+          authority.headHash,
+          count,
+        );
+        if (!prefix) return branch.consume(null);
+        rewind(prefix.cutoff);
+        const contextOrigins = prefix.entries
+          .filter(
+            ({ message }) =>
+              ["user", "assistant"].includes(message.role) ||
+              (message.role === "system" &&
+                getDurableSystemMessageProvenance(message)),
+          )
+          .map(({ origin }) => origin);
+        return withSessionBranchHistory(
+          {
+            parentSessionId: sessionId,
+            contextDigest: branchContextDigest(branch.messages),
+            contextOrigins,
+            descriptor: {
+              schema: BRANCH_HISTORY_SCHEMA,
+              sourceGeneration: generation,
+              totalMessages: count,
+              contextMessageCount: contextOrigins.length,
+              coverage: { ...coverage },
+            },
+            visit(visitor) {
+              visitSelected(authority, (message, event, index) => {
+                visitor({
+                  role: message.role,
+                  text: transcriptTextParts(message.content).join(""),
+                  sourceEventId: event.hash,
+                  sourceItemIndex: index,
+                });
+              });
+            },
+          },
+          branch.consume,
+        );
+      }
       if (anchor && (!anchored || generation !== anchor.generation))
         throw staleCursor();
       if (needsReplay) {
@@ -226,24 +322,7 @@ export function createSessionTranscriptHistoryProjection(
         // Even a rewind into a prefix older than the page buffer stays bounded.
         rows = [];
         bytes = 0;
-        let source = 0;
-        let rangeIndex = 0;
-        let ordinal = 0;
-        authority.replayEvents((event) => {
-          eventMessages(event).forEach((message, index) => {
-            if (!displayable(message)) return;
-            while (ranges[rangeIndex] && source >= ranges[rangeIndex].end)
-              rangeIndex += 1;
-            const range = ranges[rangeIndex];
-            if (range && source >= range.start)
-              collect(message, event, index, ordinal++);
-            source += 1;
-          });
-        });
-        if (ordinal !== count || source !== physical)
-          throw new Error(
-            "Transcript history replay did not match its selection",
-          );
+        visitSelected(authority, collect);
       }
       const first = rows[0]?.ordinal ?? 0;
       return {
@@ -272,6 +351,26 @@ export function createSessionTranscriptHistoryProjection(
       };
     },
   };
+}
+
+export function createSessionTranscriptBranchProjection(
+  sessionId,
+  messages,
+  consume,
+) {
+  if (
+    !Array.isArray(messages) ||
+    typeof consume !== "function" ||
+    consume.constructor?.name === "AsyncFunction"
+  )
+    throw new TypeError(
+      "Branch history requires messages and a synchronous consumer",
+    );
+  return createSessionTranscriptHistoryProjection(
+    sessionId,
+    {},
+    { messages, consume },
+  );
 }
 
 export function readSessionTranscriptHistory(sessionId, options = {}) {

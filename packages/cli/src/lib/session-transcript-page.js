@@ -7,19 +7,22 @@ import {
 const MAX_PAGE_BYTES = 1024 * 1024;
 const MAX_TEXT_CHARS = 200000;
 
+export function transcriptTextParts(content) {
+  return typeof content === "string"
+    ? [content]
+    : Array.isArray(content)
+      ? content.map((part) =>
+          typeof part?.text === "string"
+            ? part.text
+            : ["image", "image_url", "input_image"].includes(part?.type)
+              ? "[image]"
+              : "",
+        )
+      : [];
+}
+
 export function displayTranscriptText(content) {
-  const parts =
-    typeof content === "string"
-      ? [content]
-      : Array.isArray(content)
-        ? content.map((part) =>
-            typeof part?.text === "string"
-              ? part.text
-              : ["image", "image_url", "input_image"].includes(part?.type)
-                ? "[image]"
-                : "",
-          )
-        : [];
+  const parts = transcriptTextParts(content);
   let text = "";
   let truncated = false;
   for (const part of parts) {
@@ -28,6 +31,24 @@ export function displayTranscriptText(content) {
     if (part.length > remaining) truncated = true;
   }
   return { text, truncated };
+}
+
+// Escaped control characters can exceed the JSON byte budget before the
+// character limit. Keep a shortened row rather than silently dropping it.
+export function boundTranscriptRow(row) {
+  if (Buffer.byteLength(JSON.stringify(row)) <= MAX_PAGE_BYTES) return row;
+  const text = row.text;
+  row.truncated = true;
+  let low = 0;
+  let high = text.length - 1;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    row.text = text.slice(0, middle);
+    if (Buffer.byteLength(JSON.stringify(row)) <= MAX_PAGE_BYTES) low = middle;
+    else high = middle - 1;
+  }
+  row.text = text.slice(0, low);
+  return row;
 }
 
 export function createSessionTranscriptPageProjection(
@@ -69,12 +90,12 @@ export function createSessionTranscriptPageProjection(
     const ordinal = count++;
     if (ordinal >= before) return;
     const content = displayTranscriptText(message.content);
-    const row = {
+    const row = boundTranscriptRow({
       id: `${generation}:${ordinal}`,
       ordinal,
       role: message.role,
       ...content,
-    };
+    });
     rows.push(row);
     bytes += Buffer.byteLength(JSON.stringify(row));
     while (rows.length > limit || bytes > MAX_PAGE_BYTES)

@@ -86,6 +86,8 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
       try {
         const callbackResult = task({
           currentHeadHash: () => state.headHash,
+          readProjection: (factory) =>
+            factory().finish({ headHash: state.headHash, eventCount: 0 }),
           retainRecoveryEvidence(evidence) {
             const sanitized = {};
             for (const field of [

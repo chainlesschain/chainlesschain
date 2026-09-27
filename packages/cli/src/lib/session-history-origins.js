@@ -53,13 +53,44 @@ export function createSessionHistoryOrigins() {
     };
   }
 
-  return {
+  const api = {
     appendPersisted(message, ordinal) {
       if (!context) return;
       append(
         decodeVerifiedPersistedMessage(message),
         displayable(message) ? { first: ordinal, last: ordinal } : null,
       );
+    },
+    appendMappedPersisted(message, origin) {
+      append(decodeVerifiedPersistedMessage(message), origin);
+    },
+    branchPrefix(messages, head, count) {
+      if (!context) return null;
+      const cutoff = api.rewind(
+        {
+          prevHash: head,
+          data: {
+            action: "restore-conversation",
+            messages: messages.map(encodePersistedMessage),
+            historyPrefix: {
+              schema: HISTORY_PREFIX_SCHEMA,
+              sourceHead: head,
+              sourceMessageCount: context.length,
+              retainedMessageCount: messages.length,
+            },
+          },
+        },
+        count,
+      );
+      return cutoff === null
+        ? null
+        : {
+            cutoff,
+            entries: context.map((entry) => ({
+              message: entry.message,
+              origin: entry.origin ? { ...entry.origin } : null,
+            })),
+          };
     },
     snapshot(messages) {
       let ordinal = 0;
@@ -198,4 +229,5 @@ export function createSessionHistoryOrigins() {
       return cutoff;
     },
   };
+  return api;
 }

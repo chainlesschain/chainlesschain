@@ -18,6 +18,22 @@ function project(events, options) {
   });
 }
 describe("verified transcript page projection", () => {
+  it("keeps an escaped-text row within the byte budget instead of dropping it", () => {
+    const page = project([
+      event(
+        "user_message",
+        { role: "user", content: "\u0001".repeat(210000) },
+        1,
+      ),
+    ]);
+    expect(page.totalMessages).toBe(1);
+    expect(page.messages).toHaveLength(1);
+    expect(page.messages[0].truncated).toBe(true);
+    expect(page.messages[0].text.length).toBeGreaterThan(100000);
+    expect(
+      Buffer.byteLength(JSON.stringify(page.messages[0])),
+    ).toBeLessThanOrEqual(1024 * 1024);
+  });
   it("paginates backwards without duplicate or missing messages", () => {
     const events = Array.from({ length: 120 }, (_, i) =>
       event("user_message", { role: "user", content: `message-${i}` }, i + 1),
