@@ -1,0 +1,132 @@
+{
+  "schema": "chainlesschain.bridge-lifecycle-local-evidence/v1",
+  "releaseEligible": false,
+  "commit": "40addcedf10407e37f57489689fe84b167ef6133",
+  "status": "partially-verified",
+  "fixed": "Post-spawn Broker errors retain the child until observed close before settlement",
+  "unresolved": "linux-prlimit cancellation settles with a live descendant; process-tree ownership remains incomplete",
+  "probes": [
+    {
+      "name": "bridge-owned-failure-win32",
+      "rawSha256": "sha256:02dfba851393fb2b257395a6294a0c738636ce7e005f6313eaabf0c529f761dd",
+      "report": {
+        "schema": "chainlesschain.external-agent-owned-process-probe/v1",
+        "commit": "40addcedf10407e37f57489689fe84b167ef6133",
+        "cleanAtStart": true,
+        "host": {
+          "platform": "win32",
+          "arch": "x64",
+          "node": "v22.22.2",
+          "release": "10.0.19045"
+        },
+        "fault": "post-native-spawn-bookkeeping-hook",
+        "result": {
+          "success": false,
+          "errorCode": "EXTERNAL_AGENT_SPAWN_FAILED"
+        },
+        "ownedChild": true,
+        "closedAtSettlement": true,
+        "brokerTerminationRequested": true,
+        "backend": "windows-job-restricted-token",
+        "limitations": [
+          "One synthetic local child, not a real external model invocation",
+          "Does not prove descendant cleanup for every backend"
+        ]
+      }
+    },
+    {
+      "name": "bridge-owned-failure-linux",
+      "rawSha256": "sha256:dbe98524858c5a29e085e905dceee1c09873f5275f9e6cf126610825966fbffc",
+      "report": {
+        "schema": "chainlesschain.external-agent-owned-process-probe/v1",
+        "commit": "40addcedf10407e37f57489689fe84b167ef6133",
+        "cleanAtStart": true,
+        "host": {
+          "platform": "linux",
+          "arch": "x64",
+          "node": "v22.12.0",
+          "release": "4.4.0-19041-Microsoft"
+        },
+        "fault": "post-native-spawn-bookkeeping-hook",
+        "result": {
+          "success": false,
+          "errorCode": "EXTERNAL_AGENT_SPAWN_FAILED"
+        },
+        "ownedChild": true,
+        "closedAtSettlement": true,
+        "brokerTerminationRequested": true,
+        "backend": "linux-prlimit",
+        "limitations": [
+          "One synthetic local child, not a real external model invocation",
+          "Does not prove descendant cleanup for every backend"
+        ]
+      }
+    },
+    {
+      "name": "bridge-tree-win32",
+      "rawSha256": "sha256:bc188bc815adf4cd64f88e00db7fd2606772e71139fca42c77f44f8ad8eff1ad",
+      "report": {
+        "schema": "chainlesschain.external-agent-process-tree-probe/v1",
+        "commit": "40addcedf10407e37f57489689fe84b167ef6133",
+        "cleanAtStart": true,
+        "host": {
+          "platform": "win32",
+          "arch": "x64",
+          "node": "v22.22.2",
+          "release": "10.0.19045"
+        },
+        "status": "cancelled",
+        "success": false,
+        "pids": {
+          "parentPid": 20864,
+          "grandchildPid": 8060
+        },
+        "rootHandleClosed": true,
+        "liveAtSettlement": [],
+        "states": null,
+        "limitations": [
+          "Synthetic local parent and grandchild, not a real external model invocation",
+          "Unfixed native backend case remains incomplete"
+        ]
+      }
+    },
+    {
+      "name": "bridge-tree-linux",
+      "rawSha256": "sha256:cb066189e00d2d06475faddd41a11d63ff438daf6dc5fb22b6ea4149af74b7c0",
+      "report": {
+        "schema": "chainlesschain.external-agent-process-tree-probe/v1",
+        "commit": "40addcedf10407e37f57489689fe84b167ef6133",
+        "cleanAtStart": true,
+        "host": {
+          "platform": "linux",
+          "arch": "x64",
+          "node": "v22.12.0",
+          "release": "4.4.0-19041-Microsoft"
+        },
+        "status": "cancelled",
+        "success": false,
+        "pids": {
+          "parentPid": 96,
+          "grandchildPid": 103
+        },
+        "rootHandleClosed": true,
+        "liveAtSettlement": [103],
+        "states": [
+          {
+            "pid": 103,
+            "state": "S"
+          }
+        ],
+        "limitations": [
+          "Synthetic local parent and grandchild, not a real external model invocation",
+          "Unfixed native backend case remains incomplete"
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "Windows x64 and local WSL1 only; hosted Linux/macOS/Windows exact-SHA CI remains required",
+    "Synthetic Node child processes exercise the real Broker; no external model, credentials or production admission is established"
+  ],
+  "receiptDigest": "sha256:2a52391af4c22d450acfbabd128dbcf6bb009a5272d3a21af6b239d529e68aa3"
+}

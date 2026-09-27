@@ -10,7 +10,7 @@
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
-| BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
+| BRIDGE-01               | 局部实现并验证   | finalize-once、统一 TERM/KILL；Broker 启动后抛错保留 child，等待真实 close 后结算；Windows/WSL 真进程通过该反例，相关 88 项通过 | WSL linux-prlimit 取消后仍有存活后代；跨平台完整树退出仍未完成，主路由继续拒绝未 attested CLI |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
@@ -511,3 +511,13 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 原生进程失败原先直接抛出含路径和 argv 的 `spawnSync` 错误。现将超时、输出越界、执行文件缺失和访问拒绝映射为固定类别，只保留经过白名单校验的源位置与 ACL 标记，不携带原始 cause、输出或参数；超时不重试，资源探针的超时也不能误当作资源限制成功。新增 7 项反例修复前失败、修复后通过。相关 8 文件共 138 项通过（含实际 npm 入口的 3 项 Chat 部署恢复验证）；ESLint、Prettier、actionlint、Bash/PowerShell 语法与 diff 检查通过。
 
 干净 `f61a1a5480` 的 Windows 两轨迹真实隔离 smoke 退出 0，保存[回执](./cli/evidence/execution-location-local-windows-f61a1a5480.json)。9 个产物哈希独立复核；3 次恢复、断网拒绝、资源终止、失联/令牌轮换停放及结果回传通过，无静默 fallback、重复结算或孤儿进程。临时 wrapper 导入实际 npm 入口，断网通过重命名该 wrapper 注入；不算 100 条 CI，不宣称 Windows 托管超时已经解决。最终 SHA 的 CLI CI、Strict Sandbox 与 IDE/位置矩阵仍需完整通过；版本 staleness 继续随候选冻结处理。
+
+### BRIDGE-01：Broker 启动后失败不能提前释放任务所有权（2026-09-28）
+
+真实 Broker 的 `tool:start` bookkeeping 在 native spawn 后抛错时，异常附带 `spawnedProcess`、关闭观察 Promise 和终止请求标记。原 bridge 将全部同步异常直接视为未启动，发出完成并允许复用；Windows 真进程反例观察到 `ownedChild:true`、`closedAtSettlement:false`，说明已请求 kill 不等于实际关闭。
+
+`40addcedf10407e37f57489689fe84b167ef6133` 区分未启动拒绝与已启动失败：接管异常中的 child，保留 RUNNING/任务占用与原始 admission 错误，安装 close/error 监听并沿现有 TERM/KILL 路径清理。仅实际 close 或 Broker `observed:true` 的关闭回执允许结算；重复 close、迟到 error、observer reject 与 `observed:false` 不形成第二次完成或伪造退出，原始失败仍返回 `EXTERNAL_AGENT_SPAWN_FAILED`。没有扩展生产 CLI backend 准入。
+
+相关 4 文件 88 项通过，包括真实 Broker 的启动后失败集成测试，后者进入既有 CLI CI 三系统 integration 矩阵。干净提交的 Windows `windows-job-restricted-token` 与 WSL1 `linux-prlimit` 原生进程均观察到关闭先于任务结算；保存[四组本地探针回执](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)。ESLint 无新增错误（文件原有两个 unused catch warning）、Prettier 和 diff 检查通过。
+
+独立取消探针保留另一个未解决反例：两个合成 Node 进程均安装 TERM handler，子进程关闭 stdio 但保留 IPC。Windows 父/子进程在 bridge 返回取消时均已退出；WSL1 的 `linux-prlimit` 后端只终止父进程，返回时后代 PID 103 仍存在，`/proc/103/stat` 状态为 `S`。夹具自带 15 秒生命周期上限，探针最终退出 1；不能将其计作取消通过或宣称 Linux 全进程树已收束。下一步需为该后端建立真实进程树所有权与退出证据，覆盖根先退出、后代忽略 TERM、重复取消和身份复用，不能仅依赖父进程 close。BRIDGE-01 继续局部完成。

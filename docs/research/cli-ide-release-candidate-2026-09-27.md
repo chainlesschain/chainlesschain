@@ -86,3 +86,5 @@ CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/
 2026-09-28 复核：`2c4fe52063` 的 Linux ARM64 / IntelliJ 2024.2 与 2025.2 修复作业通过，2024.2 的[独立回执](./ide/evidence/jetbrains-linux-arm64-2024.2-2c4fe52063.json)记录 39 个产物校验、100 样本 p95 365 ms（门限 2000 ms）。旧 `3b0bc23021` 的 ARM64 汇总也通过；均不替代最终 SHA。
 
 `4b9be3c6f4` Windows 位置矩阵在前 8 条 campaign 恢复后出现 `session location show` 外层进程超时。`f61a1a5480` 修正所有目标误用 eager 测试入口的问题，统一为 npm 实际入口，并对进程超时错误保留固定诊断、屏蔽原始 argv；没有增加超时或减少轨迹。138 项相关测试通过，[Windows 两轨迹隔离回执](./cli/evidence/execution-location-local-windows-f61a1a5480.json)的 9 个产物独立复核通过。Windows 100 条托管 CI 尚未确认解决，当前仍不升版本、不发布；子 npm 包 → CLI → IDE 的发布次序和最终提交完整矩阵门禁继续有效。
+
+BRIDGE-01 的 `40addcedf1` 修复 Broker native spawn 后报错却提前完成的问题，改为持有 child 直到真实 close；88 项测试及 Windows/WSL 真进程验证通过。[本地回执](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)同时保留未解决的 WSL `linux-prlimit` 取消后代残留反例，不能据此开放外部 Agent 主路由或宣布跨平台树清理完成。该项下一步继续实现进程树所有权，不升版本、不发布。
