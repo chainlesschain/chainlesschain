@@ -1,0 +1,95 @@
+{
+  "schema": "chainlesschain.local-ide-profile-diagnostic/v1",
+  "status": "cloned-old-profile-read-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "30c1a0e18364fc0a204e1f312df92d59a27866fa",
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64"
+  },
+  "sourceFailureCommit": "fdbdd382b0",
+  "sourceFailureRemainsFailed": true,
+  "procedure": {
+    "purpose": "Diagnostic read of a cloned seven-tab failed profile; not a new full recovery journey",
+    "sourceCommit": "30c1a0e18364fc0a204e1f312df92d59a27866fa",
+    "sourceRun": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\reports\\ui-host-driver\\2024.2-1790501493363",
+    "oldProfile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\IC-2024.2\\config_runIdeForUiTests",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\old-profile-1790512056484\\IC-2024.2\\config_runIdeForUiTests",
+    "oldProject": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\uiTest-project",
+    "project": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\uiTest-project\\old-profile-1790512056484",
+    "copiedDraftNamespace": {
+      "oldWorkspaceHash": "38938a5e5e684dc9cbd5e099e6ae5f1d7de1ce287e2fa4071f48915bc5fa88e5",
+      "newWorkspaceHash": "22a49e7bbdce610e5a9d88442b0654a0ba7bed909041a63f23c77a22ced815f9"
+    },
+    "canonical": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-jb-canonical-KgJ8ra",
+    "baselineChanges": "Only expected profile path remapped to isolated clone; IDs, rows and drafts unchanged"
+  },
+  "observations": {
+    "tabCount": 7,
+    "savedRows": 6,
+    "independentDrafts": true,
+    "binaryChoice": "cc",
+    "automaticReplay": false,
+    "modelsInvoked": 0,
+    "historyQueries": 3,
+    "versionProbes": 6,
+    "historyStatusAtSnapshot": {
+      "a": " Saved messages 1–4 of 4",
+      "b": " Saved messages 1–2 of 2"
+    }
+  },
+  "installation": {
+    "pluginPath": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\old-profile-1790512056484\\IC-2024.2\\plugins_runIdeForUiTests\\chainlesschain-ide-bridge",
+    "archiveSha256": "sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d",
+    "files": {
+      "lib/chainlesschain-ide-bridge-0.4.139-searchableOptions.jar": "sha256:b6be841c22b030129965c0efd5ce21f32fee7ee285cee26e41af860b005e948e",
+      "lib/chainlesschain-ide-bridge-0.4.139.jar": "sha256:4444b0620d096f60eba39e6b600d1d98453e21cecfd0af189b84fa69ead76d55"
+    },
+    "exactZipContents": true
+  },
+  "artifacts": [
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/diagnostic-provenance.json",
+      "bytes": 1195,
+      "sha256": "sha256:6688f166083458086199b9c3965cd68a0c1ddf05ac22ac473c1e8b4acce55cff"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/conversation-recovery-initial.json",
+      "bytes": 9278,
+      "sha256": "sha256:26512cdb07a3fdcb44e80f43a3dc65fadbac4810ac04322c44ef3c2ceb7afbb1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/conversation-recovery-restart.json",
+      "bytes": 5487,
+      "sha256": "sha256:d529b1048393a9622e52e346678002206a79b087b9f306ddbe70909d9833a912"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/fake-cli-protocol.jsonl",
+      "bytes": 1245,
+      "sha256": "sha256:84519ee1e5126ba25759dc8c3cf11e702ea2d0fcf4420427ade72d244072cdb8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/read-old-profile.stdout.log",
+      "bytes": 13002,
+      "sha256": "sha256:9ab7d1bae44cd5f87d1d754f09eb97ff644945eca2aee0c6658ce9bd047323a2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build/reports/ui-host-driver/old-profile-1790512056484/read-old-profile.stderr.log",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limitations": [
+    "Diagnostic read of a copied profile; not a new two-phase recovery journey",
+    "Project/profile paths and draft namespace remapped; original IDs, rows, drafts, and canonical storage retained",
+    "Current fixture has side-effect-free version probes and four isolated CLI aliases; original failure cause remains unconfirmed",
+    "Rendered rows verified; exact history readiness states recorded in observations",
+    "Counts are from one diagnostic run; no startup latency acceptance claimed"
+  ],
+  "receiptDigest": "sha256:8b79e0c9a32cddc52bc128e4b3e9550973904a904abd0cba803e2facfa44e5db"
+}

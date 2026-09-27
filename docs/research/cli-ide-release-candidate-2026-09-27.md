@@ -12,7 +12,7 @@
 | VS Code        | 草稿/附件/问题表单恢复；原生 schema review 与连接生命周期；权限状态、历史分页、增量历史与现场输出合并、选区和滚动保留                                                 |
 | JetBrains      | 草稿/附件/问题表单恢复；权限 ACK 与已观测进程树退出确认；历史分页、增量合并、用户行写入前身份预约、选区/滚动保护                                                      |
 
-详细实现、分批提交和每次测试的边界见[实施台账](./cli-ide-gap-implementation-2026-09-27.md)。Windows VS Code 1.132.0 实际 VSIX 的[恢复回执](./ide/evidence/vscode-canonical-recovery-windows-5382a8c3be.json)，以及 IntelliJ 2024.2 实际 ZIP 的[恢复回执](./ide/evidence/jetbrains-canonical-recovery-windows-510b443ac3.json)均已保存，分别绑定所列提交。两者通过双会话历史/草稿重启恢复；模型输出仍为夹具，其他版本/系统和其余场景尚待对应验证。JetBrains 旧复用 profile 曾出现历史加载失败，原历史数据完整，唯一根因仍待复核。
+详细实现、分批提交和每次测试的边界见[实施台账](./cli-ide-gap-implementation-2026-09-27.md)。Windows VS Code 1.132.0 实际 VSIX 的[恢复回执](./ide/evidence/vscode-canonical-recovery-windows-5382a8c3be.json)，以及 IntelliJ 2024.2 实际 ZIP 的[恢复回执](./ide/evidence/jetbrains-canonical-recovery-windows-30c1a0e183.json)均已保存，分别绑定所列提交。两者通过双会话历史/草稿重启恢复；模型输出仍为夹具，其他版本/系统和其余场景尚待对应验证。JetBrains 旧复用 profile 曾出现历史加载失败，当前副本恢复通过，原故障唯一根因仍未确定。
 
 ## 2. 兼容与安装验收
 
@@ -33,13 +33,15 @@ npm workflow 已在 CLI 发布前核对公开子包字节并全新安装候选 C
 | 项目           | 要求                                                                                                            | 当前状态                                          |
 | -------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | CLI npm        | [AGENTS.md](../../AGENTS.md) 要求发布准确提交的 Linux、Windows、macOS `CLI CI` 和 `CLI Strict Sandbox` 全部通过 | 尚未取得本轮最终 SHA 的完整结果                   |
-| 双 IDE         | 既有 [IDE Extensions](../../.github/workflows/ide-extensions.yml) 的适用构建、测试、宿主和发布检查通过          | Windows VS Code 1.132.0 / IntelliJ 2024.2 恢复旅程分别通过；旧 profile 失败复核、其他系统及其余场景待补 |
+| 双 IDE         | 既有 [IDE Extensions](../../.github/workflows/ide-extensions.yml) 的适用构建、测试、宿主和发布检查通过          | Windows 双 IDE 恢复旅程、JetBrains 旧 profile 副本读取通过；原失败唯一根因未定，其他系统及其余场景待补 |
 | 安装与协议     | 对上述同组产物执行实际安装、恢复、交互及协议兼容验收                                                            | 本地 VSIX、ZIP 与真实 CLI history/receipt 已有有限证据；最终配套版本、其他平台与真实模型待验收 |
 | 发布后读取核验 | 核对 npm / Marketplace 可获取的版本和产物与发布记录相符                                                         | 发布后执行                                        |
 
 现有 workflow 包含专用 tag 的发布触发器。准备候选范围或构建本地产物不需要创建这些 tag。采用候选渠道前需核实各发布 workflow 的渠道参数，不能假定版本带后缀就不会更新稳定渠道。
 
 补充的[旧七标签配置副本诊断](./ide/evidence/jetbrains-old-profile-diagnostic-windows-9e44569972.json)已恢复 A/B 原六条保存行和双草稿，没有重发。此诊断使用当前夹具和独立目录，原失败根因仍未确定；恢复时的并发版本探测和历史读取排队仍待优化。
+
+后续 `30c1a0e183` 改为选中标签才发起恢复查询，[新诊断](./ide/evidence/jetbrains-old-profile-diagnostic-windows-30c1a0e183.json)再次通过，版本探测 29→6、历史查询 9→3；A/B 历史状态已完成。同一源码的完整 initial/restart ZIP 旅程和 31 个产物独立哈希复核通过。该单轮对照证明查询数量减少，没有冻结延迟 SLO。
 
 ## 4. 后续独立任务
 
@@ -49,4 +51,4 @@ npm workflow 已在 CLI 发布前核对公开子包字节并全新安装候选 C
 
 截至本轮，台账共 20 个分组工作项（IDE-REPLAY / SESSION-01 合并统计）：5 项本地验证通过但仍有外部验证条件，8 项局部实现/验证，5 项待实施/系统验收，2 项持续文档/体验改进。该计数不是完成百分比，也不把所有待验收项计作缺失实现。
 
-早期估算为当前实现批次收尾 1–3 小时、候选版准备约半天到 1 天；宿主验证随后发现并修复 Windows ACL 并发初始化、双 IDE Stop 准备竞态及 JetBrains 测试安装混入额外依赖的问题。上述 Windows 双宿主恢复旅程已分别通过；候选准备仍取决于旧 profile 加载失败复核、剩余场景和 CI 排队/结果，原估算不作为倒计时承诺。全部报告验收仍为 2–4 周量级，依赖账号、三系统环境、真实任务、人工听测及观察窗口。
+早期估算为当前实现批次收尾 1–3 小时、候选版准备约半天到 1 天；宿主验证随后发现并修复 Windows ACL 并发初始化、双 IDE Stop 准备竞态及 JetBrains 测试安装混入额外依赖的问题。上述 Windows 双宿主恢复旅程和旧七标签副本读取已通过，JetBrains 按选中读取的后续完整旅程也通过；候选准备仍取决于剩余场景和 CI 排队/结果，原估算不作为倒计时承诺。全部报告验收仍为 2–4 周量级，依赖账号、三系统环境、真实任务、人工听测及观察窗口。

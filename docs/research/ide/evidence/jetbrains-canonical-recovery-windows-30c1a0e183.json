@@ -1,0 +1,114 @@
+{
+  "schema": "chainlesschain.local-ide-recovery-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "30c1a0e18364fc0a204e1f312df92d59a27866fa",
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.4.139",
+  "startedAt": "2026-09-27T12:30:15.474Z",
+  "finishedAt": "2026-09-27T12:33:55.006Z",
+  "model": "deterministic fixture",
+  "persistence": "production canonical store, receipts, and actual CLI history subprocess",
+  "evidence": {
+    "digest": "sha256:8005d099a4aabf8bff1e5125b18324382d1b3d6be15ce76787d5b90b80a42244",
+    "artifactBundleDigest": "sha256:b5a3630740d2cec51321ff5b1df4efc273ade869d275e97fd69360abcaa17c57",
+    "artifactsVerified": 31,
+    "bundleLocation": ".tmp/jetbrains-canonical-recovery-30c1a0e183",
+    "allJourneyAssertionsRevalidated": true,
+    "renderedIdsMatchCommittedReferences": true
+  },
+  "archiveSha256": "sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d",
+  "artifactInstall": {
+    "method": "Gradle sandbox",
+    "productionJarMatchesArchive": true,
+    "fullZipParity": true,
+    "extra": [],
+    "missing": [],
+    "changed": []
+  },
+  "initial": {
+    "processId": "23088",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\2024-2-1790512215475\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790512342464-c7cfad",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790512342464-c7cfad:3a7da66f9a5f96808c01d4d9924b570098e8d484de1ab7ed7c6c2e5419c3d261:0",
+        "panel-1790512342464-c7cfad:d81e791d3688c8158854ee50ff397f4e579ec15bc2e2410989dc6f8986314818:0",
+        "panel-1790512342464-c7cfad:9596bd3ad487c9cde0297cf947bbbf7953c164c0b9a904921ecd423d280c738c:0",
+        "panel-1790512342464-c7cfad:d3a0a63f0ee5e1bd323c47095859e635d9598574766db23efe8ca1bd92467251:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790512353534-4ae4d2",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790512353534-4ae4d2:10ba509d8173b21e31c2696fbe2da2e8d910f048904e0d674552a73bd9d78ff8:0",
+        "panel-1790512353534-4ae4d2:ba89687a58f9320160f7b7ce7a75c4e23db395d09aef3f22f6006bc47bbad143:0"
+      ]
+    }
+  },
+  "restart": {
+    "processId": "6844",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\2024-2-1790512215475\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790512342464-c7cfad",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790512342464-c7cfad:3a7da66f9a5f96808c01d4d9924b570098e8d484de1ab7ed7c6c2e5419c3d261:0",
+        "panel-1790512342464-c7cfad:d81e791d3688c8158854ee50ff397f4e579ec15bc2e2410989dc6f8986314818:0",
+        "panel-1790512342464-c7cfad:9596bd3ad487c9cde0297cf947bbbf7953c164c0b9a904921ecd423d280c738c:0",
+        "panel-1790512342464-c7cfad:d3a0a63f0ee5e1bd323c47095859e635d9598574766db23efe8ca1bd92467251:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790512353534-4ae4d2",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790512353534-4ae4d2:10ba509d8173b21e31c2696fbe2da2e8d910f048904e0d674552a73bd9d78ff8:0",
+        "panel-1790512353534-4ae4d2:ba89687a58f9320160f7b7ce7a75c4e23db395d09aef3f22f6006bc47bbad143:0"
+      ]
+    }
+  },
+  "background": {
+    "start": "2026-09-27T12:32:33.778462400Z",
+    "completed": "2026-09-27T12:32:38.305Z",
+    "foregroundReturn": "2026-09-27T12:32:43.407425700Z"
+  },
+  "verification": {
+    "backgroundCompletion": true,
+    "distinctSavedRows": 6,
+    "independentDrafts": true,
+    "processRestart": true,
+    "automaticInputReplay": false,
+    "providerEvidence": "deterministic fixture",
+    "historyReady": true
+  },
+  "limitations": [
+    "Windows x64 / IntelliJ 2024.2 only",
+    "Standalone recovery journey; does not replace existing chat/control/Workbench/rewind journey",
+    "Model replies are deterministic; no live-provider quality, image/question recovery, canonical rewind/compaction, human accessibility, or long observation acceptance",
+    "Exact release SHA CLI CI and Strict Sandbox matrices remain required; release child npm packages, then CLI, then IDE"
+  ],
+  "historyStatus": {
+    "initial": {
+      "a": " Saved messages 1–4 of 4",
+      "b": " Saved messages 1–2 of 2"
+    },
+    "restart": {
+      "a": " Saved messages 1–4 of 4",
+      "b": " Saved messages 1–2 of 2"
+    }
+  },
+  "receiptDigest": "sha256:0a0b2a583d36aab44ab415b6c2c412455174d5fd7c0f4f3328c25379e9277bdb"
+}

@@ -11,7 +11,7 @@
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
-| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows VS Code 1.132.0 实际 VSIX、IntelliJ 2024.2 实际 ZIP 的后台完成、重复正文独立行与进程重启恢复已分别通过 | JetBrains 旧复用 profile 加载失败复核；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
+| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；上述 Windows 双宿主中文 emoji 草稿重启恢复且不自动发送；双 IDE Stop 取消异步输入准备本地回归通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；JetBrains Stop 实际 GUI 专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
 | IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
@@ -303,6 +303,10 @@ UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有�
 
 27 项相关 Java 回归（3 类，0 跳过/失败/错误）、插件 ZIP 构建及 UI 驱动编译通过。GUI 历史断言进一步要求状态为 Saved messages，不再仅凭保存行已出现即通过；旧七标签副本和完整双阶段旅程待在本次源码提交后重新验证。
 
+源码 `30c1a0e183` 后续两项实际宿主验证均通过。旧七标签副本保留原六条保存行和双草稿，版本探测从前次 29 次降至 6 次，历史查询从 9 次降至 3 次；A/B 状态分别为 `Saved messages 1–4 of 4` / `1–2 of 2`，协议无用户输入。[旧配置诊断回执](./ide/evidence/jetbrains-old-profile-diagnostic-windows-30c1a0e183.json)保留副本路径重映射与单次观察的边界，不能据次数下降宣称延迟 SLO 或原故障唯一根因已经查明。
+
+同一干净源码的完整 initial/restart 恢复旅程也通过，模型仍为夹具；实际 ZIP 安装、后台完成、重复正文独立身份、双草稿及真实进程重启恢复均通过，四份 A/B 快照全部显示历史已加载完成。独立核对 31 个产物的长度和 SHA-256、bundle/evidence digest、行身份与真实提交引用及完整 ZIP 清单后保存[完整恢复回执](./ide/evidence/jetbrains-canonical-recovery-windows-30c1a0e183.json)。证据 digest `sha256:8005d099a4aabf8bff1e5125b18324382d1b3d6be15ce76787d5b90b80a42244`，ZIP `sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d`。范围仍为 Windows x64 / IntelliJ 2024.2；未替代其他宿主/交互场景、真实模型和最终 SHA Actions。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
@@ -349,5 +353,7 @@ UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有�
 | `1b9a0190d1` / `edc2d89cc6` | 修正 Robot 泛型返回类型和 Windows 文档换行；旧沙箱的有限完整旅程通过并保留其安装限制 |
 | `fdbdd382b0` | GUI 宿主安装实际 ZIP，初始/重启逐文件校验，排除额外 test runtime |
 | `b5ec362733` / `510b443ac3` | 独立项目/profile、无存储副作用的版本探测与四候选入口隔离；后者的实际 ZIP 完整恢复旅程通过 |
+| `3532bfd45f` | IDE 上传前验证配套 CLI 和子包已从公共 npm 安装并可执行；发布前置检查及公开旧版本安装探测 |
+| `30c1a0e183` | JetBrains 按选中标签发起恢复查询；27 项 Java 回归、旧七标签副本与完整实际 ZIP 重启旅程通过 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。
