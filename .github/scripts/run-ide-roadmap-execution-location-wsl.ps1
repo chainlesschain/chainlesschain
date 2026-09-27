@@ -66,6 +66,7 @@ try {
 
   $setup = "set -euo pipefail; mkdir -p /opt/node-22.12.0 /opt/cc-target-repo /var/lib/cc-location/target-home /var/lib/cc-location/target-security; tar -xzf '$wslNodeArchive' --strip-components=1 -C /opt/node-22.12.0; export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; cd '$workspace'; tar --exclude=node_modules --exclude=build -cf - . | tar -C /opt/cc-target-repo -xf -; cd /opt/cc-target-repo; /opt/node-22.12.0/bin/npm ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund; printf '%s\n' 'CC_IDE_TARGET_NODE=/opt/node-22.12.0/bin/node' 'CC_IDE_TARGET_ENTRY=/opt/cc-target-repo/packages/cli/src/index.js' 'CC_IDE_TARGET_HOME=/var/lib/cc-location/target-home' 'CC_IDE_TARGET_SECURITY_HOME=/var/lib/cc-location/target-security' > /tmp/cc-ide-roadmap-target.env; chmod 600 /tmp/cc-ide-roadmap-target.env; chmod +x /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh"
   Invoke-Wsl @("--distribution", $distro, "--exec", "bash", "-lc", $setup)
+  Invoke-Wsl @("--distribution", $distro, "--exec", "/opt/node-22.12.0/bin/node", "/opt/cc-target-repo/.github/scripts/prepare-ide-roadmap-location-deployment.mjs", "/var/lib/cc-location/target-home")
 
   Invoke-Matrix "prepare-reconnect"
   Invoke-Wsl @("--distribution", $distro, "--exec", "mv", "/opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh", "/opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh.offline")

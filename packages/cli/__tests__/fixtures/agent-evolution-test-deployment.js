@@ -202,7 +202,8 @@ function evidenceAuthorities(tenantId) {
         sourceKind: request.sourceKind,
         sourceCommitment: request.sourceCommitment,
         commitmentReceiptDigest: request.commitmentReceiptDigest,
-        sourceVerificationReceiptDigest: request.sourceVerificationReceiptDigest,
+        sourceVerificationReceiptDigest:
+          request.sourceVerificationReceiptDigest,
         sensitivity: request.sensitivity,
         retention: {
           expiresAt: "2030-01-01T00:00:00.000Z",
@@ -230,7 +231,10 @@ function evidenceAuthorities(tenantId) {
       const iv = crypto.randomBytes(12);
       const cipher = crypto.createCipheriv("aes-256-gcm", rawKey, iv);
       cipher.setAAD(aad);
-      const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+      const ciphertext = Buffer.concat([
+        cipher.update(plaintext),
+        cipher.final(),
+      ]);
       return {
         algorithm: "aes-256-gcm",
         keyRef: `kms://${tenantId}/evolution-raw-v1`,
@@ -405,7 +409,16 @@ export function createTestAgentEvolutionComposition(
 }
 
 /** Create an ephemeral signed deployment and return its two required env vars. */
-export function createSignedAgentEvolutionDeployment(root) {
+export function createSignedAgentEvolutionDeployment(
+  root,
+  { commands = ["agent"] } = {},
+) {
+  if (
+    !Array.isArray(commands) ||
+    commands.length === 0 ||
+    commands.some((command) => !["agent", "chat"].includes(command))
+  )
+    throw new TypeError("Test deployment only supports agent and chat");
   // ArtifactStore rejects symlinked path components so its evidence paths are
   // physically auditable.  macOS commonly exposes its temp directory through
   // /var (a symlink to /private/var), therefore resolve the test home once
@@ -419,7 +432,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 const processStateRoot = join(${JSON.stringify(stateRoot)}, randomUUID());
 export async function createChainlessChainCommandDependencies({ commandName, factories }) {
-  if (commandName !== "agent") return {};
+  if (!${JSON.stringify(commands)}.includes(commandName)) return {};
   const { createTestAgentEvolutionComposition } = await import(${JSON.stringify(import.meta.url)});
   return {
     evolutionCompositionFactory: async (context) =>
@@ -445,7 +458,7 @@ export async function createChainlessChainCommandDependencies({ commandName, fac
     modulePath,
     moduleDigest,
     trustRootDigest: computeEvolutionDeploymentDigest(trustRoot),
-    commands: ["agent"],
+    commands,
   };
   descriptor.signature = crypto
     .sign(

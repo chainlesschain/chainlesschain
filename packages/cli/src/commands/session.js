@@ -220,7 +220,7 @@ export function rankSessions(sessions, limit) {
     .slice(0, limit);
 }
 
-export function registerSessionCommand(program) {
+export function registerSessionCommand(program, dependencies = {}) {
   const session = program
     .command("session")
     .description("Conversation session management");
@@ -737,13 +737,37 @@ export function registerSessionCommand(program) {
 
         // Import and start chat REPL with restored messages
         const { startChatRepl } = await import("../repl/chat-repl.js");
-        await startChatRepl({
+        const {
+          resolveChatCommandEvolutionComposition,
+          assertChatSessionUsageAdmission,
+        } = await import("./chat.js");
+        const { readEvolutionCompositionFactory } =
+          await import("../lib/evolution/governed-model-turn.js");
+        const { loadEvolutionDeploymentCommandDependencies } =
+          await import("../lib/evolution/evolution-deployment-loader.js");
+        const { waitForAgentEvolutionSession } =
+          await import("../lib/evolution/agent-evolution-session-lifecycle.js");
+        assertChatSessionUsageAdmission(sess.id);
+        // Resume is a chat entrypoint. Use the target's authenticated chat
+        // deployment, loaded only here so read-only session commands need none.
+        const factory =
+          readEvolutionCompositionFactory(dependencies) ??
+          readEvolutionCompositionFactory(
+            (await loadEvolutionDeploymentCommandDependencies("chat")) || {},
+          );
+        const composition =
+          await resolveChatCommandEvolutionComposition(factory);
+        const ingress = composition.evolutionIngress;
+        await ingress.start();
+        const lifecycle = await startChatRepl({
           model: options.model || sess.model || "qwen2:7b",
           provider: options.provider || sess.provider || "ollama",
           baseUrl: options.baseUrl || "http://localhost:11434",
           resumeMessages: sess.messages,
           sessionId: sess.id,
+          evolutionIngress: ingress,
         });
+        await waitForAgentEvolutionSession(lifecycle, ingress);
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exitCode = 1;

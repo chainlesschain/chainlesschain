@@ -7,6 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { prepareTargetChatDeployment } from "./prepare-ide-roadmap-location-deployment.mjs";
 
 function parseArguments(argv) {
   const options = {};
@@ -69,7 +70,7 @@ function runMatrix(commonArguments, mode, extra = []) {
   }
 }
 
-function main() {
+async function main() {
   const options = parseArguments(process.argv.slice(2));
   const runRoot = path.join(
     process.env.RUNNER_TEMP || os.tmpdir(),
@@ -118,6 +119,7 @@ function main() {
   ];
   let movedOffline = false;
   try {
+    await prepareTargetChatDeployment(targetHome);
     runMatrix(commonArguments, "initialize");
     runMatrix(commonArguments, "prepare-reconnect");
     if (fs.existsSync(offlineCli)) {
@@ -146,4 +148,4 @@ function main() {
   }
 }
 
-main();
+await main();

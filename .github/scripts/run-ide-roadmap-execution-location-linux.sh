@@ -74,6 +74,7 @@ if [[ "$transport" == "container" ]]; then
   docker cp "$run_root/repository.tar" "$container_name:/tmp/repository.tar"
   docker cp "$node_archive" "$container_name:/tmp/node.tar.gz"
   docker exec "$container_name" bash -lc "set -euo pipefail; mkdir -p /opt/cc-target-repo /opt/node-22.12.0 /var/lib/cc-location/target-home /var/lib/cc-location/target-security; tar -xf /tmp/repository.tar -C /opt/cc-target-repo; tar -xzf /tmp/node.tar.gz --strip-components=1 -C /opt/node-22.12.0; export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; cd /opt/cc-target-repo; npm ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund; printf '%s\n' 'CC_IDE_TARGET_NODE=/opt/node-22.12.0/bin/node' 'CC_IDE_TARGET_ENTRY=/opt/cc-target-repo/packages/cli/src/index.js' 'CC_IDE_TARGET_HOME=/var/lib/cc-location/target-home' 'CC_IDE_TARGET_SECURITY_HOME=/var/lib/cc-location/target-security' > /tmp/cc-ide-roadmap-target.env; chmod 600 /tmp/cc-ide-roadmap-target.env; chmod +x /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh"
+  docker exec "$container_name" "$target_node" /opt/cc-target-repo/.github/scripts/prepare-ide-roadmap-location-deployment.mjs /var/lib/cc-location/target-home
   target_args=(
     --target-cwd /opt/cc-target-repo
     --target-cli /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh
@@ -96,6 +97,7 @@ CC_IDE_TARGET_SECURITY_HOME=$run_root/target-security
 EOF
   chmod 600 /tmp/cc-ide-roadmap-target.env
   chmod +x "$target_repo/.github/scripts/ide-roadmap-execution-location-target.sh"
+  "$run_root/target-node/bin/node" "$target_repo/.github/scripts/prepare-ide-roadmap-location-deployment.mjs" "$run_root/target-home"
   ssh-keygen -q -t ed25519 -N '' -f "$run_root/client-key"
   install -d -m 700 "$run_root/sshd/user-ssh"
   install -m 600 "$run_root/client-key.pub" "$run_root/sshd/user-ssh/authorized_keys"
