@@ -1,0 +1,1977 @@
+{
+  "schema": "chainlesschain.bridge-subreaper-evidence/v1",
+  "commit": "59ef6116e447adaeac1fa56b719df0170e08eaaa",
+  "status": "local-production-path-verified-distribution-and-hosted-acceptance-pending",
+  "releaseEligible": false,
+  "scope": "Real Bridge and Broker retain prlimit and wait for an intact native supervisor to reap all descendants",
+  "unresolved": [
+    "Prebuilt and no-compiler helper installation",
+    "Supervisor death can leave descendants; unconfirmed state retains ownership but bounded failure/recovery UX is pending",
+    "Hosted exact-SHA three-system/architecture matrix and macOS lifecycle acceptance",
+    "Real provider and production router admission"
+  ],
+  "counterexampleRechecks": [
+    {
+      "reportDigest": "sha256:88b60827613cfe2ab523bb0076b52ccbf77a7911ef2581d65f869243d453489d",
+      "schema": "chainlesschain.external-agent-process-tree-probe/v1",
+      "commit": "59ef6116e447adaeac1fa56b719df0170e08eaaa",
+      "cleanAtStart": true,
+      "host": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "release": "10.0.19045"
+      },
+      "status": "cancelled",
+      "success": false,
+      "pids": {
+        "parentPid": 27428,
+        "grandchildPid": 23116
+      },
+      "rootHandleClosed": true,
+      "liveAtSettlement": [],
+      "states": null,
+      "limitations": [
+        "Synthetic local parent and grandchild, not a real external model invocation",
+        "Local integrated cancellation scenario only; supervisor loss and packaging remain open"
+      ]
+    },
+    {
+      "reportDigest": "sha256:b7aa3b207d4a9b47daa61bc9347b1f02e1fde4ba59c95a08f6747a353378e1d5",
+      "schema": "chainlesschain.external-agent-process-tree-probe/v1",
+      "commit": "59ef6116e447adaeac1fa56b719df0170e08eaaa",
+      "cleanAtStart": true,
+      "host": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "release": "4.4.0-19041-Microsoft"
+      },
+      "status": "cancelled",
+      "success": false,
+      "pids": {
+        "parentPid": 57,
+        "grandchildPid": 64
+      },
+      "rootHandleClosed": true,
+      "liveAtSettlement": [],
+      "states": [],
+      "limitations": [
+        "Synthetic local parent and grandchild, not a real external model invocation",
+        "Local integrated cancellation scenario only; supervisor loss and packaging remain open"
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "metadataDigest": "sha256:f3f385018748c9c885575e99f96d177d2072788057564e428edf00c601eb8e15",
+      "schema": "chainlesschain.bridge-subreaper-tests/v1",
+      "commit": "59ef6116e447adaeac1fa56b719df0170e08eaaa",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T17:27:41.585Z",
+      "finishedAt": "2026-09-27T17:27:48.528Z",
+      "host": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "release": "10.0.19045"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 103,
+        "pending": 39,
+        "failed": 0
+      },
+      "sourceFiles": [
+        {
+          "path": "packages/cli/src/lib/claude-code-bridge.js",
+          "digest": "sha256:14d01fde9b99a5ea6610026a3402b6a2cd68cb2b9c0df6c288049371860a2656"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/index.js",
+          "digest": "sha256:0877ff4ed7166725e68adebfa20464037c6a3bc88d8af97f2cb52cd6d72f0bb1"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "digest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "digest": "sha256:70d45b3d6540e674f3137da5bd9de8e554e026665682616ae4ad78a3ca328d81"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+          "digest": "sha256:b94c1fa2e9636253e5752f9e912e9f6ccfc01af43866f12c8131328a919a6f3d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/linux-subreaper-process.test.js",
+          "digest": "sha256:755bb676b15ab0c6e34c5838733f2fc4ef185badfa4c7e3ffe80889aa2248eef"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-helper.test.js",
+          "digest": "sha256:bab4cfda4b6fd933cdd0b8d339fe7d515a44dbd733e0424e96a7a3a1805cebf5"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-process.test.js",
+          "digest": "sha256:20e22958ea1ec9f519d3a317431ad1e8cb92cef42cbf470b1807c23aef4c8290"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/claude-code-bridge-linux-tree.test.js",
+          "digest": "sha256:1a33c2b08f9e277735a6d022b83c4af6860d66dafe4fdf3d8942710311766a97"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/process-broker-linux-subreaper.test.js",
+          "digest": "sha256:ab21607c40e471d358ea0735118f1b5de570850395d651186ff5918b28e7a3e8"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/claude-code-bridge-process-lifecycle.test.js",
+          "digest": "sha256:6fae1baa2f0ff493b95b56fcd40defada87e3392258e6420ce94315d4ba8773d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/claude-code-bridge.test.js",
+          "digest": "sha256:e63758e0c70db2bd2cbff903e26716a9b7f7c2bdf5745b585d30b79be0c3709d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/lib/claude-code-bridge-v2.test.js",
+          "digest": "sha256:57319439809075d131844bd4580ba8c517c456c2ec3f1b0293a90bcf809d0600"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+          "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+        },
+        {
+          "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+          "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+        },
+        {
+          "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+          "digest": "sha256:a7c7cd75adc1d3476c000eb88d75bb9309587990e3f05a942bde86a07ed548e0"
+        }
+      ],
+      "report": {
+        "path": ".tmp/bridge-subreaper-win32-tests.json",
+        "digest": "sha256:358c8e20494becb59f40340996a9c27c623da45d42faa7eac8fe35477d7122cf"
+      },
+      "bridgeTrees": [],
+      "limitations": [
+        "System C compiler is currently required; prebuilt/no-compiler installation and Linux architecture coverage remain open",
+        "Supervisor forced death can leave descendants: verified unconfirmed receipt, no task completion or reuse; bounded failure/recovery UX pending",
+        "Hosted exact-SHA Linux/macOS/Windows acceptance is pending; Windows skips Linux-native scenarios",
+        "Synthetic processes exercise the production Bridge/Broker path; no provider/account or production router admission change"
+      ],
+      "assertions": [
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through same-group",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through detached",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through root-exit",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through root-term-exit",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through double-fork",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through timeout",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through post-spawn-error",
+          "status": "skipped"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through supervisor-loss",
+          "status": "skipped"
+        },
+        {
+          "name": "waits for the real Broker-owned process close after post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation builds once, brands single-use leases and pins the unlinked image across launches",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when native validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when platform validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when option validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when identity validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when frame validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when spawn validation fails",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation redacts failed compiler diagnostics and does not cache the failed build",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation rejects a substituted image even when the compiler seam reports success",
+          "status": "skipped"
+        },
+        {
+          "name": "trusted Linux subreaper installation rejects changed source bytes before invoking a compiler",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants preserves multi-chunk Unicode args/environment and ordinary target exit",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring parent and child in the same group",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring descendant in a separate session",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits normally",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits on TERM",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants adopts the double-forked leaf after its intermediary was reaped by the root",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans all adopted descendants on a hard cancel",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans when the caller lifeline disappears without claiming a lost receipt",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup after its supervisor is killed externally",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants reports an actual exec failure while confirming no descendants remain",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup when the native helper itself cannot start",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not invoke a shell for an executable file without a valid format",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants keeps stdin/stdout separate from cleanup control messages",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping preserves admitted argv, cwd, environment and resource backend",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping retains a real target exec failure and confirms cleanup separately",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"shell\":true}",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"detached\":true}",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"stdio\":\"inherit\"}",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"uid\":0}",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"linuxSubreaper\":{\"graceMs\":50,\"helperPath\":\"/unapproved\"}}",
+          "status": "skipped"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping cannot use supervision to bypass a denied command",
+          "status": "skipped"
+        },
+        {
+          "name": "detectClaudeCode returns found=true with version when claude is installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectClaudeCode returns found=false when claude is not installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectCodex returns found=true with version when codex is installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectCodex returns found=false when codex is not installed",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent initialises with IDLE status",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent executes task successfully with exit code 0",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent reassembles a multi-byte UTF-8 char split across stdout chunks (no mojibake)",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent bounds retained output (tail-kept) when the child floods stdout past the cap",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent marks task as FAILED when exit code is non-zero",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent marks task as TIMEOUT when process hangs",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent handles spawn error gracefully",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent finalizes an error followed by close only once",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent settles synchronous broker spawn rejection and can be reused",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent escalates repeated abort once and does not signal a reused agent",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains a broker-owned child after a synchronous post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent accepts only an observed broker close fence after post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains ownership when the broker close fence is unobserved",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains ownership when the broker close fence is rejected",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent waits for close after a live child error",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent prepends context to prompt when context is provided",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent passes --model flag when model is set",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent emits task:start and task:complete events",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent abort() kills running process",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent honors a cancellation in task:start without spawning a child",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent toJSON returns correct shape",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent uses the Codex argv and JSONL contract",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent fails closed when Codex exits without a terminal JSONL event",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent escalates to SIGKILL when the process ignores SIGTERM",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent does not fire a redundant SIGKILL when SIGTERM kills the process promptly",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool dispatches tasks in parallel batches",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool status() returns pool state",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool bounds _completed history to maxCompleted (no unbounded leak)",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool forwards agent:output events from agents",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool includes taskId in each result",
+          "status": "passed"
+        },
+        {
+          "name": "stream-json output parsing extracts text from result line",
+          "status": "passed"
+        },
+        {
+          "name": "stream-json output parsing falls back to last assistant text when no result line",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract requires ordered kernel cleanup and successful supervisor close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: missing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: early",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: duplicate",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: truncated",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: killed",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract de-duplicates control requests without calling ChildProcess.kill",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves empty values and exact UTF-8 framing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract rejects invalid/oversized plans and unknown process controls before spawn",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 0 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 6000 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 2147483647 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade keeps the close fence until both cleanup receipt and native close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade reports target exec failure before releasing a confirmed close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade does not release ownership after supervisor loss even with a prior receipt",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade closes a native spawn that never acquired a PID with the spawn error",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade signals over the private control channel and exposes the target signal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums 4 maturity states",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums 5 lifecycle states",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums frozen",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setMaxActive",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setMaxPending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setIdle",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setStuck",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config rejects 0",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config rejects NaN",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config floors decimals",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle register pending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle default channel",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle activate",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle degrade",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle recovery preserves activatedAt",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle archive terminal",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle cannot touch archived",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle invalid transition",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle duplicate rejected",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle missing owner",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle get null",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle list all",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle defensive copy",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap enforced",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap recovery exempt",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap per-owner",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle create→running→complete",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle fail",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle cancel from queued",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle invalid complete from queued",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle unknown profile",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle pending cap",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle running counts as pending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle completed frees slot",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle get null",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle list",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle missing id",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle duplicate id",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle cancel reason captured",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips autoDegradeIdle",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips autoFailStuck",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips only flips active",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface stats zero-init",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface stats counts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "metadataDigest": "sha256:e54e7bfc9408efd07723af8f8482beed87dbaf7f17221f9e84aab3aaafad1f51",
+      "schema": "chainlesschain.bridge-subreaper-tests/v1",
+      "commit": "59ef6116e447adaeac1fa56b719df0170e08eaaa",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T17:28:03.486Z",
+      "finishedAt": "2026-09-27T17:28:44.495Z",
+      "host": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "release": "4.4.0-19041-Microsoft"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 142,
+        "pending": 0,
+        "failed": 0
+      },
+      "sourceFiles": [
+        {
+          "path": "packages/cli/src/lib/claude-code-bridge.js",
+          "digest": "sha256:14d01fde9b99a5ea6610026a3402b6a2cd68cb2b9c0df6c288049371860a2656"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/index.js",
+          "digest": "sha256:0877ff4ed7166725e68adebfa20464037c6a3bc88d8af97f2cb52cd6d72f0bb1"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "digest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "digest": "sha256:70d45b3d6540e674f3137da5bd9de8e554e026665682616ae4ad78a3ca328d81"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+          "digest": "sha256:b94c1fa2e9636253e5752f9e912e9f6ccfc01af43866f12c8131328a919a6f3d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/linux-subreaper-process.test.js",
+          "digest": "sha256:755bb676b15ab0c6e34c5838733f2fc4ef185badfa4c7e3ffe80889aa2248eef"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-helper.test.js",
+          "digest": "sha256:bab4cfda4b6fd933cdd0b8d339fe7d515a44dbd733e0424e96a7a3a1805cebf5"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-process.test.js",
+          "digest": "sha256:20e22958ea1ec9f519d3a317431ad1e8cb92cef42cbf470b1807c23aef4c8290"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/claude-code-bridge-linux-tree.test.js",
+          "digest": "sha256:1a33c2b08f9e277735a6d022b83c4af6860d66dafe4fdf3d8942710311766a97"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/process-broker-linux-subreaper.test.js",
+          "digest": "sha256:ab21607c40e471d358ea0735118f1b5de570850395d651186ff5918b28e7a3e8"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/claude-code-bridge-process-lifecycle.test.js",
+          "digest": "sha256:6fae1baa2f0ff493b95b56fcd40defada87e3392258e6420ce94315d4ba8773d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/claude-code-bridge.test.js",
+          "digest": "sha256:e63758e0c70db2bd2cbff903e26716a9b7f7c2bdf5745b585d30b79be0c3709d"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/lib/claude-code-bridge-v2.test.js",
+          "digest": "sha256:57319439809075d131844bd4580ba8c517c456c2ec3f1b0293a90bcf809d0600"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+          "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+        },
+        {
+          "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+          "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+        },
+        {
+          "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+          "digest": "sha256:a7c7cd75adc1d3476c000eb88d75bb9309587990e3f05a942bde86a07ed548e0"
+        }
+      ],
+      "report": {
+        "path": ".tmp/bridge-subreaper-linux-tests.json",
+        "digest": "sha256:32772b4e4f4baa5118d894dc59a82fbe0cf867829571a2608384e1e8970aa9ac"
+      },
+      "bridgeTrees": [
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through same-group",
+          "scenario": "same-group",
+          "pids": [
+            167,
+            175
+          ],
+          "receipt": {
+            "targetPid": 167,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 130.79899999999998,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[167,175]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[167,175]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 933,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790530089696-m7h0",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:84c1652481eaea05010637b8c58770c60231fa7d7600b5e49eae5d9b83f73ab8"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through detached",
+          "scenario": "detached",
+          "pids": [
+            189,
+            197
+          ],
+          "receipt": {
+            "targetPid": 189,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 128.09720000000016,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[189,197]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[189,197]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 303,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790530090644-wupk",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:8c49484e540d17c31fa6a8ab4919fbd410a77aea13dde911ce4aa271c68b41c1"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through root-exit",
+          "scenario": "root-exit",
+          "pids": [
+            209,
+            216
+          ],
+          "receipt": {
+            "targetPid": 209,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 186.48180000000002,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": true,
+            "status": "completed",
+            "output": "done",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[209,216]}\n{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"done\"}\n",
+            "outputTruncated": false,
+            "exitCode": 0,
+            "duration": 386,
+            "timedOut": false,
+            "cancelled": false,
+            "agentId": "cc-agent-1790530090953-pajb",
+            "stderr": "",
+            "errorCode": null,
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": "completed",
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "runtime-terminal-event",
+                "outcome": "completed",
+                "source": "claude-stream-json-v1"
+              },
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:546d046d7f88a9a37b8c48c82bc21fb100f47c5aa2f1021c62fa1fc439769dc6"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through root-term-exit",
+          "scenario": "root-term-exit",
+          "pids": [
+            225,
+            234
+          ],
+          "receipt": {
+            "targetPid": 225,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 113.33050000000003,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[225,234]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[225,234]}\n",
+            "outputTruncated": false,
+            "exitCode": 0,
+            "duration": 312,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790530091345-0pv1",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:47043bc46acaea9909d48f2a36c1d9a0561776b136d7b9f7100859148bdc7e89"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through double-fork",
+          "scenario": "double-fork",
+          "pids": [
+            253,
+            260,
+            267
+          ],
+          "receipt": {
+            "targetPid": 253,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 114.11860000000024,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[253,260,267]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[253,260,267]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 391,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790530091662-jppv",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:d9fd8c056342977b360599b2c06777239730af0c17930e5e41134b6b0e8444c0"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through timeout",
+          "scenario": "timeout",
+          "pids": [
+            275,
+            284
+          ],
+          "receipt": {
+            "targetPid": 275,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 1975.6416000000004,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "timeout",
+            "output": "{\"type\":\"system\",\"fixturePids\":[275,284]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[275,284]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 2162,
+            "timedOut": true,
+            "cancelled": false,
+            "agentId": "cc-agent-1790530092061-l65f",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_TIMEOUT",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:ce5731f77ebbf9cbbea015b1d6307585a460fd6fc00de8fb0995853e42bb7fdb"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through post-spawn-error",
+          "scenario": "post-spawn-error",
+          "pids": [
+            377,
+            391
+          ],
+          "receipt": {
+            "targetPid": 377,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 25.122699999999895,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "failed",
+            "output": "{\"type\":\"system\",\"fixturePids\":[377,391]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[377,391]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 224,
+            "timedOut": false,
+            "cancelled": false,
+            "agentId": "cc-agent-1790530094229-msyo",
+            "stderr": "",
+            "error": "fixture bookkeeping failed after descendants started",
+            "errorCode": "EXTERNAL_AGENT_SPAWN_FAILED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:df11b4c8b03d0b422bb0a4eba32c12b2baa5cdbeff1488b781e94fe54fb0464c"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through supervisor-loss",
+          "scenario": "supervisor-loss",
+          "pids": [
+            400,
+            415
+          ],
+          "receipt": {
+            "targetPid": 400,
+            "target": null,
+            "supervisor": {
+              "code": null,
+              "signal": "SIGKILL",
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd"
+            }
+          },
+          "elapsedAfterReadyMs": 1.9341000000003987,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ]
+        }
+      ],
+      "limitations": [
+        "System C compiler is currently required; prebuilt/no-compiler installation and Linux architecture coverage remain open",
+        "Supervisor forced death can leave descendants: verified unconfirmed receipt, no task completion or reuse; bounded failure/recovery UX pending",
+        "Hosted exact-SHA Linux/macOS/Windows acceptance is pending; Windows skips Linux-native scenarios",
+        "Synthetic processes exercise the production Bridge/Broker path; no provider/account or production router admission change"
+      ],
+      "assertions": [
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through same-group",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through detached",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through root-exit",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through root-term-exit",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through double-fork",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through timeout",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through post-spawn-error",
+          "status": "passed"
+        },
+        {
+          "name": "production Bridge and Broker Linux tree ownership retains ownership through supervisor-loss",
+          "status": "passed"
+        },
+        {
+          "name": "waits for the real Broker-owned process close after post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation builds once, brands single-use leases and pins the unlinked image across launches",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when native validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when platform validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when option validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when identity validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when frame validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation releases a valid lease when spawn validation fails",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation redacts failed compiler diagnostics and does not cache the failed build",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation rejects a substituted image even when the compiler seam reports success",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Linux subreaper installation rejects changed source bytes before invoking a compiler",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants preserves multi-chunk Unicode args/environment and ordinary target exit",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring parent and child in the same group",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring descendant in a separate session",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits normally",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits on TERM",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants adopts the double-forked leaf after its intermediary was reaped by the root",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans all adopted descendants on a hard cancel",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans when the caller lifeline disappears without claiming a lost receipt",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup after its supervisor is killed externally",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants reports an actual exec failure while confirming no descendants remain",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup when the native helper itself cannot start",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not invoke a shell for an executable file without a valid format",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants keeps stdin/stdout separate from cleanup control messages",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping preserves admitted argv, cwd, environment and resource backend",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping retains a real target exec failure and confirms cleanup separately",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"shell\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"detached\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"stdio\":\"inherit\"}",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"uid\":0}",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping rejects an unsupported launch before native execution: {\"linuxSubreaper\":{\"graceMs\":50,\"helperPath\":\"/unapproved\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "Broker admission before Linux lifecycle wrapping cannot use supervision to bypass a denied command",
+          "status": "passed"
+        },
+        {
+          "name": "detectClaudeCode returns found=true with version when claude is installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectClaudeCode returns found=false when claude is not installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectCodex returns found=true with version when codex is installed",
+          "status": "passed"
+        },
+        {
+          "name": "detectCodex returns found=false when codex is not installed",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent initialises with IDLE status",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent executes task successfully with exit code 0",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent reassembles a multi-byte UTF-8 char split across stdout chunks (no mojibake)",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent bounds retained output (tail-kept) when the child floods stdout past the cap",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent marks task as FAILED when exit code is non-zero",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent marks task as TIMEOUT when process hangs",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent handles spawn error gracefully",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent finalizes an error followed by close only once",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent settles synchronous broker spawn rejection and can be reused",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent escalates repeated abort once and does not signal a reused agent",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains a broker-owned child after a synchronous post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent accepts only an observed broker close fence after post-spawn failure",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains ownership when the broker close fence is unobserved",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent retains ownership when the broker close fence is rejected",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent waits for close after a live child error",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent prepends context to prompt when context is provided",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent passes --model flag when model is set",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent emits task:start and task:complete events",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent abort() kills running process",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent honors a cancellation in task:start without spawning a child",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent toJSON returns correct shape",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent uses the Codex argv and JSONL contract",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent fails closed when Codex exits without a terminal JSONL event",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent escalates to SIGKILL when the process ignores SIGTERM",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeAgent does not fire a redundant SIGKILL when SIGTERM kills the process promptly",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool dispatches tasks in parallel batches",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool status() returns pool state",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool bounds _completed history to maxCompleted (no unbounded leak)",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool forwards agent:output events from agents",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodePool includes taskId in each result",
+          "status": "passed"
+        },
+        {
+          "name": "stream-json output parsing extracts text from result line",
+          "status": "passed"
+        },
+        {
+          "name": "stream-json output parsing falls back to last assistant text when no result line",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract requires ordered kernel cleanup and successful supervisor close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: missing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: early",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: duplicate",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: truncated",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: killed",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract de-duplicates control requests without calling ChildProcess.kill",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves empty values and exact UTF-8 framing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract rejects invalid/oversized plans and unknown process controls before spawn",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 0 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 6000 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves a caller grace period of 2147483647 ms",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade keeps the close fence until both cleanup receipt and native close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade reports target exec failure before releasing a confirmed close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade does not release ownership after supervisor loss even with a prior receipt",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade closes a native spawn that never acquired a PID with the spawn error",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper Broker child facade signals over the private control channel and exposes the target signal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums 4 maturity states",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums 5 lifecycle states",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface enums frozen",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setMaxActive",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setMaxPending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setIdle",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config setStuck",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config rejects 0",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config rejects NaN",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface config floors decimals",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle register pending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle default channel",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle activate",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle degrade",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle recovery preserves activatedAt",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle archive terminal",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle cannot touch archived",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle invalid transition",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle duplicate rejected",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle missing owner",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle get null",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle list all",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface profile lifecycle defensive copy",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap enforced",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap recovery exempt",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface active cap per-owner",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle create→running→complete",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle fail",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle cancel from queued",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle invalid complete from queued",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle unknown profile",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle pending cap",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle running counts as pending",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle completed frees slot",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle get null",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle list",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle missing id",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle duplicate id",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface invocation lifecycle cancel reason captured",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips autoDegradeIdle",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips autoFailStuck",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface auto flips only flips active",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface stats zero-init",
+          "status": "passed"
+        },
+        {
+          "name": "ClaudeCodeBridge V2 Surface stats counts",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "evidenceDigest": "sha256:1918f739e5ebbc9b206209409e134e57d1e167022f64120c3c42f8fa27dca23d"
+}

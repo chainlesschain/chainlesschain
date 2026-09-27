@@ -548,7 +548,7 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 
 ### BRIDGE-01：可信 Linux helper 接入实际 Broker 与 bridge（2026-09-28）
 
-本批把 subreaper 接入实际 `ClaudeCodeAgent` → Broker → `linux-prlimit` 启动路径。先执行原命令权限、凭据、工作区和沙箱准入，再监督已经批准的 command/argv/env/cwd；已有强进程树后端继续使用其既有路径。生命周期回执不增加 `process-tree` 沙箱保证。拒绝不支持的 shell、detached、stdio、身份和异步控制选项，防止包装后默默改变原计划。真实参数/环境/目录回归与拒绝命令负例通过；另一个负例发现 prlimit 已把 `shell:true` 转换为显式 shell 命令，因而同时检查原始请求和转换后的选项。
+`59ef6116e447adaeac1fa56b719df0170e08eaaa` 把 subreaper 接入实际 `ClaudeCodeAgent` → Broker → `linux-prlimit` 启动路径。先执行原命令权限、凭据、工作区和沙箱准入，再监督已经批准的 command/argv/env/cwd；已有强进程树后端继续使用其既有路径。生命周期回执不增加 `process-tree` 沙箱保证。拒绝不支持的 shell、detached、stdio、身份和异步控制选项，防止包装后默默改变原计划。真实参数/环境/目录回归与拒绝命令负例通过；另一个负例发现 prlimit 已把 `shell:true` 转换为显式 shell 命令，因而同时检查原始请求和转换后的选项。
 
 helper 只从包内固定摘要的 C 源码构建，canonical LF 摘要为 `sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424`。使用 root 所有且不可被普通用户写入的系统编译器、固定参数和干净环境；源码通过同一 FD 有界读取校验，再从 stdin 编译。构建目录通过继承 FD 绑定，产物校验 ELF/架构/权限/身份后 unlink，单次私有 lease 经 fd 4 启动同一镜像，不再打开可替换的可执行路径。缓存有界，验证失败、原生启动抛错和重复消费均有描述符释放回归；真实原生目标确认不继承 fd 3/4 等安装控制句柄。编译失败、源码漂移和错误 ELF 明确拒绝，不输出编译器原始诊断。
 
@@ -559,3 +559,5 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 安装分发仍未完成：当前 Linux 主机需要可用的系统 C 编译器，预编译/无编译器安装与 Linux 架构矩阵待补；未确认清理后的有界失败展示、持久隔离及恢复也待实现。macOS、最终准确 SHA 的托管三系统和真实 provider 继续验收，生产 AgentRouter attestation gate 不变。BRIDGE-01 继续局部完成，不升版本、不发布。
 
 相关 11 个文件的扩大回归：WSL1 480 项通过、9 项平台跳过；Windows 450 项通过、39 项平台跳过。覆盖 Broker 沙箱/工作区事务、helper 身份与 FD 生命周期、实际 bridge 树清理及既有 bridge 合同。ESLint 无新增错误（两个既有文件合计 10 个 unused warning）、Prettier 和进程调用清单一致性检查通过；本地结果不替代 GitHub Actions 的准确最终 SHA 发布门。
+
+干净 `59ef6116e4` 的[独立回执](./cli/evidence/bridge-subreaper-windows-wsl-59ef6116e4.json)记录 WSL 142 项通过、Windows 103 项通过及 39 项 Linux 专属平台跳过，附 8 条实际 bridge 生命周期记录、源码/测试文件摘要和每条 helper 镜像摘要。7 条确认清理中，非超时场景 ready→结算最大 186.49 ms，超时场景为 1975.65 ms。最初的父子忽略 TERM 探针保持原夹具和断言，仅更换回执文件名/限制说明，在 Windows 和 WSL 原样复验均退出 0；任务返回时 `liveAtSettlement:[]`，旧失败回执保留。新 SHA 的 `CLI CI` run `36336971821` 和 `CLI Strict Sandbox` run `36336971698` 查询时仍在等待，不计作远端通过。
