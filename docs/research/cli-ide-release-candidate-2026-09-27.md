@@ -35,6 +35,8 @@
 
 现有 workflow 包含专用 tag 的发布触发器。准备候选范围或构建本地产物不需要创建这些 tag。采用候选渠道前需核实各发布 workflow 的渠道参数，不能假定版本带后缀就不会更新稳定渠道。
 
+补充的[旧七标签配置副本诊断](./ide/evidence/jetbrains-old-profile-diagnostic-windows-9e44569972.json)已恢复 A/B 原六条保存行和双草稿，没有重发。此诊断使用当前夹具和独立目录，原失败根因仍未确定；恢复时的并发版本探测和历史读取排队仍待优化。
+
 ## 4. 后续独立任务
 
 本轮不宣称完成：NET-01 Linux 不可绕过域名出口、NET-02 已有连接撤销、CODEX-01 最新固定二进制与官方生成 schema 兼容、PERF-01 三系统正式 SLO、PERF-02 实际 usage 与压缩事实保真、VERIFY-01 30–50 真实任务、PLATFORM-01 完整平台矩阵，以及真人读屏和 8h/24h 观察。未知价格仍保持 unpriced；受限域名执行继续沿用 fail-closed。
