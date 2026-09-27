@@ -1,0 +1,118 @@
+{
+  "schema": "chainlesschain.local-ide-recovery-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "5382a8c3be6f5525c1332c1b2a0e24553dfb5b4e",
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "vscode",
+    "version": "1.132.0",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.37.118",
+  "startedAt": "2026-09-27T08:53:41.665Z",
+  "finishedAt": "2026-09-27T08:58:49.980Z",
+  "model": "deterministic stream-json fixture",
+  "persistence": "production canonical session store, input receipts, and actual CLI history subprocess",
+  "profile": "shared disk-backed VS Code profile reopened in a new host process; no extensionTestsPath",
+  "evidence": {
+    "digest": "sha256:3a4743eecdcc83c2485d2777993e7e0f068954e3caf6f17880be8055d7f31e83",
+    "artifactBundleDigest": "sha256:73546bd3ea08b945a4bbda709816733db5ef04ebb6ffdc5fb4ff30ab75aaa3a7",
+    "artifactsVerified": 31,
+    "bundleLocation": ".tmp/vscode-canonical-recovery-5382a8c3be",
+    "allJourneyAssertionsRevalidated": true
+  },
+  "vsixSha256": "sha256:fc725f46070d130d4ce5da106e842d5ff4b5b9bfb580f718fb3803ab6eb3e1e4",
+  "initial": {
+    "schema": "cc-ide-conversation-recovery/v1",
+    "phase": "initial",
+    "original": {
+      "id": "conv-1",
+      "title": "journey:stream",
+      "selected": true
+    },
+    "backgroundAt": "2026-09-27T08:58:04.415Z",
+    "foregroundReturnAt": "2026-09-27T08:58:15.721Z",
+    "backgroundCompletedAt": "2026-09-27T08:58:09.427Z",
+    "a": {
+      "id": "conv-2",
+      "draft": "unsent draft A 中文😀",
+      "savedRows": [
+        {
+          "id": "panel-9983c467-52c3-4d9a-9678-9ef5e9abe03d:461ce9e24d920e4d1274d9e5c4ec68ed05ab4f5c6282b682f9194f5782aac7d3:0",
+          "text": "journey:history-A"
+        },
+        {
+          "id": "panel-9983c467-52c3-4d9a-9678-9ef5e9abe03d:aa84d52ef3b26a27cd13898d81e6fffdaccb4c1a797f952d0a24635bcc97081a:0",
+          "text": "canonical answer A"
+        },
+        {
+          "id": "panel-9983c467-52c3-4d9a-9678-9ef5e9abe03d:79e79bbf5fd217cef3fce15f1f687f879d0d75f8d2fc3a5aea3c5a5957ee85e9:0",
+          "text": "journey:history-A"
+        },
+        {
+          "id": "panel-9983c467-52c3-4d9a-9678-9ef5e9abe03d:869c7b2b59c51a0c41a9eba255d981919e724f1d1ba1479c4db6c64ae7d77349:0",
+          "text": "canonical answer A"
+        }
+      ]
+    },
+    "b": {
+      "id": "conv-3",
+      "draft": "unsent draft B 中文😀",
+      "savedRows": [
+        {
+          "id": "panel-47fee90f-73f9-4cf3-9034-dcbda376d97f:e967692d29ff31dec94c1e493585c6ec50ec5a43cdbf12e0ead8951e30abccf3:0",
+          "text": "journey:history-B"
+        },
+        {
+          "id": "panel-47fee90f-73f9-4cf3-9034-dcbda376d97f:1377cb02d45ac3719bec3f764b41c6f4c6656adeca5d5cf3a26cf83ca40d6177:0",
+          "text": "canonical answer B"
+        }
+      ]
+    },
+    "model": "deterministic fixture",
+    "persistence": "production canonical store and actual CLI command"
+  },
+  "restart": {
+    "schema": "cc-ide-conversation-recovery/v1",
+    "phase": "restart",
+    "historyIdsPreserved": true,
+    "composerDraftsPreserved": true,
+    "automaticInputReplay": false
+  },
+  "workbenchVisibility": {
+    "at": "2026-09-27T08:57:57.529Z",
+    "phase": "initial",
+    "metric": "needs-input-visible-summary",
+    "samples": 100,
+    "minLatencyMs": 983,
+    "maxLatencyMs": 1227,
+    "p95LatencyMs": 1125,
+    "thresholdMs": 2000,
+    "warmupSamples": 1,
+    "measurementStartedAt": "2026-09-27T08:54:31.347Z",
+    "measurementCompletedAt": "2026-09-27T08:57:57.529Z",
+    "networkCondition": "loopback fixture; no external network",
+    "transport": "installed-vsix-webview-production-route",
+    "runnerEnvironment": "local",
+    "runnerName": null,
+    "runnerOS": "win32",
+    "runnerArch": "x64",
+    "runnerImageOS": null,
+    "runnerImageVersion": null
+  },
+  "shellObservation": "The PowerShell wrapper reported exit 1 with redirected native stderr. A separate zero-exit Node file reproduced wrapper exit 1; explicit propagation of LASTEXITCODE returned 0. The host runner emitted PASS and a complete passed manifest; all recorded assertions and byte hashes were independently revalidated.",
+  "limitations": [
+    "Windows x64 / VS Code 1.132.0 only",
+    "Model output, Workbench and checkpoint responses are fixtures; this does not validate live-provider quality or canonical rewind",
+    "No JetBrains, other OS, image/question recovery, human accessibility, or 8h/24h observation acceptance",
+    "Exact-release-SHA CLI CI and Strict Sandbox matrices remain required before npm release",
+    "Release order remains child npm packages, then CLI, then IDE extensions"
+  ],
+  "receiptDigest": "sha256:ff614f0d16739ba641d8bc2dbdafd8c990579cdcd89c7332df433d1e0d8e4e42"
+}

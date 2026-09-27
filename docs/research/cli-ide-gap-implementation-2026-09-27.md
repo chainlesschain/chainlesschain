@@ -11,8 +11,8 @@
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
-| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史、回退/分支/摘要来源与双 IDE 分页；双 IDE 按验证身份增量合并、保留现场诊断与选区，输入回执/终态引用归属检查；真实 store / CLI / DOM / Swing 回归                      | 旧历史边界和真实双宿主验收仍待补                                    |
-| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件持久化、发送前保存、ACK/unknown 分离与只读核对；双 IDE 问题表单与 VS Code 原生 schema 草稿、原 child/request 隔离、过期仅文字恢复                        | 双 IDE 真实宿主旅程、当前跨平台与可访问性验收待完成                 |
+| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；真实 store / CLI / DOM / Swing 回归；Windows VS Code 1.132.0 实际 VSIX 的后台完成、重复正文独立行与进程重启恢复已通过 | JetBrains、其他系统、旧历史边界及真实宿主 rewind/compaction 仍待补 |
+| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows VS Code 1.132.0 双会话中文草稿在进程重启后保留且不自动发送；Stop 取消异步输入准备回归通过 | JetBrains 对应旅程与准备阶段 Stop 复核；附件/问题表单真实宿主、跨平台和可访问性待验收 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
 | IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
 | IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内     |
@@ -27,7 +27,7 @@
 | DOC-01                  | 实现中           | 本表为两份报告共享状态入口                                                                                                                                                   | 随实现更新证据、最终 SHA 与验收条件                                 |
 | UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                  |
 
-真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号与真实 IDE 宿主验收分开记录，目前没有新增结果。云恢复与新交互产品仍为报告中的条件性产品决策。
+真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号尚无本轮新增结果。真实宿主新增 Windows VS Code 1.132.0 的有限恢复旅程证据，见下文；模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
 
 共 20 个分组工作项：5 项本地验证通过、8 项局部实现/验证、5 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
 
@@ -235,6 +235,14 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 
 第三次（源码 `f2f3bbd554`）实际磁盘 profile 的初始/重启恢复步骤均通过：A/B 保存行 ID 与中文草稿不变、协议无自动重发。整体仍为失败（digest `sha256:df5f9cdcaab2ee37f7c603d5be7f3d170a8226a6be19e0fda89b1094f9584fc7`）：旧 DOM 聚合断言在切回原会话后要求临时 permission/interrupted 提示仍留在最终画面；规范 final 回复会替换相应 assistant 正文，而 ready 状态会替代 interruption 状态。驱动改为在两条提示实际被观察到时保存各自 DOM 文件；聚合继续要求这些原标记、初始/重启其余标记和恢复证据全部存在。不回写旧运行状态，须用新提交再跑整轮。相关 69 项启动器/relay 测试通过。
 
+### Windows VS Code 实际安装与重启恢复通过
+
+干净源码 `5382a8c3be6f5525c1332c1b2a0e24553dfb5b4e` 的第四次运行于 2026-09-27 16:53:41～16:58:49（北京时间）完成，VS Code `1.132.0` / Windows x64 / 本地 VSIX `0.37.118`。通过双工作区/双窗口启动、stream/retry/plan/permission/interrupt、100 次 Workbench 采样、A 后台完成、A 同正文两轮独立保存行、A/B 草稿切换、同磁盘 profile 的真实进程重启、原保存行 ID/中文 emoji 草稿恢复及协议无自动重发。P95 `1125 ms` 是本地夹具 Workbench 可见性，不能外推至真实模型或网络。
+
+证据摘要 `sha256:3a4743eecdcc83c2485d2777993e7e0f068954e3caf6f17880be8055d7f31e83`；独立重跑所有产物断言并核对 31 个证据文件的字节数/SHA-256、bundle digest、源码 HEAD 和干净工作树，通过后保存[本地回执](./ide/evidence/vscode-canonical-recovery-windows-5382a8c3be.json)。VSIX SHA-256 为 `FC725F46070D130D4CE5DA106E842D5FF4B5B9BFB580F718FB3803AB6EB3E1E4`。完整本地 bundle 在 `.tmp/vscode-canonical-recovery-5382a8c3be`。PowerShell 的 stderr 重定向令外层工具报 exit 1；已用正常退出的独立 Node 文件复现，并验证显式传递 LASTEXITCODE 为 0。宿主 runner 的完整 passed manifest 与所有断言/哈希另行验证通过；该细节保留于回执，不将外层工具状态隐去。
+
+范围仍有限：canonical 会话存储、回执和 history 子进程为生产实现，模型/Workbench/checkpoint 响应为夹具。尚未通过 JetBrains 对应旅程、其他系统、canonical rewind/compaction、附件/问题表单真实宿主、真人听测或长时观察。CLI CI / Strict Sandbox 精确发布 SHA 矩阵仍待运行；未推送、打 tag 或公开发布。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
@@ -271,5 +279,9 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 | `44db0e64ab` | VS Code 连续增量历史合并、原 child 终态引用关联、重复正文独立身份、选区及原位显示保护；相关回归与本地 VSIX 验证       |
 | `c6852748ba` | JetBrains 连续增量历史合并、输入行写入前预约、终态身份关联、选区/滚动与有界淘汰；共享真实 CLI fixture 与本地 ZIP 验证 |
 | `71760f5da6` | Windows ACL 幂等互斥修复、身份缓存及会话目录初始化；真实 canonical 宿主 peer、双进程回执/历史与去重回归 |
+| `6ea65d987d` | VS Code 实际宿主双会话、重复正文、草稿与重启恢复旅程实现 |
+| `e0d1ad3fd7` | Stop 取消保存/init/UNKNOWN/图片准备中的未发送输入，保留恢复记录与清理新建图片 |
+| `f2f3bbd554` | 恢复旅程使用实际磁盘 profile 的普通宿主，并正常 Quit 保存状态 |
+| `5382a8c3be` | 单独保留瞬时控制 DOM 证据；此 SHA 的完整 Windows VS Code 恢复旅程通过 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。
