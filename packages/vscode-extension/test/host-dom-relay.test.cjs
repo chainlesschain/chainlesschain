@@ -811,7 +811,7 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-dom-relay-"));
   temporaryRoots.push(root);
   const artifactDir = path.join(root, "artifacts");
-  const traceFile = path.join(artifactDir, "cdp-journey.jsonl");
+  const traceFile = path.join(root, "trace", "cdp-journey.jsonl");
   const workspaceFolders = [
     path.join(root, "workspace-primary"),
     path.join(root, "workspace-secondary"),
@@ -975,6 +975,19 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
   assert.match(
     fs.readFileSync(path.join(artifactDir, "initial-dom.txt"), "utf8"),
     /fixture permission approved #4[\s\S]*interrupted/u,
+  );
+  const permissionSnapshot = fs.readFileSync(
+    path.join(artifactDir, "initial-permission-dom.txt"),
+    "utf8",
+  );
+  assert.match(permissionSnapshot, /fixture permission approved #4/u);
+  assert.doesNotMatch(permissionSnapshot, /interrupted/u);
+  assert.match(
+    fs.readFileSync(
+      path.join(artifactDir, "initial-interrupt-dom.txt"),
+      "utf8",
+    ),
+    /interrupted/u,
   );
   assert.match(
     fs.readFileSync(path.join(artifactDir, "restart-dom.txt"), "utf8"),

@@ -191,7 +191,7 @@ async function waitForWorkbench({
   );
 }
 
-async function drivePhase(commands, token, phase, traceFile) {
+async function drivePhase(commands, token, phase, traceFile, artifactDir) {
   const step = async (name, action) => {
     appendTrace(traceFile, { phase, step: name, status: "started" });
     await action();
@@ -204,9 +204,10 @@ async function drivePhase(commands, token, phase, traceFile) {
       predicate: (snapshot) => snapshot.text.includes(text),
       label,
     });
-    if (evidenceName && process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
+    if (evidenceName) {
+      fs.mkdirSync(artifactDir, { recursive: true, mode: 0o700 });
       fs.writeFileSync(
-        path.join(path.dirname(traceFile), evidenceName),
+        path.join(artifactDir, evidenceName),
         observed.text.slice(-128 * 1024),
         { encoding: "utf8", mode: 0o600, flag: "wx" },
       );
@@ -449,7 +450,7 @@ async function runDomRelayJourney({
       ),
       readyAt: new Date().toISOString(),
     });
-    await drivePhase(commands, token, phase, traceFile);
+    await drivePhase(commands, token, phase, traceFile, artifactDir);
     if (process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
       await require("./conversation-recovery.cjs").runConversationRecovery({
         commands,

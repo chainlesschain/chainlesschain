@@ -64,6 +64,10 @@ Execution Location 的依赖安装已通过，后续 Linux/SSH/WSL 日志显示 
 
 `session resume` 已复用当前目标的 Chat 部署授权和 Run 绑定，等待同一 ingress 的交互生命周期结束；仅恢复入口加载部署，read-only history 不受影响。迁移脚本在隔离目标配置临时签名 Chat 测试部署，不传递源账号凭证，也不授予未签名调用权限。真实 CLI 子进程三种场景通过：无部署/仅 Agent 部署拒绝 Chat 恢复，有 Chat 部署正常恢复后 `/exit`，三种情况下只读历史均可用。相关部署、usage 和迁移合同另 4 文件 22 项通过；actionlint、Bash/PowerShell 语法及修改源 ESLint 通过。完整迁移过程和跨平台结果仍待提交后重跑；此处不证明真实 provider 或正式部署权限策略。
 
+`949695433a` 的干净源码 Windows local `prepare-reconnect` 已完成真实目标 prepare、attestation、handoff 与 Chat `/exit`，产出 `reconnect-prepared.json`；未完成 100 次 campaign 或故障阶段，不能报整个矩阵通过。该结果也不能确定此前 Windows CI prepare 失败的唯一根因。
+
+第二轮 VS Code ARM64 Linux 的两阶段 DOM relay 已执行成功，但聚合缺少 `initial-permission-dom.txt`：上一批仅修正 CDP 分支，relay 仍把快照写入限定于 canonical 模式。现在两种模式均保存原始观察快照，明确使用 artifactDir 而非 trace 文件所在目录；测试同时要求权限快照不含尚未出现的 interrupt。69 项真实驱动/runner 模拟回归通过，远端宿主待重跑。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。
