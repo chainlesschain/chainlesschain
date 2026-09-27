@@ -23,6 +23,8 @@ const { JsonlSessionContextPort } =
   await import("../../src/lib/context-memory-kernel/jsonl-session-context-port.js");
 const { createSummaryContextItem } =
   await import("../../src/lib/context-memory-kernel/message-adapter.js");
+const { HISTORY_PREFIX_SCHEMA } =
+  await import("../../src/lib/session-history-origins.js");
 const { registerSessionShowSubcommand } =
   await import("../../src/commands/session-show.js");
 const { parseTranscriptPage } =
@@ -67,6 +69,24 @@ function rewriteCursor(cursor, patch) {
       ...patch,
     }),
   ).toString("base64url");
+}
+function rewind(id, retainedMessageCount, patch = {}) {
+  const messages = store.readVerifiedMessages(id);
+  const head = store.findLatestEvent(id, null).hash;
+  return store.withSessionAuthorityTransaction(id, head, (transaction) =>
+    transaction.appendAuthorityEvent("checkpoint_timeline_commit", {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: transaction.currentHeadHash(),
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+        ...patch,
+      },
+      binding: { turns: [] },
+    }),
+  );
 }
 
 describe("canonical display history", () => {
@@ -189,6 +209,186 @@ describe("canonical display history", () => {
       kind: "snapshot-boundary",
       reason: "timeline-replacement",
     });
+  });
+
+  it("reconstructs a prefix older than the page buffer and keeps exact original identities", () => {
+    const id = "history-old-prefix";
+    start(id, 80);
+    const oldPage = readSessionTranscriptHistory(id, { limit: 10 });
+    const events = store.readVerifiedEvents(id);
+    const originalIds = events
+      .filter((event) =>
+        ["user_message", "assistant_message"].includes(event.type),
+      )
+      .slice(0, 6)
+      .map((event) => `${id}:${event.hash}:0`);
+    rewind(id, 6);
+    expect(() =>
+      readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),
+    ).toThrow("history changed");
+    const latest = readSessionTranscriptHistory(id, { limit: 2 });
+    const pages = [latest];
+    let cursor = latest.nextCursor;
+    store.appendUserMessage(id, "new path");
+    store.appendAssistantMessage(id, "new answer");
+    while (cursor) {
+      const page = readSessionTranscriptHistory(id, { limit: 2, cursor });
+      parseTranscriptPage(JSON.stringify(page), id);
+      pages.unshift(page);
+      cursor = page.nextCursor;
+    }
+    expect(pages.flatMap((page) => page.messages.map((row) => row.id))).toEqual(
+      originalIds,
+    );
+    const current = readSessionTranscriptHistory(id);
+    expect(current.totalMessages).toBe(8);
+    expect(current.coverage.kind).toBe("from-origin");
+    expect(texts(current).slice(-2)).toEqual(["new path", "new answer"]);
+  });
+
+  it("retains pre-summary ancestry, then cuts a second path without resurrecting the first", async () => {
+    const id = "history-ancestry-summary";
+    store.startSession(id, {});
+    store.appendUserMessage(id, "old question " + "x".repeat(2000));
+    store.appendAssistantMessage(id, "old answer " + "y".repeat(2000));
+    store.appendUserMessage(id, "same question");
+    const originals = readSessionTranscriptHistory(id).messages;
+    await compact(id, "ancestry-summary", {
+      modelWindowTokens: 400,
+      summarizer: async (parents, context) => ({
+        items: [
+          createSummaryContextItem({
+            messages: [{ role: "assistant", content: "derived summary" }],
+            parents,
+            operationId: context.operationId,
+            now: "2026-09-27T00:00:00.000Z",
+          }),
+        ],
+        usageReceipt: { outcome: "settled", callId: "ancestry-summary" },
+      }),
+    });
+    const context = store.readVerifiedMessages(id);
+    expect(context.map((message) => message.content)).toEqual([
+      "derived summary",
+      "same question",
+    ]);
+    rewind(id, 1);
+    expect(readSessionTranscriptHistory(id).messages).toEqual(
+      originals.slice(0, 2),
+    );
+    store.appendUserMessage(id, "same question");
+    store.appendAssistantMessage(id, "discard this answer");
+    await compact(id, "second-ancestry-compact", { modelWindowTokens: 900 });
+    const next = store.readVerifiedMessages(id);
+    const index = next.findIndex((message) => message.role === "user");
+    expect(index).toBeGreaterThanOrEqual(0);
+    rewind(id, index);
+    const final = readSessionTranscriptHistory(id);
+    expect(final.messages).toEqual(originals.slice(0, 2));
+    expect(final.coverage.kind).toBe("from-origin");
+    // A full-copy fork reads the same verified ancestry in its own namespace.
+    const fork = store.forkSession(id, { requestId: "rewound-fork" });
+    const forkId = typeof fork === "string" ? fork : fork.id;
+    expect(texts(readSessionTranscriptHistory(forkId))).toEqual(texts(final));
+    expect(readSessionTranscriptHistory(forkId).messages[0].id).toMatch(
+      new RegExp(`^${forkId}:`),
+    );
+  });
+
+  it("uses indexed provenance to distinguish identical messages across compaction", async () => {
+    const id = "history-equal-text";
+    store.startSession(id, {});
+    for (let i = 0; i < 6; i++) {
+      store.appendUserMessage(id, "identical " + "x".repeat(90));
+      store.appendAssistantMessage(id, "identical " + "y".repeat(90));
+    }
+    store.appendUserMessage(id, "identical " + "x".repeat(90));
+    const original = readSessionTranscriptHistory(id);
+    await compact(id, "equal-text-compact");
+    const messages = store.readVerifiedMessages(id);
+    expect(messages.length).toBeLessThan(original.totalMessages);
+    rewind(id, messages.length - 1);
+    const page = readSessionTranscriptHistory(id);
+    expect(page.messages).toEqual(original.messages.slice(0, -1));
+    expect(new Set(page.messages.map((row) => row.id)).size).toBe(12);
+  });
+
+  it.each([
+    { sourceHead: "f".repeat(64) },
+    { sourceMessageCount: 999 },
+    { retainedMessageCount: -1 },
+    { retainedMessageCount: 999 },
+    { schema: "unknown" },
+  ])(
+    "uses only the replacement snapshot for an invalid prefix %j",
+    async (patch) => {
+      const id = `history-bad-prefix-${Object.keys(patch)[0]}-${String(Object.values(patch)[0]).slice(0, 4)}`;
+      start(id);
+      await compact(id, `${id}-compact`);
+      store.appendUserMessage(id, "discarded");
+      const messages = store.readVerifiedMessages(id);
+      const retained = messages.length - 1;
+      rewind(id, retained, patch);
+      const page = readSessionTranscriptHistory(id);
+      expect(page.totalMessages).toBe(retained);
+      expect(page.coverage.reason).toBe("timeline-replacement");
+    },
+  );
+
+  it("keeps snapshot coverage across a later verified rewind", () => {
+    const id = "history-snapshot-then-rewind";
+    start(id);
+    store.appendCompactEvent(id, {
+      messages: [
+        { role: "user", content: "snapshot user" },
+        { role: "assistant", content: "snapshot answer" },
+      ],
+    });
+    const snapshot = readSessionTranscriptHistory(id);
+    store.appendUserMessage(id, "removed path");
+    rewind(id, 2);
+    const page = readSessionTranscriptHistory(id);
+    expect(page.messages).toEqual(snapshot.messages);
+    expect(page.coverage).toEqual(snapshot.coverage);
+  });
+
+  it("revokes the rescan lease and rejects file changes during replay", () => {
+    const id = "history-replay-lease";
+    start(id, 1);
+    let replay;
+    const hashes = store.readVerifiedProjection(id, () => ({
+      accept() {},
+      finish(authority) {
+        replay = authority.replayEvents;
+        const hashes = [];
+        replay((event) => {
+          hashes.push(event.hash);
+        });
+        expect(() => replay(async () => {})).toThrow("synchronous");
+        expect(() => replay(() => Promise.resolve())).toThrow("synchronous");
+        return hashes;
+      },
+    }));
+    expect(hashes).toEqual(
+      store.readVerifiedEvents(id).map((event) => event.hash),
+    );
+    expect(() => replay(() => {})).toThrow("closed");
+    expect(() =>
+      store.readVerifiedProjection(id, () => ({
+        accept() {},
+        finish(authority) {
+          let changed = false;
+          authority.replayEvents(() => {
+            if (changed) return;
+            changed = true;
+            appendFileSync(
+              join(root, "home", "sessions", `${id}.jsonl`),
+              "{}\n",
+            );
+          });
+        },
+      })),
+    ).toThrow();
   });
 
   it("isolates full-copy forks and reports snapshot branches without borrowing parent content", async () => {

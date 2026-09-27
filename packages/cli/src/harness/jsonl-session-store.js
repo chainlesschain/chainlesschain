@@ -3491,7 +3491,9 @@ function assertVerifiedTranscriptAnchor(
  * event reduction, and the independently persisted head/count check share one
  * forward transcript pass. `finish()` may call `authority.readMessages()` to
  * recover only the active context with bounded reverse IO (latest compact
- * checkpoint plus its suffix).
+ * checkpoint plus its suffix). Its optional synchronous `replayEvents(visitor)`
+ * revalidates the same head in another forward pass under this lock. That
+ * visitor lease expires when finish returns; it cannot escape to later tasks.
  *
  * This removes the mandatory all-event array from resume projections. It does
  * not make verification IO sublinear: authenticating a plain chained JSONL
@@ -3558,16 +3560,70 @@ export function readVerifiedProjection(
       });
       assertVerifiedTranscriptAnchor(sessionId, verification);
       structure.finish({ assertValid: true });
-      return projection.finish(
-        Object.freeze({
-          headHash: verification.lastHash,
-          eventCount: verification.chainedEvents,
-          readMessages: () =>
-            rebuildVerifiedMessagesFromFile(filePath, {
-              ioMetrics: options.messageIoMetrics,
-            }),
-        }),
-      );
+      let replayLeaseActive = true;
+      let replaying = false;
+      try {
+        return projection.finish(
+          Object.freeze({
+            headHash: verification.lastHash,
+            eventCount: verification.chainedEvents,
+            readMessages: () =>
+              rebuildVerifiedMessagesFromFile(filePath, {
+                ioMetrics: options.messageIoMetrics,
+              }),
+            // Rewinds can discard the entire bounded page buffer. A second scan
+            // collects the selected prefix without retaining the archive in RAM.
+            // This lease is synchronous and expires before releasing the lock.
+            replayEvents(accept) {
+              if (!replayLeaseActive || replaying) {
+                throw new Error(
+                  "Verified replay lease is closed or already in use",
+                );
+              }
+              if (
+                typeof accept !== "function" ||
+                accept.constructor?.name === "AsyncFunction"
+              ) {
+                throw new TypeError(
+                  "Verified replay requires a synchronous visitor",
+                );
+              }
+              replaying = true;
+              try {
+                const replayStructure =
+                  createSessionTranscriptStructureProjection(sessionId);
+                const replayVerification = verifyTranscriptFile(filePath, {
+                  ioMetrics: options.replayIoMetrics,
+                  onVerifiedEvent(event) {
+                    replayStructure.accept(event);
+                    const result = accept(event);
+                    if (result && typeof result.then === "function")
+                      throw new TypeError(
+                        "Verified replay visitor must be synchronous",
+                      );
+                  },
+                });
+                assertVerifiedTranscriptAnchor(sessionId, replayVerification);
+                replayStructure.finish({ assertValid: true });
+                if (
+                  replayVerification.lastHash !== verification.lastHash ||
+                  replayVerification.chainedEvents !==
+                    verification.chainedEvents
+                ) {
+                  throw unverifiedTranscriptError(
+                    sessionId,
+                    replayVerification,
+                  );
+                }
+              } finally {
+                replaying = false;
+              }
+            },
+          }),
+        );
+      } finally {
+        replayLeaseActive = false;
+      }
     },
     {
       failIfUnavailable: true,

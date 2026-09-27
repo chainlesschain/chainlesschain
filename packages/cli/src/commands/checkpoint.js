@@ -59,6 +59,7 @@ import {
 } from "../lib/checkpoint-restore-orchestrator.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 import { registerCheckpointRestoreRecoveryCommands } from "./checkpoint-restore-recovery.js";
+import { HISTORY_PREFIX_SCHEMA } from "../lib/session-history-origins.js";
 
 function stableCheckpointRestoreValue(value) {
   if (value === undefined) return "null";
@@ -794,6 +795,19 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                       sourceRevision: context.timeline.revision,
                       turnId: submission.turnId,
                       messages: planned.commit.messages,
+                      ...(["restore-conversation", "restore-both"].includes(
+                        submission.action,
+                      )
+                        ? {
+                            historyPrefix: {
+                              schema: HISTORY_PREFIX_SCHEMA,
+                              sourceHead: transaction.currentHeadHash(),
+                              sourceMessageCount: context.messages.length,
+                              retainedMessageCount:
+                                planned.commit.messages.length,
+                            },
+                          }
+                        : {}),
                       binding: context.binding.toJSON(),
                     },
                   );

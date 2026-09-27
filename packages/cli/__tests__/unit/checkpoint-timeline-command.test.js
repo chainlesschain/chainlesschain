@@ -85,6 +85,7 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
     try {
       try {
         const callbackResult = task({
+          currentHeadHash: () => state.headHash,
           retainRecoveryEvidence(evidence) {
             const sanitized = {};
             for (const field of [
@@ -971,6 +972,15 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.workspaceLocks).toEqual([]);
     expect(state.restores).toEqual([]);
     expect(state.events).toEqual(["session:acquire", "intent"]);
+    const commit = state.conditional.find(
+      (event) => event.type === "checkpoint_timeline_commit",
+    );
+    expect(commit.data.historyPrefix).toEqual({
+      schema: "chainlesschain.session-history-prefix/v1",
+      sourceHead: commit.expected,
+      sourceMessageCount: state.messages.length,
+      retainedMessageCount: commit.data.messages.length,
+    });
   });
 
   it("completes a zero-target restore without inventing safety or mutation evidence", async () => {
@@ -1277,6 +1287,9 @@ describe("checkpoint timeline CLI command authority", () => {
       "checkpoint_timeline_commit",
       "checkpoint_timeline_action",
     ]);
+    expect(state.conditional[1].data.historyPrefix.sourceHead).toBe(
+      state.conditional[1].expected,
+    );
   });
 
   it("retains recovery authority when the saga intent CAS fails after transcript intent", async () => {

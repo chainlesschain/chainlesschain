@@ -31,9 +31,14 @@ The whole validated page remains readable even when it exceeds the live
 transcript's 200K character cap: history is bounded to 100 rows / 1 MiB of text plus
 headings, with 200K characters per row. The next live append resumes the live cap.
 History is plain selectable text, including explicit notices for shortened rows.
-Canonical compaction keeps prior original messages. Rewind, legacy replacement
-and snapshot branches display **History begins at a saved snapshot**; complete
-ancestor mapping and durable/live incremental merging remain pending.
+Canonical compaction keeps prior original messages. New CLI timeline rewinds can
+retain verified ancestors through indexed compaction sources and summary parent
+digests, while invalidating old cursors and excluding discarded paths. Older or
+unverifiable rewinds, timeline summary actions, legacy replacements and snapshot
+branches display **History begins at a saved snapshot**. Earlier coverage limits
+are retained after a verified rewind. See the shared [CLI history contract and
+bounds](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md); complete ancestry
+across the remaining boundaries and durable/live incremental merging are pending.
 
 Verification includes a shared real CLI page fixture also consumed by VS Code,
 real Java subprocess output/error/cancellation/timeout tests, Swing component
