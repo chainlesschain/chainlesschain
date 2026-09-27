@@ -423,6 +423,9 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             } else {
                 tabs.setSelectedIndex(0);
                 conversations.switchTo(tabIds.get(0));
+                // addTabFor suppresses selection events while restoring, and
+                // index zero may already be selected. Activate that view once.
+                views.get(tabIds.get(0)).onSelected();
             }
             persistSessionIds();
         }

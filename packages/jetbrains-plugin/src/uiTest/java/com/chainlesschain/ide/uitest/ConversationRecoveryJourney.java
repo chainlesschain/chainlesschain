@@ -114,7 +114,8 @@ final class ConversationRecoveryJourney {
         return waitFor("saved draft", s -> text(s,"inputText").equals(draft) && text(s,"draftStatus").contains("Draft saved"));
     }
     private JsonObject history(String letter, int turns) throws Exception {
-        JsonObject s = waitFor("saved history " + letter, value -> value.getAsJsonArray("savedRows").size() == turns*2);
+        JsonObject s = waitFor("saved history " + letter, value -> value.getAsJsonArray("savedRows").size() == turns*2
+                && text(value,"historyStatus").contains("Saved messages"));
         assertHistory(s, letter, turns); return s;
     }
     private static void assertHistory(JsonObject s, String letter, int turns) {

@@ -393,17 +393,13 @@ final class ConversationView {
         images.installDropTarget(input);
         images.installDropTarget(transcript.pane());
 
-        // First-run nudge (VS Code parity): if no LLM provider is configured yet,
-        // dim-hint toward the ⚙ LLM button instead of leaving the panel blank
-        // until the first turn fails with a 401. Best-effort, probe runs off the EDT.
-        maybeShowOnboarding();
-        // The plugin and the `cc` CLI ship on independent tracks (Marketplace vs
-        // npm), so a working-but-old cc misses newer features silently. Dim-hint
-        // when a newer cc is published. Best-effort, off the EDT, once per version.
-        maybeShowCliUpdateNudge();
+        // Restored background tabs do not issue CLI queries until selected.
+        // Otherwise old/missing histories can fill the shared reader queue and
+        // every tab races the first version probe during IDE startup.
         restorePlanReviewState();
-        SwingUtilities.invokeLater(history::onSelected);
     }
+
+    private boolean initialProbesStarted;
 
     /** One-time first-run nudge: when `cc config get llm.provider` is empty,
      *  guide the user to the ⚙ LLM button. The CLI probe runs off the EDT so
@@ -560,7 +556,24 @@ final class ConversationView {
     }
 
     void focusInput() {
-        SwingUtilities.invokeLater(() -> { history.onSelected(); input.requestFocusInWindow(); });
+        activateView(true);
+    }
+
+    void onSelected() {
+        activateView(false);
+    }
+
+    private void activateView(boolean focus) {
+        SwingUtilities.invokeLater(() -> {
+            if (disposed) return;
+            if (!initialProbesStarted) {
+                initialProbesStarted = true;
+                maybeShowOnboarding();
+                maybeShowCliUpdateNudge();
+            }
+            history.onSelected();
+            if (focus) input.requestFocusInWindow();
+        });
     }
 
     private boolean historyBusy() {
