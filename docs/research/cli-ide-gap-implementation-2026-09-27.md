@@ -9,7 +9,7 @@
 | MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                |
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
-| CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态及已接纳断连拒绝重跑通过，37 通知独立复核；相关 34 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、真实审批/工具与 provider 验收；未扩大生产白名单 |
+| CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
@@ -487,3 +487,15 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 干净 `795434f14427cdf813201f19e0469cc5c20a0c83` 的 Windows x64 执行退出 0，保存[本地回执](./cli/evidence/codex-real-turns-windows-795434f144.json)。独立复核原始通知文件 SHA-256 `8a262b7a2bb3bd96216d5519dd9bb7b615c2063ce6f2ad21e3c01e398ed8291a`、37 条官方 schema 有效通知、失败先于第一线程完成的顺序、三种终态、usage 原值及第四线程无终态；四次 provider 请求均无 Authorization。前一次 `ce71f16051` 的探针精确 usage 断言遗漏上游 `cacheWriteInputTokens: 0` 而失败，补齐后才获得本回执。
 
 相关 4 文件 34 项回归通过，覆盖隔离环境、UTF-8 分片、畸形协议、进程死亡、RPC 超时和有界关闭；包括额外的服务端请求与客户端 RPC 同 ID 负例，探针明确拒绝未处理的审批请求，不误当成功响应。CI 将同一真进程探针加入最新 schema 的三系统单元，保留通知原始字节，并使总门依赖该单元全部成功。当前仅有 Windows 本地结果；合成 provider 不能冒称真实账号/模型、工具审批或三系统通过，CODEX-01 继续局部完成。
+
+### CODEX-01：真实审批取消暴露的工具终态误投影
+
+固定 `0.157.1` 原生进程实际发出 `item/commandExecution/requestApproval`，探针回复 `cancel` 后，上游命令 item 以 `declined` 结束，turn 为 `interrupted`，预定的临时标记文件不存在。原适配器把所有 `item/completed` 的顶层状态统一改成 `completed`，因而误表示被拒绝的工具；这是无生产调用方的实验模块缺陷，不表述为默认 CLI 已执行未授权命令。
+
+修正 `commandExecution` / `fileChange` 的 item 终态：保留 `completed`、`failed`、`declined`，未知或缺失状态标为 `unknown`，不推定执行成功。新增 8 个状态反例，其中 6 个修复前失败，修复后通过。保留原 turn 归属、最终文本、兼容白名单和不明结果拒绝 fallback 行为。
+
+追加未改字节的上游 `ServerRequest.json`（49887 字节，SHA-256 `f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb`）与 `CommandExecutionRequestApprovalResponse.json`（3202 字节，`6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7`），纳入原三系统逐字节重生成校验。探针区分服务端请求和同 ID 客户端 RPC，只有该场景的 thread/workspace/turn/item 与已观察到的命令一致才回送取消，硬性拒绝 `accept`；不执行命令、不写入持久放行规则。
+
+干净 `312cdba00653f42d3c03cc138d82e3d1c69aac68` 的完整 Windows x64 探针退出 0，保存[审批取消回执](./cli/evidence/codex-approval-cancel-windows-312cdba006.json)。独立复核 52 条官方 schema 有效通知、1 组审批请求/取消响应、工具 `declined` / turn `interrupted`、空 processId/exitCode 和标记文件不存在。通知原始字节 SHA-256 为 `0be7b880f079009e4df214e680ef5ef89b1bb4016023f9205578398cc5415d18`，审批对为 `e798f4fca558c0989cc3e93a04e7aa0e249782e2bb071f5cd31aad280f265d6f`；5 次 provider 请求均无 Authorization，断连无 fallback。
+
+相关 4 文件共 45 项通过。另行探测普通只读 echo 工具时，上游返回 `blocked by policy`，没有实际工具执行通知；保留该限制，不将其计作工具执行通过。当前证明 Windows 合成 provider 的审批取消与协议投影；三系统、实际工具执行和真实模型验收仍未完成。

@@ -80,3 +80,5 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 同 SHA 的 [Workspace Publish Staleness 失败](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378862/job/108645441714) 明确列出 Agent SDK `0.2.11` 与 VS Code `0.37.118` 未升版本。这是候选版本/依赖尚未冻结的发布阻塞，不是 Actions 运行器故障；必须随候选版本准备解决，不能以旧 SHA 的成功矩阵替代，也不能跳过后直接发布。本批继续不升版本、不打发布 tag。
 
 CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/evidence/codex-real-turns-windows-795434f144.json)：交错线程、完成/失败/中断、已接纳断连不重跑通过，37 条原始通知和官方 schema 独立复核；4 文件 33 项回归通过。三系统 workflow 已接入此探针并纳入总门，远端结果待收集。该回执使用无凭证的 loopback 合成 provider，不扩展实验模块生产准入，也不替代真实账号与工具审批验收。
+
+后续 `312cdba006` 的[审批取消回执](./cli/evidence/codex-approval-cancel-windows-312cdba006.json)验证实际 Codex 请求、取消应答、工具 `declined` 与 turn `interrupted`，并修正实验适配器把被拒绝/失败工具统一显示为完成的问题。52 条通知及审批原始字节独立复核，相关 45 项回归通过。普通工具执行另一次被上游策略拒绝，未计作执行成功；三系统和真实 provider 仍待验收，生产准入及版本保持不变。
