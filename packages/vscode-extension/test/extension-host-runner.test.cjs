@@ -1334,6 +1334,7 @@ test("managed host launch owns bounded process termination", async () => {
     extensionDevelopmentPath: "/tmp/driver",
     extensionTestsPath: "/tmp/driver/smoke.cjs",
     extensionTestsEnv: { CHAINLESSCHAIN_HOST_JOURNEY_PHASE: "initial" },
+    persistentStorage: true,
     stdout: new PassThrough(),
     stderr: new PassThrough(),
     spawnProcess(executable, args, options) {
@@ -1342,6 +1343,11 @@ test("managed host launch owns bounded process termination", async () => {
     },
   });
   assert.equal(spawnCall.executable, "/tmp/Code");
+  assert.equal(
+    spawnCall.args.some((arg) => arg.startsWith("--extensionTestsPath")),
+    false,
+  );
+  assert.ok(spawnCall.args.includes("--extensionDevelopmentPath=/tmp/driver"));
   assert.deepEqual(spawnCall.options.stdio, ["ignore", "pipe", "pipe"]);
   assert.equal(
     spawnCall.options.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,

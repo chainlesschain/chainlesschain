@@ -510,6 +510,7 @@ function buildExtensionTestLaunchArgs({
   launchArgs,
   extensionDevelopmentPath,
   extensionTestsPath,
+  persistentStorage = false,
 }) {
   return [
     ...launchArgs,
@@ -520,7 +521,11 @@ function buildExtensionTestLaunchArgs({
     "--skip-release-notes",
     "--no-cached-data",
     "--disable-workspace-trust",
-    `--extensionTestsPath=${extensionTestsPath}`,
+    // VS Code forces all Memento databases into memory when this switch is
+    // present. Recovery uses the token-triggered driver in a normal host.
+    ...(persistentStorage
+      ? []
+      : [`--extensionTestsPath=${extensionTestsPath}`]),
     `--extensionDevelopmentPath=${extensionDevelopmentPath}`,
   ];
 }
@@ -589,6 +594,7 @@ function launchManagedExtensionHost({
   extensionDevelopmentPath,
   extensionTestsPath,
   extensionTestsEnv,
+  persistentStorage = false,
   stdout = process.stdout,
   stderr = process.stderr,
   spawnProcess = spawn,
@@ -599,6 +605,7 @@ function launchManagedExtensionHost({
       launchArgs,
       extensionDevelopmentPath,
       extensionTestsPath,
+      persistentStorage,
     }),
     {
       env: { ...process.env, ...extensionTestsEnv },
@@ -857,10 +864,11 @@ async function runRealDomPhase({
     let host;
     let relay;
     let managedTermination = false;
+    let persistentHost;
     try {
       const hostOutcome = Promise.resolve()
-        .then(() =>
-          runTests({
+        .then(() => {
+          const launchOptions = {
             vscodeExecutablePath,
             extensionDevelopmentPath: path.join(__dirname, "driver"),
             extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
@@ -896,8 +904,16 @@ async function runRealDomPhase({
                   }
                 : {}),
             },
-          }),
-        )
+          };
+          if (fixture.canonicalRoot) {
+            persistentHost = launchManagedExtensionHost({
+              ...launchOptions,
+              persistentStorage: true,
+            });
+            return persistentHost.outcome;
+          }
+          return runTests(launchOptions);
+        })
         .then(
           (value) => ({ value }),
           (error) => ({ error }),
@@ -924,6 +940,7 @@ async function runRealDomPhase({
           hostOutcome,
           phase,
           journeyLabel: "DOM relay journey",
+          ...(persistentHost ? { emitSigint: persistentHost.requestStop } : {}),
         }));
       }
     } finally {

@@ -231,6 +231,8 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 
 首次真实 VS Code 1.132.0 运行（源码 `6ea65d987d`）通过多窗口/双工作区启动，但在 interrupt 阶段失败：协议记录显示 interrupt 先于异步保存中的下一条 user 输入抵达 CLI。失败 evidence digest 为 `sha256:bf757c755db626449d573247b41a5492e48a3d263f87f9a15828b8c83e8c6cbd`，未计为恢复验收通过。后续修复为 Stop / session stop 推进独立输入取消 revision，保存、init 等待和 UNKNOWN 落盘后均检查取消，未发送的已保存输入标记 rejected 并可恢复；图片准备取消后删除新建临时文件并恢复输入。普通中断旅程同时改为等待该轮开始，避免将“取消准备”误认成“中断已运行任务”。相关 4 文件 95 项通过，最后图片取消清理修改后 2 文件 31 项通过，宿主 relay 18 项通过；真实宿主须在新提交上重新验证。
 
+第二次（源码 `e0d1ad3fd7`）通过初始双会话、重复正文、后台完成及草稿切换检查，但整个旅程仍失败，digest 为 `sha256:a0ed0a6fda121d27a7758134cb8c3eac7ed8e053503d91a1a7908ddf1756c169`。检查宿主 `main.js` 确认 `extensionTestsLocationURI` 会令 `getStorageOptions()` 返回 `useInMemoryStorage: true`；因此原 Extension Tests 启动方式即使复用 profile 也不能证明 Memento 重启恢复。canonical 模式改用不含 `--extensionTestsPath` 的普通隔离宿主，以已有令牌驱动命令运行旅程，并通过正常 Quit 保存状态。默认 smoke 模式保留原启动方式。启动器/relay 的 69 项本地回归通过；必须重新运行完整旅程后才能计入恢复验收。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
