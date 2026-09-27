@@ -26,6 +26,10 @@
 
 用户明确要求发布顺序为：**子 npm 包 → CLI → IDE（VS Code / JetBrains）**。有依赖关系的子包先按依赖顺序发布；每一步核对 registry 可安装版本、实际产物与下游依赖对齐后，才进入下一阶段。子包未就绪不发布 CLI，CLI 未发布并验证可用不发布任一 IDE 插件。本地构建和并行测试可提前进行，公开发布遵循此顺序。
 
+npm workflow 已在 CLI 发布前核对公开子包字节并全新安装候选 CLI。IDE workflow 新增共享[前置检查](../../.github/actions/verify-published-cli/action.yml)：仅在发布/补发路径，从公共 npm 全新安装源码清单指定的 CLI 版本，验证 CLI 及 10 个直接内部依赖的精确版本、registry 来源和完整性锁记录，运行版本/Agent capabilities 探测，再允许 Open VSX、VS Code Marketplace 或 JetBrains 上传。检查失败会阻止上传，回执随 Actions 保存；普通分支仍可先构建。
+
+此门验证配套已发布版本可获取及其基本启动能力，不能替代 npm 发布流水线的准确 SHA、签名来源、候选包字节比对和完整平台 CI。新增校验及既有发布契约共 20 项 Node 测试通过，actionlint 和 ESLint 通过；Windows 从公共 npm 新安装现有 `0.166.77`、10 个内部依赖及实际版本/能力探测通过（[回执](./cli/evidence/ide-cli-prerequisite-smoke-windows-2026-09-27.json)）。本次没有发布新版本，也没有把这次安装探测作为当前变更的发布资格。
+
 | 项目           | 要求                                                                                                            | 当前状态                                          |
 | -------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | CLI npm        | [AGENTS.md](../../AGENTS.md) 要求发布准确提交的 Linux、Windows、macOS `CLI CI` 和 `CLI Strict Sandbox` 全部通过 | 尚未取得本轮最终 SHA 的完整结果                   |

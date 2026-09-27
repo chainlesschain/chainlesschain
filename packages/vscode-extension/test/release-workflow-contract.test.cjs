@@ -262,8 +262,8 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
     /startsWith\(github\.ref, 'refs\/tags\/ide-vscode-v'\) &&\s+\(github\.event_name == 'push' \|\|\s+\(github\.event_name == 'workflow_dispatch' &&\s+inputs\.publish_vscode_marketplace\)\)/gu;
   assert.equal(
     workflow.match(openVsxGuard)?.length,
-    3,
-    "Open VSX preflight, publish, and verification must share the tag-bound release/replay guard",
+    4,
+    "CLI prerequisite, Open VSX preflight, publish, and verification must share the tag-bound release/replay guard",
   );
 
   const officialBackfillGuard =

@@ -1,0 +1,33 @@
+name: Verify published CLI before IDE release
+description: Install the exact paired CLI and its child packages from public npm before uploading an IDE extension.
+runs:
+  using: composite
+  steps:
+    - name: Install and probe the paired public CLI
+      id: verify
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        VERSION=$(node -p "require('./packages/cli/package.json').version")
+        PROBE_ROOT=$(mktemp -d "$RUNNER_TEMP/cc-ide-cli-XXXXXX")
+        mkdir -p "$PROBE_ROOT/install"
+        export CHAINLESSCHAIN_HOME="$PROBE_ROOT/home"
+        export CHAINLESSCHAIN_SECURITY_ANCHOR_HOME="$PROBE_ROOT/security"
+        (
+          cd "$PROBE_ROOT/install"
+          npm init --yes >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund --prefer-online \
+            --registry=https://registry.npmjs.org "chainlesschain@$VERSION"
+          node node_modules/chainlesschain/bin/chainlesschain.js --version > "$PROBE_ROOT/cli-version.txt"
+          node node_modules/chainlesschain/bin/chainlesschain.js agent --capabilities > "$PROBE_ROOT/agent-capabilities.json"
+        )
+        node scripts/verify-ide-cli-prerequisite.mjs "$PROBE_ROOT" \
+          packages/cli/package.json "$PROBE_ROOT/receipt.json"
+        echo "receipt=$PROBE_ROOT/receipt.json" >> "$GITHUB_OUTPUT"
+    - name: Preserve public CLI prerequisite receipt
+      uses: actions/upload-artifact@v6
+      with:
+        name: ide-cli-prerequisite-${{ github.job }}-${{ github.run_attempt }}
+        path: ${{ steps.verify.outputs.receipt }}
+        if-no-files-found: error

@@ -291,6 +291,12 @@ UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有�
 
 当前无存储副作用的版本探测和四 CLI 别名隔离下可读取旧配置，但尚未证明原故障的唯一根因。观察到 29 次版本探测和 9 次历史查询，后台标签查询排在 A/B 前；快照时六行已可见，后续增量刷新状态仍为 Loading。版本发现并发去重、恢复读取调度与稳定就绪延迟仍有优化空间，不据本诊断宣称启动性能验收。
 
+### IDE 发布前确认配套 CLI 已公开可安装
+
+根据用户要求的“子 npm 包 → CLI → IDE”顺序，保留现有 npm 子包先发、字节回读和候选 CLI 全新安装门禁，在 IDE 工作流的实际上传步骤前补充共享 composite action。从 npm 公共 registry 安装配套 CLI 精确版本，复用子包验证器检查实际依赖和锁记录，再检查 CLI 自身 registry 锁、依赖集合及真实版本/能力输出；失败阻止 Open VSX、Microsoft 补发和 JetBrains 上传。普通分支构建不要求提前发布 CLI。
+
+本地 20 项 Node 校验/发布契约测试、actionlint 与 ESLint 通过；Windows 从 npm 新安装已发布 `chainlesschain@0.166.77` 后，10 个内部子包及 CLI 版本/能力探测通过，保存[公开安装探测回执](./cli/evidence/ide-cli-prerequisite-smoke-windows-2026-09-27.json)。这仅验证前置检查实现和旧已发布版本的可用性；未验证本批源码的准确 SHA 发布门、完整安装生命周期或真实模型，也没有修改版本号、推送或发布。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

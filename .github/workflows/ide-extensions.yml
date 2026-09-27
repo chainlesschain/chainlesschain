@@ -55,6 +55,10 @@ on:
       - "packages/vscode-extension/test/remote-ssh-container/**"
       - "packages/vscode-extension/test/remote-ssh-container.test.cjs"
       - "scripts/verify-ide-marketplace.mjs"
+      - "scripts/verify-ide-cli-prerequisite.mjs"
+      - "packages/cli/scripts/verify-cli-registry-install.mjs"
+      - "scripts/__tests__/verify-ide-cli-prerequisite.test.mjs"
+      - ".github/actions/verify-published-cli/**"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
     tags:
@@ -101,6 +105,10 @@ on:
       - "packages/vscode-extension/test/remote-ssh-container/**"
       - "packages/vscode-extension/test/remote-ssh-container.test.cjs"
       - "scripts/verify-ide-marketplace.mjs"
+      - "scripts/verify-ide-cli-prerequisite.mjs"
+      - "packages/cli/scripts/verify-cli-registry-install.mjs"
+      - "scripts/__tests__/verify-ide-cli-prerequisite.test.mjs"
+      - ".github/actions/verify-published-cli/**"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
   workflow_dispatch:
@@ -137,6 +145,9 @@ jobs:
         run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs
       - name: Verify commands, actions, Doctor and CLI floor
         run: node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check
+
+      - name: Test IDE publication prerequisite verification
+        run: node --test scripts/__tests__/verify-ide-cli-prerequisite.test.mjs
 
   browser-evidence-producer:
     name: Browser evidence (${{ matrix.slug }})
@@ -719,6 +730,14 @@ jobs:
       # A release tag publishes the primary Open VSX channel independently.
       # Fail before upload when its token is missing; Microsoft credentials are
       # checked separately only for an explicit exact-tag backfill.
+      - name: Require published CLI before VS Code release
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
+        uses: ./.github/actions/verify-published-cli
+
       - name: Preflight Open VSX credential
         if: >-
           startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
@@ -995,6 +1014,12 @@ jobs:
           name: chainlesschain-ide-jetbrains-${{ github.run_attempt }}
           path: packages/jetbrains-plugin/build/distributions/*.zip
           if-no-files-found: error
+
+      - name: Require published CLI before JetBrains release
+        if: >-
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+        uses: ./.github/actions/verify-published-cli
 
       - name: Publish to JetBrains Marketplace
         if: >-
