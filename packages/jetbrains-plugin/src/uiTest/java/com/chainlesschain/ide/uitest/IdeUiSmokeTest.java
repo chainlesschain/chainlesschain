@@ -138,10 +138,12 @@ final class IdeUiSmokeTest {
 
             send(input, send, "journey:stop");
             waitForTranscript(transcript, "fixture stop waiting #5", FIND_BUDGET);
+            java.util.Set<Long> stoppedProcesses = activeAgentProcessIds(frame);
             clickButton(stop);
             clickButton(stop);
             waitForTranscript(
-                    transcript, "force-stopped the agent process", FIND_BUDGET);
+                    transcript, "Stopping the agent; replacement waits for confirmed exit", FIND_BUDGET);
+            waitForProcessExit(stoppedProcesses);
 
             send(input, send, "journey:resume");
             waitForTranscript(
@@ -167,6 +169,41 @@ final class IdeUiSmokeTest {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
+    }
+
+    /** Observe the actual child tree before Stop; UI text alone is not exit proof. */
+    private static java.util.Set<Long> activeAgentProcessIds(ComponentFixture frame) {
+        Object value = frame.callJs("""
+            function field(object, name) {
+                var f = object.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(object);
+            }
+            var loader = Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin(
+                Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginClassLoader();
+            var factory = java.lang.Class.forName('com.chainlesschain.ide.intellij.ChatToolWindowFactory', true, loader);
+            var registry = factory.getDeclaredField('REGISTRY'); registry.setAccessible(true);
+            var panel = registry.get(null).get(component.getProject());
+            var view = field(panel,'views').get(field(panel,'tabIds').get(field(panel,'tabs').getSelectedIndex()));
+            var process = field(field(field(view,'conv'),'session'),'child');
+            var ids = [String(process.pid())], children = process.descendants();
+            try {
+                var iterator = children.iterator();
+                while (iterator.hasNext()) ids.push(String(iterator.next().pid()));
+            } finally { children.close(); }
+            ids.join(',');
+            """, true);
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        for (String id : String.valueOf(value).split(",")) ids.add(Long.parseLong(id));
+        org.junit.jupiter.api.Assertions.assertFalse(ids.isEmpty());
+        return ids;
+    }
+
+    private static void waitForProcessExit(java.util.Set<Long> ids) throws Exception {
+        long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
+        while (System.nanoTime() < deadline) {
+            if (ids.stream().noneMatch(id -> ProcessHandle.of(id).map(ProcessHandle::isAlive).orElse(false))) return;
+            Thread.sleep(25);
+        }
+        throw new AssertionError("Stop did not terminate the observed child processes: " + ids);
     }
 
     private static void restoreIdeWindow(ComponentFixture frame) {

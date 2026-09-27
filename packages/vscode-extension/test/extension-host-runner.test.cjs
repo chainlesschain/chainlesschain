@@ -2041,7 +2041,23 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     if (phase === "initial") {
       fs.writeFileSync(
         path.join(artifactDir, "initial-before-rewind-dom.txt"),
-        PHASE_DOM_MARKERS.initial.join("\n"),
+        PHASE_DOM_MARKERS.initial
+          .filter(
+            (marker) =>
+              marker !== "fixture permission approved #4" &&
+              marker !== "interrupted",
+          )
+          .join("\n"),
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(artifactDir, "initial-permission-dom.txt"),
+        "fixture permission approved #4",
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(artifactDir, "initial-interrupt-dom.txt"),
+        "interrupted",
         "utf8",
       );
     }
@@ -2168,7 +2184,29 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     extensionsDir,
     workspaceDir,
   });
-  assert.equal(evidence.domPaths.length, 5);
+  assert.equal(evidence.domPaths.length, 7);
+  for (const [file, marker] of [
+    ["initial-permission-dom.txt", "fixture permission approved #4"],
+    ["initial-interrupt-dom.txt", "interrupted"],
+  ]) {
+    fs.writeFileSync(
+      path.join(artifactDir, file),
+      "missing observation",
+      "utf8",
+    );
+    assert.throws(
+      () =>
+        assertJourneyArtifacts({
+          artifactDir,
+          fixtureTracePath,
+          runtimeDir,
+          extensionsDir,
+          workspaceDir,
+        }),
+      /DOM evidence .* is missing/,
+    );
+    fs.writeFileSync(path.join(artifactDir, file), marker, "utf8");
+  }
   assert.deepEqual(
     {
       samples: evidence.visibilitySummary.samples,

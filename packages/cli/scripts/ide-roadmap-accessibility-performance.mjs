@@ -367,7 +367,10 @@ function verifyAccessibilityWorkflowAuthority({
     releaseCommit,
     ACCESSIBILITY_WORKFLOW_PATH,
   );
-  const executedBytes = producerReader(workflowSha, ACCESSIBILITY_WORKFLOW_PATH);
+  const executedBytes = producerReader(
+    workflowSha,
+    ACCESSIBILITY_WORKFLOW_PATH,
+  );
   assert.equal(
     digest(executedBytes),
     digest(candidateBytes),
@@ -674,12 +677,18 @@ async function runChromiumJourney({ browserExecutable, testSecret }) {
     "<body>",
     '<body><script nonce="p2nonce">window.__posted=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__posted.push(m)});</script>',
   );
-  await page.setContent(html, { waitUntil: "load" });
+  // Installed VS Code webviews are secure contexts. about:blank setContent
+  // lacks crypto.randomUUID and cannot exercise the real input receipt path.
+  const fixtureUrl = "https://chainlesschain-a11y.invalid/";
+  await page.route(fixtureUrl, (route) =>
+    route.fulfill({ contentType: "text/html", body: html }),
+  );
+  await page.goto(fixtureUrl, { waitUntil: "load" });
   await page.evaluate(() => {
     window.__semanticAnnouncements = [];
     const announcer = document.getElementById("announcer");
     let last = "";
-    new MutationObserver(() => {
+    new window.MutationObserver(() => {
       const text = announcer?.textContent?.trim() || "";
       if (text && text !== last) {
         window.__semanticAnnouncements.push(text);
@@ -1617,6 +1626,7 @@ export {
   mainCampaign,
   platformSuffix,
   runDiagnosticsScaleProfile,
+  runChromiumJourney,
   summarizeSamples,
   validateAtProbe,
   validateInputPerformanceEvidence,

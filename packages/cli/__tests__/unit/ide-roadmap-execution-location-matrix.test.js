@@ -278,7 +278,7 @@ describe("IDE roadmap execution-location matrix", () => {
     ).toHaveLength(2);
     expect(
       workflow.match(
-        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+        /npm ci --workspace packages\/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund/gu,
       ),
     ).toHaveLength(4);
     const linuxRunner = fs.readFileSync(
@@ -303,11 +303,11 @@ describe("IDE roadmap execution-location matrix", () => {
     );
     expect(
       linuxRunner.match(
-        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save/gu,
+        /npm ci --workspace packages\/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund/gu,
       ),
     ).toHaveLength(1);
     expect(linuxRunner).toContain(
-      '"$run_root/target-node/bin/npm" install --omit=optional --ignore-scripts --no-package-lock --no-save',
+      '"$run_root/target-node/bin/npm" ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund',
     );
     expect(linuxRunner).toContain(
       'export PATH="$run_root/target-node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"',
@@ -318,6 +318,9 @@ describe("IDE roadmap execution-location matrix", () => {
       'Invoke-Matrix "campaign" @("--iterations", "99")',
     );
     expect(wslRunner).toContain('Invoke-Matrix "lifecycle-faults"');
+    expect(wslRunner).toContain(
+      "/opt/node-22.12.0/bin/npm ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund",
+    );
     expect(wslRunner).toContain(
       "export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     );

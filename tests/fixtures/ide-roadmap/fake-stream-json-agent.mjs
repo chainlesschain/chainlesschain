@@ -550,6 +550,20 @@ if (argv.includes("--version")) {
   await exitAfterStdout(0);
 }
 
+// Hold before importing/initializing the real store. On a cold Windows start
+// its first ACL setup can otherwise consume the host's entire init deadline.
+const fixtureAgentSessionId =
+  argv[0] === "agent"
+    ? option(
+        "--resume",
+        process.env.CC_UI_CANONICAL_ROOT
+          ? `ui-host-${randomUUID()}`
+          : "ui-host-session",
+      )
+    : null;
+if (fixtureAgentSessionId !== null)
+  await waitForInitGate(fixtureAgentSessionId, trace);
+
 const canonical = process.env.CC_UI_CANONICAL_ROOT
   ? await (
       await import("./canonical-transcript-peer.mjs")
@@ -582,10 +596,7 @@ if (argv[0] !== "agent") {
   await exitAfterStdout(0);
 }
 
-const sessionId = option(
-  "--resume",
-  canonical ? `ui-host-${randomUUID()}` : "ui-host-session",
-);
+const sessionId = fixtureAgentSessionId;
 const canonicalPrior = canonical?.start(sessionId);
 const acceptedInputs = new Map();
 const state = readState();
@@ -597,8 +608,6 @@ const priorMessages =
 let turn = canonicalPrior?.turns ?? Math.floor(priorMessages / 2);
 let pending = null;
 let interruptedTimer = null;
-
-await waitForInitGate(sessionId, trace);
 
 emit({
   type: "system",

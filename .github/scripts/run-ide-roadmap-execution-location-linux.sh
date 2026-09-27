@@ -73,7 +73,7 @@ if [[ "$transport" == "container" ]]; then
   docker run --detach --cpus 2 --memory 4g --name "$container_name" ubuntu:24.04 tail -f /dev/null >/dev/null
   docker cp "$run_root/repository.tar" "$container_name:/tmp/repository.tar"
   docker cp "$node_archive" "$container_name:/tmp/node.tar.gz"
-  docker exec "$container_name" bash -lc "set -euo pipefail; mkdir -p /opt/cc-target-repo /opt/node-22.12.0 /var/lib/cc-location/target-home /var/lib/cc-location/target-security; tar -xf /tmp/repository.tar -C /opt/cc-target-repo; tar -xzf /tmp/node.tar.gz --strip-components=1 -C /opt/node-22.12.0; export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; cd /opt/cc-target-repo/packages/cli; npm install --omit=optional --ignore-scripts --no-package-lock --no-save; printf '%s\n' 'CC_IDE_TARGET_NODE=/opt/node-22.12.0/bin/node' 'CC_IDE_TARGET_ENTRY=/opt/cc-target-repo/packages/cli/src/index.js' 'CC_IDE_TARGET_HOME=/var/lib/cc-location/target-home' 'CC_IDE_TARGET_SECURITY_HOME=/var/lib/cc-location/target-security' > /tmp/cc-ide-roadmap-target.env; chmod 600 /tmp/cc-ide-roadmap-target.env; chmod +x /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh"
+  docker exec "$container_name" bash -lc "set -euo pipefail; mkdir -p /opt/cc-target-repo /opt/node-22.12.0 /var/lib/cc-location/target-home /var/lib/cc-location/target-security; tar -xf /tmp/repository.tar -C /opt/cc-target-repo; tar -xzf /tmp/node.tar.gz --strip-components=1 -C /opt/node-22.12.0; export PATH=/opt/node-22.12.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; cd /opt/cc-target-repo; npm ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund; printf '%s\n' 'CC_IDE_TARGET_NODE=/opt/node-22.12.0/bin/node' 'CC_IDE_TARGET_ENTRY=/opt/cc-target-repo/packages/cli/src/index.js' 'CC_IDE_TARGET_HOME=/var/lib/cc-location/target-home' 'CC_IDE_TARGET_SECURITY_HOME=/var/lib/cc-location/target-security' > /tmp/cc-ide-roadmap-target.env; chmod 600 /tmp/cc-ide-roadmap-target.env; chmod +x /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh"
   target_args=(
     --target-cwd /opt/cc-target-repo
     --target-cli /opt/cc-target-repo/.github/scripts/ide-roadmap-execution-location-target.sh
@@ -85,8 +85,8 @@ else
   tar -xzf "$node_archive" --strip-components=1 -C "$run_root/target-node"
   (
     export PATH="$run_root/target-node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    cd "$target_repo/packages/cli"
-    "$run_root/target-node/bin/npm" install --omit=optional --ignore-scripts --no-package-lock --no-save
+    cd "$target_repo"
+    "$run_root/target-node/bin/npm" ci --workspace packages/cli --include-workspace-root=false --omit=optional --ignore-scripts --legacy-peer-deps --no-audit --no-fund
   )
   cat > /tmp/cc-ide-roadmap-target.env <<EOF
 CC_IDE_TARGET_NODE=$run_root/target-node/bin/node

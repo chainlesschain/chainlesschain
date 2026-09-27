@@ -685,10 +685,13 @@ export function assertMcpVerifiedProjectionAuthority(
   const descriptors = Object.getOwnPropertyDescriptors(authority);
   const fields = Object.keys(descriptors);
   if (
-    fields.length !== VERIFIED_PROJECTION_AUTHORITY_FIELDS.size ||
+    fields.length !==
+      VERIFIED_PROJECTION_AUTHORITY_FIELDS.size +
+        (descriptors.replayEvents ? 1 : 0) ||
     fields.some(
       (field) =>
-        !VERIFIED_PROJECTION_AUTHORITY_FIELDS.has(field) ||
+        (!VERIFIED_PROJECTION_AUTHORITY_FIELDS.has(field) &&
+          field !== "replayEvents") ||
         !("value" in descriptors[field]) ||
         !descriptors[field].enumerable,
     )
@@ -704,6 +707,8 @@ export function assertMcpVerifiedProjectionAuthority(
     !Number.isSafeInteger(projectedEventCount) ||
     projectedEventCount < 0 ||
     typeof descriptors.readMessages.value !== "function" ||
+    (descriptors.replayEvents &&
+      typeof descriptors.replayEvents.value !== "function") ||
     projectedEventCount !== acceptedCount ||
     projectedHeadHash !== headHash
   ) {

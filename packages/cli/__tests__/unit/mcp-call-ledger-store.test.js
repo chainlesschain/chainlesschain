@@ -591,6 +591,43 @@ describe("MCP call ledger session store", () => {
     expect(accessorReads).toBe(0);
   });
 
+  it("accepts the canonical replay lease without invoking it and rejects malformed extensions", () => {
+    const events = chained([event(record())]);
+    const replayEvents = vi.fn();
+    const authority = {
+      headHash: events[0].hash,
+      eventCount: 1,
+      readMessages: () => [],
+      replayEvents,
+    };
+    const recover = (completion) =>
+      loadMcpLedgerRecovery("session-1", {
+        readVerifiedProjection: (_sessionId, createProjection) => {
+          const projection = createProjection();
+          projection.accept(events[0]);
+          return projection.finish(completion);
+        },
+      });
+    expect(recover(authority).verified).toBe(true);
+    expect(replayEvents).not.toHaveBeenCalled();
+    const getter = vi.fn(() => replayEvents);
+    const accessor = { ...authority };
+    Object.defineProperty(accessor, "replayEvents", {
+      enumerable: true,
+      get: getter,
+    });
+    for (const invalid of [
+      { ...authority, replayEvents: null },
+      { ...authority, replayEvents: {} },
+      { ...authority, unknownLease: () => {} },
+      accessor,
+    ])
+      expect(() => recover(invalid)).toThrow(
+        expect.objectContaining({ code: "CC_MCP_LEDGER_EVENT_READ_FAILED" }),
+      );
+    expect(getter).not.toHaveBeenCalled();
+  });
+
   it("strictly snapshots an explicit legacy verified-event reader", () => {
     let eventReads = 0;
     const accessorEvent = chained([event(record())])[0];

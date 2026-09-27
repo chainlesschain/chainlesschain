@@ -1438,6 +1438,7 @@ async function drivePhase(
         45_000,
         signal,
       );
+      await captureWebview(client, artifactDir, "initial-permission");
     });
     await step("interrupt", async () => {
       await sendComposer(client, "journey:stop");
@@ -1449,6 +1450,7 @@ async function drivePhase(
         45_000,
         signal,
       );
+      await captureWebview(client, artifactDir, "initial-interrupt");
     });
     if (workbenchClient) {
       // Conversation-changing rewind actions intentionally replace the
@@ -1859,7 +1861,7 @@ function assertJourneyArtifacts({
           ? "initial-before-rewind-dom.txt"
           : `${phase}-dom.txt`,
       ),
-      conversationRecovery && phase === "initial"
+      phase === "initial"
         ? PHASE_DOM_MARKERS.initial.filter(
             (marker) =>
               marker !== "fixture permission approved #4" &&
@@ -2004,15 +2006,15 @@ function assertJourneyArtifacts({
   ) {
     throw new Error("fixture protocol ledger does not prove restart/resume");
   }
+  // These observations precede tab restoration and final-text reconciliation
+  // in both the ordinary and canonical recovery journeys.
+  requireTextMarkers(path.join(artifactDir, "initial-permission-dom.txt"), [
+    "fixture permission approved #4",
+  ]);
+  requireTextMarkers(path.join(artifactDir, "initial-interrupt-dom.txt"), [
+    "interrupted",
+  ]);
   if (conversationRecovery) {
-    // Capture live observations before tab restoration and canonical final-text
-    // reconciliation; transient status need not remain in the final view.
-    requireTextMarkers(path.join(artifactDir, "initial-permission-dom.txt"), [
-      "fixture permission approved #4",
-    ]);
-    requireTextMarkers(path.join(artifactDir, "initial-interrupt-dom.txt"), [
-      "interrupted",
-    ]);
     require("./driver/conversation-recovery.cjs").assertConversationRecoveryArtifacts(
       artifactDir,
       fixtureRecords,
@@ -2032,12 +2034,8 @@ function assertJourneyArtifacts({
       ...(nativeTimeline
         ? [path.join(artifactDir, "initial-before-rewind-dom.txt")]
         : []),
-      ...(conversationRecovery
-        ? [
-            path.join(artifactDir, "initial-permission-dom.txt"),
-            path.join(artifactDir, "initial-interrupt-dom.txt"),
-          ]
-        : []),
+      path.join(artifactDir, "initial-permission-dom.txt"),
+      path.join(artifactDir, "initial-interrupt-dom.txt"),
     ],
   };
 }

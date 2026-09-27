@@ -31,6 +31,21 @@
 
 共 20 个分组工作项：5 项本地验证通过、8 项局部实现/验证、5 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
 
+### 首轮 GitHub Actions 失败定位与修复
+
+草稿 [PR #383](https://github.com/chainlesschain/chainlesschain/pull/383) 的首轮检查绑定 `01b6c0b7e450c3dca60e03d1b0a5e965b1ff7c53`。用户要求同时处理 Actions 错误；截至本次日志核对，23 个失败作业主要归于下列原因，包含下游聚合失败，不能当作 23 个独立产品缺陷。
+
+| 类别 | 失败证据与原因 | 本批处理与验证边界 |
+| --- | --- | --- |
+| Strict Sandbox / Session Host Consistency | 三系统 MCP 恢复报 `completion-authority-malformed`；新 canonical projection 增加 `replayEvents`，严格字段校验仍只接受原三字段 | 明确允许可选函数字段，保留未知字段、accessor、head/count 拒绝；不调用 replay lease。原 3 项在 Windows 复现失败，修复后 4 文件 115 项通过 |
+| Execution Location | Local 三系统、WSL、Container、SSH 共 6 作业在 npm 安装报 `Cannot read properties of null (reading 'edgesOut')`，下游 aggregate 无产物 | 源宿主与隔离目标均从仓库根使用锁文件及指定 CLI workspace 的 `npm ci`，保留 ignore-scripts。隔离清单目录 dry-run、7 项矩阵合同、actionlint、Bash/PowerShell 语法检查通过；真实各目标仍需新 SHA Actions |
+| VS Code ARM64 | Linux / Windows 完整旅程末尾 DOM 缺已出现过的 permission/interrupt 状态 | 普通和 canonical 旅程均在状态出现时保存独立 DOM，仍强制核验两种状态与完整协议记录；不要求瞬时状态在历史重建后保留。69 项宿主/relay 回归通过；新宿主矩阵待跑 |
+| JetBrains ARM64 | 四个 macOS/Linux × 2024.2/2025.2 作业等待旧 `force-stopped the agent process` 提示，实际已显示等待退出确认 | 使用当前提示，并在双击 Stop 前只读观测真实 child/descendant PID，等待观测进程全部退出后才继续 resume。UI driver 编译通过，远端实机结果待新提交 |
+| Accessibility / Performance | 三系统同一失败摘要；Linux 原始产物含 1 个页面错误、1 个语义播报遗漏，无性能阈值超限 | 本地真实 Chromium 复现 about:blank 缺 `crypto.randomUUID`，发送未发生；夹具改为本地拦截 HTTPS 来源，与实际 webview 安全上下文一致，不模拟 UUID。完整 Chromium 分支页面错误、关键播报遗漏、重复播报、stream replay、heading 遗漏均为 0；不等于人工听测或完整 P2-4 验收 |
+| Workspace Publish Staleness | Agent SDK 和 VS Code 源码改动未递增版本 | 保留门禁失败；候选冻结时统一版本和依赖，本批没有发布或改版本 |
+
+另补 v3 宿主旅程检查“取消准备后显式再次发送，第一次 Stop 应为普通中断且保留同一 child”。验证器 51 项、真实 CLI peer/夹具 16 项通过。`1c4cfc08b8` 首次实际 ZIP 尝试在第一个 init gate 前已用尽发送等待时间，未执行到新场景，失败证据摘要为 `sha256:640425af19c82410eaf7f5aa886de5fb6d3bf52a66b0b529cf4cab1bad9c08e6`。夹具 gate 已移到 canonical store 导入/首次 ACL 初始化之前；该失败不作为产品 Stop 缺陷已复现或已修复的证据，后续实机结果另记。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。
