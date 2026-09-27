@@ -11,7 +11,7 @@
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
-| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史、回退/分支/摘要来源与双 IDE 分页；VS Code 按验证身份增量合并、保留现场诊断与选区，输入回执/终态引用归属检查；真实 store / CLI / DOM / Swing 回归                     | JetBrains 增量合并、旧历史边界和真实双宿主验收仍待补                |
+| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史、回退/分支/摘要来源与双 IDE 分页；双 IDE 按验证身份增量合并、保留现场诊断与选区，输入回执/终态引用归属检查；真实 store / CLI / DOM / Swing 回归                      | 旧历史边界和真实双宿主验收仍待补                                    |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件持久化、发送前保存、ACK/unknown 分离与只读核对；双 IDE 问题表单与 VS Code 原生 schema 草稿、原 child/request 隔离、过期仅文字恢复                        | 双 IDE 真实宿主旅程、当前跨平台与可访问性验收待完成                 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
 | IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
@@ -28,6 +28,8 @@
 | UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                  |
 
 真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号与真实 IDE 宿主验收分开记录，目前没有新增结果。云恢复与新交互产品仍为报告中的条件性产品决策。
+
+共 20 个分组工作项：5 项本地验证通过、8 项局部实现/验证、5 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。候选发布范围单独冻结；长期差距仍按本表继续追踪。
 
 ### IDE-REPLAY 规范压缩前历史分页
 
@@ -114,6 +116,20 @@ JetBrains 重建/选择已有会话读取 v2 page；Older 使用独立历史面�
 使用独立读取通道，2 个后台 worker、32 项队列；stdout 最多 2 MiB，stderr 最多保留 16 KiB 并继续排空，非零退出、错误 UTF-8、非法页、超时/超量均显示失败。解析核对 session/event/item ID、重复项、连续序号、revision 与游标范围；页中至多 100 条/1 MiB 文本/每条 200K 字符完整显示，避免旧 live document 的 200K cap 把同页前半部分静默丢掉。下一次现场输出恢复 live cap；显示为可选择的纯文本。CLI 二进制解析仍复用原机制，35 秒 timeout 从 query capture 开始；退出证明沿用已观测子孙机制，不宣称隔离容器或捕获已脱离子孙。
 
 实现与剩余边界见 [JetBrains saved conversation history](../../packages/jetbrains-plugin/docs/CHAT_TRANSCRIPT_HISTORY.md)。新增同一份真实 CLI 输出 fixture 供 Java 与 VS Code 消费，另有真实 Java 子进程输出/取消/超时及 Swing 双会话、迟到结果、选择/滚动保留、分页、错误与大页测试。全量 JDK 21 test/smokeTest/buildPlugin：103 个 suite、889 项 JUnit，886 通过、3 项既有平台跳过，0 failures/errors；1,436 项 smoke 断言通过，并生成本地 ZIP。首次 UTF-8 子进程夹具沿用 Windows stdout 默认编码，严格解码正确拒绝；夹具改为显式 UTF-8 字节后全量通过。CLI/VS Code 历史回归 2 文件 16 项通过。最后补充滚动/紧凑导航、停止提示在切 tab 后仍保留的行为后，相关 4 个 JUnit 文件 25 项及打包再次通过；ZIP 内 8 个相关 class 与当前编译产物 SHA-256 一致。滚动夹具在初始 caret 布局完成后模拟读者上滚，避免把初始布局误作刷新行为。真实 IntelliJ GUI、可访问性听测和最终提交 Actions 均未执行。
+
+### IDE-REPLAY JetBrains 增量合并与现场身份
+
+JetBrains 现接入 latest sync cursor 与 `--history --after`，核对 session/generation/head/count、连续 ordinal 和续页边界，应用成功才推进游标。每轮最多八批，剩余通过 Latest 继续。Older 保持独立面板/游标；metadata-only 更新推进 revision 而保留可见消息范围。只在非零退出的合法 changes-error 对象明确声明原 session 游标 stale 时读取新基线；完整性、无效 UTF-8、跨 session、解析和其他进程失败均保留原正文与游标。
+
+发送 worker 在写 stdin 前通过 EDT 固定用户行的 client ID / child / session 身份；快速接受回执可找到已显示的输入。终态引用仅绑定同 child 的用户候选和最终 assistant 段，经已验证 row/event/role/item 核对后合并；过程文字、工具和停止诊断保持独立。相同正文的不同事件不去重，重复回执/重复批次不复制已识别行；旧 CLI 没有引用时不猜测匹配，可能同时保留现场与保存行。
+
+Swing document 按范围修改，保留未变化文字、选区及上滚阅读位置。冲突删除/替换/重排或受选区阻止的淘汰延后至选择结束；child/session/epoch/request/live revision 变化后旧结果不再应用。历史缓存最多 100 条 saved 行 / 1 MiB 加 16,384 标题字符，metadata 最多 4,096 项；saved 行淘汰同时移除正文，不能丢身份后伪装成 live-only。live append 沿用 200K cap，早期 saved 内容通过分页查看。选中的最终 assistant Markdown 保留纯文本，本批没有实现取消选择后的延迟 Markdown 格式化。
+
+本地 JDK 21 全量 `test smokeTest buildPlugin`：107 suite、907 项 JUnit，其中 904 通过、3 项既有平台跳过，0 failures/errors；1,436 smoke 断言通过。随后补充 100 行缓存淘汰、metadata-only 可见范围与 4,096 项范围上限期间的候选身份保护后，最终相关 8 suite、44 项全部通过，并再次生成本地插件 ZIP。测试使用真实 CLI 子进程输出的共享 baseline/changes/metadata/rewind/九批续页 fixture，及真实 Java 错误/UTF-8 子进程、Swing selection/document/viewport。首次发现历史插入触发 DefaultCaret 延迟滚动，已通过更新策略和可见性保护修复；新增选区夹具最初混用 Windows 序列化 CRLF 偏移，改为真实 Document 偏移并断言所选文本后通过。
+
+CLI / VS Code 共享历史回归 2 文件、49 项通过；新 fixture 由隔离临时 home/security 下的实际 CLI stdout 生成，生成脚本可重跑。最终插件 ZIP 内 28 个相关 class（含内部类）与当前编译产物 SHA-256 一致。新增生成脚本 ESLint 0 errors/warnings，保留根 package.json 既有 ESM 提示；Prettier / diff check 通过。以上运行有重叠，不累加成独立覆盖率。
+
+这些是本地组件/协议/打包证据，未执行真实 IntelliJ GUI、双 IDE 安装旅程、真人读屏或最终 SHA Actions。本批没有将 IDE-REPLAY / SESSION-01 标记为全部完成。
 
 ### IDE-DRAFT 输入回执边界
 
@@ -236,5 +252,6 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 | `f60236db18` | timeline 摘要来源证书、原始正文与游标保留、system 摘要依赖的回退检查及 branch-history v2；连续摘要/分支/压缩回归      |
 | `875b15d560` | verified sync cursor 与连续增量历史读取、JSON 错误分类及真实存储/CLI 回归；双 IDE 仍使用快照读取                      |
 | `70a51435da` | 最终结果关联已提交 user/assistant event，输入 ID 与共享协议类型、生成产物及 SDK 同步；160 项本地回归通过              |
+| `44db0e64ab` | VS Code 连续增量历史合并、原 child 终态引用关联、重复正文独立身份、选区及原位显示保护；相关回归与本地 VSIX 验证       |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。

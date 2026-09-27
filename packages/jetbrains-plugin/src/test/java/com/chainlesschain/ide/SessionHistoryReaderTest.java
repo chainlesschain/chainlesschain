@@ -18,6 +18,13 @@ class SessionHistoryReaderTest {
                 case "huge" -> { System.out.write(new byte[3 * 1024 * 1024]); System.out.flush(); Thread.sleep(30_000); }
                 case "bad" -> { System.err.print("history generation changed"); System.exit(7); }
                 case "utf8" -> System.out.write(new byte[]{(byte) 0xc3});
+                case "stale", "corrupt", "wrong-session", "stale-utf8" -> {
+                    String sid = "wrong-session".equals(args[0]) ? "other" : SessionTranscriptChangesTest.SESSION;
+                    String code = "corrupt".equals(args[0]) ? "SESSION_TRANSCRIPT_INTEGRITY_ERROR" : "SESSION_TRANSCRIPT_CURSOR_STALE";
+                    System.out.write(MiniJson.stringify(java.util.Map.of("schema", "chainlesschain.session-transcript-changes-error/v1", "sessionId", sid, "code", code)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    if ("stale-utf8".equals(args[0])) System.out.write(new byte[]{(byte) 0xc3});
+                    System.exit(7);
+                }
                 default -> Thread.sleep(30_000);
             }
         }
@@ -34,6 +41,14 @@ class SessionHistoryReaderTest {
         IOException error = assertThrows(IOException.class, () -> SessionHistoryReader.capture(command("bad", null), null, 10_000, () -> false));
         assertTrue(error.getMessage().contains("history generation changed"));
         assertThrows(IOException.class, () -> SessionHistoryReader.capture(command("utf8", null), null, 10_000, () -> false));
+    }
+    @Test void onlyExplicitValidStaleStdoutFromExpectedSessionAllowsBaselineFallback() throws Exception {
+        String cursor = SessionTranscriptChangesTest.baseline("baseline").syncCursor();
+        assertThrows(SessionHistoryReader.CursorExpired.class, () -> SessionHistoryReader.readChanges(command("stale", null), SessionTranscriptChangesTest.SESSION, cursor, null, () -> false));
+        for (String mode : List.of("corrupt", "wrong-session", "stale-utf8", "bad")) {
+            IOException failure = assertThrows(IOException.class, () -> SessionHistoryReader.readChanges(command(mode, null), SessionTranscriptChangesTest.SESSION, cursor, null, () -> false));
+            assertFalse(failure instanceof SessionHistoryReader.CursorExpired, mode);
+        }
     }
     @Test void killsOversizedAndTimedOutQueriesInsteadOfReturningPartialHistory() throws Exception {
         for (String mode : List.of("huge", "hang")) {

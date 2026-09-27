@@ -2,7 +2,7 @@
 
 Chat loads saved message pages when a restored conversation is opened or selected.
 **Older** browses a separate read-only pane; **Live** returns to the retained live
-transcript. **Latest** explicitly replaces the view with the newest saved page.
+transcript. **Latest** reads and merges verified saved updates into the live view.
 Sending input returns to the live pane. Each conversation owns its own history
 requests and transcripts, including background completions.
 
@@ -20,11 +20,11 @@ cancellation check; failed queries terminate through the existing observed-proce
 tree mechanism. This does not claim Job Object/cgroup containment or discovery of
 already detached descendants.
 
-Request ownership, a view epoch, session ID and live revision gate results. An
-active turn defers replacement; a late read cannot overwrite newer live output,
+Request ownership (including the originating child), a view epoch, session ID
+and live revision gate results. An active turn defers reading; a late read cannot overwrite newer live output,
 reset content or a disposed tab. Automatic refresh preserves text selection and
 scroll position away from the bottom. Errors, interruptions and exit diagnostics
-stay readable until an explicit saved-history load. History replacement does not
+remain unassociated live text during merging. History updates do not
 reissue semantic accessibility announcements or restore execution rights to cards.
 
 The whole validated page remains readable even when it exceeds the live
@@ -45,16 +45,42 @@ Older or unverifiable rewinds and summaries, legacy replacements and
 old or unverifiable snapshot branches display **History begins at a saved snapshot**. Earlier coverage limits
 are retained after a verified rewind. See the shared [CLI history contract and
 bounds](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md); complete ancestry
-across the remaining boundaries and durable/live incremental merging are pending.
-The CLI's [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md)
-is available separately. This reader still uses snapshot pages; it does not yet
-consume sync cursors or merge streamed partial output with canonical row IDs.
-Optional terminal `transcript_refs` now identify saved assistant/user events in
-the stream protocol. This host does not yet consume them; references require
-verified row/role matching and originating child/session/view checks before live
-association, and cannot restore tool or approval authority.
+across the remaining legacy boundaries is not claimed.
 
-Verification includes a shared real CLI page fixture also consumed by VS Code,
+Latest v2 pages provide a sync cursor. Subsequent reads use the CLI's
+[verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md),
+`--history --after cursor`, with at most eight 50-row batches per refresh; Latest
+continues from the last successfully applied batch. Older navigation has a
+separate cursor and pane. Only a nonzero exit containing the exact stale-error
+schema, expected session and stale code reloads a baseline. Integrity, invalid
+UTF-8, parser and process errors keep the old cursor and readable text.
+
+Input receipts and terminal `transcript_refs` establish candidates bound to the
+original child/session and client message ID. Only verified event/item/role IDs
+associate the user and final assistant segment with saved rows. Repeated equal
+text from different events remains separate; retries and duplicate receipts do
+not duplicate identified rows. Intermediate output, tool activity and diagnostics
+remain live-only. A CLI without references can show both an unassociated live
+row and a saved row; matching by text would lose valid repeated messages.
+
+User rows are reserved on the EDT before writing stdin on the send worker,
+allowing even an immediate receipt to find its input. Error/budget results with
+saved references associate their final text separately from the stop diagnostic.
+Rewind baseline merges remove discarded saved rows while retaining unassociated
+diagnostics. No history update sends input, reruns tools, restores approvals or
+reissues completion announcements.
+
+Styled document ranges preserve unchanged text and selection. Conflicting
+replacement/deletion/reordering waits for selection collapse, rechecks request
+ownership and live revision, then applies before advancing the cursor. A selection
+that prevents budget eviction also defers the batch. History text stays within
+100 saved rows and 1 MiB plus 16,384 heading characters; live appends retain the existing 200K cap,
+and range metadata is limited to 4,096 entries (saved ranges are evicted as text,
+never silently reclassified as live-only). Evicted saved content remains accessible
+through saved-history pagination. A final assistant run selected during completion
+keeps its plain Markdown text; delayed Markdown restyling is not implemented.
+
+Verification includes shared real CLI page and incremental fixtures also consumed by VS Code,
 real Java subprocess output/error/cancellation/timeout tests, Swing component
 tests for reconstruction, background completion, session replacement, paging,
 selection, errors and oversized pages, plus the plugin's test/smoke/build tasks.

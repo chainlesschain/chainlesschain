@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
@@ -135,6 +135,50 @@ function liveTurn(h, id, { tool = false, error = false } = {}) {
 }
 
 describe("verified IDE transcript synchronization", () => {
+  it("accepts the real CLI sync fixture shared with JetBrains, including metadata and rewind", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL("../fixtures/session-transcript-sync-v1.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    const page = parseTranscriptPage(
+      JSON.stringify(fixture.baseline),
+      fixture.sessionId,
+    );
+    const first = parseTranscriptChanges(
+      JSON.stringify(fixture.first),
+      fixture.sessionId,
+      page.syncCursor,
+    );
+    const second = parseTranscriptChanges(
+      JSON.stringify(fixture.second),
+      fixture.sessionId,
+      first.nextCursor,
+    );
+    const meta = parseTranscriptChanges(
+      JSON.stringify(fixture.metadata),
+      fixture.sessionId,
+      second.nextCursor,
+    );
+    const rewind = parseTranscriptPage(
+      JSON.stringify(fixture.rewind),
+      fixture.sessionId,
+    );
+    expect(first.hasMore).toBe(true);
+    expect(second.hasMore).toBe(false);
+    expect(meta.messages).toHaveLength(0);
+    expect(meta.nextCursor).not.toBe(second.nextCursor);
+    expect(rewind.generation).not.toBe(page.generation);
+    expect(rewind.messages).toEqual(page.messages);
+    expect(
+      new Set(
+        [...page.messages, ...first.messages, ...second.messages].map(
+          (row) => row.id,
+        ),
+      ).size,
+    ).toBe(6);
+  });
   it("bounds one refresh and continues from the last applied batch without losing rows", async () => {
     const h = harness();
     await h.provider._restoreTranscript(h.conv);

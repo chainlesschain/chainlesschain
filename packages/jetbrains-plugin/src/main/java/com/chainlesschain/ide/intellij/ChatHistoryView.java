@@ -1,6 +1,8 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.SessionTranscriptPage;
+import com.chainlesschain.ide.SessionTranscriptChanges;
+import com.chainlesschain.ide.SessionHistoryReader;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -18,6 +20,9 @@ import java.util.function.Supplier;
 final class ChatHistoryView {
     interface Loader {
         SessionTranscriptPage read(String sessionId, String cursor, BooleanSupplier cancelled) throws Exception;
+        default SessionTranscriptChanges changes(String sessionId, String cursor, BooleanSupplier cancelled) throws Exception {
+            throw new java.io.IOException("Incremental history is unavailable");
+        }
     }
     private static final Executor WORKERS = new ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), task -> {
@@ -39,8 +44,12 @@ final class ChatHistoryView {
     private long revision, epoch;
     private Request request;
     private SessionTranscriptPage shownPage, latestPage;
+    private String syncCursor;
+    private Supplier<Object> owner = () -> null;
+    private Result deferred;
+    private record Result(SessionTranscriptPage page, String cursor, boolean more, boolean baseline) {}
     private record Request(String sessionId, String cursor, long revision, long epoch,
-                           boolean explicit, AtomicBoolean cancelled) {}
+                           Object owner, boolean explicit, boolean incremental, int batch, AtomicBoolean cancelled) {}
 
     ChatHistoryView(ChatTranscript live, Supplier<String> sessionId, BooleanSupplier active,
                     boolean known, Loader loader) {
@@ -64,8 +73,10 @@ final class ChatHistoryView {
         older.addActionListener(event -> { if (shownPage != null) load(shownPage.nextCursor(), true); });
         latest.addActionListener(event -> load(null, true));
         liveButton.addActionListener(event -> showLive());
+        live.onHistoryReady(() -> { if (request != null && deferred != null) finish(request, deferred, null); });
         updateControls();
     }
+    void ownerSource(Supplier<Object> source) { owner = source; }
     JPanel component() { return root; }
     void onSelected() { if (known && !browsing && !preserveLiveNotice && request == null) load(null, false); }
     void liveChanged() { revision++; updateControls(); }
@@ -92,12 +103,12 @@ final class ChatHistoryView {
     void idle() { if (pending && !browsing && !active.getAsBoolean()) load(null, false); updateControls(); }
     void reset(boolean known) {
         cancel(); epoch++; revision++; this.known = known;
-        browsing = false; pending = false; preserveLiveNotice = false; shownPage = null; latestPage = null;
+        browsing = false; pending = false; preserveLiveNotice = false; shownPage = null; latestPage = null; syncCursor = null;
         live.clear(); history.clear(); status.setText(" ");
         ((CardLayout) pages.getLayout()).show(pages, "live"); updateControls();
     }
     void dispose() { disposed = true; cancel(); updateControls(); }
-    private void cancel() { if (request != null) request.cancelled().set(true); request = null; }
+    private void cancel() { if (request != null) request.cancelled().set(true); request = null; deferred = null; }
     private void updateControls() {
         boolean idle = !disposed && !active.getAsBoolean();
         older.setEnabled(idle && request == null && shownPage != null && shownPage.nextCursor() != null);
@@ -105,57 +116,87 @@ final class ChatHistoryView {
         liveButton.setEnabled(!disposed && browsing);
     }
     private void load(String cursor, boolean explicit) {
+        load(cursor, explicit, 0);
+    }
+    private void load(String cursor, boolean explicit, int batch) {
         if (disposed || !known || sessionId.get() == null) return;
         if (active.getAsBoolean()) {
             pending = true; status.setText(" Saved history will refresh after the active turn."); updateControls(); return;
         }
-        if (request != null && Objects.equals(request.cursor(), cursor)) return;
+        boolean incremental = cursor == null && syncCursor != null;
+        String query = incremental ? syncCursor : cursor;
+        if (request != null && Objects.equals(request.cursor(), query) && request.incremental() == incremental) return;
         cancel();
-        Request next = new Request(sessionId.get(), cursor, revision, epoch, explicit, new AtomicBoolean());
+        Request next = new Request(sessionId.get(), query, revision, epoch, owner.get(), explicit, incremental, batch, new AtomicBoolean());
         request = next; pending = false; status.setText(" Loading saved conversation…"); updateControls();
         try {
             worker.execute(() -> {
-                SessionTranscriptPage page = null; Exception failure = null;
+                Result result = null; Exception failure = null;
                 try {
                     if (next.cancelled().get()) return;
-                    page = loader.read(next.sessionId(), next.cursor(), next.cancelled()::get);
+                    if (next.incremental()) {
+                        try {
+                            SessionTranscriptChanges changes = loader.changes(next.sessionId(), next.cursor(), next.cancelled()::get);
+                            result = new Result(changes.page(), changes.nextCursor(), changes.hasMore(), false);
+                        } catch (SessionHistoryReader.CursorExpired stale) {
+                            SessionTranscriptPage page = loader.read(next.sessionId(), null, next.cancelled()::get);
+                            result = new Result(page, page.syncCursor(), false, true);
+                        }
+                    } else {
+                        SessionTranscriptPage page = loader.read(next.sessionId(), next.cursor(), next.cancelled()::get);
+                        result = new Result(page, page.syncCursor(), false, true);
+                    }
                 } catch (Exception error) { failure = error; }
-                SessionTranscriptPage result = page; Exception error = failure;
-                SwingUtilities.invokeLater(() -> finish(next, result, error));
+                Result captured = result; Exception error = failure;
+                SwingUtilities.invokeLater(() -> finish(next, captured, error));
             });
         } catch (RuntimeException error) { finish(next, null, error); }
     }
-    private void finish(Request next, SessionTranscriptPage page, Exception error) {
-        if (disposed || request != next || next.cancelled().get() || epoch != next.epoch()
-                || !Objects.equals(sessionId.get(), next.sessionId())) return;
-        request = null;
+    private void finish(Request next, Result result, Exception error) {
+        if (disposed || request != next || next.cancelled().get()) return;
+        if (epoch != next.epoch() || owner.get() != next.owner() || !Objects.equals(sessionId.get(), next.sessionId())) {
+            cancel(); pending = true; updateControls(); return;
+        }
         if (revision != next.revision() || active.getAsBoolean()) {
+            cancel();
             pending = true; status.setText(" New live output arrived; saved history will refresh when idle.");
             updateControls();
             if (!active.getAsBoolean() && !browsing) load(null, false);
             return;
         }
+        SessionTranscriptPage page = result == null ? null : result.page();
         if (error != null || page == null) {
+            cancel();
             String reason = error == null ? "No history response" : String.valueOf(error.getMessage());
             status.setText(" Saved conversation could not be loaded: " + reason.substring(0, Math.min(500, reason.length())));
             status.setToolTipText(status.getText()); updateControls(); return;
         }
-        if (next.cursor() == null) {
-            if (!next.explicit() && !live.canReplaceHistory()) {
-                pending = true; status.setText(" Saved history is available. Select Latest saved messages to load it.");
+        if (next.incremental() || next.cursor() == null) {
+            if (!live.mergeHistory(page, result.baseline())) {
+                deferred = result;
+                status.setText(" Saved update waits for your text selection to finish.");
                 updateControls(); return;
             }
-            live.replaceHistory(page, false); latestPage = page; browsing = false; preserveLiveNotice = false;
+            syncCursor = result.cursor();
+            page = page.navigation(live.firstSavedOrdinal(page.totalMessages()));
+            latestPage = page; browsing = false; preserveLiveNotice = false;
             ((CardLayout) pages.getLayout()).show(pages, "live");
         } else {
             history.replaceHistory(page, true); browsing = true;
             ((CardLayout) pages.getLayout()).show(pages, "history");
         }
+        cancel();
         shownPage = page;
-        String range = page.messages().isEmpty() ? "No saved messages" : "Saved messages "
-                + (page.messages().getFirst().ordinal() + 1) + "–" + (page.messages().getLast().ordinal() + 1)
+        long first = browsing ? (page.messages().isEmpty() ? 0 : page.messages().getFirst().ordinal()) : live.firstSavedOrdinal(0);
+        long last = browsing ? (page.messages().isEmpty() ? -1 : page.messages().getLast().ordinal()) : live.lastSavedOrdinal();
+        String range = last < 0 ? "No saved messages" : "Saved messages "
+                + (first + 1) + "–" + (last + 1)
                 + " of " + page.totalMessages();
         status.setText(" " + (page.snapshotBoundary() ? "History begins at a saved snapshot · " : "") + range);
         status.setToolTipText(status.getText()); updateControls();
+        if (result.more()) {
+            if (next.batch() < 7) load(null, next.explicit(), next.batch() + 1);
+            else status.setText(" More saved messages are available; select Latest to continue loading.");
+        }
     }
 }

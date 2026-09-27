@@ -225,8 +225,17 @@ final class ConversationView {
         if (conv.sessionId == null || conv.sessionId.isEmpty()) conv.sessionId = SessionArgs.newPanelSessionId();
         this.history = new ChatHistoryView(transcript, () -> conv.sessionId,
                 this::historyBusy, savedConversation,
-                (sid, cursor, cancelled) -> com.chainlesschain.ide.SessionHistoryReader.read(
-                        sid, cursor, project.getBasePath() == null ? null : new File(project.getBasePath()), cancelled));
+                new ChatHistoryView.Loader() {
+                    public com.chainlesschain.ide.SessionTranscriptPage read(String sid, String cursor, java.util.function.BooleanSupplier cancelled) throws Exception {
+                        return com.chainlesschain.ide.SessionHistoryReader.read(sid, cursor,
+                                project.getBasePath() == null ? null : new File(project.getBasePath()), cancelled);
+                    }
+                    public com.chainlesschain.ide.SessionTranscriptChanges changes(String sid, String cursor, java.util.function.BooleanSupplier cancelled) throws Exception {
+                        return com.chainlesschain.ide.SessionHistoryReader.readChanges(sid, cursor,
+                                project.getBasePath() == null ? null : new File(project.getBasePath()), cancelled);
+                    }
+                });
+        this.history.ownerSource(() -> sessionGeneration);
         this.drafts = new ChatComposerDrafts(project, conv, draftStore, input, images,
                 () -> sendInFlight, this::liveSession, this::append);
         this.questions = new QuestionDraftRegistry(draftStore, conv.draftKey);
@@ -726,6 +735,7 @@ final class ConversationView {
             if (disposed) return; // queued before a tab close — don't respawn cc
             boolean sent = false;
             String spawnError = null;
+            Object dispatchOwner = null;
             com.chainlesschain.ide.ChatDraftStore.Prepared prepared = null;
             try {
                 savedComposer.get(10, TimeUnit.SECONDS);
@@ -735,6 +745,7 @@ final class ConversationView {
                 AgentChatSession s = liveSession();
                 String history = worklogSourceSent ? null : worklogSource;
                 Object owner = sessionGeneration;
+                dispatchOwner = owner;
                 java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
                 if (s == null || capability == null) throw new IOException("Agent startup was not confirmed");
                 boolean supported = capability.get(15, TimeUnit.SECONDS);
@@ -747,6 +758,18 @@ final class ConversationView {
                 Map<String, Object> event = AgentChatSession.userEvent(text, prepared.paths());
                 if (supported) event.put("client_message_id", prepared.submission().id());
                 if (history != null) event.put("worklog_session_id", history);
+                final String clientId = prepared.submission().id();
+                final String sid = conv.sessionId;
+                // Reserve the visible input before stdin can produce a fast ACK
+                // or result. The blocking pipe write stays on the send worker.
+                SwingUtilities.invokeAndWait(() -> {
+                    if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision)) return;
+                    String tag = imgs.isEmpty() ? "" : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
+                    transcript.appendUser(text, tag, clientId, owner, sid);
+                    this.history.liveChanged();
+                });
+                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
+                    throw new IOException("Input saved; agent changed before delivery");
                 sent = s.sendEvent(event);
                 if (sent && history != null) worklogSourceSent = true;
             } catch (Exception ex) {
@@ -755,23 +778,20 @@ final class ConversationView {
             } finally {
                 final boolean ok = sent;
                 final String err = spawnError;
+                final Object sentOwner = dispatchOwner;
                 final com.chainlesschain.ide.ChatDraftStore.Prepared saved = prepared;
                 SwingUtilities.invokeLater(() -> {
                     sendInFlight = false;
                     if (disposed) return;
                     drafts.finishSend(saved, draftRevision);
-                    if (!conv.modeState.current(modeRevision)) {
+                    if (!conv.modeState.current(modeRevision) || (sentOwner != null && sentOwner != sessionGeneration)) {
                         append("⚠ Approval mode changed during delivery. Check Saved inputs and the conversation before resending.\n");
                     } else if (err != null) {
                         append("⚠ could not send message: " + err + "\n");
                     } else if (ok) {
                         AgentChatSession session = liveSession();
                         turnActive = session != null && session.hasPendingTurns();
-                        transcript.beginTurn();
                         if (!text.isEmpty()) lastSentPrompt = text; // for /retry
-                        String tag = imgs.isEmpty() ? ""
-                                : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
-                        append("\nyou> " + text + tag + "\n");
                         // Preserve the legacy turn FIFO; store snapshots remain
                         // owned by saved submissions until confirmed idle/discard.
                         sentImageBatches.addLast(new java.util.ArrayList<>());
@@ -1983,6 +2003,8 @@ final class ConversationView {
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
         o.onEvent = event -> {
             if (disposed || sessionGeneration != generation) return;
+            if (event != null && "result".equals(event.get("type")) && event.get("session_id") != null
+                    && !java.util.Objects.equals(conv.sessionId, event.get("session_id"))) return;
             if (event != null && "worklog_saved".equals(event.get("type"))) {
                 SwingUtilities.invokeLater(() -> acceptWorklogHandoff(event, generation));
                 return;
@@ -2075,6 +2097,11 @@ final class ConversationView {
                     && event.get("client_message_id") instanceof String clientId && event.get("receipt") instanceof Map<?, ?> receipt) {
                 @SuppressWarnings("unchecked") Map<String, Object> typed = (Map<String, Object>) receipt;
                 drafts.accept(clientId, typed);
+                SwingUtilities.invokeLater(() -> {
+                    if (disposed || sessionGeneration != generation) return;
+                    transcript.inputReceipt(event, conv.sessionId, generation);
+                    history.liveChanged();
+                });
                 return;
             }
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
@@ -2082,7 +2109,19 @@ final class ConversationView {
             // Rendering plan events may update an open review document.
             // Use the IDE write-safe event context, not a plain AWT callback.
             ApplicationManager.getApplication().invokeLater(() -> {
-                if (!disposed && sessionGeneration == generation) render(ui);
+                if (disposed || sessionGeneration != generation) return;
+                transcript.owned(generation, conv.sessionId);
+                com.chainlesschain.ide.TranscriptReferences refs = com.chainlesschain.ide.TranscriptReferences.result(event, conv.sessionId);
+                if (refs != null && event.get("result") instanceof String finalText) {
+                    ui.put("transcriptReferences", refs); ui.put("finalText", finalText); ui.put("transcriptOwner", generation);
+                    String subtype = String.valueOf(event.get("subtype"));
+                    String diagnostic = "error_max_turns".equals(subtype) ? "⏹ stopped: turn budget exhausted"
+                            : "error_max_budget".equals(subtype) ? "⏹ stopped: cost budget exhausted"
+                            : Boolean.TRUE.equals(ui.get("interrupted")) ? "⏹ interrupted"
+                            : Boolean.TRUE.equals(ui.get("isError")) ? "⚠ " + (event.get("error") == null ? "turn failed" : event.get("error")) : null;
+                    ui.put("terminalDiagnostic", diagnostic);
+                }
+                render(ui);
             });
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
@@ -2186,14 +2225,22 @@ final class ConversationView {
             // The final result text only arrives here when nothing streamed; run
             // it through the same markdown path. (When deltas streamed, text is
             // null and we just finalize the streamed run.)
-            if (text != null) appendAssistantDelta(String.valueOf(text));
-            transcript.finalizeAssistantRun();
+            boolean referenced = ui.get("transcriptReferences") instanceof com.chainlesschain.ide.TranscriptReferences;
+            if (referenced) {
+                com.chainlesschain.ide.TranscriptReferences refs = (com.chainlesschain.ide.TranscriptReferences) ui.get("transcriptReferences");
+                transcript.referencedAssistant((String) ui.get("finalText"), refs, ui.get("transcriptOwner"), refs.sessionId());
+                history.liveChanged();
+            } else {
+                if (text != null) appendAssistantDelta(String.valueOf(text));
+                transcript.finalizeAssistantRun();
+            }
             transcript.collapseCompletedReasoning();
             transcript.announce("Assistant response", transcript.lastAssistantText(),
                     "turn-end:" + transcript.currentTurnNumber());
             transcript.announce("Status", "ready",
                     "status:ready:" + transcript.currentTurnNumber());
             append("\n");
+            if (ui.get("terminalDiagnostic") instanceof String diagnostic) append(diagnostic + "\n");
             // Authoritative turn total replaces the live tally until the async
             // context probe repaints the ⊟ indicator.
             turnTokens = null;
@@ -2205,7 +2252,7 @@ final class ConversationView {
             }
             deleteOldestSentImageBatch(); // THIS turn's images — CLI consumed them at its start
             refreshContextIndicator(); // §6: after each turn
-            if (Boolean.TRUE.equals(ui.get("isError")) || Boolean.TRUE.equals(ui.get("interrupted"))) history.stopped();
+            if (!referenced && (Boolean.TRUE.equals(ui.get("isError")) || Boolean.TRUE.equals(ui.get("interrupted")))) history.stopped();
             else history.settled();
         } else if ("plan".equals(kind)) {
             AgentChatSession session = liveSession();

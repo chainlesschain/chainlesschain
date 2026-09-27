@@ -14,6 +14,16 @@ import java.util.function.BooleanSupplier;
 /** Bounded, cancellable read-only CLI capture; never uses the Agent stdin protocol. */
 public final class SessionHistoryReader {
     private SessionHistoryReader() {}
+    public static final class CursorExpired extends IOException {
+        public CursorExpired() { super("Saved history changed; reload the latest page"); }
+    }
+    static final class CaptureFailure extends IOException {
+        final String stdout;
+        CaptureFailure(int exit, String stdout, String stderr) {
+            super("Saved history unavailable (CLI exit " + exit + "): " + stderr.substring(0, Math.min(500, stderr.length())));
+            this.stdout = stdout;
+        }
+    }
 
     public static SessionTranscriptPage read(String sessionId, String cursor, File cwd,
             BooleanSupplier cancelled) throws IOException, InterruptedException {
@@ -22,6 +32,30 @@ public final class SessionHistoryReader {
         List<String> command = AgentChatSession.buildCaptureCommand(
                 AgentChatSession.resolveBinary(), args, File.separatorChar == '\\');
         return SessionTranscriptPage.parse(capture(command, cwd, 35_000, cancelled), sessionId, cursor);
+    }
+
+    public static SessionTranscriptChanges readChanges(String sessionId, String cursor, File cwd,
+            BooleanSupplier cancelled) throws IOException, InterruptedException {
+        List<String> args = SessionTranscriptChanges.arguments(sessionId, cursor);
+        if (cancelled.getAsBoolean()) throw new IOException("History read cancelled");
+        List<String> command = AgentChatSession.buildCaptureCommand(
+                AgentChatSession.resolveBinary(), args, File.separatorChar == '\\');
+        return readChanges(command, sessionId, cursor, cwd, cancelled);
+    }
+
+    static SessionTranscriptChanges readChanges(List<String> command, String sessionId, String cursor, File cwd,
+            BooleanSupplier cancelled) throws IOException, InterruptedException {
+        try { return SessionTranscriptChanges.parse(capture(command, cwd, 35_000, cancelled), sessionId, cursor); }
+        catch (CaptureFailure failure) {
+            boolean stale = false;
+            try {
+                java.util.Map<String, Object> error = MiniJson.parseObject(failure.stdout);
+                stale = "chainlesschain.session-transcript-changes-error/v1".equals(error.get("schema"))
+                        && sessionId.equals(error.get("sessionId")) && "SESSION_TRANSCRIPT_CURSOR_STALE".equals(error.get("code"));
+            } catch (RuntimeException ignored) { /* Other errors never silently discard the sync cursor. */ }
+            if (stale) throw new CursorExpired();
+            throw failure;
+        }
     }
 
     static String capture(List<String> command, File cwd, long timeoutMs,
@@ -47,15 +81,14 @@ public final class SessionHistoryReader {
             }
             if (failure.get() != null) throw failure.get();
             if (cancelled.getAsBoolean()) throw new IOException("History read cancelled");
-            if (process.exitValue() != 0) {
-                String detail = new String(stderr.join(), StandardCharsets.UTF_8).strip();
-                throw new IOException("Saved history unavailable (CLI exit " + process.exitValue() + "): "
-                        + detail.substring(0, Math.min(500, detail.length())));
-            }
             String output = StandardCharsets.UTF_8.newDecoder()
                     .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
                     .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
                     .decode(java.nio.ByteBuffer.wrap(stdout.join())).toString();
+            if (process.exitValue() != 0) {
+                String detail = new String(stderr.join(), StandardCharsets.UTF_8).strip();
+                throw new CaptureFailure(process.exitValue(), output, detail);
+            }
             complete = true;
             return output;
         } finally {

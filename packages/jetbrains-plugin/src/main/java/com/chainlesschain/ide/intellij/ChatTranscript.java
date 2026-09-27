@@ -48,6 +48,13 @@ final class ChatTranscript {
     private String lastFinalizedAssistantText = "";
     private String lastAnnouncementText = "";
     private final Set<String> announcementKeys = new LinkedHashSet<>();
+    private final ChatTranscriptHistory savedHistory;
+    private ChatTranscriptHistory.Span lastFinalizedSpan;
+    private Object liveOwner;
+    private String liveSessionId;
+    private Runnable historyReady = () -> {};
+    private boolean freezeCaretVisibility;
+    private long caretEpoch;
 
     private static final String THINKING_PLACEHOLDER = "thinking (collapsed)\n";
     private static final int MAX_ANNOUNCEMENT_CHARS = 4_000;
@@ -64,6 +71,11 @@ final class ChatTranscript {
     }
 
     ChatTranscript() {
+        pane.setCaret(new javax.swing.text.DefaultCaret() {
+            @Override protected void adjustVisibility(java.awt.Rectangle rectangle) {
+                if (!freezeCaretVisibility) super.adjustVisibility(rectangle);
+            }
+        });
         pane.setEditable(false);
         pane.getAccessibleContext().setAccessibleName("Conversation transcript");
         pane.getAccessibleContext().setAccessibleDescription(
@@ -78,6 +90,83 @@ final class ChatTranscript {
         StyleConstants.setForeground(styleDim, new com.intellij.ui.JBColor(
                 new Color(0x80, 0x80, 0x80), new Color(0x9A, 0x9A, 0x9A))); // gray thinking
         StyleConstants.setItalic(styleDim, true);
+        savedHistory = new ChatTranscriptHistory(pane, stylePlain, styleBold, styleDim, this::historyEdit);
+        pane.addCaretListener(event -> {
+            if (pane.getSelectionStart() == pane.getSelectionEnd()) javax.swing.SwingUtilities.invokeLater(() -> historyReady.run());
+        });
+    }
+
+    void onHistoryReady(Runnable ready) { historyReady = ready; }
+    void owned(Object owner, String sessionId) {
+        if (liveOwner != owner || !java.util.Objects.equals(liveSessionId, sessionId)) finalizeAssistantRun();
+        liveOwner = owner; liveSessionId = sessionId;
+    }
+    void appendUser(String text, String tag, String clientId, Object owner, String sessionId) {
+        owned(owner, sessionId); beginTurn();
+        String header = "\nTurn " + turnNumber + ", User message\n";
+        String display = TranscriptCap.boundEntry("\nyou> " + text + tag + "\n", TranscriptCap.DEFAULT_MAX_CHARS);
+        append(display);
+        int end = pane.getDocument().getLength();
+        savedHistory.add(Math.max(0, end - header.length() - display.length()), end, "user", text, sessionId, clientId, owner);
+    }
+    void inputReceipt(java.util.Map<String, Object> event, String sessionId, Object owner) { savedHistory.input(event, sessionId, owner); }
+    void referencedAssistant(String finalText, com.chainlesschain.ide.TranscriptReferences refs, Object owner, String sessionId) {
+        owned(owner, sessionId); lastFinalizedSpan = null;
+        if (!inAssistantRun) appendAssistantDelta(finalText);
+        finalizeAssistantRun();
+        savedHistory.terminal(lastFinalizedSpan, refs, owner);
+    }
+    long firstSavedOrdinal(long fallback) { return savedHistory.firstOrdinal(fallback); }
+    long lastSavedOrdinal() { return savedHistory.lastOrdinal(); }
+    List<String> savedIds() { return savedHistory.savedIds(); }
+    boolean mergeHistory(com.chainlesschain.ide.SessionTranscriptPage page, boolean baseline) {
+        finalizeAssistantRun();
+        boolean following = pane.getSelectionStart() == pane.getSelectionEnd() && isFollowingBottom();
+        javax.swing.JViewport viewport = pane.getParent() instanceof javax.swing.JViewport v ? v : null;
+        java.awt.Point position = viewport == null ? null : viewport.getViewPosition();
+        javax.swing.text.DefaultCaret caret = (javax.swing.text.DefaultCaret) pane.getCaret();
+        int policy = caret.getUpdatePolicy();
+        long operation = ++caretEpoch;
+        freezeCaretVisibility = !following;
+        try {
+            int start = pane.getSelectionStart(), end = pane.getSelectionEnd();
+            boolean selected = start != end, backwards = caret.getDot() < caret.getMark();
+            // Document Position(0) never shifts. Anchor inside the selected
+            // text instead, with a backward-biased end, so inserts immediately
+            // before/after a selection cannot become part of that selection.
+            javax.swing.text.Position startAnchor = pane.getDocument().createPosition(selected && start == 0 ? 1 : start);
+            javax.swing.text.Position endAnchor = pane.getDocument().createPosition(selected ? end - 1 : end);
+            caret.setUpdatePolicy(javax.swing.text.DefaultCaret.NEVER_UPDATE);
+            boolean applied = savedHistory.merge(page, baseline);
+            if (applied) {
+                if (following) stickToBottomIfFollowing(true);
+                else {
+                    int newStart = startAnchor.getOffset() - (selected && start == 0 ? 1 : 0);
+                    int newEnd = endAnchor.getOffset() + (selected ? 1 : 0);
+                    caret.setDot(backwards ? newEnd : newStart); caret.moveDot(backwards ? newStart : newEnd);
+                    if (viewport != null) viewport.setViewPosition(position);
+                }
+            }
+            return applied;
+        } catch (BadLocationException error) { throw new IllegalStateException(error); }
+        finally {
+            caret.setUpdatePolicy(policy);
+            // DefaultCaret schedules visibility changes after document edits.
+            javax.swing.SwingUtilities.invokeLater(() -> { if (caretEpoch == operation) freezeCaretVisibility = false; });
+        }
+    }
+    private void historyEdit(int offset, int removed, int added) {
+        for (int i = thinkingBlocks.size() - 1; i >= 0; i--) {
+            ThinkingBlock block = thinkingBlocks.get(i);
+            if (removed > 0) {
+                block.start = ChatTranscriptHistory.removedPosition(block.start, offset, removed);
+                block.end = ChatTranscriptHistory.removedPosition(block.end, offset, removed);
+                if (block.end <= block.start) { thinkingBlocks.remove(i); continue; }
+            }
+            if (offset <= block.start) { block.start += added; block.end += added; }
+            else if (offset < block.end) block.end += added;
+        }
+        turnThinkingStart = Math.min(turnThinkingStart, thinkingBlocks.size());
     }
 
     /** The Swing component (for scroll-pane wrapping and drop-target install). */
@@ -331,6 +420,7 @@ final class ChatTranscript {
             replaceActiveAssistantText(assistantEntry.text());
         }
         int start = assistantRunStart;
+        int spanStart = assistantHeadingStart >= 0 ? assistantHeadingStart : start;
         int end = d.getLength();
         inAssistantRun = false;
         assistantHeadingStart = -1;
@@ -341,6 +431,9 @@ final class ChatTranscript {
         try {
             String text = d.getText(start, end - start);
             lastFinalizedAssistantText = text;
+            boolean selected = pane.getSelectionStart() < end && pane.getSelectionEnd() > start
+                    && pane.getSelectionStart() != pane.getSelectionEnd();
+            if (!selected) {
             d.remove(start, end - start);
             for (MarkdownLite.Span span : MarkdownLite.parse(text)) {
                 javax.swing.text.AttributeSet st =
@@ -349,7 +442,9 @@ final class ChatTranscript {
                         : stylePlain;
                 d.insertString(d.getLength(), span.text, st);
             }
-            stickToBottomIfFollowing(following);
+            }
+            lastFinalizedSpan = savedHistory.add(spanStart, d.getLength(), "assistant", text, liveSessionId, null, liveOwner);
+            stickToBottomIfFollowing(following && !selected);
         } catch (BadLocationException ignored) {
             /* best-effort — leave the plain text in place on any hiccup */
         }
@@ -357,6 +452,7 @@ final class ChatTranscript {
 
     /** Wipe the transcript and reset the run state (tab reset / resume). */
     void clear() {
+        savedHistory.clear(); lastFinalizedSpan = null;
         inAssistantRun = false;
         assistantHeadingStart = -1;
         assistantRunStart = -1;
@@ -373,6 +469,7 @@ final class ChatTranscript {
     }
 
     private void insertStyled(String s, javax.swing.text.AttributeSet style) {
+        caretEpoch++; freezeCaretVisibility = false;
         try {
             final boolean following = isFollowingBottom();
             StyledDocument d = pane.getStyledDocument();
@@ -412,6 +509,8 @@ final class ChatTranscript {
                 document.getLength(), protectedStart, inAssistantRun,
                 TranscriptCap.DEFAULT_MAX_CHARS);
         if (removeLen <= 0) return;
+        int whole = savedHistory.wholePrefix(removeLen);
+        if (!inAssistantRun || protectedStart < 0 || whole <= protectedStart) removeLen = whole;
         trimThinkingBlocks(removeLen);
         document.remove(0, removeLen);
         if (assistantHeadingStart >= 0) {
