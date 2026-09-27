@@ -8,6 +8,10 @@
 
 import crypto from "node:crypto";
 import { PRICE_TABLE, priceRollup } from "./llm-pricing.js";
+import {
+  projectUsagePricingContext,
+  mergeUsagePricingBucket,
+} from "./usage-pricing-context.js";
 import { canonicalDeliveryJson } from "./delivery-evidence.js";
 import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
 
@@ -251,7 +255,64 @@ function normalizePricingTable(table = PRICE_TABLE) {
       ) {
         throw new Error("pricing rates must be finite non-negative numbers");
       }
-      return { match, in: input, out: output };
+      const result = { match, in: input, out: output };
+      if (Object.hasOwn(entry, "explicitOverride")) {
+        if (typeof entry.explicitOverride !== "boolean")
+          throw new Error("pricing explicitOverride must be boolean");
+        result.explicitOverride = entry.explicitOverride;
+      }
+      if (Object.hasOwn(entry, "exact")) {
+        if (typeof entry.exact !== "boolean")
+          throw new Error("pricing exact must be boolean");
+        result.exact = entry.exact;
+      }
+      if (Object.hasOwn(entry, "terms")) {
+        const terms = entry.terms;
+        const nonNegative = (value) => {
+          if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
+            throw new Error("invalid pricing multiplier");
+          return value;
+        };
+        assertKnownOwnKeys(
+          terms,
+          new Set([
+            "cacheReadMultiplier",
+            "cacheWriteMultiplier",
+            "longContext",
+            "serviceMultipliers",
+          ]),
+          "pricing terms",
+        );
+        assertKnownOwnKeys(
+          terms.longContext,
+          new Set(["threshold", "inputMultiplier", "outputMultiplier"]),
+          "pricing long context",
+        );
+        const threshold = nonNegative(terms.longContext.threshold);
+        if (!Number.isSafeInteger(threshold))
+          throw new Error("invalid pricing threshold");
+        assertKnownOwnKeys(
+          terms.serviceMultipliers,
+          new Set(["standard", "default", "auto", "batch", "flex", "fast"]),
+          "pricing service multipliers",
+        );
+        result.terms = {
+          cacheReadMultiplier: nonNegative(terms.cacheReadMultiplier),
+          cacheWriteMultiplier: nonNegative(terms.cacheWriteMultiplier),
+          longContext: {
+            threshold,
+            inputMultiplier: nonNegative(terms.longContext.inputMultiplier),
+            outputMultiplier: nonNegative(terms.longContext.outputMultiplier),
+          },
+          serviceMultipliers: Object.fromEntries(
+            Object.entries(terms.serviceMultipliers).map(([key, value]) => [
+              key,
+              nonNegative(value),
+            ]),
+          ),
+        };
+      }
+      return result;
     });
     normalized.set(providerKey, normalizedEntries);
   }
@@ -672,6 +733,7 @@ function strictUsage(event) {
     totalTokens: expectedTotal,
     cacheReadTokens,
     cacheCreationTokens,
+    ...projectUsagePricingContext(raw),
   };
 }
 
@@ -1101,6 +1163,7 @@ export function createVerifiedSessionObservabilityProjection(
           }),
         );
         addUsageSums(row, usage, "session usage model");
+        mergeUsagePricingBucket(row, usage);
       }
 
       if (event?.type === "tool_call") {

@@ -2,6 +2,7 @@ import { canonicalDigest } from "@chainlesschain/context-memory-kernel";
 import {
   CONTEXT_WINDOWS,
   DOCUMENTED_OPENAI_MODELS,
+  DOCUMENTED_ANTHROPIC_MODELS,
   LEGACY_MODEL_PROVIDERS,
   MODEL_CAPABILITY_CATALOG_VERSION,
 } from "./model-context-catalog.js";
@@ -61,7 +62,7 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function isOfficialOpenAIBaseUrl(baseUrl) {
+function isOfficialModelBaseUrl(provider, baseUrl) {
   if (baseUrl == null || baseUrl === "") return true;
   if (typeof baseUrl !== "string") {
     throw new TypeError("baseUrl must be a string when provided");
@@ -71,7 +72,10 @@ function isOfficialOpenAIBaseUrl(baseUrl) {
     // decorations and non-default ports. Never return or hash the input URL.
     return (
       baseUrl === baseUrl.trim() &&
-      new URL(baseUrl).href === "https://api.openai.com/v1"
+      new URL(baseUrl).href ===
+        (provider === "openai"
+          ? "https://api.openai.com/v1"
+          : "https://api.anthropic.com/v1")
     );
   } catch {
     return false;
@@ -137,13 +141,17 @@ export function resolveModelCapabilityProfile({
     "contextMemoryModelWindowTokens",
     { min: 1024, max: MAX_CONTEXT_WINDOW_TOKENS },
   );
+  const catalog =
+    selectedProvider === "openai"
+      ? DOCUMENTED_OPENAI_MODELS
+      : selectedProvider === "anthropic"
+        ? DOCUMENTED_ANTHROPIC_MODELS
+        : null;
   const officialEndpoint =
-    selectedProvider === "openai" && isOfficialOpenAIBaseUrl(baseUrl);
+    Boolean(catalog) && isOfficialModelBaseUrl(selectedProvider, baseUrl);
   const documented =
-    officialEndpoint &&
-    selectedModel &&
-    Object.hasOwn(DOCUMENTED_OPENAI_MODELS, selectedModel)
-      ? DOCUMENTED_OPENAI_MODELS[selectedModel]
+    officialEndpoint && selectedModel && Object.hasOwn(catalog, selectedModel)
+      ? catalog[selectedModel]
       : null;
   const legacyOwner =
     selectedModel && Object.hasOwn(LEGACY_MODEL_PROVIDERS, selectedModel)
@@ -213,9 +221,9 @@ export function resolveModelCapabilityProfile({
       "The model's legacy catalog entry belongs to another provider and was not applied.",
     );
   }
-  if (selectedProvider === "openai" && !officialEndpoint) {
+  if (catalog && !officialEndpoint) {
     limitations.push(
-      "Official OpenAI model specifications are not applied to a custom endpoint.",
+      `Official ${selectedProvider === "openai" ? "OpenAI" : "Anthropic"} model specifications are not applied to a custom endpoint.`,
     );
   }
   if (output.requestMaxOutputTokens === null) {
@@ -234,7 +242,7 @@ export function resolveModelCapabilityProfile({
     );
   }
   if (
-    documented &&
+    documented?.advertisedMaxOutputTokens != null &&
     output.requestMaxOutputTokens > documented.advertisedMaxOutputTokens
   ) {
     limitations.push(
@@ -263,6 +271,9 @@ export function resolveModelCapabilityProfile({
     runtimeVerified: false,
     ...output,
     advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,
+    ...(documented?.reasoningEfforts
+      ? { reasoningEfforts: [...documented.reasoningEfforts] }
+      : {}),
     sources: documented ? [...documented.sources] : [],
     limitations,
   };

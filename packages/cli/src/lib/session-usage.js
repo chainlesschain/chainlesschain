@@ -13,6 +13,10 @@ import {
   listJsonlSessions,
 } from "../harness/jsonl-session-store.js";
 import { extractPluginUsageAttribution } from "./plugin-usage-attribution.js";
+import {
+  projectUsagePricingContext,
+  mergeUsagePricingBucket as mergePricingBucket,
+} from "./usage-pricing-context.js";
 
 // Injectable disk seams (tests override). readEvents skips malformed JSON lines
 // but does NOT guard readFileSync, so an unreadable session file (EACCES /
@@ -140,6 +144,7 @@ export function extractUsage(event) {
     cacheCreationTokens,
     timestamp: event.timestamp || null,
     ...(attribution ? { attribution } : {}),
+    ...projectUsagePricingContext(raw),
   };
 }
 
@@ -560,6 +565,7 @@ export function aggregateUsage(events) {
     entry.cacheReadTokens += u.cacheReadTokens || 0;
     entry.cacheCreationTokens += u.cacheCreationTokens || 0;
     entry.calls += 1;
+    mergePricingBucket(entry, u);
     byKey.set(key, entry);
   }
 
@@ -634,6 +640,8 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       entry.cacheReadTokens += row.cacheReadTokens || 0;
       entry.cacheCreationTokens += row.cacheCreationTokens || 0;
       entry.calls += row.calls;
+      for (const bucket of row.pricingBuckets || [])
+        mergePricingBucket(entry, bucket);
       byKey.set(key, entry);
     }
   }

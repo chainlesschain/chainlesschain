@@ -15,6 +15,12 @@
  * substring against the model id.
  */
 
+import {
+  DOCUMENTED_OPENAI_MODELS,
+  DOCUMENTED_ANTHROPIC_MODELS,
+  GPT6_PRICING_TERMS,
+} from "./model-context-catalog.js";
+
 /** Providers whose models run locally and cost nothing to call. */
 export const FREE_PROVIDERS = Object.freeze([
   "ollama",
@@ -30,6 +36,11 @@ export const FREE_PROVIDERS = Object.freeze([
  */
 export const PRICE_TABLE = Object.freeze({
   anthropic: [
+    ...Object.entries(DOCUMENTED_ANTHROPIC_MODELS).map(([match, model]) => ({
+      match,
+      ...model.pricing,
+      exact: true,
+    })),
     // Current Anthropic list prices (USD per 1M tokens), verified 2026-06-21
     // against the claude-api reference. The Opus tier dropped to $5/$25 with
     // Opus 4.5 (Nov 2025) — the old $15/$75 applies only to the retired
@@ -47,6 +58,14 @@ export const PRICE_TABLE = Object.freeze({
     { match: "haiku", in: 1, out: 5 },
   ],
   openai: [
+    ...Object.entries(DOCUMENTED_OPENAI_MODELS)
+      .filter(([, model]) => model.pricing)
+      .map(([match, model]) => ({
+        match,
+        ...model.pricing,
+        exact: true,
+        terms: GPT6_PRICING_TERMS,
+      })),
     // GPT-5 family (2026). Matching is longest-pattern-first, so dated/variant
     // ids (gpt-5.5, gpt-5.5-pro, gpt-5.5-instant, …) resolve to the most
     // specific rate; bare "gpt-5" is the catch-all base rate.
@@ -63,6 +82,10 @@ export const PRICE_TABLE = Object.freeze({
     { match: "gpt-3.5", in: 0.5, out: 1.5 },
     { match: "o1-mini", in: 1.1, out: 4.4 },
     { match: "o1", in: 15, out: 60 },
+  ],
+  dashscope: [
+    { match: "qwen-turbo", in: 0.3, out: 0.6 },
+    { match: "qwen-plus", in: 0.8, out: 2 },
   ],
   deepseek: [
     // DeepSeek V4 launch-list rates for the versioned 2026-04 model ids.
@@ -139,9 +162,13 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
           Number(e.out) >= 0,
       )
       .map((e) => ({
+        ...(base[providerKey]?.find(
+          (entry) => entry.match === e.match.toLowerCase(),
+        ) || {}),
         match: e.match.toLowerCase(),
         in: Number(e.in),
         out: Number(e.out),
+        explicitOverride: true,
       }));
     if (valid.length === 0) continue;
     const overridden = new Set(valid.map((v) => v.match));
@@ -171,8 +198,23 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
   // Longest pattern first so specific beats generic regardless of table order.
   const sorted = [...entries].sort((a, b) => b.match.length - a.match.length);
   for (const e of sorted) {
-    if (m.includes(e.match)) {
-      return { in: e.in, out: e.out, pattern: e.match };
+    if (e.exact ? m === e.match : m.includes(e.match)) {
+      // An unrecognized new version must not inherit an older Opus price.
+      // Explicit operator overrides remain authoritative.
+      if (
+        e.match === "opus" &&
+        Number(/^claude-opus-(\d+)(?:[.-]|$)/u.exec(m)?.[1]) >= 5 &&
+        !e.explicitOverride &&
+        e.in === 5 &&
+        e.out === 25
+      )
+        continue;
+      return {
+        in: e.in,
+        out: e.out,
+        pattern: e.match,
+        ...(e.terms ? { terms: e.terms } : {}),
+      };
     }
   }
   return null;
@@ -210,10 +252,18 @@ export function estimateCost({
   outputTokens = 0,
   cacheReadTokens = 0,
   cacheCreationTokens = 0,
+  requestInputTokens,
+  serviceTier = "standard",
+  regionalProcessing = false,
   table,
 } = {}) {
   const rate = lookupRate(provider, model, table);
-  if (!rate) {
+  const tierMultiplier = rate?.terms
+    ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)
+      ? rate.terms.serviceMultipliers[serviceTier]
+      : null
+    : 1;
+  if (!rate || tierMultiplier == null) {
     return {
       inputCost: 0,
       outputCost: 0,
@@ -226,16 +276,34 @@ export function estimateCost({
       rate: null,
     };
   }
+  const promptTokens =
+    requestInputTokens ??
+    Number(inputTokens) + Number(cacheReadTokens) + Number(cacheCreationTokens);
+  const longContext = rate.terms?.longContext;
+  const longPrompt = longContext && promptTokens > longContext.threshold;
+  const inputMultiplier = longPrompt ? longContext.inputMultiplier : 1;
+  const outputMultiplier = longPrompt ? longContext.outputMultiplier : 1;
+  const multiplier = tierMultiplier * (regionalProcessing ? 1.1 : 1);
   // Keep full IEEE-754 precision throughout authority and budget arithmetic.
   // Rounding each component to six decimals lets a real sub-microdollar call
   // become zero and can make a hard `maxUsd` gate pass incorrectly. Display
   // surfaces may format these values, but safety decisions consume the raw sum.
-  const inputCost = (Number(inputTokens) / 1e6) * rate.in;
-  const outputCost = (Number(outputTokens) / 1e6) * rate.out;
+  const inputCost =
+    (Number(inputTokens) / 1e6) * rate.in * inputMultiplier * multiplier;
+  const outputCost =
+    (Number(outputTokens) / 1e6) * rate.out * outputMultiplier * multiplier;
   const cacheReadCost =
-    (Number(cacheReadTokens) / 1e6) * rate.in * cacheReadMultiplier(provider);
+    (Number(cacheReadTokens) / 1e6) *
+    rate.in *
+    (rate.terms?.cacheReadMultiplier ?? cacheReadMultiplier(provider)) *
+    inputMultiplier *
+    multiplier;
   const cacheCreationCost =
-    (Number(cacheCreationTokens) / 1e6) * rate.in * CACHE_WRITE_MULTIPLIER;
+    (Number(cacheCreationTokens) / 1e6) *
+    rate.in *
+    (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) *
+    inputMultiplier *
+    multiplier;
   return {
     inputCost,
     outputCost,
@@ -259,15 +327,53 @@ export function estimateCost({
  */
 export function priceRollup(aggregate, { table } = {}) {
   const byModel = (aggregate?.byModel || []).map((row) => {
-    const est = estimateCost({
+    let est = estimateCost({
       provider: row.provider,
       model: row.model,
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,
       cacheReadTokens: row.cacheReadTokens,
       cacheCreationTokens: row.cacheCreationTokens,
+      serviceTier: row.serviceTier ?? row.service_tier ?? "standard",
+      regionalProcessing:
+        row.regionalProcessing ?? row.regional_processing ?? false,
       table,
     });
+    if (Array.isArray(row.pricingBuckets)) {
+      const estimates = row.pricingBuckets.map((bucket) =>
+        estimateCost({
+          provider: row.provider,
+          model: row.model,
+          ...bucket,
+          table,
+        }),
+      );
+      est = { ...est, matched: estimates.every((entry) => entry.matched) };
+      for (const field of [
+        "inputCost",
+        "outputCost",
+        "cacheReadCost",
+        "cacheCreationCost",
+        "totalCost",
+      ]) {
+        est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);
+      }
+    } else if (
+      lookupRate(row.provider, row.model, table)?.terms &&
+      row.calls > 1
+    ) {
+      // A legacy aggregate cannot establish which individual requests crossed
+      // a pricing threshold. Exclude it rather than inventing a bill.
+      est = {
+        ...est,
+        matched: false,
+        inputCost: 0,
+        outputCost: 0,
+        cacheReadCost: 0,
+        cacheCreationCost: 0,
+        totalCost: 0,
+      };
+    }
     return {
       ...row,
       cost: est.totalCost,

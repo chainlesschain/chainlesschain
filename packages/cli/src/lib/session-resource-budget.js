@@ -17,6 +17,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import { CostBudget } from "./cost-budget.js";
+import { projectUsagePricingContext } from "./usage-pricing-context.js";
 
 export const SESSION_RESOURCE_BUDGET_VERSION = 1;
 export const SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA =
@@ -123,6 +124,7 @@ function normalizeRecoveryIdentity(field, raw) {
     typeof raw !== "string" ||
     raw.length < 1 ||
     raw.length > 256 ||
+    // eslint-disable-next-line no-control-regex -- Recovery IDs forbid exactly C0 and DEL.
     /[\u0000-\u001f\u007f]/u.test(raw)
   ) {
     throw new TypeError(`invalid session budget recovery ${field}`);
@@ -256,10 +258,7 @@ function cloneCostBudget(cost) {
   return clone;
 }
 
-function calculateUsageAccounting(
-  { tokens, cost, unpricedUsage },
-  usageInput,
-) {
+function calculateUsageAccounting({ tokens, cost, unpricedUsage }, usageInput) {
   const { tokenCount, pricedRecords } = normalizeUsageAccounting(usageInput);
   const nextTokens = tokens + tokenCount;
   if (!Number.isSafeInteger(nextTokens)) {
@@ -293,7 +292,10 @@ function canonicalRecoveryUsageRecord(record, field) {
   return {
     provider: normalizeRecoveryIdentity(`${field} provider`, record.provider),
     model: normalizeRecoveryIdentity(`${field} model`, record.model),
-    usage: normalizeUsageTokens(record.usage).fields,
+    usage: {
+      ...normalizeUsageTokens(record.usage).fields,
+      ...projectUsagePricingContext(record.usage),
+    },
   };
 }
 
@@ -1832,9 +1834,7 @@ export class SessionResourceBudget {
     const sortedAbandoned = [...abandonedIds].sort();
     const sortedSettlements = normalizedSettlements
       .map((record) => record.canonical)
-      .sort((left, right) =>
-        left.authorityId.localeCompare(right.authorityId),
-      );
+      .sort((left, right) => left.authorityId.localeCompare(right.authorityId));
     const tokenDelta = accounting.tokens - this.tokens;
     const spentUsdDelta = accounting.cost.spentUsd - this.cost.spentUsd;
     const adjudicationCore = {

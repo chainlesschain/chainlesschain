@@ -49,6 +49,11 @@ import {
   clearExpired,
 } from "../lib/response-cache.js";
 
+function displayCost(value, unpriced = 0) {
+  if (value == null) return "unpriced";
+  return `$${Number(value).toFixed(4)}${unpriced ? ` (partial; ${unpriced} unpriced calls)` : ""}`;
+}
+
 export function registerTokensCommand(program) {
   const tokens = program
     .command("tokens")
@@ -99,7 +104,7 @@ export function registerTokensCommand(program) {
             `  Total tokens:     ${chalk.cyan(stats.total_tokens.toLocaleString())}`,
           );
           logger.log(
-            `  Total cost:       ${chalk.yellow("$" + stats.total_cost_usd.toFixed(4))}`,
+            `  Total cost:       ${chalk.yellow(displayCost(stats.total_cost_usd, stats.unpriced_calls))}`,
           );
           logger.log(
             `  Avg response:     ${chalk.gray(Math.round(stats.avg_response_time_ms) + "ms")}`,
@@ -108,7 +113,7 @@ export function registerTokensCommand(program) {
           if (options.period !== "today") {
             logger.log(chalk.bold("\n  Today:"));
             logger.log(
-              `    Calls: ${chalk.cyan(todayStats.total_calls)}  Tokens: ${chalk.cyan(todayStats.total_tokens.toLocaleString())}  Cost: ${chalk.yellow("$" + todayStats.total_cost_usd.toFixed(4))}`,
+              `    Calls: ${chalk.cyan(todayStats.total_calls)}  Tokens: ${chalk.cyan(todayStats.total_tokens.toLocaleString())}  Cost: ${chalk.yellow(displayCost(todayStats.total_cost_usd, todayStats.unpriced_calls))}`,
             );
           }
         }
@@ -146,7 +151,7 @@ export function registerTokensCommand(program) {
               `  ${chalk.cyan(row.provider)}/${chalk.white(row.model)}`,
             );
             logger.log(
-              `    Calls: ${row.calls}  Tokens: ${row.total_tokens.toLocaleString()}  Cost: ${chalk.yellow("$" + row.cost_usd.toFixed(4))}`,
+              `    Calls: ${row.calls}  Tokens: ${row.total_tokens.toLocaleString()}  Cost: ${chalk.yellow(displayCost(row.cost_usd, row.unpriced_calls))}`,
             );
           }
         }
@@ -185,7 +190,7 @@ export function registerTokensCommand(program) {
           logger.log(chalk.bold("Recent LLM Calls:\n"));
           for (const e of entries) {
             logger.log(
-              `  ${chalk.gray(e.created_at)}  ${chalk.cyan(e.provider)}/${chalk.white(e.model)}  ${e.total_tokens} tokens  ${chalk.yellow("$" + e.cost_usd.toFixed(4))}  ${chalk.gray(e.response_time_ms + "ms")}`,
+              `  ${chalk.gray(e.created_at)}  ${chalk.cyan(e.provider)}/${chalk.white(e.model)}  ${e.total_tokens} tokens  ${chalk.yellow(displayCost(e.cost_usd))}  ${chalk.gray(e.response_time_ms + "ms")}`,
             );
           }
         }

@@ -212,148 +212,159 @@ describe("OpenAI Responses adapter", () => {
     ).toEqual({ effort: "low", summary: "auto" });
   });
 
-  it("selects /responses only for an exact documented official target", async () => {
-    const fetch = vi.fn(async () => ({
-      ok: true,
-      headers: {
-        get: (name) =>
-          name.toLowerCase() === "x-request-id" ? "req_provider" : null,
-      },
-      json: async () => ({
-        id: "resp_http",
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+    "selects /responses for official %s",
+    async (model) => {
+      const fetch = vi.fn(async () => ({
+        ok: true,
+        headers: {
+          get: (name) =>
+            name.toLowerCase() === "x-request-id" ? "req_provider" : null,
+        },
+        json: async () => ({
+          id: "resp_http",
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              role: "assistant",
+              content: [{ type: "output_text", text: "done" }],
+            },
+          ],
+          usage: { input_tokens: 5, output_tokens: 2 },
+        }),
+      }));
+      vi.stubGlobal("fetch", fetch);
+
+      const output = await chatWithTools(
+        [
+          { role: "system", content: "Be concise." },
+          { role: "user", content: "Read the file." },
+        ],
+        {
+          provider: "openai",
+          model,
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: "test-key",
+          cwd: os.tmpdir(),
+          contextMemorySkipPlanning: true,
+          enabledToolNames: ["read_file"],
+          exactToolNames: true,
+          thinking: "hard",
+          maxOutputTokens: 2048,
+          providerRequestId: "logical-request",
+        },
+      );
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const [url, init] = fetch.mock.calls[0];
+      const body = JSON.parse(init.body);
+      expect(url).toBe("https://api.openai.com/v1/responses");
+      expect(init.headers["X-Client-Request-Id"]).toBe("logical-request");
+      expect(body).toMatchObject({
+        model,
+        store: false,
+        include: ["reasoning.encrypted_content"],
+        max_output_tokens: 2048,
+        reasoning: { effort: "high", summary: "auto" },
+      });
+      expect(body).not.toHaveProperty("messages");
+      expect(body.tools[0]).toMatchObject({
+        type: "function",
+        name: "read_file",
+        parameters: expect.any(Object),
+      });
+      expect(body.tools[0]).not.toHaveProperty("function");
+      expect(output).toMatchObject({
+        message: { role: "assistant", content: "done" },
+        usage: {
+          input_tokens: 5,
+          output_tokens: 2,
+          cache_read_input_tokens: 0,
+        },
+        providerReceipt: {
+          provider: "openai",
+          clientRequestId: "logical-request",
+          requestId: "req_provider",
+          responseId: "resp_http",
+        },
+      });
+    },
+  );
+
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+    "streams %s Responses text and reasoning through the existing callbacks",
+    async (model) => {
+      const completed = {
+        id: "resp_stream_http",
         status: "completed",
         output: [
           {
             type: "message",
             role: "assistant",
-            content: [{ type: "output_text", text: "done" }],
+            content: [{ type: "output_text", text: "streamed" }],
           },
         ],
-        usage: { input_tokens: 5, output_tokens: 2 },
-      }),
-    }));
-    vi.stubGlobal("fetch", fetch);
-
-    const output = await chatWithTools(
-      [
-        { role: "system", content: "Be concise." },
-        { role: "user", content: "Read the file." },
-      ],
-      {
-        provider: "openai",
-        model: "gpt-6-astra",
-        baseUrl: "https://api.openai.com/v1",
-        apiKey: "test-key",
-        cwd: os.tmpdir(),
-        contextMemorySkipPlanning: true,
-        enabledToolNames: ["read_file"],
-        exactToolNames: true,
-        thinking: "hard",
-        maxOutputTokens: 2048,
-        providerRequestId: "logical-request",
-      },
-    );
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const [url, init] = fetch.mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(url).toBe("https://api.openai.com/v1/responses");
-    expect(init.headers["X-Client-Request-Id"]).toBe("logical-request");
-    expect(body).toMatchObject({
-      model: "gpt-6-astra",
-      store: false,
-      include: ["reasoning.encrypted_content"],
-      max_output_tokens: 2048,
-      reasoning: { effort: "high", summary: "auto" },
-    });
-    expect(body).not.toHaveProperty("messages");
-    expect(body.tools[0]).toMatchObject({
-      type: "function",
-      name: "read_file",
-      parameters: expect.any(Object),
-    });
-    expect(body.tools[0]).not.toHaveProperty("function");
-    expect(output).toMatchObject({
-      message: { role: "assistant", content: "done" },
-      usage: {
-        input_tokens: 5,
-        output_tokens: 2,
-        cache_read_input_tokens: 0,
-      },
-      providerReceipt: {
-        provider: "openai",
-        clientRequestId: "logical-request",
-        requestId: "req_provider",
-        responseId: "resp_http",
-      },
-    });
-  });
-
-  it("streams Responses text and reasoning through the existing callbacks", async () => {
-    const completed = {
-      id: "resp_stream_http",
-      status: "completed",
-      output: [
-        {
-          type: "message",
-          role: "assistant",
-          content: [{ type: "output_text", text: "streamed" }],
+        usage: { input_tokens: 8, output_tokens: 3 },
+      };
+      const chunks = [
+        `data: ${JSON.stringify({ type: "response.reasoning_summary_text.delta", delta: "reason" })}\n`,
+        `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "stream" })}\n`,
+        `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "ed" })}\n`,
+        `data: ${JSON.stringify({ type: "response.completed", response: completed })}\n`,
+        "data: [DONE]\n",
+      ];
+      const encoder = new TextEncoder();
+      let index = 0;
+      const fetch = vi.fn(async () => ({
+        ok: true,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () =>
+              index < chunks.length
+                ? { done: false, value: encoder.encode(chunks[index++]) }
+                : { done: true, value: undefined },
+          }),
         },
-      ],
-      usage: { input_tokens: 8, output_tokens: 3 },
-    };
-    const chunks = [
-      `data: ${JSON.stringify({ type: "response.reasoning_summary_text.delta", delta: "reason" })}\n`,
-      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "stream" })}\n`,
-      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "ed" })}\n`,
-      `data: ${JSON.stringify({ type: "response.completed", response: completed })}\n`,
-      "data: [DONE]\n",
-    ];
-    const encoder = new TextEncoder();
-    let index = 0;
-    const fetch = vi.fn(async () => ({
-      ok: true,
-      headers: { get: () => null },
-      body: {
-        getReader: () => ({
-          read: async () =>
-            index < chunks.length
-              ? { done: false, value: encoder.encode(chunks[index++]) }
-              : { done: true, value: undefined },
-        }),
-      },
-    }));
-    vi.stubGlobal("fetch", fetch);
-    const tokens = [];
-    const thinking = [];
+      }));
+      vi.stubGlobal("fetch", fetch);
+      const tokens = [];
+      const thinking = [];
 
-    const output = await chatWithTools([{ role: "user", content: "stream" }], {
-      provider: "openai",
-      model: "gpt-6-astra",
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "test-key",
-      cwd: os.tmpdir(),
-      contextMemorySkipPlanning: true,
-      enabledToolNames: [],
-      exactToolNames: true,
-      thinking: true,
-      onToken: (token) => tokens.push(token),
-      onThinking: (token) => thinking.push(token),
-    });
+      const output = await chatWithTools(
+        [{ role: "user", content: "stream" }],
+        {
+          provider: "openai",
+          model,
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: "test-key",
+          cwd: os.tmpdir(),
+          contextMemorySkipPlanning: true,
+          enabledToolNames: [],
+          exactToolNames: true,
+          thinking: true,
+          onToken: (token) => tokens.push(token),
+          onThinking: (token) => thinking.push(token),
+        },
+      );
 
-    expect(fetch.mock.calls[0][0]).toBe("https://api.openai.com/v1/responses");
-    expect(JSON.parse(fetch.mock.calls[0][1].body).stream).toBe(true);
-    expect(tokens).toEqual(["stream", "ed"]);
-    expect(thinking).toEqual(["reason"]);
-    expect(output).toMatchObject({
-      message: { content: "streamed" },
-      usage: {
-        input_tokens: 8,
-        output_tokens: 3,
-        cache_read_input_tokens: 0,
-      },
-    });
-  });
+      expect(fetch.mock.calls[0][0]).toBe(
+        "https://api.openai.com/v1/responses",
+      );
+      expect(JSON.parse(fetch.mock.calls[0][1].body).stream).toBe(true);
+      expect(tokens).toEqual(["stream", "ed"]);
+      expect(thinking).toEqual(["reason"]);
+      expect(output).toMatchObject({
+        message: { content: "streamed" },
+        usage: {
+          input_tokens: 8,
+          output_tokens: 3,
+          cache_read_input_tokens: 0,
+        },
+      });
+    },
+  );
 
   it("preserves safe partial Responses text after a connection drop", async () => {
     const encoder = new TextEncoder();
@@ -471,99 +482,102 @@ describe("OpenAI Responses adapter", () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toHaveProperty("messages");
   });
 
-  it("completes a stateless Responses reasoning and tool round-trip", async () => {
-    const directory = mkdtempSync(join(os.tmpdir(), "cc-openai-responses-"));
-    writeFileSync(join(directory, "fixture.txt"), "trusted fixture", "utf8");
-    const requests = [];
-    const payloads = [
-      {
-        id: "resp_tool",
-        status: "completed",
-        output: [
-          {
-            type: "reasoning",
-            id: "rs_tool",
-            encrypted_content: "opaque-continuity",
-            summary: [{ type: "summary_text", text: "Need the file." }],
-          },
-          {
-            type: "function_call",
-            id: "fc_tool",
-            call_id: "call_fixture",
-            name: "read_file",
-            arguments: '{"path":"fixture.txt"}',
-          },
-        ],
-      },
-      {
-        id: "resp_final",
-        status: "completed",
-        output: [
-          {
-            type: "message",
-            role: "assistant",
-            content: [{ type: "output_text", text: "finished" }],
-          },
-        ],
-      },
-    ];
-    const fetch = vi.fn(async (_url, init) => {
-      requests.push(JSON.parse(init.body));
-      return {
-        ok: true,
-        headers: { get: () => null },
-        json: async () => payloads.shift(),
-      };
-    });
-    vi.stubGlobal("fetch", fetch);
-
-    try {
-      const events = [];
-      for await (const event of agentLoop(
-        [{ role: "user", content: "Read fixture.txt, then finish." }],
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+    "completes a stateless %s Responses reasoning and tool round-trip",
+    async (model) => {
+      const directory = mkdtempSync(join(os.tmpdir(), "cc-openai-responses-"));
+      writeFileSync(join(directory, "fixture.txt"), "trusted fixture", "utf8");
+      const requests = [];
+      const payloads = [
         {
-          provider: "openai",
-          model: "gpt-6-astra",
-          baseUrl: "https://api.openai.com/v1",
-          apiKey: "test-key",
-          cwd: directory,
-          contextMemorySkipPlanning: true,
-          enabledToolNames: ["read_file"],
-          exactToolNames: true,
-          thinking: "hard",
-          maxTurns: 3,
+          id: "resp_tool",
+          status: "completed",
+          output: [
+            {
+              type: "reasoning",
+              id: "rs_tool",
+              encrypted_content: "opaque-continuity",
+              summary: [{ type: "summary_text", text: "Need the file." }],
+            },
+            {
+              type: "function_call",
+              id: "fc_tool",
+              call_id: "call_fixture",
+              name: "read_file",
+              arguments: '{"path":"fixture.txt"}',
+            },
+          ],
         },
-      )) {
-        events.push(event);
-      }
+        {
+          id: "resp_final",
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              role: "assistant",
+              content: [{ type: "output_text", text: "finished" }],
+            },
+          ],
+        },
+      ];
+      const fetch = vi.fn(async (_url, init) => {
+        requests.push(JSON.parse(init.body));
+        return {
+          ok: true,
+          headers: { get: () => null },
+          json: async () => payloads.shift(),
+        };
+      });
+      vi.stubGlobal("fetch", fetch);
 
-      expect(fetch).toHaveBeenCalledTimes(2);
-      expect(events).toContainEqual(
-        expect.objectContaining({
-          type: "response-complete",
-          content: "finished",
-        }),
-      );
-      expect(requests[1].input).toEqual(
-        expect.arrayContaining([
+      try {
+        const events = [];
+        for await (const event of agentLoop(
+          [{ role: "user", content: "Read fixture.txt, then finish." }],
+          {
+            provider: "openai",
+            model,
+            baseUrl: "https://api.openai.com/v1",
+            apiKey: "test-key",
+            cwd: directory,
+            contextMemorySkipPlanning: true,
+            enabledToolNames: ["read_file"],
+            exactToolNames: true,
+            thinking: "hard",
+            maxTurns: 3,
+          },
+        )) {
+          events.push(event);
+        }
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(events).toContainEqual(
           expect.objectContaining({
-            type: "reasoning",
-            id: "rs_tool",
-            encrypted_content: "opaque-continuity",
+            type: "response-complete",
+            content: "finished",
           }),
-          expect.objectContaining({
-            type: "function_call",
-            call_id: "call_fixture",
-            name: "read_file",
-          }),
-          expect.objectContaining({
-            type: "function_call_output",
-            call_id: "call_fixture",
-          }),
-        ]),
-      );
-    } finally {
-      rmSync(directory, { recursive: true, force: true });
-    }
-  });
+        );
+        expect(requests[1].input).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "reasoning",
+              id: "rs_tool",
+              encrypted_content: "opaque-continuity",
+            }),
+            expect.objectContaining({
+              type: "function_call",
+              call_id: "call_fixture",
+              name: "read_file",
+            }),
+            expect.objectContaining({
+              type: "function_call_output",
+              call_id: "call_fixture",
+            }),
+          ]),
+        );
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    },
+  );
 });

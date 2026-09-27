@@ -1,3 +1,5 @@
+import { projectUsagePricingContext } from "./usage-pricing-context.js";
+
 const MAX_LABEL_LENGTH = 160;
 const MAX_CALL_ID_LENGTH = 128;
 const MAX_OPERATION_ID_LENGTH = 160;
@@ -115,6 +117,7 @@ export function projectRuntimeTokenUsage(event = {}) {
     throw new TypeError("runtime token usage requires an object");
   }
   const usage = {};
+  Object.assign(usage, projectUsagePricingContext(event.usage));
   for (const [index, [canonical, alias]] of USAGE_FIELDS.entries()) {
     usage[canonical] = tokenCount(event.usage, canonical, alias, {
       // A known settlement must prove both billable input and output counts.

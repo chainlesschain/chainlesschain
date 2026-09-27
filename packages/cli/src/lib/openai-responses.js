@@ -300,7 +300,13 @@ export function normalizeOpenAIResponsesResponse(data) {
     responseId: printableString(data.id) || null,
   };
   const usage = normalizeOpenAIResponsesUsage(data.usage);
-  if (usage) result.usage = usage;
+  if (usage)
+    result.usage = {
+      ...usage,
+      ...(typeof data.service_tier === "string"
+        ? { service_tier: data.service_tier }
+        : {}),
+    };
   return result;
 }
 

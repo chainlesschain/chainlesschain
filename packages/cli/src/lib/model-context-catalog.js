@@ -45,7 +45,7 @@ export const CONTEXT_WINDOWS = Object.freeze({
   }),
 });
 
-export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-09-13";
+export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-09-27";
 
 // Explicit ownership prevents a model name served by an unrelated provider
 // from silently inheriting another provider's catalog window.
@@ -97,9 +97,68 @@ export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
     contextWindowTokens: 1050000,
     advertisedMaxOutputTokens: 128000,
     requiresResponsesForTools: true,
+    reasoningEfforts: Object.freeze(["low", "medium", "high", "xhigh", "max"]),
+    pricing: Object.freeze({ in: 10, out: 50 }),
     sources: Object.freeze([
       "https://developers.openai.com/api/docs/models/gpt-6-astra",
       "https://developers.openai.com/api/docs/guides/migrate-to-responses",
     ]),
+  }),
+  ...Object.fromEntries(
+    [
+      ["gpt-6-sol", 2, 10],
+      ["gpt-6-luna", 0.1, 0.5],
+    ].map(([model, input, output]) => [
+      model,
+      Object.freeze({
+        contextWindowTokens: 1050000,
+        advertisedMaxOutputTokens: 128000,
+        requiresResponsesForTools: true,
+        reasoningEfforts: Object.freeze([
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ]),
+        pricing: Object.freeze({ in: input, out: output }),
+        sources: Object.freeze([
+          `https://developers.openai.com/api/docs/models/${model}`,
+        ]),
+      }),
+    ]),
+  ),
+});
+
+export const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({
+  "claude-opus-5-5": Object.freeze({
+    contextWindowTokens: 1000000,
+    // The release notes establish the window and pricing, not an output cap.
+    advertisedMaxOutputTokens: null,
+    pricing: Object.freeze({ in: 4, out: 20 }),
+    sources: Object.freeze([
+      "https://code.claude.com/docs/en/changelog#2-1-280",
+    ]),
+  }),
+});
+
+// Request-level pricing terms shared by cost reporting and hard budget gates.
+// Never apply these tiers to a sum of multiple requests.
+export const GPT6_PRICING_TERMS = Object.freeze({
+  cacheReadMultiplier: 0.1,
+  cacheWriteMultiplier: 1.25,
+  longContext: Object.freeze({
+    threshold: 272000,
+    inputMultiplier: 2,
+    outputMultiplier: 1.5,
+  }),
+  serviceMultipliers: Object.freeze({
+    standard: 1,
+    default: 1,
+    auto: 1,
+    batch: 0.5,
+    flex: 0.5,
+    fast: 2,
   }),
 });

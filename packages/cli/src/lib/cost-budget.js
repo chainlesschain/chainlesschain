@@ -18,6 +18,7 @@
  */
 
 import { estimateCost } from "./llm-pricing.js";
+import { projectUsagePricingContext } from "./usage-pricing-context.js";
 
 /** Parse a `--max-budget-usd` value into a positive number, or null when unset. */
 export function parseBudgetUsd(value) {
@@ -64,6 +65,7 @@ export class CostBudget {
     // or it undercounts real spend on a cached Anthropic run and stops too late.
     const cacheReadTokens = usage?.cache_read_input_tokens || 0;
     const cacheCreationTokens = usage?.cache_creation_input_tokens || 0;
+    const pricingContext = projectUsagePricingContext(usage || {});
     const est = estimateCost({
       provider,
       model,
@@ -71,6 +73,8 @@ export class CostBudget {
       outputTokens: usage?.output_tokens || 0,
       cacheReadTokens,
       cacheCreationTokens,
+      serviceTier: pricingContext.service_tier ?? "standard",
+      regionalProcessing: pricingContext.regional_processing === true,
       table: this.table,
     });
     const tokens =

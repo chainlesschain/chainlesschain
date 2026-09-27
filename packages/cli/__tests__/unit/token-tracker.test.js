@@ -88,7 +88,7 @@ describe("token-tracker", () => {
         1_000_000,
         1_000_000,
       );
-      expect(cost).toBeCloseTo(0.42, 2); // $0.14 + $0.28
+      expect(cost).toBeCloseTo(1.37, 2); // shared list estimate: $0.27 + $1.1
     });
 
     it("calculates DashScope cost", () => {
@@ -111,24 +111,23 @@ describe("token-tracker", () => {
       expect(cost).toBeCloseTo(2.8, 2); // $0.8 + $2
     });
 
-    it("uses default pricing for unknown model within known provider", () => {
+    it("keeps unknown models unpriced instead of assigning another model's price", () => {
       const cost = calculateCost("openai", "unknown-model", 1_000_000, 0);
-      expect(cost).toBeGreaterThan(0);
-      expect(cost).toBeCloseTo(2.5, 1); // default input price
+      expect(cost).toBeNull();
     });
 
-    it("uses default pricing for unknown anthropic model", () => {
+    it("keeps an unknown anthropic model unpriced", () => {
       const cost = calculateCost(
         "anthropic",
         "future-model",
         1_000_000,
         1_000_000,
       );
-      expect(cost).toBeCloseTo(18, 1); // default: $3 + $15
+      expect(cost).toBeNull();
     });
 
-    it("returns 0 for unknown provider", () => {
-      expect(calculateCost("unknown", "model", 1000, 500)).toBe(0);
+    it("keeps an unknown provider unpriced", () => {
+      expect(calculateCost("unknown", "model", 1000, 500)).toBeNull();
     });
 
     it("returns 0 for zero tokens", () => {

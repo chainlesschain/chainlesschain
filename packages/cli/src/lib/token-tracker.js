@@ -7,45 +7,7 @@
 
 import { createHash } from "crypto";
 
-/**
- * Pricing data per million tokens (USD)
- */
-const PRICING = {
-  ollama: { input: 0, output: 0 },
-  openai: {
-    "gpt-4o": { input: 2.5, output: 10 },
-    "gpt-4o-mini": { input: 0.15, output: 0.6 },
-    "gpt-4-turbo": { input: 10, output: 30 },
-    "gpt-3.5-turbo": { input: 0.5, output: 1.5 },
-    o1: { input: 15, output: 60 },
-    _default: { input: 2.5, output: 10 },
-  },
-  anthropic: {
-    // Current Anthropic list prices (USD/1M), verified 2026-06-21 vs the
-    // claude-api reference. Lookup is EXACT-key (calculateCost), so keep current
-    // model ids listed or they fall back to the Sonnet _default and mis-price —
-    // e.g. claude-opus-4-8 would otherwise be billed at $3/$15 not $5/$25. The
-    // Opus tier dropped to $5/$25 with Opus 4.5; Haiku 4.5 is $1/$5.
-    "claude-opus-4-8": { input: 5, output: 25 },
-    "claude-opus-4-7": { input: 5, output: 25 },
-    "claude-opus-4-6": { input: 5, output: 25 },
-    "claude-opus-4-5": { input: 5, output: 25 },
-    "claude-sonnet-4-6": { input: 3, output: 15 },
-    "claude-haiku-4-5": { input: 1, output: 5 },
-    "claude-haiku-4-5-20251001": { input: 1, output: 5 },
-    "claude-fable-5": { input: 10, output: 50 },
-    _default: { input: 3, output: 15 },
-  },
-  deepseek: {
-    "deepseek-chat": { input: 0.14, output: 0.28 },
-    _default: { input: 0.14, output: 0.28 },
-  },
-  dashscope: {
-    "qwen-turbo": { input: 0.3, output: 0.6 },
-    "qwen-plus": { input: 0.8, output: 2 },
-    _default: { input: 0.3, output: 0.6 },
-  },
-};
+import { estimateCost } from "./llm-pricing.js";
 
 function ensureTokenTable(db) {
   db.exec(`
@@ -67,19 +29,22 @@ function ensureTokenTable(db) {
 /**
  * Calculate cost for a given usage
  */
-export function calculateCost(provider, model, inputTokens, outputTokens) {
-  const providerPricing = PRICING[provider];
-  if (!providerPricing) return 0;
-
-  // Ollama is free
-  if (provider === "ollama") return 0;
-
-  const modelPricing = providerPricing[model] || providerPricing._default;
-  if (!modelPricing) return 0;
-
-  const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
-  const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
-  return inputCost + outputCost;
+export function calculateCost(
+  provider,
+  model,
+  inputTokens,
+  outputTokens,
+  options = {},
+) {
+  const estimate = estimateCost({
+    ...options,
+    provider,
+    model,
+    inputTokens,
+    outputTokens,
+  });
+  // SQL NULL represents unpriced usage; it must never be confused with free.
+  return estimate.matched ? estimate.totalCost : null;
 }
 
 /**
@@ -98,7 +63,13 @@ export function recordUsage(db, params) {
   } = params;
 
   const totalTokens = inputTokens + outputTokens;
-  const costUsd = calculateCost(provider, model, inputTokens, outputTokens);
+  const costUsd = calculateCost(
+    provider,
+    model,
+    inputTokens,
+    outputTokens,
+    params,
+  );
 
   const id = createHash("sha256")
     .update(`${Date.now()}-${Math.random()}`)
@@ -120,7 +91,7 @@ export function recordUsage(db, params) {
     endpoint,
   );
 
-  return { id, totalTokens, costUsd };
+  return { id, totalTokens, costUsd, priced: costUsd !== null };
 }
 
 /**
@@ -132,6 +103,7 @@ export function getUsageStats(db, options = {}) {
   const { startDate, endDate, provider, model } = options;
   let sql = `SELECT
     COUNT(*) as total_calls,
+    COUNT(cost_usd) as priced_calls,
     COALESCE(SUM(input_tokens), 0) as total_input_tokens,
     COALESCE(SUM(output_tokens), 0) as total_output_tokens,
     COALESCE(SUM(total_tokens), 0) as total_tokens,
@@ -165,6 +137,11 @@ export function getUsageStats(db, options = {}) {
     total_tokens: result?.total_tokens || 0,
     total_cost_usd: result?.total_cost_usd || 0,
     avg_response_time_ms: result?.avg_response_time_ms || 0,
+    unpriced_calls: Math.max(
+      0,
+      (result?.total_calls || 0) -
+        (result?.priced_calls ?? result?.total_calls ?? 0),
+    ),
   };
 }
 
@@ -178,6 +155,7 @@ export function getCostBreakdown(db) {
     .prepare(
       `SELECT provider, model,
        COUNT(*) as calls,
+       COUNT(*) - COUNT(cost_usd) as unpriced_calls,
        SUM(input_tokens) as input_tokens,
        SUM(output_tokens) as output_tokens,
        SUM(total_tokens) as total_tokens,
