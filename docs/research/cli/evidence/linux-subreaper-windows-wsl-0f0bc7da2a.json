@@ -1,0 +1,568 @@
+{
+  "schema": "chainlesschain.linux-subreaper-evidence/v1",
+  "commit": "0f0bc7da2a541acdcb8a04863f6fc97a9c22e652",
+  "status": "native-lifecycle-verified-production-integration-pending",
+  "releaseEligible": false,
+  "scope": "Intact Linux subreaper cleans and reaps detached/new-session descendants before reporting ECHILD; lifecycle fact only",
+  "unresolved": [
+    "Production helper packaging and executable identity/FD pinning",
+    "Broker sandbox/credential/permission-plan integration and bridge settlement",
+    "Supervisor forced death can leave descendants; receipt remains unconfirmed",
+    "Authoritative hosted exact-SHA Linux architectures and macOS lifecycle backend"
+  ],
+  "reports": [
+    {
+      "metadataDigest": "sha256:504fee72e402b3636f0c8dcdba9b4099dfbbe39e85ce78f3ebb2e667798ecc0a",
+      "schema": "chainlesschain.linux-subreaper-tests/v1",
+      "commit": "0f0bc7da2a541acdcb8a04863f6fc97a9c22e652",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T16:59:48.079Z",
+      "finishedAt": "2026-09-27T16:59:51.349Z",
+      "host": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "release": "10.0.19045"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 14,
+        "pending": 13,
+        "failed": 0
+      },
+      "sourceFiles": [
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "digest": "sha256:0a458d6dd139a994a637fa8ae79fde68153036ead1538172829b12e2465c217b"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "digest": "sha256:da127f8860fe8510c108f745fc7e0bcdccacbb3c0c6430f962b9de96928ccfcf"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/linux-subreaper-process.test.js",
+          "digest": "sha256:a82de0fece972d37458679f19f912c42244ea5abfaba49830a4a226f067a7203"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-process.test.js",
+          "digest": "sha256:20e22958ea1ec9f519d3a317431ad1e8cb92cef42cbf470b1807c23aef4c8290"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+          "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+        },
+        {
+          "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+          "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+        },
+        {
+          "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+          "digest": "sha256:0729616ce2723a223d5fa819af9227af1f81396fd4c96034b2522573c0ff1e29"
+        }
+      ],
+      "report": {
+        "path": ".tmp/linux-subreaper-win32-tests.json",
+        "digest": "sha256:aeeae52e40c5690d80fb906fd37980a4f6b904a88caabbc92b6ae4e086ba5276"
+      },
+      "build": null,
+      "lifecycleReceipts": [],
+      "limitations": [
+        "Native Linux lifecycle primitive only; production Broker/bridge admission and helper packaging/pinning are pending",
+        "No hostile-code containment: forcibly killing the supervisor can leave a descendant; this is verified as unconfirmed cleanup",
+        "Hosted Linux architecture matrix and macOS backend still need acceptance; Windows skips Linux native integration",
+        "Synthetic local processes only; no external model invocation or release acceptance"
+      ],
+      "assertions": [
+        {
+          "name": "Linux subreaper: real adopted descendants preserves multi-chunk Unicode args/environment and ordinary target exit",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring parent and child in the same group",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring descendant in a separate session",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits normally",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits on TERM",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants adopts the double-forked leaf after its intermediary was reaped by the root",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans all adopted descendants on a hard cancel",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans when the caller lifeline disappears without claiming a lost receipt",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup after its supervisor is killed externally",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants reports an actual exec failure while confirming no descendants remain",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup when the native helper itself cannot start",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not invoke a shell for an executable file without a valid format",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants keeps stdin/stdout separate from cleanup control messages",
+          "status": "skipped"
+        },
+        {
+          "name": "Linux subreaper control contract requires ordered kernel cleanup and successful supervisor close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: missing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: early",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: duplicate",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: truncated",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: killed",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract de-duplicates control requests without calling ChildProcess.kill",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves empty values and exact UTF-8 framing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract rejects invalid/oversized plans and unknown process controls before spawn",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "metadataDigest": "sha256:83c56e08693353d9ce2cc5c1393a6ba2dcbad18fcb855239f64a80505506961b",
+      "schema": "chainlesschain.linux-subreaper-tests/v1",
+      "commit": "0f0bc7da2a541acdcb8a04863f6fc97a9c22e652",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T17:00:08.590Z",
+      "finishedAt": "2026-09-27T17:00:41.451Z",
+      "host": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "release": "4.4.0-19041-Microsoft"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 27,
+        "pending": 0,
+        "failed": 0
+      },
+      "sourceFiles": [
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "digest": "sha256:0a458d6dd139a994a637fa8ae79fde68153036ead1538172829b12e2465c217b"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "digest": "sha256:da127f8860fe8510c108f745fc7e0bcdccacbb3c0c6430f962b9de96928ccfcf"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/linux-subreaper-process.test.js",
+          "digest": "sha256:a82de0fece972d37458679f19f912c42244ea5abfaba49830a4a226f067a7203"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/linux-subreaper-process.test.js",
+          "digest": "sha256:20e22958ea1ec9f519d3a317431ad1e8cb92cef42cbf470b1807c23aef4c8290"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+          "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+        },
+        {
+          "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+          "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+        },
+        {
+          "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+          "digest": "sha256:0729616ce2723a223d5fa819af9227af1f81396fd4c96034b2522573c0ff1e29"
+        }
+      ],
+      "report": {
+        "path": ".tmp/linux-subreaper-linux-tests.json",
+        "digest": "sha256:43f1870f8b8bdbef8d23a8f4acc190bbc9d4a298b0021bc238f8446a372f858a"
+      },
+      "build": {
+        "sourceDigest": "sha256:0a458d6dd139a994a637fa8ae79fde68153036ead1538172829b12e2465c217b",
+        "binaryDigest": "sha256:ef502bf6796d879ffa4cce2910e293df050737bbee972531209654c608132085",
+        "platform": "linux",
+        "arch": "x64"
+      },
+      "lifecycleReceipts": [
+        {
+          "test": "Linux subreaper: real adopted descendants cleans a TERM-ignoring parent and child in the same group",
+          "pids": [114, 121],
+          "receipt": {
+            "targetPid": 114,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 133.54500000000007
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants cleans a TERM-ignoring descendant in a separate session",
+          "pids": [129, 136],
+          "receipt": {
+            "targetPid": 129,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 132.89589999999998
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants cleans detached descendants after root exits normally",
+          "pids": [144, 151],
+          "receipt": {
+            "targetPid": 144,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 187.08159999999998
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants cleans detached descendants after root exits on TERM",
+          "pids": [159, 166],
+          "receipt": {
+            "targetPid": 159,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 120.91120000000001
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants adopts the double-forked leaf after its intermediary was reaped by the root",
+          "pids": [174, 181, 188],
+          "receipt": {
+            "targetPid": 174,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 121.24900000000025
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants cleans all adopted descendants on a hard cancel",
+          "pids": [196, 203, 210],
+          "receipt": {
+            "targetPid": 196,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 12.403999999999996
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants cleans when the caller lifeline disappears without claiming a lost receipt",
+          "pids": [218, 225],
+          "receipt": {
+            "targetPid": 218,
+            "target": null,
+            "supervisor": {
+              "code": 70,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 135.71709999999985
+        },
+        {
+          "test": "Linux subreaper: real adopted descendants does not claim cleanup after its supervisor is killed externally",
+          "pids": [233, 240],
+          "receipt": {
+            "targetPid": 233,
+            "target": null,
+            "supervisor": {
+              "code": null,
+              "signal": "SIGKILL",
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            }
+          },
+          "elapsedAfterReadyMs": 0.9994999999998981
+        }
+      ],
+      "limitations": [
+        "Native Linux lifecycle primitive only; production Broker/bridge admission and helper packaging/pinning are pending",
+        "No hostile-code containment: forcibly killing the supervisor can leave a descendant; this is verified as unconfirmed cleanup",
+        "Hosted Linux architecture matrix and macOS backend still need acceptance; Windows skips Linux native integration",
+        "Synthetic local processes only; no external model invocation or release acceptance"
+      ],
+      "assertions": [
+        {
+          "name": "Linux subreaper: real adopted descendants preserves multi-chunk Unicode args/environment and ordinary target exit",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring parent and child in the same group",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans a TERM-ignoring descendant in a separate session",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits normally",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans detached descendants after root exits on TERM",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants adopts the double-forked leaf after its intermediary was reaped by the root",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans all adopted descendants on a hard cancel",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants cleans when the caller lifeline disappears without claiming a lost receipt",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup after its supervisor is killed externally",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants reports an actual exec failure while confirming no descendants remain",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not claim cleanup when the native helper itself cannot start",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants does not invoke a shell for an executable file without a valid format",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper: real adopted descendants keeps stdin/stdout separate from cleanup control messages",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract requires ordered kernel cleanup and successful supervisor close",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: missing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: early",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: duplicate",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: truncated",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract does not confirm invalid or lost cleanup: killed",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract de-duplicates control requests without calling ChildProcess.kill",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract preserves empty values and exact UTF-8 framing",
+          "status": "passed"
+        },
+        {
+          "name": "Linux subreaper control contract rejects invalid/oversized plans and unknown process controls before spawn",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "evidenceDigest": "sha256:0f4aab1a44b9c5e256437e5cfb17ef4bf39e25e2db287313c4baa8059693e089"
+}

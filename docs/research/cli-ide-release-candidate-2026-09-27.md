@@ -90,3 +90,5 @@ CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/
 BRIDGE-01 的 `40addcedf1` 修复 Broker native spawn 后报错却提前完成的问题，改为持有 child 直到真实 close；88 项测试及 Windows/WSL 真进程验证通过。[本地回执](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)同时保留未解决的 WSL `linux-prlimit` 取消后代残留反例，不能据此开放外部 Agent 主路由或宣布跨平台树清理完成。该项下一步继续实现进程树所有权，不升版本、不发布。
 
 `ebfec202c6` 追加保持组长存活的 POSIX 监督器基础组件，[回执](./cli/evidence/owned-posix-group-windows-wsl-ebfec202c6.json)记录 WSL 25 项通过、Windows 14 项通过及 11 项平台跳过。它尚未接入生产 Broker/bridge，原残留缺陷仍开放；真实新会话逃逸反例继续成立，进程组清理不等于完整进程树隔离。该进展不改变候选发布门禁或生产外部 Agent 准入。
+
+`0f0bc7da2a` 的原生 Linux subreaper 已在 WSL 接管、清理并回收新会话/双重 fork 后代，[回执](./cli/evidence/linux-subreaper-windows-wsl-0f0bc7da2a.json)记录 27 项通过、8 条原生生命周期结果及源码/二进制摘要。它仍是待接入组件：helper 安装与可执行身份绑定、生产 Broker/bridge 接线和托管架构验收未完成；监督器被外部强杀时明确返回未确认。原 bridge 残留仍不计作已修复，不改变版本、准入及发布门禁。

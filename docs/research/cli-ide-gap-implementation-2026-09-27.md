@@ -10,7 +10,7 @@
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
-| BRIDGE-01               | 局部实现并验证   | Broker 启动后抛错保留 child 至真实 close，88 项通过；新增持有存活组长的 POSIX 监督器基础组件，WSL 25 项通过 | 基础组件尚未接入生产 Broker/bridge；原 linux-prlimit 残留仍未修复，setsid 逃逸及跨平台完整树退出待完成；主路由继续拒绝未 attested CLI |
+| BRIDGE-01               | 局部实现并验证   | Broker 启动后抛错保留 child 至真实 close，88 项通过；Linux subreaper 原生组件已清理新会话和双重 fork 后代，WSL 27 项通过 | helper 安装与身份校验、生产 Broker/bridge 接入及跨平台验收待完成；原 bridge 残留仍开放，监督器被强杀不保证清树；主路由继续拒绝未 attested CLI |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
@@ -529,3 +529,13 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 干净提交的 [Windows / WSL 回执](./cli/evidence/owned-posix-group-windows-wsl-ebfec202c6.json)记录 WSL1 / Node 22.12.0 的 25 项通过，以及 Windows / Node 22.22.2 的 14 项通过、11 项 POSIX 真进程用例按平台跳过。实际覆盖原目标正常退出、响应 TERM 退出、父子均忽略 TERM、重复取消、直接 KILL、调用方控制通道丢失、启动失败和跨分块中文/emoji 参数。新增明确反例：后代通过 detached 新建会话后，原进程组已停止而该后代仍存活；夹具在 5 秒上限后自行退出并复核无可执行残留。这一用例证明能力边界，不能计作全树清理通过。
 
 本次仅完成基础组件，**没有接入生产 Broker/bridge，也没有修复原 `linux-prlimit` bridge 反例**。后续接入必须保持原始命令的权限、凭据、沙箱计划与描述符检查，并让任务结算等待相应所有权关闭证据；`setsid` 逃逸、监督器异常退出和跨平台强后端仍需实现/验收。macOS 实机及最终准确 SHA 的三系统 CI 待收集，不增加准入、不升版本、不发布。进程调用清单重新生成，未修改审计豁免规则；ESLint、格式和清单一致性检查通过。
+
+### BRIDGE-01：Linux subreaper 接管并回收新会话后代（2026-09-28）
+
+`0f0bc7da2a541acdcb8a04863f6fc97a9c22e652` 新增原生 Linux subreaper 监督器及有界二进制启动/JSONL 回执协议。真实 WSL1 探针先确认 `PR_SET_CHILD_SUBREAPER` 有效，随后验证原父进程退出后，新会话后代会被接管。监督器只向当前直接子进程发送信号，读取子进程身份至发信号期间不执行 wait/reap，使退出中的 child PID 仍被保留；清理逐层接管的后代，只有原目标已回收且 `waitpid(-1, WNOHANG)` 返回 `ECHILD` 才确认零子进程。WSL1 不提供 `/proc/<pid>/task/<tid>/children`，该环境使用 `/proc/*/stat` 的父 PID 判断，保持同一身份不变量。
+
+目标 argv/环境走私有 fd 3 的有界长度帧，目标不继承控制描述符；非可执行格式不退回 shell。监督器设置 `dumpable=0`，但尚未以真实 ptrace/句柄窃取攻击验收，不能替代完整沙箱。**外部强杀监督器仍可能留下后代**，实际反例会返回未确认；失联、缺失/重复/乱序/截断回执、非零或被信号终止的监督器均不能形成成功清理证据。生产准入未扩展。
+
+干净提交的 [Linux subreaper 回执](./cli/evidence/linux-subreaper-windows-wsl-0f0bc7da2a.json)记录 WSL1 / Node 22.12.0 的 27 项通过，以及 Windows 的 14 项通过、13 项 Linux 真进程测试按平台跳过。原生 C 使用 `-Wall -Wextra -Werror` 和栈保护编译，报告记录 C 源码/可执行文件摘要及 8 条实际生命周期回执。覆盖忽略 TERM、根先正常退出/响应 TERM 退出、`setsid`、双重 fork、中间进程先由原父进程回收、重复/强制取消、失联和监督器被杀。正常清理确认时所有观测 PID 已消失；从 ready 到返回须小于 2 秒，不能等待夹具 5 秒自退出后冒充取消成功。双重 fork 的中间进程由 Node 父进程先回收，监督器实际回收的是根及被接管的叶进程，未将其错误计成三次 supervisor wait。
+
+本次推进到**原生生命周期组件验证**，仍未接入生产 Broker/bridge，未解决安装分发和 helper 可执行身份/FD 绑定；原 bridge 的 Linux 残留问题仍开放。下一步保持既有命令权限、凭据和沙箱计划，接入可信 helper 与任务结算关闭证据；最终 SHA 的托管 Linux/架构矩阵及 macOS 后端继续验收。原 POSIX 进程组组件的逃逸反例仍成立，不能把它的回执自动升级为本原生实现的能力。
