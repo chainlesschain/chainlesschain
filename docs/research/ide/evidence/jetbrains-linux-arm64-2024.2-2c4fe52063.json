@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.ci-host-reverification/v1",
+  "releaseEligible": false,
+  "source": {
+    "commit": "2c4fe5206393d02b8527c45f75846709e48a2cd1",
+    "runId": "36329903276",
+    "jobId": "108649724765",
+    "artifactId": "10935965810",
+    "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/36329903276/job/108649724765"
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "linux",
+    "architecture": "arm64",
+    "transport": "local-ide-bridge"
+  },
+  "result": "passed",
+  "evidenceSha256": "sha256:3f3de6cde22770f8c5e3ab0b14b480763d7ac146d048f664680f8df544508f50",
+  "evidenceDigest": "sha256:71ce229a96a8c144bb1fb730eee4d2da8f9478e18e42f660763ba7f622b6ea27",
+  "artifactBundleDigest": "sha256:f46049054e45f50c377da927dd89c855994ab7677f4d6ecb8f2b408c319171ea",
+  "verifiedArtifactCount": 39,
+  "workbenchCoverage": {
+    "samples": 100,
+    "readinessSamples": 40,
+    "warmupSamples": 40,
+    "finalReply": 1800,
+    "recoveredProjection": 1802,
+    "coverage": "canonical-workbench-restart"
+  },
+  "visibilitySummary": {
+    "samples": 100,
+    "minLatencyMs": 350,
+    "maxLatencyMs": 616,
+    "p95LatencyMs": 365,
+    "thresholdMs": 2000,
+    "readinessSamples": 40,
+    "readinessMinimumSamples": 40,
+    "readinessMaximumSamples": 75,
+    "readinessConsecutiveSamples": 10,
+    "quiescenceStableProbes": 4,
+    "warmupSamples": 40,
+    "networkCondition": "loopback fixture; no external network",
+    "transport": "installed-plugin-remote-robot-production-route",
+    "runnerEnvironment": "github-hosted",
+    "runnerName": "GitHub Actions 1000362101",
+    "runnerOS": "Linux",
+    "runnerArch": "ARM64",
+    "runnerImageOS": "ubuntu24-arm64",
+    "runnerImageVersion": "20260920.129.1",
+    "measurementStartedAt": "2026-09-27T15:59:37.292Z",
+    "measurementCompletedAt": "2026-09-27T16:03:51.385Z"
+  },
+  "limitations": [
+    "One exact-commit Linux ARM64 IntelliJ 2024.2 host cell, not the final release matrix",
+    "Model and network output use the deterministic fixture; real-provider and full rewind coverage remain open"
+  ]
+}

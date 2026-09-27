@@ -82,3 +82,7 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/evidence/codex-real-turns-windows-795434f144.json)：交错线程、完成/失败/中断、已接纳断连不重跑通过，37 条原始通知和官方 schema 独立复核；4 文件 33 项回归通过。三系统 workflow 已接入此探针并纳入总门，远端结果待收集。该回执使用无凭证的 loopback 合成 provider，不扩展实验模块生产准入，也不替代真实账号与工具审批验收。
 
 后续 `312cdba006` 的[审批取消回执](./cli/evidence/codex-approval-cancel-windows-312cdba006.json)验证实际 Codex 请求、取消应答、工具 `declined` 与 turn `interrupted`，并修正实验适配器把被拒绝/失败工具统一显示为完成的问题。52 条通知及审批原始字节独立复核，相关 45 项回归通过。普通工具执行另一次被上游策略拒绝，未计作执行成功；三系统和真实 provider 仍待验收，生产准入及版本保持不变。
+
+2026-09-28 复核：`2c4fe52063` 的 Linux ARM64 / IntelliJ 2024.2 与 2025.2 修复作业通过，2024.2 的[独立回执](./ide/evidence/jetbrains-linux-arm64-2024.2-2c4fe52063.json)记录 39 个产物校验、100 样本 p95 365 ms（门限 2000 ms）。旧 `3b0bc23021` 的 ARM64 汇总也通过；均不替代最终 SHA。
+
+`4b9be3c6f4` Windows 位置矩阵在前 8 条 campaign 恢复后出现 `session location show` 外层进程超时。`f61a1a5480` 修正所有目标误用 eager 测试入口的问题，统一为 npm 实际入口，并对进程超时错误保留固定诊断、屏蔽原始 argv；没有增加超时或减少轨迹。138 项相关测试通过，[Windows 两轨迹隔离回执](./cli/evidence/execution-location-local-windows-f61a1a5480.json)的 9 个产物独立复核通过。Windows 100 条托管 CI 尚未确认解决，当前仍不升版本、不发布；子 npm 包 → CLI → IDE 的发布次序和最终提交完整矩阵门禁继续有效。

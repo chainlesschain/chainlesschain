@@ -499,3 +499,15 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 干净 `312cdba00653f42d3c03cc138d82e3d1c69aac68` 的完整 Windows x64 探针退出 0，保存[审批取消回执](./cli/evidence/codex-approval-cancel-windows-312cdba006.json)。独立复核 52 条官方 schema 有效通知、1 组审批请求/取消响应、工具 `declined` / turn `interrupted`、空 processId/exitCode 和标记文件不存在。通知原始字节 SHA-256 为 `0be7b880f079009e4df214e680ef5ef89b1bb4016023f9205578398cc5415d18`，审批对为 `e798f4fca558c0989cc3e93a04e7aa0e249782e2bb071f5cd31aad280f265d6f`；5 次 provider 请求均无 Authorization，断连无 fallback。
 
 相关 4 文件共 45 项通过。另行探测普通只读 echo 工具时，上游返回 `blocked by policy`，没有实际工具执行通知；保留该限制，不将其计作工具执行通过。当前证明 Windows 合成 provider 的审批取消与协议投影；三系统、实际工具执行和真实模型验收仍未完成。
+
+### Actions 后续复验：ARM64 状态竞态与 Windows 执行入口（2026-09-28）
+
+用户报告的 Linux ARM64 / IntelliJ 2024.2 竞态修复在 `2c4fe5206393d02b8527c45f75846709e48a2cd1` 的[新作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36329903276/job/108649724765)通过；同次 Linux 2025.2 单元也通过。下载 2024.2 产物后独立复核 39 个文件、整体 evidence digest、初始/重启阶段与样本数，保存[回执](./ide/evidence/jetbrains-linux-arm64-2024.2-2c4fe52063.json)。readiness 40 次、正式 100 样本，p95 为 365 ms、最大 616 ms，门限仍为 2000 ms。模型及网络为 loopback 夹具，rewind 仍标为 partial；这证明该失败单元在修复提交上的恢复，不代替最终提交的完整宿主验收。
+
+旧 `3b0bc23021` ARM64 run `36326262093` 的 11 单元汇总已通过，仍只属于旧提交。`4b9be3c6f4` 的 [Windows execution-location 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36329168064/job/108647674571)已越过准备、断网恢复和资源限制阶段，完成前 8 个 campaign Chat 恢复，随后在下一条 `session location show` 的 sandbox helper 外层 30 秒预算报 `ETIMEDOUT`。它不是前次 ACL 超时或 `Microsoft/` 源码污染的重复证据；现有日志不能唯一归因于 helper 或内部存储检查。
+
+审查发现矩阵全部目标使用预加载所有命令的 `src/index.js`，与 npm 清单的实际 `bin/chainlesschain.js` 入口不一致。`f61a1a548052ac971e9293f22294d25f6fddd9ac` 将 Local/WSL/Container/SSH 改用实际入口，并修正远程 supervisor 相对路径；采用实际 canonical 默认值与按需命令加载，保留原部署授权、隔离、干净源码门、100 轨迹及超时阈值。入口及 dispatcher 纳入 workflow 触发与产物哈希；同时补齐统一审计合同遗漏的 7 个既有 producer 文件，锁定完整 23 文件清单。
+
+原生进程失败原先直接抛出含路径和 argv 的 `spawnSync` 错误。现将超时、输出越界、执行文件缺失和访问拒绝映射为固定类别，只保留经过白名单校验的源位置与 ACL 标记，不携带原始 cause、输出或参数；超时不重试，资源探针的超时也不能误当作资源限制成功。新增 7 项反例修复前失败、修复后通过。相关 8 文件共 138 项通过（含实际 npm 入口的 3 项 Chat 部署恢复验证）；ESLint、Prettier、actionlint、Bash/PowerShell 语法与 diff 检查通过。
+
+干净 `f61a1a5480` 的 Windows 两轨迹真实隔离 smoke 退出 0，保存[回执](./cli/evidence/execution-location-local-windows-f61a1a5480.json)。9 个产物哈希独立复核；3 次恢复、断网拒绝、资源终止、失联/令牌轮换停放及结果回传通过，无静默 fallback、重复结算或孤儿进程。临时 wrapper 导入实际 npm 入口，断网通过重命名该 wrapper 注入；不算 100 条 CI，不宣称 Windows 托管超时已经解决。最终 SHA 的 CLI CI、Strict Sandbox 与 IDE/位置矩阵仍需完整通过；版本 staleness 继续随候选冻结处理。
