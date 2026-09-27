@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:ff1860d17b798060c95cce217ff27bef2f99e209dcb369cf2d70514a4d6f08d7"
+public let ccAgentProtocolSchemaDigest = "sha256:6a76370d0cc874ebfae473f23e7f491c4c4d98cd49a68a022e84c094a1e189be"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -1953,6 +1953,7 @@ public struct AgentSystemStreamEvent: Codable, Sendable {
     public let model: String?
     public let provider: String?
     public let permission_mode: String?
+    public let permission_mode_state: JSONValue?
     public let tools: [String]?
     public let slash_commands: [String]?
     public let input_format: String?
@@ -1973,6 +1974,7 @@ public struct AgentSystemStreamEvent: Codable, Sendable {
         model: String? = nil,
         provider: String? = nil,
         permission_mode: String? = nil,
+        permission_mode_state: JSONValue? = nil,
         tools: [String]? = nil,
         slash_commands: [String]? = nil,
         input_format: String? = nil,
@@ -1992,6 +1994,7 @@ public struct AgentSystemStreamEvent: Codable, Sendable {
         self.model = model
         self.provider = provider
         self.permission_mode = permission_mode
+        self.permission_mode_state = permission_mode_state
         self.tools = tools
         self.slash_commands = slash_commands
         self.input_format = input_format

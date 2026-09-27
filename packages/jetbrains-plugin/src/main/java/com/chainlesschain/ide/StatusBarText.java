@@ -11,6 +11,34 @@ public final class StatusBarText {
 
     private StatusBarText() {}
 
+    public static String labelForState(int port, PermissionModeState.Snapshot state) {
+        if (state == null) return port > 0 ? "CC :" + port : "CC off";
+        String base = port > 0 ? "CC :" + port : "CC off";
+        if (!"effective".equals(state.status())) {
+            String last = state.effective() == null ? "" : " · last confirmed " + state.effective();
+            return base + " · " + state.requested() + " " + state.status() + last;
+        }
+        String requested = state.requested().equals(state.effective()) ? "" : " (requested " + state.requested() + ")";
+        return base + " · " + state.effective() + requested;
+    }
+
+    public static String tooltipForState(int port, PermissionModeState.Snapshot state) {
+        String bridge = port > 0 ? "ChainlessChain IDE bridge · 127.0.0.1:" + port
+                : "ChainlessChain IDE bridge is stopped";
+        return bridge + "\n" + modeStateLine(state)
+                + (state == null ? "" : "\n" + state.reason()
+                    + (state.policyRevision() == null ? "" : "\nPolicy revision: " + state.policyRevision()))
+                + "\nClick for bridge status";
+    }
+
+    public static String modeStateLine(PermissionModeState.Snapshot state) {
+        if (state == null) return "No active chat agent";
+        String effectiveLabel = "effective".equals(state.status()) ? "effective " : "last confirmed ";
+        return "Approvals: requested " + state.requested()
+                + " · " + (state.effective() == null ? "effective unconfirmed" : effectiveLabel + state.effective())
+                + " · " + state.status();
+    }
+
     /**
      * Compact widget label. Examples: {@code "CC :63412"} (running, normal
      * approvals), {@code "CC :63412 ⚠bypass"}, {@code "CC off"} (bridge down).

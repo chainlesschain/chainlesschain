@@ -63,7 +63,7 @@ class AgentChatSessionTest {
             assertFalse(event.containsKey("resume"));
             assertTrue(session.hasPendingTurns());
         } finally {
-            session.stop();
+            session.stopAndWait().get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -113,8 +113,8 @@ class AgentChatSessionTest {
             assertEquals("plan_update", events.poll(10, TimeUnit.SECONDS).get("type"));
             assertTrue(first.shouldReloadConfiguration(11), "A rejected/no-op plan control does not leave a pending turn");
         } finally {
-            first.stop();
-            second.stop();
+            first.stopAndWait().get(10, TimeUnit.SECONDS);
+            second.stopAndWait().get(10, TimeUnit.SECONDS);
         }
     }
 

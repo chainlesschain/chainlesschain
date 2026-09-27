@@ -34,6 +34,7 @@ public final class ConversationManager {
         public volatile Object session;      // opaque AgentChatSession handle (nullable)
         public volatile Object turnState;
         public volatile String mode = "default"; // approval mode (default|acceptEdits|bypassPermissions)
+        public final PermissionModeState modeState = new PermissionModeState();
         public volatile String thinking = "off"; // extended thinking (off|on|ultra)
         public volatile String goalCondition = ""; // completion condition passed to cc agent
 
@@ -188,7 +189,10 @@ public final class ConversationManager {
     /** Set a conversation's approval mode (takes effect on its next child spawn). */
     public Conversation setMode(String id, String mode) {
         Conversation c = get(id);
-        if (c != null) c.mode = (mode == null || mode.trim().isEmpty()) ? "default" : mode;
+        if (c != null) {
+            c.mode = (mode == null || mode.trim().isEmpty()) ? "default" : mode;
+            c.modeState.request(c.mode);
+        }
         return c;
     }
 

@@ -96,6 +96,19 @@ export interface SystemInitEvent extends StreamEventMeta {
   model?: string;
   provider?: string;
   permission_mode?: string;
+  /** Child-correlated display acknowledgement, never an execution grant. */
+  permission_mode_state?: {
+    correlation_id: string;
+    requested: "default" | "acceptEdits" | "bypassPermissions";
+    effective:
+      | "default"
+      | "acceptEdits"
+      | "auto"
+      | "bypassPermissions"
+      | "dontAsk"
+      | "plan";
+    policy_revision: string;
+  };
   tools?: string[];
   /** Session-scoped slash commands accepted over the live stream protocol. */
   slash_commands?: string[];

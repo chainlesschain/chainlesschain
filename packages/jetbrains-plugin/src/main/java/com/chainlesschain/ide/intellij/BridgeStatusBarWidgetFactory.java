@@ -99,7 +99,7 @@ public final class BridgeStatusBarWidgetFactory implements StatusBarWidgetFactor
 
         @Override
         public @NotNull String getText() {
-            return StatusBarText.label(port(), mode());
+            return StatusBarText.labelForState(port(), mode());
         }
 
         @Override
@@ -109,7 +109,7 @@ public final class BridgeStatusBarWidgetFactory implements StatusBarWidgetFactor
 
         @Override
         public @Nullable String getTooltipText() {
-            return StatusBarText.tooltip(port(), mode());
+            return StatusBarText.tooltipForState(port(), mode());
         }
 
         @Override
@@ -118,7 +118,7 @@ public final class BridgeStatusBarWidgetFactory implements StatusBarWidgetFactor
                 int port = port();
                 String msg = port > 0
                         ? "ChainlessChain IDE bridge running on 127.0.0.1:" + port + " (server \"ide\").\n"
-                          + StatusBarText.modeLine(mode())
+                          + StatusBarText.modeStateLine(mode())
                         : "ChainlessChain IDE bridge is stopped.";
                 Messages.showInfoMessage(project, msg, "ChainlessChain IDE Bridge");
             };
@@ -130,9 +130,9 @@ public final class BridgeStatusBarWidgetFactory implements StatusBarWidgetFactor
             return svc != null ? svc.getStatusPort() : -1;
         }
 
-        private String mode() {
-            if (project.isDisposed()) return "default";
-            return ChatToolWindowFactory.activeModeFor(project);
+        private com.chainlesschain.ide.PermissionModeState.Snapshot mode() {
+            if (project.isDisposed()) return null;
+            return ChatToolWindowFactory.activeModeStateFor(project);
         }
     }
 }

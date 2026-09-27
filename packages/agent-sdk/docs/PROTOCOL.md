@@ -59,6 +59,18 @@ cc agent --input-format stream-json --output-format stream-json \
 
 ### 1.1 Client → CLI (stdin events)
 
+#### Effective approval mode (optional v1 addition)
+
+IDE clients may set `CC_IDE_MODE_REQUEST_ID` (1–80 alphanumeric/hyphen characters)
+and `CC_IDE_REQUESTED_MODE` (`default`, `acceptEdits`, `bypassPermissions`) in the
+child environment. A supporting CLI adds `permission_mode_state` to `system/init`:
+`{correlation_id, requested, effective, policy_revision}`. The effective mode and
+policy digest come from the validated runtime configuration, not the environment
+echo. Match the child generation, session ID, correlation ID and requested mode
+before displaying it as effective. Missing/invalid acknowledgement is unconfirmed;
+a requested mode is never proof of tightened execution. A replacement child must
+wait for old-process termination confirmation, independently of this display ACK.
+
 #### Durable input receipts (optional v1 addition)
 
 An explicit canonical session advertises `input_receipts:{version:1}` on
@@ -71,7 +83,19 @@ After the canonical user event and its integrity anchor are committed, before
 model dispatch, the CLI emits:
 
 ```json
-{"type":"system","subtype":"input_accepted","session_id":"session-1","client_message_id":"client-1","receipt":{"sessionId":"session-1","clientMessageId":"client-1","inputDigest":"<sha256>","eventHash":"<sha256>","duplicate":false}}
+{
+  "type": "system",
+  "subtype": "input_accepted",
+  "session_id": "session-1",
+  "client_message_id": "client-1",
+  "receipt": {
+    "sessionId": "session-1",
+    "clientMessageId": "client-1",
+    "inputDigest": "<sha256>",
+    "eventHash": "<sha256>",
+    "duplicate": false
+  }
+}
 ```
 
 `inputDigest` binds the original parsed text, image paths, LLM hint and worklog

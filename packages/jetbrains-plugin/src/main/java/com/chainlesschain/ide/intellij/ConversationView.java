@@ -117,6 +117,7 @@ final class ConversationView {
     private String worklogRequestId;
     private java.util.function.Consumer<String> worklogTarget;
     private javax.swing.Timer worklogTimer;
+    private javax.swing.Timer modeAcknowledgementTimer;
 
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
     // Transcript rendering (styles + markdown snap + memory cap) — see ChatTranscript.
@@ -129,6 +130,7 @@ final class ConversationView {
     private final JButton sendBtn = new JButton("Send");
     private final JButton stopBtn = new JButton("Stop");
     private final JLabel contextLabel = new JLabel(" "); // §6 context-window indicator
+    private final JLabel modeLabel = new JLabel(" ");
     private final JPanel cardsPanel = new JPanel();       // §5 interactive approval/plan cards
     private final Map<String, ApprovalCard> approvalCards = new LinkedHashMap<>();
     private final ApprovalSettlementRegistry approvalSettlements =
@@ -287,7 +289,12 @@ final class ConversationView {
         cardsPanel.setLayout(new BoxLayout(cardsPanel, BoxLayout.Y_AXIS));
 
         JPanel inputArea = new JPanel(new BorderLayout(0, 2));
-        inputArea.add(contextLabel, BorderLayout.NORTH);
+        JPanel inputStatus = new JPanel(new java.awt.GridLayout(0, 1));
+        inputStatus.add(modeLabel);
+        inputStatus.add(contextLabel);
+        modeLabel.getAccessibleContext().setAccessibleName("Approval mode status");
+        inputArea.add(inputStatus, BorderLayout.NORTH);
+        refreshModeStatus();
         inputArea.add(south, BorderLayout.CENTER);
 
         JPanel southWrap = new JPanel(new BorderLayout(0, 2));
@@ -309,12 +316,10 @@ final class ConversationView {
                 // Second click on the same still-live child → escalate to a hard
                 // stop (interrupt rides stdin, which a hung child never reads).
                 interruptRequested = null;
-                conv.session = null;
                 turnActive = false;
                 pendingApprovalGrantCommands.clear();
-                invalidateApprovalCards();
-                append("⏹ force-stopped the agent process — next message restarts it\n");
-                ApplicationManager.getApplication().executeOnPooledThread(s::stop);
+                restartForModeChange();
+                append("⏹ Stopping the agent; replacement waits for confirmed exit\n");
                 return;
             }
             List<String> reservedApprovals = approvalSettlements.beginInterrupt();
@@ -645,13 +650,18 @@ final class ConversationView {
         }
         if (loopTask != null) loopTask.cancel(false);
         loopTask = null;
-        AgentChatSession old = liveSession();
-        conv.session = null;
-        sessionGeneration = null;
         turnActive = false;
-        if (old != null) ApplicationManager.getApplication().executeOnPooledThread(old::end);
-        append("ℹ Task notes saved. Continued in a fresh conversation.\n");
-        if (target != null) target.accept(conv.sessionId);
+        final String sourceId = conv.sessionId;
+        restartForModeChange();
+        final long revision = conv.modeState.snapshot().revision();
+        sendExecutor.execute(() -> {
+            if (disposed || !conv.modeState.current(revision) || liveSession() != null) return;
+            SwingUtilities.invokeLater(() -> {
+                if (disposed || !conv.modeState.current(revision)) return;
+                append("ℹ Task notes saved. Continued in a fresh conversation.\n");
+                if (target != null) target.accept(sourceId);
+            });
+        });
     }
 
     private void sendCurrentInput() {
@@ -670,12 +680,14 @@ final class ConversationView {
             return;
         }
         final java.util.List<String> imgs = images.snapshot();
+        final long modeRevision = conv.modeState.snapshot().revision();
         sendInFlight = true;
         sendExecutor.execute(() -> {
             if (disposed) return; // queued before a tab close — don't respawn cc
             boolean sent = false;
             String spawnError = null;
             try {
+                if (!conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed; input was not dispatched");
                 ensureSession();
                 AgentChatSession s = liveSession();
                 String history = worklogSourceSent ? null : worklogSource;
@@ -689,7 +701,9 @@ final class ConversationView {
                 final String err = spawnError;
                 SwingUtilities.invokeLater(() -> {
                     sendInFlight = false;
-                    if (err != null) {
+                    if (!conv.modeState.current(modeRevision)) {
+                        append("⚠ Approval mode changed during delivery. Input retained; check the conversation before resending.\n");
+                    } else if (err != null) {
                         append("⚠ could not send message: " + err + "\n");
                     } else if (ok) {
                         AgentChatSession session = liveSession();
@@ -937,6 +951,7 @@ final class ConversationView {
      */
     private void runSessionSlashCommand(
             SlashCommands.Definition definition, String rawArgs) {
+        final long modeRevision = conv.modeState.snapshot().revision();
         final String args = rawArgs == null ? "" : rawArgs.trim();
         if ("permissions".equals(definition.target)
                 && ("grants".equalsIgnoreCase(args)
@@ -950,7 +965,7 @@ final class ConversationView {
         }
         try {
             sendExecutor.execute(() -> {
-                if (disposed) return;
+                if (disposed || !conv.modeState.current(modeRevision)) return;
                 try {
                     ensureSession();
                     AgentChatSession session = liveSession();
@@ -999,11 +1014,12 @@ final class ConversationView {
 
     /** Send a correlated control request to the live CLI-owned grant ledger. */
     private void sendApprovalGrantCommand(String action, String args) {
+        final long modeRevision = conv.modeState.snapshot().revision();
         SlashCommands.Definition definition = SlashCommands.find("/permissions");
         if (definition == null) return;
         try {
             sendExecutor.execute(() -> {
-                if (disposed) return;
+                if (disposed || !conv.modeState.current(modeRevision)) return;
                 String requestId = "grant-" + java.util.UUID.randomUUID();
                 try {
                     ensureSession();
@@ -1350,18 +1366,23 @@ final class ConversationView {
                 @SuppressWarnings("unchecked")
                 final Map<String, Object> confirmation =
                         (Map<String, Object>) confirmationObject;
-                AgentChatSession live = liveSession();
-                conv.session = null;
+                restartForModeChange();
+                final long modeRevision = conv.modeState.snapshot().revision();
                 interruptRequested = null;
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    if (live != null) live.stop();
+                sendExecutor.execute(() -> {
+                    if (disposed || !conv.modeState.current(modeRevision) || liveSession() != null) {
+                        SwingUtilities.invokeLater(() -> { if (!disposed) append("⚠ /rewind blocked: the prior agent exit is unconfirmed or the request changed\n"); });
+                        return;
+                    }
                     String executedRaw = AgentChatSession.runCapture(
                             RewindCommands.buildTimelineActionArgs(
                                     confirmation, false, true), cwd, 60000);
                     final Map<String, Object> executed =
                             RewindCommands.parseTimelineActionResult(executedRaw);
-                    SwingUtilities.invokeLater(() -> finishTimelineAction(
-                            sid, entry, action, executed, executedRaw));
+                    SwingUtilities.invokeLater(() -> {
+                        if (!disposed && conv.modeState.current(modeRevision) && sid.equals(conv.sessionId))
+                            finishTimelineAction(sid, entry, action, executed, executedRaw);
+                    });
                 });
             });
         });
@@ -1625,6 +1646,7 @@ final class ConversationView {
         final String prompt = raw == null ? "" : raw.trim();
         if (prompt.isEmpty()) return;
         restartForModeChange(); // queues the live child's stop on sendExecutor
+        final long modeRevision = conv.modeState.snapshot().revision();
         final String sid = conv.sessionId;
         final File cwd = project.getBasePath() != null
                 ? new File(project.getBasePath()) : null;
@@ -1635,6 +1657,10 @@ final class ConversationView {
         // still alive, giving one session two writers.
         try {
             sendExecutor.execute(() -> {
+                if (disposed || !conv.modeState.current(modeRevision) || liveSession() != null || "failed".equals(conv.modeState.snapshot().status())) {
+                    SwingUtilities.invokeLater(() -> { if (!disposed) append("⚠ Handoff blocked: previous agent exit is unconfirmed\n"); });
+                    return;
+                }
                 String out = AgentChatSession.runCapture(
                         RemoteHandoff.buildHandoffArgs(sid, prompt), cwd, 60000);
                 final Map<String, Object> state = RemoteHandoff.parseBackgroundState(out);
@@ -1663,6 +1689,14 @@ final class ConversationView {
      * the EDT before invoking this, so the next spawn reads the new values.
      */
     void restartForModeChange() {
+        if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
+        final long revision = conv.modeState.request(conv.mode);
+        sessionGeneration = null;
+        // Initiate termination outside the send queue: a blocked stdin writer
+        // must not prevent the independent stop worker from killing the child.
+        AgentChatSession prior = liveSession();
+        if (prior != null) prior.stopAndWait();
+        refreshModeStatus();
         invalidateApprovalCards();
         conv.turnState = new ChatEvents.TurnState();
         sessionSlashCommands = null;
@@ -1671,15 +1705,41 @@ final class ConversationView {
         indexConversation("stopped");
         try {
             sendExecutor.execute(() -> {
-                AgentChatSession s = liveSession();
-                if (s != null) {
-                    s.stop();
-                    conv.session = null;
+                if (!conv.modeState.current(revision)) return;
+                try { stopCurrentSession(revision); }
+                catch (IOException error) {
+                    SwingUtilities.invokeLater(() -> { if (!disposed) append("⚠ " + error.getMessage() + "\n"); });
                 }
             });
         } catch (java.util.concurrent.RejectedExecutionException ignored) {
             // executor already shut down (dispose in progress) — nothing to stop
         }
+    }
+
+    private void refreshModeStatus() {
+        SwingUtilities.invokeLater(() -> {
+            if (disposed) return;
+            com.chainlesschain.ide.PermissionModeState.Snapshot state = conv.modeState.snapshot();
+            modeLabel.setText(" " + com.chainlesschain.ide.StatusBarText.modeStateLine(state));
+            modeLabel.setToolTipText(state.reason());
+            BridgeStatusBarWidgetFactory.refresh(project);
+        });
+    }
+
+    /** Worker-only replacement barrier. On failure retain the handle and its last effective state. */
+    private void stopCurrentSession(long revision) throws IOException {
+        AgentChatSession session = liveSession();
+        sessionGeneration = null;
+        try {
+            if (session != null) session.stopAndWait().get(8, java.util.concurrent.TimeUnit.SECONDS);
+            if (conv.session == session) conv.session = null;
+            conv.modeState.stopped(revision);
+        } catch (Exception error) {
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+            String message = "The previous agent exit is unconfirmed; a replacement cannot start";
+            conv.modeState.failed(revision, message);
+            throw new IOException(message, error);
+        } finally { refreshModeStatus(); }
     }
 
     /**
@@ -1725,19 +1785,31 @@ final class ConversationView {
      *  {@link #sendExecutor} worker, never the EDT. */
     private void ensureSession() throws IOException {
         if (disposed) return; // never spawn a fresh child for a closed view
+        final long modeRevision = conv.modeState.snapshot().revision();
+        try {
+            ensureSessionForRevision(modeRevision);
+        } catch (IOException | RuntimeException error) {
+            conv.modeState.failed(modeRevision, error.getMessage());
+            refreshModeStatus();
+            if (error instanceof IOException) throw (IOException) error;
+            throw new IOException("Agent launch failed", error);
+        }
+    }
+
+    private void ensureSessionForRevision(long modeRevision) throws IOException {
         AgentChatSession existing = liveSession();
         long configurationRevision = com.chainlesschain.ide.LlmConfig.configurationRevision();
         boolean reload = existing != null && existing.isRunning()
                 && !turnActive && existing.shouldReloadConfiguration(configurationRevision);
         if (existing != null && existing.isRunning() && !reload) return;
 
+        if (existing != null) stopCurrentSession(modeRevision);
+        if (disposed || !conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed before agent launch");
         final Object generation = new Object();
         sessionGeneration = generation;
         worklogSupported = false;
         worklogSourceSent = false;
         if (reload) {
-            conv.session = null;
-            existing.stop();
             cachedContextWindow = 0;
             conv.turnState = new ChatEvents.TurnState();
             SwingUtilities.invokeLater(() -> {
@@ -1778,8 +1850,25 @@ final class ConversationView {
                 SwingUtilities.invokeLater(() -> sessionIdSink.onSessionId(cid, sessId));
             }
         }
+        final String requestedMode = conv.modeState.snapshot().requested();
+        final String modeRequestId = conv.modeState.starting(modeRevision, requestedMode, conv.sessionId, generation);
+        if (modeRequestId == null) throw new IOException("Approval mode changed before agent launch");
+        o.canDispatch = () -> !disposed && sessionGeneration == generation && conv.modeState.current(modeRevision);
+        o.extraEnv.put("CC_IDE_MODE_REQUEST_ID", modeRequestId);
+        o.extraEnv.put("CC_IDE_REQUESTED_MODE", requestedMode);
+        refreshModeStatus();
+        SwingUtilities.invokeLater(() -> {
+            if (disposed || sessionGeneration != generation) return;
+            if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
+            modeAcknowledgementTimer = new javax.swing.Timer(15000, e -> {
+                conv.modeState.acknowledgementTimedOut(generation);
+                refreshModeStatus();
+            });
+            modeAcknowledgementTimer.setRepeats(false);
+            modeAcknowledgementTimer.start();
+        });
         o.extraArgs = SessionArgs.build(
-                llm[0], llm[1], llm[2], llm[3], conv.sessionId, conv.mode, conv.thinking,
+                llm[0], llm[1], llm[2], llm[3], conv.sessionId, requestedMode, conv.thinking,
                 conv.goalCondition);
 
         IdeBridgeService bridge = IdeBridgeService.getInstance(project);
@@ -1838,6 +1927,10 @@ final class ConversationView {
             if (event != null
                     && AgentStreamEventType.SYSTEM.getWireValue().equals(event.get("type"))
                     && "init".equals(event.get("subtype"))) {
+                if (event.get("session_id") != null
+                        && !java.util.Objects.equals(conv.sessionId, event.get("session_id"))) return;
+                conv.modeState.acknowledge(generation, event);
+                refreshModeStatus();
                 Object worklog = event.get("task_worklog");
                 Object worklogVersion = worklog instanceof Map ? ((Map<?, ?>) worklog).get("version") : null;
                 worklogSupported = worklogVersion instanceof Number && ((Number) worklogVersion).intValue() == 1;
@@ -1905,6 +1998,18 @@ final class ConversationView {
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
             if (disposed || sessionGeneration != generation) return;
+            conv.modeState.exited(generation, code);
+            refreshModeStatus();
+            try {
+                sendExecutor.execute(() -> {
+                    if (disposed || sessionGeneration != generation || !conv.modeState.current(modeRevision)) return;
+                    try {
+                        stopCurrentSession(modeRevision);
+                        if (code != 0) conv.modeState.failed(modeRevision, "Agent exited (" + code + ")");
+                    } catch (IOException ignored) { /* barrier already records the failure */ }
+                    refreshModeStatus();
+                });
+            } catch (java.util.concurrent.RejectedExecutionException ignored) { /* disposing */ }
             pendingApprovalGrantCommands.clear();
             invalidateApprovalCards();
             indexConversation("stopped");
@@ -1915,6 +2020,10 @@ final class ConversationView {
         AgentChatSession session = new AgentChatSession(o);
         conv.session = session;
         session.start();
+        if (!o.canDispatch.getAsBoolean()) {
+            session.stopAndWait();
+            throw new IOException("Approval mode changed during agent launch; input was not dispatched");
+        }
         indexConversation("running");
     }
 
@@ -2309,11 +2418,13 @@ final class ConversationView {
 
     private void queueSessionEvent(
             Map<String, Object> ev, java.util.function.Consumer<Boolean> completion) {
+        final AgentChatSession owner = liveSession();
+        final Object generation = sessionGeneration;
         try {
             sendExecutor.execute(() -> {
                 boolean sent = false;
-                if (!disposed) {
-                    AgentChatSession s = liveSession();
+                if (!disposed && liveSession() == owner && sessionGeneration == generation) {
+                    AgentChatSession s = owner;
                     try {
                         sent = s != null && s.sendEvent(ev);
                     } catch (RuntimeException ignored) {
@@ -2696,8 +2807,9 @@ final class ConversationView {
     }
 
     private void sendPlanAction(String action, Map<String, Object> review) {
+        final long modeRevision = conv.modeState.snapshot().revision();
         sendExecutor.execute(() -> {
-            if (disposed) return;
+            if (disposed || !conv.modeState.current(modeRevision)) return;
             AgentChatSession s = liveSession();
             if (s == null || !s.isRunning()) {
                 try {
@@ -3089,6 +3201,7 @@ final class ConversationView {
     }
 
     void dispose() {
+        if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
         cancelWorklogHandoff();
         disposed = true; // gates ensureSession + every queued task body
         pendingApprovalGrantCommands.clear();
@@ -3119,11 +3232,7 @@ final class ConversationView {
         AgentChatSession s = liveSession();
         conv.session = null;
         if (s != null) {
-            // stop() is synchronized and closes stdin (blocking pipe I/O). A
-            // sendExecutor worker blocked in sendEvent() holds the session
-            // monitor — stopping inline would deadlock the EDT on tab/project
-            // close. Mirror the force-stop path: pooled thread.
-            ApplicationManager.getApplication().executeOnPooledThread(s::stop);
+            s.stopAndWait(); // independent of a blocked stdin writer
         }
         deleteAllSentImageTemps();
         images.clearAll(); // also delete pending-but-unsent own temp pngs

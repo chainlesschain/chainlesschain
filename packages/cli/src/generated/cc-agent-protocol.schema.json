@@ -3194,6 +3194,43 @@
           "type": "string",
           "maxLength": 64
         },
+        "permission_mode_state": {
+          "type": "object",
+          "required": [
+            "correlation_id",
+            "requested",
+            "effective",
+            "policy_revision"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-]{1,80}$"
+            },
+            "requested": {
+              "enum": [
+                "default",
+                "acceptEdits",
+                "bypassPermissions"
+              ]
+            },
+            "effective": {
+              "enum": [
+                "default",
+                "acceptEdits",
+                "auto",
+                "bypassPermissions",
+                "dontAsk",
+                "plan"
+              ]
+            },
+            "policy_revision": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{16,64}$"
+            }
+          },
+          "additionalProperties": true
+        },
         "tools": {
           "type": "array",
           "items": {

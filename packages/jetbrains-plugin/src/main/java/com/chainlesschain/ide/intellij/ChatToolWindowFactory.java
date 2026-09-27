@@ -73,6 +73,12 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         return c != null ? c.mode : "default";
     }
 
+    static com.chainlesschain.ide.PermissionModeState.Snapshot activeModeStateFor(Project project) {
+        ChatPanel panel = REGISTRY.get(project);
+        ConversationManager.Conversation c = panel != null ? panel.conversations.active() : null;
+        return c == null ? null : c.modeState.snapshot();
+    }
+
     /** Current CLI session identity for CLI-owned auxiliary viewers. */
     static String activeSessionIdFor(Project project) {
         ChatPanel panel = REGISTRY.get(project);

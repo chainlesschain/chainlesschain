@@ -7,6 +7,10 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
+[Approval mode confirmation and agent replacement](docs/APPROVAL_MODE_LIFECYCLE.md)
+describes requested/effective mode status, stop confirmation, and the limits of
+observed process-tree termination in the current development branch.
+
 **The bridge needs no IDE-specific CLI transport fork** — this plugin writes
 the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require

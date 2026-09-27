@@ -75,11 +75,19 @@ public final class AgentChatSession {
         public long configurationRevision = -1;
         /** Test seam: full base command overriding command+protocol args. */
         public List<String> baseCommandOverride;
+        /** Reject stale queued sends after a host mode/session generation changes. */
+        public java.util.function.BooleanSupplier canDispatch = () -> true;
+        public long stopGraceMs = 350;
+        public long stopTimeoutMs = 5000;
     }
 
     private final Options opts;
-    private Process child;
-    private BufferedWriter stdin;
+    private volatile Process child;
+    private volatile BufferedWriter stdin;
+    private final Object lifecycleLock = new Object();
+    private final Object stopLock = new Object();
+    private ProcessTreeTermination termination;
+    private java.util.concurrent.CompletableFuture<Void> stopConfirmation;
     // Set when WE tear the child down (stop / end / restart). The waiter then
     // suppresses the "agent exited" banner — a deliberate stop already prints
     // its own status line ("force-stopped …" / "next message applies"), so the
@@ -112,8 +120,9 @@ public final class AgentChatSession {
         return cmd;
     }
 
-    public synchronized boolean isRunning() {
-        return child != null && child.isAlive();
+    public boolean isRunning() {
+        Process process = child;
+        return !stopped && process != null && process.isAlive();
     }
 
     /** Defer a settings reload until every already submitted turn has finished. */
@@ -385,17 +394,29 @@ public final class AgentChatSession {
         }
     }
 
-    /** Spawn the child and start the stdout/stderr pumps. Idempotent. */
+    /** Spawn once; repeated calls while running are idempotent. Restarts use a new instance. */
     public synchronized void start() throws IOException {
+        synchronized (lifecycleLock) {
+            startUnderLifecycleLock();
+        }
+    }
+
+    private void startUnderLifecycleLock() throws IOException {
         if (isRunning()) return;
-        stopped = false; // fresh spawn — a natural exit should surface again
+        if (stopped || child != null) throw new IOException("An agent session instance cannot be restarted");
+        if (!opts.canDispatch.getAsBoolean()) throw new IOException("The requested agent session changed before spawn");
         pendingTurns.set(0);
         ProcessBuilder pb = new ProcessBuilder(buildCommandLine());
         if (opts.cwd != null) pb.directory(opts.cwd);
         CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
         if (opts.extraEnv != null) pb.environment().putAll(opts.extraEnv);
+        // Binary probing can block. A stop/mode change during that work must
+        // not be undone by the eventual return of the probe.
+        if (stopped || !opts.canDispatch.getAsBoolean())
+            throw new IOException("The requested agent session changed before spawn");
         final Process proc = pb.start();
         child = proc;
+        termination = new ProcessTreeTermination(proc);
         stdin = new BufferedWriter(
                 new OutputStreamWriter(proc.getOutputStream(), StandardCharsets.UTF_8));
         pump("cc-chat-stdout", proc.getInputStream(), new LineListener() {
@@ -421,9 +442,8 @@ public final class AgentChatSession {
             public void run() {
                 try {
                     int code = proc.waitFor();
-                    synchronized (AgentChatSession.this) {
-                        if (child == proc) child = null;
-                    }
+                    // Retain the process handle for the explicit stop barrier.
+                    // A dead wrapper alone does not prove its descendants exited.
                     // Only surface an exit the user didn't trigger — a deliberate
                     // stop/end/restart already printed its own status line.
                     if (opts.onExit != null && !stopped) opts.onExit.onExit(code);
@@ -496,7 +516,8 @@ public final class AgentChatSession {
 
     /** Send one raw NDJSON event (user turn / interrupt / approval / …). */
     public synchronized boolean sendEvent(Map<String, Object> event) {
-        if (!isRunning() || stdin == null || event == null) return false;
+        BufferedWriter writer = stdin;
+        if (!isRunning() || writer == null || event == null || !opts.canDispatch.getAsBoolean()) return false;
         // Account before flushing: a fast child can finish before the send
         // callback reaches the EDT. Partial writes stay conservatively pending
         // until a terminal result or process restart.
@@ -507,9 +528,9 @@ public final class AgentChatSession {
         if (AgentStreamEventType.USER.getWireValue().equals(type) || planContinuation || correction)
             pendingTurns.incrementAndGet();
         try {
-            stdin.write(MiniJson.stringify(event));
-            stdin.write("\n");
-            stdin.flush();
+            writer.write(MiniJson.stringify(event));
+            writer.write("\n");
+            writer.flush();
             return true;
         } catch (IOException e) {
             return false;
@@ -575,8 +596,9 @@ public final class AgentChatSession {
     /** End the conversation gracefully (close stdin → CLI exits cleanly). */
     public synchronized void end() {
         stopped = true; // deliberate — waiter suppresses the exit banner
+        BufferedWriter writer = stdin;
         try {
-            if (stdin != null) stdin.close();
+            if (writer != null) writer.close();
         } catch (IOException ignored) {
             // already closing
         }
@@ -587,30 +609,43 @@ public final class AgentChatSession {
      * {@code cmd.exe /c cc …} (npm .cmd shim), so {@code destroy()} alone only
      * ends cmd.exe and orphans the real node agent mid-turn (it keeps running
      * the current tool, burning tokens and holding its SQLite lock) — the same
-     * grandchild-orphan trap PreviewService.stop() fixed. Close stdin first so
-     * a healthy child gets a graceful EOF, then reap the whole tree.
+     * grandchild-orphan trap PreviewService.stop() fixed. Signals the independent
+     * termination worker. Use stopAndWait() to gate replacement on confirmed exit.
      */
-    public synchronized void stop() {
-        stopped = true; // deliberate — waiter suppresses the exit banner
-        Process p = child;
-        child = null;
-        try {
-            if (stdin != null) stdin.close();
-        } catch (IOException ignored) {
-            // already closing
-        }
-        stdin = null;
-        if (p != null) {
-            try {
-                p.descendants().forEach(ProcessHandle::destroy);
-            } catch (Throwable ignored) {
-                // best-effort — fall through to destroy()
-            }
-            try {
-                p.destroy();
-            } catch (Throwable ignored) {
-                // best-effort
-            }
+    public void stop() {
+        stopAndWait();
+    }
+
+    /** Nonblocking to callers. Replacements must await this future off the EDT. */
+    public java.util.concurrent.CompletableFuture<Void> stopAndWait() {
+        synchronized (stopLock) {
+            stopped = true;
+            if (stopConfirmation != null && !stopConfirmation.isCompletedExceptionally())
+                return stopConfirmation;
+            java.util.concurrent.CompletableFuture<Void> completion = new java.util.concurrent.CompletableFuture<>();
+            stopConfirmation = completion;
+            Thread worker = new Thread(() -> {
+                try {
+                    final Process process;
+                    final ProcessTreeTermination tree;
+                    synchronized (lifecycleLock) { process = child; tree = termination; }
+                    if (process == null) { completion.complete(null); return; }
+                    // Kill before closing the writer: a blocked pipe send holds
+                    // the writer monitor and must not prevent termination.
+                    tree.await(opts.stopGraceMs, opts.stopTimeoutMs);
+                    try { process.getOutputStream().close(); } catch (IOException ignored) { /* closed */ }
+                    stdin = null;
+                    completion.complete(null);
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    completion.completeExceptionally(error);
+                } catch (Exception error) {
+                    completion.completeExceptionally(error);
+                }
+            }, "cc-chat-stop");
+            worker.setDaemon(true);
+            worker.start();
+            return completion;
         }
     }
 }

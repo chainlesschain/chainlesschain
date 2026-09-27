@@ -1,5 +1,49 @@
 [
   {
+    "name": "child-correlated effective permission mode acknowledgement",
+    "valid": true,
+    "value": {
+      "type": "system",
+      "subtype": "init",
+      "session_id": "session-mode-1",
+      "permission_mode_state": {
+        "correlation_id": "mode-1",
+        "requested": "bypassPermissions",
+        "effective": "default",
+        "policy_revision": "abcdef0123456789"
+      }
+    }
+  },
+  {
+    "name": "mode acknowledgement with missing policy revision",
+    "valid": false,
+    "value": {
+      "type": "system",
+      "subtype": "init",
+      "session_id": "session-mode-1",
+      "permission_mode_state": {
+        "correlation_id": "mode-1",
+        "requested": "default",
+        "effective": "default"
+      }
+    }
+  },
+  {
+    "name": "mode acknowledgement with an unknown effective mode",
+    "valid": false,
+    "value": {
+      "type": "system",
+      "subtype": "init",
+      "session_id": "session-mode-1",
+      "permission_mode_state": {
+        "correlation_id": "mode-1",
+        "requested": "default",
+        "effective": "unknown",
+        "policy_revision": "abcdef0123456789"
+      }
+    }
+  },
+  {
     "name": "compaction degradation payload",
     "valid": true,
     "value": {
@@ -184,12 +228,18 @@
   {
     "name": "context plan rejected payload",
     "valid": true,
-    "value": { "type": "context.plan.rejected", "reason_code": "context_over_budget" }
+    "value": {
+      "type": "context.plan.rejected",
+      "reason_code": "context_over_budget"
+    }
   },
   {
     "name": "context compaction started payload",
     "valid": true,
-    "value": { "type": "context.compaction.started", "operation_id": "compact-1" }
+    "value": {
+      "type": "context.compaction.started",
+      "operation_id": "compact-1"
+    }
   },
   {
     "name": "context compaction committed payload",
