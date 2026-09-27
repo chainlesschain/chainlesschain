@@ -156,6 +156,7 @@ final class ChatComposerDrafts {
             if (explicit && error == null) save();
         }));
     }
+    void copyQuestionText(String text) { restore(new ChatDraftStore.Content(text, List.of()), true); }
     void review() {
         if (busy.getAsBoolean()) return;
         ChatDraftTasks.submit(() -> store.load(conv.draftKey)).whenComplete((draft, error) -> SwingUtilities.invokeLater(() -> {
@@ -165,6 +166,8 @@ final class ChatComposerDrafts {
             choices.add("Restore saved composer"); choices.add("Discard saved composer");
             for (ChatDraftStore.Submission s : draft.submissions()) choices.add(s.id() + " · " + s.status() + " · "
                     + s.content().text().replace('\n', ' ').substring(0, Math.min(50, s.content().text().length())));
+            for (ChatDraftStore.Question q : draft.questions()) choices.add("Question · " + q.id() + " · " + q.status() + " · "
+                    + q.title().replace('\n', ' ').substring(0, Math.min(50, q.title().length())));
             String choice = ChoiceDialog.choose(project, "Saved inputs", "Acceptance confirms input storage, not task completion. Recovery never sends automatically.", choices, choices.get(0));
             if (disposed || choice == null) return;
             int index = choices.indexOf(choice);
@@ -173,6 +176,22 @@ final class ChatComposerDrafts {
                 restoring = true;
                 try { input.setText(""); images.clearAll(); } finally { restoring = false; }
                 revision++; conflict = false; badImages = false; loaded = true; save(); return;
+            }
+            if (index >= 2 + draft.submissions().size()) {
+                ChatDraftStore.Question selected = draft.questions().get(index - 2 - draft.submissions().size());
+                List<String> actions = List.of("Copy fields to composer", "Discard saved question");
+                String action = ChoiceDialog.choose(project, "Saved question", selected.title()
+                        + "\nSaved fields are editable text. They cannot approve or answer an old request.", actions, actions.get(0));
+                if (disposed || action == null || busy.getAsBoolean()) return;
+                if (action.equals("Copy fields to composer")) {
+                    restore(new ChatDraftStore.Content(selected.title() + (selected.text().isEmpty() ? "" : "\n" + selected.text()), List.of()), true);
+                } else {
+                    ChatDraftTasks.submit(() -> { store.discardQuestion(conv.draftKey, selected.id()); return null; })
+                            .whenComplete((ignored, failure) -> SwingUtilities.invokeLater(() -> {
+                                if (!disposed) { if (failure != null) showError(failure); else status.setText("Saved question discarded; an active form may save new edits"); }
+                            }));
+                }
+                return;
             }
             ChatDraftStore.Submission selected = draft.submissions().get(index - 2);
             List<String> actions = "accepted".equals(selected.status())

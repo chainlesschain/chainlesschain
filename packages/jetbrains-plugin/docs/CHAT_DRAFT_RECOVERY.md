@@ -63,10 +63,54 @@ exit during debounce or I/O is not guaranteed to preserve the last keystroke.
   power-loss durability or multi-process coordination between independent IDEs
   sharing the same configuration directory.
 
+## Question forms and response ownership
+
+Normal questions and supported MCP forms appear inline, so deferred questions do
+not block independent work in a modal dialog. Text, checkbox and select fields
+save after 250 ms. Recovery identity covers the session, request ID, complete
+interaction binding and question/schema content. After a host restart, fields
+are restored only when the CLI issues that exact bound request again. Legacy
+unbound questions retain edits within the same live request instance; their disk
+records are available only as text recovery. Restoration never submits an answer.
+
+Password and `writeOnly` fields are excluded from storage and copied recovery
+text. Unsupported schemas use an explicit JSON fallback whose contents are never
+saved. Ordinary answer text remains plaintext; the host does not detect every
+secret the user may enter. Supported fields keep their declared order, choices
+use collision-free keys, and coercion/validation occurs before submission.
+
+Answer and Cancel reserve the original request once, save its recoverable fields
+as archived, and then dispatch on the send worker to the original child and
+generation. Duplicate clicks cannot enqueue another answer. Only a matching
+`question_resolved` confirms resolution; pipe failures and explicit rejections
+remain unknown and are not retried. Storage failure before dispatch permits an
+explicit retry. Reused IDs with changed content cannot establish unambiguous
+resolution. URL actions use the captured URL, require explicit HTTPS confirmation,
+and recheck ownership after the confirmation dialog.
+
+Blocking requests archive when their turn ends; deferred requests survive turn
+completion. Stop, process replacement, exit and tab closure invalidate response
+authority immediately. Archived fields can be copied from **Saved inputs** into
+an empty composer or discarded there. Successful terminal saves remove the card;
+if storage fails, the form stays readable with **Copy fields** and retry controls.
+This protects in-memory edits while the tab remains open; closing or forcibly
+exiting while storage is failing cannot guarantee recovery.
+
+Each draft holds at most 16 question records, 128 fields, 32K characters per field,
+64 KiB of projected fields and 128 KiB per question record. Reaching the limit
+shows a save error; discard reviewed records under **Saved inputs** before retrying.
+At most 256 request identities are retained per child so replayed terminal
+requests cannot regain authority; restart the agent after that limit. Request
+hashing/snapshots are bounded by depth, node count and bytes. Metadata writes
+version 2 and reads versions 1/2; older hosts reject v2 instead of silently
+discarding question records. No approval decision is saved or replayed.
+
 JUnit covers real temporary files, snapshot recovery, changed/corrupt data,
 rename failure, quotas, delayed restore, close during startup, newer input during
 send, unknown/accepted transitions and attachment retention. Swing component
 tests run without a live IntelliJ project. Actual IDE restart/interaction,
 cross-platform host acceptance and accessibility listening remain outstanding.
-Question/elicitation form drafts and their request/schema binding are separate
-unfinished work; this store never saves or replays approvals.
+Additional question tests cover real disk persistence, migration, secret-field
+projection, duplicate dispatch, stale ownership, failed save/load retry, late
+restore, deferred turn completion and native Swing form validation. These remain
+local component/contract tests, not a real IDE lifecycle acceptance result.

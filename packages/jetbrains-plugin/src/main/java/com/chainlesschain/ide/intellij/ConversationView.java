@@ -10,7 +10,7 @@ import com.chainlesschain.ide.ContextStatus;
 import com.chainlesschain.ide.CliLauncher;
 import com.chainlesschain.ide.CliVersionCheck;
 import com.chainlesschain.ide.ConversationManager;
-import com.chainlesschain.ide.ElicitationSchema;
+import com.chainlesschain.ide.QuestionDraftRegistry;
 import com.chainlesschain.ide.IntrospectArgs;
 import com.chainlesschain.ide.IdeSessionIndex;
 import com.chainlesschain.ide.LlmConfig;
@@ -126,6 +126,8 @@ final class ConversationView {
     // Attached images (paste + drag-drop + 📷 indicator) — see ChatComposerImages.
     private final ChatComposerImages images = new ChatComposerImages(input);
     private final ChatComposerDrafts drafts;
+    private final QuestionDraftRegistry questions;
+    private final Map<QuestionDraftRegistry.Entry, QuestionFormView> questionCards = new LinkedHashMap<>();
     private volatile java.util.concurrent.CompletableFuture<Boolean> receiptSupport;
     // `/` and `@` completion popups — see ChatMentionPopups (needs `project`; ctor-assigned).
     private final ChatMentionPopups popups;
@@ -221,6 +223,8 @@ final class ConversationView {
         if (conv.sessionId == null || conv.sessionId.isEmpty()) conv.sessionId = SessionArgs.newPanelSessionId();
         this.drafts = new ChatComposerDrafts(project, conv, draftStore, input, images,
                 () -> sendInFlight, this::liveSession, this::append);
+        this.questions = new QuestionDraftRegistry(draftStore, conv.draftKey);
+        questions.onChange(() -> SwingUtilities.invokeLater(this::refreshQuestions));
         this.popups = new ChatMentionPopups(project, input);
         if (conv.turnState == null) conv.turnState = new ChatEvents.TurnState();
 
@@ -308,7 +312,15 @@ final class ConversationView {
         inputArea.add(south, BorderLayout.CENTER);
 
         JPanel southWrap = new JPanel(new BorderLayout(0, 2));
-        southWrap.add(cardsPanel, BorderLayout.NORTH);   // §5 interactive cards above input
+        JScrollPane cardsScroll = new JScrollPane(cardsPanel) {
+            @Override public java.awt.Dimension getPreferredSize() {
+                java.awt.Dimension size = super.getPreferredSize();
+                size.height = Math.min(320, size.height); return size;
+            }
+        };
+        cardsScroll.setBorder(BorderFactory.createEmptyBorder());
+        cardsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        southWrap.add(cardsScroll, BorderLayout.NORTH); // Keep the composer reachable with several deferred questions.
         southWrap.add(inputArea, BorderLayout.CENTER);
         root.add(southWrap, BorderLayout.SOUTH);
 
@@ -333,6 +345,7 @@ final class ConversationView {
                 return;
             }
             List<String> reservedApprovals = approvalSettlements.beginInterrupt();
+            questions.cancelAll("Stop requested; saved answers require review");
             for (String id : reservedApprovals) setApprovalCardEnabled(id, false);
             interruptRequested = s;
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -1719,6 +1732,7 @@ final class ConversationView {
         if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
         final long revision = conv.modeState.request(conv.mode);
         sessionGeneration = null;
+        questions.detach("Agent settings changed; saved answers require review");
         // Initiate termination outside the send queue: a blocked stdin writer
         // must not prevent the independent stop worker from killing the child.
         AgentChatSession prior = liveSession();
@@ -1757,6 +1771,7 @@ final class ConversationView {
     private void stopCurrentSession(long revision) throws IOException {
         AgentChatSession session = liveSession();
         sessionGeneration = null;
+        questions.detach("Agent stopped; saved answers require review");
         try {
             if (session != null) session.stopAndWait().get(8, java.util.concurrent.TimeUnit.SECONDS);
             if (conv.session == session) conv.session = null;
@@ -1919,8 +1934,8 @@ final class ConversationView {
             o.extraEnv.put("CHAINLESSCHAIN_JETBRAINS_MCP_URL", jbMcpUrl);
         }
         com.chainlesschain.ide.JetbrainsMcpLocator.refreshAsync();
-        // Opt into the ask_user_question round-trip: the agent's questions pop a
-        // dialog here (an old `cc` ignores the env var → graceful degrade).
+        // Opt into the ask_user_question round-trip: questions render as inline
+        // forms here (an old CLI ignores the env var and keeps its fallback).
         o.extraEnv.put("CC_INTERACTIVE_QUESTIONS", "1");
         o.extraEnv.put("CC_TASK_WORKLOG", "1");
         worklogSource = PropertiesComponent.getInstance(project).getValue("chainlesschain.worklog." + conv.sessionId);
@@ -2020,6 +2035,15 @@ final class ConversationView {
                         planReviewTurn, ((Number) event.get("turn")).intValue());
             }
             if (handleApprovalGrantCommandEvent(event)) return;
+            if (event != null && ("question_resolved".equals(event.get("type")) || "question_response_rejected".equals(event.get("type")))) {
+                final AgentChatSession questionOwner = liveSession();
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (disposed || sessionGeneration != generation) return;
+                    questions.event(questionOwner, generation, String.valueOf(event.get("session_id")),
+                            String.valueOf(event.get("id")), "question_resolved".equals(event.get("type")),
+                            String.valueOf(event.get("reason")));
+                });
+            }
             if (event != null && "system".equals(event.get("type")) && "input_accepted".equals(event.get("subtype"))
                     && java.util.Objects.equals(conv.sessionId, event.get("session_id"))
                     && event.get("client_message_id") instanceof String clientId && event.get("receipt") instanceof Map<?, ?> receipt) {
@@ -2039,6 +2063,7 @@ final class ConversationView {
         {
             capabilities.completeExceptionally(new IOException("Agent exited before input acknowledgement"));
             if (disposed || sessionGeneration != generation) return;
+            questions.detach("Agent exited; saved answers require review");
             conv.modeState.exited(generation, code);
             refreshModeStatus();
             try {
@@ -2060,6 +2085,7 @@ final class ConversationView {
 
         AgentChatSession session = new AgentChatSession(o);
         conv.session = session;
+        questions.bind(session, generation, conv.sessionId);
         session.start();
         if (!o.canDispatch.getAsBoolean()) {
             session.stopAndWait();
@@ -2125,6 +2151,7 @@ final class ConversationView {
         } else if ("turn_end".equals(kind)) {
             AgentChatSession session = liveSession();
             turnActive = session != null && session.hasPendingTurns();
+            questions.turnEnded();
             invalidateApprovalCards();
             indexConversation("completed");
             Object text = ui.get("text");
@@ -2165,8 +2192,7 @@ final class ConversationView {
                     "permission-done:" + ui.get("id"));
         } else if ("question".equals(kind)) {
             indexConversation("waiting_approval");
-            if (Boolean.TRUE.equals(ui.get("elicitation"))) askElicitation(ui);
-            else askQuestion(ui); // ask_user_question round-trip → dialog → {type:answer}
+            showQuestion(ui);
         } else if ("info".equals(kind) || "error".equals(kind)) {
             if ("error".equals(kind)) indexConversation("errored");
             Object text = ui.get("text");
@@ -2192,258 +2218,65 @@ final class ConversationView {
     private static final Color WARN = new com.intellij.ui.JBColor(
             new Color(0xCC, 0x88, 0x00), new Color(0xE0, 0xA5, 0x2E));
 
-    /** ask_user_question round-trip: the agent is BLOCKED on the user. Pop a
-     *  dialog (single-choice / multi-choice / free-text) and reply
-     *  {type:"answer",id,answer}. Cancel → null answer (CLI maps to user_timeout,
-     *  the model proceeds). Runs on the EDT (render() is invoked via invokeLater),
-     *  and the modal dialog spins its own event loop so nothing deadlocks. */
-    private void askQuestion(Map<String, Object> ui) {
-        String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
-        if (id.isEmpty()) return;
-        String question = ui.get("question") == null || String.valueOf(ui.get("question")).isEmpty()
-                ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
-        java.util.List<String> labels = new java.util.ArrayList<>();
-        Object optsO = ui.get("options");
-        if (optsO instanceof java.util.List) {
-            for (Object o : (java.util.List<?>) optsO) {
-                if (o instanceof Map) {
-                    Object lbl = ((Map<?, ?>) o).get("label");
-                    labels.add(String.valueOf(lbl != null ? lbl : o));
-                } else {
-                    labels.add(String.valueOf(o));
-                }
-            }
-        }
-        boolean multi = Boolean.TRUE.equals(ui.get("multiSelect"));
-        Object answer; // String | List<String> | null
-        if (labels.isEmpty()) {
-            answer = com.intellij.openapi.ui.Messages.showInputDialog(
-                    project, question, "ChainlessChain", null);
-        } else if (!multi) {
-            answer = showSingleSelectQuestion(question, labels);
-        } else {
-            answer = showMultiSelectQuestion(question, labels);
-        }
-        Map<String, Object> ev = new LinkedHashMap<>();
-        ev.put("type", "answer");
-        ev.put("id", id);
-        ev.put("answer", answer);
-        if (ui.get("binding") instanceof Map) {
-            ev.put("binding", ui.get("binding"));
-        }
-        queueSessionEvent(ev);
-    }
-
-    /**
-     * MCP elicitation round-trip: render the restricted MCP form vocabulary as
-     * a native form and validate/coerce it with the shared conformance model.
-     * Unsupported (for example nested) schemas stay on an explicit raw-JSON
-     * fallback instead of being silently flattened.
-     */
-    @SuppressWarnings("unchecked")
-    private void askElicitation(Map<String, Object> ui) {
-        String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id"));
-        if (id.isEmpty()) return;
-        String question = ui.get("question") == null ? CcBundle.message("chat.question.title") : String.valueOf(ui.get("question"));
-        if ("url".equals(String.valueOf(ui.get("mode")))) {
-            askUrlElicitation(ui, id, question);
-            return;
-        }
-        Object schemaO = ui.get("requestedSchema");
-        ElicitationSchema.Model model = ElicitationSchema.compile(schemaO);
-        String title = String.valueOf(ui.get("server") == null
-                ? "MCP elicitation" : "MCP: " + ui.get("server"));
-        if (!model.supported) {
-            Object answer = askRawElicitation(question, title);
-            sendElicitationAnswer(id, answer, ui.get("binding"));
-            return;
-        }
-
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.add(new JLabel("<html>" + question + "</html>"));
-        if (model.fields.isEmpty()) {
-            panel.add(new JLabel("No fields are required."));
-        }
-        Map<String, java.util.function.Supplier<Object>> readers =
-                new LinkedHashMap<>();
-        Map<String, Object> initial = ElicitationSchema.initialValues(model);
-        for (ElicitationSchema.Field field : model.fields) {
-            JPanel row = new JPanel(new java.awt.BorderLayout(8, 0));
-            JPanel caption = new JPanel();
-            caption.setLayout(new BoxLayout(caption, BoxLayout.Y_AXIS));
-            caption.add(new JLabel(field.title + (field.required ? " *" : "")));
-            if (!field.description.isEmpty()) {
-                JLabel description = new JLabel(field.description);
-                description.setForeground(java.awt.Color.GRAY);
-                caption.add(description);
-            }
-            row.add(caption, java.awt.BorderLayout.WEST);
-            javax.swing.JComponent component;
-            if (field.kind == ElicitationSchema.Kind.SINGLE_SELECT) {
-                javax.swing.JComboBox<ElicitationSchema.Option> combo =
-                        new javax.swing.JComboBox<>();
-                if (!field.required && !field.hasDefault) {
-                    combo.addItem(new ElicitationSchema.Option("", "—"));
-                }
-                for (ElicitationSchema.Option option : field.options) {
-                    combo.addItem(option);
-                    if (option.value.equals(initial.get(field.name))) {
-                        combo.setSelectedItem(option);
-                    }
-                }
-                component = combo;
-                readers.put(field.name, () -> {
-                    Object selected = combo.getSelectedItem();
-                    return selected instanceof ElicitationSchema.Option
-                            ? ((ElicitationSchema.Option) selected).value : "";
-                });
-            } else if (field.kind == ElicitationSchema.Kind.MULTI_SELECT) {
-                JPanel choices = new JPanel();
-                choices.setLayout(new BoxLayout(choices, BoxLayout.Y_AXIS));
-                List<javax.swing.JCheckBox> boxes = new ArrayList<>();
-                java.util.Set<?> selected = initial.get(field.name) instanceof List
-                        ? new java.util.HashSet<>((List<?>) initial.get(field.name))
-                        : java.util.Set.of();
-                for (ElicitationSchema.Option option : field.options) {
-                    javax.swing.JCheckBox box =
-                            new javax.swing.JCheckBox(option.label);
-                    box.setSelected(selected.contains(option.value));
-                    box.putClientProperty("elicitationValue", option.value);
-                    boxes.add(box);
-                    choices.add(box);
-                }
-                component = choices;
-                readers.put(field.name, () -> {
-                    List<String> values = new ArrayList<>();
-                    for (javax.swing.JCheckBox box : boxes) {
-                        if (box.isSelected()) {
-                            values.add(String.valueOf(
-                                    box.getClientProperty("elicitationValue")));
-                        }
-                    }
-                    return values;
-                });
-            } else if (field.kind == ElicitationSchema.Kind.BOOLEAN) {
-                javax.swing.JCheckBox checkbox = new javax.swing.JCheckBox();
-                checkbox.setSelected(Boolean.TRUE.equals(initial.get(field.name)));
-                component = checkbox;
-                readers.put(field.name, checkbox::isSelected);
-            } else {
-                javax.swing.JTextField input = new javax.swing.JTextField();
-                if (initial.get(field.name) != null) {
-                    input.setText(String.valueOf(initial.get(field.name)));
-                }
-                if (field.minimum != null) {
-                    input.setToolTipText("Minimum: " + field.minimum);
-                }
-                if (field.maximum != null) {
-                    input.setToolTipText("Maximum: " + field.maximum);
-                }
-                component = input;
-                readers.put(field.name, input::getText);
-            }
-            row.add(component, java.awt.BorderLayout.CENTER);
-            panel.add(row);
-        }
-
-        Object answer = null;
-        while (true) {
-            com.intellij.openapi.ui.DialogBuilder builder =
-                    new com.intellij.openapi.ui.DialogBuilder(project);
-            builder.setTitle(title);
-            builder.setCenterPanel(panel);
-            builder.addOkAction();
-            builder.addCancelAction();
-            if (builder.show()
-                    != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) {
-                break;
-            }
-            Map<String, Object> raw = new LinkedHashMap<>();
-            for (Map.Entry<String, java.util.function.Supplier<Object>> entry
-                    : readers.entrySet()) {
-                raw.put(entry.getKey(), entry.getValue().get());
-            }
-            ElicitationSchema.Submission submission =
-                    ElicitationSchema.prepare(model, raw);
-            if (submission.valid) {
-                answer = submission.value;
-                break;
-            }
-            StringBuilder problem = new StringBuilder();
-            for (ElicitationSchema.Issue issue : submission.errors) {
-                if (problem.length() > 0) problem.append("\n");
-                problem.append("• ").append(issue.message);
-            }
-            com.intellij.openapi.ui.Messages.showErrorDialog(
-                    project, problem.toString(), "Invalid MCP input");
-        }
-        sendElicitationAnswer(id, answer, ui.get("binding"));
-    }
-
-    private void askUrlElicitation(
-            Map<String, Object> ui, String id, String question) {
-        Object answer = null;
+    private void showQuestion(Map<String, Object> ui) {
         try {
-            URI target = URI.create(String.valueOf(ui.get("url")));
-            if (!"https".equalsIgnoreCase(target.getScheme())
-                    || target.getHost() == null
-                    || target.getUserInfo() != null) {
+            QuestionDraftRegistry.Entry entry = questions.open(ui);
+            if (questionCards.containsKey(entry) || !questions.editable(entry)) return;
+            if (questionCards.size() >= 256) throw new IOException("Review and dismiss saved question cards before opening more");
+            QuestionFormView form = new QuestionFormView(questions, entry,
+                    event -> sendQuestion(entry, event), () -> openQuestionUrl(entry), drafts::copyQuestionText,
+                    () -> {
+                        QuestionFormView dismissed = questionCards.remove(entry);
+                        if (dismissed != null) { dismissed.dispose(); cardsPanel.remove(dismissed.component()); cardsPanel.revalidate(); cardsPanel.repaint(); }
+                    });
+            questionCards.put(entry, form); cardsPanel.add(form.component());
+            cardsPanel.revalidate(); cardsPanel.repaint();
+            transcript.announce("Agent question", String.valueOf(ui.get("question")), "question:" + ui.get("id"));
+        } catch (IOException error) { append("⚠ Cannot display question: " + error.getMessage() + "\n"); }
+    }
+
+    private void refreshQuestions() {
+        if (disposed) return;
+        questionCards.entrySet().removeIf(item -> {
+            var state = questions.view(item.getKey()).state();
+            if ((state == QuestionDraftRegistry.State.ARCHIVED || state == QuestionDraftRegistry.State.RESOLVED)
+                    && item.getValue().safelyStored()) {
+                item.getValue().dispose(); cardsPanel.remove(item.getValue().component()); return true;
+            }
+            item.getValue().refresh(); return false;
+        });
+        cardsPanel.revalidate(); cardsPanel.repaint();
+    }
+
+    private void sendQuestion(QuestionDraftRegistry.Entry entry, Map<String, Object> event) {
+        try {
+            sendExecutor.execute(() -> {
+                if (disposed || liveSession() != entry.owner() || sessionGeneration != entry.generation()
+                        || !questions.claim(entry)) { questions.deliveryFailed(entry); return; }
+                try {
+                    if (!((AgentChatSession) entry.owner()).sendEvent(event)) questions.deliveryFailed(entry);
+                } catch (RuntimeException error) { questions.deliveryFailed(entry); }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException error) { questions.deliveryFailed(entry); }
+    }
+
+    private boolean openQuestionUrl(QuestionDraftRegistry.Entry entry) {
+        if (!questions.editable(entry)) return false;
+        try {
+            URI target = URI.create(String.valueOf(entry.request().get("url")));
+            if (!"https".equalsIgnoreCase(target.getScheme()) || target.getHost() == null || target.getUserInfo() != null)
                 throw new IllegalArgumentException("unsafe URL");
-            }
-            String server = String.valueOf(
-                    ui.get("server") == null ? "MCP server" : ui.get("server"));
-            int choice = com.intellij.openapi.ui.Messages.showYesNoDialog(
-                    project,
-                    question + "\n\nServer: " + server
-                            + "\nHost: " + target.getAuthority()
-                            + "\nURL: " + target,
-                    "MCP External Action",
-                    "Open Secure Page",
-                    "Cancel",
-                    null);
-            if (choice == com.intellij.openapi.ui.Messages.YES) {
-                BrowserUtil.browse(target.toString());
-                answer = new LinkedHashMap<String, Object>();
-            }
+            int choice = com.intellij.openapi.ui.Messages.showYesNoDialog(project,
+                    "Server: " + String.valueOf(entry.request().get("server")) + "\nHost: " + target.getAuthority() + "\nURL: " + target,
+                    "MCP External Action", "Open Secure Page", "Cancel", null);
+            if (choice != com.intellij.openapi.ui.Messages.YES || !questions.editable(entry)
+                    || liveSession() != entry.owner() || sessionGeneration != entry.generation()) return false;
+            BrowserUtil.browse(target.toString());
+            return questions.editable(entry);
         } catch (IllegalArgumentException error) {
-            com.intellij.openapi.ui.Messages.showErrorDialog(
-                    project,
-                    "The MCP server supplied an unsafe URL.",
-                    "Invalid MCP Elicitation URL");
+            com.intellij.openapi.ui.Messages.showErrorDialog(project, "The MCP server supplied an unsafe URL.", "Invalid MCP Elicitation URL");
+            return false;
         }
-        sendElicitationAnswer(id, answer, ui.get("binding"));
-    }
-
-    private Object askRawElicitation(String question, String title) {
-        while (true) {
-            String raw = com.intellij.openapi.ui.Messages.showInputDialog(
-                    project,
-                    question + "\nEnter a JSON object (unsupported schema fallback).",
-                    title,
-                    null);
-            if (raw == null) return null;
-            try {
-                Object parsed = com.chainlesschain.ide.MiniJson.parse(raw);
-                if (parsed instanceof Map) return parsed;
-            } catch (IllegalArgumentException ignored) {
-                // The error dialog below gives the user another attempt.
-            }
-            com.intellij.openapi.ui.Messages.showErrorDialog(
-                    project, "Enter a valid JSON object.", "Invalid MCP input");
-        }
-    }
-
-    private void sendElicitationAnswer(
-            String id, Object answer, Object binding) {
-        Map<String, Object> ev = new LinkedHashMap<>();
-        ev.put("type", "answer");
-        ev.put("id", id);
-        ev.put("answer", answer);
-        if (binding instanceof Map) {
-            ev.put("binding", binding);
-        }
-        queueSessionEvent(ev);
     }
 
     /**
@@ -2481,50 +2314,6 @@ final class ConversationView {
             // executor already shut down (dispose in progress) — child is gone too
             if (completion != null) SwingUtilities.invokeLater(() -> completion.accept(false));
         }
-    }
-
-    /** Single-select question → a combo-box dialog (non-deprecated; replaces
-     *  Messages.showChooseDialog). Returns the chosen label, or null if cancelled. */
-    private String showSingleSelectQuestion(String question, java.util.List<String> labels) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.add(new JLabel("<html>" + question + "</html>"));
-        javax.swing.JComboBox<String> combo =
-                new javax.swing.JComboBox<>(labels.toArray(new String[0]));
-        panel.add(combo);
-        com.intellij.openapi.ui.DialogBuilder b = new com.intellij.openapi.ui.DialogBuilder(project);
-        b.setTitle("ChainlessChain");
-        b.setCenterPanel(panel);
-        b.addOkAction();
-        b.addCancelAction();
-        if (b.show() != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) return null;
-        Object sel = combo.getSelectedItem();
-        return sel == null ? null : String.valueOf(sel);
-    }
-
-    /** Multi-select question → a checkbox dialog. Returns the chosen labels, or
-     *  null if cancelled (→ the agent proceeds without an answer). */
-    private java.util.List<String> showMultiSelectQuestion(String question, java.util.List<String> labels) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.add(new JLabel("<html>" + question + "</html>"));
-        java.util.List<javax.swing.JCheckBox> boxes = new java.util.ArrayList<>();
-        for (String l : labels) {
-            javax.swing.JCheckBox cb = new javax.swing.JCheckBox(l);
-            boxes.add(cb);
-            panel.add(cb);
-        }
-        com.intellij.openapi.ui.DialogBuilder b = new com.intellij.openapi.ui.DialogBuilder(project);
-        b.setTitle("ChainlessChain");
-        b.setCenterPanel(panel);
-        b.addOkAction();
-        b.addCancelAction();
-        if (b.show() != com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE) return null;
-        java.util.List<String> sel = new java.util.ArrayList<>();
-        for (int i = 0; i < boxes.size(); i++) {
-            if (boxes.get(i).isSelected()) sel.add(labels.get(i));
-        }
-        return sel;
     }
 
     /** Tool-permission approval card → sends a canonical structured decision. */
@@ -3242,6 +3031,10 @@ final class ConversationView {
     }
 
     void dispose() {
+        questions.detach("Conversation closed; saved answers require review");
+        questions.onChange(() -> {});
+        questionCards.values().forEach(QuestionFormView::dispose);
+        questionCards.clear();
         drafts.dispose();
         if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
         cancelWorklogHandoff();

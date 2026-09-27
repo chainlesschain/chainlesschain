@@ -25,7 +25,9 @@ public class ChatDraftStore {
     public record Content(String text, List<Attachment> images) {}
     public record Submission(String id, String sessionId, Content content, String status,
             String inputDigest, String worklogSessionId, String eventHash) {}
-    public record Draft(String key, String sessionId, Content composer, List<Submission> submissions) {}
+    public record Question(String id, String digest, String sessionId, String requestId,
+            String title, Map<String, Object> fields, String text, String status) {}
+    public record Draft(String key, String sessionId, Content composer, List<Submission> submissions, List<Question> questions) {}
     public record Prepared(Submission submission, List<String> paths) {}
 
     public ChatDraftStore(Path root) {
@@ -39,6 +41,7 @@ public class ChatDraftStore {
         catch (java.security.NoSuchAlgorithmException error) { throw new IllegalStateException(error); }
     }
     private static Content empty() { return new Content("", List.of()); }
+    private static Draft emptyDraft(String key) { return new Draft(key, null, empty(), List.of(), List.of()); }
     private Path directory(String key) throws IOException {
         if (!validKey(key)) throw new IOException("Invalid draft identity");
         return root.resolve(key);
@@ -104,14 +107,14 @@ public class ChatDraftStore {
     public Draft load(String key) throws IOException {
         synchronized (lock) {
             Path dir = directory(key), file = dir.resolve("draft.json");
-            if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) return new Draft(key, null, empty(), List.of());
+            if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) return emptyDraft(key);
             plainDirectory(root);
-            if (!Files.exists(dir, LinkOption.NOFOLLOW_LINKS)) return new Draft(key, null, empty(), List.of());
+            if (!Files.exists(dir, LinkOption.NOFOLLOW_LINKS)) return emptyDraft(key);
             plainDirectory(dir);
-            if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) return new Draft(key, null, empty(), List.of());
+            if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) return emptyDraft(key);
             try {
                 Map<String, Object> map = MiniJson.parseObject(new String(readBounded(file, MAX_RECORD), StandardCharsets.UTF_8));
-                if (!(map.get("version") instanceof Number n) || n.doubleValue() != 1 || !key.equals(map.get("key")))
+                if (!(map.get("version") instanceof Number n) || (n.doubleValue() != 1 && n.doubleValue() != 2) || !key.equals(map.get("key")))
                     throw new IOException("Unsupported saved draft");
                 if (!(map.get("submissions") instanceof List<?> pending) || pending.size() > 8)
                     throw new IOException("Invalid saved inputs");
@@ -131,13 +134,47 @@ public class ChatDraftStore {
                     submissions.add(new Submission(id, sid, content(item.get("content")), status, digest,
                             session(item.get("worklogSessionId")), eventHash));
                 }
-                return new Draft(key, session(map.get("sessionId")), content(map.get("composer")), List.copyOf(submissions));
+                Object rawQuestions = map.getOrDefault("questions", List.of());
+                if (!(rawQuestions instanceof List<?> questions) || questions.size() > 16) throw new IOException("Invalid question draft list");
+                List<Question> saved = new ArrayList<>(); Set<String> questionIds = new HashSet<>();
+                for (Object raw : questions) {
+                    Question question = question(raw);
+                    if (!questionIds.add(question.id())) throw new IOException("Repeated question draft identity");
+                    saved.add(question);
+                }
+                return new Draft(key, session(map.get("sessionId")), content(map.get("composer")), List.copyOf(submissions), List.copyOf(saved));
             } catch (IllegalArgumentException error) { throw new IOException("Saved draft is unreadable; it was not overwritten", error); }
         }
     }
     private static Map<String, Object> encode(Content content) {
         return Map.of("text", content.text(), "images", content.images().stream()
                 .map(a -> Map.of("file", a.file(), "bytes", a.bytes(), "hash", a.hash())).toList());
+    }
+    private static Map<String, Object> encode(Question q) {
+        return Map.of("id", q.id(), "digest", q.digest(), "sessionId", q.sessionId(), "requestId", q.requestId(),
+                "title", q.title(), "fields", q.fields(), "text", q.text(), "status", q.status());
+    }
+    private static Question question(Object raw) throws IOException {
+        Map<?, ?> map = object(raw);
+        String id = string(map.get("id")), digest = string(map.get("digest")), sid = session(map.get("sessionId"));
+        String requestId = string(map.get("requestId")), title = string(map.get("title"));
+        String text = string(map.get("text")), status = string(map.get("status"));
+        if (!validKey(id) || !digest.matches("[a-f0-9]{64}") || sid == null || requestId.isEmpty() || requestId.length() > 1024
+                || title.length() > 1024 || text.length() > 65536 || !Set.of("draft", "archived").contains(status))
+            throw new IOException("Invalid question draft identity");
+        Map<?, ?> source = object(map.get("fields"));
+        if (source.size() > 128) throw new IOException("Question draft exceeds 128 fields");
+        Map<String, Object> fields = new LinkedHashMap<>();
+        for (var field : source.entrySet()) {
+            String key = string(field.getKey()); Object value = field.getValue();
+            if (key.length() > 8192 || (!(value instanceof Boolean) && !(value instanceof String))
+                    || (value instanceof String s && s.length() > 32768)) throw new IOException("Invalid question draft value");
+            fields.put(key, value);
+        }
+        if (MiniJson.stringify(fields).getBytes(StandardCharsets.UTF_8).length > 65536
+                || MiniJson.stringify(raw).getBytes(StandardCharsets.UTF_8).length > 128 * 1024)
+            throw new IOException("Question draft exceeds its storage budget");
+        return new Question(id, digest, sid, requestId, title, Collections.unmodifiableMap(fields), text, status);
     }
     private long usage() throws IOException {
         long bytes = 0;
@@ -187,8 +224,9 @@ public class ChatDraftStore {
             submissions.add(item);
         }
         Map<String, Object> record = new LinkedHashMap<>();
-        record.put("version", 1); record.put("key", draft.key()); record.put("sessionId", draft.sessionId());
+        record.put("version", 2); record.put("key", draft.key()); record.put("sessionId", draft.sessionId());
         record.put("composer", encode(draft.composer())); record.put("submissions", submissions);
+        record.put("questions", draft.questions().stream().map(ChatDraftStore::encode).toList());
         byte[] bytes = MiniJson.stringify(record).getBytes(StandardCharsets.UTF_8);
         if (bytes.length > MAX_RECORD || usage() + bytes.length > MAX_STORAGE)
             throw new IOException("Draft storage exceeds its 100 MiB or record limit");
@@ -196,7 +234,7 @@ public class ChatDraftStore {
         // Metadata is committed. Cleanup failure must not roll back referenced images.
         try {
             cleanup(draft);
-            if (draft.composer().text().isEmpty() && draft.composer().images().isEmpty() && draft.submissions().isEmpty()) {
+            if (draft.composer().text().isEmpty() && draft.composer().images().isEmpty() && draft.submissions().isEmpty() && draft.questions().isEmpty()) {
                 Files.deleteIfExists(dir.resolve("draft.json"));
                 Files.deleteIfExists(dir);
             }
@@ -262,7 +300,7 @@ public class ChatDraftStore {
         synchronized (lock) {
             Draft before = load(key);
             try {
-                Draft after = new Draft(key, session(sessionId), snapshot(key, text, images), before.submissions());
+                Draft after = new Draft(key, session(sessionId), snapshot(key, text, images), before.submissions(), before.questions());
                 write(after); return after;
             } catch (IOException error) { try { cleanup(before); } catch (IOException ignored) { } throw error; }
         }
@@ -272,7 +310,7 @@ public class ChatDraftStore {
         synchronized (lock) {
             if (text == null || text.length() > MAX_TEXT) throw new IOException("Draft exceeds 100,000 characters");
             Draft before = load(key);
-            Draft after = new Draft(key, session(sessionId), new Content(text, before.composer().images()), before.submissions());
+            Draft after = new Draft(key, session(sessionId), new Content(text, before.composer().images()), before.submissions(), before.questions());
             write(after); return after;
         }
     }
@@ -291,7 +329,7 @@ public class ChatDraftStore {
                 Submission input = new Submission(newKey(), sessionId, content, "prepared",
                         hash(MiniJson.stringify(submitted).getBytes(StandardCharsets.UTF_8)), worklog, null);
                 List<Submission> next = new ArrayList<>(before.submissions()); next.add(input);
-                write(new Draft(key, sessionId, empty(), List.copyOf(next)));
+                write(new Draft(key, sessionId, empty(), List.copyOf(next), before.questions()));
                 return new Prepared(input, paths);
             } catch (IOException error) { try { cleanup(before); } catch (IOException ignored) { } throw error; }
         }
@@ -319,7 +357,7 @@ public class ChatDraftStore {
                         receipt == null ? input.inputDigest() : (String) receipt.get("inputDigest"), input.worklogSessionId(), eventHash));
             }
             if (!found) throw new IOException("Saved submission is missing");
-            write(new Draft(key, before.sessionId(), before.composer(), List.copyOf(next)));
+            write(new Draft(key, before.sessionId(), before.composer(), List.copyOf(next), before.questions()));
         }
     }
     /** Caller must ensure no in-flight turn still consumes these attachments. */
@@ -328,14 +366,14 @@ public class ChatDraftStore {
             Draft before = load(key);
             if (before.submissions().stream().noneMatch(s -> "accepted".equals(s.status()))) return;
             write(new Draft(key, before.sessionId(), before.composer(), before.submissions().stream()
-                    .filter(s -> !"accepted".equals(s.status())).toList()));
+                    .filter(s -> !"accepted".equals(s.status())).toList(), before.questions()));
         }
     }
     /** Caller must ensure no in-flight turn still consumes these attachments. */
     public void discardSubmission(String key, String id) throws IOException {
         synchronized (lock) {
             Draft before = load(key);
-            write(new Draft(key, before.sessionId(), before.composer(), before.submissions().stream().filter(s -> !s.id().equals(id)).toList()));
+            write(new Draft(key, before.sessionId(), before.composer(), before.submissions().stream().filter(s -> !s.id().equals(id)).toList(), before.questions()));
         }
     }
     public List<Draft> list() throws IOException {
@@ -346,10 +384,34 @@ public class ChatDraftStore {
             try (DirectoryStream<Path> entries = Files.newDirectoryStream(root)) {
                 for (Path path : entries) if (validKey(path.getFileName().toString())) {
                     Draft draft = load(path.getFileName().toString());
-                    if (!draft.composer().text().isEmpty() || !draft.composer().images().isEmpty() || !draft.submissions().isEmpty()) result.add(draft);
+                    if (!draft.composer().text().isEmpty() || !draft.composer().images().isEmpty() || !draft.submissions().isEmpty() || !draft.questions().isEmpty()) result.add(draft);
                 }
             }
             return List.copyOf(result);
+        }
+    }
+    public void saveQuestion(String key, Question candidate) throws IOException {
+        synchronized (lock) {
+            Question valid = question(encode(candidate));
+            Draft before = load(key);
+            List<Question> next = new ArrayList<>(before.questions());
+            for (Question prior : before.questions()) if (prior.id().equals(valid.id())) {
+                if (!prior.digest().equals(valid.digest()) || !prior.sessionId().equals(valid.sessionId()) || !prior.requestId().equals(valid.requestId()))
+                    throw new IOException("Question draft identity changed");
+                next.remove(prior);
+                if (prior.status().equals("archived")) valid = new Question(valid.id(), valid.digest(), valid.sessionId(), valid.requestId(),
+                        valid.title(), valid.fields(), valid.text(), "archived");
+            }
+            if (next.size() >= 16) throw new IOException("Review and discard saved question drafts before saving more (limit 16)");
+            next.add(valid);
+            write(new Draft(key, before.sessionId() == null ? valid.sessionId() : before.sessionId(), before.composer(), before.submissions(), List.copyOf(next)));
+        }
+    }
+    public void discardQuestion(String key, String id) throws IOException {
+        synchronized (lock) {
+            Draft before = load(key);
+            write(new Draft(key, before.sessionId(), before.composer(), before.submissions(),
+                    before.questions().stream().filter(q -> !q.id().equals(id)).toList()));
         }
     }
 }

@@ -373,14 +373,16 @@ public final class ChatEvents {
             return m;
         }
         if (type == AgentStreamEventType.QUESTION_REQUEST) {
-            // ask_user_question round-trip (CC_INTERACTIVE_QUESTIONS): the agent is
-            // BLOCKED on the user. ConversationView pops a dialog and replies
-            // {type:"answer",id,answer}.
+            // Preserve lifecycle fields for blocking/deferred native question forms.
             Map<String, Object> m = ui("question");
             m.put("id", evt.get("id"));
+            m.put("sessionId", evt.get("session_id"));
             m.put("question", str(evt, "question", ""));
             m.put("options", evt.get("options") instanceof List ? evt.get("options") : null);
             m.put("multiSelect", isTrue(evt.get("multiSelect")));
+            for (String key : List.of("mode", "blocking", "purpose", "contextRevision")) {
+                if (evt.containsKey(key)) m.put(key, evt.get(key));
+            }
             if (evt.get("binding") instanceof Map) {
                 m.put("binding", evt.get("binding"));
             }
@@ -390,7 +392,7 @@ public final class ChatEvents {
                 m.put("elicitation", "mcp_elicitation".equals(String.valueOf(meta.get("kind"))));
                 m.put("server", meta.get("server"));
                 m.put("requestedSchema", meta.get("requestedSchema"));
-                m.put("mode", meta.get("mode") == null ? "form" : meta.get("mode"));
+                if (Boolean.TRUE.equals(m.get("elicitation"))) m.put("mode", meta.get("mode") == null ? "form" : meta.get("mode"));
                 m.put("elicitationId", meta.get("elicitationId"));
                 m.put("url", meta.get("url"));
                 m.put("urlHost", meta.get("urlHost"));
