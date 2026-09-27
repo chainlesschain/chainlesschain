@@ -538,6 +538,17 @@ function finish(turn, result, extra = {}) {
   acceptedInputs.delete(turn);
 }
 
+// Binary discovery must not initialize storage or contend for Windows ACLs.
+if (argv.includes("--version")) {
+  trace({
+    direction: "command",
+    command: "version",
+    canonicalStorageInitialized: false,
+  });
+  process.stdout.write("0.999.0-ui-journey\n");
+  await exitAfterStdout(0);
+}
+
 const canonical = process.env.CC_UI_CANONICAL_ROOT
   ? await (
       await import("./canonical-transcript-peer.mjs")
@@ -545,11 +556,6 @@ const canonical = process.env.CC_UI_CANONICAL_ROOT
   : null;
 if (canonical && (await canonical.command(argv)))
   await exitAfterStdout(process.exitCode || 0);
-
-if (argv.includes("--version")) {
-  process.stdout.write("0.999.0-ui-journey\n");
-  await exitAfterStdout(0);
-}
 
 if (await handleModelConfigCommand()) await exitAfterStdout(0);
 

@@ -315,19 +315,21 @@ describe("JetBrains real-host journey driver", () => {
     expect(fs.existsSync(path.join(fakeBin, "cc"))).toBe(true);
     expect(fs.existsSync(path.join(fakeBin, "cc.cmd"))).toBe(true);
 
-    const version =
-      process.platform === "win32"
-        ? spawnSync("cmd.exe", ["/d", "/s", "/c", "cc --version"], {
-            env: fakeEnvironment,
-            encoding: "utf8",
-            windowsHide: true,
-          })
-        : spawnSync(path.join(fakeBin, "cc"), ["--version"], {
-            env: fakeEnvironment,
-            encoding: "utf8",
-          });
-    expect(version.status).toBe(0);
-    expect(version.stdout.trim()).toBe("0.999.0-ui-journey");
+    for (const binary of ["cc", "chainlesschain", "clc", "clchain"]) {
+      const version =
+        process.platform === "win32"
+          ? spawnSync("cmd.exe", ["/d", "/s", "/c", `${binary} --version`], {
+              env: fakeEnvironment,
+              encoding: "utf8",
+              windowsHide: true,
+            })
+          : spawnSync(path.join(fakeBin, binary), ["--version"], {
+              env: fakeEnvironment,
+              encoding: "utf8",
+            });
+      expect(version.status).toBe(0);
+      expect(version.stdout.trim()).toBe("0.999.0-ui-journey");
+    }
   });
 
   it("fixture serves config snapshots and keeps agent model selection pinned until restart", async () => {

@@ -202,20 +202,21 @@ export function createFakeCliEnvironment(
     throw new Error(`missing UI journey CLI fixture: ${fixtureScript}`);
   }
 
-  const posixWrapper = path.join(fakeBin, "cc");
-  writeFileSync(
-    posixWrapper,
-    `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(fixtureScript)} "$@"\n`,
-    { encoding: "utf8", mode: 0o700, flag: "wx" },
-  );
-  chmodSync(posixWrapper, 0o700);
-
-  const windowsWrapper = path.join(fakeBin, "cc.cmd");
-  writeFileSync(
-    windowsWrapper,
-    `@echo off\r\n"${process.execPath}" "${fixtureScript}" %*\r\n`,
-    { encoding: "utf8", mode: 0o700, flag: "wx" },
-  );
+  // Keep every production discovery fallback inside this isolated fixture.
+  for (const binary of ["cc", "chainlesschain", "clc", "clchain"]) {
+    const posixWrapper = path.join(fakeBin, binary);
+    writeFileSync(
+      posixWrapper,
+      `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(fixtureScript)} "$@"\n`,
+      { encoding: "utf8", mode: 0o700, flag: "wx" },
+    );
+    chmodSync(posixWrapper, 0o700);
+    writeFileSync(
+      path.join(fakeBin, `${binary}.cmd`),
+      `@echo off\r\n"${process.execPath}" "${fixtureScript}" %*\r\n`,
+      { encoding: "utf8", mode: 0o700, flag: "wx" },
+    );
+  }
 
   const canonicalRoot =
     baseEnvironment.CC_UI_CONVERSATION_RECOVERY === "1"
@@ -829,6 +830,7 @@ export async function runJourney(options) {
   }
   const gradleOptions = [
     `-PhostIdeVersion=${options.ideVersion}`,
+    `-PuiJourneyRunId=${path.basename(logRoot)}`,
     ...(localIdePath ? [`-PhostIdeLocalPath=${localIdePath}`] : []),
     "--no-daemon",
     "--stacktrace",

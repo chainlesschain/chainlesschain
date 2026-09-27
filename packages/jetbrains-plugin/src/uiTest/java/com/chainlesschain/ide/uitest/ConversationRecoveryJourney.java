@@ -31,6 +31,8 @@ final class ConversationRecoveryJourney {
         var registryField = factory.getDeclaredField('REGISTRY'); registryField.setAccessible(true);
         var panel = registryField.get(null).get(component.getProject());
         if (panel == null) throw 'Chat panel not open';
+        var agentClass = java.lang.Class.forName('com.chainlesschain.ide.AgentChatSession', true, loader);
+        var binaryField = agentClass.getDeclaredField('resolvedBinary'); binaryField.setAccessible(true);
         var tabs = field(panel, 'tabs'), ids = field(panel, 'tabIds'), views = field(panel, 'views');
         var index = tabs.getSelectedIndex(), view = views.get(ids.get(index)), conv = field(view, 'conv');
         var transcript = field(view, 'transcript'), pane = field(transcript, 'pane');
@@ -53,6 +55,8 @@ final class ConversationRecoveryJourney {
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
             draftStatus:String(field(field(view,'drafts'),'status').getText()),
+            historyStatus:String(field(field(view,'history'),'status').getText()),
+            binaryChoice:String(binaryField.get(null)),
             text:String(pane.getDocument().getText(0,pane.getDocument().getLength())), visible:pane.isShowing(), savedRows:rows
         });
         """;

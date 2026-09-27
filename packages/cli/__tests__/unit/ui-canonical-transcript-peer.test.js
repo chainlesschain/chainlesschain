@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -88,6 +88,24 @@ it("refuses a canonical fixture root inside the worktree before initializing sto
   await expect(canonicalTranscriptPeer(resolve("."), () => {})).rejects.toThrow(
     /outside the worktree/,
   );
+});
+it("reports its version without initializing canonical storage during binary discovery", () => {
+  const root = mkdtempSync(join(tmpdir(), "cc-canonical-version-"));
+  roots.push(root);
+  const result = spawnSync(process.execPath, [script, "--version"], {
+    env: {
+      ...process.env,
+      CC_UI_CANONICAL_ROOT: root,
+      CC_UI_FIXTURE_TRACE: "",
+      CC_UI_FIXTURE_STATE: "",
+    },
+    encoding: "utf8",
+    timeout: 5000,
+    windowsHide: true,
+  });
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout.trim()).toBe("0.999.0-ui-journey");
+  expect(readdirSync(root)).toEqual([]);
 });
 it("persists real receipts and history across fixture/CLI processes without replaying duplicate input", async () => {
   const h = harness(),

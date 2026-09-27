@@ -24,6 +24,10 @@ version = "0.4.139"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 val hostIdeLocalPath = providers.gradleProperty("hostIdeLocalPath")
+val uiJourneyRunId = providers.gradleProperty("uiJourneyRunId")
+if (uiJourneyRunId.isPresent) require(uiJourneyRunId.get().matches(Regex("[A-Za-z0-9-]{1,80}"))) {
+    "uiJourneyRunId must be a bounded directory name"
+}
 
 repositories {
     mavenCentral()
@@ -182,6 +186,7 @@ fun renderChangeNotes(changelog: java.io.File, maxSections: Int): String {
 }
 
 intellijPlatform {
+    if (uiJourneyRunId.isPresent) sandboxContainer.set(layout.buildDirectory.dir("idea-sandbox/${uiJourneyRunId.get()}"))
     // Plain-Java plugin: no UI forms / no @NotNull bytecode instrumentation, so
     // skip code instrumentation (avoids the InstrumentIdeaExtensions ant-task
     // dependency the 2.x plugin otherwise needs).
@@ -308,7 +313,8 @@ tasks.register<Test>("uiSmokeTest") {
 }
 
 runCatching {
-    val uiTestProjectDir = layout.buildDirectory.dir("uiTest-project")
+    val uiTestProjectDir = layout.buildDirectory.dir(if (uiJourneyRunId.isPresent)
+        "uiTest-project/${uiJourneyRunId.get()}" else "uiTest-project")
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
         // Compile/package once against the minimum supported 2024.2 API, then
         // launch that exact artifact in each declared real-host version. Newer
