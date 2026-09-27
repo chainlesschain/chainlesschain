@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:6a76370d0cc874ebfae473f23e7f491c4c4d98cd49a68a022e84c094a1e189be"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:b60343886bd59da73620ff808df78b806d8ddb95ebd31aace3ad3e9884b3558c"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -670,6 +670,14 @@ data class AgentRemoteControlStreamEvent(
     val error: String? = null
 ) : AgentStreamEventPayload
 
+data class AgentTranscriptReferences(
+    val schema: String,
+    val sessionId: String,
+    val assistantEventId: String,
+    val userEventId: String? = null,
+    val clientMessageId: String? = null
+)
+
 data class AgentResultStreamEvent(
     val type: AgentStreamEventType,
     val subtype: String,
@@ -680,6 +688,7 @@ data class AgentResultStreamEvent(
     val session_id: String? = null,
     val turn: Long? = null,
     val num_turns: Long? = null,
+    val transcript_refs: AgentTranscriptReferences? = null,
     val duration_ms: Long? = null,
     val tool_calls: Long? = null,
     val usage: JSONValue? = null,

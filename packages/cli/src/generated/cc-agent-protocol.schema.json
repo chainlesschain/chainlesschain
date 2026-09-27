@@ -2828,6 +2828,37 @@
         }
       }
     },
+    "AgentTranscriptReferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "sessionId",
+        "assistantEventId"
+      ],
+      "properties": {
+        "schema": {
+          "const": "chainlesschain.session-transcript-references/v1"
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "assistantEventId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "userEventId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "clientMessageId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+        }
+      }
+    },
     "AgentResultStreamEvent": {
       "type": "object",
       "required": [
@@ -2867,6 +2898,9 @@
         "num_turns": {
           "type": "integer",
           "minimum": 0
+        },
+        "transcript_refs": {
+          "$ref": "#/$defs/AgentTranscriptReferences"
         },
         "duration_ms": {
           "type": "integer",

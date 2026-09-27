@@ -132,6 +132,25 @@ This protocol does not itself persist UI drafts or restore approval/question
 authority; hosts must preserve pending input separately and never replay stale
 interactive decisions.
 
+#### Terminal transcript references
+
+A persisted stream-json turn may include optional `result.transcript_refs` with
+schema `chainlesschain.session-transcript-references/v1`, `sessionId`, required
+`assistantEventId` and optional `userEventId` / `clientMessageId`. Event IDs are
+64-character lowercase hex hashes. The SDK forwards these fields unchanged.
+Older CLIs and turns without a confirmed assistant append omit them; duplicate
+input acknowledgements never claim a final-answer reference. An error result may
+still reference a saved final answer.
+
+These are display associations, not input acceptance or execution permissions.
+Consumers must validate originating child/session/view ownership, match the
+outer result's session ID and read verified history rows with the expected role
+before merging. Equal text cannot identify rows, and one final-answer identity
+does not apply to preceding tool cards or every partial stream segment. See the
+[history update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md) for row
+identity, cursor, coverage and retention rules. Both IDE hosts still use snapshot
+reads; this protocol addition does not implement their live/durable merge.
+
 #### Other stdin events
 
 Local image admission uses at most eight paths per CLI turn (IDE

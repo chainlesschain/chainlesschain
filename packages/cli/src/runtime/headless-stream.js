@@ -179,6 +179,10 @@ import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.j
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
+import {
+  transcriptMessageEventId,
+  transcriptResultReferences,
+} from "../lib/session-transcript-reference.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import {
   SESSION_SLASH_COMMANDS,
@@ -5017,6 +5021,7 @@ async function runAgentHeadlessStreamInWorkspace(
     updateWorklog((log) => log.user(parsed.text));
     let persistenceFailure = null;
     let inputReceipt = null;
+    let userEventId = null;
     if (persist) {
       try {
         if (parsed.clientMessageId) {
@@ -5040,7 +5045,12 @@ async function runAgentHeadlessStreamInWorkspace(
             typeof inputReceipt.duplicate !== "boolean"
           )
             throw new Error("Invalid durable input receipt");
-        } else store.appendUserMessage(sessionId, turnContent);
+          userEventId = inputReceipt.eventHash;
+        } else {
+          userEventId = transcriptMessageEventId(
+            store.appendUserMessage(sessionId, turnContent),
+          );
+        }
       } catch (error) {
         const persistenceError = createSessionPersistenceFailure(error, {
           sessionId,
@@ -5391,9 +5401,12 @@ async function runAgentHeadlessStreamInWorkspace(
 
     // Grow the conversation so the next turn has context.
     messages.push({ role: "assistant", content: outcome.finalText });
+    let assistantEventId = null;
     if (persist) {
       try {
-        store.appendAssistantMessage(sessionId, outcome.finalText);
+        assistantEventId = transcriptMessageEventId(
+          store.appendAssistantMessage(sessionId, outcome.finalText),
+        );
       } catch (error) {
         const persistenceError = createSessionPersistenceFailure(error, {
           sessionId,
@@ -5424,6 +5437,14 @@ async function runAgentHeadlessStreamInWorkspace(
       outcome.endReason === "no-response" ||
       Boolean(persistenceFailure);
     if (isError) sawError = true;
+    const transcriptRefs = !persistenceFailure
+      ? transcriptResultReferences({
+          sessionId,
+          userEventId,
+          assistantEventId,
+          clientMessageId: parsed.clientMessageId || null,
+        })
+      : null;
 
     if (costStopped) {
       emit({
@@ -5451,6 +5472,7 @@ async function runAgentHeadlessStreamInWorkspace(
       session_id: sessionId,
       turn: turns,
       usage: outcome.usage,
+      ...(transcriptRefs ? { transcript_refs: transcriptRefs } : {}),
       ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
     });
 

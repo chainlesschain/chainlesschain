@@ -1,5 +1,110 @@
 [
   {
+    "name": "terminal result references both canonical messages",
+    "valid": true,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "assistantEventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "clientMessageId": "client-1"
+      }
+    }
+  },
+  {
+    "name": "terminal result references only its known assistant row",
+    "valid": true,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "assistantEventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  {
+    "name": "terminal result reference without assistant identity",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "name": "terminal result reference with an invalid event hash",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "assistantEventId": "not-a-hash",
+        "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "clientMessageId": "client-1"
+      }
+    }
+  },
+  {
+    "name": "terminal result reference with an invalid client message identity",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "assistantEventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "clientMessageId": "../../input"
+      }
+    }
+  },
+  {
+    "name": "terminal result reference cannot carry execution authority",
+    "valid": false,
+    "value": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "session-refs-1",
+      "result": "same answer",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "session-refs-1",
+        "assistantEventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "clientMessageId": "client-1",
+        "approval": true
+      }
+    }
+  },
+  {
     "name": "child-correlated effective permission mode acknowledgement",
     "valid": true,
     "value": {

@@ -74,14 +74,51 @@ Historical rewinds can require a second scan under the same lock. Origin mapping
 and branch-import limits are unchanged. This is bounded output, with O(N) chain
 validation, not an indexed or constant-time update API.
 
-This contract provides durable row updates. It does not associate a streamed
-partial answer with its eventual canonical row. VS Code and JetBrains currently
-use snapshot replacement and have not yet connected this API to their live
-transcripts. They must add explicit runtime-to-canonical message identities and
-guarded merging before claiming durable/live deduplication. No text-equality
-heuristic, new execution permission or input-delivery guarantee is introduced.
+## Terminal message references
+
+The stream-json runtime adds optional `transcript_refs` to a terminal `result`
+after the assistant message writer returns a synchronous committed append receipt:
+
+```json
+{
+  "schema": "chainlesschain.session-transcript-references/v1",
+  "sessionId": "session-1",
+  "assistantEventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "userEventId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "clientMessageId": "client-1"
+}
+```
+
+`assistantEventId` is required when the object is present. `userEventId` is
+optional and comes from this turn's committed user append or validated input
+receipt. `clientMessageId` is optional and echoes this turn's supplied input ID.
+Hashes identify events, not stream chunks or tool output. The reference is absent
+for ephemeral sessions, duplicate-input acknowledgements, missing/unconfirmed or
+failed assistant appends and early terminal paths without an assistant append.
+A budget/error result can still reference a saved final answer. Reference
+presence does not change `is_error`, execution outcome or input acceptance.
+
+Before associating a live final answer, consumers must check the originating
+child, current session/request/view ownership and equality between the outer
+`result.session_id`, `transcript_refs.sessionId` and expected session. The schema
+validates shape; it cannot prove these ownership relationships. Read verified
+history and match the referenced event and role, then use the returned full row
+ID (`sessionId:eventId:itemIndex`). A missing, superseded, truncated or omitted
+row is not permission to invent its text or silently discard unmatched live
+output. A final-answer reference does not label every earlier assistant fragment
+or tool card. Deduplicate verified rows by identity, never equal text. Keep
+unassociated live diagnostics and partial output distinguishable from saved rows.
+
+VS Code and JetBrains currently use snapshot replacement and have not yet
+connected this update API or terminal references to their live transcripts.
+Guarded merging and UI preservation remain required before claiming durable/live
+deduplication. References grant no execution or recovery authority and do not
+replace an input receipt.
 
 Local verification uses real temporary JSONL storage, Kernel compaction, timeline
 summary/rewind, fork isolation, invalid cursors, oversized rows, corrupt tails and
-an actual subprocess running the repository CLI entry point. It does not prove an
-installed release, real IDE journeys or cross-platform acceptance.
+an actual subprocess running the repository CLI entry point. A separate runtime
+test uses real canonical storage with an injected model loop: three identical
+inputs/answers produce distinct event identities that resolve to the correct six
+verified history rows, including turns with and without client input IDs. It does
+not prove an installed release, real IDE journeys or cross-platform acceptance.

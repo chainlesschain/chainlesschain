@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:6a76370d0cc874ebfae473f23e7f491c4c4d98cd49a68a022e84c094a1e189be"
+public let ccAgentProtocolSchemaDigest = "sha256:b60343886bd59da73620ff808df78b806d8ddb95ebd31aace3ad3e9884b3558c"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -1693,6 +1693,28 @@ public struct AgentRemoteControlStreamEvent: Codable, Sendable {
     }
 }
 
+public struct AgentTranscriptReferences: Codable, Sendable {
+    public let schema: String
+    public let sessionId: String
+    public let assistantEventId: String
+    public let userEventId: String?
+    public let clientMessageId: String?
+
+    public init(
+        schema: String,
+        sessionId: String,
+        assistantEventId: String,
+        userEventId: String? = nil,
+        clientMessageId: String? = nil
+    ) {
+        self.schema = schema
+        self.sessionId = sessionId
+        self.assistantEventId = assistantEventId
+        self.userEventId = userEventId
+        self.clientMessageId = clientMessageId
+    }
+}
+
 public struct AgentResultStreamEvent: Codable, Sendable {
     public let type: AgentStreamEventType
     public let subtype: String
@@ -1703,6 +1725,7 @@ public struct AgentResultStreamEvent: Codable, Sendable {
     public let session_id: String?
     public let turn: Int?
     public let num_turns: Int?
+    public let transcript_refs: AgentTranscriptReferences?
     public let duration_ms: Int?
     public let tool_calls: Int?
     public let usage: JSONValue?
@@ -1718,6 +1741,7 @@ public struct AgentResultStreamEvent: Codable, Sendable {
         session_id: String? = nil,
         turn: Int? = nil,
         num_turns: Int? = nil,
+        transcript_refs: AgentTranscriptReferences? = nil,
         duration_ms: Int? = nil,
         tool_calls: Int? = nil,
         usage: JSONValue? = nil,
@@ -1732,6 +1756,7 @@ public struct AgentResultStreamEvent: Codable, Sendable {
         self.session_id = session_id
         self.turn = turn
         self.num_turns = num_turns
+        self.transcript_refs = transcript_refs
         self.duration_ms = duration_ms
         self.tool_calls = tool_calls
         self.usage = usage

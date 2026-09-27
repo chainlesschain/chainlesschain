@@ -7,6 +7,7 @@ import {
   buildSpawnCommand,
 } from "../src/agent-session.js";
 import type { AgentSessionOptions } from "../src/agent-session.js";
+import type { ResultEvent } from "../src/protocol.js";
 
 class FakeStdin extends EventEmitter {
   destroyed = false;
@@ -168,7 +169,21 @@ describe("AgentSession", () => {
       },
     });
     push({ type: "tool_use", tool: "read_file", args: { path: "a" } });
-    push({ type: "result", subtype: "success", is_error: false, result: "ok" });
+    const terminal: ResultEvent = {
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      result: "ok",
+      session_id: "s-1",
+      transcript_refs: {
+        schema: "chainlesschain.session-transcript-references/v1",
+        sessionId: "s-1",
+        userEventId: "a".repeat(64),
+        assistantEventId: "b".repeat(64),
+        clientMessageId: "client-1",
+      },
+    };
+    push(terminal);
     await flush();
 
     expect(session.sessionId).toBe("s-1");
@@ -178,9 +193,7 @@ describe("AgentSession", () => {
     expect(toolUse).toHaveBeenCalledWith(
       expect.objectContaining({ tool: "read_file" }),
     );
-    expect(result).toHaveBeenCalledWith(
-      expect.objectContaining({ subtype: "success" }),
-    );
+    expect(result).toHaveBeenCalledWith(terminal);
   });
 
   it("reassembles a protocol line split across stdout chunks", async () => {

@@ -49,6 +49,10 @@ across the remaining boundaries and durable/live incremental merging are pending
 The CLI's [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md)
 is available separately. This reader still uses snapshot pages; it does not yet
 consume sync cursors or merge streamed partial output with canonical row IDs.
+Optional terminal `transcript_refs` now identify saved assistant/user events in
+the stream protocol. This host does not yet consume them; references require
+verified row/role matching and originating child/session/view checks before live
+association, and cannot restore tool or approval authority.
 
 Verification includes a shared real CLI page fixture also consumed by VS Code,
 real Java subprocess output/error/cancellation/timeout tests, Swing component

@@ -80,8 +80,10 @@ paging, not an indexed query or durable/live incremental merge. During an active
 turn the host retains its bounded live cache, then reloads the canonical snapshot.
 The CLI now offers a separate [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md)
 using a latest page's `syncCursor` and `--history --after`. This host does not yet
-consume it; runtime-to-canonical message identities and guarded live merging
-remain required before snapshot replacement can be removed.
+consume it. The stream runtime also supplies optional terminal `transcript_refs`
+with the saved assistant/user event identities; this host does not yet associate
+them with live rows. Verified row/role matching, child/session ownership checks
+and guarded live merging remain required before snapshot replacement can be removed.
 Optional origin tracking retains at most 32,768 active messages / 8 MiB of
 message JSON; larger contexts lose this mapping and use the snapshot on rewind
 or timeline summary. Summary verification temporarily reconstructs the rewrite

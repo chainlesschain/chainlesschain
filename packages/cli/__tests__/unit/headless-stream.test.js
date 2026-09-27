@@ -19,7 +19,11 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
-import { inputSubmissionDigest } from "../../src/lib/session-input-receipt.js";
+import {
+  inputSubmissionDigest,
+  appendSessionInputWithReceipt,
+  readSessionInputReceipt,
+} from "../../src/lib/session-input-receipt.js";
 import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 function verifiedResume(messages, sessionId) {
@@ -268,6 +272,165 @@ describe("runAgentHeadlessStream", () => {
     expandFileRefs: false,
     useRegisteredMcp: false,
   };
+
+  it("associates the terminal answer with its exact user receipt and assistant event", async () => {
+    const deps = receiptDeps({
+      appendAssistantMessage: vi.fn(() => ({
+        commitState: "committed",
+        hash: "b".repeat(64),
+      })),
+    });
+    await runAgentHeadlessStream(receiptOptions, deps);
+    const result = parseEmitted(deps._lines).find(
+      (event) => event.type === "result",
+    );
+    expect(result.transcript_refs).toEqual({
+      schema: "chainlesschain.session-transcript-references/v1",
+      sessionId: receiptOptions.sessionId,
+      userEventId: "a".repeat(64),
+      assistantEventId: "b".repeat(64),
+      clientMessageId: "client-1",
+    });
+    expect(deps.appendAssistantMessage).toHaveBeenCalledWith(
+      receiptOptions.sessionId,
+      "done",
+    );
+  });
+
+  it.each([
+    "missing",
+    "bad-hash",
+    "unknown",
+    "not-committed",
+    "failed",
+    "async",
+  ])(
+    "does not claim a transcript reference for a %s assistant append",
+    async (kind) => {
+      const deps = receiptDeps({
+        appendAssistantMessage: () => {
+          if (kind === "failed")
+            throw Object.assign(new Error("disk full"), { code: "ENOSPC" });
+          if (kind === "missing") return;
+          if (kind === "async")
+            return Promise.resolve({
+              commitState: "committed",
+              hash: "b".repeat(64),
+            });
+          return {
+            commitState:
+              kind === "unknown" || kind === "not-committed"
+                ? kind
+                : "committed",
+            hash: kind === "bad-hash" ? ["b".repeat(64)] : "b".repeat(64),
+          };
+        },
+      });
+      await runAgentHeadlessStream(receiptOptions, deps);
+      const result = parseEmitted(deps._lines).find(
+        (event) => event.type === "result",
+      );
+      expect(result.transcript_refs).toBeUndefined();
+      if (kind === "failed")
+        expect(result).toMatchObject({
+          subtype: "error_persistence",
+          is_error: true,
+        });
+    },
+  );
+
+  it("does not attach a transcript reference to duplicate input acknowledgements", async () => {
+    const deps = receiptDeps({
+      input: input(
+        { text: "go", client_message_id: "client-1" },
+        { text: "go", client_message_id: "client-1" },
+      ),
+      appendAssistantMessage: () => ({
+        commitState: "committed",
+        hash: "b".repeat(64),
+      }),
+    });
+    await runAgentHeadlessStream(receiptOptions, deps);
+    const results = parseEmitted(deps._lines).filter(
+      (event) => event.type === "result",
+    );
+    expect(results[0].transcript_refs.assistantEventId).toBe("b".repeat(64));
+    expect(
+      results.find((event) => event.subtype === "input_already_accepted")
+        .transcript_refs,
+    ).toBeUndefined();
+  });
+
+  it("resolves identical live answers to distinct verified rows in real canonical storage", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "cc-stream-transcript-ref-"));
+    vi.stubEnv("CHAINLESSCHAIN_HOME", path.join(root, "home"));
+    vi.stubEnv(
+      "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME",
+      path.join(root, "security"),
+    );
+    const store = await import("../../src/harness/jsonl-session-store.js");
+    const { readSessionTranscriptHistory } =
+      await import("../../src/lib/session-transcript-history.js");
+    const id = "real-transcript-references";
+    try {
+      const deps = receiptDeps({
+        input: input(
+          { text: "same", client_message_id: "first" },
+          { text: "same", client_message_id: "second" },
+          { text: "same" },
+        ),
+        sessionExists: store.sessionExists,
+        startSession: store.startSession,
+        appendUserMessage: store.appendUserMessage,
+        appendAssistantMessage: store.appendAssistantMessage,
+        appendEvent: store.appendEvent,
+        appendAuthorityEvent: store.appendAuthorityEvent,
+        readEvents: store.readVerifiedEvents,
+        readVerifiedEvents: store.readVerifiedEvents,
+        readVerifiedProjection: store.readVerifiedProjection,
+        appendInputWithReceipt: appendSessionInputWithReceipt,
+        readInputReceipt: readSessionInputReceipt,
+      });
+      const outcome = await runAgentHeadlessStream(
+        { ...receiptOptions, sessionId: id },
+        deps,
+      );
+      expect(outcome).toMatchObject({ exitCode: 0, turns: 3 });
+      const results = parseEmitted(deps._lines).filter(
+        (event) => event.type === "result",
+      );
+      expect(results).toHaveLength(3);
+      const history = readSessionTranscriptHistory(id);
+      expect(history.messages).toHaveLength(6);
+      expect(
+        new Set(results.map((event) => event.transcript_refs.assistantEventId))
+          .size,
+      ).toBe(3);
+      results.forEach((result, index) => {
+        const ref = result.transcript_refs;
+        expect(ref.sessionId).toBe(id);
+        expect(ref.clientMessageId).toBe(["first", "second", undefined][index]);
+        expect(history.messages[index * 2]).toMatchObject({
+          role: "user",
+          eventId: ref.userEventId,
+          id: `${id}:${ref.userEventId}:0`,
+        });
+        expect(history.messages[index * 2 + 1]).toMatchObject({
+          role: "assistant",
+          eventId: ref.assistantEventId,
+          id: `${id}:${ref.assistantEventId}:0`,
+          text: "done",
+        });
+      });
+      const firstReceipt = readSessionInputReceipt(id, "first");
+      expect(firstReceipt.receipt.eventHash).toBe(
+        results[0].transcript_refs.userEventId,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 
   it("acknowledges durable input after append and before model dispatch", async () => {
     const deps = receiptDeps();

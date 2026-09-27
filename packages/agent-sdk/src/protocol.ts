@@ -21,6 +21,7 @@
  */
 
 import type {
+  AgentTranscriptReferences,
   ApprovalDecision,
   CanonicalAgentStreamEvent,
   PermissionGrant,
@@ -411,6 +412,8 @@ export interface ResultEvent extends StreamEventMeta {
   tool_calls?: number;
   usage?: TokenUsage;
   denials?: unknown[];
+  /** Display association only; verify the referenced canonical history rows. */
+  transcript_refs?: AgentTranscriptReferences;
 }
 
 /** Echo of an accepted input turn (--replay-user-messages). */
