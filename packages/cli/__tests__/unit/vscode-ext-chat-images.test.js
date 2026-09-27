@@ -27,9 +27,9 @@ function makeProvider() {
 }
 
 describe("ChatViewProvider._writeImageTemps", () => {
-  it("writes a whitelisted data URL to a temp file with the exact bytes", () => {
+  it("writes a whitelisted data URL to a temp file with the exact bytes", async () => {
     const provider = makeProvider();
-    const files = provider._writeImageTemps([{ data: PNG_URL }]);
+    const files = await provider._writeImageTemps([{ data: PNG_URL }]);
     expect(files).toHaveLength(1);
     expect(files[0]).toMatch(/cc-chat-img-.*\.png$/);
     try {
@@ -39,42 +39,35 @@ describe("ChatViewProvider._writeImageTemps", () => {
     }
   });
 
-  it("maps jpeg → .jpg and keeps gif/webp extensions", () => {
+  it("rejects MIME spoofing without sending a partial attachment set", async () => {
     const provider = makeProvider();
-    const files = provider._writeImageTemps([
-      { data: "data:image/jpeg;base64," + PNG_BASE64 },
-      { data: "data:image/webp;base64," + PNG_BASE64 },
-    ]);
-    try {
-      expect(files[0]).toMatch(/\.jpg$/);
-      expect(files[1]).toMatch(/\.webp$/);
-    } finally {
-      for (const f of files) fs.rmSync(f, { force: true });
-    }
+    await expect(
+      provider._writeImageTemps([
+        { data: "data:image/jpeg;base64," + PNG_BASE64 },
+        { data: "data:image/webp;base64," + PNG_BASE64 },
+      ]),
+    ).rejects.toThrow("MIME");
   });
 
-  it("skips junk: non-image mime, malformed base64, missing data", () => {
+  it("reports junk: non-image mime, malformed base64, missing data", async () => {
     const provider = makeProvider();
-    const files = provider._writeImageTemps([
+    for (const image of [
       { data: "data:text/html;base64," + PNG_BASE64 }, // not an image
       { data: "data:image/png;base64,!!!not-base64$$" }, // bad charset
       { data: "C:\\windows\\system32\\evil.png" }, // not a data URL
       {},
       null,
-    ]);
-    expect(files).toEqual([]);
+    ])
+      await expect(provider._writeImageTemps([image])).rejects.toThrow();
   });
 
-  it("caps at 4 attachments per message", () => {
+  it("rejects more than 4 attachments per message visibly", async () => {
     const provider = makeProvider();
-    const files = provider._writeImageTemps(
-      Array.from({ length: 7 }, () => ({ data: PNG_URL })),
-    );
-    try {
-      expect(files).toHaveLength(4);
-    } finally {
-      for (const f of files) fs.rmSync(f, { force: true });
-    }
+    await expect(
+      provider._writeImageTemps(
+        Array.from({ length: 7 }, () => ({ data: PNG_URL })),
+      ),
+    ).rejects.toThrow("at most 4");
   });
 });
 
@@ -132,9 +125,9 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     return { provider, spawns };
   }
 
-  it("deletes a conversation's temp images once its turn results", () => {
+  it("deletes a conversation's temp images once its turn results", async () => {
     const { provider } = makeSendableProvider();
-    provider._handleMessage({
+    await provider._handleMessage({
       type: "send",
       text: "look",
       images: [{ data: PNG_URL }],
@@ -150,9 +143,9 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     expect(provider._imgTemps.has(convId)).toBe(false);
   });
 
-  it("dispose() sweeps every conversation's leftovers", () => {
+  it("dispose() sweeps every conversation's leftovers", async () => {
     const { provider } = makeSendableProvider();
-    provider._handleMessage({
+    await provider._handleMessage({
       type: "send",
       text: "look",
       images: [{ data: PNG_URL }],
@@ -163,10 +156,10 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     for (const f of files) expect(fs.existsSync(f)).toBe(false);
   });
 
-  it("keeps a queued screenshot until its own turn finishes", () => {
+  it("keeps a queued screenshot until its own turn finishes", async () => {
     const { provider } = makeSendableProvider();
     provider._handleMessage({ type: "send", text: "investigate" });
-    provider._handleMessage({
+    await provider._handleMessage({
       type: "send",
       text: "evidence",
       images: [{ data: PNG_URL }],
@@ -183,9 +176,9 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     }
   });
 
-  it("a failed send does not delete earlier queued attachments", () => {
+  it("a failed send does not delete earlier queued attachments", async () => {
     const { provider, spawns } = makeSendableProvider();
-    provider._handleMessage({
+    await provider._handleMessage({
       type: "send",
       text: "first",
       images: [{ data: PNG_URL }],
@@ -194,7 +187,7 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     const [file] = provider._imgTemps.get(id);
     try {
       spawns[0].sendEvent = () => false;
-      provider._handleMessage({
+      await provider._handleMessage({
         type: "send",
         text: "second",
         images: [{ data: PNG_URL }],

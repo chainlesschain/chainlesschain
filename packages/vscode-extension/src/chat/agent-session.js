@@ -18,6 +18,7 @@
  */
 const { spawn } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { stopAgentProcess } = require("./stop-agent-process");
 // Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
 // protocol argv + NDJSON framing are SDK contracts now, not hand-rolled.
 const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
@@ -41,14 +42,21 @@ class AgentChatSession {
     this.child = null;
     this._decode = null;
     this._stderrBuf = "";
+    this._stopPromise = null;
   }
 
   get running() {
-    return !!this.child && this.child.exitCode == null && !this.child.killed;
+    return (
+      !!this.child &&
+      !this._stopPromise &&
+      this.child.exitCode == null &&
+      !this.child.killed
+    );
   }
 
   start() {
-    if (this.running) return this;
+    if (this.child) return this;
+    this._stopPromise = null;
     const command = this.opts.command || "cc";
     const args = buildAgentArgs({ extraArgs: this.opts.args || [] });
     this.child = this._deps.spawn(command, args, {
@@ -62,12 +70,11 @@ class AgentChatSession {
     this._stderrBuf = "";
     // SDK carry-buffer framing: a chunk boundary can split a line. Non-JSON
     // stdout surfaces as {type:"raw"} exactly as before.
-    this._decode = createNdjsonDecoder(
-      (evt) => this._emit(evt),
-      { onError: (_err, line) => {
-          if (line) this._emit({ type: "raw", text: line.trim() });
-        } },
-    );
+    this._decode = createNdjsonDecoder((evt) => this._emit(evt), {
+      onError: (_err, line) => {
+        if (line) this._emit({ type: "raw", text: line.trim() });
+      },
+    });
     this.child.stdout.on("data", (chunk) => {
       this._decode(chunk.toString("utf8"));
     });
@@ -121,7 +128,13 @@ class AgentChatSession {
     // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
     // uncaught in the extension host. The sync try/catch in sendEvent can't
     // catch it; swallow it here (the "close" handler drives recovery).
-    if (this.child.stdin) this.child.stdin.on("error", () => {});
+    if (this.child.stdin)
+      this.child.stdin.on("error", (error) => {
+        this._emit({
+          type: "session_error",
+          error: `Input delivery failed: ${error.message}`,
+        });
+      });
     return this;
   }
 
@@ -169,25 +182,24 @@ class AgentChatSession {
    * On POSIX cc is spawned directly and reaps its own children on SIGTERM.
    */
   stop() {
-    const child = this.child;
-    this.child = null;
-    if (!child) return;
-    const pid = child.pid;
-    if (pid && process.platform === "win32") {
-      try {
-        this._deps.spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
-          windowsHide: true,
-        });
-        return;
-      } catch {
-        /* fall through to child.kill */
-      }
+    this.stopAndWait().catch(() => {});
+  }
+
+  stopAndWait() {
+    // A failed kill may leave the owned child alive. An explicit retry can
+    // signal that same handle again; never retry an old numeric PID after close.
+    if (this._stopFailed && this.child) this._stopPromise = null;
+    if (!this._stopPromise) {
+      this._stopFailed = false;
+      this._stopPromise = stopAgentProcess(this.child, {
+        spawn: this._deps.spawn,
+        timeoutMs: this.opts.stopTimeoutMs || 5000,
+      }).catch((error) => {
+        this._stopFailed = true;
+        throw error;
+      });
     }
-    try {
-      child.kill();
-    } catch {
-      /* ignore */
-    }
+    return this._stopPromise;
   }
 }
 

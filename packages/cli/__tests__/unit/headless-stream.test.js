@@ -204,6 +204,30 @@ describe("runAgentHeadlessStream", () => {
       .split("\n")
       .map((l) => JSON.parse(l));
 
+  it("correlates IDE mode confirmation with the actual runtime policy", async () => {
+    vi.stubEnv("CC_IDE_MODE_REQUEST_ID", "mode-request-123");
+    vi.stubEnv("CC_IDE_REQUESTED_MODE", "bypassPermissions");
+    try {
+      const deps = baseDeps({
+        input: input(),
+        agentLoop: async function* () {},
+      });
+      await runAgentHeadlessStream(
+        { permissionMode: "default", useRegisteredMcp: false },
+        deps,
+      );
+      const init = parseEmitted(deps._lines).find((e) => e.subtype === "init");
+      expect(init.permission_mode_state).toEqual({
+        correlation_id: "mode-request-123",
+        requested: "bypassPermissions",
+        effective: "default",
+        policy_revision: init.policy_digest,
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("wakes idle input and disconnects MCP after EPIPE", async () => {
     const previousExitCode = process.exitCode;
     const disconnectAll = vi.fn(async () => {});

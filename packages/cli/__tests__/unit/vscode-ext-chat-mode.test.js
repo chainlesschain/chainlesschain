@@ -114,6 +114,10 @@ function makeProvider() {
       stop() {
         this.running = false;
       },
+      stopAndWait() {
+        this.stop();
+        return Promise.resolve();
+      },
     };
     spawns.push(s);
     return s;
@@ -131,6 +135,79 @@ function makeProvider() {
 const lastPost = (posted) => posted[posted.length - 1];
 
 describe("ChatViewProvider — approval mode", () => {
+  function ack(session, overrides = {}) {
+    session.cfg.onEvent({
+      type: "system",
+      subtype: "init",
+      session_id: session.cfg.args[session.cfg.args.indexOf("--resume") + 1],
+      permission_mode_state: {
+        correlation_id: session.cfg.env.CC_IDE_MODE_REQUEST_ID,
+        requested: session.cfg.env.CC_IDE_REQUESTED_MODE,
+        effective: session.cfg.env.CC_IDE_REQUESTED_MODE,
+        policy_revision: "a".repeat(16),
+        ...overrides,
+      },
+    });
+  }
+
+  it("waits for a correlated runtime ACK, including a policy override", () => {
+    const { provider, spawns } = makeProvider();
+    provider._setMode("bypassPermissions");
+    provider._handleMessage({ type: "send", text: "hi" });
+    const conv = provider._activeConv();
+    expect(conv.modeStatus).toBe("pending");
+    ack(spawns[0], { correlation_id: "wrong-child" });
+    expect(conv.effectiveMode).toBeUndefined();
+    ack(spawns[0], { effective: "default" });
+    expect(conv).toMatchObject({
+      mode: "bypassPermissions",
+      effectiveMode: "default",
+      modeStatus: "effective",
+      policyRevision: "a".repeat(16),
+    });
+  });
+
+  it("does not respawn while the old process is stopping or after stop failure", async () => {
+    const { provider, spawns, posted } = makeProvider();
+    provider._handleMessage({ type: "send", text: "hi" });
+    ack(spawns[0], { effective: "bypassPermissions" });
+    let rejectStop;
+    spawns[0].stopAndWait = () =>
+      new Promise((_resolve, reject) => {
+        rejectStop = reject;
+      });
+    provider._setMode("default");
+    provider._handleMessage({ type: "send", text: "during stop" });
+    expect(spawns).toHaveLength(1);
+    expect(provider._activeConv().effectiveMode).toBe("bypassPermissions");
+    rejectStop(new Error("taskkill failed"));
+    await Promise.resolve();
+    expect(provider._activeConv().modeStatus).toBe("failed");
+    provider._handleMessage({ type: "send", text: "after failure" });
+    expect(spawns).toHaveLength(1);
+    expect(posted.some((m) => m.text?.includes("taskkill failed"))).toBe(true);
+  });
+
+  it("ignores old child ACKs, reports older CLI and synchronous spawn failure", async () => {
+    const { provider, spawns } = makeProvider();
+    provider._handleMessage({ type: "send", text: "hi" });
+    spawns[0].cfg.onEvent({ type: "system", subtype: "init" });
+    expect(provider._activeConv().modeStatus).toBe("unconfirmed");
+    provider._setMode("acceptEdits");
+    ack(spawns[0]);
+    expect(provider._activeConv().modeStatus).toBe("pending");
+    await Promise.resolve();
+    provider._createSession = () => {
+      throw new Error("spawn denied");
+    };
+    provider._handleMessage({ type: "send", text: "retry" });
+    expect(provider._activeConv()).toMatchObject({
+      effectiveMode: null,
+      modeStatus: "failed",
+      modeError: "spawn denied",
+    });
+  });
+
   it("sets the active conversation's mode and acknowledges (no live child)", () => {
     const { provider, posted } = makeProvider();
     provider._handleMessage({ type: "mode", mode: "acceptEdits" });
@@ -139,11 +216,11 @@ describe("ChatViewProvider — approval mode", () => {
       kind: "info",
       text: expect.stringContaining("auto-accept edits"),
     });
-    // no running child → no "applies on next message" qualifier
-    expect(lastPost(posted).text).not.toContain("next message");
+    expect(lastPost(posted).text).toContain("waiting for CLI confirmation");
+    expect(provider._activeConv().effectiveMode).toBeUndefined();
   });
 
-  it("stops the live child so the next turn respawns with the new mode", () => {
+  it("stops the live child so the next turn respawns with the new mode", async () => {
     const { provider, posted, spawns } = makeProvider();
     // First turn spawns a child in default mode (no flag).
     provider._handleMessage({ type: "send", text: "hi" });
@@ -155,6 +232,7 @@ describe("ChatViewProvider — approval mode", () => {
     provider._handleMessage({ type: "mode", mode: "bypassPermissions" });
     expect(spawns[0].running).toBe(false);
     expect(lastPost(posted).text).toContain("next message");
+    await Promise.resolve();
 
     // Next turn respawns carrying the flag, resuming nothing new (same conv).
     provider._handleMessage({ type: "send", text: "again" });
@@ -187,6 +265,7 @@ describe("ChatViewProvider — Configure LLM reloads running children", () => {
     provider._handleMessage({ type: "configureLlm" });
     expect(commandCalls).toContain("chainlesschain.llm.configure");
     // Reload is chained off the wizard promise — flush microtasks.
+    await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
     expect(spawns[0].running).toBe(false);
@@ -262,6 +341,27 @@ describe("createModeStatusBar — render", () => {
     expect(item.text).toContain("approvals");
     expect(item.backgroundColor).toBeUndefined();
   });
+
+  it("never labels a pending/failed tightening as normal approvals", () => {
+    const { vscode, item } = makeStatusVscode();
+    const bar = createModeStatusBar(vscode);
+    bar.render({
+      requested: "default",
+      effective: "bypassPermissions",
+      status: "pending",
+    });
+    expect(item.text).toContain("unconfirmed");
+    expect(item.tooltip).toContain("bypassPermissions");
+    expect(item.backgroundColor).toBeInstanceOf(vscode.ThemeColor);
+    bar.render({
+      requested: "default",
+      effective: "bypassPermissions",
+      status: "failed",
+      reason: "stop timeout",
+    });
+    expect(item.text).toContain("failed");
+    expect(item.tooltip).toContain("stop timeout");
+  });
 });
 
 describe("ChatViewProvider — status-bar mode indicator wiring", () => {
@@ -274,11 +374,23 @@ describe("ChatViewProvider — status-bar mode indicator wiring", () => {
     };
     // mode change → render with the new mode
     provider._handleMessage({ type: "mode", mode: "bypassPermissions" });
-    expect(renders).toContain("bypassPermissions");
+    expect(renders).toContainEqual(
+      expect.objectContaining({
+        requested: "bypassPermissions",
+        effective: null,
+        status: "pending",
+      }),
+    );
     // a tab refresh re-renders the active conversation's current mode
     renders.length = 0;
     provider._postTabs();
-    expect(renders).toEqual(["bypassPermissions"]);
+    expect(renders).toEqual([
+      expect.objectContaining({
+        requested: "bypassPermissions",
+        effective: null,
+        status: "pending",
+      }),
+    ]);
   });
 
   it("_updateModeStatus is inert when no status item exists (test mock)", () => {

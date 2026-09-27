@@ -719,13 +719,17 @@ describe("VS Code chat action feedback and stale child isolation", () => {
     );
   });
 
-  it("ignores late events and exit callbacks from a replaced child", () => {
+  it("ignores late events and exit callbacks from a replaced child", async () => {
     const { provider, posted, createSession } = makeProvider();
     provider._handleMessage({ type: "send", text: "first turn" });
     const conv = provider._activeConv();
     const oldSession = createSession.sessions[0];
+    oldSession.stopAndWait = async () => {
+      oldSession.stop();
+    };
 
     provider._handleMessage({ type: "mode", mode: "acceptEdits" });
+    await Promise.resolve();
     provider._handleMessage({ type: "send", text: "second turn" });
     const currentSession = createSession.sessions[1];
     const sessionId = conv.sessionId;

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { getPrLinks } from "../lib/pr-link-store.js";
+import { readSessionTranscriptPage } from "../lib/session-transcript-page.js";
 import {
   getJsonlSessionMetadata,
   rebuildMessages,
@@ -15,6 +16,14 @@ export function registerSessionShowSubcommand(session, program) {
     .argument("<id>", "Session ID (or prefix)")
     .option("-n, --limit <n>", "Max messages to show")
     .option("--json", "Output as JSON")
+    .option(
+      "--page-size <n>",
+      "Verified saved-context page size (1–100; requires --json)",
+    )
+    .option(
+      "--before <cursor>",
+      "Load the previous verified context page (requires --json)",
+    )
     .action(async (id, options) => {
       let ctx = null;
       let shutdown = null;
@@ -34,6 +43,21 @@ export function registerSessionShowSubcommand(session, program) {
           return;
         }
         if (jsonlId) {
+          if (options.pageSize || options.before) {
+            if (!options.json)
+              throw new Error("Transcript pagination requires --json");
+            const page = readSessionTranscriptPage(jsonlId, {
+              limit: numericOption(options.pageSize || "50", {
+                name: "--page-size",
+                integer: true,
+                min: 1,
+                max: 100,
+              }),
+              cursor: options.before || null,
+            });
+            console.log(JSON.stringify(page));
+            return;
+          }
           const metadata = getJsonlSessionMetadata(jsonlId);
           const messages = rebuildMessages(jsonlId);
           sess = {
@@ -50,6 +74,10 @@ export function registerSessionShowSubcommand(session, program) {
         // Keep SQLite and the application bootstrap outside the canonical
         // JSONL read path. Legacy sessions still retain the original fallback.
         if (!sess) {
+          if (options.pageSize || options.before)
+            throw new Error(
+              "Verified transcript pages require a canonical JSONL session",
+            );
           const runtime = await import("../runtime/bootstrap.js");
           const sessionManager = await import("../lib/session-manager.js");
           shutdown = runtime.shutdown;

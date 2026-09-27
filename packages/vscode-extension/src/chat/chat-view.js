@@ -9,6 +9,11 @@
  * feedback, and native diff reviews against THIS editor.
  */
 const crypto = require("crypto");
+const {
+  modeState,
+  acceptModeAcknowledgement,
+} = require("./permission-mode-state");
+const { appendTranscript, loadTranscriptPage } = require("./transcript-cache");
 const { AgentChatSession } = require("./agent-session");
 const {
   mapAgentEvent,
@@ -559,11 +564,85 @@ class ChatViewProvider {
 
   /** Post a webview message only when it belongs to the ACTIVE tab and, when
    * supplied, the same transcript generation. */
-  _postFrom(convId, msg, asyncToken = null) {
+  _postFrom(convId, msg, asyncToken = null, transcriptMessage = msg) {
     const conv = this._convs.get(convId);
     if (!conv) return;
     if (asyncToken && conv._asyncToken !== asyncToken) return;
+    appendTranscript(conv, transcriptMessage);
     if (this._convs.activeId() === convId) this._post(msg);
+  }
+
+  /** Rehydrate display data only. Saved approvals/tools are never dispatched. */
+  async _restoreTranscript(conv, cursor = null) {
+    if (!conv) return;
+    if (!cursor && conv.transcript?.length)
+      this._postFromTranscript(conv, { messages: conv.transcript, live: true });
+    if (!conv.sessionId) return;
+    if (conv.turnActive) {
+      conv.transcriptAwaiting = true;
+      return;
+    }
+    const token = this._asyncToken(conv);
+    const sessionId = conv.sessionId;
+    const revision = conv.transcriptRevision || 0;
+    const request = {};
+    conv.transcriptRequest = request;
+    try {
+      const command = this._cliCommand();
+      if (hasUnsafeShellChars(command)) throw new Error("Invalid CLI path");
+      const page = await (
+        this.opts.deps?.loadTranscriptPage || loadTranscriptPage
+      )({
+        command,
+        sessionId,
+        cursor,
+        cwd: this._workspaceFolders()[0] || process.cwd(),
+        env: { ...process.env, ...(this.opts.getBridgeEnv?.() || {}) },
+      });
+      if (
+        this._convs.get(conv.id) !== conv ||
+        conv._asyncToken !== token ||
+        conv.sessionId !== sessionId ||
+        conv.transcriptRequest !== request
+      )
+        return;
+      if ((conv.transcriptRevision || 0) !== revision) {
+        conv.transcriptAwaiting = true;
+        return;
+      }
+      // A saved snapshot does not contain the currently streaming partial turn.
+      // Use the live host cache until the CLI publishes the terminal result.
+      if (conv.turnActive) {
+        conv.transcriptAwaiting = true;
+        return;
+      }
+      conv.transcriptAwaiting = false;
+      if (!cursor) {
+        conv.transcript = page.messages.map((m) => ({ ...m }));
+        conv.transcriptTrimmed = !!page.nextCursor;
+      }
+      this._postFromTranscript(conv, { ...page, earlier: !!cursor });
+    } catch (error) {
+      if (
+        this._convs.get(conv.id) !== conv ||
+        conv._asyncToken !== token ||
+        conv.sessionId !== sessionId ||
+        conv.transcriptRequest !== request ||
+        (conv.transcriptRevision || 0) !== revision
+      )
+        return;
+      this._postFrom(conv.id, {
+        kind: "info",
+        text: `Saved conversation could not be loaded: ${String(error.message).slice(0, 500)}`,
+      });
+    }
+  }
+
+  _postFromTranscript(conv, page) {
+    if (this._convs.activeId() !== conv.id) return;
+    this._post({ kind: "transcript", convId: conv.id, ...page });
+    for (const pending of this._convs.pendingInteractions(conv.id))
+      this._post(pending);
   }
 
   /** Stop and forget one conversation's recurring /loop, if any. */
@@ -579,14 +658,14 @@ class ChatViewProvider {
    * callbacks from the old process so they cannot alter a newly spawned child
    * or bleed stale output into a reset conversation.
    */
-  _stopSession(conv) {
+  _stopSession(conv, { requireConfirmation = false } = {}) {
     if (!conv) return false;
     if (conv.worklogHandoff) {
       clearTimeout(conv.worklogHandoff.timer);
       conv.worklogHandoff = null;
     }
     this._clearInterruptTimer(conv);
-    const session = conv.session;
+    const session = conv.session || conv.stoppingSession?.session;
     const pendingInteractions = this._convs.pendingInteractions(conv.id);
     conv._sessionToken = null;
     conv.worklogSupported = false;
@@ -599,7 +678,51 @@ class ChatViewProvider {
     conv.planReviewTurn = 0;
     this._planReviews.delete(conv.id);
     this._convs.setSession(conv.id, null);
-    session?.stop?.();
+    if (session?.stopAndWait) {
+      const stopping = { session, status: "pending" };
+      conv.stoppingSession = stopping;
+      conv.modeStatus = "pending";
+      // Reserve the barrier before invoking stop: a child can close synchronously.
+      try {
+        Promise.resolve(session.stopAndWait()).then(
+          () => {
+            if (conv.stoppingSession !== stopping) return;
+            conv.stoppingSession = null;
+            conv.effectiveMode = null;
+            conv.policyRevision = null;
+            conv.modeStatus = "pending";
+            this._updateModeStatus();
+          },
+          (error) => {
+            if (conv.stoppingSession !== stopping) return;
+            stopping.status = "failed";
+            conv.modeStatus = "failed";
+            conv.modeError = String(error.message || error);
+            this._updateModeStatus();
+            this._postFrom(conv.id, {
+              kind: "error",
+              text: `Approval mode change is blocked: ${conv.modeError}`,
+            });
+          },
+        );
+      } catch (error) {
+        stopping.status = "failed";
+        conv.modeStatus = "failed";
+        conv.modeError = String(error.message || error);
+      }
+    } else {
+      session?.stop?.();
+      if (session && requireConfirmation) {
+        conv.stoppingSession = { session, status: "failed" };
+        conv.modeStatus = "failed";
+        conv.modeError =
+          "The old agent did not provide termination confirmation";
+      } else {
+        conv.effectiveMode = null;
+        conv.policyRevision = null;
+        conv.modeStatus = "pending";
+      }
+    }
     for (const pendingApproval of pendingInteractions) {
       if (pendingApproval?.kind === "approval" && pendingApproval.id) {
         this._postFrom(conv.id, {
@@ -619,6 +742,10 @@ class ChatViewProvider {
   _clearSessionState(conv, { clearGoal = false } = {}) {
     if (!conv) return;
     this._invalidateAsync(conv);
+    conv.transcript = [];
+    conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
+    conv.transcriptRequest = null;
+    conv.transcriptAwaiting = false;
     this._stopLoop(conv.id);
     this._lastCallUsage.delete(conv.id);
     this._convs.resetTurnState(conv.id);
@@ -688,6 +815,8 @@ class ChatViewProvider {
         conv.turnActive = true;
       }
       if (evt?.type === "system" && evt.subtype === "init") {
+        acceptModeAcknowledgement(conv, evt);
+        this._updateModeStatus();
         conv.worklogSupported = evt.task_worklog?.version === 1;
         conv.sessionSlashCommands = Array.isArray(evt.slash_commands)
           ? evt.slash_commands.map((name) => String(name))
@@ -725,6 +854,18 @@ class ChatViewProvider {
             text: `resumed previous conversation (${evt.resumed_messages} messages)`,
           });
         }
+      }
+      if (
+        evt?.type === "session_error" ||
+        (evt?.type === "result" &&
+          evt.is_error &&
+          conv.modeStatus === "pending")
+      ) {
+        conv.modeStatus = "failed";
+        conv.modeError = String(
+          evt.error || evt.result || "Agent startup failed",
+        ).slice(0, 500);
+        this._updateModeStatus();
       }
       // An LLM connection failure ("nothing configured / server down") OR an
       // auth failure (wrong/expired key, bare 401/403/unauthorized) usually
@@ -774,7 +915,16 @@ class ChatViewProvider {
         conv.turnActive = false;
       }
       const ui = mapAgentEvent(evt, conv.turnState);
-      this._postFrom(convId, ui);
+      this._postFrom(
+        convId,
+        ui,
+        null,
+        ui?.kind === "turn_end" &&
+          !evt.is_error &&
+          typeof evt.result === "string"
+          ? { ...ui, finalText: evt.result }
+          : ui,
+      );
       if (evt?.type === "result" && evt.subtype === "error_max_turns") {
         this._postFrom(convId, {
           kind: "info",
@@ -871,6 +1021,8 @@ class ChatViewProvider {
           this._postTabs();
           this._notifyBackgroundDone(conv);
         }
+        if (conv.transcriptAwaiting && this._convs.activeId() === convId)
+          this._restoreTranscript(conv);
       }
     };
   }
@@ -936,6 +1088,7 @@ class ChatViewProvider {
       /* focus is best-effort */
     }
     this._postTabs();
+    this._restoreTranscript(conv);
   }
 
   _planReviewTargetFromDocument(doc) {
@@ -1434,8 +1587,14 @@ class ChatViewProvider {
 
   /** Ensure the ACTIVE conversation has a running agent child; spawn one
    * (resuming its own session id) if not. Returns the live session. */
-  _ensureSession() {
-    const conv = this._activeConv();
+  _ensureSession(conv = this._activeConv()) {
+    if (conv.stoppingSession) {
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: "The previous agent has not confirmed termination. Your message was not sent; retry after it stops.",
+      });
+      return { running: false, send: () => false, sendEvent: () => false };
+    }
     const chatCfg = this.vscode.workspace.getConfiguration(
       "chainlesschain.chat",
     );
@@ -1449,6 +1608,8 @@ class ChatViewProvider {
       // A setting edit must never interrupt work or a pending approval.
       if (conv.turnActive || conv.maxTurns === maxTurns) return conv.session;
       this._stopSession(conv);
+      if (conv.stoppingSession)
+        return { running: false, send: () => false, sendEvent: () => false };
     }
     const folders = this.vscode.workspace.workspaceFolders || [];
     const cwd = folders[0]?.uri?.fsPath || process.cwd();
@@ -1476,83 +1637,109 @@ class ChatViewProvider {
     }
     const sessionToken = {};
     conv._sessionToken = sessionToken;
+    conv.modeRequestId = crypto.randomUUID();
+    conv.modeStatus = "pending";
+    conv.modeError = "";
+    this._updateModeStatus();
     conv.sessionSlashCommands = null;
     conv.unconfirmedSessionSlashCommands = [];
     let session;
     let exited = false;
-    session = this._createSession({
-      command: this._cliCommand(),
-      args: [
-        ...buildSessionArgs({
-          ...llm,
-          maxTurns,
-          // Continue THIS tab's conversation across child restarts; the id is
-          // panel-generated on first spawn (created + persisted by the CLI).
-          resume: conv.sessionId,
-          // Approval mode (/auto, /bypass, /normal) — flag is spawn-time, so a
-          // mode change stops the child and the next turn respawns with it.
-          mode: conv.mode,
-          // Extended thinking (/think, /ultrathink) — same spawn-time story;
-          // "off" adds nothing, Anthropic-only (other providers ignore it).
-          think: conv.thinking,
-          goalCondition: conv.goalCondition,
-        }),
-        // Confirm-tier approvals become Approve/Deny cards in the panel
-        // instead of failing closed (needs cc >= 0.162.45).
-        "--interactive-approvals",
-      ],
-      cwd,
-      // CC_INTERACTIVE_QUESTIONS opts the child into the ask_user_question
-      // round-trip (QuickPick); an old `cc` simply ignores the env var.
-      // The plugin deliberately injects no credentials into argv or the child
-      // environment. The CLI resolves them from its secure config store (while
-      // still honoring any ambient provider env vars the user supplied).
-      env: {
-        ...process.env,
-        ...bridgeEnv,
-        ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
-        CC_INTERACTIVE_QUESTIONS: "1",
-        CC_TASK_WORKLOG: "1",
-        CC_TOOL_ADMISSION: JSON.stringify(
-          buildIdeToolAdmission("vscode-extension"),
-        ),
-        // Lean context (chainlesschain.chat.leanContext, default on): trim the
-        // auto-loaded project memory injected into the system prompt on EVERY
-        // turn. "lean" keeps the primary ENTRY instruction file (cc.md/CLAUDE.md)
-        // but sheds the heavy companions — CLAUDE.local.md (gitignored personal
-        // status), .claude/rules/*.md, and .chainlesschain/rules.md — which in a
-        // doc-heavy monorepo re-cost ~8k+ tokens/message on a paid provider. The
-        // agent can still READ any of those with its tools when a task needs
-        // them. Delivered via the CC_PROJECT_MEMORY env var (not a CLI flag) so
-        // an older `cc` that predates lean mode simply falls back to FULL memory
-        // (safe: no crash, just no savings) instead of erroring on an unknown
-        // flag. Scoped to the panel child only — terminal `cc` is untouched.
-        ...(chatCfg.get("leanContext") !== false
-          ? { CC_PROJECT_MEMORY: "lean" }
-          : {}),
-      },
-      onEvent: this._makeOnEvent(conv.id, sessionToken),
-      onStderr: (line) => {
-        if (conv._sessionToken === sessionToken) {
-          this._postFrom(conv.id, { kind: "stderr", text: line });
-        }
-      },
-      onExit: ({ code }) => {
-        exited = true;
-        const current = this._convs.get(conv.id);
-        if (!current || current._sessionToken !== sessionToken) {
-          return;
-        }
-        current._sessionToken = null;
-        current.sessionSlashCommands = null;
-        current.unconfirmedSessionSlashCommands = [];
-        current.turnActive = false;
-        this._clearInterruptTimer(current);
-        this._convs.setSession(conv.id, null);
-        this._indexConversation(current, "stopped");
-        this._postFrom(conv.id, { kind: "exited", code });
-      },
-    });
+    try {
+      session = this._createSession({
+        command: this._cliCommand(),
+        args: [
+          ...buildSessionArgs({
+            ...llm,
+            maxTurns,
+            // Continue THIS tab's conversation across child restarts; the id is
+            // panel-generated on first spawn (created + persisted by the CLI).
+            resume: conv.sessionId,
+            // Approval mode (/auto, /bypass, /normal) — flag is spawn-time, so a
+            // mode change stops the child and the next turn respawns with it.
+            mode: conv.mode,
+            // Extended thinking (/think, /ultrathink) — same spawn-time story;
+            // "off" adds nothing, Anthropic-only (other providers ignore it).
+            think: conv.thinking,
+            goalCondition: conv.goalCondition,
+          }),
+          // Confirm-tier approvals become Approve/Deny cards in the panel
+          // instead of failing closed (needs cc >= 0.162.45).
+          "--interactive-approvals",
+        ],
+        cwd,
+        // CC_INTERACTIVE_QUESTIONS opts the child into the ask_user_question
+        // round-trip (QuickPick); an old `cc` simply ignores the env var.
+        // The plugin deliberately injects no credentials into argv or the child
+        // environment. The CLI resolves them from its secure config store (while
+        // still honoring any ambient provider env vars the user supplied).
+        env: {
+          ...process.env,
+          ...bridgeEnv,
+          ...configuredVscodeContextMemoryAuthority(this.vscode).cliEnvironment,
+          CC_INTERACTIVE_QUESTIONS: "1",
+          CC_IDE_MODE_REQUEST_ID: conv.modeRequestId,
+          CC_IDE_REQUESTED_MODE: conv.mode || "default",
+          CC_TASK_WORKLOG: "1",
+          CC_TOOL_ADMISSION: JSON.stringify(
+            buildIdeToolAdmission("vscode-extension"),
+          ),
+          // Lean context (chainlesschain.chat.leanContext, default on): trim the
+          // auto-loaded project memory injected into the system prompt on EVERY
+          // turn. "lean" keeps the primary ENTRY instruction file (cc.md/CLAUDE.md)
+          // but sheds the heavy companions — CLAUDE.local.md (gitignored personal
+          // status), .claude/rules/*.md, and .chainlesschain/rules.md — which in a
+          // doc-heavy monorepo re-cost ~8k+ tokens/message on a paid provider. The
+          // agent can still READ any of those with its tools when a task needs
+          // them. Delivered via the CC_PROJECT_MEMORY env var (not a CLI flag) so
+          // an older `cc` that predates lean mode simply falls back to FULL memory
+          // (safe: no crash, just no savings) instead of erroring on an unknown
+          // flag. Scoped to the panel child only — terminal `cc` is untouched.
+          ...(chatCfg.get("leanContext") !== false
+            ? { CC_PROJECT_MEMORY: "lean" }
+            : {}),
+        },
+        onEvent: this._makeOnEvent(conv.id, sessionToken),
+        onStderr: (line) => {
+          if (conv._sessionToken === sessionToken) {
+            this._postFrom(conv.id, { kind: "stderr", text: line });
+          }
+        },
+        onExit: ({ code }) => {
+          exited = true;
+          const current = this._convs.get(conv.id);
+          if (!current || current._sessionToken !== sessionToken) {
+            return;
+          }
+          current._sessionToken = null;
+          current.sessionSlashCommands = null;
+          current.unconfirmedSessionSlashCommands = [];
+          current.turnActive = false;
+          current.effectiveMode = null;
+          current.policyRevision = null;
+          current.modeStatus = code === 0 ? "pending" : "failed";
+          current.modeError =
+            code === 0
+              ? ""
+              : "Agent exited before the requested mode could remain active";
+          this._updateModeStatus();
+          this._clearInterruptTimer(current);
+          this._convs.setSession(conv.id, null);
+          this._indexConversation(current, "stopped");
+          this._postFrom(conv.id, { kind: "exited", code });
+        },
+      });
+    } catch (error) {
+      conv._sessionToken = null;
+      conv.modeStatus = "failed";
+      conv.modeError = String(error.message || error);
+      this._updateModeStatus();
+      this._postFrom(conv.id, {
+        kind: "error",
+        text: `Agent could not start: ${conv.modeError}`,
+      });
+      return { running: false, send: () => false, sendEvent: () => false };
+    }
     if (exited || conv._sessionToken !== sessionToken) return session;
     conv.maxTurns = maxTurns;
     this._convs.setSession(conv.id, session);
@@ -1641,6 +1828,7 @@ class ChatViewProvider {
     // the pick would silently vanish.
     this._postTabs();
     this._post({ kind: "reset" });
+    this._restoreTranscript(conv);
     this._post({
       kind: "info",
       text: `will resume ${id} — send a message to continue it`,
@@ -1776,16 +1964,17 @@ class ChatViewProvider {
     }
     const conv = this._activeConv();
     this._convs.setMode(conv.id, mode);
-    this._updateModeStatus();
-    const restarted = !!conv.session?.running;
+    conv.modeRequestId = null; // invalidate any late ACK from the old child
+    conv.modeStatus = "pending";
+    conv.modeError = "";
+    const restarted = !!conv.session?.running || !!conv.stoppingSession;
     if (restarted) {
-      this._stopSession(conv);
+      this._stopSession(conv, { requireConfirmation: true });
     }
+    this._updateModeStatus();
     this._post({
       kind: "info",
-      text:
-        `approval mode → ${LABELS[mode]}` +
-        (restarted ? " (applies on your next message)" : ""),
+      text: `approval mode requested → ${LABELS[mode]} (waiting for CLI confirmation on your next message)`,
     });
     this._persistTabs();
   }
@@ -1931,6 +2120,7 @@ class ChatViewProvider {
     this._rememberSessionId(sessionId || null);
     this._fileCache = null; // pick up files created since the last scan
     this._postTabs();
+    if (sessionId) this._restoreTranscript(this._convs.active());
   }
 
   /** Reopen the most recently closed chat as a new tab, resuming its session. */
@@ -2004,33 +2194,106 @@ class ChatViewProvider {
   /**
    * Pasted images arrive from the webview as data URLs; the CLI's stream
    * protocol takes file PATHS (same pipeline as `cc agent --image`), so each
-   * one is written to a temp file. Returns the paths (cap 4 per message;
-   * non-image/malformed data is skipped — never trust webview input).
+   * one is validated in a worker and written asynchronously. Any rejected
+   * attachment rejects the send, with no silently omitted images.
    */
-  _writeImageTemps(images) {
-    const fs = require("fs");
-    const os = require("os");
-    const path = require("path");
-    const out = [];
-    for (const img of (images || []).slice(0, 4)) {
-      const m =
-        /^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$/.exec(
-          String((img && img.data) || ""),
+  async _writeImageTemps(images) {
+    return require("./image-attachments").writeImageTemps(images);
+  }
+
+  async _prepareImagesAndSend(message, conv) {
+    const token = this._asyncToken(conv);
+    const pending = {};
+    this._imagePreparation = pending;
+    conv.preparingImages = true;
+    let files = [];
+    try {
+      files = await this._writeImageTemps(message.images);
+      if (
+        this._disposed ||
+        this._convs.get(conv.id) !== conv ||
+        conv._asyncToken !== token
+      ) {
+        await Promise.allSettled(
+          files.map((file) => require("fs/promises").unlink(file)),
         );
-      if (!m) continue;
-      const ext = m[1] === "jpeg" ? "jpg" : m[1];
-      const file = path.join(
-        os.tmpdir(),
-        `cc-chat-img-${Date.now()}-${(this._imgSeq = (this._imgSeq || 0) + 1)}.${ext}`,
-      );
-      try {
-        fs.writeFileSync(file, Buffer.from(m[2], "base64"));
-        out.push(file);
-      } catch {
-        // unwritable tmp — skip this attachment, keep the message going
+        return false;
       }
+      return this._sendMessage(message, files, conv);
+    } catch (error) {
+      this._postFrom(
+        conv.id,
+        { kind: "error", text: `Message not sent: ${error.message}` },
+        token,
+      );
+      this._postFrom(
+        conv.id,
+        {
+          kind: "sendRejected",
+          convId: conv.id,
+          text: message.text || "",
+          images: message.images,
+        },
+        token,
+      );
+      return false;
+    } finally {
+      if (this._imagePreparation === pending) this._imagePreparation = null;
+      conv.preparingImages = false;
     }
-    return out;
+  }
+
+  _sendMessage(m, images, sendingConv) {
+    const session = this._ensureSession(sendingConv);
+    const auto = deriveTabTitle(m.text);
+    if (auto && isDefaultTitle(sendingConv.title)) {
+      this._convs.setTitle(sendingConv.id, auto);
+      this._postTabs();
+    }
+    const id = sendingConv.id;
+    if (images.length) {
+      if (!this._imgTemps) this._imgTemps = new Map();
+      this._imgTemps.set(id, (this._imgTemps.get(id) || []).concat(images));
+    }
+    const history =
+      sendingConv.worklogSource && !sendingConv.worklogSourceSent
+        ? sendingConv.worklogSource
+        : null;
+    const ok =
+      images.length || history
+        ? session.sendEvent({
+            type: "user",
+            text: String(m.text || ""),
+            images,
+            ...(history ? { worklog_session_id: history } : {}),
+          })
+        : session.send(m.text);
+    if (ok === true) {
+      appendTranscript(sendingConv, {
+        kind: "user",
+        text: String(m.text || ""),
+      });
+      this._postFrom(id, { kind: "sendAccepted" });
+      if (history) sendingConv.worklogSourceSent = true;
+      sendingConv.turnActive = true;
+      if (!this._imgTurns) this._imgTurns = new Map();
+      const turns = this._imgTurns.get(id) || [];
+      turns.push(images);
+      this._imgTurns.set(id, turns);
+    } else {
+      this._postFrom(id, {
+        kind: "error",
+        text: "could not reach the agent process — is the `cc` CLI installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, or set chainlesschain.cli.path)",
+      });
+      this._postFrom(id, {
+        kind: "sendRejected",
+        convId: id,
+        text: m.text || "",
+        images: m.images || [],
+      });
+      if (images.length) this._cleanupImageTemps(id, images);
+    }
+    return ok === true;
   }
 
   /**
@@ -3351,7 +3614,7 @@ class ChatViewProvider {
   /** Reflect the ACTIVE conversation's approval mode in the status bar. */
   _updateModeStatus() {
     if (!this._modeStatus) return;
-    this._modeStatus.render(this._activeConv()?.mode || "default");
+    this._modeStatus.render(modeState(this._activeConv()));
   }
 
   /**
@@ -3427,67 +3690,26 @@ class ChatViewProvider {
     if (m.type === "slashCommandFallback") {
       this._handleSlashCommandFallback(m);
     } else if (m.type === "send") {
-      const images = Array.isArray(m.images)
-        ? this._writeImageTemps(m.images)
-        : [];
-      const session = this._ensureSession(); // bootstraps the conversation
-      {
-        // Auto-name the tab from its first message ("Chat N" tells you
-        // nothing once three tabs are open). Only ever replaces the untouched
-        // default, so a deliberate rename sticks.
-        const conv = this._activeConv();
-        const auto = deriveTabTitle(m.text);
-        if (auto && isDefaultTitle(conv.title)) {
-          this._convs.setTitle(conv.id, auto);
-          this._postTabs();
-        }
-      }
-      if (images.length) {
-        // Track for cleanup once this conversation's turn completes.
-        if (!this._imgTemps) this._imgTemps = new Map();
-        const id = this._convs.activeId();
-        this._imgTemps.set(id, (this._imgTemps.get(id) || []).concat(images));
-      }
       const sendingConv = this._activeConv();
-      const history =
-        sendingConv.worklogSource && !sendingConv.worklogSourceSent
-          ? sendingConv.worklogSource
-          : null;
-      const ok =
-        images.length || history
-          ? session.sendEvent({
-              type: "user",
-              text: String(m.text || ""),
-              images,
-              ...(history ? { worklog_session_id: history } : {}),
-            })
-          : session.send(m.text);
-      if (ok === true) {
-        // Persistent sessions may queue a follow-up or wait on a slow provider
-        // without emitting another init event. Acknowledge stdin delivery now.
-        this._post({ kind: "sendAccepted" });
-        if (history) sendingConv.worklogSourceSent = true;
-        this._activeConv().turnActive = true;
-        if (!this._imgTurns) this._imgTurns = new Map();
-        const id = this._convs.activeId();
-        const turns = this._imgTurns.get(id) || [];
-        turns.push(images);
-        this._imgTurns.set(id, turns);
-      }
-      if (!ok) {
-        this._post({
+      if (
+        sendingConv.preparingImages ||
+        (m.images?.length && this._imagePreparation)
+      ) {
+        this._postFrom(sendingConv.id, {
           kind: "error",
-          text:
-            "could not reach the agent process — is the `cc` CLI " +
-            "installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, " +
-            "or set chainlesschain.cli.path)",
+          text: "Images are still being prepared. Wait before sending again.",
         });
-        // The send failed, so no `result` event will ever fire to clean up the
-        // temp pngs we tracked above — unlink them now, or they leak in tmp for
-        // the panel's lifetime (one set per failed send).
-        if (images.length)
-          this._cleanupImageTemps(this._convs.activeId(), images);
+        this._postFrom(sendingConv.id, {
+          kind: "sendRejected",
+          convId: sendingConv.id,
+          text: m.text || "",
+          images: m.images || [],
+        });
+        return false;
       }
+      if (Array.isArray(m.images) && m.images.length)
+        return this._prepareImagesAndSend(m, sendingConv);
+      return this._sendMessage(m, [], sendingConv);
     } else if (m.type === "plan") {
       // Plan controls ride the same stdin protocol; entering plan mode may
       // need to spawn the child first (e.g. Plan clicked before any turn).
@@ -3675,6 +3897,7 @@ class ChatViewProvider {
       // record — no child spawn until the first message).
       const conv = this._activeConv();
       this._postTabs();
+      this._restoreTranscript(conv);
       // A Webview can be recreated while the long-lived CLI child is blocked
       // on an approval/question. Rehydrate every unresolved card immediately;
       // the renderer deduplicates cards when VS Code retained the old DOM.
@@ -3718,6 +3941,7 @@ class ChatViewProvider {
       if (conv) {
         this._rememberSessionId(conv.sessionId);
         this._postTabs();
+        this._restoreTranscript(conv);
         // Re-post every unresolved interaction that was gated out while this
         // tab was backgrounded. They remain host-owned until a resolved event,
         // so a later Webview recreation can recover them again.
@@ -3728,6 +3952,11 @@ class ChatViewProvider {
           this._syncPlanReviewEditor(conv.id, conv.plan).catch(() => {});
         }
       }
+    } else if (m.type === "transcriptPage") {
+      this._restoreTranscript(
+        this._activeConv(),
+        typeof m.cursor === "string" ? m.cursor : null,
+      );
     } else if (m.type === "closeTab") {
       this._flushPlanReviewDrafts();
       const closingId = String(m.id || "");
@@ -3749,11 +3978,13 @@ class ChatViewProvider {
         if (this._convs.count() === 0) this._convs.create({}); // never empty
         this._rememberSessionId(this._convs.active()?.sessionId || null);
         this._postTabs();
+        this._restoreTranscript(this._convs.active());
       }
     }
   }
 
   dispose() {
+    this._disposed = true;
     this._clearWebviewProtocolTimer();
     this._webviewProtocolGuard = false;
     this._webviewProtocolConfirmed = false;

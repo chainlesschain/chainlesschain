@@ -115,6 +115,7 @@ import { IterationBudget } from "../lib/iteration-budget.js";
 import { CostBudget } from "../lib/cost-budget.js";
 import {
   resolvePermissionMode,
+  normalizePermissionMode,
   resolveEnabledTools,
   parseToolList,
   installPipeSafety,
@@ -3110,6 +3111,27 @@ async function runAgentHeadlessStreamInWorkspace(
     model,
     provider,
     permission_mode: options.permissionMode || "default",
+    // Correlates display state with this exact IDE child. This echo grants no
+    // authority: effective mode is derived only from validated CLI options.
+    ...(/^[a-zA-Z0-9-]{1,80}$/.test(process.env.CC_IDE_MODE_REQUEST_ID || "")
+      ? {
+          permission_mode_state: {
+            correlation_id: process.env.CC_IDE_MODE_REQUEST_ID,
+            requested: ["default", "acceptEdits", "bypassPermissions"].includes(
+              process.env.CC_IDE_REQUESTED_MODE,
+            )
+              ? process.env.CC_IDE_REQUESTED_MODE
+              : "default",
+            effective: normalizePermissionMode(options.permissionMode),
+            policy_revision: computePolicyDigest({
+              permissionMode: options.permissionMode,
+              allowedTools: options.allowedTools,
+              disallowedTools: disabledTools,
+              permissionRules,
+            }),
+          },
+        }
+      : {}),
     tools: enabledToolNames,
     tools_hash: computeToolsHash(enabledToolNames),
     policy_digest: computePolicyDigest({

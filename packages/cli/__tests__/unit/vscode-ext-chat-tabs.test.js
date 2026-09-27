@@ -218,7 +218,8 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
     posted.length = 0;
     provider._handleMessage({ type: "switchTab", id: firstId });
     expect(provider._convs.activeId()).toBe(firstId);
-    expect(postedKinds(posted)).toEqual(["tabs"]); // no reset — buffer restores
+    expect(postedKinds(posted)).toEqual(["tabs", "transcript"]);
+    expect(posted.at(-1).messages).toEqual([{ role: "user", text: "one" }]);
   });
 
   it("the webview 'ready' signal bootstraps one tab and broadcasts the tab bar", () => {

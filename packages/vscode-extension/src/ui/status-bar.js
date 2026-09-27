@@ -14,7 +14,8 @@ function createStatusBar(vscode, commandId) {
   function render(state) {
     if (state && state.port > 0) {
       const n = state.toolCount || 0;
-      item.text = `$(plug) IDE :${state.port}` + (n ? ` $(arrow-right)${n}` : "");
+      item.text =
+        `$(plug) IDE :${state.port}` + (n ? ` $(arrow-right)${n}` : "");
       item.tooltip = vscode.l10n.t(
         'ChainlessChain IDE bridge\n127.0.0.1:{0} (MCP server "ide")\n{1} tool calls · click to open the dashboard',
         String(state.port),
@@ -61,6 +62,21 @@ function createModeStatusBar(vscode, commandId) {
     : undefined;
 
   function render(mode) {
+    const state = mode && typeof mode === "object" ? mode : null;
+    if (state && state.status !== "effective") {
+      item.text =
+        state.status === "failed"
+          ? "$(error) approval mode failed"
+          : "$(clock) approval mode unconfirmed";
+      item.tooltip = `Requested: ${state.requested}\nLast confirmed: ${state.effective || "none"}\n${state.reason || "Waiting for the CLI to confirm its effective policy"}`;
+      item.backgroundColor =
+        state.status === "failed" || state.effective === "bypassPermissions"
+          ? warnBg
+          : undefined;
+      item.show();
+      return;
+    }
+    if (state) mode = state.effective;
     if (mode === "bypassPermissions") {
       item.text = "$(unlock) bypass approvals";
       item.tooltip = vscode.l10n.t(
@@ -80,6 +96,8 @@ function createModeStatusBar(vscode, commandId) {
       );
       item.backgroundColor = undefined;
     }
+    if (state)
+      item.tooltip += `\nRequested: ${state.requested}\nPolicy revision: ${state.policyRevision}`;
     item.show();
   }
 

@@ -10,6 +10,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const { createStreamingTranscript } = require("./streaming-transcript");
 const MD_LITE_SOURCE = fs.readFileSync(
   path.join(__dirname, "md-lite.js"),
   "utf8",
@@ -35,7 +36,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 2;
+const CHAT_UI_PROTOCOL_VERSION = 3;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -337,6 +338,20 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const status = document.getElementById("status");
   const ctxbar = document.getElementById("ctxbar");
   const tabsEl = document.getElementById("tabs");
+  let followBottom = true;
+  log.addEventListener("scroll", () => {
+    followBottom = log.scrollHeight - log.clientHeight - log.scrollTop <= 48;
+  });
+  function followTranscript() {
+    const selection = document.getSelection();
+    const selecting = selection && !selection.isCollapsed &&
+      (log.contains(selection.anchorNode) || log.contains(selection.focusNode));
+    if (followBottom && !selecting) log.scrollTop = log.scrollHeight;
+  }
+  ${createStreamingTranscript.toString()}
+  const streamRenderer = createStreamingTranscript({
+    document, renderMarkdown: mdLite, decorate: decorateCodeBlocks, follow: followTranscript,
+  });
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered (coalesced) on deltas
   let streamTextState = null; // bounded head/tail + full logical char count
@@ -594,7 +609,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (bounded.truncated) el.dataset.truncated = "true";
     log.appendChild(el);
     trimLog(); // bound long-session memory (keep the most recent MAX_LOG_NODES)
-    log.scrollTop = log.scrollHeight;
+    followTranscript();
     return el;
   }
   function ensureStream() {
@@ -607,19 +622,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     }
     return streamEl;
   }
-  // Coalesce streaming deltas. Each token re-parses the WHOLE growing markdown
-  // string (mdLite) and replaces innerHTML — O(n²) work + a DOM reflow per
-  // token, which pins CPU on fast streams. Instead, accumulate raw text
-  // synchronously and render at most once per animation frame (~60fps),
-  // mirroring Claude-Code 2.1.191 "reduced CPU during streaming via text update
-  // coalescing". flushStream() forces a synchronous render so a block is fully
-  // rendered before it is closed; cancelStreamFrame() drops a pending render
-  // when the block is being discarded (reset / tab switch).
+  // Append plain text per animation frame. Markdown and code controls are
+  // constructed once at the block boundary, preserving selection while live.
   function renderStreamNow() {
     if (!streamEl) return;
-    streamEl.innerHTML = mdLite(streamRaw); // whitelist renderer, XSS-safe
-    decorateCodeBlocks(streamEl); // Copy buttons on fenced blocks (DOM-level)
-    log.scrollTop = log.scrollHeight;
+    streamRenderer.update(streamEl, streamRaw, streamTextState?.truncated === true);
   }
   function scheduleStreamRender() {
     if (streamFrame !== null) return;
@@ -637,6 +644,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   function flushStream() {
     cancelStreamFrame();
     renderStreamNow();
+    if (streamEl) streamRenderer.finish(streamEl, streamRaw);
   }
   // Collapsible reasoning block for extended thinking. A native <details> —
   // expanded while it streams, click the summary to collapse; auto-collapsed
@@ -654,7 +662,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       body.className = "tbody";
       details.appendChild(body);
       log.appendChild(details);
-      log.scrollTop = log.scrollHeight;
+      followTranscript();
       thinkingEl = details;
       thinkingBody = body;
       thinkingTextState = null;
@@ -763,6 +771,16 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   // required — configure llm.visionModel / chainlesschain.chat.model).
   const attach = document.getElementById("attach");
   let pendingImages = [];
+  const composerDrafts = Object.create(null);
+  function composerDraft(id = tabKey()) {
+    return composerDrafts[id] || (composerDrafts[id] = { text: "", images: [], reads: 0, readingBytes: 0 });
+  }
+  function saveComposer() {
+    const draft = composerDraft();
+    draft.text = input.value;
+    draft.images = pendingImages;
+  }
+  input.addEventListener("input", saveComposer);
   function renderAttach() {
     attach.textContent = "";
     if (!pendingImages.length) { attach.style.display = "none"; return; }
@@ -773,7 +791,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       const x = document.createElement("button");
       x.textContent = "×";
       x.title = "remove attachment";
-      x.addEventListener("click", () => { pendingImages.splice(i, 1); renderAttach(); });
+      x.addEventListener("click", () => { pendingImages.splice(i, 1); saveComposer(); renderAttach(); });
       chip.appendChild(x);
       attach.appendChild(chip);
     });
@@ -781,15 +799,38 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   }
   // Shared by paste + drag-drop: read an image blob as a data URL and stage it.
   function addImageBlob(blob) {
-    if (!blob || pendingImages.length >= 4) return;
+    if (!blob) return;
+    saveComposer();
+    const owner = tabKey();
+    const draft = composerDraft(owner);
+    if (draft.images.length + draft.reads >= 4) { add("error", "Attach at most 4 images per message."); return; }
+    if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(blob.type)) { add("error", "Use PNG, JPEG, GIF or WebP images."); return; }
+    const total = draft.images.reduce((n, image) => n + (image.size || image.data.length * 0.75), 0) + draft.readingBytes + blob.size;
+    if (!blob.size || blob.size > 20 * 1024 * 1024 || total > 20 * 1024 * 1024) { add("error", "Images must total at most 20 MiB per message."); return; }
+    draft.reads += 1;
+    draft.readingBytes += blob.size;
     const fr = new FileReader();
-    fr.onload = () => { pendingImages.push({ data: fr.result }); renderAttach(); };
-    fr.readAsDataURL(blob);
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      draft.reads -= 1;
+      draft.readingBytes -= blob.size;
+      if (!error) draft.images.push({ data: fr.result, size: blob.size });
+      if (tabKey() === owner) {
+        pendingImages = draft.images;
+        renderAttach();
+        if (error) add("error", "Image could not be read. Please attach it again.");
+      }
+    };
+    fr.onload = () => finish(false);
+    fr.onerror = fr.onabort = () => finish(true);
+    try { fr.readAsDataURL(blob); } catch { finish(true); }
   }
   input.addEventListener("paste", (e) => {
     const items = (e.clipboardData && e.clipboardData.items) || [];
     for (const it of items) {
-      if (it.type && it.type.indexOf("image/") === 0 && pendingImages.length < 4) {
+      if (it.type && it.type.indexOf("image/") === 0) {
         e.preventDefault();
         addImageBlob(it.getAsFile());
       }
@@ -818,6 +859,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     }
   });
   function send() {
+    if (composerDraft().reads) { add("info", "Wait for the images to finish loading before sending."); return; }
     // Clicking the blue Send button must mirror Enter while the slash menu is
     // open. Previously Enter accepted the highlighted /status suggestion,
     // but Send submitted the still-partial /sta text and reported it as an
@@ -874,6 +916,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       images.length ? { type: "send", text, images } : { type: "send", text },
     );
     input.value = "";
+    saveComposer();
     turnTokens = null; // fresh tally for the new turn
     updateStatus("thinking…");
     // This timer measures host acknowledgement, not model response time.
@@ -1163,9 +1206,77 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     switch (m.kind) {
       default:
         break;
+      case "transcript": {
+        if (m.convId !== activeTabId || !Array.isArray(m.messages)) break;
+        cancelStreamFrame();
+        log.textContent = "";
+        streamEl = null;
+        streamRaw = "";
+        streamTextState = null;
+        thinkingEl = null;
+        thinkingBody = null;
+        thinkingTextState = null;
+        delete turnStateByTab[tabKey()];
+        const navigation = document.createElement("div");
+        if (m.contextOnly) {
+          const label = document.createElement("span");
+          label.textContent = "Saved conversation context · ";
+          navigation.appendChild(label);
+        }
+        if (m.nextCursor) {
+          const older = document.createElement("button");
+          older.textContent = "Older messages";
+          older.addEventListener("click", () => vscode.postMessage({ type: "transcriptPage", cursor: m.nextCursor }));
+          navigation.appendChild(older);
+        }
+        const latest = document.createElement("button");
+        latest.textContent = "Latest messages";
+        latest.addEventListener("click", () => vscode.postMessage({ type: "transcriptPage" }));
+        navigation.appendChild(latest);
+        log.appendChild(navigation);
+        for (const row of m.messages) {
+          if (row.role === "user") { beginTurn(); add("user", row.text); }
+          else if (row.role === "assistant") {
+            ensureAssistantHeading();
+            if (row.streaming) {
+              ensureStream();
+              streamTextState = appendBoundedTranscriptText(null, row.text, MAX_ENTRY_CHARS);
+              streamRaw = streamTextState.text;
+              renderStreamNow();
+            } else {
+              const el = add("assistant", "");
+              el.innerHTML = mdLite(String(row.text || ""));
+              decorateCodeBlocks(el);
+            }
+          } else if (row.role === "tool" || row.role === "error") add(row.role, row.text);
+          if (row.truncated) add("info", "This message is shortened for display; the saved session retains its original content.");
+        }
+        log.setAttribute("aria-busy", streamEl ? "true" : "false");
+        if (m.earlier) { followBottom = false; log.scrollTop = 0; }
+        else followTranscript();
+        break;
+      }
       case "init":
         updateStatus(m.model ? (m.provider + " · " + m.model) : "connected");
         break;
+      case "sendRejected": {
+        if (m.convId && m.convId !== activeTabId) break;
+        clearSendTimer();
+        const restore = () => {
+          input.value = String(m.text || "");
+          pendingImages = Array.isArray(m.images) ? m.images : [];
+          saveComposer(); renderAttach(); input.focus();
+        };
+        if (!input.value && !pendingImages.length) restore();
+        else {
+          const row = add("info", "The message was not sent. ");
+          const button = document.createElement("button");
+          button.textContent = "Restore unsent message";
+          button.addEventListener("click", () => { saveComposer(); restore(); button.remove(); });
+          row.appendChild(button);
+        }
+        break;
+      }
       case "delta": {
         ensureStream();
         streamTextState = appendBoundedTranscriptText(
@@ -1189,7 +1300,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         );
         el.textContent = thinkingTextState.text;
         if (thinkingTextState.truncated) el.dataset.truncated = "true";
-        log.scrollTop = log.scrollHeight;
+        followTranscript();
         break;
       }
       case "tool":
@@ -1299,7 +1410,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
            btns.appendChild(skipUrl);
            card.appendChild(btns);
            log.appendChild(card);
-           log.scrollTop = log.scrollHeight;
+           followTranscript();
            break;
          }
          const schema = m.elicitation && m.requestedSchema && typeof m.requestedSchema === "object"
@@ -1385,7 +1496,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         btns.appendChild(skip);
         card.appendChild(btns);
         log.appendChild(card);
-        log.scrollTop = log.scrollHeight;
+        followTranscript();
         break;
       }
       case "info":
@@ -1546,7 +1657,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         btns.appendChild(yes); btns.appendChild(scoped); btns.appendChild(no);
         card.appendChild(q); card.appendChild(btns);
         log.appendChild(card);
-        log.scrollTop = log.scrollHeight;
+        followTranscript();
         break;
       }
       case "approval_done": {
@@ -1604,7 +1715,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         btns.appendChild(go);
         card.appendChild(q); card.appendChild(btns);
         log.appendChild(card);
-        log.scrollTop = log.scrollHeight;
+        followTranscript();
         break;
       }
       case "files": {
@@ -1636,6 +1747,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         add("mono", String(m.text || ""));
         break;
       case "reset":
+        followBottom = true;
         cancelStreamFrame(); // drop a pending render — the log is being cleared
         log.textContent = "";
         log.setAttribute("aria-busy", "false");
@@ -1656,6 +1768,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "tabs": {
         renderTabBar(m.tabs, m.activeId);
         if (m.activeId !== activeTabId) {
+          saveComposer();
+          if (!activeTabId && composerDrafts._ && !composerDrafts[m.activeId]) {
+            composerDrafts[m.activeId] = composerDrafts._;
+            delete composerDrafts._;
+          }
           // A fast first send can beat the initial tabs message. Preserve that
           // bootstrap prompt under the real tab id so /retry remains available.
           migrateBootstrapLastSent(lastSentByTab, activeTabId, m.activeId);
@@ -1665,6 +1782,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           if (activeTabId) tabNodes[activeTabId] = detachLogNodes();
           else detachLogNodes(); // no owner yet → drop the bootstrap nodes
           activeTabId = m.activeId;
+          const draft = composerDraft();
+          input.value = draft.text;
+          pendingImages = draft.images;
+          renderAttach();
           attachLogNodes(tabNodes[activeTabId]);
           cancelStreamFrame(); // drop the outgoing tab's pending render
           streamEl = null;
@@ -1678,6 +1799,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           thinkingTextState = null;
           log.setAttribute("aria-busy", "false");
           planBox.style.display = "none";
+          followBottom = true;
           log.scrollTop = log.scrollHeight;
         }
         // Drop buffers for tabs that were closed.
@@ -1690,6 +1812,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         }
         for (const k of Object.keys(turnStateByTab)) {
           if (k !== "_" && !live.has(k)) delete turnStateByTab[k];
+        }
+        for (const k of Object.keys(composerDrafts)) {
+          if (k !== "_" && !live.has(k)) delete composerDrafts[k];
         }
         break;
       }
