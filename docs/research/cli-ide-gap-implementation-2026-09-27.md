@@ -251,6 +251,14 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 
 本地 Gradle 编译及 8 类共 **56 项测试通过，0 skipped/failures/errors**，包含真实 Java 子进程、受控管道阻塞、EDT 响应、预约前后 Stop 顺序、拒绝重复写入、共享 init 后续复用、持久化重新读取、草稿恢复、历史行身份隔离、模式状态与进程终止回归。未把这批结果记作真实 JetBrains GUI、其他系统或发布 CI 验收；JetBrains 恢复旅程仍待执行。
 
+### JetBrains 实际宿主恢复旅程准备
+
+`CC_UI_CONVERSATION_RECOVERY=1 node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs --ide-version 2024.2 --artifact-dir <新证据目录>` 启用独立的 `jetbrains-canonical-conversation-recovery` 旅程。沿用 Remote Robot 和原生 Swing 按钮、输入框、标签页；只读反射采集实际渲染行对应的保存身份，驱动不调用插件内部发送/恢复方法或写草稿存储。CLI `home` / `security` 位于仓库外新建的临时目录。
+
+检查 A 在 B 激活期间完成、A 两次相同正文保留四条独立保存行、A/B 中文 emoji 草稿隔离，以及使用相同磁盘 profile、不同 IDE PID 重启后的身份和草稿保留；协议台账必须恰有 A 两次和 B 一次输入，并有实际 CLI history 查询。该独立旅程不替代原有 chat/control/Workbench/rewind 旅程，也不声称夹具 checkpoint 是真实 canonical rewind。
+
+UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有宿主夹具 11 项 Vitest 测试通过；修改的 JS 文件 ESLint 无错误。真实 GUI 执行结果尚未取得，不能将准备完成计作宿主验收通过。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

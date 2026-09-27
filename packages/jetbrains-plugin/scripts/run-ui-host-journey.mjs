@@ -6,11 +6,14 @@ import {
   createWriteStream,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { verifyConversationRecovery } from "./conversation-recovery-evidence.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -214,11 +217,35 @@ export function createFakeCliEnvironment(
     { encoding: "utf8", mode: 0o700, flag: "wx" },
   );
 
+  const canonicalRoot =
+    baseEnvironment.CC_UI_CONVERSATION_RECOVERY === "1"
+      ? mkdtempSync(path.join(os.tmpdir(), "cc-jb-canonical-"))
+      : null;
+  if (canonicalRoot)
+    writeFileSync(
+      path.join(logRoot, "canonical-environment.json"),
+      JSON.stringify({
+        root: canonicalRoot,
+        model: "deterministic fixture",
+        persistence: "production canonical store and actual CLI command",
+      }) + "\n",
+      { encoding: "utf8", mode: 0o600, flag: "wx" },
+    );
   return prependPath(
     {
       ...baseEnvironment,
       CC_UI_FIXTURE_STATE: path.join(logRoot, "fake-cli-state.json"),
       CC_UI_FIXTURE_TRACE: path.join(logRoot, "fake-cli-protocol.jsonl"),
+      ...(canonicalRoot
+        ? {
+            CC_UI_CANONICAL_ROOT: canonicalRoot,
+            CHAINLESSCHAIN_HOME: path.join(canonicalRoot, "home"),
+            CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: path.join(
+              canonicalRoot,
+              "security",
+            ),
+          }
+        : {}),
     },
     fakeBin,
   );
@@ -678,7 +705,10 @@ async function writeEvidence(options, result, startedAt, logRoot) {
   );
   return writeIdeJourneyEvidence({
     artifactDir: options.artifactDir,
-    journeyId: "jetbrains-chat-control-workbench-restart-rewind",
+    journeyId:
+      process.env.CC_UI_CONVERSATION_RECOVERY === "1"
+        ? "jetbrains-canonical-conversation-recovery"
+        : "jetbrains-chat-control-workbench-restart-rewind",
     host: "jetbrains",
     hostVersion: options.ideVersion,
     cliVersion: readPackageVersion(
@@ -846,6 +876,9 @@ export async function runJourney(options) {
               `-Dui.robot.url=${options.robotUrl}`,
               `-Dui.journey.phase=${phase}`,
               `-Dui.metrics.path=${metricsPath}`,
+              ...(fixtureEnvironment.CC_UI_CANONICAL_ROOT
+                ? [`-Dui.recovery.root=${logRoot}`]
+                : []),
               ...gradleOptions,
             ],
             logRoot,
@@ -876,33 +909,42 @@ export async function runJourney(options) {
       }
     }
     const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
-    const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);
-    const modelConfigurationCoverage =
-      verifyModelConfigurationFixtureLedger(fixtureTracePath);
-    const visibilitySummary = verifyWorkbenchVisibilityMetrics(metricsPath);
-    const workbenchCoverage = verifyWorkbenchFixtureLedger(
-      fixtureTracePath,
-      visibilitySummary.readinessSamples,
-    );
-    writeFileSync(
-      path.join(logRoot, "workbench-host-phases.json"),
-      `${JSON.stringify(
-        {
-          phases: hostPhases,
-          rewindCoverage,
-          modelConfigurationCoverage,
-          workbenchCoverage,
-          visibilitySummary: {
-            ...visibilitySummary,
-            measurementStartedAt: hostPhases[0]?.startedAt,
-            measurementCompletedAt: hostPhases[0]?.completedAt,
+    if (fixtureEnvironment.CC_UI_CANONICAL_ROOT) {
+      const recovery = verifyConversationRecovery(logRoot, fixtureTracePath);
+      writeFileSync(
+        path.join(logRoot, "conversation-recovery-host-phases.json"),
+        JSON.stringify({ phases: hostPhases, recovery }, null, 2) + "\n",
+        { encoding: "utf8", mode: 0o600, flag: "wx" },
+      );
+    } else {
+      const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);
+      const modelConfigurationCoverage =
+        verifyModelConfigurationFixtureLedger(fixtureTracePath);
+      const visibilitySummary = verifyWorkbenchVisibilityMetrics(metricsPath);
+      const workbenchCoverage = verifyWorkbenchFixtureLedger(
+        fixtureTracePath,
+        visibilitySummary.readinessSamples,
+      );
+      writeFileSync(
+        path.join(logRoot, "workbench-host-phases.json"),
+        `${JSON.stringify(
+          {
+            phases: hostPhases,
+            rewindCoverage,
+            modelConfigurationCoverage,
+            workbenchCoverage,
+            visibilitySummary: {
+              ...visibilitySummary,
+              measurementStartedAt: hostPhases[0]?.startedAt,
+              measurementCompletedAt: hostPhases[0]?.completedAt,
+            },
           },
-        },
-        null,
-        2,
-      )}\n`,
-      { encoding: "utf8", mode: 0o600, flag: "wx" },
-    );
+          null,
+          2,
+        )}\n`,
+        { encoding: "utf8", mode: 0o600, flag: "wx" },
+      );
+    }
     result = "passed";
   } catch (error) {
     journeyError = error;

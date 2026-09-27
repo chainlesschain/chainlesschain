@@ -84,6 +84,7 @@ dependencies {
     "uiTestImplementation"("com.intellij.remoterobot:remote-robot:0.11.23")
     "uiTestImplementation"("com.intellij.remoterobot:remote-fixtures:0.11.23")
     "uiTestImplementation"("org.junit.jupiter:junit-jupiter:5.10.2")
+    "uiTestImplementation"("com.google.code.gson:gson:2.10.1")
     "uiTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
 
@@ -292,6 +293,7 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.robot.url", System.getProperty("ui.robot.url") ?: "http://127.0.0.1:8082")
     systemProperty("ui.journey.phase", System.getProperty("ui.journey.phase") ?: "initial")
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
+    systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
     systemProperty("file.encoding", "UTF-8")
     maxParallelForks = 1 // one live IDE + one robot client, never parallelize
     outputs.upToDateWhen { false } // always re-drive the live IDE

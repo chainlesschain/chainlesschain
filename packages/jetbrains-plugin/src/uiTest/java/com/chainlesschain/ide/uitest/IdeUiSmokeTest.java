@@ -78,6 +78,15 @@ final class IdeUiSmokeTest {
             assertAutomaticCompletionContract(frame);
             dismissVendorOnboarding(robot);
 
+            String recoveryRoot = System.getProperty("ui.recovery.root", "");
+            if (!recoveryRoot.isBlank()) {
+                ensureChatInputVisible(robot);
+                String phase = System.getProperty("ui.journey.phase", "initial");
+                new ConversationRecoveryJourney(robot, frame, Paths.get(recoveryRoot)).run(phase);
+                if ("initial".equals(phase)) saveProjectBeforeRestart(frame);
+                return;
+            }
+
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
                 runSessionsWorkbenchJourney(robot, true);
                 runModelConfigurationJourney(robot, true);

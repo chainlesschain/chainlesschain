@@ -6,6 +6,7 @@ import test from "node:test";
 
 import {
   isRobotStartupFailure,
+  createFakeCliEnvironment,
   findPluginArchive,
   verifyModelConfigurationFixtureLedger,
   verifyWorkbenchVisibilityMetrics,
@@ -17,6 +18,23 @@ import {
   WORKBENCH_READINESS_MAXIMUM_SAMPLES,
   WORKBENCH_READINESS_MINIMUM_SAMPLES,
 } from "./run-ui-host-journey.mjs";
+
+test("canonical recovery isolates real CLI storage outside the log worktree", (t) => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "cc-jb-isolation-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const environment = createFakeCliEnvironment(root, {
+    CC_UI_CONVERSATION_RECOVERY: "1",
+  });
+  const canonical = environment.CC_UI_CANONICAL_ROOT;
+  t.after(() => rmSync(canonical, { recursive: true, force: true }));
+  assert.ok(path.isAbsolute(canonical));
+  assert.notEqual(canonical, root);
+  assert.equal(environment.CHAINLESSCHAIN_HOME, path.join(canonical, "home"));
+  assert.equal(
+    environment.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME,
+    path.join(canonical, "security"),
+  );
+});
 
 function readinessRecords(count = WORKBENCH_READINESS_MINIMUM_SAMPLES) {
   return Array.from({ length: count }, (_, index) => ({
