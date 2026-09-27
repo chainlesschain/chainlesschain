@@ -124,7 +124,16 @@ describe("chat transcript recovery", () => {
       revision: "r",
       contextOnly: false,
       coverage: { kind: "snapshot-boundary" },
-      messages: [{ role: "assistant", text: "saved answer" }],
+      totalMessages: 5,
+      eventCount: 8,
+      messages: [
+        {
+          id: "saved:answer:0",
+          ordinal: 4,
+          role: "assistant",
+          text: "saved answer",
+        },
+      ],
       nextCursor: "older",
     };
     const { provider, posted } = harness({ load: async () => page });
@@ -135,7 +144,7 @@ describe("chat transcript recovery", () => {
     await provider._restoreTranscript(conv);
     expect(posted.findLast((m) => m.kind === "transcript")).toMatchObject({
       live: true,
-      nextCursor: "older",
+      nextCursor: expect.any(String),
       coverage: { kind: "snapshot-boundary" },
     });
     provider._clearSessionState(conv);

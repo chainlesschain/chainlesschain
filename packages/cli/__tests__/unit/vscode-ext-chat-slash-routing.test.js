@@ -300,6 +300,7 @@ describe("VS Code chat trusted CLI slash-command routing", () => {
     expect(posted.at(-1)).toEqual({
       kind: "error",
       text: "project initialization failed",
+      transcriptRow: { viewId: expect.any(String) },
     });
   });
 
@@ -397,6 +398,7 @@ describe("VS Code chat trusted CLI slash-command routing", () => {
     expect(posted.at(-1)).toEqual({
       kind: "error",
       text: "session not found",
+      transcriptRow: { viewId: expect.any(String) },
     });
   });
 

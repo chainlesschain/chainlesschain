@@ -109,10 +109,11 @@ output. A final-answer reference does not label every earlier assistant fragment
 or tool card. Deduplicate verified rows by identity, never equal text. Keep
 unassociated live diagnostics and partial output distinguishable from saved rows.
 
-VS Code and JetBrains currently use snapshot replacement and have not yet
-connected this update API or terminal references to their live transcripts.
-Guarded merging and UI preservation remain required before claiming durable/live
-deduplication. References grant no execution or recovery authority and do not
+VS Code now consumes this update API and terminal/input references with guarded
+row merging and keyed Webview updates; see its [history guide](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md)
+for bounds and legacy behavior. JetBrains still uses snapshot reads and has not
+connected these references to its live transcript. Real dual-host acceptance
+remains pending. References grant no execution or recovery authority and do not
 replace an input receipt.
 
 Local verification uses real temporary JSONL storage, Kernel compaction, timeline

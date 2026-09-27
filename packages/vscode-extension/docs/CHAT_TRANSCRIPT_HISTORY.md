@@ -75,15 +75,48 @@ Complete ancestry across the remaining boundaries is still pending.
 Each page retains at most 100 rows / 1 MiB of row JSON, with 200,000 characters per
 row. Escaping can shorten a row further to meet its JSON byte budget; the row
 remains present with `truncated=true`. The host requests 50 rows and caps CLI output at 2 MiB. Full hash-chain and
-anti-rollback verification still scans the transcript. This is bounded snapshot
-paging, not an indexed query or durable/live incremental merge. During an active
-turn the host retains its bounded live cache, then reloads the canonical snapshot.
-The CLI now offers a separate [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md)
-using a latest page's `syncCursor` and `--history --after`. This host does not yet
-consume it. The stream runtime also supplies optional terminal `transcript_refs`
-with the saved assistant/user event identities; this host does not yet associate
-them with live rows. Verified row/role matching, child/session ownership checks
-and guarded live merging remain required before snapshot replacement can be removed.
+anti-rollback verification still scans the transcript; this is not an indexed query.
+
+## Incremental updates and live association
+
+A latest page establishes `syncCursor`. On completion or Latest, the host reads
+`--history --after` using the [verified update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md).
+It checks contiguous ordinals, session/generation, revision/event-count ties,
+unique row IDs and the next cursor before applying each batch. The cursor advances
+only with applied rows. Each refresh reads at most eight 50-row batches; if more
+remain, Latest continues from the retained cursor. Older browsing uses its own
+page cursor and does not advance the live update baseline or receive streaming
+replacements. Background tabs still update their host cache.
+
+Live rows have stable local display IDs. A validated input receipt associates a
+user row only with its originating child and client input ID. Terminal
+`transcript_refs` associate this child's final assistant row and, when known, its
+user row. These references remain candidates until verified history returns the
+same session/event/role/item identity. Retry batches and repeated receipts can
+reuse already verified rows; identical text in different events stays separate.
+Only the final assistant segment receives the final-answer reference. Earlier
+partial output, tool activity and diagnostics remain live-only entries if no
+verified association exists. Missing references (including older CLIs) do not
+permit text-based guessing or silently dropping live text. Consequently, a legacy
+live entry and an unassociated saved row may both remain visible.
+
+Reads are guarded by the conversation, child, session, async generation, request
+and transcript revision. Active turns retain their live cache and defer reads
+until a terminal event. Only `SESSION_TRANSCRIPT_CURSOR_STALE` reloads a latest
+baseline, replacing obsolete saved rows while preserving unassociated live
+output. Integrity, parsing and process failures preserve the cursor/cache and
+show an error. A newer live turn, replaced child, reset or disposal discards late
+read results. No model turn, input replay or saved tool execution is triggered.
+
+The combined host cache retains at most 100 rows / 500K characters; older saved
+rows remain accessible through paging. Keyed Webview reconciliation preserves
+unchanged message nodes, tool controls and reader scroll position. Selected text
+defers conflicting edits/removals/reordering until deselection; a newer live
+event invalidates an older deferred projection. Explicit Older/Latest view
+changes may reconstruct that view. UI protocol v6 replaces retained older scripts.
+The DOM retains its existing 800-node bound. These are display limits, not a claim
+of complete persistence for tool diagnostics or intermediate assistant segments.
+
 Optional origin tracking retains at most 32,768 active messages / 8 MiB of
 message JSON; larger contexts lose this mapping and use the snapshot on rewind
 or timeline summary. Summary verification temporarily reconstructs the rewrite
@@ -99,4 +132,9 @@ replacement, rewind invalidation, fork isolation, tampering, cursor validation,
 bounded traversal, repeated rewind ancestry, identical text at different source
 positions, the real CLI preview/confirm path and host reconstruction. JetBrains uses the same v2 page
 contract; see [its history reader](../../jetbrains-plugin/docs/CHAT_TRANSCRIPT_HISTORY.md).
-Real VS Code and JetBrains journeys and cross-platform acceptance remain pending.
+Incremental tests use real canonical storage with the production ChatViewProvider
+and generated Webview: repeated text, two conversations, read retries, input-only acceptance,
+rewind, malformed batches, integrity errors, late reads and selection/scroll
+preservation. Host/process APIs and model events are test fixtures. Real VS Code
+and JetBrains journeys and cross-platform acceptance remain pending; JetBrains
+has not yet adopted incremental reads or terminal-reference merging.

@@ -11,6 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const { createStreamingTranscript } = require("./streaming-transcript");
+const { createTranscriptReconciler } = require("./transcript-reconciler");
 const { createQuestionForms } = require("./question-form-drafts");
 const MD_LITE_SOURCE = fs.readFileSync(
   path.join(__dirname, "md-lite.js"),
@@ -37,7 +38,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 5;
+const CHAT_UI_PROTOCOL_VERSION = 6;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -647,6 +648,35 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     renderStreamNow();
     if (streamEl) streamRenderer.finish(streamEl, streamRaw);
   }
+  ${createTranscriptReconciler.toString()}
+  function writeTranscriptRow(el, row) {
+    if (row.role === "assistant") {
+      if (row.streaming) {
+        streamEl = el;
+        streamTextState = appendBoundedTranscriptText(null, row.text, MAX_ENTRY_CHARS);
+        streamRaw = streamTextState.text;
+        streamRenderer.update(el, streamRaw, !!row.truncated);
+      } else {
+        streamRenderer.finish(el, row.text);
+        if (streamEl === el) streamEl = null;
+      }
+      el.setAttribute("aria-busy", row.streaming ? "true" : "false");
+    } else el.textContent = row.text;
+    el.dataset.truncated = row.truncated ? "true" : "false";
+    el.title = row.truncated ? "Shortened for display; the saved session retains its original content." : "";
+  }
+  const transcriptReconciler = createTranscriptReconciler({
+    document, log,
+    create(row) {
+      const el = add(row.role, "");
+      writeTranscriptRow(el, row);
+      return el;
+    },
+    write: writeTranscriptRow,
+  });
+  function rememberTranscriptRow(el, row) {
+    if (el && row?.viewId) transcriptReconciler.remember(el, row);
+  }
   // Collapsible reasoning block for extended thinking. A native <details> —
   // expanded while it streams, click the summary to collapse; auto-collapsed
   // when the action/answer arrives (see the tool/turn_end cases). Returns the
@@ -1004,11 +1034,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     renderAttach();
     lastSentByTab[tabKey()] = text; // remember for /retry (per this tab)
     beginTurn();
-    add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
+    const clientMessageId = crypto.randomUUID();
+    const userEl = add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
+    rememberTranscriptRow(userEl, { viewId: "input:" + clientMessageId, role: "user", text: userEl.textContent });
     streamEl = null;
     log.setAttribute("aria-busy", "true");
     vscode.postMessage(
-      images.length ? { type: "send", text, images } : { type: "send", text },
+      { type: "send", text, images, clientMessageId },
     );
     input.value = "";
     saveComposer();
@@ -1335,7 +1367,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           if (draft.revision === sent.revision) { draft.text = ""; draft.images = []; draft.dirty = false; if (active) { input.value = ""; pendingImages = []; renderAttach(); } }
           rememberComposer(m.convId, draft);
           lastSentByTab[m.convId] = sent.text;
-          if (active) { beginTurn(); add("user", sent.text + (sent.images.length ? " [images: " + sent.images.length + "]" : "")); updateStatus("waiting for acceptance…"); }
+          if (active) {
+            beginTurn();
+            const el = add("user", sent.text + (sent.images.length ? " [images: " + sent.images.length + "]" : ""));
+            rememberTranscriptRow(el, { viewId: "input:" + m.clientMessageId, role: "user", text: el.textContent });
+            updateStatus("waiting for acceptance…");
+          }
         } else if (m.kind === "submissionFailed") {
           if (draft.pendingSend?.id === m.clientMessageId) draft.pendingSend = null;
           rememberComposer(m.convId, draft);
@@ -1350,16 +1387,24 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         break;
       case "transcript": {
         if (m.convId !== activeTabId || !Array.isArray(m.messages)) break;
-        cancelStreamFrame();
-        log.textContent = "";
-        streamEl = null;
-        streamRaw = "";
-        streamTextState = null;
-        thinkingEl = null;
-        thinkingBody = null;
-        thinkingTextState = null;
-        delete turnStateByTab[tabKey()];
-        const navigation = document.createElement("div");
+        if (m.replaceView || m.earlier) {
+          cancelStreamFrame();
+          transcriptReconciler.reset();
+          log.textContent = "";
+          streamEl = null;
+          streamRaw = "";
+          streamTextState = null;
+          thinkingEl = null;
+          thinkingBody = null;
+          thinkingTextState = null;
+          delete turnStateByTab[tabKey()];
+        }
+        const navigationKey = JSON.stringify([m.contextOnly, m.coverage, m.nextCursor]);
+        let navigation = log.querySelector("[data-history-navigation]");
+        if (!navigation || navigation.dataset.historyNavigation !== navigationKey) {
+        if (navigation) navigation.remove();
+        navigation = document.createElement("div");
+        navigation.dataset.historyNavigation = navigationKey;
         if (m.contextOnly) {
           const label = document.createElement("span");
           label.textContent = "Saved conversation context · ";
@@ -1380,25 +1425,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         latest.textContent = "Latest messages";
         latest.addEventListener("click", () => vscode.postMessage({ type: "transcriptPage" }));
         navigation.appendChild(latest);
-        log.appendChild(navigation);
-        for (const row of m.messages) {
-          if (row.role === "user") { beginTurn(); add("user", row.text); }
-          else if (row.role === "assistant") {
-            ensureAssistantHeading();
-            if (row.streaming) {
-              ensureStream();
-              streamTextState = appendBoundedTranscriptText(null, row.text, MAX_ENTRY_CHARS);
-              streamRaw = streamTextState.text;
-              renderStreamNow();
-            } else {
-              const el = add("assistant", "");
-              el.innerHTML = mdLite(String(row.text || ""));
-              decorateCodeBlocks(el);
-            }
-          } else if (row.role === "tool" || row.role === "error") add(row.role, row.text);
-          if (row.truncated) add("info", "This message is shortened for display; the saved session retains its original content.");
+        log.insertBefore(navigation, log.firstChild);
         }
-        log.setAttribute("aria-busy", streamEl ? "true" : "false");
+        transcriptReconciler.apply(m.messages);
+        log.setAttribute("aria-busy", m.messages.some((row) => row.streaming) ? "true" : "false");
         if (m.earlier) { followBottom = false; log.scrollTop = 0; }
         else followTranscript();
         break;
@@ -1432,6 +1462,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           MAX_ENTRY_CHARS,
         );
         streamRaw = streamTextState.text;
+        rememberTranscriptRow(streamEl, { ...m.transcriptRow, role: "assistant", text: streamRaw, streaming: true });
         if (streamTextState.truncated) streamEl.dataset.truncated = "true";
         scheduleStreamRender(); // coalesced: render at most once per frame
         break;
@@ -1450,13 +1481,15 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         followTranscript();
         break;
       }
-      case "tool":
+      case "tool": {
         ensureAssistantHeading();
         flushStream(); // finalize streamed text before the tool block lands below it
         streamEl = null;
         closeThinking(); // collapse the reasoning that led to this action
-        add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
+        const el = add("tool", "▸ " + m.tool + (m.summary ? " " + m.summary : ""));
+        rememberTranscriptRow(el, { ...m.transcriptRow, role: "tool", text: el.textContent });
         break;
+      }
       case "tool_done":
         if (m.isError) {
           const toolError = "✗ " + m.tool + " failed" +
@@ -1625,6 +1658,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "info":
         add("info", m.text);
         break;
+      case "error": {
+        const el = add("error", m.text);
+        rememberTranscriptRow(el, { ...m.transcriptRow, role: "error", text: el.textContent });
+        break;
+      }
       case "pre":
         // Host-side CLI commands such as /status and /doctor return plain text
         // instead of an agent turn. Render their output in the same transcript
@@ -1634,9 +1672,20 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "turn_end": {
         ensureAssistantHeading();
         const assistantAnnouncement = m.text || streamRaw;
-        if (m.text) {
+        if (m.transcriptRow) {
+          let el = streamEl?.dataset.transcriptViewId === m.transcriptRow.viewId ? streamEl : null;
+          if (!el) { flushStream(); streamEl = null; el = add("assistant", ""); }
+          cancelStreamFrame();
+          streamRaw = m.transcriptRow.text;
+          streamRenderer.finish(el, streamRaw);
+          rememberTranscriptRow(el, { ...m.transcriptRow, role: "assistant", text: streamRaw, streaming: false });
+          el.setAttribute("aria-busy", "false");
+          streamEl = null;
+        }
+        if (m.text && (m.isError || !m.transcriptRow)) {
           if (m.isError) {
-            add("error", m.text); // errors stay plain text
+            const el = add("error", m.text); // errors stay plain text
+            rememberTranscriptRow(el, { ...m.diagnosticRow, role: "error", text: m.text });
           } else {
             const el = add("assistant", "");
             const bounded = appendBoundedTranscriptText(
@@ -1872,6 +1921,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         break;
       case "reset":
         followBottom = true;
+        transcriptReconciler.reset();
         cancelStreamFrame(); // drop a pending render — the log is being cleared
         log.textContent = "";
         log.setAttribute("aria-busy", "false");
@@ -1903,6 +1953,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         }
         renderTabBar(m.tabs, m.activeId);
         if (m.activeId !== activeTabId) {
+          transcriptReconciler.reset();
           saveComposer();
           if (!activeTabId && composerDrafts._ && !composerDrafts[m.activeId]?.dirty) {
             const meta = composerDrafts[m.activeId] || {};

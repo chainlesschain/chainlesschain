@@ -207,7 +207,13 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
       type: "stream_event",
       event: { delta: { type: "text_delta", text: "live" } },
     });
-    expect(posted).toEqual([{ kind: "delta", text: "live" }]);
+    expect(posted).toEqual([
+      {
+        kind: "delta",
+        text: "live",
+        transcriptRow: { viewId: expect.any(String) },
+      },
+    ]);
   });
 
   it("switchTab re-activates a tab and re-broadcasts the tab set (no reset — webview restores)", () => {
@@ -219,7 +225,9 @@ describe("chat tabs — newTab / switchTab / closeTab", () => {
     provider._handleMessage({ type: "switchTab", id: firstId });
     expect(provider._convs.activeId()).toBe(firstId);
     expect(postedKinds(posted)).toEqual(["tabs", "transcript"]);
-    expect(posted.at(-1).messages).toEqual([{ role: "user", text: "one" }]);
+    expect(posted.at(-1).messages).toEqual([
+      { role: "user", text: "one", viewId: expect.any(String) },
+    ]);
   });
 
   it("the webview 'ready' signal bootstraps one tab and broadcasts the tab bar", () => {

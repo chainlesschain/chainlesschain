@@ -1,6 +1,40 @@
 const { runCliResult } = require("./introspect-commands");
+const { randomUUID } = require("crypto");
+const owners = new WeakMap();
 
 const MAX_CHARS = 200000;
+function acceptTranscriptInputReceipt(conv, event, source) {
+  const receipt = event?.receipt;
+  const hash = (value) =>
+    typeof value === "string" &&
+    value.length === 64 &&
+    /^[a-f0-9]{64}$/u.test(value);
+  if (
+    !source ||
+    event?.type !== "system" ||
+    event.subtype !== "input_accepted" ||
+    event.session_id !== conv.sessionId ||
+    receipt?.sessionId !== conv.sessionId ||
+    typeof event.client_message_id !== "string" ||
+    receipt.clientMessageId !== event.client_message_id ||
+    !hash(receipt.eventHash) ||
+    !hash(receipt.inputDigest) ||
+    typeof receipt.duplicate !== "boolean"
+  )
+    return;
+  for (const row of conv.transcript || []) {
+    if (
+      row.role === "user" &&
+      !row.id &&
+      owners.get(row) === source &&
+      row.clientMessageId === receipt.clientMessageId
+    ) {
+      row.eventRef = receipt.eventHash;
+      row.referenceSession = conv.sessionId;
+      conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
+    }
+  }
+}
 function bound(text) {
   text = String(text || "");
   return text.length <= MAX_CHARS
@@ -9,42 +43,97 @@ function bound(text) {
         "\n… [earlier content omitted] …\n" +
         text.slice(-99950);
 }
-function appendTranscript(conv, message) {
+function appendTranscript(conv, message, source = null) {
   if (!message) return;
+  if (message.kind === "exited") {
+    for (const row of conv.transcript || [])
+      if (row.streaming) {
+        row.streaming = false;
+        conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
+      }
+    return;
+  }
+  if (!["delta", "user", "tool", "error", "turn_end"].includes(message.kind))
+    return;
   conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
   const rows = conv.transcript || (conv.transcript = []);
   const last = rows.at(-1);
+  let added = null;
+  const append = (row) => {
+    row.viewId = row.clientMessageId
+      ? `input:${row.clientMessageId}`
+      : `live:${randomUUID()}`;
+    owners.set(row, source);
+    rows.push(row);
+    added = row;
+    return row;
+  };
   if (message.kind === "delta") {
-    if (last?.streaming) last.text = bound(last.text + message.text);
-    else
-      rows.push({
+    if (last?.streaming && owners.get(last) === source) {
+      last.text = bound(last.text + message.text);
+      added = last;
+    } else
+      append({
         role: "assistant",
         text: bound(message.text),
         streaming: true,
       });
-  } else if (message.kind === "user" || message.kind === "tool") {
+  } else if (["user", "tool", "error"].includes(message.kind)) {
     if (last) last.streaming = false;
-    rows.push({
+    append({
       role: message.kind,
-      text: bound(message.text || `${message.tool}: ${message.summary || ""}`),
+      text: bound(
+        message.kind === "tool"
+          ? `${message.tool}: ${message.summary || ""}`
+          : message.text,
+      ),
+      ...(message.clientMessageId
+        ? { clientMessageId: message.clientMessageId }
+        : {}),
     });
   } else if (message.kind === "turn_end") {
-    if (last?.streaming) {
+    if (last?.streaming && owners.get(last) === source) {
       if (message.finalText != null) last.text = bound(message.finalText);
       last.streaming = false;
-    } else if (!message.isError && (message.finalText || message.text))
-      rows.push({
+      added = last;
+    } else if (
+      (message.finalText != null && message.refs) ||
+      (!message.isError && (message.finalText || message.text))
+    )
+      append({
         role: "assistant",
-        text: bound(message.finalText || message.text),
+        text: bound(message.finalText ?? message.text),
       });
-    if (message.isError && message.text)
-      rows.push({ role: "error", text: bound(message.text) });
+    if (source && message.refs && added?.role === "assistant") {
+      added.eventRef = message.refs.assistantEventId;
+      added.referenceSession = message.refs.sessionId;
+      if (message.refs.clientMessageId && message.refs.userEventId) {
+        const matches = rows.filter(
+          (row) =>
+            row.role === "user" &&
+            !row.id &&
+            row.clientMessageId === message.refs.clientMessageId &&
+            owners.get(row) === source,
+        );
+        if (matches.length === 1) {
+          matches[0].eventRef = message.refs.userEventId;
+          matches[0].referenceSession = message.refs.sessionId;
+        }
+      }
+    }
+    if (message.isError && message.text) {
+      const finalRow = added;
+      append({ role: "error", text: bound(message.text) });
+      added = finalRow;
+    }
+    for (const row of rows) row.streaming = false;
   }
   let chars = rows.reduce((n, row) => n + row.text.length, 0);
   while (rows.length > 100 || chars > 500000) {
     chars -= rows.shift().text.length;
     conv.transcriptTrimmed = true;
   }
+  return added;
 }
 
 async function loadTranscriptPage({ sessionId, cursor = null, ...options }) {
@@ -79,11 +168,36 @@ function parseTranscriptPage(stdout, sessionId) {
   if (typeof stdout !== "string" || Buffer.byteLength(stdout) > 2 * 1024 * 1024)
     throw new Error("Transcript page exceeds the response limit");
   const page = JSON.parse(stdout);
-  const hash = /^[a-f0-9]{64}$/u;
+  validateTranscriptRows(page, sessionId);
+  if (
+    page.schema !== "chainlesschain.session-transcript-page/v2" ||
+    (page.totalMessages > 0 && page.messages.length === 0)
+  )
+    throw new Error("Unsupported transcript page; update the cc CLI");
+  if (page.syncCursor != null) {
+    require("./transcript-sync").validateSyncCursor(
+      page.syncCursor,
+      page,
+      page.totalMessages,
+    );
+    if (
+      page.totalMessages > 0 &&
+      page.messages.at(-1)?.ordinal !== page.totalMessages - 1
+    )
+      throw new Error("Invalid latest transcript boundary");
+  }
+  validateOlderCursor(page, sessionId);
+  return page;
+}
+
+function validateTranscriptRows(page, sessionId) {
+  const hash = {
+    test: (s) =>
+      typeof s === "string" && s.length === 64 && /^[a-f0-9]{64}$/u.test(s),
+  };
   const nonnegative = (n) => Number.isSafeInteger(n) && n >= 0;
   if (
-    page?.schema !== "chainlesschain.session-transcript-page/v2" ||
-    page.sessionId !== sessionId ||
+    page?.sessionId !== sessionId ||
     !nonnegative(page.eventCount) ||
     !nonnegative(page.totalMessages) ||
     (page.eventCount === 0
@@ -104,7 +218,6 @@ function parseTranscriptPage(stdout, sessionId) {
     !Array.isArray(page.messages) ||
     page.messages.length > 100 ||
     page.messages.length > page.totalMessages ||
-    (page.totalMessages > 0 && page.messages.length === 0) ||
     page.messages.some(
       (m, index) =>
         !["user", "assistant", "tool"].includes(m?.role) ||
@@ -122,6 +235,9 @@ function parseTranscriptPage(stdout, sessionId) {
   ) {
     throw new Error("Unsupported transcript page; update the cc CLI");
   }
+}
+
+function validateOlderCursor(page, sessionId) {
   if (
     page.nextCursor !== null &&
     (typeof page.nextCursor !== "string" ||
@@ -146,7 +262,12 @@ function parseTranscriptPage(stdout, sessionId) {
     )
       throw new Error("Invalid transcript page boundary");
   }
-  return page;
 }
 
-module.exports = { appendTranscript, loadTranscriptPage, parseTranscriptPage };
+module.exports = {
+  acceptTranscriptInputReceipt,
+  appendTranscript,
+  loadTranscriptPage,
+  parseTranscriptPage,
+  validateTranscriptRows,
+};

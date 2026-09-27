@@ -4,28 +4,28 @@
 
 实现分支：`feature/cli-ide-gap-closure-2026-09-27`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。按已验证范围分批提交，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
-| ID                      | 当前状态         | 实现与有效证据                                                                                                                                                               | 剩余条件                                                                            |
-| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                                |
-| MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced                               |
-| READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                                       |
-| CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单                       |
-| BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI                             |
-| IDE-REPLAY / SESSION-01 | 局部实现并验证   | 后台有界正文缓存；v2 规范压缩前正文、有效回退前缀、分支独立历史与可验证 timeline 摘要；双 IDE 分页、身份及 revision 游标；真实 store / Kernel / CLI / 子进程 / Swing 回归    | 旧回退/摘要记录、旧快照分支及不兼容来源映射，durable 增量去重和真实双宿主验收仍待补 |
-| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件持久化、发送前保存、ACK/unknown 分离与只读核对；双 IDE 问题表单与 VS Code 原生 schema 草稿、原 child/request 隔离、过期仅文字恢复                        | 双 IDE 真实宿主旅程、当前跨平台与可访问性验收待完成                                 |
-| IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                                             |
-| IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                   |
-| IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                     |
-| NET-01                  | 待实施           | 当前受限域名执行继续 fail-closed                                                                                                                                             | Linux 不可绕过出口后端及真实绕过探针                                                |
-| NET-02                  | 待实施           | 不宣称已有 HTTP/WS 撤销已覆盖                                                                                                                                                | 依赖 NET-01；revision 收紧终止存量连接                                              |
-| VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                          |
-| PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                                         |
-| PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                 |
-| PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                                  |
-| MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                                  |
-| MAINT-01                | 局部实现并验证   | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                      | 其余 runtime 与平台职责抽取、保行为验证                                             |
-| DOC-01                  | 实现中           | 本表为两份报告共享状态入口                                                                                                                                                   | 随实现更新证据、最终 SHA 与验收条件                                                 |
-| UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                                  |
+| ID                      | 当前状态         | 实现与有效证据                                                                                                                                                               | 剩余条件                                                            |
+| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                |
+| MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
+| READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
+| CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
+| BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
+| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史、回退/分支/摘要来源与双 IDE 分页；VS Code 按验证身份增量合并、保留现场诊断与选区，输入回执/终态引用归属检查；真实 store / CLI / DOM / Swing 回归                     | JetBrains 增量合并、旧历史边界和真实双宿主验收仍待补                |
+| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件持久化、发送前保存、ACK/unknown 分离与只读核对；双 IDE 问题表单与 VS Code 原生 schema 草稿、原 child/request 隔离、过期仅文字恢复                        | 双 IDE 真实宿主旅程、当前跨平台与可访问性验收待完成                 |
+| IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
+| IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
+| IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内     |
+| NET-01                  | 待实施           | 当前受限域名执行继续 fail-closed                                                                                                                                             | Linux 不可绕过出口后端及真实绕过探针                                |
+| NET-02                  | 待实施           | 不宣称已有 HTTP/WS 撤销已覆盖                                                                                                                                                | 依赖 NET-01；revision 收紧终止存量连接                              |
+| VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口          |
+| PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                         |
+| PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口 |
+| PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                  |
+| MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                  |
+| MAINT-01                | 局部实现并验证   | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                      | 其余 runtime 与平台职责抽取、保行为验证                             |
+| DOC-01                  | 实现中           | 本表为两份报告共享状态入口                                                                                                                                                   | 随实现更新证据、最终 SHA 与验收条件                                 |
+| UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                  |
 
 真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号与真实 IDE 宿主验收分开记录，目前没有新增结果。云恢复与新交互产品仍为报告中的条件性产品决策。
 
@@ -94,6 +94,18 @@ stream-json 每轮最终 `result` 可带 `transcript_refs` v1：绑定 session �
 共享 schema 增加可选字段及正反 fixture，并生成 TypeScript/Python/Kotlin/Swift/CLI 产物；SDK 公共 ResultEvent 提供类型。消费者仍须核对原 child/session/view、外层 session ID 及经完整历史验证的行和角色，再按完整 row ID 合并；不能按正文相等去重，不能把最终回复 ID 套到所有流片段/工具卡，也不能从引用恢复执行权。双 IDE 本批仍未接入引用和增量合并，IDE-REPLAY / SESSION-01 保持局部验收。
 
 本批 CLI headless 71 项、SDK 3 文件 44 项、共享协议 19 项、Python 3.12 协议 17 项与 JetBrains ProtocolFixturesTest 9 项通过，共 160 项，无跳过或失败。真实临时 canonical 存储测试连续运行三轮相同输入/回复，核对六条历史行与各自事件身份，覆盖带/不带 client ID；模型循环为注入夹具，未调用真实模型。另覆盖未确认/缺失/非法/异步/失败 append、重复接受 ACK、SDK 原样传递及共享 schema 正反样例。首次 Python 命令选到本机 3.8，低于项目 >=3.10 要求；改用已安装 3.12 后通过，不计旧解释器运行作通过。SDK build、schema 与 VS Code/Desktop vendor drift check、Prettier 和 diff check 通过；修改源文件 ESLint 0 errors、3 项既有 unused-variable warnings。Kotlin 编译通过并保留既有冗余 `?` 提示；未编译 Swift，也未进行真实双 IDE GUI、最终提交 Actions 或发布。
+
+### IDE-REPLAY VS Code 增量合并与原位显示
+
+VS Code 已接入 latest `syncCursor` / `--history --after`，校验连续 ordinal、完整 row ID、session/generation、revision/eventCount 与下一游标；每次至多读取 8 个 50 行批次，应用后才推进游标，余量通过 Latest 继续读取。Older 独立浏览，不推进增量基线，也不被后台流输出替换。后台标签继续更新自身缓存；活动 turn 延后读取，异步结果核对 conversation、child、session、request、异步代次与 transcript revision，重置/替换/关闭后的迟到结果不落入新视图。
+
+输入接受回执和最终回复引用只建立候选关联：原 child 的 client ID 对应用户行，最终 assistant segment 对应已提交 event hash；核对已验证历史的 session/event/role/item 后才变成 saved row。重复回执和重试批次可复用此前验证行；同正文的不同事件保留为独立消息。未关联的过程文字、工具活动和诊断保留为 live-only；旧 CLI 无引用时不能按文字猜测对应，可能同时显示无法关联的 live 与 saved 行。只有明确 stale 错误触发新基线；完整性/解析/进程错误保留缓存和游标并显式提示。
+
+Webview 通过稳定显示 ID 原位更新，保持未变化节点、工具控件与滚动位置。选区内的冲突修改/删除/重排延后到取消选择；新的 live 事件使旧延后投影失效。显式切换 Older/Latest 可重建当前页，UI 协议升级为 v6 以替换保留的旧脚本。合并缓存仍限制 100 行 / 500K 字符，DOM 仍限制 800 节点，早期持久行通过分页查看。本批未给所有工具/过程片段补持久化，也未完成 JetBrains 增量合并或真实双宿主验收。
+
+本批相关 25 个 Vitest 文件 312 项通过，扩展原生 `test:unit` 最终 215 项通过；覆盖真实 canonical 临时磁盘、生产 ChatViewProvider（VS Code API stub）、共享输入引用、生成 Webview 的 DOM/选区、停止后 partial 与诊断分离、八批次上限与继续读取。新增测试统一使用扩展实际 CommonJS 加载路径，避免测试转译与原生 require 产生两份进程归属记录；旧断言补充新增显示 ID。首次原生全量出现 1 项失败且输出截断，未定位失败项；随后两次原生全量均 215 项通过，保留该未复现记录，不声称已查明并修复其原因。修改源文件 ESLint 0 errors/warnings；本地 VSIX 打包成功（保留既有未 bundle 提示）。这些是本地实现与回归证据，未运行真实 VS Code GUI、跨平台或精确提交 Actions。
+
+最后补充“从 Older 返回时只重建一次，迟到读取不再次清空选区”的防护后，相关 2 文件 14 项通过（与前述结果重叠）；Prettier / diff check 通过。最终本地 VSIX 中 5 个修改/新增聊天模块的 SHA-256 与当前源码一致；未安装或发布该包。
 
 ### IDE-REPLAY JetBrains 历史恢复与只读分页
 
@@ -223,5 +235,6 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 | `c5cff5f5df` | 分支流式复制独立显示历史、上下文来源与创建摘要校验、失败重试和父会话删除后读取；完整文字分片及 v1/v2 页字节边界修复   |
 | `f60236db18` | timeline 摘要来源证书、原始正文与游标保留、system 摘要依赖的回退检查及 branch-history v2；连续摘要/分支/压缩回归      |
 | `875b15d560` | verified sync cursor 与连续增量历史读取、JSON 错误分类及真实存储/CLI 回归；双 IDE 仍使用快照读取                      |
+| `70a51435da` | 最终结果关联已提交 user/assistant event，输入 ID 与共享协议类型、生成产物及 SDK 同步；160 项本地回归通过              |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。

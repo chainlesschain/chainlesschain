@@ -15,7 +15,16 @@ const {
   modeState,
   acceptModeAcknowledgement,
 } = require("./permission-mode-state");
-const { appendTranscript, loadTranscriptPage } = require("./transcript-cache");
+const {
+  acceptTranscriptInputReceipt,
+  appendTranscript,
+  loadTranscriptPage,
+} = require("./transcript-cache");
+const {
+  loadTranscriptChanges,
+  mergeTranscript,
+  resultTranscriptReferences,
+} = require("./transcript-sync");
 const { AgentChatSession } = require("./agent-session");
 const {
   mapAgentEvent,
@@ -835,19 +844,52 @@ class ChatViewProvider {
     const conv = this._convs.get(convId);
     if (!conv) return;
     if (asyncToken && conv._asyncToken !== asyncToken) return;
-    appendTranscript(conv, transcriptMessage);
-    if (this._convs.activeId() === convId) this._post(msg);
+    const row = appendTranscript(conv, transcriptMessage, conv._sessionToken);
+    const diagnostic =
+      msg?.kind === "turn_end" &&
+      msg.isError &&
+      conv.transcript?.at(-1)?.role === "error"
+        ? conv.transcript.at(-1)
+        : null;
+    if (
+      this._convs.activeId() === convId &&
+      (!conv.transcriptBrowsingOlder ||
+        !["delta", "tool", "turn_end", "thinking"].includes(msg?.kind))
+    )
+      this._post(
+        msg
+          ? {
+              ...msg,
+              ...(row
+                ? {
+                    transcriptRow: {
+                      viewId: row.viewId,
+                      ...(msg.kind === "turn_end" ? { text: row.text } : {}),
+                    },
+                  }
+                : {}),
+              ...(diagnostic
+                ? { diagnosticRow: { viewId: diagnostic.viewId } }
+                : {}),
+            }
+          : msg,
+      );
   }
 
   /** Rehydrate display data only. Saved approvals/tools are never dispatched. */
-  async _restoreTranscript(conv, cursor = null) {
-    if (!conv) return;
-    if (!cursor && conv.transcript?.length)
+  async _restoreTranscript(conv, cursor = null, { syncOnly = false } = {}) {
+    if (!conv || this._disposed) return;
+    let leavingOlder = !syncOnly && conv.transcriptBrowsingOlder && !cursor;
+    if (!syncOnly) conv.transcriptBrowsingOlder = !!cursor;
+    if (!syncOnly && !cursor && conv.transcript?.length) {
       this._postFromTranscript(conv, {
         ...conv.transcriptPageMetadata,
         messages: conv.transcript,
         live: true,
+        replaceView: leavingOlder,
       });
+      leavingOlder = false;
+    }
     if (!conv.sessionId) return;
     if (conv.turnActive) {
       conv.transcriptAwaiting = true;
@@ -855,55 +897,87 @@ class ChatViewProvider {
     }
     const token = this._asyncToken(conv);
     const sessionId = conv.sessionId;
-    const revision = conv.transcriptRevision || 0;
+    const childToken = conv._sessionToken;
+    let revision = conv.transcriptRevision || 0;
     const request = {};
     conv.transcriptRequest = request;
     try {
       const command = this._cliCommand();
       if (hasUnsafeShellChars(command)) throw new Error("Invalid CLI path");
-      const page = await (
-        this.opts.deps?.loadTranscriptPage || loadTranscriptPage
-      )({
+      const options = {
         command,
         sessionId,
-        cursor,
         cwd: this._workspaceFolders()[0] || process.cwd(),
         env: { ...process.env, ...(this.opts.getBridgeEnv?.() || {}) },
+      };
+      const current = () =>
+        !(
+          this._disposed ||
+          this._convs.get(conv.id) !== conv ||
+          conv._asyncToken !== token ||
+          conv._sessionToken !== childToken ||
+          conv.sessionId !== sessionId ||
+          conv.transcriptRequest !== request
+        );
+      // Bound one refresh to 400 rows. The stored cursor remains immediately
+      // after the applied batch; Latest continues without skipping unseen rows.
+      for (let batch = 0; batch < 8; batch++) {
+        let page;
+        let baseline = cursor || !conv.transcriptSyncCursor;
+        try {
+          page = baseline
+            ? await (this.opts.deps?.loadTranscriptPage || loadTranscriptPage)({
+                ...options,
+                cursor,
+              })
+            : await (
+                this.opts.deps?.loadTranscriptChanges || loadTranscriptChanges
+              )({ ...options, cursor: conv.transcriptSyncCursor });
+        } catch (error) {
+          if (!current()) return;
+          if (error.code !== "SESSION_TRANSCRIPT_CURSOR_STALE" || cursor)
+            throw error;
+          // Only explicit cursor expiration permits a new baseline. Integrity,
+          // process and parser errors retain the current rows and sync cursor.
+          page = await (
+            this.opts.deps?.loadTranscriptPage || loadTranscriptPage
+          )({ ...options, cursor: null });
+          baseline = true;
+        }
+        if (!current()) return;
+        if (conv.turnActive || (conv.transcriptRevision || 0) !== revision) {
+          conv.transcriptAwaiting = true;
+          return;
+        }
+        conv.transcriptAwaiting = false;
+        if (cursor) {
+          this._postFromTranscript(conv, {
+            ...page,
+            earlier: true,
+            replaceView: true,
+          });
+          return;
+        }
+        mergeTranscript(conv, page, { baseline: !!baseline });
+        revision = conv.transcriptRevision;
+        if (!conv.transcriptBrowsingOlder)
+          this._postFromTranscript(conv, {
+            ...conv.transcriptPageMetadata,
+            messages: conv.transcript,
+            replaceView: !!leavingOlder && batch === 0,
+          });
+        if (baseline || !page.hasMore) return;
+      }
+      this._postFrom(conv.id, {
+        kind: "info",
+        text: "More saved messages are available. Select Latest messages to continue loading.",
       });
-      if (
-        this._convs.get(conv.id) !== conv ||
-        conv._asyncToken !== token ||
-        conv.sessionId !== sessionId ||
-        conv.transcriptRequest !== request
-      )
-        return;
-      if ((conv.transcriptRevision || 0) !== revision) {
-        conv.transcriptAwaiting = true;
-        return;
-      }
-      // A saved snapshot does not contain the currently streaming partial turn.
-      // Use the live host cache until the CLI publishes the terminal result.
-      if (conv.turnActive) {
-        conv.transcriptAwaiting = true;
-        return;
-      }
-      conv.transcriptAwaiting = false;
-      if (!cursor) {
-        conv.transcript = page.messages.map((m) => ({ ...m }));
-        conv.transcriptTrimmed = !!page.nextCursor;
-        conv.transcriptPageMetadata = {
-          generation: page.generation,
-          revision: page.revision,
-          contextOnly: page.contextOnly,
-          coverage: page.coverage,
-          nextCursor: page.nextCursor,
-        };
-      }
-      this._postFromTranscript(conv, { ...page, earlier: !!cursor });
     } catch (error) {
       if (
+        this._disposed ||
         this._convs.get(conv.id) !== conv ||
         conv._asyncToken !== token ||
+        conv._sessionToken !== childToken ||
         conv.sessionId !== sessionId ||
         conv.transcriptRequest !== request ||
         (conv.transcriptRevision || 0) !== revision
@@ -938,6 +1012,7 @@ class ChatViewProvider {
    */
   _stopSession(conv, { requireConfirmation = false } = {}) {
     if (!conv) return false;
+    appendTranscript(conv, { kind: "exited" });
     this._questions.archiveConversation(conv);
     for (const waiter of conv.inputInitWaiters || [])
       waiter.reject(new Error("Agent stopped; input was not dispatched"));
@@ -1028,6 +1103,8 @@ class ChatViewProvider {
     this._invalidateAsync(conv);
     conv.transcript = [];
     conv.transcriptPageMetadata = null;
+    conv.transcriptSyncCursor = null;
+    conv.transcriptBrowsingOlder = false;
     conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
     conv.transcriptRequest = null;
     conv.transcriptAwaiting = false;
@@ -1065,6 +1142,14 @@ class ChatViewProvider {
       const conv = this._convs.get(convId);
       if (!conv) return;
       if (sessionToken && conv._sessionToken !== sessionToken) return;
+      if (
+        evt?.type === "result" &&
+        evt.session_id &&
+        conv.sessionId &&
+        evt.session_id !== conv.sessionId
+      )
+        return;
+      acceptTranscriptInputReceipt(conv, evt, sessionToken);
       if (evt?.type === "system" && evt.subtype === "init") {
         conv.inputReceiptVersion = evt.input_receipts?.version === 1 ? 1 : 0;
         for (const waiter of conv.inputInitWaiters || [])
@@ -1243,10 +1328,17 @@ class ChatViewProvider {
         convId,
         ui,
         null,
-        ui?.kind === "turn_end" &&
-          !evt.is_error &&
-          typeof evt.result === "string"
-          ? { ...ui, finalText: evt.result }
+        ui?.kind === "turn_end" && typeof evt.result === "string"
+          ? {
+              ...ui,
+              ...(!evt.is_error ||
+              resultTranscriptReferences(evt, conv.sessionId)
+                ? { finalText: evt.result }
+                : {}),
+              refs: sessionToken
+                ? resultTranscriptReferences(evt, conv.sessionId)
+                : null,
+            }
           : ui,
       );
       if (evt?.type === "result" && evt.subtype === "error_max_turns") {
@@ -1355,8 +1447,12 @@ class ChatViewProvider {
           this._postTabs();
           this._notifyBackgroundDone(conv);
         }
-        if (conv.transcriptAwaiting && this._convs.activeId() === convId)
-          this._restoreTranscript(conv);
+        if (
+          conv.transcriptSyncCursor ||
+          conv.transcriptAwaiting ||
+          evt.transcript_refs
+        )
+          this._restoreTranscript(conv, null, { syncOnly: true });
       }
     };
   }
@@ -2072,6 +2168,8 @@ class ChatViewProvider {
           this._convs.setSession(conv.id, null);
           this._indexConversation(current, "stopped");
           this._postFrom(conv.id, { kind: "exited", code });
+          if (current.transcriptSyncCursor || current.transcriptAwaiting)
+            this._restoreTranscript(current, null, { syncOnly: true });
         },
       });
     } catch (error) {
@@ -2620,10 +2718,15 @@ class ChatViewProvider {
           })
         : session.send(m.text);
     if (ok === true) {
-      appendTranscript(sendingConv, {
-        kind: "user",
-        text: String(m.text || ""),
-      });
+      appendTranscript(
+        sendingConv,
+        {
+          kind: "user",
+          text: String(m.text || ""),
+          clientMessageId: dispatch?.id || m.clientMessageId || null,
+        },
+        sendingConv._sessionToken,
+      );
       if (!dispatch) this._postFrom(id, { kind: "sendAccepted" });
       else
         this._post({

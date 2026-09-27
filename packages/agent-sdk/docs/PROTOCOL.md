@@ -148,8 +148,9 @@ outer result's session ID and read verified history rows with the expected role
 before merging. Equal text cannot identify rows, and one final-answer identity
 does not apply to preceding tool cards or every partial stream segment. See the
 [history update contract](../../cli/docs/SESSION_TRANSCRIPT_CHANGES.md) for row
-identity, cursor, coverage and retention rules. Both IDE hosts still use snapshot
-reads; this protocol addition does not implement their live/durable merge.
+identity, cursor, coverage and retention rules. VS Code consumes these references
+with verified history updates; JetBrains still uses snapshot reads. Protocol
+validation alone does not implement a host's live/durable merge.
 
 #### Other stdin events
 
