@@ -229,6 +229,70 @@ function init(h, version = 1) {
 }
 
 describe("host durable input lifecycle", () => {
+  it.each(["prepare", "init", "unknown", "session-stop"])(
+    "cancels an undispatched saved input during %s without losing its recovery record",
+    async (stage) => {
+      const h = host(await storage());
+      const conv = h.provider._activeConv();
+      let release;
+      let paused = false;
+      const gate = new Promise((done) => {
+        release = done;
+      });
+      const method = stage === "unknown" ? "settle" : "prepare";
+      const original = h.provider._draftStore[method].bind(
+        h.provider._draftStore,
+      );
+      const spy = vi
+        .spyOn(h.provider._draftStore, method)
+        .mockImplementation(async (...args) => {
+          const result = await original(...args);
+          if (
+            stage !== "init" &&
+            (method === "prepare" || args[2] === "unknown")
+          ) {
+            paused = true;
+            await gate;
+          }
+          return result;
+        });
+      const sending = h.provider._handleMessage({
+        type: "send",
+        text: "cancelled question",
+        clientMessageId: "cancelled-1",
+      });
+      try {
+        if (stage === "init" || stage === "unknown") {
+          await until(() => h.sessions.length === 1);
+          if (stage === "unknown") init(h);
+          else await until(() => conv.inputInitWaiters?.size === 1);
+        }
+        if (stage !== "init") await until(() => paused);
+        if (stage === "session-stop") h.provider._stopSession(conv);
+        else expect(h.provider._interruptConversation(conv)).toBe(true);
+        release();
+        expect(await sending).toBe(false);
+        expect(
+          h.sessions.flatMap((s) => s.sent).filter((e) => e.type === "user"),
+        ).toEqual([]);
+        expect(
+          (await h.provider._draftStore.view(conv.draftKey)).pending[0],
+        ).toMatchObject({
+          id: "cancelled-1",
+          status: "rejected",
+          text: "cancelled question",
+        });
+        expect(
+          h.messages.find((m) => m.kind === "submissionFailed").text,
+        ).toContain("stopped");
+      } finally {
+        release();
+        await sending;
+        spy.mockRestore();
+      }
+    },
+  );
+
   it("does not start the agent when the submission cannot be saved", async () => {
     const h = host(await storage());
     const conv = h.provider._activeConv();

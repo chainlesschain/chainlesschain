@@ -901,6 +901,8 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
           state.planVisible = state.planApproveEnabled = true;
         } else if (request.text === "journey:permission") {
           state.approvalApproveEnabled = true;
+        } else if (request.text === "journey:stop") {
+          state.text += " fixture stop waiting #5";
         } else if (request.text === "journey:resume") {
           state.text +=
             " resumed previous conversation fixture stream complete #6";

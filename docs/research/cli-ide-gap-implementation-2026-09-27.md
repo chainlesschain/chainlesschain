@@ -229,6 +229,8 @@ Windows 本地验证：存储、安全及 canonical peer 3 文件 208 项通过�
 
 VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 user-data profile 进行进程重启，停用旧的合成 deep-link resume；通过现有令牌保护的 DOM 控件编辑草稿、创建/切换会话并读取行 ID。验收步骤覆盖后台完成时间边界、相同正文的独立保存行、A/B 未发送中文草稿、重启后行 ID 与草稿恢复及协议日志无重放。生成 Webview 测试核对输入事件和保存 ACK，宿主驱动 69 项本地测试通过；VSIX 已本地打包。此处仅记录旅程实现与本地回归，真实宿主运行结果另行记录；尚不覆盖 canonical rewind/compaction、附件、问题表单或人工无障碍验收。
 
+首次真实 VS Code 1.132.0 运行（源码 `6ea65d987d`）通过多窗口/双工作区启动，但在 interrupt 阶段失败：协议记录显示 interrupt 先于异步保存中的下一条 user 输入抵达 CLI。失败 evidence digest 为 `sha256:bf757c755db626449d573247b41a5492e48a3d263f87f9a15828b8c83e8c6cbd`，未计为恢复验收通过。后续修复为 Stop / session stop 推进独立输入取消 revision，保存、init 等待和 UNKNOWN 落盘后均检查取消，未发送的已保存输入标记 rejected 并可恢复；图片准备取消后删除新建临时文件并恢复输入。普通中断旅程同时改为等待该轮开始，避免将“取消准备”误认成“中断已运行任务”。相关 4 文件 95 项通过，最后图片取消清理修改后 2 文件 31 项通过，宿主 relay 18 项通过；真实宿主须在新提交上重新验证。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

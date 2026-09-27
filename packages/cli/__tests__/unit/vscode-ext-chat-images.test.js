@@ -143,6 +143,41 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
     expect(provider._imgTemps.has(convId)).toBe(false);
   });
 
+  it("Stop cancels image preparation before spawning and removes the prepared files", async () => {
+    const { provider, spawns } = makeSendableProvider();
+    const posted = [];
+    provider.view.webview.postMessage = (m) => {
+      posted.push(m);
+      return Promise.resolve();
+    };
+    const files = await provider._writeImageTemps([{ data: PNG_URL }]);
+    let release;
+    provider._writeImageTemps = () =>
+      new Promise((done) => {
+        release = () => done(files);
+      });
+    const sending = provider._handleMessage({
+      type: "send",
+      text: "cancel image",
+      images: [{ data: PNG_URL }],
+    });
+    try {
+      expect(provider._interruptConversation()).toBe(true);
+      release();
+      expect(await sending).toBe(false);
+      expect(spawns).toEqual([]);
+      expect(files.every((file) => !fs.existsSync(file))).toBe(true);
+      expect(posted.find((m) => m.kind === "sendRejected").text).toBe(
+        "cancel image",
+      );
+    } finally {
+      release();
+      await sending;
+      provider.dispose();
+      for (const file of files) fs.rmSync(file, { force: true });
+    }
+  });
+
   it("dispose() sweeps every conversation's leftovers", async () => {
     const { provider } = makeSendableProvider();
     await provider._handleMessage({

@@ -428,6 +428,14 @@ class ChatViewProvider {
     const id = /^[a-zA-Z0-9_-]{1,80}$/.test(message.clientMessageId || "")
       ? message.clientMessageId
       : crypto.randomUUID();
+    const inputCancelRevision = conv.inputCancelRevision || 0;
+    const assertInputNotCancelled = () => {
+      if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
+        throw new Error(
+          "Input preparation was stopped; input was not dispatched",
+        );
+      }
+    };
     let prepared = false;
     let dispatched = false;
     try {
@@ -444,6 +452,7 @@ class ChatViewProvider {
         draftKey: key,
         clientMessageId: id,
       });
+      assertInputNotCancelled();
       if (
         this._convs.get(conv.id) !== conv ||
         conv.draftKey !== key ||
@@ -453,6 +462,7 @@ class ChatViewProvider {
       const session = this._ensureSession(conv);
       const sessionToken = conv._sessionToken;
       const version = await this._waitForInputCapability(conv, session);
+      assertInputNotCancelled();
       if (
         this._convs.get(conv.id) !== conv ||
         conv.draftKey !== key ||
@@ -464,6 +474,7 @@ class ChatViewProvider {
         throw new Error("Agent changed; input was not dispatched");
       // Persist UNKNOWN before entering the ambiguous pipe-write boundary.
       await this._draftStore.settle(key, id, "unknown");
+      assertInputNotCancelled();
       if (
         conv.draftKey !== key ||
         conv._sessionToken !== sessionToken ||
@@ -1012,6 +1023,7 @@ class ChatViewProvider {
    */
   _stopSession(conv, { requireConfirmation = false } = {}) {
     if (!conv) return false;
+    this._cancelPendingInput(conv);
     appendTranscript(conv, { kind: "exited" });
     this._questions.archiveConversation(conv);
     for (const waiter of conv.inputInitWaiters || [])
@@ -2649,12 +2661,21 @@ class ChatViewProvider {
 
   async _prepareImagesAndSend(message, conv) {
     const token = this._asyncToken(conv);
+    const inputCancelRevision = conv.inputCancelRevision || 0;
     const pending = {};
     this._imagePreparation = pending;
     conv.preparingImages = true;
     let files = [];
     try {
       files = await this._writeImageTemps(message.images);
+      if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
+        await Promise.allSettled(
+          files.map((file) => require("fs/promises").unlink(file)),
+        );
+        throw new Error(
+          "Input preparation was stopped; input was not dispatched",
+        );
+      }
       if (
         this._disposed ||
         this._convs.get(conv.id) !== conv ||
@@ -4005,13 +4026,33 @@ class ChatViewProvider {
     return true;
   }
 
+  _cancelPendingInput(conversation) {
+    if (!conversation) return false;
+    const pending = Boolean(
+      conversation.preparingSubmission || conversation.preparingImages,
+    );
+    conversation.inputCancelRevision =
+      (conversation.inputCancelRevision || 0) + 1;
+    for (const waiter of conversation.inputInitWaiters || [])
+      waiter.reject(
+        new Error("Input preparation was stopped; input was not dispatched"),
+      );
+    return pending;
+  }
+
   _interruptConversation(conversation = this._activeConv()) {
+    const cancelledInput = this._cancelPendingInput(conversation);
     // A stale UI flag must never veto the user's explicit Stop. The CLI can
     // decide whether a turn is active; a live but wedged session has a bounded
     // hard-stop fallback below.
     if (!conversation?.session?.running) {
-      this._post({ kind: "info", text: "/stop: no active turn" });
-      return false;
+      this._post({
+        kind: "info",
+        text: cancelledInput
+          ? "/stop: input preparation stopped"
+          : "/stop: no active turn",
+      });
+      return cancelledInput;
     }
     if (conversation._interruptTimer) {
       return this._forceStopConversation(conversation, "Stop pressed again");

@@ -247,6 +247,7 @@ async function drivePhase(commands, token, phase, traceFile) {
     });
     await step("interrupt", async () => {
       await sendComposer(commands, token, "journey:stop");
+      await waitForText("fixture stop waiting #5", "interrupt turn started");
       await clickWhenReady({
         commands,
         token,
