@@ -312,6 +312,7 @@ public final class ChatEvents {
             if ("interrupted".equals(str(evt, "subtype", ""))
                     || isTrue(evt.get("interrupted"))) {
                 m.put("isError", false);
+                m.put("interrupted", true);
                 m.put("text", "⏹ interrupted");
                 m.put("usage", null);
                 return m;

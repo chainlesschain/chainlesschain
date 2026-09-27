@@ -122,6 +122,7 @@ final class ConversationView {
     private final JPanel root = new JPanel(new BorderLayout(4, 4));
     // Transcript rendering (styles + markdown snap + memory cap) — see ChatTranscript.
     private final ChatTranscript transcript = new ChatTranscript();
+    private final ChatHistoryView history;
     private final JTextArea input = new JTextArea(3, 0); // multi-line composer
     // Attached images (paste + drag-drop + 📷 indicator) — see ChatComposerImages.
     private final ChatComposerImages images = new ChatComposerImages(input);
@@ -220,7 +221,12 @@ final class ConversationView {
         this.project = project;
         this.conv = conv;
         this.sessionIdSink = sessionIdSink;
+        boolean savedConversation = conv.sessionId != null && !conv.sessionId.isEmpty();
         if (conv.sessionId == null || conv.sessionId.isEmpty()) conv.sessionId = SessionArgs.newPanelSessionId();
+        this.history = new ChatHistoryView(transcript, () -> conv.sessionId,
+                this::historyBusy, savedConversation,
+                (sid, cursor, cancelled) -> com.chainlesschain.ide.SessionHistoryReader.read(
+                        sid, cursor, project.getBasePath() == null ? null : new File(project.getBasePath()), cancelled));
         this.drafts = new ChatComposerDrafts(project, conv, draftStore, input, images,
                 () -> sendInFlight, this::liveSession, this::append);
         this.questions = new QuestionDraftRegistry(draftStore, conv.draftKey);
@@ -242,7 +248,7 @@ final class ConversationView {
         cardsPanel.getAccessibleContext().setAccessibleName(
                 "Agent approvals and questions");
 
-        root.add(new JScrollPane(transcript.pane()), BorderLayout.CENTER);
+        root.add(history.component(), BorderLayout.CENTER);
 
         // Multi-line composer: Enter sends, Shift+Enter inserts a newline.
         input.setLineWrap(true);
@@ -418,6 +424,7 @@ final class ConversationView {
         // when a newer cc is published. Best-effort, off the EDT, once per version.
         maybeShowCliUpdateNudge();
         restorePlanReviewState();
+        SwingUtilities.invokeLater(history::onSelected);
     }
 
     /** One-time first-run nudge: when `cc config get llm.provider` is empty,
@@ -575,7 +582,12 @@ final class ConversationView {
     }
 
     void focusInput() {
-        SwingUtilities.invokeLater(input::requestFocusInWindow);
+        SwingUtilities.invokeLater(() -> { history.onSelected(); input.requestFocusInWindow(); });
+    }
+
+    private boolean historyBusy() {
+        AgentChatSession session = liveSession();
+        return sendInFlight || turnActive || (session != null && session.hasPendingTurns());
     }
 
     /** §5: seed the input box (e.g. Explain/Refactor or an @file reference) without sending. */
@@ -696,6 +708,7 @@ final class ConversationView {
         }
         final String text = input.getText().trim();
         if (text.isEmpty() && images.isEmpty()) return;
+        history.showLive();
         // §5 panel slash + §6 mode/thinking commands are handled locally, never
         // sent (only when it's a pure text command, no attached images).
         if (images.isEmpty() && text.startsWith("/")) {
@@ -707,6 +720,7 @@ final class ConversationView {
         final long modeRevision = conv.modeState.snapshot().revision();
         final long draftRevision = drafts.revision();
         sendInFlight = true;
+        history.liveChanged();
         final java.util.concurrent.CompletableFuture<?> savedComposer = drafts.beginSend();
         sendExecutor.execute(() -> {
             if (disposed) return; // queued before a tab close — don't respawn cc
@@ -764,6 +778,7 @@ final class ConversationView {
                     } else {
                         append("⚠ agent session is not running — press New to restart\n");
                     }
+                    history.idle();
                 });
             }
         });
@@ -1451,17 +1466,18 @@ final class ConversationView {
         if (branchId != null) {
             conv.sessionId = branchId;
             if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, branchId);
-            transcript.clear();
+            history.reset(true);
             indexConversation("stopped");
         } else if (changesConversation) {
             conv.sessionId = sid;
-            transcript.clear();
+            history.reset(true);
             indexConversation("stopped");
         }
         append("✓ " + RewindCommands.timelineActionLabel(action)
                 + " completed at " + entry.turnId
                 + (branchId != null ? " — branch " + branchId + " is ready" : "")
                 + "\n");
+        if (branchId != null || changesConversation) history.onSelected();
     }
 
     private String timelineFailure(Map<String, Object> result, String raw) {
@@ -1602,10 +1618,12 @@ final class ConversationView {
                     if (RESUME.equals(action)) {
                         restartForModeChange(); // stop the live child; next message respawns
                         conv.sessionId = chosen.id;
+                        history.reset(true);
                         if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, chosen.id);
                         indexConversation("stopped");
                         append("ℹ will resume " + chosen.id
                                 + " — send a message to continue it\n");
+                        history.onSelected();
                     } else if (RENAME.equals(action)) {
                         renameSession(chosen);
                     } else if (DELETE.equals(action)) {
@@ -1655,6 +1673,7 @@ final class ConversationView {
             SwingUtilities.invokeLater(() -> {
                 if (chosen.id.equals(conv.sessionId)) {
                     conv.sessionId = null;
+                    history.reset(false);
                     if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, null);
                 }
                 append(cliDeleted || indexDeleted
@@ -1727,6 +1746,7 @@ final class ConversationView {
      * the EDT before invoking this, so the next spawn reads the new values.
      */
     void restartForModeChange() {
+        history.liveChanged();
         java.util.concurrent.CompletableFuture<Boolean> pendingCapabilities = receiptSupport;
         if (pendingCapabilities != null) pendingCapabilities.completeExceptionally(new IOException("Agent mode changed"));
         if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
@@ -1776,6 +1796,12 @@ final class ConversationView {
             if (session != null) session.stopAndWait().get(8, java.util.concurrent.TimeUnit.SECONDS);
             if (conv.session == session) conv.session = null;
             conv.modeState.stopped(revision);
+            SwingUtilities.invokeLater(() -> {
+                if (!disposed && conv.modeState.current(revision) && liveSession() == null) {
+                    turnActive = false;
+                    history.idle();
+                }
+            });
         } catch (Exception error) {
             if (error instanceof InterruptedException) Thread.currentThread().interrupt();
             String message = "The previous agent exit is unconfirmed; a replacement cannot start";
@@ -2081,6 +2107,8 @@ final class ConversationView {
             indexConversation("stopped");
             append("\n── agent exited (" + code + ") — next message restarts ──\n");
             transcript.announce("Status", "stopped", "status:stopped:" + code);
+            turnActive = false;
+            history.stopped();
         });
 
         AgentChatSession session = new AgentChatSession(o);
@@ -2177,6 +2205,8 @@ final class ConversationView {
             }
             deleteOldestSentImageBatch(); // THIS turn's images — CLI consumed them at its start
             refreshContextIndicator(); // §6: after each turn
+            if (Boolean.TRUE.equals(ui.get("isError")) || Boolean.TRUE.equals(ui.get("interrupted"))) history.stopped();
+            else history.settled();
         } else if ("plan".equals(kind)) {
             AgentChatSession session = liveSession();
             turnActive = session != null && session.hasPendingTurns();
@@ -3006,18 +3036,22 @@ final class ConversationView {
 
     // Transcript delegates — rendering/styling/markdown-snap live in ChatTranscript.
     private void append(String s) {
+        history.liveChanged();
         transcript.append(s);
     }
 
     private void appendAssistantDelta(String s) {
+        history.liveChanged();
         transcript.appendAssistantDelta(s);
     }
 
     private void appendThinking(String s) {
+        history.liveChanged();
         transcript.appendThinking(s);
     }
 
     private void appendReasoning(String s) {
+        history.liveChanged();
         transcript.appendReasoning(s);
     }
 
@@ -3026,11 +3060,12 @@ final class ConversationView {
     }
 
     void clearTranscript() {
-        transcript.clear();
+        history.reset(false);
         images.clearAll();
     }
 
     void dispose() {
+        history.dispose();
         questions.detach("Conversation closed; saved answers require review");
         questions.onChange(() -> {});
         questionCards.values().forEach(QuestionFormView::dispose);

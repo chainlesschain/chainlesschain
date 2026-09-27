@@ -1,0 +1,35 @@
+{
+  "schema": "chainlesschain.session-transcript-page/v2",
+  "sessionId": "fixture-history",
+  "generation": "89044aa4dc6889686ada0c66a9f7ef7e027616d87188307fafb286c5139f493b",
+  "revision": "d4d3db41ed32180bc9c7267bf0926c105c52dec509429c8629d2fce087500da9",
+  "eventCount": 4,
+  "totalMessages": 3,
+  "messages": [
+    {
+      "id": "fixture-history:ebe3823b6e87d05f3988efa70c30f80cd4543697079632f2f5f88327845fe2cf:0",
+      "eventId": "ebe3823b6e87d05f3988efa70c30f80cd4543697079632f2f5f88327845fe2cf",
+      "itemIndex": 0,
+      "ordinal": 1,
+      "role": "assistant",
+      "text": "answer one",
+      "truncated": false
+    },
+    {
+      "id": "fixture-history:d4d3db41ed32180bc9c7267bf0926c105c52dec509429c8629d2fce087500da9:0",
+      "eventId": "d4d3db41ed32180bc9c7267bf0926c105c52dec509429c8629d2fce087500da9",
+      "itemIndex": 0,
+      "ordinal": 2,
+      "role": "user",
+      "text": "question two",
+      "truncated": false
+    }
+  ],
+  "nextCursor": "eyJ2IjoyLCJzZXNzaW9uSWQiOiJmaXh0dXJlLWhpc3RvcnkiLCJnZW5lcmF0aW9uIjoiODkwNDRhYTRkYzY4ODk2ODZhZGEwYzY2YTlmN2VmN2UwMjc2MTZkODcxODgzMDdmYWZiMjg2YzUxMzlmNDkzYiIsInJldmlzaW9uIjoiZDRkM2RiNDFlZDMyMTgwYmM5YzcyNjdiZjA5MjZjMTA1YzUyZGVjNTA5NDI5Yzg2MjlkMmZjZTA4NzUwMGRhOSIsImV2ZW50Q291bnQiOjQsImJlZm9yZSI6MX0",
+  "contextOnly": false,
+  "coverage": {
+    "kind": "from-origin",
+    "boundaryEvent": null,
+    "reason": null
+  }
+}

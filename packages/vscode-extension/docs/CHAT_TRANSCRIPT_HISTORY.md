@@ -30,5 +30,6 @@ turn the host retains its bounded live cache, then reloads the canonical snapsho
 
 Local tests cover real temporary JSONL storage and Kernel compaction, summary
 replacement, rewind invalidation, fork isolation, tampering, cursor validation,
-bounded traversal and host reconstruction. Real VS Code and JetBrains journeys,
-cross-platform acceptance and JetBrains history paging remain pending.
+bounded traversal and host reconstruction. JetBrains uses the same v2 page
+contract; see [its history reader](../../jetbrains-plugin/docs/CHAT_TRANSCRIPT_HISTORY.md).
+Real VS Code and JetBrains journeys and cross-platform acceptance remain pending.

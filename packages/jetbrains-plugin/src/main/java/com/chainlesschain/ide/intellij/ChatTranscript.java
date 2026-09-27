@@ -85,6 +85,32 @@ final class ChatTranscript {
         return pane;
     }
 
+    boolean canReplaceHistory() {
+        return pane.getDocument().getLength() == 0 ||
+                (pane.getSelectionStart() == pane.getSelectionEnd() && isFollowingBottom());
+    }
+
+    /** Bounded page replacement without replaying tool, question or accessibility events.
+     * All rows remain visible: the 200K live cap must not silently drop earlier
+     * rows of a validated page (at most 1 MiB text plus 100 headings). */
+    void replaceHistory(com.chainlesschain.ide.SessionTranscriptPage page, boolean earlier) {
+        clear();
+        StyledDocument document = pane.getStyledDocument();
+        try {
+            for (com.chainlesschain.ide.SessionTranscriptPage.Row row : page.messages()) {
+                String role = "user".equals(row.role()) ? "User message"
+                        : "assistant".equals(row.role()) ? "Assistant response" : "Tool result";
+                document.insertString(document.getLength(), "\nMessage " + (row.ordinal() + 1) + ", " + role + "\n", styleBold);
+                document.insertString(document.getLength(), row.text(), stylePlain);
+                if (row.truncated()) document.insertString(document.getLength(),
+                        "\n[Message shortened for display; the saved session retains its original content.]", styleDim);
+                document.insertString(document.getLength(), "\n", stylePlain);
+                if ("user".equals(row.role())) turnNumber++;
+            }
+            pane.setCaretPosition(earlier ? 0 : document.getLength());
+        } catch (BadLocationException error) { throw new IllegalStateException("Could not render saved history", error); }
+    }
+
     /** Start a user turn with a stable heading in the visual and accessible
      * transcript. */
     void beginTurn() {

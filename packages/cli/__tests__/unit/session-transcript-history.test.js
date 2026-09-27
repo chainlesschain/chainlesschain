@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
+import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Command } from "commander";
@@ -70,6 +70,23 @@ function rewriteCursor(cursor, patch) {
 }
 
 describe("canonical display history", () => {
+  it("accepts the shared real CLI history fixture used by the JetBrains reader", () => {
+    const page = parseTranscriptPage(
+      readFileSync(
+        new URL(
+          "../fixtures/session-transcript-history-page-v2.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      "fixture-history",
+    );
+    expect(page.messages.map((row) => row.text)).toEqual([
+      "answer one",
+      "question two",
+    ]);
+    expect(page.nextCursor).toBeTruthy();
+  });
   it("shows original messages once when the Kernel replaces them with a derived summary", async () => {
     const id = "history-summary";
     store.startSession(id, { provider: "test", model: "test" });
