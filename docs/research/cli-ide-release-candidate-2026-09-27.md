@@ -2,6 +2,8 @@
 
 建议先冻结一轮 CLI、VS Code、JetBrains 兼容版本，在发布门通过后提供试用，再据真实安装和宿主验收决定转稳定版。两份差距报告的全部验收不作为本轮范围。本文为候选范围，不是发布记录；未修改版本号、打发布 tag 或发布到 npm / Marketplace。
 
+2026-09-28 环境补充：本机虚拟化未开启，Docker 不可用；无编译器容器 / ARM64 验收等待托管 Actions。WSL1 canonical workspace trust 在目录编辑/移动后仍有身份变化缺陷（扩大集 3 项失败），`doctor` 已增加明确诊断，但不作为身份修复或发布通过。详见[实施台账](./cli-ide-gap-implementation-2026-09-27.md)及[诊断回执](./cli/evidence/workspace-trust-wsl1-diagnostic-e931170f51.json)。
+
 实施分支：`feature/cli-ide-gap-closure-2026-09-27`。当前清单版本为 CLI `0.166.77`、VS Code `0.37.118`、JetBrains `0.4.139`；这些数值仅来自源码，不能代表 registry 最新版本。候选号应在冻结提交、核对已发布版本与渠道后确定。
 
 ## 1. 候选功能范围

@@ -603,3 +603,13 @@ Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 
 该进展补上 Linux 进程重启后的准入记忆，尚不提供丢失 supervisor 后的实际树回收或可信恢复解除。其他平台、无编译器 x64/ARM64 托管单元、最终准确 SHA 的完整 CI 和两份原报告的其他验收继续开放；未升版本、未发布。
 
 干净 `e106b753d8` 的[独立回执](./cli/evidence/durable-process-ownership-windows-wsl-e106b753d8.json)记录 Windows 54 项通过 / 33 项 Linux 专属跳过、WSL 87 项通过，附 6 条真实重启轨迹与 8 条 bridge 生命周期轨迹。独立重新读取原始报告、逐项比对 20 个源码/测试/清单文件和 Git blob；三种崩溃轨迹均保留 1 条 pending 记录，新运行时返回 `BROKER_PROCESS_OWNERSHIP_PENDING`，正常关闭或已证明未进入 native 的失败不留下错误占用。回执 SHA-256 为 `495ce92c3962112709a2fb19b2bd86e3e71c2c4d0e488d08e2814d9bce4ee6f6`。这组定向通过不覆盖前述两个 WSL 工作区信任失败，也不代替托管发布矩阵。
+
+### PLATFORM / UX：WSL1 信任身份诊断与环境限制（2026-09-28）
+
+在 WSL1 原生 `/tmp` 与 DrvFs 的独立 Git 夹具中，`statx` 均返回 `mask:0x7ff`，没有 `STATX_BTIME`。Node 22.12.0 的 `birthtimeNs` 与 `ctimeNs` 相同；创建子文件、移动目录后 dev / inode 不变，但时间戳和 canonical workspace ID 改变。只读源码与测试逐字节匹配 `e931170f51` 的 Git blob，原始探针与回归摘要见[诊断回执](./cli/evidence/workspace-trust-wsl1-diagnostic-e931170f51.json)。这说明 ctime 替代创建时间导致身份不稳定；不能通过删除 generation 或仅保留 dev / inode 来假定跨重启、inode 复用安全。
+
+扩大三文件身份/MCP 回归：Windows 17 项通过；WSL 13 项通过、3 项失败，新增确认移动 Git 仓库后 MCP consent 丢失。Windows 额外含大小写身份场景，两个平台的用例数不同。插件与 Hooks 两文件在两平台均为 22 项通过，只有现有场景通过的结论，不代表所有目录变化均已覆盖。此前两个失败的旧提交对照仍有效；第三处失败本轮没有另做旧提交对照。WSL1 的稳定持久信任身份仍未修复。
+
+现有 `doctor` 的 execution section 新增 WSL1 限制诊断，说明目录编辑/移动可能丢失授权，并建议使用原生 Windows CLI。它不执行修复命令、不删除授权、不修改身份算法，也不将 WSL2 或其他系统的未命中视为完整支持证明。内核读取异常只报告固定错误，避免泄露原始错误内容。新增六个场景中，两个缺少诊断的反例先失败；实现后四文件回归为 Windows 63 通过 / 3 平台跳过、WSL 66 通过。ESLint 无错误（保留既有六个 unused warning）、Prettier 和进程调用清单检查通过。
+
+用户确认本机未开启虚拟化，Docker 暂时无法使用。本轮尝试启动的 Docker Desktop 和等待进程均已停止，不继续尝试本地容器，也不更改虚拟化设置。无编译器 x64 / ARM64 容器验收继续由托管 Actions 承担，当前没有新增通过回执。未升版本、未发布，20 组任务状态不变。

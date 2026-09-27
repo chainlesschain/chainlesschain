@@ -1,0 +1,322 @@
+{
+  "schema": "chainlesschain.workspace-trust-wsl1-diagnostic/v1",
+  "baseCommit": "e931170f5138b41939b3569892d33e7b0bfc70cd",
+  "releaseEligible": false,
+  "identityFixed": false,
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/workspace-trust.js",
+      "sha256": "ccdcd150d3a000b37528bd4dc1fa058f33f9d3a6b9f19bdebf887e228741ec49",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/src/lib/project-mcp-trust.js",
+      "sha256": "7de9bd4a5070ef44de3412aaa0889f49f039e33421e77849a3122b2cf9981b6d",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/src/lib/hooks-v2-workspace-context.js",
+      "sha256": "f40d7dd01ea59b9d16c3115674ab8bc2eb412eb8ba032396c5248969e7a0daf6",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/trust.js",
+      "sha256": "d9a092642d2065c0dd4ca2f3525d1870eb5b668ba5bedce2cc78335aac4c1b99",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/__tests__/unit/workspace-trust.test.js",
+      "sha256": "ef379717ff605fafd4ae15ce64063bab659241b7a04f2e13f14961f2a1769aa6",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/__tests__/unit/project-mcp-trust.test.js",
+      "sha256": "5c51c306ba439d8837c965c8cd34ecfe41b0aae578fd95ec3042c3816fc6186a",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/__tests__/unit/workspace-trust-integration.test.js",
+      "sha256": "7b1ed116101687e9c230a7cb2e689a4926d2e231c7aa3009aef9d8356f84d85a",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/__tests__/unit/hooks-v2-workspace-context.test.js",
+      "sha256": "9455a44f9cfb44f764017e1379d05b63aa3cd807a6eb0ad0274db4fdec83c8c1",
+      "matchesBaseGitBlob": true
+    },
+    {
+      "path": "packages/cli/__tests__/unit/plugin-runtime-trust.test.js",
+      "sha256": "ea00d2b61ff6b8d84e719c56256c94988b5c41608ea289893c8d4db2c6500e0a",
+      "matchesBaseGitBlob": true
+    }
+  ],
+  "identityRegressions": [
+    {
+      "path": ".tmp/workspace-trust-diagnostic-windows.json",
+      "sha256": "c882721390560f4e80771a17ef3fa17fcf7c853e9a40c06d6972c8fb43f89a58",
+      "counts": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    },
+    {
+      "path": ".tmp/workspace-trust-diagnostic-linux.json",
+      "sha256": "fb4665a0adbbf641baec5a109ae859688074bc7e9d1c20b79573eb0b040f6150",
+      "counts": {
+        "passed": 13,
+        "failed": 3,
+        "skipped": 0
+      },
+      "failures": [
+        "project MCP trust store round-trips a fingerprint under a fail-closed lock",
+        "workspace trust entry-point migration keeps project MCP consent on a moved repo and requires re-consent for same-path reuse or a path-keyed legacy grant",
+        "canonical workspace trust keeps a directory workspace identity stable across relocation"
+      ]
+    }
+  ],
+  "consumerRegressions": [
+    {
+      "path": ".tmp/workspace-trust-consumers-windows.json",
+      "sha256": "2f22848de569292d29358da841a47b242ef43e33fc9df7da18a6027ac2bea9da",
+      "counts": {
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    },
+    {
+      "path": ".tmp/workspace-trust-consumers-linux.json",
+      "sha256": "a4ebb23804955f0aaf77a7cd47fa05b3316faa71497e27b79b93255f87f95bfd",
+      "counts": {
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  ],
+  "doctorChange": {
+    "testedInWorkingTree": true,
+    "files": [
+      {
+        "path": "packages/cli/src/lib/doctor-checkup.js",
+        "sha256": "e89b12dd22424e106ac68b01df12483ffa64753bc80344d5ab6e4f3bb03911d5"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/doctor-checkup.test.js",
+        "sha256": "bbefe718dcf37504401f3ed845f92cb553fbad8fd493dc906baa7901159dcfde"
+      }
+    ],
+    "regressions": [
+      {
+        "path": ".tmp/workspace-trust-doctor-windows.json",
+        "sha256": "b06b2653fbaff1e67bd9d4635c036a417436dbfd0528cb746216d05f7284c18e",
+        "counts": {
+          "passed": 63,
+          "failed": 0,
+          "skipped": 3
+        },
+        "failures": []
+      },
+      {
+        "path": ".tmp/workspace-trust-doctor-linux.json",
+        "sha256": "b5e6e3f45adf8c1cd1e587f620d6542cf68c2095171b06da91bb8ece0dfb255f",
+        "counts": {
+          "passed": 66,
+          "failed": 0,
+          "skipped": 0
+        },
+        "failures": []
+      }
+    ]
+  },
+  "nativeProbe": {
+    "sha256": "ac7513a7d317823f4443b2aa0939e90bb21de8aa82ae715319c900e7f1b6f305",
+    "kernel": "4.4.0-19041-Microsoft",
+    "scenarios": [
+      {
+        "parent": "WSL1 root filesystem",
+        "before": {
+          "dev": "2",
+          "ino": "428123439583629447",
+          "ctime": "1790547816261779300",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "2",
+            "ino": "428123439583629447",
+            "birthtimeNs": "1790547816261779300",
+            "ctimeNs": "1790547816261779300",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "b19171e677040bb2ea8dc4dbadd46a04dc456641934a3051876b896673c50eaf",
+              "repositoryId": "a0ee63d148f8fad6a5da594754786efed525bb364802f02bb0f281830d6a846e",
+              "kind": "directory",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428123439583629447 2"
+        },
+        "after_child": {
+          "dev": "2",
+          "ino": "428123439583629447",
+          "ctime": "1790547816384810200",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "2",
+            "ino": "428123439583629447",
+            "birthtimeNs": "1790547816384810200",
+            "ctimeNs": "1790547816384810200",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "91c8de8c84bc22f75ce4f7eae033a858062991757957d6d9f2c1b35d6472526b",
+              "repositoryId": "b9fd27d7fc24c043b55ccf2c257a968d39d7dcec18b0f8c6f5c7170dd99485dd",
+              "kind": "directory",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428123439583629447 2"
+        },
+        "moved": {
+          "dev": "2",
+          "ino": "428123439583629447",
+          "ctime": "1790547816508320100",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "2",
+            "ino": "428123439583629447",
+            "birthtimeNs": "1790547816508320100",
+            "ctimeNs": "1790547816508320100",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "535b7b4d6d49fee742b70aa82d0a0f03445bdcd5cce04eb852e0689abff0672c",
+              "repositoryId": "006ecd722f344b99ca4e2a7a77fcd2a4a1a846b0f51aa39bdff822072bc335fb",
+              "kind": "directory",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428123439583629447 2"
+        }
+      },
+      {
+        "parent": "WSL1 DrvFs fixture",
+        "before": {
+          "dev": "14",
+          "ino": "428404914560340103",
+          "ctime": "1790547816627026900",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "14",
+            "ino": "428404914560340103",
+            "birthtimeNs": "1790547816627026900",
+            "ctimeNs": "1790547816627026900",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "536d1ec9b3dca9f006f0b2ae34ff4ae20a369889b44a04c31f6907caefdd3f00",
+              "repositoryId": "7bfad15d54bba6a45850b8d96fbc28a68b5348c294884213f5fe3d7c8896af96",
+              "kind": "git",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428404914560340103 14"
+        },
+        "after_child": {
+          "dev": "14",
+          "ino": "428404914560340103",
+          "ctime": "1790547816739447000",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "14",
+            "ino": "428404914560340103",
+            "birthtimeNs": "1790547816739447000",
+            "ctimeNs": "1790547816739447000",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "2ebf3a1e18d3fc65c9c572e2286e393aeef683b0e6bee27f5f84c067de9380b2",
+              "repositoryId": "7bfad15d54bba6a45850b8d96fbc28a68b5348c294884213f5fe3d7c8896af96",
+              "kind": "git",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428404914560340103 14"
+        },
+        "moved": {
+          "dev": "14",
+          "ino": "428404914560340103",
+          "ctime": "1790547816877830600",
+          "statx": {
+            "rc": 0,
+            "errno": null,
+            "mask": "0x7ff",
+            "birthtimeAvailable": false,
+            "bsec": 0,
+            "bnsec": 0
+          },
+          "node": {
+            "node": "v22.12.0",
+            "dev": "14",
+            "ino": "428404914560340103",
+            "birthtimeNs": "1790547816877830600",
+            "ctimeNs": "1790547816877830600",
+            "identity": {
+              "schemaVersion": 1,
+              "workspaceId": "7f27504678c6cd6c2f628259a3a6a4b7fa4e47e6da5dbadd65883233528bf5c5",
+              "repositoryId": "7bfad15d54bba6a45850b8d96fbc28a68b5348c294884213f5fe3d7c8896af96",
+              "kind": "git",
+              "linkedWorktree": false
+            }
+          },
+          "stat": "- 0 428404914560340103 14"
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "Doctor diagnoses the observed WSL1 limitation; it does not repair persistent trust identity.",
+    "No generation check, trust reset, test assertion, or authorization gate was weakened.",
+    "Local Docker is unavailable because virtualization is disabled; its attempted startup was stopped.",
+    "Final exact-commit GitHub Actions matrices remain required for publication."
+  ]
+}

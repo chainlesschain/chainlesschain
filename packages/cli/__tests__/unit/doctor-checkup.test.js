@@ -826,6 +826,69 @@ describe("doctor-checkup", () => {
   });
 
   describe("execution section (P1-7)", () => {
+    it("reports WSL1 workspace trust instability without offering a trust reset", async () => {
+      const deps = fakeDeps({
+        platform: () => "linux",
+        kernelRelease: () => "4.4.0-19041-Microsoft",
+      });
+      const sections = await collectCheckupSections({ deps, env: {} });
+      const execution = sections.find((s) => s.id === "execution");
+      const identity = execution.checks.find(
+        (c) => c.id === "workspace-trust-identity",
+      );
+      expect(identity).toMatchObject({ level: CHECK_LEVELS.ERR });
+      expect(identity.detail).toContain("WSL1");
+      expect(identity.detail).toContain("directory edits or moves");
+      expect(identity.detail).toContain("native Windows CLI");
+      expect(identity.fix).toBeUndefined();
+      deps.execFileSync.mockClear();
+      expect(await runCheckupFixes([execution], { deps })).toEqual([]);
+      expect(unsafeFixCommands([execution])).toEqual([]);
+      expect(deps.execFileSync).not.toHaveBeenCalled();
+      expect(deps.rmSync).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["linux", "5.15.167.4-microsoft-standard-WSL2"],
+      ["linux", "6.8.0-64-generic"],
+      ["win32", "4.4.0-19041-Microsoft"],
+      ["darwin", "24.6.0"],
+    ])(
+      "does not infer the WSL1 limitation from environment variables on %s / %s",
+      async (platform, kernelRelease) => {
+        const sections = await collectCheckupSections({
+          deps: fakeDeps({
+            platform: () => platform,
+            kernelRelease: () => kernelRelease,
+          }),
+          env: { WSL_DISTRO_NAME: "Ubuntu", WSL_INTEROP: "/run/WSL/example" },
+        });
+        expect(
+          sections
+            .find((s) => s.id === "execution")
+            .checks.some((c) => c.id === "workspace-trust-identity"),
+        ).toBe(false);
+      },
+    );
+
+    it("keeps a failed kernel inspection visible without leaking its error", async () => {
+      const sections = await collectCheckupSections({
+        deps: fakeDeps({
+          platform: () => "linux",
+          kernelRelease: () => {
+            throw new Error("private/path?token=secret");
+          },
+        }),
+      });
+      const identity = sections
+        .find((s) => s.id === "execution")
+        .checks.find((c) => c.id === "workspace-trust-identity");
+      expect(identity).toMatchObject({ level: CHECK_LEVELS.ERR });
+      expect(identity.detail).toContain("unavailable");
+      expect(JSON.stringify(identity)).not.toContain("private/path");
+      expect(JSON.stringify(identity)).not.toContain("secret");
+    });
+
     it("reports a local trusted machine as OK with no policy advisory", async () => {
       const sections = await collectCheckupSections({
         deps: fakeDeps(),

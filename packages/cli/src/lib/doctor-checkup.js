@@ -26,6 +26,7 @@ import {
   rmSync,
 } from "node:fs";
 import { join, basename } from "node:path";
+import { release as kernelRelease } from "node:os";
 import { getHomeDir, getConfigPath } from "./paths.js";
 import { inspectPrivatePaths, repairPrivatePaths } from "./secure-fs.js";
 import executionBroker from "./process-execution-broker/index.js";
@@ -68,6 +69,7 @@ export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
   now: () => Date.now(),
   platform: () => process.platform,
+  kernelRelease,
 };
 
 function check(id, name, level, detail = "", fix = null) {
@@ -1242,12 +1244,39 @@ async function runtimeSection(opts, deps) {
 
 // ── execution context (P1-7) ───────────────────────────────────────────────
 // "任务在哪执行是 Session 一等属性": surface the DETECTED execution location and
-// the fail-closed permission posture it implies. Read-only advisory — it never
-// blocks. A local trusted machine is OK; a remote/unknown environment is a WARN
+// the fail-closed permission posture it implies. Read-only diagnosis; this does
+// not change execution authority. A remote/unknown environment is a WARN
 // because a session there fails closed to read-only unless powers are granted
 // explicitly (and any policy violation from the pure model is listed).
 async function executionSection(opts, deps) {
   const checks = [];
+  try {
+    // WSL1 lacks STATX_BTIME: Node substitutes mutable ctime for birthtime.
+    // Do not silently drop generation from workspace identity, reset consent,
+    // or claim that a different kernel establishes filesystem trust support.
+    if (
+      deps.platform() === "linux" &&
+      /^4\.4\..*-Microsoft$/iu.test(deps.kernelRelease())
+    ) {
+      checks.push(
+        check(
+          "workspace-trust-identity",
+          "Workspace trust filesystem identity",
+          CHECK_LEVELS.ERR,
+          "WSL1 reports mutable change time as creation time; workspace consent can be lost after directory edits or moves. Use the native Windows CLI for workspace trust operations. There is no safe automatic repair.",
+        ),
+      );
+    }
+  } catch {
+    checks.push(
+      check(
+        "workspace-trust-identity",
+        "Workspace trust filesystem identity",
+        CHECK_LEVELS.ERR,
+        "Kernel information is unavailable; the WSL1 workspace trust limitation could not be checked.",
+      ),
+    );
+  }
   try {
     const {
       detectAmbientLocation,
