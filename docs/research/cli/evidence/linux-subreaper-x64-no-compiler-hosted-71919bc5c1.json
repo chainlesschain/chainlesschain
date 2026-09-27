@@ -1,0 +1,45 @@
+{
+  "schema": "chainlesschain.hosted-linux-subreaper-x64-readback/v1",
+  "commit": "71919bc5c1a491abc1f160cf685b65d9929b796d",
+  "runId": 36356096679,
+  "jobId": 108724636035,
+  "jobConclusion": "success",
+  "scope": "Linux x64 native helper and npm package smoke, not the full CLI CI matrix",
+  "smoke": {
+    "sha256": "811b8753f9b58976d3c505ccdf5a079a90a167e9e9362590cb06a62fb6cbe434",
+    "compilerAbsent": true,
+    "compilerCalls": 0,
+    "elapsedAfterReadyMs": 123.99366,
+    "confirmedCleanup": true,
+    "reaped": 2,
+    "processTreeContained": false
+  },
+  "payload": {
+    "manifestSha256": "c40712e839f75e7e9cc5b1694004145f801d53773a263a0e000ab538fa633a8e",
+    "imageSha256": "f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e",
+    "imageBytes": 934160,
+    "manifest": {
+      "schema": "chainlesschain.linux-subreaper-artifact/v1",
+      "platform": "linux",
+      "arch": "x64",
+      "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "imageDigest": "sha256:f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e",
+      "bytes": 934160,
+      "linkage": "static",
+      "commit": "71919bc5c1a491abc1f160cf685b65d9929b796d"
+    }
+  },
+  "source": {
+    "gitBlobSha256": "e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+    "canonicalDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+  },
+  "tarball": {
+    "reportedSha256": "cbd817fed723ae5b85e8e1533707449d3621a4e295d3cc0a7500b3fc40c69210",
+    "bytesUnavailable": true
+  },
+  "limits": [
+    "The tarball digest is an uploaded record; tarball bytes were not uploaded for independent readback.",
+    "The full Linux/Windows/macOS CLI and strict-sandbox matrices have not passed.",
+    "The probe confirms one two-process cleanup path, not hostile-process containment or safe recovery from supervisor loss."
+  ]
+}
