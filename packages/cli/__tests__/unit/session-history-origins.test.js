@@ -8,6 +8,15 @@ import {
   contextItemsToMessages,
   createSummaryContextItem,
 } from "../../src/lib/context-memory-kernel/message-adapter.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "../../src/lib/checkpoint-summary-projection.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  encodePersistedMessage,
+  markDurableSystemMessage,
+} from "../../src/lib/session-message-provenance.js";
 
 const head = "a".repeat(64);
 function event(messages, retainedMessageCount) {
@@ -26,7 +35,196 @@ function event(messages, retainedMessageCount) {
   };
 }
 
+function summaryEvent(messages, action, start, end = messages.length) {
+  return {
+    prevHash: head,
+    data: {
+      action,
+      turnId: "selected",
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        start,
+        end,
+      },
+      messages: projectCheckpointSummary({
+        messages,
+        action,
+        start,
+        end,
+        turnId: "selected",
+      }).map(({ message }) => encodePersistedMessage(message)),
+    },
+  };
+}
+
 describe("display history origins", () => {
+  it.each(["summary-from", "summary-to"])(
+    "carries %s system-summary ancestry into a subsequent rewind",
+    (action) => {
+      const messages = [
+        { role: "user", content: "first" },
+        { role: "assistant", content: "answer" },
+        { role: "user", content: "second" },
+        { role: "assistant", content: "answer" },
+      ];
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot(messages);
+      const summarized = summaryEvent(messages, action, 0);
+      expect(origins.summarize(summarized)).toBe(true);
+      const later = { role: "user", content: "later" };
+      origins.appendPersisted(later, 4);
+      const output = [...summarized.data.messages, later];
+      expect(origins.rewind(event(output, 1), 5)).toBe(4);
+    },
+  );
+
+  it("rejects invalid summary certificates and output without changing the source mapping", () => {
+    const messages = [
+      { role: "user", content: "same" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "same" },
+      { role: "assistant", content: "answer" },
+    ];
+    const changes = [
+      (value) => {
+        delete value.data.historySummary;
+      },
+      (value) => {
+        value.data.historySummary.schema += "-unknown";
+      },
+      (value) => {
+        value.data.historySummary.sourceHead = "b".repeat(64);
+      },
+      (value) => {
+        value.data.historySummary.sourceMessageCount -= 1;
+      },
+      (value) => {
+        value.data.historySummary.start = 1;
+      },
+      (value) => {
+        value.data.historySummary.end = 3;
+      },
+      (value) => {
+        value.data.historySummary.start = -1;
+      },
+      (value) => {
+        value.data.historySummary.end = 4.5;
+      },
+      (value) => {
+        value.data.action = "restore-conversation";
+      },
+      (value) => {
+        value.data.turnId = "other";
+      },
+      (value) => {
+        value.data.messages[0].content = "different";
+      },
+      (value) => {
+        value.data.messages.at(-1).content += "\nextra";
+      },
+      (value) => {
+        delete value.data.messages.at(-1)._cc_replay;
+      },
+      (value) => {
+        value.data.messages.at(-1).role = "assistant";
+      },
+    ];
+    for (const change of changes) {
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot(messages);
+      const summarized = summaryEvent(messages, "summary-from", 2);
+      change(summarized);
+      expect(origins.summarize(summarized)).toBe(false);
+      expect(origins.rewind(event(messages, 2), 4)).toBe(2);
+    }
+  });
+
+  it.each([0, 2])(
+    "rejects a derived system spanning the rewind point at position %i",
+    (position) => {
+      const origins = createSessionHistoryOrigins();
+      const derived = encodePersistedMessage(
+        markDurableSystemMessage(
+          { role: "system", content: "derived from both sides" },
+          DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+        ),
+      );
+      const messages = [
+        { role: "assistant", content: "first" },
+        { role: "user", content: "cut" },
+      ];
+      messages.splice(position, 0, derived);
+      messages.forEach((message) =>
+        origins.appendMappedPersisted(
+          message,
+          message.role === "system"
+            ? { first: 0, last: 2 }
+            : message.role === "user"
+              ? { first: 2, last: 2 }
+              : { first: 0, last: 0 },
+        ),
+      );
+      expect(
+        origins.rewind(
+          event(
+            messages,
+            messages.findIndex((m) => m.role === "user"),
+          ),
+          3,
+        ),
+      ).toBeNull();
+    },
+  );
+
+  it("does not lose a system summary dependency during another Kernel summary", () => {
+    const origins = createSessionHistoryOrigins();
+    const derived = markDurableSystemMessage(
+      { role: "system", content: "earlier derived context" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+    );
+    const selected = { role: "user", content: "cut" };
+    origins.appendMappedPersisted(encodePersistedMessage(derived), {
+      first: 0,
+      last: 3,
+    });
+    origins.appendPersisted(selected, 2);
+    const items = messagesToContextItems([derived, selected], {
+      sessionId: "session",
+    });
+    const summary = createSummaryContextItem({
+      messages: [{ role: "assistant", content: "summary of system summary" }],
+      parents: items.slice(0, 1),
+      operationId: "system-summary",
+      now: "2026-09-27T00:00:00.000Z",
+    });
+    const outputItems = [summary, items[1]];
+    const messages = contextItemsToMessages(outputItems);
+    origins.compact({
+      messages,
+      canonical: { sessionId: "session", outputItems },
+    });
+    expect(origins.rewind(event(messages, 1), 4)).toBeNull();
+  });
+
+  it("leaves ancestry unknown when a summary includes an unmapped derived system", () => {
+    const derived = markDurableSystemMessage(
+      { role: "system", content: "unknown earlier summary" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+    );
+    const source = [{ role: "user", content: "first" }, derived];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(source.map(encodePersistedMessage));
+    const summarized = summaryEvent(source, "summary-from", 0);
+    expect(origins.summarize(summarized)).toBe(true);
+    const later = { role: "user", content: "later" };
+    origins.appendPersisted(later, 1);
+    expect(
+      origins.rewind(event([...summarized.data.messages, later], 1), 2),
+    ).toBeNull();
+  });
+
   it("drops optional origin tracking at the byte limit, and recovers only from a later explicit snapshot", () => {
     const origins = createSessionHistoryOrigins();
     const messages = Array.from({ length: 70 }, (_, index) => ({
@@ -37,6 +235,9 @@ describe("display history origins", () => {
       origins.appendPersisted(message, index),
     );
     expect(origins.rewind(event(messages, 2), messages.length)).toBeNull();
+    expect(origins.summarize(summaryEvent(messages, "summary-from", 0))).toBe(
+      false,
+    );
     origins.snapshot(messages.slice(0, 4));
     expect(origins.rewind(event(messages.slice(0, 4), 2), 4)).toBe(2);
   });

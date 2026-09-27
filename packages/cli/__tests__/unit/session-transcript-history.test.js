@@ -33,6 +33,10 @@ const { createSummaryContextItem } =
   await import("../../src/lib/context-memory-kernel/message-adapter.js");
 const { HISTORY_PREFIX_SCHEMA } =
   await import("../../src/lib/session-history-origins.js");
+const { HISTORY_SUMMARY_SCHEMA, projectCheckpointSummary } =
+  await import("../../src/lib/checkpoint-summary-projection.js");
+const { branchMessageDigest } =
+  await import("../../src/lib/session-branch-history.js");
 const { registerSessionShowSubcommand } =
   await import("../../src/commands/session-show.js");
 const { parseTranscriptPage } =
@@ -96,6 +100,34 @@ function rewind(id, retainedMessageCount, patch = {}) {
     }),
   );
 }
+function summarize(id, action, start, end, change = () => {}) {
+  const messages = store.readVerifiedMessages(id);
+  end ??= messages.length;
+  const head = store.findLatestEvent(id, null).hash;
+  return store.withSessionAuthorityTransaction(id, head, (transaction) => {
+    const data = {
+      action,
+      turnId: "selected",
+      messages: projectCheckpointSummary({
+        messages,
+        action,
+        start,
+        end,
+        turnId: "selected",
+      }).map(({ message }) => message),
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: transaction.currentHeadHash(),
+        sourceMessageCount: messages.length,
+        start,
+        end,
+      },
+      binding: { turns: [] },
+    };
+    change(data);
+    return transaction.appendAuthorityEvent("checkpoint_timeline_commit", data);
+  });
+}
 function historyBranch(parentSessionId, branchSessionId, retainedMessageCount) {
   const messages = store
     .readVerifiedMessages(parentSessionId)
@@ -123,6 +155,188 @@ function historyBranch(parentSessionId, branchSessionId, retainedMessageCount) {
 }
 
 describe("canonical display history", () => {
+  it.each(["summary-from", "summary-to"])(
+    "keeps original row identities and old cursors after %s, then rewinds the correct path",
+    (action) => {
+      const id = `history-timeline-${action}`;
+      start(id, 6);
+      const original = readSessionTranscriptHistory(id);
+      const oldPage = readSessionTranscriptHistory(id, { limit: 2 });
+      summarize(
+        id,
+        action,
+        action === "summary-from" ? 4 : 0,
+        action === "summary-from" ? 12 : 4,
+      );
+      const active = store.readVerifiedMessages(id);
+      expect(
+        active.some(
+          (message) =>
+            message.role === "system" &&
+            message.content.includes("Conversation Summary"),
+        ),
+      ).toBe(true);
+      expect(active.length).toBeLessThan(original.totalMessages);
+      const page = readSessionTranscriptHistory(id);
+      expect(page.messages).toEqual(original.messages);
+      expect(page.coverage).toEqual(original.coverage);
+      expect(page.generation).toBe(original.generation);
+      expect(
+        readSessionTranscriptHistory(id, {
+          limit: 2,
+          cursor: oldPage.nextCursor,
+        }).messages,
+      ).toEqual(original.messages.slice(8, 10));
+      store.appendUserMessage(id, "later question");
+      store.appendAssistantMessage(id, "later answer");
+      rewind(id, action === "summary-from" ? 2 : 3);
+      expect(readSessionTranscriptHistory(id).messages).toEqual(
+        original.messages.slice(0, action === "summary-from" ? 2 : 6),
+      );
+      expect(() =>
+        readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),
+      ).toThrow("changed");
+    },
+  );
+
+  it("retains repeated summary dependencies through an independent branch, compaction and rewind", async () => {
+    const id = "history-repeated-timeline-summary";
+    const child = "history-repeated-timeline-summary-child";
+    start(id, 4);
+    const original = readSessionTranscriptHistory(id);
+    summarize(id, "summary-from", 4);
+    summarize(id, "summary-to", 0, 2);
+    const context = store.readVerifiedMessages(id);
+    expect(context.map((message) => message.role)).toEqual([
+      "system",
+      "user",
+      "assistant",
+      "system",
+    ]);
+    store.appendUserMessage(id, "branch here");
+    historyBranch(id, child, context.length);
+    expect(historyBranch(id, child, context.length).created).toBe(false);
+    const events = store.readVerifiedEvents(child);
+    expect(events[1].data.history.schema).toBe(
+      "chainlesschain.session-branch-history/v2",
+    );
+    for (const change of [
+      (copy) => {
+        copy[1].data.history.schema =
+          "chainlesschain.session-branch-history/v1";
+      },
+      (copy) => {
+        const index = copy.findIndex((event) => event.type === "system");
+        copy[index + 1].data.origin.last = original.totalMessages;
+      },
+      (copy) => {
+        const index = copy.findIndex((event) => event.type === "system");
+        delete copy[index].data._cc_replay;
+        copy[index + 1].data.messageDigest = branchMessageDigest(
+          copy[index].data,
+        );
+      },
+    ]) {
+      const copy = structuredClone(events);
+      change(copy);
+      const projection = createSessionTranscriptHistoryProjection(child);
+      expect(() => copy.forEach((event) => projection.accept(event))).toThrow(
+        "incomplete or inconsistent",
+      );
+    }
+    store.deleteJsonlSession(id);
+    expect(texts(readSessionTranscriptHistory(child))).toEqual(texts(original));
+    expect(readSessionTranscriptHistory(child).coverage.kind).toBe(
+      "from-origin",
+    );
+    store.appendUserMessage(child, "discard here");
+    await compact(child, "after-timeline-summary", { modelWindowTokens: 2000 });
+    const active = store.readVerifiedMessages(child);
+    rewind(child, active.length - 1);
+    expect(texts(readSessionTranscriptHistory(child))).toEqual(texts(original));
+    const fork = store.forkSession(child, { requestId: "summarized-fork" });
+    const forkId = typeof fork === "string" ? fork : fork.id;
+    expect(texts(readSessionTranscriptHistory(forkId))).toEqual(
+      texts(original),
+    );
+  });
+
+  it("preserves pre-compaction display history when a later active suffix is summarized", async () => {
+    const id = "history-compact-then-timeline-summary";
+    start(id, 4);
+    store.appendUserMessage(id, "selected turn");
+    const original = readSessionTranscriptHistory(id);
+    await compact(id, "before-timeline-summary");
+    const active = store.readVerifiedMessages(id);
+    expect(active.length).toBeLessThan(original.totalMessages);
+    summarize(id, "summary-from", active.length - 1);
+    const retained = store.readVerifiedMessages(id).length;
+    store.appendUserMessage(id, "next turn");
+    rewind(id, retained);
+    expect(readSessionTranscriptHistory(id).messages).toEqual(
+      original.messages,
+    );
+  });
+
+  it("preserves ancestry when summary-to moves durable systems ahead of its new summary", () => {
+    const id = "history-summary-moved-systems";
+    start(id, 2);
+    summarize(id, "summary-from", 2);
+    store.appendUserMessage(id, "more work");
+    store.appendAssistantMessage(id, "more answer");
+    const original = readSessionTranscriptHistory(id);
+    const earlierSummary = store.readVerifiedMessages(id)[2];
+    summarize(id, "summary-to", 0);
+    const active = store.readVerifiedMessages(id);
+    expect(active.map((message) => message.role)).toEqual(["system", "system"]);
+    expect(active[0].content).toBe(earlierSummary.content);
+    store.appendUserMessage(id, "discard");
+    rewind(id, 2);
+    expect(readSessionTranscriptHistory(id).messages).toEqual(
+      original.messages,
+    );
+    expect(readSessionTranscriptHistory(id).coverage.kind).toBe("from-origin");
+  });
+
+  it("retains snapshot coverage after a verified summary and later rewind", () => {
+    const id = "history-snapshot-then-timeline-summary";
+    start(id, 2);
+    store.appendCompactEvent(id, {
+      messages: [
+        { role: "user", content: "imported user" },
+        { role: "assistant", content: "imported answer" },
+      ],
+    });
+    const original = readSessionTranscriptHistory(id);
+    summarize(id, "summary-to", 0);
+    store.appendUserMessage(id, "later");
+    rewind(id, 1);
+    const page = readSessionTranscriptHistory(id);
+    expect(page.messages).toEqual(original.messages);
+    expect(page.coverage).toEqual(original.coverage);
+  });
+
+  it.each(["legacy", "wrong-head", "changed-output"])(
+    "retains an explicit boundary for a %s timeline summary",
+    (problem) => {
+      const id = `history-summary-boundary-${problem}`;
+      start(id, 3);
+      const oldPage = readSessionTranscriptHistory(id, { limit: 2 });
+      summarize(id, "summary-from", 2, undefined, (data) => {
+        if (problem === "legacy") delete data.historySummary;
+        else if (problem === "wrong-head")
+          data.historySummary.sourceHead = "f".repeat(64);
+        else data.messages[0].content = "changed retained output";
+      });
+      const page = readSessionTranscriptHistory(id);
+      expect(page.totalMessages).toBe(2);
+      expect(page.coverage.reason).toBe("timeline-replacement");
+      expect(() =>
+        readSessionTranscriptHistory(id, { cursor: oldPage.nextCursor }),
+      ).toThrow("changed");
+    },
+  );
+
   it("keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback", () => {
     const parent = "history-crash-parent";
     const child = "history-crash-child";

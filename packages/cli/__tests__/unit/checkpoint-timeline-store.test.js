@@ -191,4 +191,83 @@ describe("checkpoint timeline atomic session commit", () => {
       process.exitCode = oldExit;
     }
   });
+
+  it.each(["summary-from", "summary-to"])(
+    "writes a verifiable %s certificate through real CLI preview and confirmation",
+    async (action) => {
+      const id = `timeline-command-${action}`;
+      const workspace = join(testDir, "workspace");
+      mkdirSync(workspace, { recursive: true });
+      store.startSession(id, {});
+      const log = new TurnBindingLog();
+      for (let index = 0; index < 3; index++) {
+        store.appendUserMessage(id, `question ${index}`);
+        store.appendAssistantMessage(id, `answer ${index}`);
+        log.startTurn(`turn-${index}`, { conversationOffset: index * 2 + 2 });
+      }
+      bindings.persistTurnBinding(id, log);
+      const original = readSessionTranscriptHistory(id);
+      const output = vi.spyOn(console, "log").mockImplementation(() => {});
+      const oldExit = process.exitCode;
+      try {
+        const invoke = async (args) => {
+          const program = new Command();
+          registerCheckpointCommand(program);
+          await program.parseAsync(
+            ["checkpoint", ...args, "-s", id, "-d", workspace, "--json"],
+            { from: "user" },
+          );
+          return JSON.parse(output.mock.calls.at(-1)[0]);
+        };
+        const timeline = await invoke(["timeline"]);
+        const submission = timeline.entries
+          .find((entry) => entry.turnId === "turn-1")
+          .actions.find((candidate) => candidate.action === action).submission;
+        const before = store.findLatestEvent(id, null).hash;
+        const preview = await invoke([
+          "action",
+          "--preview",
+          "--submission",
+          JSON.stringify(submission),
+        ]);
+        expect(preview.ok).toBe(true);
+        expect(store.findLatestEvent(id, null).hash).toBe(before);
+        const result = await invoke([
+          "action",
+          "--confirm",
+          "--submission",
+          JSON.stringify(preview.confirmationSubmission),
+        ]);
+        expect(result.ok).toBe(true);
+        const committed = store.findLatestEvent(
+          id,
+          "checkpoint_timeline_commit",
+        );
+        expect(committed.data.historySummary).toEqual({
+          schema: "chainlesschain.session-history-summary/v1",
+          sourceHead: committed.prevHash,
+          sourceMessageCount: 6,
+          start: action === "summary-from" ? 2 : 0,
+          end: action === "summary-from" ? 6 : 4,
+        });
+        expect(committed.data.historyPrefix).toBeUndefined();
+        expect(readSessionTranscriptHistory(id).messages).toEqual(
+          original.messages,
+        );
+        expect(readSessionTranscriptHistory(id).coverage.kind).toBe(
+          "from-origin",
+        );
+        expect(store.readVerifiedMessages(id)).toHaveLength(3);
+        expect(
+          bindings
+            .loadTurnBindingLog(id)
+            .list()
+            .map((turn) => turn.turnId),
+        ).toEqual(action === "summary-from" ? ["turn-0"] : []);
+      } finally {
+        output.mockRestore();
+        process.exitCode = oldExit;
+      }
+    },
+  );
 });

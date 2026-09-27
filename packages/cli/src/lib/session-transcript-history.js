@@ -13,6 +13,7 @@ import { createSessionHistoryOrigins } from "./session-history-origins.js";
 import { getDurableSystemMessageProvenance } from "./session-message-provenance.js";
 import {
   BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,
   BRANCH_HISTORY_MESSAGE,
   branchContextDigest,
   withSessionBranchHistory,
@@ -233,6 +234,13 @@ export function createSessionTranscriptHistoryProjection(
           generation = event.hash;
           physical += messages.filter(displayable).length;
         } else if (
+          event.type === "checkpoint_timeline_commit" &&
+          origins.summarize(event)
+        ) {
+          // The verified rewrite changes model context only. Original rows,
+          // coverage and old display cursors continue to describe the archive.
+          physical += messages.filter(displayable).length;
+        } else if (
           event.type === "compact" &&
           count > 0 &&
           isContextCompaction(event.data)
@@ -281,21 +289,24 @@ export function createSessionTranscriptHistoryProjection(
         );
         if (!prefix) return branch.consume(null);
         rewind(prefix.cutoff);
-        const contextOrigins = prefix.entries
-          .filter(
-            ({ message }) =>
-              ["user", "assistant"].includes(message.role) ||
-              (message.role === "system" &&
-                getDurableSystemMessageProvenance(message)),
-          )
-          .map(({ origin }) => origin);
+        const contextEntries = prefix.entries.filter(
+          ({ message }) =>
+            ["user", "assistant"].includes(message.role) ||
+            (message.role === "system" &&
+              getDurableSystemMessageProvenance(message)),
+        );
+        const contextOrigins = contextEntries.map(({ origin }) => origin);
         return withSessionBranchHistory(
           {
             parentSessionId: sessionId,
             contextDigest: branchContextDigest(branch.messages),
             contextOrigins,
             descriptor: {
-              schema: BRANCH_HISTORY_SCHEMA,
+              schema: contextEntries.some(
+                ({ message, origin }) => message.role === "system" && origin,
+              )
+                ? BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA
+                : BRANCH_HISTORY_SCHEMA,
               sourceGeneration: generation,
               totalMessages: count,
               contextMessageCount: contextOrigins.length,

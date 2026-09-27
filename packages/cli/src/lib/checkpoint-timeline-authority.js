@@ -11,16 +11,7 @@ import {
   resolveCheckpointTimelineAction,
 } from "./checkpoint-timeline.js";
 import { planSessionBranch } from "./session-branch.js";
-import {
-  buildExtractiveHandoff,
-  formatStructuredHandoff,
-} from "../harness/structured-handoff.js";
-import {
-  DURABLE_SYSTEM_MESSAGE_KINDS,
-  getDurableSystemMessageProvenance,
-  markDurableSystemMessage,
-  projectCanonicalResumeMessages,
-} from "./session-message-provenance.js";
+import { projectCheckpointSummary } from "./checkpoint-summary-projection.js";
 
 export const CHECKPOINT_TIMELINE_RESULT_SCHEMA =
   "cc-checkpoint-timeline-result/v1";
@@ -243,21 +234,6 @@ function userAnchor(messages, offset) {
   return null;
 }
 
-function summaryMessage(messages, action, turnId) {
-  const handoff = buildExtractiveHandoff(messages, {
-    maxFallbackSourceChars: 24_000,
-  });
-  return markDurableSystemMessage(
-    {
-      role: "system",
-      content:
-        `[Conversation Summary: ${action} ${turnId}]\n` +
-        formatStructuredHandoff(handoff),
-    },
-    DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
-  );
-}
-
 function codePreviewShape(value, checkpointId) {
   const data = value && typeof value === "object" ? value : {};
   const source = (key) => (Array.isArray(data[key]) ? data[key] : []);
@@ -348,11 +324,13 @@ export function planCheckpointTimelineAction({
     commit.messages = messages.slice(0, anchor);
     commit.bindingPruneOffset = submission.conversationOffset;
   } else if (action === CHECKPOINT_TIMELINE_ACTIONS.SUMMARY_FROM) {
-    const selected = messages.slice(anchor);
-    commit.messages = [
-      ...messages.slice(0, anchor),
-      summaryMessage(selected, action, entry.turnId),
-    ];
+    commit.summaryRange = { start: anchor, end: messages.length };
+    commit.messages = projectCheckpointSummary({
+      messages,
+      action,
+      turnId: entry.turnId,
+      ...commit.summaryRange,
+    }).map((entry) => entry.message);
     commit.bindingPruneOffset = submission.conversationOffset;
   } else if (action === CHECKPOINT_TIMELINE_ACTIONS.SUMMARY_TO) {
     const entryIndex = timeline.entries.indexOf(entry);
@@ -364,31 +342,17 @@ export function planCheckpointTimelineAction({
       return { ok: false, code: "TIMELINE_CONVERSATION_ANCHOR_STALE" };
     }
     const systemCount = messages[0]?.role === "system" ? 1 : 0;
-    const prefix = messages.slice(systemCount, nextAnchor);
-    let canonicalPrefix;
+    commit.summaryRange = { start: systemCount, end: nextAnchor };
     try {
-      canonicalPrefix = projectCanonicalResumeMessages(prefix, {
-        strict: true,
-      });
+      commit.messages = projectCheckpointSummary({
+        messages,
+        action,
+        turnId: entry.turnId,
+        ...commit.summaryRange,
+      }).map((entry) => entry.message);
     } catch {
       return { ok: false, code: "TIMELINE_CONVERSATION_INVALID" };
     }
-    const durableSystems = canonicalPrefix.filter((message) =>
-      Boolean(getDurableSystemMessageProvenance(message)),
-    );
-    // The first system is the current host-owned prompt and stays in place.
-    // Other systems survive the rewrite only with runtime provenance. An
-    // unmarked verified event must neither survive nor be quoted into the new
-    // durable summary, otherwise SUMMARY_TO would bless it on persistence.
-    const selected = canonicalPrefix.filter(
-      (message) => message.role !== "system",
-    );
-    commit.messages = [
-      ...messages.slice(0, systemCount),
-      ...durableSystems,
-      summaryMessage(selected, action, entry.turnId),
-      ...messages.slice(nextAnchor),
-    ];
     // Every surviving later offset shifts when a prefix is summarized.
     commit.bindingPruneOffset = 0;
   } else if (action === CHECKPOINT_TIMELINE_ACTIONS.BRANCH) {

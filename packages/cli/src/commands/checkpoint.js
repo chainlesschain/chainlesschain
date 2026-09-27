@@ -60,6 +60,7 @@ import {
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 import { registerCheckpointRestoreRecoveryCommands } from "./checkpoint-restore-recovery.js";
 import { HISTORY_PREFIX_SCHEMA } from "../lib/session-history-origins.js";
+import { HISTORY_SUMMARY_SCHEMA } from "../lib/checkpoint-summary-projection.js";
 import { createSessionTranscriptBranchProjection } from "../lib/session-transcript-history.js";
 
 function stableCheckpointRestoreValue(value) {
@@ -815,6 +816,16 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                               sourceMessageCount: context.messages.length,
                               retainedMessageCount:
                                 planned.commit.messages.length,
+                            },
+                          }
+                        : {}),
+                      ...(planned.commit.summaryRange
+                        ? {
+                            historySummary: {
+                              schema: HISTORY_SUMMARY_SCHEMA,
+                              sourceHead: transaction.currentHeadHash(),
+                              sourceMessageCount: context.messages.length,
+                              ...planned.commit.summaryRange,
                             },
                           }
                         : {}),

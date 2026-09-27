@@ -37,7 +37,11 @@ digests, while invalidating old cursors and excluding discarded paths. New CLI
 timeline branches carry their selected display archive independently of the
 parent, including complete text stored in chunks, and support subsequent rewind
 or nested branching. The view still applies its normal page rendering limits.
-Older or unverifiable rewinds, timeline summary actions, legacy replacements and
+New CLI timeline summaries retain original rows and page cursors after verifying
+the source head/count/range and exact rewrite, including durable system tags.
+System-summary dependencies also participate in later rewind/branch checks;
+unknown or crossing dependencies cannot establish a retained history prefix.
+Older or unverifiable rewinds and summaries, legacy replacements and
 old or unverifiable snapshot branches display **History begins at a saved snapshot**. Earlier coverage limits
 are retained after a verified rewind. See the shared [CLI history contract and
 bounds](../../vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md); complete ancestry

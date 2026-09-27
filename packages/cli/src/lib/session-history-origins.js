@@ -6,13 +6,31 @@ import {
 import {
   decodeVerifiedPersistedMessage,
   encodePersistedMessage,
+  getDurableSystemMessageProvenance,
+  DURABLE_SYSTEM_MESSAGE_KINDS,
 } from "./session-message-provenance.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "./checkpoint-summary-projection.js";
 
 export const HISTORY_PREFIX_SCHEMA = "chainlesschain.session-history-prefix/v1";
 const MAX_CONTEXT_BYTES = 8 * 1024 * 1024;
 const MAX_CONTEXT_MESSAGES = 32768;
 const displayable = (message) =>
   ["user", "assistant", "tool"].includes(message?.role);
+const derivedSystemKinds = new Set([
+  DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+  DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,
+  DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+  DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
+]);
+const historyBearing = (entry) =>
+  displayable(entry.message) ||
+  Boolean(entry.origin) ||
+  derivedSystemKinds.has(
+    getDurableSystemMessageProvenance(entry.message)?.kind,
+  );
 const fingerprint = (messages) =>
   canonicalDigest(messages.map(encodePersistedMessage));
 
@@ -44,7 +62,7 @@ export function createSessionHistoryOrigins() {
     context.push({ message, origin });
   }
   function span(entries) {
-    const visible = entries.filter((entry) => displayable(entry.message));
+    const visible = entries.filter(historyBearing);
     if (visible.length === 0) return null;
     if (visible.some((entry) => !entry.origin)) return null;
     return {
@@ -176,6 +194,40 @@ export function createSessionHistoryOrigins() {
           })),
       );
     },
+    summarize(event) {
+      const data = event.data;
+      const certificate = data.historySummary;
+      if (
+        !context ||
+        certificate?.schema !== HISTORY_SUMMARY_SCHEMA ||
+        !/^[a-f0-9]{64}$/u.test(certificate.sourceHead) ||
+        certificate.sourceHead !== event.prevHash ||
+        certificate.sourceMessageCount !== context.length
+      )
+        return false;
+      try {
+        const projected = projectCheckpointSummary({
+          messages: context.map((entry) => entry.message),
+          action: data.action,
+          turnId: data.turnId,
+          start: certificate.start,
+          end: certificate.end,
+        });
+        if (
+          fingerprint(projected.map((entry) => entry.message)) !==
+          fingerprint(data.messages.map(decodeVerifiedPersistedMessage))
+        )
+          return false;
+        const entries = projected.map(({ message, sourceIndexes }) => ({
+          message,
+          origin: span(sourceIndexes.map((index) => context[index])),
+        }));
+        replace(entries);
+        return true;
+      } catch {
+        return false;
+      }
+    },
     rewind(event, count) {
       const data = event.data;
       const prefix = data.historyPrefix;
@@ -206,12 +258,12 @@ export function createSessionHistoryOrigins() {
         cutoff > count ||
         retained.some(
           (entry) =>
-            displayable(entry.message) &&
+            historyBearing(entry) &&
             (!entry.origin || entry.origin.last >= cutoff),
         ) ||
         removed.some(
           (entry) =>
-            displayable(entry.message) &&
+            historyBearing(entry) &&
             (!entry.origin || entry.origin.first < cutoff),
         )
       )

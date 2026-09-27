@@ -3,10 +3,14 @@ import { createHash } from "node:crypto";
 import { SESSION_GENERATION_AUTHORITY_FIELD } from "../harness/session-list-index.js";
 import {
   encodePersistedMessage,
+  decodeVerifiedPersistedMessage,
+  getDurableSystemMessageProvenance,
   projectCanonicalResumeMessages,
 } from "./session-message-provenance.js";
 
 export const BRANCH_HISTORY_SCHEMA = "chainlesschain.session-branch-history/v1";
+export const BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA =
+  "chainlesschain.session-branch-history/v2";
 export const BRANCH_HISTORY_MESSAGE = "session_history_message";
 export const BRANCH_HISTORY_ORIGIN = "session_history_origin";
 const capabilities = new WeakMap();
@@ -88,7 +92,10 @@ export function createBranchHistoryImport() {
           index === 2 &&
             start &&
             !active &&
-            descriptor.schema === BRANCH_HISTORY_SCHEMA &&
+            [
+              BRANCH_HISTORY_SCHEMA,
+              BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,
+            ].includes(descriptor.schema) &&
             hash(descriptor.sourceGeneration) &&
             integer(descriptor.totalMessages) &&
             integer(descriptor.contextMessageCount) &&
@@ -206,13 +213,19 @@ export function createBranchHistoryImport() {
           message && event.data.messageDigest === branchMessageDigest(message),
         );
         require(
-          message.role === "system"
-            ? origin === null
+          origin === null
+            ? message.role === "system"
             : origin &&
                 integer(origin.first) &&
                 integer(origin.last) &&
                 origin.first <= origin.last &&
-                origin.last < state.rows,
+                origin.last < state.rows &&
+                (message.role !== "system" ||
+                  (state.descriptor.schema ===
+                    BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA &&
+                    getDurableSystemMessageProvenance(
+                      decodeVerifiedPersistedMessage(message),
+                    ))),
         );
         state.contexts += 1;
         state.pending = null;
