@@ -14,6 +14,7 @@ import readline from "node:readline";
 import { randomUUID } from "node:crypto";
 import { buildSessionProjection } from "../../../packages/cli/src/lib/session-projection.js";
 import { waitForInitGate } from "./init-gate.mjs";
+import { inputReceiptPeer } from "./input-receipt-peer.mjs";
 
 const argv = process.argv.slice(2);
 const statePath = process.env.CC_UI_FIXTURE_STATE || "";
@@ -572,6 +573,20 @@ const canonical = process.env.CC_UI_CANONICAL_ROOT
 if (canonical && (await canonical.command(argv)))
   await exitAfterStdout(process.exitCode || 0);
 
+const receiptPeer = canonical || inputReceiptPeer(statePath);
+if (
+  !canonical &&
+  receiptPeer &&
+  argv[0] === "session" &&
+  argv[1] === "show" &&
+  argv.includes("--input-receipt")
+) {
+  const separator = argv.indexOf("--");
+  const queriedSession = separator >= 0 ? argv[separator + 1] : argv[2];
+  writeJson(receiptPeer.query(queriedSession, option("--input-receipt")));
+  await exitAfterStdout(0);
+}
+
 if (await handleModelConfigCommand()) await exitAfterStdout(0);
 
 // ConversationView probes these after a turn. Keep machine output valid so a
@@ -618,7 +633,7 @@ emit({
   session_id: sessionId,
   resumed_messages: priorMessages,
   slash_commands: ["compact", "context", "cost", "doctor"],
-  ...(canonical ? { input_receipts: { version: 1 } } : {}),
+  ...(receiptPeer ? { input_receipts: { version: 1 } } : {}),
 });
 
 function rememberTurn() {
@@ -631,7 +646,7 @@ function rememberTurn() {
 }
 
 function handleUser(event) {
-  const accepted = canonical?.accept(sessionId, event, emit);
+  const accepted = receiptPeer?.accept(sessionId, event, emit);
   if (accepted?.duplicate) {
     emit({
       type: "result",

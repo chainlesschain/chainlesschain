@@ -50,6 +50,20 @@
 
 修复后准备/预约写入、Agent/进程树停止和草稿相关 4 类共 18 项 Java 回归无失败、无跳过；实际 ZIP 构建与 UI driver 编译通过。
 
+### 第二轮 CI 与 Stop v3 宿主验收
+
+`bcb94c585147e3cf2b98ce1adcc73effd19361e9` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36322601225) 三系统全部通过；[Accessibility/Performance](https://github.com/chainlesschain/chainlesschain/actions/runs/36322600985) 三系统作业全部通过，聚合检查另行收集。Session Host Consistency 的 Windows/Linux 已通过，macOS 尚待结果。以上仅属于该 SHA，不能替代后续发布提交的完整矩阵。
+
+JetBrains `bcb94c5851` 的 initial/restart GUI 均通过，但聚合验证器将 Windows `cmd.exe` 启动器 PID 与 Node 夹具 PID 直接比较，整体失败；原失败证据 `sha256:a458e3e38f13af213d24e4af7de9270ab7fb573aad63a6152ac9ee669a9237b7` 保留。验证器改为要求启动器 PID 不变、夹具 PID 始终属于只读观测到的子进程树，并按夹具 PID 关联真实协议记录；增加缺失进程树、无关进程和启动器/Node PID 不同的回归，54 项 Node 测试及驱动编译通过。
+
+干净源码 `c54e902b6346cbc54e6bd3515ddb151c6948c213` 的完整实际 ZIP v3 旅程重新通过，[独立回执](./ide/evidence/jetbrains-canonical-recovery-windows-c54e902b63.json) 复核 **37 个产物长度与 SHA-256**、ZIP 安装逐文件一致性、真实 history/receipt 子进程及 A/B 六行引用。证据摘要 `sha256:61f7a017e588681a6fcd12fed50af6fd055507240fbb96d02df3210a1d2a72ca`。新增证据包括取消准备、迟到 init、空闲 Stop、显式再次发送后第一次 Stop 只中断该 turn 且保留同一启动器和 Node 进程；仍限 Windows x64 / IntelliJ 2024.2 与确定性模型夹具。
+
+第二轮远端 JetBrains ARM64 越过原双 Stop 检查后，普通旅程在重启发送遇到 8 条未知输入保护上限。该旧夹具没有提供 input receipts；增加隔离磁盘的合成回执与只读查询，按 session/client ID 关联、跨进程去重并拒绝 ID 换内容，不修改产品上限或把未知输入自动标为成功。实际子进程回执/Workbench 2 项及 54 项 evidence/runner 测试通过；该普通夹具不作为真实 canonical 存储证据，远端宿主复验待新 SHA。
+
+Execution Location 的依赖安装已通过，后续 Linux/SSH/WSL 日志显示 `session resume` 未向新版 Chat REPL 传入 authenticated evolution ingress；本地 Node 22.22.2 与 CI 固定 Node 22.12.0 均复现。Windows CI 另有更早的 target prepare 失败，本地两版 Node 未复现同一错误。继续分别处理，尚不宣称迁移矩阵通过。Workspace Publish Staleness 仍需候选冻结时统一版本。
+
+`session resume` 已复用当前目标的 Chat 部署授权和 Run 绑定，等待同一 ingress 的交互生命周期结束；仅恢复入口加载部署，read-only history 不受影响。迁移脚本在隔离目标配置临时签名 Chat 测试部署，不传递源账号凭证，也不授予未签名调用权限。真实 CLI 子进程三种场景通过：无部署/仅 Agent 部署拒绝 Chat 恢复，有 Chat 部署正常恢复后 `/exit`，三种情况下只读历史均可用。相关部署、usage 和迁移合同另 4 文件 22 项通过；actionlint、Bash/PowerShell 语法及修改源 ESLint 通过。完整迁移过程和跨平台结果仍待提交后重跑；此处不证明真实 provider 或正式部署权限策略。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。

@@ -53,6 +53,8 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 
 ## 4. 后续独立任务
 
+第二轮 `bcb94c5851` 的 CLI Strict Sandbox 和 Accessibility/Performance 三系统作业已通过；CLI CI、全部 IDE 宿主及迁移矩阵仍未齐备。JetBrains `c54e902b63` 的[实际 ZIP v3 回执](./ide/evidence/jetbrains-canonical-recovery-windows-c54e902b63.json) 已验证取消准备后的显式发送及第一次 Stop 保留进程，并独立复核 37 个产物。此本地回执限定 Windows x64 / IntelliJ 2024.2，不能替代最终 SHA 的完整 CI；当前仍无新版本发布。
+
 本轮不宣称完成：NET-01 Linux 不可绕过域名出口、NET-02 已有连接撤销、CODEX-01 最新固定二进制与官方生成 schema 兼容、PERF-01 三系统正式 SLO、PERF-02 实际 usage 与压缩事实保真、VERIFY-01 30–50 真实任务、PLATFORM-01 完整平台矩阵，以及真人读屏和 8h/24h 观察。未知价格仍保持 unpriced；受限域名执行继续沿用 fail-closed。
 
 ## 5. 工作量与时间估算

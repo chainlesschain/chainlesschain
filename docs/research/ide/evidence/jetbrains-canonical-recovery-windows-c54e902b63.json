@@ -1,0 +1,152 @@
+{
+  "schema": "chainlesschain.local-ide-recovery-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "c54e902b6346cbc54e6bd3515ddb151c6948c213",
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.4.139",
+  "startedAt": "2026-09-27T13:42:00.322Z",
+  "finishedAt": "2026-09-27T13:47:02.071Z",
+  "model": "deterministic fixture",
+  "persistence": "production canonical store, receipts, and actual CLI history subprocess",
+  "evidence": {
+    "digest": "sha256:61f7a017e588681a6fcd12fed50af6fd055507240fbb96d02df3210a1d2a72ca",
+    "artifactBundleDigest": "sha256:18bd1c5138895dcb9d2d8efba8620c7f703be7b96be4a617d6be95db682872ba",
+    "artifactsVerified": 37,
+    "bundleLocation": ".tmp/jetbrains-canonical-recovery-c54e902b63",
+    "allJourneyAssertionsRevalidated": true,
+    "renderedIdsMatchCommittedReferences": true
+  },
+  "archiveSha256": "sha256:e57545ef4bdf9ddbaef7ed9e4f5896fe0e1af0e0ceb7f50ef9982caed8f6c556",
+  "artifactInstall": {
+    "method": "Gradle sandbox",
+    "productionJarMatchesArchive": true,
+    "fullZipParity": true,
+    "extra": [],
+    "missing": [],
+    "changed": []
+  },
+  "initial": {
+    "processId": "12992",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\2024-2-1790516520322\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790516711705-0899f6",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790516711705-0899f6:0ba99490c0b0a92f43667fdad212513c5c0b588a2c6fbf29e83cb66bf9ddc097:0",
+        "panel-1790516711705-0899f6:23a9363f0213ab6e1ac79629e40b70b7275030acb941e7d3f13d58657d798645:0",
+        "panel-1790516711705-0899f6:b2d1d0d68938694152d42e8716582844c13812a17e10cc3ebca134d8765098dc:0",
+        "panel-1790516711705-0899f6:11bc6ced48fcd1eca64ac345b72bf4be1ee0b47eecae0f693b9dbd52c4027971:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790516718322-1b9760",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790516718322-1b9760:bf0f86f340a5042c7b55f57b672d864e66fcf062d4e0d37fbb3ec16ff53a81e8:0",
+        "panel-1790516718322-1b9760:99a93e7b41fc04c193d51985e1306690a80201b09ab1bfafd7f40f3b65dc8958:0"
+      ]
+    }
+  },
+  "restart": {
+    "processId": "9728",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\2024-2-1790516520322\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790516711705-0899f6",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790516711705-0899f6:0ba99490c0b0a92f43667fdad212513c5c0b588a2c6fbf29e83cb66bf9ddc097:0",
+        "panel-1790516711705-0899f6:23a9363f0213ab6e1ac79629e40b70b7275030acb941e7d3f13d58657d798645:0",
+        "panel-1790516711705-0899f6:b2d1d0d68938694152d42e8716582844c13812a17e10cc3ebca134d8765098dc:0",
+        "panel-1790516711705-0899f6:11bc6ced48fcd1eca64ac345b72bf4be1ee0b47eecae0f693b9dbd52c4027971:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790516718322-1b9760",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790516718322-1b9760:bf0f86f340a5042c7b55f57b672d864e66fcf062d4e0d37fbb3ec16ff53a81e8:0",
+        "panel-1790516718322-1b9760:99a93e7b41fc04c193d51985e1306690a80201b09ab1bfafd7f40f3b65dc8958:0"
+      ]
+    }
+  },
+  "background": {
+    "start": "2026-09-27T13:45:18.591615700Z",
+    "completed": "2026-09-27T13:45:23.119Z",
+    "foregroundReturn": "2026-09-27T13:45:29.828877200Z"
+  },
+  "verification": {
+    "backgroundCompletion": true,
+    "distinctSavedRows": 6,
+    "independentDrafts": true,
+    "processRestart": true,
+    "automaticInputReplay": false,
+    "providerEvidence": "deterministic fixture",
+    "stopBeforeInit": true,
+    "cancelledDraftRecovered": true,
+    "stopAfterCancelledPreparation": true,
+    "firstStopPreservesChild": true,
+    "historyReady": true
+  },
+  "limitations": [
+    "Windows x64 / IntelliJ 2024.2 only",
+    "Standalone recovery journey; does not replace existing chat/control/Workbench/rewind journey",
+    "Model replies are deterministic; no live-provider quality, image/question recovery, canonical rewind/compaction, human accessibility, or long observation acceptance",
+    "Exact release SHA CLI CI and Strict Sandbox matrices remain required; release child npm packages, then CLI, then IDE"
+  ],
+  "historyStatus": {
+    "initial": {
+      "a": " Saved messages 1–4 of 4",
+      "b": " Saved messages 1–2 of 2"
+    },
+    "restart": {
+      "a": " Saved messages 1–4 of 4",
+      "b": " Saved messages 1–2 of 2"
+    }
+  },
+  "stopPreparation": {
+    "sessionId": "panel-1790516675733-22a1e9",
+    "draftKey": "3be4d8b7-7656-405d-b3e8-fc638d286f37",
+    "draftBeforeStop": "cancelled before init 中文😀",
+    "draftAfterStop": "cancelled before init 中文😀",
+    "draftAfterLateInit": "cancelled before init 中文😀",
+    "draftAfterRestart": "cancelled before init 中文😀",
+    "gateWaitingAt": "2026-09-27T13:44:38.262Z",
+    "stopSettledAt": "2026-09-27T13:44:38.918561800Z",
+    "gateReleasedAt": "2026-09-27T13:44:38.956Z",
+    "initReadyAt": "2026-09-27T13:44:58.403540200Z",
+    "fixtureProcessId": 20664,
+    "cancelledHistoryStatus": " No saved messages",
+    "childRunningAfterRestart": false,
+    "automaticReplay": false
+  },
+  "stopContinuation": {
+    "sessionId": "panel-1790516698640-58d3a0",
+    "draftKey": "74dff229-b1fa-4492-85e3-ed16ea733245",
+    "fixtureProcessId": 23340,
+    "childProcessId": "23508",
+    "childProcessIdsAfterStop": [
+      "23508",
+      "20864",
+      "23340"
+    ],
+    "cancelledAt": "2026-09-27T13:45:00.335218400Z",
+    "readyAt": "2026-09-27T13:45:07.073342Z",
+    "explicitNextSendObservedAt": "2026-09-27T13:45:08.161761400Z",
+    "softStopSettledAt": "2026-09-27T13:45:11.414739500Z",
+    "childRunningAfterStop": true,
+    "interruptPendingAfterStop": false,
+    "sameChildAfterStop": true
+  },
+  "receiptDigest": "sha256:b6a32f97052c86f0cae8633c7fd21beb6dad144325dfbc5581e68eb36bf4a3a2"
+}
