@@ -587,3 +587,17 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 此阻断仅在当前运行时内有效，诊断明确 `durable:false`、`restartSafe:false`，**重启不能当作已清理或安全恢复**。持久隔离、跨重启恢复、监督器死亡后的实际后代回收及其他平台仍未完成。原始报告快照、20 组任务统计与生产 AgentRouter attestation gate 保持不变；未升版本、未发布。用户链接的 Workspace Publish Staleness 仍需候选版本冻结时修正 SDK / VS Code 版本及下游依赖；最新托管 CI 仍在等待，不据此称 Actions 全部修复。
 
 干净 `915653abfa` 的[独立回执](./cli/evidence/process-ownership-quarantine-windows-wsl-915653abfa.json)记录 Windows 117 项通过 / 8 项 Linux 跳过、WSL 125 项通过及 8 个真实进程场景。重新读取两个原始测试报告，并将 17 个源码/测试/清单文件逐项与该提交 Git blob 比较。监督器强杀后，仍有一个后代执行时在 ready 后 2.81 ms 返回 `quarantined`；没有 close、未释放句柄，Broker 继续阻断。回执 SHA-256 为 `f685a617531d30006836c5ee8c75ed7cb2dd5aafb7f3e864d628b1d616644fe9`。该验证不证明异常后代已被强制回收，也不扩展到持久恢复或最终托管矩阵。
+
+### BRIDGE-01：Linux 启动前持久记录与跨运行时阻断（2026-09-28）
+
+Linux subreaper 启动前现在先写入独立安全状态目录的有界 ownership journal，再进入 helper / native 启动。复用既有严格 `withFileLock` 与原子 security-store 写入、文件及目录 fsync；记录只保存 execution ID、owner PID 和随机 token，不保存提示词、命令、环境或工作区正文。目录/文件必须属于当前用户且权限私有，拒绝链接、硬链接、特殊文件、过大或损坏记录；读取与写入绑定已打开的目录 FD。通用写入器补上已有 FD 目录不重复 mkdir 的处理，修复 WSL1 对 `/proc/self/fd/N` 的 EPERM，原子替换和 fsync 要求不变。
+
+只有确认尚未进入 native spawn 的前置失败，或真实 facade close（确认树清理 / 确认未创建 supervisor）才能结算记录。进入 native 后发生同步异常也保留记录；监督器丢失后撤销本进程的内存放行资格，记录跨 CLI 退出继续存在。PID 不存在、记录变旧、重启或改用另一个 `CHAINLESSCHAIN_HOME` 均不作为清理证据。关闭已确认但持久结算失败时，Bridge 如实返回“已执行但记录结算失败”，不错误标为未启动。
+
+并发边界：本运行时的多个受监督任务仍可并行；共享安全状态目录的另一个 CLI 运行时只要读到未结算记录，就拒绝新的 Broker 执行，等待原运行时确认关闭。该保守限制也覆盖活跃 owner，没有用 PID 存活推断它仍拥有全部后代。当前没有跨运行时所有权移交或安全人工解除接口；`restartSafe:false` 继续保留。持久记录是协作型准入阻断，不是同 UID 沙箱，主动删除/迁移整个安全 anchor、直接绕过 Broker 写文件不在该保证内；既有工作区事务锁及 process-tree 保证没有放宽。
+
+六个真实多进程场景通过：持久写入失败、helper 构建失败、native 入口前强杀 CLI、执行中强杀 CLI、强杀 supervisor、正常确认关闭。前三类启动前行为区分准确：写入失败不启动；helper 失败在未进入 native 时结算；CLI 在已持久化后突然死亡则保持阻断。新 CLI 使用另一 home 读取同一安全 anchor，三种崩溃场景均拒绝实际写文件命令，夹具进程全部消失后仍拒绝；正常清理后新 CLI 实际命令可执行。11 项 journal 单测覆盖本进程并行、同 PID 新实例、损坏/链接/权限/超限、删除、fsync 失败及目录替换；既有 17 项真实 Linux Broker/bridge 生命周期回归通过。
+
+Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 文件回归为 501 通过、9 跳过、2 失败；两处为 `workspace-trust` 重定位身份和 `project-mcp-trust` 记录后身份变化。在独立的旧 `6971b97c98` 工作区重跑相同两个文件，得到相同 2 失败 / 9 通过，证明它们在本批之前存在；没有跳过或放宽断言，仍列为 PLATFORM / 工作区信任待修问题，不能将该扩大集写成全绿。ESLint 无新增 warning/error，进程调用清单一致。
+
+该进展补上 Linux 进程重启后的准入记忆，尚不提供丢失 supervisor 后的实际树回收或可信恢复解除。其他平台、无编译器 x64/ARM64 托管单元、最终准确 SHA 的完整 CI 和两份原报告的其他验收继续开放；未升版本、未发布。

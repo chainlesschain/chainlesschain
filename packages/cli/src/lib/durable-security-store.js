@@ -48,7 +48,12 @@ export function readSecurityStore(filePath, label) {
 
 export function writeSecurityStore(filePath, label, store) {
   const directory = path.dirname(filePath);
-  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  // A caller may already hold a Linux directory through /proc/self/fd/N.
+  // WSL1 refuses mkdir on that existing descriptor alias; keep all later
+  // writes and fsync bound to the held directory without reopening its path.
+  if (!fs.statSync(directory, { throwIfNoEntry: false })?.isDirectory()) {
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  }
   const temporaryPath = path.join(
     directory,
     `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`,

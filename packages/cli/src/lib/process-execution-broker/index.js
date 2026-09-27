@@ -52,6 +52,7 @@ import {
   assertProcessOwnershipAvailable,
   getProcessOwnershipStatus,
   observeProcessOwnership,
+  prepareProcessOwnership,
 } from "./process-ownership-quarantine.js";
 import {
   MACOS_MCP_LAUNCHER_INPUTS,
@@ -4848,22 +4849,37 @@ class ProcessExecutionBroker extends EventEmitter {
           error.code = "EXTERNAL_AGENT_SUPERVISION_UNSUPPORTED_PLAN";
           throw error;
         }
-        const helper = acquireLinuxSubreaperHelper({
-          spawnSync: this._native?.spawnSync || nativeSpawnSync,
-        });
-        proc = spawnLinuxSubreaperChild(
-          command,
-          args,
-          {
-            cwd: path.resolve(optsForSpawn.cwd || cwd),
-            env: optsForSpawn.env || process.env,
-            graceMs: request.graceMs,
-            helper,
-          },
-          { spawn: nativeSpawnFn },
-        );
+        const ownershipLease = prepareProcessOwnership(executionId);
+        let nativeEntered = false;
+        try {
+          const helper = acquireLinuxSubreaperHelper({
+            spawnSync: this._native?.spawnSync || nativeSpawnSync,
+          });
+          proc = spawnLinuxSubreaperChild(
+            command,
+            args,
+            {
+              cwd: path.resolve(optsForSpawn.cwd || cwd),
+              env: optsForSpawn.env || process.env,
+              graceMs: request.graceMs,
+              helper,
+            },
+            {
+              spawn: (...nativeArgs) => {
+                nativeEntered = true;
+                return nativeSpawnFn(...nativeArgs);
+              },
+            },
+          );
+        } catch (error) {
+          // Before native entry no process could exist. Once entered, retain
+          // the durable record even if a synchronous exception hides its handle.
+          if (!nativeEntered) ownershipLease?.settle();
+          else ownershipLease?.retain();
+          throw error;
+        }
         auditEntry.processLifecycleOwner = "linux-subreaper";
-        observeProcessOwnership(proc, executionId);
+        observeProcessOwnership(proc, executionId, ownershipLease);
       } else {
         proc = nativeSpawnFn(command, args, optsForSpawn);
       }

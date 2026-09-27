@@ -19,6 +19,10 @@ import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 import executionBroker from "./process-execution-broker/index.js";
 import { PROCESS_OWNERSHIP_UNCONFIRMED } from "./process-execution-broker/process-ownership-quarantine.js";
 import {
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "./process-execution-broker/process-ownership-journal.js";
+import {
   createExternalAgentAdapter,
   EXTERNAL_AGENT_ERROR,
 } from "./external-agent-adapters.js";
@@ -268,7 +272,11 @@ export class ClaudeCodeAgent extends EventEmitter {
       };
       const failSpawn = (err) => {
         if (finalized) return;
-        const admissionBlocked = err.code === PROCESS_OWNERSHIP_UNCONFIRMED;
+        const admissionBlocked = [
+          PROCESS_OWNERSHIP_UNCONFIRMED,
+          PROCESS_OWNERSHIP_PENDING,
+          PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+        ].includes(err.code);
         this.status = AGENT_STATUS.FAILED;
         finalize({
           success: false,
@@ -498,11 +506,13 @@ export class ClaudeCodeAgent extends EventEmitter {
             ? EXTERNAL_AGENT_ERROR.CANCELLED
             : spawnFailure
               ? EXTERNAL_AGENT_ERROR.SPAWN_FAILED
-              : code !== 0
-                ? EXTERNAL_AGENT_ERROR.EXIT_NONZERO
-                : protocolFailed
-                  ? EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED
-                  : null;
+              : processError?.code === PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE
+                ? PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE
+                : code !== 0
+                  ? EXTERNAL_AGENT_ERROR.EXIT_NONZERO
+                  : protocolFailed
+                    ? EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED
+                    : null;
 
         const result = {
           success,
@@ -537,6 +547,9 @@ export class ClaudeCodeAgent extends EventEmitter {
           malformedLineCount: projection.malformedLineCount,
           runtimeClaims: REAL_EXECUTION_CLAIMS,
           terminalEvidence,
+          ...(processError?.code === PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE
+            ? { recoveryRequired: true }
+            : {}),
         };
 
         finalize(result);
@@ -545,6 +558,12 @@ export class ClaudeCodeAgent extends EventEmitter {
 
       proc.on("error", (err) => {
         if (finalized) return;
+        if (err.code === PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE) {
+          // The actual child has run. A failed durable settlement must not be
+          // mislabeled as an admission denial or evidence that nothing started.
+          processError = err;
+          return;
+        }
         if (err.code === EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED) {
           quarantine(proc.ownedProcessTreeEvidence);
           if (finalized) return;

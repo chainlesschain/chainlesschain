@@ -559,10 +559,14 @@ describe("ClaudeCodeAgent", () => {
     },
   );
 
-  it("reports broker quarantine admission without claiming a new execution", async () => {
+  it.each([
+    "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+    "BROKER_PROCESS_OWNERSHIP_PENDING",
+    "BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE",
+  ])("reports %s admission without claiming a new execution", async (code) => {
     _deps.spawn = vi.fn(() => {
       throw Object.assign(new Error("quarantined"), {
-        code: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+        code,
       });
     });
     const agent = new ClaudeCodeAgent();
@@ -572,8 +576,37 @@ describe("ClaudeCodeAgent", () => {
       executionStarted: false,
       recoveryRequired: true,
       runtimeClaims: { mode: "validate-only" },
-      errorCode: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+      errorCode: code,
     });
+    expect(agent._proc).toBeNull();
+  });
+
+  it("reports a failed durable close settlement as an executed failure", async () => {
+    const proc = makeOwnedChild();
+    _deps.spawn = vi.fn(() => proc);
+    const agent = new ClaudeCodeAgent();
+    const pending = agent.executeTask("executed");
+    proc.stdout.emit(
+      "data",
+      Buffer.from('{"type":"result","subtype":"success","result":"done"}\n'),
+    );
+    proc.exitCode = 0;
+    proc.emit(
+      "error",
+      Object.assign(new Error("journal settlement failed"), {
+        code: "BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE",
+      }),
+    );
+    proc.emit("close", 0);
+    const result = await pending;
+    expect(result).toMatchObject({
+      success: false,
+      status: "failed",
+      errorCode: "BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE",
+      recoveryRequired: true,
+      runtimeClaims: { mode: "real-execution" },
+    });
+    expect(result.executionStarted).not.toBe(false);
     expect(agent._proc).toBeNull();
   });
 

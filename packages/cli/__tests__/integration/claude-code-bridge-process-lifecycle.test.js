@@ -9,6 +9,9 @@ import {
   _deps,
 } from "../../src/lib/claude-code-bridge.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
+import { useOwnershipJournalHome } from "../helpers/ownership-journal-home.js";
+
+useOwnershipJournalHome();
 
 it("waits for the real Broker-owned process close after post-spawn failure", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bridge-owned-"));

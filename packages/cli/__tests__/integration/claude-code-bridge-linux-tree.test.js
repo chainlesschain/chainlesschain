@@ -10,6 +10,9 @@ import {
   _deps,
 } from "../../src/lib/claude-code-bridge.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
+import { useOwnershipJournalHome } from "../helpers/ownership-journal-home.js";
+
+useOwnershipJournalHome();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function executing(pid) {

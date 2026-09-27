@@ -4,6 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import broker from "../../src/lib/process-execution-broker/index.js";
+import { useOwnershipJournalHome } from "../helpers/ownership-journal-home.js";
+
+useOwnershipJournalHome();
 
 const originalNative = broker._native;
 afterEach(() => {
