@@ -22,7 +22,11 @@ import {
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 import { executionBroker } from "./process-execution-broker/index.js";
 import { assertExecutionLocationRunnerLeaseAuthority } from "./execution-location-runner-lifecycle.js";
-import { ensurePrivateDirectory, repairPrivatePaths } from "./secure-fs.js";
+import {
+  _resolveWindowsAclTimeout,
+  ensurePrivateDirectory,
+  repairPrivatePaths,
+} from "./secure-fs.js";
 import { getSessionAntiRollbackDirectory } from "./session-anti-rollback-anchor.js";
 import {
   MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
@@ -661,6 +665,11 @@ function localTargetEnvironment(profile, lifecycleEnvironment) {
     // Windows. Keep all CLI state beneath a dedicated child directory.
     CHAINLESSCHAIN_HOME: path.join(profile.transport.home, ".chainlesschain"),
     CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: profile.transport.securityHome,
+    // This numeric, bounded operation allowance is part of local storage
+    // configuration. Forward no other caller-specific environment or secrets.
+    CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: String(
+      _resolveWindowsAclTimeout(15_000),
+    ),
     FORCE_COLOR: "0",
     HOME: profile.transport.home,
     LOCALAPPDATA: path.join(profile.transport.home, "AppData", "Local"),

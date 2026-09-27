@@ -449,3 +449,5 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 同一干净源码 Windows→已有 Ubuntu WSL1 的完整缩小流程退出 0；初始化、准备、断连探测、恢复、生命周期故障、结果返回和 finalize 均完成。独立复核 9 个产物及 2 条轨迹 outcome，保存[回执](./cli/evidence/execution-location-wsl-windows-3b0bc23021.json)。临时 home/security 为 `/tmp` 兄弟目录；仓库从 Windows 挂载，不能代替 CI 独立 rootfs 或 100 条轨迹门。旧 `8db732245f` Container 100 条轨迹远端通过；最终 SHA 的三系统发布门仍待齐备。
 
 `a7d2ebb721` 的 [Windows 复跑](https://github.com/chainlesschain/chainlesschain/actions/runs/36327273639/job/108642337841) 明确返回 `windows-acl [timeout]`。原逻辑将单路径 15 秒拆成两次 7.5 秒，批量 30 秒拆成两次 15 秒，冷启动每次重新开始；单路径甚至短于原生互斥锁的 10 秒等待。调整为一次进程使用完整的原预算，超时仍拒绝，不提高总上限、不重试延长阻塞、不跳过 ACL 校验。模拟 10 秒单路径/20 秒批量操作的回归在修改前失败；修复后的相关测试和原生权限/幂等/拒绝探测通过。托管 Windows 是否已解决仍须新 SHA 作业确认。
+
+`ded3eee808` 的 [Windows 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36327648662/job/108643388246) 仍在目标目录 ACL 处超时，完整 15 秒不足，不能将预算修正称为最终解决。现有 `_cli-test.yml` 已对托管 Windows 使用 60 秒 ACL 额度；执行位置工作流未配置该值，Local 目标环境也未转发它。新增相同的 Windows 工作流额度，并仅转发经过既有上下限校验的数值，不转发原字符串或其他凭证环境。生产默认保持 15/30 秒，目标外层命令上限不变；原生脚本发出固定阶段标记，超时仅返回最后已到达的白名单阶段或 `startup`，不输出路径/原异常。下一轮远端结果仍待验证。

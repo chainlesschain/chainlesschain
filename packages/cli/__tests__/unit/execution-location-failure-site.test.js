@@ -11,6 +11,8 @@ it.each([
   "repair-lock:0x80070005",
   "repair-write:0x80070522",
   "timeout",
+  "timeout-initialize",
+  "timeout-startup",
   "output",
 ])(
   "preserves a fixed native ACL diagnostic without private content: %s",
@@ -28,6 +30,7 @@ it.each([
   "[windows-acl:lookup:private-session]",
   "[windows-acl:lookup:0x800700050]",
   "[windows-acl:lookup:0x80070005:private-session]",
+  "[windows-acl:timeout-private-session]",
   "x".repeat(8192) + "[windows-acl:timeout]",
 ])("rejects arbitrary or oversized native ACL diagnostics", (stderr) => {
   expect(readExecutionLocationStorageFailure(stderr)).toBeNull();

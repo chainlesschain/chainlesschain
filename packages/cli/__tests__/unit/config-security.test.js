@@ -630,7 +630,15 @@ describe("owner-only filesystem helpers", () => {
       {
         error: Object.assign(new Error("private-path"), { code: "ETIMEDOUT" }),
       },
-      "timeout",
+      "timeout-startup",
+    ],
+    [
+      {
+        error: Object.assign(new Error("private-path"), { code: "ETIMEDOUT" }),
+        stderr:
+          "CC_WINDOWS_ACL_STAGE=initialize\r\nCC_WINDOWS_ACL_STAGE=repair-inspect\r\nCC_WINDOWS_ACL_STAGE=private-secret\r\n",
+      },
+      "timeout-repair-inspect",
     ],
     [
       { error: Object.assign(new Error("private-path"), { code: "ENOENT" }) },
@@ -641,7 +649,7 @@ describe("owner-only filesystem helpers", () => {
     (result, diagnostic) => {
       const spawnSync = vi.fn(() => ({
         ...result,
-        stderr: "private-path private-session",
+        stderr: result.stderr || "private-path private-session",
       }));
       let failure;
       try {

@@ -524,52 +524,67 @@ describe("execution location target launch and resume", () => {
     expect(JSON.stringify(args)).not.toMatch(/token|password|authorization/iu);
   });
 
-  it("launches a Local target through the bounded supervisor with a sanitized environment", () => {
-    vi.stubEnv("GITHUB_TOKEN", "must-not-cross-local-target");
-    const profile = rawLifecycleProfile({
-      id: "local-profile-1",
-      target: "local",
-      evidenceId: "local-evidence-1",
-      cliCommand: "/work/repo/packages/cli/src/index.js",
-      transport: {
-        home: "/target/home",
-        securityHome: "/target/security",
-      },
-    });
-    const spawnSync = vi
-      .fn()
-      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
-      .mockReturnValueOnce(success(JSON.stringify(currentProjection("local"))));
-    const result = attestExecutionLocationTarget(
-      { profile, handoff: handoff("local") },
-      {
-        spawnSync,
-        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
-        assertRunnerLifecycleAuthority: vi.fn(),
-      },
-    );
+  it.each([
+    ["60000", "60000"],
+    ["900000", "300000"],
+    ["100", "15000"],
+    ["private-secret", "15000"],
+  ])(
+    "launches a Local target with a sanitized bounded ACL allowance (%s)",
+    (configuredTimeout, expectedTimeout) => {
+      vi.stubEnv("GITHUB_TOKEN", "must-not-cross-local-target");
+      vi.stubEnv("CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS", configuredTimeout);
+      const profile = rawLifecycleProfile({
+        id: "local-profile-1",
+        target: "local",
+        evidenceId: "local-evidence-1",
+        cliCommand: "/work/repo/packages/cli/src/index.js",
+        transport: {
+          home: "/target/home",
+          securityHome: "/target/security",
+        },
+      });
+      const spawnSync = vi
+        .fn()
+        .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+        .mockReturnValueOnce(
+          success(JSON.stringify(currentProjection("local"))),
+        );
+      const result = attestExecutionLocationTarget(
+        { profile, handoff: handoff("local") },
+        {
+          spawnSync,
+          now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+          assertRunnerLifecycleAuthority: vi.fn(),
+        },
+      );
 
-    expect(result.binding.location).toBe("local");
-    const [command, args, options] = spawnSync.mock.calls[0];
-    expect(command).toBe(process.execPath);
-    expect(args[0]).toMatch(/execution-location-local-supervisor\.mjs$/u);
-    expect(args).toContain("/work/repo/packages/cli/src/index.js");
-    expect(args.slice(-4)).toEqual([
-      "session",
-      "location",
-      "target-preflight",
-      "--json",
-    ]);
-    expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
-    expect(options.timeout).toBe(30_000);
-    expect(options.env.GITHUB_TOKEN).toBeUndefined();
-    expect(options.env.CHAINLESSCHAIN_HOME).toBe(
-      join(options.env.HOME, ".chainlesschain"),
-    );
-    expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
-      "2026-08-18T08:00:00.000Z",
-    );
-  });
+      expect(result.binding.location).toBe("local");
+      const [command, args, options] = spawnSync.mock.calls[0];
+      expect(command).toBe(process.execPath);
+      expect(args[0]).toMatch(/execution-location-local-supervisor\.mjs$/u);
+      expect(args).toContain("/work/repo/packages/cli/src/index.js");
+      expect(args.slice(-4)).toEqual([
+        "session",
+        "location",
+        "target-preflight",
+        "--json",
+      ]);
+      expect(options).toMatchObject({ cwd: "/work/repo", shell: false });
+      expect(options.timeout).toBe(30_000);
+      expect(options.env.GITHUB_TOKEN).toBeUndefined();
+      expect(options.env.CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS).toBe(
+        expectedTimeout,
+      );
+      expect(JSON.stringify(options.env)).not.toContain("private-secret");
+      expect(options.env.CHAINLESSCHAIN_HOME).toBe(
+        join(options.env.HOME, ".chainlesschain"),
+      );
+      expect(options.env.CC_EXECUTION_LOCATION_PROXY_EXPIRES_AT).toBe(
+        "2026-08-18T08:00:00.000Z",
+      );
+    },
+  );
 
   it("prepares the fixed Local replica state tree in one Windows ACL batch", () => {
     const profile = rawLifecycleProfile({

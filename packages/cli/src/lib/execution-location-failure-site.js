@@ -22,7 +22,7 @@ export function readExecutionLocationStorageFailure(stderr) {
   const match = String(stderr || "")
     .slice(0, MAX_DIAGNOSTIC_CHARS)
     .match(
-      /\[windows-acl:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|timeout|spawn|output)(:0x[0-9a-f]{8})?\]/u,
+      /\[windows-acl:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|timeout(?:-(?:startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify))?|spawn|output)(:0x[0-9a-f]{8})?\]/u,
     );
   return match ? `${match[1]}${match[2] || ""}` : null;
 }

@@ -258,6 +258,7 @@ function Test-CcOwnerOnlySecurity($item, $security) {
 }
 function Write-CcOwnerOnlyAcl($item, [string]$path) {
   $script:ccAclStage = 'repair-lock'
+  [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-lock')
   $digest = [System.Security.Cryptography.SHA256]::Create()
   try {
     $key = [System.BitConverter]::ToString($digest.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($sid.Value + ':' + [System.IO.Path]::GetFullPath($path).ToUpperInvariant()))).Replace('-', '')
@@ -270,10 +271,12 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
     if (-not $held) { throw 'Timed out waiting for owner-only ACL repair' }
     Assert-CcNoReparseTraversal $path
     $script:ccAclStage = 'repair-inspect'
+    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-inspect')
     $current = Get-Item -LiteralPath $path -Force
     $security = Read-CcAcl $path
     if (Test-CcOwnerOnlySecurity $current $security) { return }
     $script:ccAclStage = 'repair-write'
+    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-write')
     Write-CcOwnerOnlyAclImpl $current $path
   } finally {
     if ($held) { $mutex.ReleaseMutex() }
@@ -287,6 +290,7 @@ param([string]$target, [string]$operation)
 $ErrorActionPreference = 'Stop'
 $script:ccAclStage = 'initialize'
 try {
+[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=initialize')
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8
 $sections =
@@ -313,8 +317,10 @@ function Assert-CcNoReparseTraversal([string]$path) {
 }
 
 $script:ccAclStage = 'traversal'
+[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
 Assert-CcNoReparseTraversal $target
 $script:ccAclStage = 'lookup'
+[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
 $item = Get-Item -LiteralPath $target -Force
 
 function Read-CcAcl([string]$path) {
@@ -375,6 +381,7 @@ if ($operation -eq 'repair') {
 }
 
 $script:ccAclStage = 'verify'
+[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=verify')
 $acl = Read-CcAcl $target
 $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
 $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
@@ -792,7 +799,16 @@ function windowsAcl(target, operation, deps) {
     details = null;
   }
   if (result?.error) {
-    const stage = result.error.code === "ETIMEDOUT" ? "timeout" : "spawn";
+    const progress =
+      [
+        ...String(result.stderr || "")
+          .slice(0, 8192)
+          .matchAll(
+            /^CC_WINDOWS_ACL_STAGE=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify)\r?$/gmu,
+          ),
+      ].at(-1)?.[1] || "startup";
+    const stage =
+      result.error.code === "ETIMEDOUT" ? `timeout-${progress}` : "spawn";
     return {
       ok: false,
       platform: "win32",

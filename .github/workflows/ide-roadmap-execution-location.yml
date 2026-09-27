@@ -82,6 +82,9 @@ jobs:
     timeout-minutes: 90
     env:
       CC_LOCATION_ARTIFACT: ide-execution-location-local-${{ matrix.audit_os }}-${{ github.run_attempt }}
+      # Match CLI integration's hosted-Windows cold-start allowance.
+      # The target receives only the normalized number; ACL checks still fail closed.
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ matrix.audit_os == 'windows' && '60000' || '' }}
     steps:
       - name: Checkout exact execution-location candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
