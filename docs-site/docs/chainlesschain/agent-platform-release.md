@@ -1,6 +1,6 @@
 # Agent Platform 0.166.77 发布与升级指南
 
-> 核对日期：2026-09-27；CLI 发布提交 `8d97c58153`。公开制品、源码和历史资格证据分别记录。
+> 核对日期：2026-09-27；主线 `main@24911a536c`，CLI 发布提交 `8d97c58153`。公开制品、源码和历史资格证据分别记录。
 
 ## 概述
 
@@ -251,18 +251,18 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 
 ## 配置参考
 
-| 目标           | 配置或命令                                              | 当前边界                                               |
-| -------------- | ------------------------------------------------------- | ------------------------------------------------------ |
-| 普通本地 Agent | `cc agent`                                              | 默认禁网 `workspace-write`，不探测 Docker              |
-| 显式容器隔离   | CLI flag、settings 或 managed policy                    | 引擎不可用时失败关闭                                   |
-| Skill 候选合成 | `cc learning synthesize --json`                         | 缺可信 LLM/store/evaluator/active roots 时 unavailable |
-| Workbench      | `cc evolution workbench ...`                            | 缺 trusted deployment host 时 unavailable              |
-| 知识冲突审核   | `cc evolution knowledge ...`                            | 只返回删节投影；merge 由宿主复核                       |
-| Skill 检索     | `cc skill search ...`                                   | 命中不等于安装或晋升                                   |
-| Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由        |
-| Agent 能力     | `cc agent --capabilities`                               | 显示能力不等于 production composition 已启用           |
+| 目标           | 配置或命令                                              | 当前边界                                                                      |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 普通本地 Agent | `cc agent`                                              | 默认禁网 `workspace-write`，不探测 Docker                                     |
+| 显式容器隔离   | CLI flag、settings 或 managed policy                    | 引擎不可用时失败关闭                                                          |
+| Skill 候选合成 | `cc learning synthesize --json`                         | 缺可信 LLM/store/evaluator/active roots 时 unavailable                        |
+| Workbench      | `cc evolution workbench ...`                            | 缺 trusted deployment host 时 unavailable                                     |
+| 知识冲突审核   | `cc evolution knowledge ...`                            | 只返回删节投影；merge 由宿主复核                                              |
+| Skill 检索     | `cc skill search ...`                                   | 命中不等于安装或晋升                                                          |
+| Jev 决策试点   | `cc agent --session <id> --decision-mode shadow -p ...` | 默认关闭；需要 TypeSafe 凭据；shadow 不改变路由                               |
+| Agent 能力     | `cc agent --capabilities`                               | 显示能力不等于 production composition 已启用                                  |
 | IDE 安装       | Open VSX / JetBrains Marketplace                        | Open VSX `0.37.118` 与 JetBrains `0.4.138` 已公开；JetBrains `0.4.139` 待上架 |
-| 更新检查       | `npm view chainlesschain version`                       | 应从官方 npm registry 回读                             |
+| 更新检查       | `npm view chainlesschain version`                       | 应从官方 npm registry 回读                                                    |
 
 - candidate 创建、Wiki 更新或 Memory 接受都不授予 active 写权限。
 - 客户端 option、环境变量和本地测试密钥不能创建 production composition。
@@ -277,16 +277,16 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 
 当前 CLI `0.166.77@8d97c58153` 的所有配置三平台门禁已成功，IDE 配套版单独按 `a7d582cd89` 验收：
 
-| 门禁                        | GitHub Actions                                                                           | 状态                             |
-| --------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
-| CLI CI，Linux/Windows/macOS | [36249631081](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081) | 全部配置任务成功                 |
-| CLI Strict Sandbox，三平台  | [36249630850](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850) | 成功                             |
-| npm OIDC/provenance         | [36255608994](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994) | 成功                             |
-| npm 公共安装独立回读        | [36256245841](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841) | 成功                             |
-| IDE 精确提交门              | [36255784503](https://github.com/chainlesschain/chainlesschain/actions/runs/36255784503) | 成功                             |
-| IDE ARM64 汇总              | [36255784475](https://github.com/chainlesschain/chainlesschain/actions/runs/36255784475) | 11 单元通过；Windows 重跑成功   |
-| Open VSX 0.37.118           | [36260129430](https://github.com/chainlesschain/chainlesschain/actions/runs/36260129430) | 成功，公共 API 和 VSIX 已回读    |
-| JetBrains 0.4.139           | [36260141738](https://github.com/chainlesschain/chainlesschain/actions/runs/36260141738) | 上传成功，公开列表待审核         |
+| 门禁                        | GitHub Actions                                                                           | 状态                          |
+| --------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------- |
+| CLI CI，Linux/Windows/macOS | [36249631081](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081) | 全部配置任务成功              |
+| CLI Strict Sandbox，三平台  | [36249630850](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850) | 成功                          |
+| npm OIDC/provenance         | [36255608994](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994) | 成功                          |
+| npm 公共安装独立回读        | [36256245841](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841) | 成功                          |
+| IDE 精确提交门              | [36255784503](https://github.com/chainlesschain/chainlesschain/actions/runs/36255784503) | 成功                          |
+| IDE ARM64 汇总              | [36255784475](https://github.com/chainlesschain/chainlesschain/actions/runs/36255784475) | 11 单元通过；Windows 重跑成功 |
+| Open VSX 0.37.118           | [36260129430](https://github.com/chainlesschain/chainlesschain/actions/runs/36260129430) | 成功，公共 API 和 VSIX 已回读 |
+| JetBrains 0.4.139           | [36260141738](https://github.com/chainlesschain/chainlesschain/actions/runs/36260141738) | 上传成功，公开列表待审核      |
 
 JetBrains `0.4.138` 的公开 API 返回 `approve=true`、`listed=true`、`hidden=false`；`0.4.139` 尚未出现在公开更新列表。新版上传不等于已上架。npm、VSIX、JetBrains ZIP 与 Desktop/native 保持独立发行身份。
 

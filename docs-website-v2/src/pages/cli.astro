@@ -508,7 +508,7 @@ const packs = [
     <div class="container-wide max-w-4xl">
       <p class="font-mono text-sm text-muted">2026-09-26 · CLI {CLI_VERSION}</p>
       <h2 class="mt-3 text-3xl font-bold">恢复更可靠，PM 效果证据可复核</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">修复并发状态锁交接、评测循环导入、调查循环停滞和 Windows Bash 路径问题。先冻结 PM 对照计划与 cohort 槽位，再复算报告及签名证据；可信宿主可在评测执行前接入启动准入。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动 active Skill 晋升保持 HOLD。</p>
+      <p class="mt-5 text-lg text-muted leading-relaxed">修复并发状态锁交接、评测循环导入、调查循环停滞和 Windows Bash 路径问题。先冻结 PM 对照计划与 cohort 槽位，再复算报告及签名证据；可信宿主可在评测执行前接入启动准入。主线 {SOURCE_HEAD_COMMIT} 新增逐槽签名回执与 PM 分母对账，但晚于 npm CLI {CLI_VERSION} 的发布提交，尚未进入公开制品。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动 active Skill 晋升保持 HOLD。</p>
       <a class="btn-ghost mt-4" href="https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html">PM 效果评测指南 ↗</a>
     </div>
   </section>
@@ -532,7 +532,7 @@ const packs = [
         <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
         <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "检查并修复单元测试"</div>
       </div>
-      <p class="mt-5 text-sm text-muted"><code class="font-mono">shadow</code> 会调用外部 provider 并记录有界观察，但不改变既有路由；<code class="font-mono">suggest</code> 只附加 <code class="font-mono">routing.decisionSuggestion</code>，不会执行 Skill。项目尚无真实 TypeSafe API 凭据，因此当前只证明接线、校验和失败闭合，不声明质量、延迟或成本收益。</p>
+      <p class="mt-5 text-sm text-muted"><code class="font-mono">shadow</code> 会调用外部 provider 并记录有界观察，但不改变既有路由；<code class="font-mono">suggest</code> 只附加 <code class="font-mono">routing.decisionSuggestion</code>，不会执行 Skill。CLI {CLI_VERSION} 对决策 HTTP 请求与响应各设 256 KiB 上限；模型用量缺失或畸形时不产生建议，并阻断同一耐久会话后续决策调用。项目尚无真实 TypeSafe API 凭据，因此当前只证明接线、校验和失败闭合，不声明质量、延迟或成本收益。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">查看参数、数据边界与放量门 →</a>
     </div>
   </section>

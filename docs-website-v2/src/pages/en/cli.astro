@@ -504,7 +504,7 @@ const packs = [
     <div class="container-wide max-w-4xl">
       <p class="font-mono text-sm text-muted">September 26, 2026 · CLI {CLI_VERSION}</p>
       <h2 class="mt-3 text-3xl font-bold">More reliable recovery, reviewable PM evidence</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">Fixes concurrent state-lock handoffs, evaluation import cycles, stalled investigations, and Windows Bash path handling. Freeze PM comparison plans and cohort slots, then recompute reports and signed evidence. Trusted hosts can admit evaluation launches before suite resolution; real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified. Automatic active Skill promotion stays on HOLD.</p>
+      <p class="mt-5 text-lg text-muted leading-relaxed">Fixes concurrent state-lock handoffs, evaluation import cycles, stalled investigations, and Windows Bash path handling. Freeze PM comparison plans and cohort slots, then recompute reports and signed evidence. Trusted hosts can admit evaluation launches before suite resolution. Mainline {SOURCE_HEAD_COMMIT} adds per-slot signed receipt and PM denominator reconciliation, but it follows the npm CLI {CLI_VERSION} release commit and is not in the public artifact. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified. Automatic active Skill promotion stays on HOLD.</p>
       <a class="btn-ghost mt-4" href="https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html">PM evaluation guide ↗</a>
     </div>
   </section>
@@ -528,7 +528,7 @@ const packs = [
         <div class="term-head"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">jev shadow</span></div>
         <div class="term-body"><span class="term-prompt">$</span> cc agent --session jev-pilot-1 --decision-mode shadow -p "inspect and repair the unit tests"</div>
       </div>
-      <p class="mt-5 text-sm text-muted"><code class="font-mono">shadow</code> calls the external provider and records a bounded observation without changing routing. <code class="font-mono">suggest</code> only attaches <code class="font-mono">routing.decisionSuggestion</code> and never executes a Skill. The project has no real TypeSafe API credentials yet, so the current release proves wiring, validation, and fail-closed behavior—not quality, latency, or cost gains.</p>
+      <p class="mt-5 text-sm text-muted"><code class="font-mono">shadow</code> calls the external provider and records a bounded observation without changing routing. <code class="font-mono">suggest</code> only attaches <code class="font-mono">routing.decisionSuggestion</code> and never executes a Skill. CLI {CLI_VERSION} limits decision HTTP requests and responses to 256 KiB each; missing or malformed model usage produces no suggestion and blocks later decision-provider calls in the same durable session. The project has no real TypeSafe API credentials yet, so the current release proves wiring, validation, and fail-closed behavior rather than quality, latency, or cost gains.</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html">Read parameters, data boundaries, and rollout gates →</a>
     </div>
   </section>
