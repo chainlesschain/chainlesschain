@@ -247,6 +247,9 @@ it("uses separate durable session identities for equal text and resumes the real
     a.wait((e) => e.type === "result"),
     b.wait((e) => e.type === "result"),
   ]);
+  expect(
+    JSON.parse(readFileSync(join(h.root, "state.json"), "utf8")).sessions,
+  ).toMatchObject({ "peer-a": 2, "peer-b": 2 });
   const aa = h.query([
     "session",
     "show",

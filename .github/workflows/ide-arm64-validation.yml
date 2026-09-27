@@ -9,6 +9,7 @@ on:
       - "packages/jetbrains-plugin/**"
       - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-arm64-evidence.mjs"
+      - "tests/fixtures/ide-roadmap/**"
   pull_request:
     paths:
       - ".github/workflows/ide-arm64-validation.yml"
@@ -16,6 +17,7 @@ on:
       - "packages/jetbrains-plugin/**"
       - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-arm64-evidence.mjs"
+      - "tests/fixtures/ide-roadmap/**"
   workflow_dispatch:
     inputs:
       commit_sha:

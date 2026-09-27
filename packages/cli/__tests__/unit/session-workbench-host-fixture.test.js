@@ -1,7 +1,13 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -25,6 +31,8 @@ function runFixture(statePath, args) {
   const result = spawnSync(process.execPath, [fixtureScript, ...args], {
     cwd: repositoryRoot,
     encoding: "utf8",
+    timeout: 10_000,
+    windowsHide: true,
     env: {
       ...process.env,
       CC_UI_FIXTURE_STATE: statePath,
@@ -52,6 +60,121 @@ afterEach(() => {
 });
 
 describe("real-host workbench CLI fixture", () => {
+  it("keeps the last complete projection visible while another process writes a reply", async () => {
+    const statePath = createStatePath();
+    runFixture(statePath, [
+      "daemon",
+      "resume",
+      "ui-workbench-background",
+      "dispatch before refresh",
+      "--json",
+    ]);
+    const waiting = runFixture(statePath, ["session", "projection", "--json"]);
+    const preload = join(dirname(statePath), "pause-write.cjs");
+    // Pause at the actual filesystem write, after truncation but before any
+    // JSON bytes. Both the old direct write and an atomic temporary write hit
+    // this barrier; no scheduling luck or product timeout increase is needed.
+    writeFileSync(
+      preload,
+      String.raw`
+      const fs = require("node:fs");
+      const { syncBuiltinESMExports } = require("node:module");
+      const originalWrite = fs.writeFileSync;
+      const state = process.env.CC_UI_FIXTURE_STATE;
+      fs.writeFileSync = function(file, data, options) {
+        const target = String(file);
+        if (target === state || (target.startsWith(state + ".") && target.endsWith(".tmp"))) {
+          originalWrite(file, "", options);
+          originalWrite(state + ".writing", "ready");
+          const deadline = Date.now() + 10000;
+          while (!fs.existsSync(state + ".release")) {
+            if (Date.now() > deadline) throw new Error("write barrier timed out");
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+          }
+          // The file has already been created above (including wx semantics).
+          return originalWrite(file, data, { ...options, flag: "w" });
+        }
+        return originalWrite(file, data, options);
+      };
+      syncBuiltinESMExports();
+    `,
+    );
+    const child = spawn(
+      process.execPath,
+      [
+        "--require",
+        preload,
+        fixtureScript,
+        "daemon",
+        "reply",
+        "ui-workbench-background",
+        "beta",
+        "--json",
+      ],
+      {
+        cwd: repositoryRoot,
+        env: {
+          ...process.env,
+          CC_UI_FIXTURE_STATE: statePath,
+          CC_UI_FIXTURE_TRACE: "",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+        timeout: 15_000,
+      },
+    );
+    let stderr = "";
+    child.stdout.resume();
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const closed = new Promise((resolve) => {
+      child.once("error", (error) => resolve({ error }));
+      child.once("close", (code, signal) => resolve({ code, signal }));
+    });
+    try {
+      const deadline = Date.now() + 10_000;
+      while (!existsSync(statePath + ".writing")) {
+        if (child.exitCode !== null || Date.now() > deadline) {
+          throw new Error(`reply did not reach the write barrier: ${stderr}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      const duringWrite = runFixture(statePath, [
+        "session",
+        "projection",
+        "--json",
+      ]);
+      expect(background(duringWrite).state).toBe("needs_input");
+      expect(duringWrite).toEqual(waiting);
+    } finally {
+      writeFileSync(statePath + ".release", "release");
+      expect(await closed, stderr).toEqual({ code: 0, signal: null });
+    }
+    const completed = runFixture(statePath, [
+      "session",
+      "projection",
+      "--json",
+    ]);
+    expect(background(completed)).toMatchObject({
+      state: "done",
+      artifact: { count: 1 },
+    });
+    expect(
+      readdirSync(dirname(statePath)).filter((file) => file.endsWith(".tmp")),
+    ).toEqual([]);
+  }, 30_000);
+
+  it("rejects an existing corrupt state instead of advertising a fresh session", () => {
+    const statePath = createStatePath();
+    for (const text of ["", "{", '{"workbench":{"stage":"done"}}']) {
+      writeFileSync(statePath, text);
+      expect(() =>
+        runFixture(statePath, ["session", "projection", "--json"]),
+      ).toThrow(/fixture command failed/);
+    }
+  });
+
   it("persists dispatch -> needs_input -> reply -> artifact across CLI processes", () => {
     const statePath = createStatePath();
     const initial = runFixture(statePath, ["session", "projection", "--json"]);

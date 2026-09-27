@@ -467,3 +467,13 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，ACL PowerShell 仍从仓库 cwd 启动；项目既有 formal-quality 分支已有隔离工作目录防护。本批将同一防护用于已配置的 Local runner，把 ACL helper 的 cwd 固定在存在且非链接的目标应用状态目录，并将 AppData/Local/Roaming 纳入原固定树的创建与批量 ACL 修复。真实原生探测核对 helper cwd、权限修复、子文件 ctime 幂等和缺失路径拒绝通过；完整远端迁移仍待新 SHA 结果。
 
 旧 `8db732245f` 的 Local Linux/macOS、Container、SSH、WSL 五个 100 条轨迹单元均已通过；Windows 失败使聚合正确拒绝。旧 `3b0bc23021` 的 JetBrains ARM64 五个单元也全部通过，VS Code ARM64 三系统后续作业继续等待。旧提交成功结果不能替代本轮最终 SHA 发布门。
+
+### JetBrains ARM64 共享夹具状态竞态与版本门诊断
+
+用户指定的 [Linux ARM64 / IntelliJ 2024.2 作业 108645440503](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378841/job/108645440503) 对应 `984be3adbd`，失败于 Workbench readiness 第 14 次：等待 `needs_input` 45 秒，最后状态为 `done`。前 13 次均在 357–368ms 内完成；第 14 次没有 `daemon-resume` 命令。产物中的协议日志显示，第 13 次 reply 写状态的同一毫秒发生投影刷新，返回 13004 字符的初始快照，而正常完成快照为 13844 字符；界面因此暂时得到没有 artifact/PR 的初始 `done` 行，后续精确版本复核拒绝发出命令。
+
+夹具原先使用 `writeFileSync` 直接截断覆盖共享 JSON，`readState` 遇到空文件/解析失败又静默返回初始状态。新增真实双子进程回归，固定暂停在截断与写入之间，修复前稳定复现 `needs_input` 被替换为 `done`；损坏状态负例也先失败。改为同目录临时文件完整写入后原子替换；只有文件不存在才初始化，已有损坏文件明确失败。写入事务复用严格跨进程锁，保留并发会话计数；Windows 短暂共享句柄冲突最多重试替换 1 秒，始终保留旧目标文件。没有修改生产权限/版本校验、100 样本要求或可见性 SLA。
+
+4 个夹具/宿主回归文件 20 项及宿主证据验证器 10 项通过，补充双会话计数断言；格式、ESLint、actionlint 和 IDE 工作流路径契约通过。ARM64 工作流补上共享夹具路径触发。原失败 ZIP 产物为 `10934718198`，其 journey evidence 摘要为 `sha256:b3d33e19a42cf9ffc5fb3595a9b33e67e4faa8d0a9a001c738e71a5a95431e0d`。本地进程回归不能代替修复提交的 Linux ARM64 实际 IDE 复验。
+
+另一个用户指定的 [作业 108645441714](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378862/job/108645441714) 是 `Workspace Publish Staleness`：Agent SDK `0.2.11`、VS Code `0.37.118` 的源码已变而版本未变，退出 2。该门行为正确，重复运行不会解决；候选冻结时须补版本、changelog 和下游依赖对齐。本批保留未完成状态，不跳过检查、不发布。发布顺序继续为子 npm 包 → CLI → IDE，并要求准确最终 SHA 的完整平台结果。

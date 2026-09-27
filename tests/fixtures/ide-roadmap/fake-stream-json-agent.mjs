@@ -9,10 +9,17 @@
  * and renders protocol events through the normal ConversationView pipeline.
  */
 
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import readline from "node:readline";
 import { randomUUID } from "node:crypto";
 import { buildSessionProjection } from "../../../packages/cli/src/lib/session-projection.js";
+import { withFileLock } from "../../../packages/cli/src/lib/with-file-lock.js";
 import { waitForInitGate } from "./init-gate.mjs";
 import { inputReceiptPeer } from "./input-receipt-peer.mjs";
 
@@ -56,20 +63,76 @@ function readState() {
   if (!statePath) return { sessions: {} };
   try {
     const value = JSON.parse(readFileSync(statePath, "utf8"));
-    return value && typeof value === "object" && value.sessions
-      ? value
-      : { sessions: {} };
-  } catch {
-    return { sessions: {} };
+    if (
+      !value ||
+      typeof value !== "object" ||
+      !value.sessions ||
+      typeof value.sessions !== "object" ||
+      Array.isArray(value.sessions)
+    ) {
+      throw new Error("invalid UI fixture state");
+    }
+    return value;
+  } catch (error) {
+    // Only an absent ledger starts a new journey. A truncated/corrupt ledger
+    // must not advertise the initial 'done' row and a different item revision.
+    if (error.code === "ENOENT") return { sessions: {} };
+    throw error;
   }
 }
 
 function writeState(value) {
   if (!statePath) return;
-  writeFileSync(statePath, `${JSON.stringify(value)}\n`, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
+  // Polling projection processes run concurrently with daemon reply/resume.
+  // Publish a complete snapshot by same-directory rename so those readers
+  // see either the prior state or the new state, never a truncated JSON file.
+  const temporaryPath = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(value)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    const deadline = Date.now() + 1000;
+    for (;;) {
+      try {
+        renameSync(temporaryPath, statePath);
+        break;
+      } catch (error) {
+        // Windows may briefly retain a reader's handle. Keep the old snapshot
+        // intact while retrying replacement; never unlink it as a workaround.
+        if (
+          process.platform !== "win32" ||
+          !["EPERM", "EACCES", "EBUSY"].includes(error.code) ||
+          Date.now() >= deadline
+        )
+          throw error;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+      }
+    }
+  } catch (error) {
+    try {
+      unlinkSync(temporaryPath);
+    } catch {
+      // Preserve the publication failure; any locked temporary file remains
+      // in this journey's isolated directory for diagnostics and cleanup.
+    }
+    throw error;
+  }
+}
+
+function mutateState(update) {
+  const mutate = () => {
+    const state = readState();
+    const result = update(state);
+    writeState(state);
+    return result;
+  };
+  // Atomic publication protects readers; serializing the whole mutation also
+  // prevents simultaneous chat tabs from overwriting one another's counters.
+  return statePath
+    ? withFileLock(statePath, mutate, { failIfUnavailable: true })
+    : mutate();
 }
 
 // Separate from the chat ledger: a long-lived agent must not overwrite settings
@@ -281,14 +344,14 @@ function workbenchProjection() {
 }
 
 function updateWorkbench(stage, details = {}) {
-  const state = readState();
-  state.workbench = {
-    ...(state.workbench || {}),
-    ...details,
-    stage,
-  };
-  writeState(state);
-  return state.workbench;
+  return mutateState((state) => {
+    state.workbench = {
+      ...(state.workbench || {}),
+      ...details,
+      stage,
+    };
+    return state.workbench;
+  });
 }
 
 function handleWorkbenchCommand() {
@@ -637,12 +700,12 @@ emit({
 });
 
 function rememberTurn() {
-  const current = readState();
-  current.sessions[sessionId] = Math.max(
-    Number(current.sessions[sessionId] || 0),
-    turn * 2,
-  );
-  writeState(current);
+  mutateState((current) => {
+    current.sessions[sessionId] = Math.max(
+      Number(current.sessions[sessionId] || 0),
+      turn * 2,
+    );
+  });
 }
 
 function handleUser(event) {

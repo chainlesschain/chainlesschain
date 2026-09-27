@@ -74,3 +74,7 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 截至本轮，台账共 20 个分组工作项（IDE-REPLAY / SESSION-01 合并统计）：5 项本地验证通过但仍有外部验证条件，8 项局部实现/验证，5 项待实施/系统验收，2 项持续文档/体验改进。该计数不是完成百分比，也不把所有待验收项计作缺失实现。
 
 早期估算为当前实现批次收尾 1–3 小时、候选版准备约半天到 1 天；宿主验证随后发现并修复 Windows ACL 并发初始化、双 IDE Stop 准备竞态及 JetBrains 测试安装混入额外依赖的问题。上述 Windows 双宿主恢复旅程和旧七标签副本读取已通过，JetBrains 按选中读取的后续完整旅程也通过；候选准备仍取决于剩余场景和 CI 排队/结果，原估算不作为倒计时承诺。全部报告验收仍为 2–4 周量级，依赖账号、三系统环境、真实任务、人工听测及观察窗口。
+
+新增用户反馈的 `984be3adbd` [Linux ARM64 / IntelliJ 2024.2 失败](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378841/job/108645440503) 已用真实双子进程复现：共享测试状态直接覆盖，投影刷新读到空文件后被误还原为初始 `done`，后续版本校验拒绝命令。改为完整快照原子替换、严格写入互斥及损坏状态拒绝；原有 100 样本和 SLA 保持不变。相关 20 项和宿主证据验证器 10 项通过，Linux ARM64 实际宿主仍须在修复 SHA 复验。
+
+同 SHA 的 [Workspace Publish Staleness 失败](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378862/job/108645441714) 明确列出 Agent SDK `0.2.11` 与 VS Code `0.37.118` 未升版本。这是候选版本/依赖尚未冻结的发布阻塞，不是 Actions 运行器故障；必须随候选版本准备解决，不能以旧 SHA 的成功矩阵替代，也不能跳过后直接发布。本批继续不升版本、不打发布 tag。
