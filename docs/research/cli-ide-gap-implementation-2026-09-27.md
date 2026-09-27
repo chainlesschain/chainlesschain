@@ -315,6 +315,8 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 
 39 项 Node 证据/启动器测试、16 项 CLI 真实 peer/宿主夹具测试及 UI 驱动编译通过；修改 JS 的 ESLint 与 diff check 通过。实际 ZIP 的新 GUI 场景待源码提交后运行，尚不将新增测试代码计为宿主验收完成。
 
+首次 v2 宿主运行（`09c61578d7`）失败：取消提示、可编辑 composer 和 `Draft saved` 已出现，但驱动用 JavaScript `Boolean(...)` 转换反射返回的 Java boxed Boolean，将 false 对象判为 true，导致 `sendInFlight` 一直显示 true。等待至夹具 init gate 超时后失败，不能据此报告 Stop 旅程通过。驱动改为按 Java 布尔值的字符串表示显式比较；原失败 bundle `.tmp/jetbrains-canonical-recovery-09c61578d7`（digest `sha256:923ee464d21e3075afab2c893dac2c2fdb238995339a80fb2aeb365c64831f05`）保留，修正后需要重新运行。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
