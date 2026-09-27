@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 616 (runtime: 303, tooling: 278, test: 35).
-Runtime audit: brokered: 213, audited-exemption: 40, non-executable: 50, unreviewed: 0.
+Total matches: 617 (runtime: 304, tooling: 278, test: 35).
+Runtime audit: brokered: 213, audited-exemption: 41, non-executable: 50, unreviewed: 0.
 
 ## Policy
 
@@ -232,6 +232,7 @@ Runtime audit: brokered: 213, audited-exemption: 40, non-executable: 50, unrevie
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 674 | `non-executable` | declaration/comment/type/regex lexical match | `// Continue PATH resolution exactly as child_process would.` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 891 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `return runtime.spawnSync(launch.command, launch.args, {` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 1465 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js` | 85 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const child = native.spawn(options.helperPath, [], {` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 3 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 92 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `target = spawn(message.command, message.args, {` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group.js` | 46 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = spawnSync("/bin/ps", ["-axo", "pgid=,stat="], {` |
