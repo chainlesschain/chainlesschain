@@ -106,3 +106,5 @@ Linux subreaper 在 `59ef6116e4` 已接入实际 Broker/bridge，并通过可信
 `915653abfa` 的[干净提交回执](./cli/evidence/process-ownership-quarantine-windows-wsl-915653abfa.json)独立复核 17 个 Git blob、Windows 117 项与 WSL 125 项测试及 8 个真实进程场景；Linux 后代仍执行时，ready 后 2.81 ms 报告隔离失败并保留占用。持久恢复和托管发布门仍待完成。
 
 Linux 后续已在 native 启动前持久化 ownership journal，真实关闭后才结算。六个多进程场景验证：CLI / supervisor 被强杀后，新 CLI（包括换 home）仍拒绝执行；正常关闭后恢复准入。当前同安全 anchor 的其他 CLI 运行时需要等待未结算监督任务，只有原运行时内并行放行；没有安全解除/所有权移交接口，仍不能宣称完整异常恢复。Windows 相关 146 项通过；WSL 扩大集的两个工作区信任身份失败在旧 `6971b97c98` 独立工作区也复现，继续保留待修，未跳过或降低阈值。发布顺序及最终 SHA 门禁不变。
+
+干净 `e106b753d8` 的[独立回执](./cli/evidence/durable-process-ownership-windows-wsl-e106b753d8.json)进一步验证 Windows 54 项通过 / 33 项平台跳过、WSL 87 项通过及上述 6 条重启轨迹，20 个源文件逐项与 Git blob 核对。它证明 Linux 持久准入阻断这一部分；两个 WSL 信任身份问题、安全恢复解除及最终托管矩阵继续待完成。

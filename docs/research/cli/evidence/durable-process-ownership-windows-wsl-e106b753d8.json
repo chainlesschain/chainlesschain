@@ -1,0 +1,1027 @@
+{
+  "schema": "chainlesschain.durable-process-ownership-local-evidence/v1",
+  "codeCommit": "e106b753d865e8cc18f9843bb829c4fbb28c12ad",
+  "recordedAt": "2026-09-27T18:22:32.324Z",
+  "independentVerification": {
+    "reportsRehashed": true,
+    "assertionsAndMetaReread": true,
+    "sourceComparedToGitBlobs": true,
+    "authorityCount": 20
+  },
+  "authorities": [
+    {
+      "path": "packages/cli/src/lib/claude-code-bridge.js",
+      "workingBytesDigest": "sha256:4d2e75dab52c7c1f62fd06642dd8eef7fdf20b755668ce76f343cced29c6139f",
+      "gitBlob": "758ce21371c33dc1046adff10336cb19fa950863",
+      "canonicalDigest": "sha256:4d2e75dab52c7c1f62fd06642dd8eef7fdf20b755668ce76f343cced29c6139f"
+    },
+    {
+      "path": "packages/cli/src/lib/durable-security-store.js",
+      "workingBytesDigest": "sha256:f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+      "gitBlob": "0bc5f4449424b5af51727626db3425590fb14773",
+      "canonicalDigest": "sha256:f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54"
+    },
+    {
+      "path": "packages/cli/src/lib/with-file-lock.js",
+      "workingBytesDigest": "sha256:8872413faf4d555a40bdd2eef086e9de80e3df4cd767a8908e3a3ef14941dc88",
+      "gitBlob": "888c0c57b096b0661eed6f69313bcc9f72a8700c",
+      "canonicalDigest": "sha256:8872413faf4d555a40bdd2eef086e9de80e3df4cd767a8908e3a3ef14941dc88"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/index.js",
+      "workingBytesDigest": "sha256:def23c446da0d9905be326cd72c2cc88aadd9a3c46b39e8fe29b36e7cc537d8b",
+      "gitBlob": "da39db479f36686e627cd68b6a8aa37b0ab59cba",
+      "canonicalDigest": "sha256:def23c446da0d9905be326cd72c2cc88aadd9a3c46b39e8fe29b36e7cc537d8b"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js",
+      "workingBytesDigest": "sha256:de7d8640e42d6ffbc2c42355327c174720066a1de01cd94a29fb29965f4062d3",
+      "gitBlob": "583a19c6b9215285ae9174108826b3b3c0bd4e86",
+      "canonicalDigest": "sha256:de7d8640e42d6ffbc2c42355327c174720066a1de01cd94a29fb29965f4062d3"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+      "workingBytesDigest": "sha256:6f92ebbd6cd30eb4dd3e0c6b26049cada324f655bccabf19406e36311c9880e4",
+      "gitBlob": "6472a2ffecc5e35cb1ad76b8e4e1c87bd1d47ace",
+      "canonicalDigest": "sha256:6f92ebbd6cd30eb4dd3e0c6b26049cada324f655bccabf19406e36311c9880e4"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+      "workingBytesDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "gitBlob": "613d818a11b767217662ee8be4f87bba7ba702b2",
+      "canonicalDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+      "workingBytesDigest": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3",
+      "gitBlob": "f134dc8d367d5d9677912c23c902128d3641268f",
+      "canonicalDigest": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+      "workingBytesDigest": "sha256:b4ca79285db04bb31f686b5a50fbeaa107dc3041e2d17b5cd9cf12d8dce1a432",
+      "gitBlob": "cc191aaf07574d6f3922717e31e4d641508ba45a",
+      "canonicalDigest": "sha256:b4ca79285db04bb31f686b5a50fbeaa107dc3041e2d17b5cd9cf12d8dce1a432"
+    },
+    {
+      "path": "packages/cli/__tests__/helpers/ownership-journal-home.js",
+      "workingBytesDigest": "sha256:a93c8971cfe0d20bf769ba4e232a123895639a110e5e81fd7c1c814579fa846d",
+      "gitBlob": "883fb6beefad7df1e47732c5d27e8683b17b6041",
+      "canonicalDigest": "sha256:a93c8971cfe0d20bf769ba4e232a123895639a110e5e81fd7c1c814579fa846d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/claude-code-bridge.test.js",
+      "workingBytesDigest": "sha256:abe398f57d37faa2a2bb6f81666e9d4a09e15baefc58f46801ae6780289deb6c",
+      "gitBlob": "214c5808e2cccd2c15144dc00fefb8d3e5d52720",
+      "canonicalDigest": "sha256:abe398f57d37faa2a2bb6f81666e9d4a09e15baefc58f46801ae6780289deb6c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/process-ownership-quarantine.test.js",
+      "workingBytesDigest": "sha256:a02eeeb0f484563a191f5c275979aae9b42f099c447b94649f1e3ce75fe8c221",
+      "gitBlob": "a6b8ab8f875bdf3bcd17c8ac1c7d4b93ee7c36b1",
+      "canonicalDigest": "sha256:a02eeeb0f484563a191f5c275979aae9b42f099c447b94649f1e3ce75fe8c221"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js",
+      "workingBytesDigest": "sha256:6ffd16023eb0ea46e992333af6360e7b7ec9ecf6fc5870fbd3bea30b4160f2fc",
+      "gitBlob": "5c30f7c56505407a2587b3b092895a06ff9f4ebb",
+      "canonicalDigest": "sha256:6ffd16023eb0ea46e992333af6360e7b7ec9ecf6fc5870fbd3bea30b4160f2fc"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+      "workingBytesDigest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f",
+      "gitBlob": "0bc9ad51637de0d26ad9029945848cf5b26aff2c",
+      "canonicalDigest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/process-ownership-restart.test.js",
+      "workingBytesDigest": "sha256:7d15e27565a0a68fc3a76bded2dcbaff409cab9b0d785504b6d37c51abfb4db8",
+      "gitBlob": "f76b60683db3f957a1910deb76f348d29d1eee7b",
+      "canonicalDigest": "sha256:7d15e27565a0a68fc3a76bded2dcbaff409cab9b0d785504b6d37c51abfb4db8"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/claude-code-bridge-linux-tree.test.js",
+      "workingBytesDigest": "sha256:3d5f515ab8ac36c87e7feb30051258e828a0a101a47e1a0fc52571396f64f398",
+      "gitBlob": "abfe56d4b4de4d1b6d210f5daf184a09fb16a2a6",
+      "canonicalDigest": "sha256:3d5f515ab8ac36c87e7feb30051258e828a0a101a47e1a0fc52571396f64f398"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/claude-code-bridge-process-lifecycle.test.js",
+      "workingBytesDigest": "sha256:0565ec27ce9e290ca896d8db224599a2b7373db0d383ab7c343d3386841d25e2",
+      "gitBlob": "7aaa702947d27c0a74f7cffb00470de6170991df",
+      "canonicalDigest": "sha256:0565ec27ce9e290ca896d8db224599a2b7373db0d383ab7c343d3386841d25e2"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/process-broker-linux-subreaper.test.js",
+      "workingBytesDigest": "sha256:bd6101eabddaaa53db9bdf254a2e69ddf46271c776b5cca530d55f067da6ca60",
+      "gitBlob": "d7eb1de76277d0d4283165fdefcbc22fde594be6",
+      "canonicalDigest": "sha256:bd6101eabddaaa53db9bdf254a2e69ddf46271c776b5cca530d55f067da6ca60"
+    },
+    {
+      "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+      "workingBytesDigest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891",
+      "gitBlob": "f3a3b2cf1bcbeefe38758a70a5541dfa5d4d5c31",
+      "canonicalDigest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+    },
+    {
+      "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+      "workingBytesDigest": "sha256:5fbbe6dc96f5fe3d4a8a8b11679bbe04bdb04cc393a26aa6283f56a78525c95e",
+      "gitBlob": "af71f478f1592489964a7cc1fef8722688ebde06",
+      "canonicalDigest": "sha256:5fbbe6dc96f5fe3d4a8a8b11679bbe04bdb04cc393a26aa6283f56a78525c95e"
+    }
+  ],
+  "hosts": [
+    {
+      "schema": "chainlesschain.durable-process-ownership-tests/v1",
+      "commit": "e106b753d865e8cc18f9843bb829c4fbb28c12ad",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T18:20:56.267Z",
+      "finishedAt": "2026-09-27T18:21:03.374Z",
+      "host": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "release": "10.0.19045"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 54,
+        "pending": 33,
+        "failed": 0
+      },
+      "report": {
+        "path": ".tmp/durable-ownership-win32-tests.json",
+        "digest": "sha256:2c09fb77fb75ddffcc136873ea2580a73d03db7dcc4ac46673b873a979d01f70"
+      },
+      "bridgeTrees": [],
+      "restarts": [],
+      "limitations": [
+        "Linux restart admission is durable, but there is no recovery/reset or cross-runtime ownership transfer API",
+        "Outstanding supervised work blocks other runtimes using the same security anchor, including a live peer; only the owning runtime admits local parallel launches",
+        "Forced supervisor death can still leave descendants; this journal does not provide hostile-code isolation or protection against same-UID deletion/migration of the entire anchor",
+        "Two WSL1 workspace-trust identity tests fail in both the current expanded run and selected-source baseline 6971b97c98; Windows equivalents passed",
+        "Hosted exact-SHA matrices and other-platform durable acceptance remain pending; provider/account and production Router admission remain unchanged"
+      ]
+    },
+    {
+      "schema": "chainlesschain.durable-process-ownership-tests/v1",
+      "commit": "e106b753d865e8cc18f9843bb829c4fbb28c12ad",
+      "cleanAtStart": true,
+      "cleanAtEnd": true,
+      "startedAt": "2026-09-27T18:21:17.368Z",
+      "finishedAt": "2026-09-27T18:22:02.636Z",
+      "host": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "release": "4.4.0-19041-Microsoft"
+      },
+      "exitCode": 0,
+      "tests": {
+        "passed": 87,
+        "pending": 0,
+        "failed": 0
+      },
+      "report": {
+        "path": ".tmp/durable-ownership-linux-tests.json",
+        "digest": "sha256:848c0c12c40a4a3ed1ff7b795e3799df9ccd41289f7a5b23d6868fe566b01b47"
+      },
+      "bridgeTrees": [
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through same-group",
+          "scenario": "same-group",
+          "pids": [
+            160,
+            168
+          ],
+          "receipt": {
+            "targetPid": 160,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 141.01440000000002,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[160,168]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[160,168]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 988,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790533283212-r8g6",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:b7a1108760d46bc7a51b28ef5e3505483b506f90f153fb0f2029ae1d193addce"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through detached",
+          "scenario": "detached",
+          "pids": [
+            186,
+            193
+          ],
+          "receipt": {
+            "targetPid": 186,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 138.33979999999974,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[186,193]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[186,193]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 335,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790533284211-uanq",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:e0e471c68649d66c0499845386a950f7de67f0609e5aee2685f394ae27c0c88d"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through root-exit",
+          "scenario": "root-exit",
+          "pids": [
+            212,
+            219
+          ],
+          "receipt": {
+            "targetPid": 212,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 191.92720000000008,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": true,
+            "status": "completed",
+            "output": "done",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[212,219]}\n{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"done\"}\n",
+            "outputTruncated": false,
+            "exitCode": 0,
+            "duration": 384,
+            "timedOut": false,
+            "cancelled": false,
+            "agentId": "cc-agent-1790533284552-ixpt",
+            "stderr": "",
+            "errorCode": null,
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": "completed",
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "runtime-terminal-event",
+                "outcome": "completed",
+                "source": "claude-stream-json-v1"
+              },
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:02dda0659ac41de6b4a42ddfb478516d200b1577dc784f90cafa0922afd1200a"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through root-term-exit",
+          "scenario": "root-term-exit",
+          "pids": [
+            228,
+            245
+          ],
+          "receipt": {
+            "targetPid": 228,
+            "target": {
+              "code": 0,
+              "signal": 0,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 125.0619999999999,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[228,245]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[228,245]}\n",
+            "outputTruncated": false,
+            "exitCode": 0,
+            "duration": 346,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790533284941-bnsm",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:fc25fe6f030d48d5876276503bc8f9aeb2f02f14ebf2410722596612fcbe4c19"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through double-fork",
+          "scenario": "double-fork",
+          "pids": [
+            254,
+            272,
+            279
+          ],
+          "receipt": {
+            "targetPid": 254,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 124.76329999999962,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "cancelled",
+            "output": "{\"type\":\"system\",\"fixturePids\":[254,272,279]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[254,272,279]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 452,
+            "timedOut": false,
+            "cancelled": true,
+            "agentId": "cc-agent-1790533285293-wlhm",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_CANCELLED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:ae151edf5607e0916fba4ec7246c57259e75951897bff93992265ae199ec3481"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through timeout",
+          "scenario": "timeout",
+          "pids": [
+            295,
+            309
+          ],
+          "receipt": {
+            "targetPid": 295,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 1979.3941,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "timeout",
+            "output": "{\"type\":\"system\",\"fixturePids\":[295,309]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[295,309]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 2185,
+            "timedOut": true,
+            "cancelled": false,
+            "agentId": "cc-agent-1790533285751-0esx",
+            "stderr": "",
+            "error": "External agent JSONL stream ended without a terminal event",
+            "errorCode": "EXTERNAL_AGENT_TIMEOUT",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:6f0dc0ba800129fc6716ec7543a24bf5d7e112d7f22212d37050a5f38dc50107"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through post-spawn-error",
+          "scenario": "post-spawn-error",
+          "pids": [
+            381,
+            388
+          ],
+          "receipt": {
+            "targetPid": 381,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 37.021999999999935,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "failed",
+            "output": "{\"type\":\"system\",\"fixturePids\":[381,388]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[381,388]}\n",
+            "outputTruncated": false,
+            "exitCode": null,
+            "duration": 256,
+            "timedOut": false,
+            "cancelled": false,
+            "agentId": "cc-agent-1790533287941-v0be",
+            "stderr": "",
+            "error": "fixture bookkeeping failed after descendants started",
+            "errorCode": "EXTERNAL_AGENT_SPAWN_FAILED",
+            "protocol": "claude-stream-json-v1",
+            "terminalEvent": null,
+            "usage": null,
+            "unknownEventTypes": [],
+            "unknownItemTypes": [],
+            "malformedLineCount": 0,
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [
+              {
+                "kind": "output-receipt",
+                "digest": "sha256:33dd06c814b47d9dab9f9e2bd5356c65a5ff0e8d68af29dda6aae7e2ba0b9511"
+              }
+            ]
+          }
+        },
+        {
+          "test": "production Bridge and Broker Linux tree ownership retains ownership through supervisor-loss",
+          "scenario": "supervisor-loss",
+          "pids": [
+            397,
+            410
+          ],
+          "receipt": {
+            "targetPid": 397,
+            "target": null,
+            "supervisor": {
+              "code": null,
+              "signal": "SIGKILL",
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          },
+          "elapsedAfterReadyMs": 2.9711999999999534,
+          "sandboxBackend": "linux-prlimit",
+          "sandboxGuarantees": [
+            "resource-limits"
+          ],
+          "result": {
+            "success": false,
+            "status": "quarantined",
+            "output": "{\"type\":\"system\",\"fixturePids\":[397,410]}\n",
+            "rawOutput": "{\"type\":\"system\",\"fixturePids\":[397,410]}\n",
+            "outputTruncated": false,
+            "stderr": "",
+            "exitCode": null,
+            "duration": 207,
+            "timedOut": false,
+            "cancelled": false,
+            "agentId": "cc-agent-1790533288204-iibn",
+            "error": "External agent process-tree cleanup is unconfirmed; recovery is required",
+            "errorCode": "EXTERNAL_AGENT_CLEANUP_UNCONFIRMED",
+            "protocol": "claude-stream-json-v1",
+            "runtimeClaims": {
+              "schema": "cc-runtime-claims/v1",
+              "mode": "real-execution",
+              "validateOnly": false,
+              "simulated": false,
+              "realExecution": true,
+              "durable": false,
+              "crashSafe": false,
+              "isolatedWrites": false
+            },
+            "terminalEvidence": [],
+            "processOwnershipReleased": false,
+            "recoveryRequired": true,
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            }
+          },
+          "failureFeedback": {
+            "elapsedAfterReadyMs": 4.118000000000393,
+            "livePids": [
+              410
+            ],
+            "closeObserved": false,
+            "ownershipRetained": true,
+            "broker": {
+              "blocked": true,
+              "unresolvedExecutionIds": [
+                "9fd33d41-a6d3-432e-9173-db04862dc149"
+              ],
+              "recoveryRequired": true,
+              "durable": true,
+              "restartSafe": false
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "test": "real Broker restart admission preserves durable ownership through preparation-failure",
+          "scenario": "preparation-failure",
+          "termination": {
+            "code": 0,
+            "signal": null
+          },
+          "pending": [],
+          "denial": "BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE",
+          "result": {
+            "started": true
+          },
+          "receipt": null
+        },
+        {
+          "test": "real Broker restart admission preserves durable ownership through helper-failure",
+          "scenario": "helper-failure",
+          "termination": {
+            "code": 0,
+            "signal": null
+          },
+          "pending": [],
+          "denial": "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+          "result": {
+            "started": true
+          },
+          "receipt": null
+        },
+        {
+          "test": "real Broker restart admission preserves durable ownership through before-native",
+          "scenario": "before-native",
+          "termination": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "pending": [
+            {
+              "executionId": "16e0c419-b736-4373-87c4-3c14243a4f5f",
+              "ownerPid": 340,
+              "token": "d1884f28-d112-4f6f-b3ec-3b5043bd861f"
+            }
+          ],
+          "denial": null,
+          "result": {
+            "started": false,
+            "code": "BROKER_PROCESS_OWNERSHIP_PENDING",
+            "recoveryRequired": true,
+            "status": {
+              "blocked": true,
+              "unresolvedExecutionIds": [
+                "16e0c419-b736-4373-87c4-3c14243a4f5f"
+              ],
+              "recoveryRequired": true,
+              "durable": true,
+              "restartSafe": false
+            }
+          },
+          "receipt": null
+        },
+        {
+          "test": "real Broker restart admission preserves durable ownership through owner-crash",
+          "scenario": "owner-crash",
+          "termination": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "pending": [
+            {
+              "executionId": "5d1f1b66-0e15-4432-82e7-db2a41815ba1",
+              "ownerPid": 398,
+              "token": "c97016f8-3b36-4383-bd96-db9ddc2fc20c"
+            }
+          ],
+          "denial": null,
+          "result": {
+            "started": false,
+            "code": "BROKER_PROCESS_OWNERSHIP_PENDING",
+            "recoveryRequired": true,
+            "status": {
+              "blocked": true,
+              "unresolvedExecutionIds": [
+                "5d1f1b66-0e15-4432-82e7-db2a41815ba1"
+              ],
+              "recoveryRequired": true,
+              "durable": true,
+              "restartSafe": false
+            }
+          },
+          "receipt": null
+        },
+        {
+          "test": "real Broker restart admission preserves durable ownership through supervisor-loss",
+          "scenario": "supervisor-loss",
+          "termination": {
+            "code": 0,
+            "signal": null
+          },
+          "pending": [
+            {
+              "executionId": "f6e019e2-cc7a-4c2a-9233-2f4a9d7d6dc0",
+              "ownerPid": 467,
+              "token": "a1e87c52-52d9-45d7-b91e-b794c6c987a7"
+            }
+          ],
+          "denial": null,
+          "result": {
+            "started": false,
+            "code": "BROKER_PROCESS_OWNERSHIP_PENDING",
+            "recoveryRequired": true,
+            "status": {
+              "blocked": true,
+              "unresolvedExecutionIds": [
+                "f6e019e2-cc7a-4c2a-9233-2f4a9d7d6dc0"
+              ],
+              "recoveryRequired": true,
+              "durable": true,
+              "restartSafe": false
+            }
+          },
+          "receipt": {
+            "targetPid": 485,
+            "target": null,
+            "supervisor": {
+              "code": null,
+              "signal": "SIGKILL",
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": false,
+              "descendantsReaped": false,
+              "reaped": null,
+              "protocolError": "missing-cleanup-receipt",
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          }
+        },
+        {
+          "test": "real Broker restart admission preserves durable ownership through confirmed-close",
+          "scenario": "confirmed-close",
+          "termination": {
+            "code": 0,
+            "signal": null
+          },
+          "pending": [],
+          "denial": null,
+          "result": {
+            "started": true
+          },
+          "receipt": {
+            "targetPid": 552,
+            "target": {
+              "code": -1,
+              "signal": 9,
+              "spawnErrno": 0
+            },
+            "supervisor": {
+              "code": 0,
+              "signal": null,
+              "closed": true
+            },
+            "cleanup": {
+              "mode": "linux-subreaper",
+              "confirmed": true,
+              "descendantsReaped": true,
+              "reaped": 2,
+              "protocolError": null,
+              "processTreeContained": false
+            },
+            "helper": {
+              "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+              "imageDigest": "sha256:d807ce83713ca4528f2b6712fd159b728293f04a22d1c6c7d10abaf82085999d",
+              "binding": "unlinked-inherited-fd",
+              "distribution": "local-build"
+            }
+          }
+        }
+      ],
+      "limitations": [
+        "Linux restart admission is durable, but there is no recovery/reset or cross-runtime ownership transfer API",
+        "Outstanding supervised work blocks other runtimes using the same security anchor, including a live peer; only the owning runtime admits local parallel launches",
+        "Forced supervisor death can still leave descendants; this journal does not provide hostile-code isolation or protection against same-UID deletion/migration of the entire anchor",
+        "Two WSL1 workspace-trust identity tests fail in both the current expanded run and selected-source baseline 6971b97c98; Windows equivalents passed",
+        "Hosted exact-SHA matrices and other-platform durable acceptance remain pending; provider/account and production Router admission remain unchanged"
+      ]
+    }
+  ],
+  "limitations": [
+    "Linux restart admission is durable, but there is no recovery/reset or cross-runtime ownership transfer API",
+    "Outstanding supervised work blocks other runtimes using the same security anchor, including a live peer; only the owning runtime admits local parallel launches",
+    "Forced supervisor death can still leave descendants; this journal does not provide hostile-code isolation or protection against same-UID deletion/migration of the entire anchor",
+    "Two WSL1 workspace-trust identity tests fail in both the current expanded run and selected-source baseline 6971b97c98; Windows equivalents passed",
+    "Hosted exact-SHA matrices and other-platform durable acceptance remain pending; provider/account and production Router admission remain unchanged"
+  ]
+}

@@ -601,3 +601,5 @@ Linux subreaper 启动前现在先写入独立安全状态目录的有界 owners
 Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 文件回归为 501 通过、9 跳过、2 失败；两处为 `workspace-trust` 重定位身份和 `project-mcp-trust` 记录后身份变化。在独立的旧 `6971b97c98` 工作区重跑相同两个文件，得到相同 2 失败 / 9 通过，证明它们在本批之前存在；没有跳过或放宽断言，仍列为 PLATFORM / 工作区信任待修问题，不能将该扩大集写成全绿。ESLint 无新增 warning/error，进程调用清单一致。
 
 该进展补上 Linux 进程重启后的准入记忆，尚不提供丢失 supervisor 后的实际树回收或可信恢复解除。其他平台、无编译器 x64/ARM64 托管单元、最终准确 SHA 的完整 CI 和两份原报告的其他验收继续开放；未升版本、未发布。
+
+干净 `e106b753d8` 的[独立回执](./cli/evidence/durable-process-ownership-windows-wsl-e106b753d8.json)记录 Windows 54 项通过 / 33 项 Linux 专属跳过、WSL 87 项通过，附 6 条真实重启轨迹与 8 条 bridge 生命周期轨迹。独立重新读取原始报告、逐项比对 20 个源码/测试/清单文件和 Git blob；三种崩溃轨迹均保留 1 条 pending 记录，新运行时返回 `BROKER_PROCESS_OWNERSHIP_PENDING`，正常关闭或已证明未进入 native 的失败不留下错误占用。回执 SHA-256 为 `495ce92c3962112709a2fb19b2bd86e3e71c2c4d0e488d08e2814d9bce4ee6f6`。这组定向通过不覆盖前述两个 WSL 工作区信任失败，也不代替托管发布矩阵。
