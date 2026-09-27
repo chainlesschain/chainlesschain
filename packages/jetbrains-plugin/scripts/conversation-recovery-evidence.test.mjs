@@ -187,7 +187,13 @@ function withContinuation() {
     observedAt: "2026-09-27T00:00:00.990Z",
     text: "fixture stop waiting\n⏹ interrupted",
   };
-  initial.stopContinuation = { preparation, running, stopped };
+  const idleStopped = {
+    ...preparation.ready,
+    turnActive: false,
+    observedAt: "2026-09-27T00:00:00.825Z",
+    text: "no active turn",
+  };
+  initial.stopContinuation = { preparation, idleStopped, running, stopped };
   records.push(
     {
       direction: "out",

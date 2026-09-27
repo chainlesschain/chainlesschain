@@ -698,6 +698,17 @@ final class ConversationView {
             append(cancelled ? "⏹ Input preparation stopped; draft kept for editing\n" : "ℹ no running agent\n");
             return;
         }
+        // No terminal result follows an interrupt of an idle child. Arming
+        // escalation here would force-stop the first Stop of the next turn.
+        // A reserved stdin write must still be followed by an interrupt even
+        // before its pending-turn counter becomes visible.
+        boolean preparationOnly = pending != null && !pending.dispatched();
+        boolean idle = pending == null && !sendInFlight;
+        if ((preparationOnly || idle) && !turnActive && !s.hasPendingTurns()) {
+            interruptRequested = null;
+            append(preparationOnly ? "⏹ Input preparation stopped; draft kept for editing\n" : "ℹ no active turn\n");
+            return;
+        }
         // Cancellation is atomic and does not wait for stdin. A reserved write
         // holds the session monitor, so the pooled interrupt follows it; a
         // cancelled preparation can never write after that interrupt.

@@ -165,7 +165,8 @@ export function assertConversationRecovery(initial, restart, records) {
 }
 
 function assertStopContinuation(initial, records) {
-  const { preparation, running, stopped } = initial.stopContinuation;
+  const { preparation, idleStopped, running, stopped } =
+    initial.stopContinuation;
   const { waiting, preparing, released, ready } = preparation;
   const cancelled = preparation.stopped;
   const sessionId = ready.sessionId;
@@ -179,6 +180,7 @@ function assertStopContinuation(initial, records) {
     cancelled.observedAt,
     released.at,
     ready.observedAt,
+    idleStopped.observedAt,
     running.observedAt,
     stopped.observedAt,
   ].map(Date.parse);
@@ -193,7 +195,14 @@ function assertStopContinuation(initial, records) {
     assert.equal(String(event.processId), ready.childProcessId);
     assert.ok(records.some((r) => JSON.stringify(r) === JSON.stringify(event)));
   }
-  for (const state of [preparing, cancelled, ready, running, stopped]) {
+  for (const state of [
+    preparing,
+    cancelled,
+    ready,
+    idleStopped,
+    running,
+    stopped,
+  ]) {
     assert.equal(state.id, ready.id);
     assert.equal(state.sessionId, sessionId);
     assert.equal(state.profile, initial.a.profile);
@@ -206,7 +215,7 @@ function assertStopContinuation(initial, records) {
     assert.equal(state.tabs.find((tab) => tab.selected).id, ready.id);
     assert.ok(!state.text.includes("Stopping the agent"));
   }
-  for (const state of [preparing, cancelled, ready])
+  for (const state of [preparing, cancelled, ready, idleStopped])
     assert.equal(state.inputText, "cancelled before init 中文😀");
   assert.equal(preparing.sendInFlight, true);
   assert.equal(preparing.receiptReady, false);
@@ -214,12 +223,14 @@ function assertStopContinuation(initial, records) {
   assert.equal(cancelled.receiptReady, false);
   assert.ok(cancelled.text.includes("Input stopped before delivery"));
   assert.ok(cancelled.draftStatus.includes("Draft saved"));
-  for (const state of [cancelled, ready, running, stopped]) {
+  for (const state of [cancelled, ready, idleStopped, running, stopped]) {
     assert.equal(state.sendInFlight, false);
     assert.equal(state.editable, true);
     assert.equal(state.interruptPending, false);
   }
   assert.equal(ready.receiptReady, true);
+  assert.ok(idleStopped.text.includes("no active turn"));
+  assert.equal(idleStopped.turnActive, false);
   assert.equal(running.turnActive, true);
   assert.ok(running.text.includes("fixture stop waiting"));
   assert.equal(stopped.turnActive, false);

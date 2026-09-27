@@ -202,6 +202,11 @@ final class ConversationRecoveryJourney {
             JsonObject preparation = stopBeforeInit();
             proof.add("preparation", preparation);
             JsonObject ready = preparation.getAsJsonObject("ready");
+            click("Stop");
+            JsonObject idleStopped = waitFor("idle Stop stays idle", s -> text(s,"text").contains("no active turn"));
+            proof.add("idleStopped", idleStopped);
+            assertFalse(idleStopped.get("interruptPending").getAsBoolean());
+            assertTrue(idleStopped.get("childRunning").getAsBoolean());
             send("journey:stop-after-cancel");
             JsonObject running = waitFor("explicit next turn started", s -> !s.get("sendInFlight").getAsBoolean()
                     && s.get("turnActive").getAsBoolean() && text(s,"text").contains("fixture stop waiting"));

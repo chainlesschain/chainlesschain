@@ -46,6 +46,10 @@
 
 另补 v3 宿主旅程检查“取消准备后显式再次发送，第一次 Stop 应为普通中断且保留同一 child”。验证器 51 项、真实 CLI peer/夹具 16 项通过。`1c4cfc08b8` 首次实际 ZIP 尝试在第一个 init gate 前已用尽发送等待时间，未执行到新场景，失败证据摘要为 `sha256:640425af19c82410eaf7f5aa886de5fb6d3bf52a66b0b529cf4cab1bad9c08e6`。夹具 gate 已移到 canonical store 导入/首次 ACL 初始化之前；该失败不作为产品 Stop 缺陷已复现或已修复的证据，后续实机结果另记。
 
+后续在 `e71ace3dc1` 的实际 ZIP 中已经复现产品缺陷：取消准备时没有派发 user，却向空闲 child 写了 interrupt 并保留 `interruptRequested`；随后显式发送的新一轮第一次 Stop 进入了强停分支。失败证据 `sha256:436d269a9e8b4d5fe863160a41a4f75095dccb45d0c2ce6e557425508ed81532` 保留原样。修复在无活动 turn、无待结束 turn 且没有预约 stdin 写入时只取消本地准备/保持空闲，不发送 interrupt 或预约下一次强停；已预约写入和已有活动 turn 仍走原中断及二次 Stop 升级。v3 驱动同时覆盖取消后的空闲 Stop、再次显式发送及同一 child 的普通 Stop；51 项证据/runner 测试通过，实际修复后 ZIP 验收待执行。
+
+修复后准备/预约写入、Agent/进程树停止和草稿相关 4 类共 18 项 Java 回归无失败、无跳过；实际 ZIP 构建与 UI driver 编译通过。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。
