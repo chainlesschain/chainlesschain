@@ -2,6 +2,7 @@ package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.agent.protocol.generated.AgentStreamEventType;
 import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.InputDispatch;
 import com.chainlesschain.ide.ApprovalGrants;
 import com.chainlesschain.ide.ApprovalSettlementRegistry;
 import com.chainlesschain.ide.ChatEvents;
@@ -163,6 +164,7 @@ final class ConversationView {
     // True while a send is being spawned/delivered off-EDT; further Enter presses
     // are ignored instead of double-sending the same composer text.
     private volatile boolean sendInFlight = false;
+    private volatile InputDispatch pendingInputDispatch;
     // True from a successfully submitted user turn through turn_end. Timeline
     // restores are disabled while the live child may still mutate files/state.
     private volatile boolean turnActive = false;
@@ -341,40 +343,7 @@ final class ConversationView {
 
         sendBtn.addActionListener(e -> sendCurrentInput());
         stopBtn.setToolTipText(CcBundle.message("chat.btn.stop.tooltip"));
-        stopBtn.addActionListener(e -> {
-            AgentChatSession s = liveSession();
-            if (s == null) return;
-            // Both interrupt() and stop() do blocking pipe I/O (stdin write/flush)
-            // under the session monitor — if the child's stdin buffer is full
-            // (a hung child that stopped reading), doing them on the EDT freezes
-            // the whole IDE, and the second-click force-kill can never dispatch.
-            // Decide on the EDT, run the blocking part off it.
-            if (s == interruptRequested) {
-                // Second click on the same still-live child → escalate to a hard
-                // stop (interrupt rides stdin, which a hung child never reads).
-                interruptRequested = null;
-                turnActive = false;
-                pendingApprovalGrantCommands.clear();
-                restartForModeChange();
-                append("⏹ Stopping the agent; replacement waits for confirmed exit\n");
-                return;
-            }
-            List<String> reservedApprovals = approvalSettlements.beginInterrupt();
-            questions.cancelAll("Stop requested; saved answers require review");
-            for (String id : reservedApprovals) setApprovalCardEnabled(id, false);
-            interruptRequested = s;
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                boolean outcome;
-                try {
-                    outcome = s.interrupt();
-                } catch (RuntimeException ignored) {
-                    outcome = false;
-                }
-                final boolean sent = outcome;
-                SwingUtilities.invokeLater(() -> finishInterrupt(
-                        s, reservedApprovals, sent));
-            });
-        });
+        stopBtn.addActionListener(e -> stopCurrentInput());
         // §5 @-mention completion: typing '@' (at start or after space) pops a chooser.
         // Slash-command completion: typing '/' at the line start pops a chooser too.
         input.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -708,6 +677,38 @@ final class ConversationView {
         });
     }
 
+    private void stopCurrentInput() {
+        InputDispatch pending = pendingInputDispatch;
+        boolean cancelled = pending != null && pending.cancel();
+        AgentChatSession s = liveSession();
+        if (s == null) {
+            append(cancelled ? "⏹ Input preparation stopped; draft kept for editing\n" : "ℹ no running agent\n");
+            return;
+        }
+        // Cancellation is atomic and does not wait for stdin. A reserved write
+        // holds the session monitor, so the pooled interrupt follows it; a
+        // cancelled preparation can never write after that interrupt.
+        if (s == interruptRequested) {
+            interruptRequested = null;
+            turnActive = false;
+            pendingApprovalGrantCommands.clear();
+            restartForModeChange();
+            append("⏹ Stopping the agent; replacement waits for confirmed exit\n");
+            return;
+        }
+        List<String> reservedApprovals = approvalSettlements.beginInterrupt();
+        questions.cancelAll("Stop requested; saved answers require review");
+        for (String id : reservedApprovals) setApprovalCardEnabled(id, false);
+        interruptRequested = s;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            boolean outcome;
+            try { outcome = s.interrupt(); }
+            catch (RuntimeException ignored) { outcome = false; }
+            final boolean sent = outcome;
+            SwingUtilities.invokeLater(() -> finishInterrupt(s, reservedApprovals, sent));
+        });
+    }
+
     private void sendCurrentInput() {
         if (sendInFlight) return;
         if (!drafts.ready()) { append("ℹ Resolve the saved input status before sending.\n"); return; }
@@ -728,6 +729,8 @@ final class ConversationView {
         final java.util.List<String> imgs = images.snapshot();
         final long modeRevision = conv.modeState.snapshot().revision();
         final long draftRevision = drafts.revision();
+        final InputDispatch dispatch = new InputDispatch();
+        pendingInputDispatch = dispatch;
         sendInFlight = true;
         history.liveChanged();
         final java.util.concurrent.CompletableFuture<?> savedComposer = drafts.beginSend();
@@ -739,20 +742,24 @@ final class ConversationView {
             com.chainlesschain.ide.ChatDraftStore.Prepared prepared = null;
             try {
                 savedComposer.get(10, TimeUnit.SECONDS);
+                dispatch.check();
                 if (disposed) return;
                 if (!conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed; input was not dispatched");
                 ensureSession();
+                dispatch.check();
                 AgentChatSession s = liveSession();
                 String history = worklogSourceSent ? null : worklogSource;
                 Object owner = sessionGeneration;
                 dispatchOwner = owner;
                 java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
                 if (s == null || capability == null) throw new IOException("Agent startup was not confirmed");
-                boolean supported = capability.get(15, TimeUnit.SECONDS);
+                boolean supported = dispatch.awaitReady(capability, 15, TimeUnit.SECONDS);
                 if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
                     throw new IOException("Agent changed before input preparation");
                 prepared = drafts.prepare(text, imgs, history, !turnActive && !s.hasPendingTurns()).get(10, TimeUnit.SECONDS);
+                dispatch.check();
                 drafts.markUnknown(prepared.submission().id()).get(10, TimeUnit.SECONDS);
+                dispatch.check();
                 if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
                     throw new IOException("Input saved; agent changed before delivery");
                 Map<String, Object> event = AgentChatSession.userEvent(text, prepared.paths());
@@ -764,26 +771,38 @@ final class ConversationView {
                 // or result. The blocking pipe write stays on the send worker.
                 SwingUtilities.invokeAndWait(() -> {
                     if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision)) return;
+                    try { dispatch.check(); } catch (IOException cancelled) { return; }
                     String tag = imgs.isEmpty() ? "" : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
                     transcript.appendUser(text, tag, clientId, owner, sid);
                     this.history.liveChanged();
                 });
                 if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
                     throw new IOException("Input saved; agent changed before delivery");
-                sent = s.sendEvent(event);
+                sent = s.sendEvent(event, dispatch);
+                dispatch.check();
                 if (sent && history != null) worklogSourceSent = true;
             } catch (Exception ex) {
                 if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
                 spawnError = ex.getMessage();
             } finally {
+                if (prepared != null && !dispatch.dispatched()) {
+                    try { drafts.rejectUndispatched(prepared.submission().id()).get(10, TimeUnit.SECONDS); }
+                    catch (Exception error) {
+                        if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+                        spawnError = "Input was not dispatched; saved status update failed: " + error.getMessage();
+                    }
+                }
                 final boolean ok = sent;
                 final String err = spawnError;
                 final Object sentOwner = dispatchOwner;
                 final com.chainlesschain.ide.ChatDraftStore.Prepared saved = prepared;
                 SwingUtilities.invokeLater(() -> {
+                    if (pendingInputDispatch == dispatch) pendingInputDispatch = null;
                     sendInFlight = false;
                     if (disposed) return;
-                    drafts.finishSend(saved, draftRevision);
+                    if (saved != null && !dispatch.dispatched())
+                        transcript.inputNotDispatched(saved.submission().id(), sentOwner);
+                    drafts.finishSend(dispatch.dispatched() ? saved : null, draftRevision);
                     if (!conv.modeState.current(modeRevision) || (sentOwner != null && sentOwner != sessionGeneration)) {
                         append("⚠ Approval mode changed during delivery. Check Saved inputs and the conversation before resending.\n");
                     } else if (err != null) {
@@ -848,15 +867,7 @@ final class ConversationView {
                 setLoop(parts.length > 1 ? parts[1] : "");
                 return;
             case "/stop": {
-                AgentChatSession s = liveSession();
-                // interrupt() writes+flushes the child's stdin under the session
-                // monitor — a wedged child that stopped reading freezes the EDT.
-                // Pooled thread, NOT sendExecutor: an interrupt must never queue
-                // behind the very sends it is trying to break (Stop button twin).
-                if (s != null) {
-                    ApplicationManager.getApplication().executeOnPooledThread(s::interrupt);
-                    append("ℹ interrupted\n");
-                } else append("ℹ no running agent\n");
+                stopCurrentInput();
                 return;
             }
             case "/compact": {
@@ -1766,6 +1777,8 @@ final class ConversationView {
      * the EDT before invoking this, so the next spawn reads the new values.
      */
     void restartForModeChange() {
+        InputDispatch pending = pendingInputDispatch;
+        if (pending != null) pending.cancel();
         history.liveChanged();
         java.util.concurrent.CompletableFuture<Boolean> pendingCapabilities = receiptSupport;
         if (pendingCapabilities != null) pendingCapabilities.completeExceptionally(new IOException("Agent mode changed"));
@@ -3112,6 +3125,8 @@ final class ConversationView {
     }
 
     void dispose() {
+        InputDispatch pending = pendingInputDispatch;
+        if (pending != null) pending.cancel();
         history.dispose();
         questions.detach("Conversation closed; saved answers require review");
         questions.onChange(() -> {});

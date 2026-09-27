@@ -12,6 +12,31 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ChatComposerDraftsTest {
     @TempDir Path temp;
+    @Test void cancelledPreparedInputRestoresComposerAndKeepsItsSavedRecordRejected() throws Exception {
+        for (boolean unknown : List.of(false, true)) {
+            Path root = temp.resolve("drafts-" + unknown);
+            ChatDraftStore store = new ChatDraftStore(root);
+            String key = ChatDraftStore.newKey();
+            store.save(key, "s1", "unsent 中文😀", List.of());
+            Harness h = create(store, key); drain();
+            AtomicLong revision = new AtomicLong();
+            SwingUtilities.invokeAndWait(() -> {
+                revision.set(h.drafts.revision()); h.busy.set(true); h.drafts.beginSend();
+            });
+            ChatDraftStore.Prepared prepared = h.drafts.prepare("unsent 中文😀", List.of(), null).get(5, TimeUnit.SECONDS);
+            if (unknown) h.drafts.markUnknown(prepared.submission().id()).get(5, TimeUnit.SECONDS);
+            h.drafts.rejectUndispatched(prepared.submission().id()).get(5, TimeUnit.SECONDS);
+            SwingUtilities.invokeAndWait(() -> {
+                h.busy.set(false); h.drafts.finishSend(null, revision.get());
+                assertEquals("unsent 中文😀", h.input.getText()); assertTrue(h.input.isEditable());
+            });
+            drain();
+            ChatDraftStore.Draft recovered = new ChatDraftStore(root).load(key);
+            assertEquals("unsent 中文😀", recovered.composer().text());
+            assertEquals("rejected", recovered.submissions().get(0).status());
+            SwingUtilities.invokeAndWait(h.drafts::dispose); drain();
+        }
+    }
     private static class Harness {
         final JTextArea input = new JTextArea();
         final ChatComposerImages images = new ChatComposerImages(input);

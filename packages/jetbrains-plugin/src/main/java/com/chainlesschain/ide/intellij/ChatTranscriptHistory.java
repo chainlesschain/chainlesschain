@@ -78,6 +78,15 @@ final class ChatTranscriptHistory {
         }
     }
     void clear() { spans.clear(); }
+    void removeUndispatched(String clientId, Object owner) {
+        if (clientId == null || owner == null) return;
+        for (Span span : List.copyOf(spans)) {
+            if (span.owner != owner || !clientId.equals(span.clientId) || !"user".equals(span.role)
+                    || span.saved != null || span.eventRef != null) continue;
+            try { erase(span); }
+            catch (BadLocationException error) { throw new IllegalStateException("Could not remove unsent input", error); }
+        }
+    }
     void input(Map<String, Object> event, String session, Object owner) {
         String hash = TranscriptReferences.input(event, session);
         if (owner == null || hash == null) return;

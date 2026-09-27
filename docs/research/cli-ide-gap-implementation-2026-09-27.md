@@ -12,7 +12,7 @@
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；真实 store / CLI / DOM / Swing 回归；Windows VS Code 1.132.0 实际 VSIX 的后台完成、重复正文独立行与进程重启恢复已通过 | JetBrains、其他系统、旧历史边界及真实宿主 rewind/compaction 仍待补 |
-| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows VS Code 1.132.0 双会话中文草稿在进程重启后保留且不自动发送；Stop 取消异步输入准备回归通过 | JetBrains 对应旅程与准备阶段 Stop 复核；附件/问题表单真实宿主、跨平台和可访问性待验收 |
+| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows VS Code 1.132.0 双会话中文草稿重启恢复且不自动发送；双 IDE Stop 取消异步输入准备本地回归通过 | JetBrains 对应真实宿主旅程；附件/问题表单真实宿主、跨平台和可访问性待验收 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
 | IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
 | IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内     |
@@ -242,6 +242,14 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 证据摘要 `sha256:3a4743eecdcc83c2485d2777993e7e0f068954e3caf6f17880be8055d7f31e83`；独立重跑所有产物断言并核对 31 个证据文件的字节数/SHA-256、bundle digest、源码 HEAD 和干净工作树，通过后保存[本地回执](./ide/evidence/vscode-canonical-recovery-windows-5382a8c3be.json)。VSIX SHA-256 为 `FC725F46070D130D4CE5DA106E842D5FF4B5B9BFB580F718FB3803AB6EB3E1E4`。完整本地 bundle 在 `.tmp/vscode-canonical-recovery-5382a8c3be`。PowerShell 的 stderr 重定向令外层工具报 exit 1；已用正常退出的独立 Node 文件复现，并验证显式传递 LASTEXITCODE 为 0。宿主 runner 的完整 passed manifest 与所有断言/哈希另行验证通过；该细节保留于回执，不将外层工具状态隐去。
 
 范围仍有限：canonical 会话存储、回执和 history 子进程为生产实现，模型/Workbench/checkpoint 响应为夹具。尚未通过 JetBrains 对应旅程、其他系统、canonical rewind/compaction、附件/问题表单真实宿主、真人听测或长时观察。CLI CI / Strict Sandbox 精确发布 SHA 矩阵仍待运行；未推送、打 tag 或公开发布。
+
+### JetBrains Stop 取消发送准备与管道顺序
+
+复核发现 Stop 原先只向已存在的 child 发送 interrupt，无法取消等待 composer 保存、启动或 init 能力确认的输入。新增每次发送独立的原子状态：Stop 在写入预约前取消该输入；`AgentChatSession` 在同一 stdin monitor 内取得预约后才写入，预约后的 interrupt 因此排在该输入之后。EDT 取消不获取管道锁，保留第二次 Stop 的独立强制停止路径。能力等待可被取消，但不破坏该会话共享的 init future；文件保存完成后再检查取消，不中断持久化写入。
+
+从未取得写入预约的 saved submission 记为 `rejected`，保留文本和附件，composer 恢复可编辑；清除仅属于原 child/client ID、没有回执或保存身份的临时用户行。开始写入后失败仍保持 `unknown`，不误报为未发送；已有 canonical acceptance 不会被本地取消降级。Stop 按钮与 `/stop` 共用此路径，模式切换及关闭也取消尚未发送的准备。
+
+本地 Gradle 编译及 8 类共 **56 项测试通过，0 skipped/failures/errors**，包含真实 Java 子进程、受控管道阻塞、EDT 响应、预约前后 Stop 顺序、拒绝重复写入、共享 init 后续复用、持久化重新读取、草稿恢复、历史行身份隔离、模式状态与进程终止回归。未把这批结果记作真实 JetBrains GUI、其他系统或发布 CI 验收；JetBrains 恢复旅程仍待执行。
 
 ## 本地验证与提交记录
 

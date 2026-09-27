@@ -515,9 +515,15 @@ public final class AgentChatSession {
     }
 
     /** Send one raw NDJSON event (user turn / interrupt / approval / …). */
-    public synchronized boolean sendEvent(Map<String, Object> event) {
+    public boolean sendEvent(Map<String, Object> event) {
+        return sendEvent(event, null);
+    }
+
+    /** Stop either cancels preparation or follows this write in stdin order. */
+    public synchronized boolean sendEvent(Map<String, Object> event, InputDispatch dispatch) {
         BufferedWriter writer = stdin;
         if (!isRunning() || writer == null || event == null || !opts.canDispatch.getAsBoolean()) return false;
+        if (dispatch != null && !dispatch.reserve()) return false;
         // Account before flushing: a fast child can finish before the send
         // callback reaches the EDT. Partial writes stay conservatively pending
         // until a terminal result or process restart.

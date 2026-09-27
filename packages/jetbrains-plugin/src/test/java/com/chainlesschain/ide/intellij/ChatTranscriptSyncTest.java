@@ -11,6 +11,24 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ChatTranscriptSyncTest {
+    @Test void cancellingUndispatchedInputRemovesOnlyItsUnconfirmedReservation() throws Exception {
+        TranscriptReferences refs = refs(0);
+        edt(() -> {
+            ChatTranscript t = new ChatTranscript(); Object owner = new Object(), other = new Object();
+            t.appendUser(TEXT, "", "cancelled", owner, SESSION);
+            t.appendUser(TEXT, "", "other-tab", other, SESSION);
+            t.appendUser(TEXT, "", refs.clientMessageId(), owner, SESSION);
+            t.inputReceipt(receipt(refs), SESSION, owner);
+            t.append("\nkeep diagnostics\n");
+            t.inputNotDispatched("cancelled", other);
+            assertEquals(3, body(t).split(TEXT, -1).length - 1);
+            t.inputNotDispatched("cancelled", owner);
+            t.inputNotDispatched("cancelled", owner);
+            t.inputNotDispatched(refs.clientMessageId(), owner);
+            assertEquals(2, body(t).split(TEXT, -1).length - 1);
+            assertTrue(body(t).contains("keep diagnostics"));
+        });
+    }
     private static final String SESSION = SessionTranscriptChangesTest.SESSION;
     private static final String TEXT = "same 中文😀";
     private static void edt(Runnable task) throws Exception { SwingUtilities.invokeAndWait(task); }

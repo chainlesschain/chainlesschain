@@ -126,7 +126,7 @@ public class ChatDraftStore {
                     String digest = string(item.get("inputDigest"));
                     String sid = session(item.get("sessionId"));
                     if (!validKey(id) || !ids.add(id) || sid == null
-                            || !Set.of("prepared", "unknown", "accepted").contains(status) || !digest.matches("[a-f0-9]{64}"))
+                            || !Set.of("prepared", "unknown", "accepted", "rejected").contains(status) || !digest.matches("[a-f0-9]{64}"))
                         throw new IOException("Invalid saved input identity");
                     String eventHash = item.get("eventHash") == null ? null : string(item.get("eventHash"));
                     if (eventHash != null && !eventHash.matches("[a-f0-9]{64}")) throw new IOException("Invalid saved receipt");
@@ -342,6 +342,7 @@ public class ChatDraftStore {
                 if (!input.id().equals(id)) { next.add(input); continue; }
                 found = true;
                 if ("accepted".equals(input.status())) { next.add(input); continue; }
+                if (receipt == null && "rejected".equals(input.status())) { next.add(input); continue; }
                 String eventHash = null;
                 if (receipt != null) {
                     // CLI parsing may discover typed image paths before computing this digest.
@@ -355,6 +356,22 @@ public class ChatDraftStore {
                 }
                 next.add(new Submission(id, input.sessionId(), input.content(), receipt == null ? "unknown" : "accepted",
                         receipt == null ? input.inputDigest() : (String) receipt.get("inputDigest"), input.worklogSessionId(), eventHash));
+            }
+            if (!found) throw new IOException("Saved submission is missing");
+            write(new Draft(key, before.sessionId(), before.composer(), List.copyOf(next), before.questions()));
+        }
+    }
+    /** Only for inputs whose dispatch reservation was never taken; keep their content recoverable. */
+    public void rejectUndispatched(String key, String id) throws IOException {
+        synchronized (lock) {
+            Draft before = load(key);
+            List<Submission> next = new ArrayList<>(); boolean found = false;
+            for (Submission input : before.submissions()) {
+                if (!input.id().equals(id)) { next.add(input); continue; }
+                found = true;
+                if ("accepted".equals(input.status())) { next.add(input); continue; }
+                next.add(new Submission(id, input.sessionId(), input.content(), "rejected",
+                        input.inputDigest(), input.worklogSessionId(), null));
             }
             if (!found) throw new IOException("Saved submission is missing");
             write(new Draft(key, before.sessionId(), before.composer(), List.copyOf(next), before.questions()));

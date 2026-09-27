@@ -9,6 +9,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ChatDraftStoreTest {
     @TempDir Path temp;
+    @Test void localCancellationPreservesAttachmentsAndNeverDowngradesCanonicalAcceptance() throws Exception {
+        Path root = temp.resolve("drafts");
+        ChatDraftStore store = new ChatDraftStore(root);
+        String key = ChatDraftStore.newKey();
+        ChatDraftStore.Prepared input = store.prepare(key, "s1", "中文 draft 🧪", List.of(image("cancel.png", 0).toString()), null);
+        String id = input.submission().id();
+        store.settle(key, id, null);
+        store.rejectUndispatched(key, id);
+        store.settle(key, id, null);
+        ChatDraftStore.Submission recovered = new ChatDraftStore(root).load(key).submissions().get(0);
+        assertEquals("rejected", recovered.status());
+        assertEquals("中文 draft 🧪", recovered.content().text());
+        assertTrue(Files.exists(Path.of(input.paths().get(0))));
+        store.settle(key, id, Map.of("sessionId", "s1", "clientMessageId", id,
+                "inputDigest", "b".repeat(64), "eventHash", "a".repeat(64)));
+        store.rejectUndispatched(key, id);
+        assertEquals("accepted", store.load(key).submissions().get(0).status());
+        assertThrows(IOException.class, () -> store.rejectUndispatched(key, ChatDraftStore.newKey()));
+    }
     private Path image(String name, int extra) throws IOException {
         byte[] png = Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
         byte[] bytes = Arrays.copyOf(png, png.length + extra);

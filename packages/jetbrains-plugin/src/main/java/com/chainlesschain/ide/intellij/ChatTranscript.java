@@ -110,6 +110,7 @@ final class ChatTranscript {
         savedHistory.add(Math.max(0, end - header.length() - display.length()), end, "user", text, sessionId, clientId, owner);
     }
     void inputReceipt(java.util.Map<String, Object> event, String sessionId, Object owner) { savedHistory.input(event, sessionId, owner); }
+    void inputNotDispatched(String clientId, Object owner) { savedHistory.removeUndispatched(clientId, owner); }
     void referencedAssistant(String finalText, com.chainlesschain.ide.TranscriptReferences refs, Object owner, String sessionId) {
         owned(owner, sessionId); lastFinalizedSpan = null;
         if (!inAssistantRun) appendAssistantDelta(finalText);

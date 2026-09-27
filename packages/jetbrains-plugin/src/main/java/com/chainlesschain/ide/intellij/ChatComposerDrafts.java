@@ -103,6 +103,9 @@ final class ChatComposerDrafts {
     CompletableFuture<Void> markUnknown(String id) {
         return ChatDraftTasks.submit(() -> { store.settle(conv.draftKey, id, null); return null; });
     }
+    CompletableFuture<Void> rejectUndispatched(String id) {
+        return ChatDraftTasks.submit(() -> { store.rejectUndispatched(conv.draftKey, id); return null; });
+    }
     void accept(String id, Map<String, Object> receipt) {
         ChatDraftTasks.submit(() -> { store.settle(conv.draftKey, id, receipt); return null; })
                 .whenComplete((ignored, error) -> SwingUtilities.invokeLater(() -> {
