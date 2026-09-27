@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"receipt-session","input_receipts":{"version":1}}
+{"type":"system","subtype":"input_accepted","session_id":"receipt-session","client_message_id":"client-1","receipt":{"sessionId":"receipt-session","clientMessageId":"client-1","inputDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","eventHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","duplicate":true}}
+{"type":"result","subtype":"input_already_accepted","is_error":false,"session_id":"receipt-session","client_message_id":"client-1","execution_status":"not-reexecuted","result":"Input already accepted; inspect session outcome."}
+{"type":"result","subtype":"error_input_receipt","is_error":true,"session_id":"receipt-session","client_message_id":"client-2","acceptance":"unknown","error":"Cannot verify input acceptance"}

@@ -19,6 +19,7 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+import { inputSubmissionDigest } from "../../src/lib/session-input-receipt.js";
 import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
 
 function verifiedResume(messages, sessionId) {
@@ -81,6 +82,28 @@ describe("parseInputEvent", () => {
 
   it("returns null when content is empty/whitespace", () => {
     expect(parseInputEvent('{"text":"   "}')).toBeNull();
+  });
+
+  it("validates client IDs on text and image-only inputs", () => {
+    expect(
+      parseInputEvent(
+        JSON.stringify({ text: "hi", client_message_id: "client-1" }),
+      ),
+    ).toMatchObject({ clientMessageId: "client-1" });
+    expect(
+      parseInputEvent(
+        JSON.stringify({
+          images: ["/tmp/image.png"],
+          client_message_id: "image_1",
+        }),
+      ),
+    ).toMatchObject({ clientMessageId: "image_1", images: ["/tmp/image.png"] });
+    for (const id of [null, 1, "", "../bad", "x".repeat(81)]) {
+      expect(
+        parseInputEvent(JSON.stringify({ text: "hi", client_message_id: id }))
+          .error,
+      ).toMatch(/client_message_id/);
+    }
   });
 });
 
@@ -203,6 +226,194 @@ describe("runAgentHeadlessStream", () => {
       .trimEnd()
       .split("\n")
       .map((l) => JSON.parse(l));
+
+  function receiptDeps(over = {}) {
+    const receipts = new Map();
+    const deps = baseDeps({
+      input: input({ text: "go", client_message_id: "client-1" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: vi.fn(),
+      appendAssistantMessage: () => {},
+      appendEvent: () => {},
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+      readInputReceipt: vi.fn((_sessionId, id) => ({
+        accepted: receipts.has(id),
+        receipt: receipts.get(id) || null,
+      })),
+      appendInputWithReceipt: vi.fn(
+        (sessionId, _content, clientMessageId, submission) => {
+          const receipt = {
+            sessionId,
+            clientMessageId,
+            inputDigest: inputSubmissionDigest(submission),
+            eventHash: "a".repeat(64),
+            duplicate: false,
+          };
+          receipts.set(clientMessageId, receipt);
+          return receipt;
+        },
+      ),
+      agentLoop: vi.fn(async function* () {
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      }),
+      ...over,
+    });
+    return deps;
+  }
+  const receiptOptions = {
+    sessionId: "stream-receipt",
+    expandFileRefs: false,
+    useRegisteredMcp: false,
+  };
+
+  it("acknowledges durable input after append and before model dispatch", async () => {
+    const deps = receiptDeps();
+    deps.agentLoop = vi.fn(async function* () {
+      expect(deps.appendInputWithReceipt).toHaveBeenCalledOnce();
+      expect(
+        parseEmitted(deps._lines).filter((e) => e.subtype === "input_accepted"),
+      ).toHaveLength(1);
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const outcome = await runAgentHeadlessStream(receiptOptions, deps);
+    expect(outcome).toMatchObject({ exitCode: 0, turns: 1 });
+    expect(
+      parseEmitted(deps._lines).find((e) => e.subtype === "init")
+        .input_receipts,
+    ).toEqual({ version: 1 });
+    expect(
+      parseEmitted(deps._lines).find((e) => e.subtype === "input_accepted"),
+    ).toMatchObject({
+      client_message_id: "client-1",
+      receipt: { duplicate: false },
+    });
+    expect(deps.appendUserMessage).not.toHaveBeenCalled();
+  });
+
+  it("terminates a duplicate request without a second model call or turn", async () => {
+    const deps = receiptDeps({
+      input: input(
+        { text: "go", client_message_id: "client-1" },
+        { text: "go", client_message_id: "client-1" },
+      ),
+    });
+    const outcome = await runAgentHeadlessStream(receiptOptions, deps);
+    expect(outcome).toMatchObject({ exitCode: 0, turns: 1 });
+    expect(deps.agentLoop).toHaveBeenCalledOnce();
+    expect(deps.appendInputWithReceipt).toHaveBeenCalledOnce();
+    const events = parseEmitted(deps._lines);
+    expect(events.filter((e) => e.subtype === "input_accepted")).toHaveLength(
+      2,
+    );
+    expect(
+      events.find((e) => e.subtype === "input_already_accepted"),
+    ).toMatchObject({
+      execution_status: "not-reexecuted",
+      client_message_id: "client-1",
+    });
+  });
+
+  it("refuses conflicting ID reuse before another append or model call", async () => {
+    const deps = receiptDeps({
+      input: input(
+        { text: "go", client_message_id: "client-1" },
+        { text: "different", client_message_id: "client-1" },
+      ),
+    });
+    const outcome = await runAgentHeadlessStream(receiptOptions, deps);
+    expect(outcome.exitCode).toBe(1);
+    expect(deps.agentLoop).toHaveBeenCalledOnce();
+    expect(deps.appendInputWithReceipt).toHaveBeenCalledOnce();
+    expect(
+      parseEmitted(deps._lines).find(
+        (e) => e.subtype === "error_input_receipt",
+      ),
+    ).toMatchObject({ acceptance: "unknown" });
+  });
+
+  it("refuses an unverified receipt read without append or model execution", async () => {
+    const deps = receiptDeps({
+      readInputReceipt: () => {
+        throw new Error("tampered");
+      },
+    });
+    await runAgentHeadlessStream(receiptOptions, deps);
+    expect(deps.appendInputWithReceipt).not.toHaveBeenCalled();
+    expect(deps.agentLoop).not.toHaveBeenCalled();
+    expect(
+      parseEmitted(deps._lines).some((e) => e.subtype === "input_accepted"),
+    ).toBe(false);
+  });
+
+  it.each(["EROFS", "ENOSPC"])(
+    "does not acknowledge or dispatch when durable input append fails with %s",
+    async (code) => {
+      const deps = receiptDeps({
+        appendInputWithReceipt: () => {
+          throw Object.assign(new Error("private path"), { code });
+        },
+      });
+      const outcome = await runAgentHeadlessStream(receiptOptions, deps);
+      expect(outcome.exitCode).toBe(1);
+      expect(deps.agentLoop).not.toHaveBeenCalled();
+      expect(
+        parseEmitted(deps._lines).some((e) => e.subtype === "input_accepted"),
+      ).toBe(false);
+      expect(
+        parseEmitted(deps._lines).some(
+          (e) => e.subtype === "error_persistence",
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("rejects receipt requests when persistence is disabled", async () => {
+    const deps = receiptDeps();
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, useRegisteredMcp: false },
+      deps,
+    );
+    expect(deps.agentLoop).not.toHaveBeenCalled();
+    expect(deps.appendInputWithReceipt).not.toHaveBeenCalled();
+    expect(
+      parseEmitted(deps._lines).find((e) => e.subtype === "init")
+        .input_receipts,
+    ).toEqual({ version: 0 });
+    expect(
+      parseEmitted(deps._lines).find(
+        (e) => e.subtype === "error_input_receipt",
+      ),
+    ).toMatchObject({ acceptance: "rejected" });
+  });
+
+  it.each(["throw", "invalid", "async"])(
+    "fails closed on %s receipt append results",
+    async (mode) => {
+      const deps = receiptDeps({
+        appendInputWithReceipt: () => {
+          if (mode === "throw")
+            throw new Error("private chain verification error");
+          if (mode === "async") return Promise.resolve({});
+          return { eventHash: "a".repeat(64), duplicate: false };
+        },
+      });
+      const outcome = await runAgentHeadlessStream(receiptOptions, deps);
+      expect(outcome.exitCode).toBe(1);
+      expect(deps.agentLoop).not.toHaveBeenCalled();
+      expect(
+        parseEmitted(deps._lines).some((e) => e.subtype === "input_accepted"),
+      ).toBe(false);
+      expect(
+        parseEmitted(deps._lines).find(
+          (e) => e.subtype === "error_input_receipt",
+        ),
+      ).toMatchObject({ acceptance: "unknown" });
+    },
+  );
 
   it("correlates IDE mode confirmation with the actual runtime policy", async () => {
     vi.stubEnv("CC_IDE_MODE_REQUEST_ID", "mode-request-123");

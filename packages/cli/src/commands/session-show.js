@@ -3,6 +3,7 @@ import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
 import { getPrLinks } from "../lib/pr-link-store.js";
 import { readSessionTranscriptPage } from "../lib/session-transcript-page.js";
+import { readSessionInputReceipt } from "../lib/session-input-receipt.js";
 import {
   getJsonlSessionMetadata,
   rebuildMessages,
@@ -16,6 +17,10 @@ export function registerSessionShowSubcommand(session, program) {
     .argument("<id>", "Session ID (or prefix)")
     .option("-n, --limit <n>", "Max messages to show")
     .option("--json", "Output as JSON")
+    .option(
+      "--input-receipt <client-message-id>",
+      "Read verified input acceptance without replay (requires --json)",
+    )
     .option(
       "--page-size <n>",
       "Verified saved-context page size (1–100; requires --json)",
@@ -43,6 +48,23 @@ export function registerSessionShowSubcommand(session, program) {
           return;
         }
         if (jsonlId) {
+          if (options.inputReceipt !== undefined) {
+            if (
+              !options.json ||
+              options.pageSize ||
+              options.before ||
+              options.limit
+            )
+              throw new Error(
+                "Input receipt requires --json without pagination or --limit",
+              );
+            console.log(
+              JSON.stringify(
+                readSessionInputReceipt(jsonlId, options.inputReceipt),
+              ),
+            );
+            return;
+          }
           if (options.pageSize || options.before) {
             if (!options.json)
               throw new Error("Transcript pagination requires --json");
@@ -74,9 +96,13 @@ export function registerSessionShowSubcommand(session, program) {
         // Keep SQLite and the application bootstrap outside the canonical
         // JSONL read path. Legacy sessions still retain the original fallback.
         if (!sess) {
-          if (options.pageSize || options.before)
+          if (
+            options.pageSize ||
+            options.before ||
+            options.inputReceipt !== undefined
+          )
             throw new Error(
-              "Verified transcript pages require a canonical JSONL session",
+              "Verified transcript pages and input receipts require a canonical JSONL session",
             );
           const runtime = await import("../runtime/bootstrap.js");
           const sessionManager = await import("../lib/session-manager.js");

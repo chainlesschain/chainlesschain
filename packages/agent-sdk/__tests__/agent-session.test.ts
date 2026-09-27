@@ -218,6 +218,15 @@ describe("AgentSession", () => {
     ]);
   });
 
+  it("preserves an opt-in durable input ID and rejects invalid IDs before writing", () => {
+    const { session, writtenEvents } = startSession();
+    session.send("question", { clientMessageId: "client-1" });
+    expect(session.send("invalid", { clientMessageId: "../bad" })).toBe(false);
+    expect(writtenEvents()).toEqual([
+      { type: "user", text: "question", client_message_id: "client-1" },
+    ]);
+  });
+
   it("auto-answers approval requests via the callback", async () => {
     const onApproval = vi.fn(async () => true);
     const { session, push, writtenEvents } = startSession({ onApproval });

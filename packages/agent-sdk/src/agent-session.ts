@@ -144,6 +144,8 @@ export interface AgentSessionOptions {
 export interface SendOptions {
   images?: string[];
   llm?: LlmHint;
+  /** Opt-in durable acceptance; requires init.input_receipts.version === 1. */
+  clientMessageId?: string;
 }
 
 type Listener = (...args: never[]) => void;
@@ -424,6 +426,14 @@ export class AgentSession {
     const event: AgentInputEvent = { type: "user", text };
     if (options.images?.length) event.images = options.images;
     if (options.llm) event.llm = options.llm;
+    if (options.clientMessageId !== undefined) {
+      if (
+        typeof options.clientMessageId !== "string" ||
+        !/^[a-zA-Z0-9_-]{1,80}$/u.test(options.clientMessageId)
+      )
+        return false;
+      event.client_message_id = options.clientMessageId;
+    }
     return this.write(event);
   }
 

@@ -53,6 +53,12 @@ import {
 import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { bootstrap } from "./bootstrap.js";
 import {
+  appendSessionInputWithReceipt,
+  readSessionInputReceipt,
+  inputSubmissionDigest,
+  validateClientMessageId,
+} from "../lib/session-input-receipt.js";
+import {
   buildSystemPrompt,
   chatWithTools as coreChatWithTools,
   agentLoop as coreAgentLoop,
@@ -711,6 +717,14 @@ export function parseInputEvent(line) {
     };
   }
   const msg = obj && typeof obj === "object" ? obj.message || obj : {};
+  let clientMessageId;
+  if (obj?.client_message_id !== undefined) {
+    try {
+      clientMessageId = validateClientMessageId(obj.client_message_id);
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
   let content = msg.content ?? obj.text ?? obj.prompt;
   if (Array.isArray(content)) {
     content = content
@@ -751,6 +765,7 @@ export function parseInputEvent(line) {
     // An image-only turn is valid — give the model something to act on.
     if (images.length) {
       const r = { text: "Please look at the attached image(s).", images };
+      if (clientMessageId) r.clientMessageId = clientMessageId;
       if (obj.worklog_session_id !== undefined)
         r.worklogSessionId = obj.worklog_session_id;
       if (llm) r.llm = llm;
@@ -759,6 +774,7 @@ export function parseInputEvent(line) {
     return null;
   }
   const result = images.length ? { text: content, images } : { text: content };
+  if (clientMessageId) result.clientMessageId = clientMessageId;
   if (obj.worklog_session_id !== undefined)
     result.worklogSessionId = obj.worklog_session_id;
   if (llm) result.llm = llm;
@@ -2086,6 +2102,12 @@ async function runAgentHeadlessStreamInWorkspace(
     sessionExists: deps.sessionExists || jsonlSessionExists,
     startSession: deps.startSession || jsonlStartSession,
     appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
+    appendInputWithReceipt:
+      deps.appendInputWithReceipt ||
+      (hasInjectedSessionStore ? null : appendSessionInputWithReceipt),
+    readInputReceipt:
+      deps.readInputReceipt ||
+      (hasInjectedSessionStore ? null : readSessionInputReceipt),
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
@@ -3107,6 +3129,12 @@ async function runAgentHeadlessStreamInWorkspace(
     protocol_version: STREAM_PROTOCOL_VERSION,
     session_id: sessionId,
     session_persistence: persist,
+    input_receipts: {
+      version:
+        persist && store.appendInputWithReceipt && store.readInputReceipt
+          ? 1
+          : 0,
+    },
     task_worklog: taskWorklog ? { version: 1, path: taskWorklog.file } : null,
     model,
     provider,
@@ -4109,6 +4137,89 @@ async function runAgentHeadlessStreamInWorkspace(
       continue;
     }
 
+    // Bind the receipt to the submitted input, before commands, hooks, file
+    // expansion or image reads can change it. A repeated ID never replays work.
+    const inputSubmission = parsed.clientMessageId
+      ? {
+          text: parsed.text,
+          images: parsed.images || [],
+          llm: parsed.llm || null,
+          worklogSessionId: parsed.worklogSessionId || null,
+        }
+      : null;
+    const acknowledgeInput = (receipt) => {
+      emit({
+        type: "system",
+        subtype: "input_accepted",
+        session_id: sessionId,
+        client_message_id: parsed.clientMessageId,
+        receipt,
+      });
+      if (receipt.duplicate)
+        emit({
+          type: "result",
+          subtype: "input_already_accepted",
+          is_error: false,
+          session_id: sessionId,
+          client_message_id: parsed.clientMessageId,
+          execution_status: "not-reexecuted",
+          result:
+            "Input was already accepted. No work was re-executed; inspect the session for its outcome.",
+        });
+    };
+    if (parsed.clientMessageId) {
+      if (
+        !persist ||
+        !store.appendInputWithReceipt ||
+        !store.readInputReceipt
+      ) {
+        emit({
+          type: "result",
+          subtype: "error_input_receipt",
+          is_error: true,
+          session_id: sessionId,
+          client_message_id: parsed.clientMessageId,
+          acceptance: "rejected",
+          error: "Durable input receipts require canonical session persistence",
+        });
+        sawError = true;
+        continue;
+      }
+      try {
+        const prior = requireSynchronousRecoveryResult(
+          store.readInputReceipt(sessionId, parsed.clientMessageId),
+          "readInputReceipt",
+        );
+        if (prior?.accepted) {
+          const receipt = prior.receipt;
+          if (
+            !/^[a-f0-9]{64}$/u.test(receipt?.eventHash || "") ||
+            receipt.sessionId !== sessionId ||
+            receipt.clientMessageId !== parsed.clientMessageId ||
+            receipt.inputDigest !== inputSubmissionDigest(inputSubmission)
+          )
+            throw new Error("Input receipt conflicts with submission");
+          acknowledgeInput({ ...receipt, duplicate: true });
+          continue;
+        }
+        if (prior?.accepted !== false)
+          throw new Error("Invalid input receipt lookup");
+      } catch {
+        emit({
+          type: "result",
+          subtype: "error_input_receipt",
+          is_error: true,
+          session_id: sessionId,
+          client_message_id: parsed.clientMessageId,
+          acceptance: "unknown",
+          error:
+            "Cannot verify input acceptance; inspect the canonical session before sending again",
+        });
+        sawError = true;
+        continue;
+      }
+    }
+
     // Manual `/compact` uses the same provider-backed structured handoff as the
     // other long-lived hosts. Provider/schema failures degrade to the shared
     // extractive handoff instead of silently dropping all but recent turns.
@@ -4901,11 +5012,32 @@ async function runAgentHeadlessStreamInWorkspace(
       else turnContent = [{ type: "text", text: historyPart }, ...turnContent];
     }
     updateWorklog((log) => log.user(parsed.text));
-    messages.push({ role: "user", content: turnContent });
     let persistenceFailure = null;
+    let inputReceipt = null;
     if (persist) {
       try {
-        store.appendUserMessage(sessionId, turnContent);
+        if (parsed.clientMessageId) {
+          if (!store.appendInputWithReceipt)
+            throw new Error("Durable input receipts are unavailable");
+          inputReceipt = requireSynchronousRecoveryResult(
+            store.appendInputWithReceipt(
+              sessionId,
+              turnContent,
+              parsed.clientMessageId,
+              inputSubmission,
+            ),
+            "appendInputWithReceipt",
+          );
+          if (
+            !/^[a-f0-9]{64}$/u.test(inputReceipt?.eventHash || "") ||
+            inputReceipt.sessionId !== sessionId ||
+            inputReceipt.clientMessageId !== parsed.clientMessageId ||
+            inputReceipt.inputDigest !==
+              inputSubmissionDigest(inputSubmission) ||
+            typeof inputReceipt.duplicate !== "boolean"
+          )
+            throw new Error("Invalid durable input receipt");
+        } else store.appendUserMessage(sessionId, turnContent);
       } catch (error) {
         const persistenceError = createSessionPersistenceFailure(error, {
           sessionId,
@@ -4915,6 +5047,20 @@ async function runAgentHeadlessStreamInWorkspace(
           persistenceError,
           { phase: "before-model" },
         );
+        if (parsed.clientMessageId && !persistenceFailure) {
+          emit({
+            type: "result",
+            subtype: "error_input_receipt",
+            is_error: true,
+            session_id: sessionId,
+            client_message_id: parsed.clientMessageId,
+            acceptance: "unknown",
+            error:
+              "Cannot verify durable input append; inspect the canonical session before sending again",
+          });
+          sawError = true;
+          break;
+        }
         if (persistenceFailure) {
           try {
             deps.onPersistenceFailure?.(persistenceFailure);
@@ -4924,6 +5070,11 @@ async function runAgentHeadlessStreamInWorkspace(
         }
       }
     }
+    if (inputReceipt && !persistenceFailure) {
+      acknowledgeInput(inputReceipt);
+      if (inputReceipt.duplicate) continue; // Never re-run an accepted input.
+    }
+    messages.push({ role: "user", content: turnContent });
     turns += 1;
     approvalGrantLedger.beginTurn(turns);
     if (persistenceFailure) {

@@ -1,5 +1,26 @@
 {
   "_doc": "Independent cross-language contract: for each fixture file, the expected UI-mapping projection of every NDJSON line, in order. A FRESH turn-state is used per file (a text/thinking delta before a `result` in the same file sets sawDelta, which suppresses the repeated result text). Projection schema per line — see README.md §Projection. `kind:null` means the event is UI-silent OR an unknown forward-compat type (both sides return null). Human-readable strings that legitimately differ between the TS and Java panels (the benign tool_result note wording) are projected as `hasNote` booleans, never asserted verbatim.",
+  "input-receipt.ndjson": [
+    {
+      "kind": "init",
+      "model": "",
+      "provider": "",
+      "sessionId": "receipt-session"
+    },
+    { "kind": null },
+    {
+      "kind": "turn_end",
+      "isError": false,
+      "text": "Input already accepted; inspect session outcome.",
+      "hasUsage": false
+    },
+    {
+      "kind": "turn_end",
+      "isError": true,
+      "text": "Cannot verify input acceptance",
+      "hasUsage": false
+    }
+  ],
   "session-lifecycle.ndjson": [
     {
       "kind": "init",

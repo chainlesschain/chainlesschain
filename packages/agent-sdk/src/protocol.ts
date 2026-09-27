@@ -103,6 +103,23 @@ export interface SystemInitEvent extends StreamEventMeta {
   additional_directories?: string[];
   /** > 0 when the session was resumed from a prior transcript. */
   resumed_messages?: number;
+  /** Send client_message_id only when the persistent CLI advertises version 1. */
+  input_receipts?: { version: 0 | 1 };
+}
+
+/** Input acceptance only: does not prove execution started or completed. */
+export interface InputAcceptedEvent extends StreamEventMeta {
+  type: "system";
+  subtype: "input_accepted";
+  session_id: string;
+  client_message_id: string;
+  receipt: {
+    sessionId: string;
+    clientMessageId: string;
+    inputDigest: string;
+    eventHash: string;
+    duplicate: boolean;
+  };
 }
 
 export interface SystemEndEvent extends StreamEventMeta {
@@ -470,6 +487,8 @@ export interface ClientHelloInput {
 export interface UserMessageInput {
   type: "user";
   text: string;
+  /** Session-scoped stable submission ID: 1–80 ASCII letters/digits/_/-. */
+  client_message_id?: string;
   /** Absolute image file paths (≤ 8 are honored). */
   images?: string[];
   llm?: LlmHint;

@@ -12,7 +12,7 @@
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单                    |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI                          |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | 后台有界正文缓存；重建读取经 canonical 完整性验证的 page；cursor/generation；双会话与 stale/reset 回归；真实 store 篡改拒绝                                                  | 当前是 active saved context，非完整压缩前档案；完整历史与 durable 增量去重仍待补 |
-| IDE-DRAFT               | 局部实施         | VS Code 同一 Webview 的 composer/附件按 tab 隔离，未送达可恢复                                                                                                               | host/reload 持久草稿、question/request 草稿、durable 接受确认尚未实现            |
+| IDE-DRAFT               | 局部实施         | VS Code 同一 Webview 的 composer/附件按 tab 隔离；CLI canonical 输入回执、原始提交 ID 去重及只读查询；SDK 可显式传入 ID                                                     | host/reload 持久草稿、question/request 草稿、双 IDE 回执接线仍待实现              |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                                          |
 | IDE-MODE                | 局部实现并验证   | VS Code requested/effective/pending/failed；CLI init 的关联 ID、实际模式与 policy digest；退出确认阻止并存新 child；137 项回归及 4 项停止测试（含真实子进程）                | JetBrains 状态对应、真实组织策略/宿主旅程与全平台进程树证明                      |
 | IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；header 检查、异步处理、逐项错误；VS Code worker、快速 drop、切 tab/reset 隔离，6 项边界通过；JetBrains 完整编译及 8 项 JUnit 通过         | 真实宿主测量；CLI 非剪贴板路径的最终边界复核                                     |
@@ -28,6 +28,16 @@
 | UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                               |
 
 真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号与真实 IDE 宿主验收分开记录，目前没有新增结果。云恢复与新交互产品仍为报告中的条件性产品决策。
+
+### IDE-DRAFT 输入回执边界
+
+新增可选 `client_message_id`，CLI 仅在 canonical 持久化可用时声明 `input_receipts.version=1`。原始输入摘要与 user event 一同写入已有 writer authority，完整验证 chain/anchor 后才返回接受回执；重复 ID 不再调用模型，冲突/校验异常/存储失败不能降级为普通发送。`session show --json --input-receipt <id>` 只读查询，压缩后仍可查询原回执。SDK 已提供可选传参，并同步 VS Code / Desktop vendor。
+
+接受不等于执行完成；落盘后、执行前崩溃可能仅留下已接受输入。丢失 ACK 时应先只读核对，不自动重放。当前查询与去重仍为 O(N) 全历史验证，未宣称索引性能或跨进程外部副作用 exactly-once。双 IDE 尚未消费回执，也尚未完成跨 reload 的持久草稿；不能将此后端合同计为 IDE-DRAFT 全部验收。
+
+本批 CLI 回执/stream/session page/lazy dispatch：4 文件 93 项通过；SDK 发送与共享协议映射：2 文件 33 项通过；SDK 构建及 schema drift check 通过；修改的 CLI 源文件 ESLint 0 errors、3 项既有 unused-variable warnings。
+
+JetBrains `ProtocolFixturesTest` 也已通过，包含同一份新增回执 fixture；这验证旧宿主可忽略新 ACK 并处理重复输入的终止事件，不代表 UI 已实现持久接受状态。
 
 ## 本地验证与提交记录
 

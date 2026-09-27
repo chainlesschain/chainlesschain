@@ -298,6 +298,12 @@ class AgentSession {
             event.images = options.images;
         if (options.llm)
             event.llm = options.llm;
+        if (options.clientMessageId !== undefined) {
+            if (typeof options.clientMessageId !== "string" ||
+                !/^[a-zA-Z0-9_-]{1,80}$/u.test(options.clientMessageId))
+                return false;
+            event.client_message_id = options.clientMessageId;
+        }
         return this.write(event);
     }
     /** Abort the in-flight turn without ending the session. */

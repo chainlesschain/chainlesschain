@@ -59,6 +59,57 @@ cc agent --input-format stream-json --output-format stream-json \
 
 ### 1.1 Client → CLI (stdin events)
 
+#### Durable input receipts (optional v1 addition)
+
+An explicit canonical session advertises `input_receipts:{version:1}` on
+`system/init`. Absent or zero means unsupported. A client may then add
+`client_message_id` (1–80 ASCII letters, digits, `_`, `-`) to a user turn.
+Keep this ID stable for that session and original submission; a new user
+submission gets a new ID. A successful stdin write is **not** durable acceptance.
+
+After the canonical user event and its integrity anchor are committed, before
+model dispatch, the CLI emits:
+
+```json
+{"type":"system","subtype":"input_accepted","session_id":"session-1","client_message_id":"client-1","receipt":{"sessionId":"session-1","clientMessageId":"client-1","inputDigest":"<sha256>","eventHash":"<sha256>","duplicate":false}}
+```
+
+`inputDigest` binds the original parsed text, image paths, LLM hint and worklog
+session, before file/command/image expansion. It is an opaque value to clients.
+`eventHash` identifies the committed user event. Neither proves that execution
+started, finished, or succeeded. A crash between append and dispatch can leave
+an accepted input without model output; clients MUST NOT automatically replay it.
+
+For a previously accepted matching input the CLI emits the original receipt
+with `duplicate:true`, then a terminal `result` with
+`subtype:"input_already_accepted"`, `execution_status:"not-reexecuted"` and the
+same `client_message_id`. It does not dispatch a second model turn. A conflicting
+ID, failed verification or unclassified append failure produces
+`error_input_receipt` with `acceptance:"unknown"`; unavailable persistence
+produces `acceptance:"rejected"`. Classified disk failures retain
+`error_persistence`. No failed append is acknowledged. Accepted submissions are
+deduplicated under the canonical writer lock; this is not a claim of exactly-once
+external side effects across concurrent CLI processes.
+
+After a lost ACK or host reload, reconcile **read-only**:
+
+```sh
+cc session show <session-id> --json --input-receipt <client-message-id>
+```
+
+The response is `{schema:"chainlesschain.input-receipt/v1",sessionId,
+clientMessageId,accepted,receipt}`. It verifies the complete canonical chain and
+anchor, retains receipts across context compaction, and never runs the agent.
+Missing/unreadable or unverified canonical storage is an error, not
+`accepted:false`. A successful negative lookup is a point-in-time observation,
+not permission to retry while an earlier sender may still be live. This lookup
+currently scans history in O(N). Pagination and `--limit` cannot be combined.
+This protocol does not itself persist UI drafts or restore approval/question
+authority; hosts must preserve pending input separately and never replay stale
+interactive decisions.
+
+#### Other stdin events
+
 | Event            | Shape                                                                                                                                         | Notes                                                                                                                                                            |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | capability hello | `{"type":"hello","protocol_version":int?,"min_protocol_version":int?,"features":[str...]?}`                                                   | optional first line; negotiates a common level — see 1.2.2. CLI replies `system/negotiated`                                                                      |
