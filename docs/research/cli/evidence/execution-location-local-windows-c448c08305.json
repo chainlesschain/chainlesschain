@@ -1,0 +1,101 @@
+{
+  "schema": "chainlesschain.local-execution-location-smoke-receipt/v1",
+  "releaseEligible": false,
+  "source": {
+    "commit": "c448c08305fa05e3df7abecd6875234f988fe2f5",
+    "cleanAtRunStart": true,
+    "cleanAtIndependentVerification": false
+  },
+  "host": {
+    "operatingSystem": "win32",
+    "architecture": "x64"
+  },
+  "scope": "Two local trajectories, including reconnect, lifecycle faults and result return",
+  "target": "Temporary wrapper importing actual CLI; outage renames only the wrapper",
+  "deployment": "Ephemeral signed Chat fixture, no provider request or source credentials transferred",
+  "artifactRoot": "C:/Users/longfa/AppData/Local/Temp/cc-location-smoke-ryhSCl/artifacts",
+  "manifest": {
+    "files": {
+      "bootstrap.json": {
+        "bytes": 440,
+        "sha256": "sha256:cab7b7dcdc5383157210d26adc31a6cf714822acac2123b85c2a74c72ca6d42b"
+      },
+      "campaign.json": {
+        "bytes": 2076,
+        "sha256": "sha256:cac28a1c3b8600ed00474b7d0b35f515ee1ca9c27cb6f4ea5356dbfcdaf4d734"
+      },
+      "exact-commit.json": {
+        "bytes": 146,
+        "sha256": "sha256:35e3a5b800f39493cdef079e352860e4e778694f5cab4682f610f02fc998b588"
+      },
+      "lifecycle-faults.json": {
+        "bytes": 1978,
+        "sha256": "sha256:c6e016d2a20e99215d6b3d6981367cc924b3eef8c247bff84d6109cdf58fa4e5"
+      },
+      "network-fault.json": {
+        "bytes": 415,
+        "sha256": "sha256:eca7f1c01984198609280ecf07d43723a09ba398e076e54133b183ef5cc5d975"
+      },
+      "outcome-observations.json": {
+        "bytes": 886,
+        "sha256": "sha256:07dda37097469ecf00e75572c0ac558d8e18ebdc7fc8740c0e87fb44ae1f531a"
+      },
+      "provenance.json": {
+        "bytes": 342,
+        "sha256": "sha256:723760641cf614b713acf986e6e0bfbb960d0eaa4aafec94e79be27867245f01"
+      },
+      "reconnect-completed.json": {
+        "bytes": 2137,
+        "sha256": "sha256:2b18fac1a145016e18d78acc472dd2e2a4d4aab6c91bc69a622e9e6a15d68cab"
+      },
+      "reconnect-prepared.json": {
+        "bytes": 525,
+        "sha256": "sha256:dedb4e83b5e99c8e2293bfac7a59ecf920b04b229ca088c48dafd184348894aa"
+      }
+    },
+    "releaseCommit": "c448c08305fa05e3df7abecd6875234f988fe2f5",
+    "schema": "chainlesschain.execution-location-manifest.v1",
+    "transport": "local"
+  },
+  "manifestSha256": "sha256:0f15a84c7752749d5f61522711df38161257f67eb65f009c0ee447db21522663",
+  "outcome": {
+    "checkoutFailureParkCount": 1,
+    "duplicateHandoffCount": 0,
+    "duplicateResultSettlementCount": 0,
+    "exactCommitBound": true,
+    "injectedOutageCount": 1,
+    "launchCount": 2,
+    "lostPollParkCount": 1,
+    "orphanProcessCount": 0,
+    "postSessionHookCount": 2,
+    "reclaimCount": 2,
+    "reconnectCount": 1,
+    "releaseCommit": "c448c08305fa05e3df7abecd6875234f988fe2f5",
+    "resultCollectCount": 2,
+    "resultImportCount": 2,
+    "resultReviewCount": 2,
+    "resumeCount": 3,
+    "schema": "chainlesschain.execution-location-outcome.v1",
+    "secretTransferCount": 0,
+    "sigtermCapability": "unsupported-terminate-process",
+    "sigtermDrainCount": 2,
+    "sigtermSignalDeliveryCount": 0,
+    "silentFallbackCount": 0,
+    "sourceFencedDrainCount": 1,
+    "staleAuthorityAcceptanceCount": 0,
+    "success": true,
+    "targetResourceParkCount": 2,
+    "targetResourceTerminationCount": 2,
+    "tokenRotationCount": 1,
+    "trajectoryCount": 2,
+    "transport": "local",
+    "unavailableProbeFailureCount": 1,
+    "unexpectedUnsupportedSigtermCount": 0
+  },
+  "limitations": [
+    "Two trajectories do not meet the 100-trajectory release gate",
+    "Windows local transport only; CI prepare failure remains unresolved",
+    "SIGTERM is correctly unsupported-terminate-process on Windows; source-fenced drain is separate"
+  ],
+  "receiptDigest": "sha256:252c153225acb4b5506fbd0ade6d15433cdebd49fbdf945c7ad8df27e1e05945"
+}

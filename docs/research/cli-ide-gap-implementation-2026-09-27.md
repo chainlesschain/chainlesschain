@@ -68,6 +68,22 @@ Execution Location 的依赖安装已通过，后续 Linux/SSH/WSL 日志显示 
 
 第二轮 VS Code ARM64 Linux 的两阶段 DOM relay 已执行成功，但聚合缺少 `initial-permission-dom.txt`：上一批仅修正 CDP 分支，relay 仍把快照写入限定于 canonical 模式。现在两种模式均保存原始观察快照，明确使用 artifactDir 而非 trace 文件所在目录；测试同时要求权限快照不含尚未出现的 interrupt。69 项真实驱动/runner 模拟回归通过，远端宿主待重跑。
 
+### 第三轮平台修复与普通宿主复验
+
+`c448c08305` 的远端 Linux/Windows Accessibility/Performance 已通过，JetBrains Linux ARM64 的 2024.2 / 2025.2 也已通过；CLI Strict Sandbox 三系统和 Local Linux 100 次迁移随后通过。其余排队或运行中的作业仍按对应 SHA 收集，不能将旧截图中的失败数作为当前缺陷数。版本检查继续保留失败，未升版本或发布。
+
+该提交的 Windows IntelliJ 2024.2 普通控制旅程 initial/restart 均通过：[本地回执](./ide/evidence/jetbrains-control-windows-c448c08305.json) 独立复核 44 个产物长度/摘要，重新检查 rewind、模型设置与 Workbench 协议，并验证 100 个可见性样本。模型与输入回执为合成夹具，不替代 canonical 存储验收；收集目录包含旧共享截图，旧截图不作为本次成功证据。运行开始时源码干净，独立复核时已有后续未提交修复，回执明确区分两者。
+
+同一干净提交的 Windows local [缩小迁移冒烟](./cli/evidence/execution-location-local-windows-c448c08305.json) 完成 prepare、断连/重连、生命周期故障、结果收集/审查/导入和 finalize，共 2 条轨迹；9 个产物哈希/长度复核通过。秘密转移、重复 handoff/settlement、孤儿进程、过期授权接受和静默 fallback 均为 0。此结果不满足 100 次门槛，也没有确定 Windows CI prepare 失败原因。
+
+| 失败类别 | 已核实原因与处理 | 验证与剩余条件 |
+| --- | --- | --- |
+| Container target provisioning | Docker exec 默认从 `/` 启动，使 home 防护将临时 home 视为工作目录后代而正确拒绝；测试部署配置改用已知仓库路径作为 cwd | 真实子进程从文件系统根启动配置 Chat 部署通过；保持仓库外 home 和签名部署校验，远端 Container 待重跑 |
+| WSL1 ArtifactStore identity | 实机内核 `4.4.0-19041-Microsoft` 将 birthtime 回退为 ctime，创建子目录后该值变化而 dev/inode 未变 | 只在 Linux / 4.4 Microsoft 内核且两时间相等时不将该值作为创建身份；dev/inode、无链接、包含关系和句柄校验保留。Node 22.12.0 实机正常 start/complete 通过，目录替换、root/files/index 符号链接四负例仍拒绝；不宣称能防所有 inode reuse/ABA |
+| Windows target prepare | 本地两版 Node 和完整缩小流程未复现 CI 退出 1；现有上层错误丢弃目标输出，不能判断根因 | 增加固定枚举失败类别，不回传目标 stdout/stderr、路径或参数，不影响授权/重试决策。12 类回归含秘密哨兵，相关目标/监督器共 34 项通过；等待远端类别后继续修复，不能标为已解决 |
+
+ArtifactStore、WSL1 身份、根目录启动的 Chat 部署、迁移合同共 4 文件 58 项通过、1 项 Windows 符号链接测试按既有条件跳过；上述 WSL1 实机负例补充验证了实际符号链接拒绝。修改源 ESLint 通过。迁移证据的 producer 清单补入部署 helper、签名测试夹具、session resume 和 ArtifactStore 身份依赖，后续最终提交须重新取得完整矩阵。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。

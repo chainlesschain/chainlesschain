@@ -339,6 +339,57 @@ describe("execution location target launch and resume", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it.each([
+    ["session replica stdin is empty", "stdin-empty"],
+    [
+      "EAGAIN: resource temporarily unavailable, read",
+      "stdin-read-unavailable",
+    ],
+    ["local target stdin file changed while opening", "stdin-identity"],
+    [
+      "target facts changed before location handoff append",
+      "target-facts-changed",
+    ],
+    ["EPERM: operation not permitted", "filesystem-access"],
+    ["ENOENT: no such file or directory", "filesystem-missing"],
+    ["ERR_MODULE_NOT_FOUND", "module-load"],
+    ["Session transcript identity changed", "file-identity"],
+    ["Replica digest mismatch", "storage-integrity"],
+    ["requires an authenticated evolution ingress", "deployment-authority"],
+    ["Reached heap limit", "memory-limit"],
+    ["unrecognized target diagnostic", "unknown"],
+  ])(
+    "reports a fixed failure category for %s without exposing target content",
+    (diagnostic, category) => {
+      const secret = "target-private-session-and-credential-sentinel";
+      const spawnSync = vi.fn(() => ({
+        status: 1,
+        stdout: secret,
+        stderr: `${diagnostic}: ${secret}`,
+      }));
+      let failure;
+      try {
+        attestExecutionLocationTarget(
+          { profile: rawProfile(), handoff: handoff() },
+          { spawnSync },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({
+        code: "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED",
+        failureCategory: category,
+      });
+      expect(failure.message).toBe(
+        `target command failed with status 1 (${category})`,
+      );
+      expect(JSON.stringify(failure)).not.toContain(secret);
+      expect(failure.stack).not.toContain(secret);
+      expect(failure.cause).toBeUndefined();
+      expect(spawnSync).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("attests a fixed Docker target command and exposes stable facts separately from time", () => {
     const spawnSync = vi.fn(() =>
       success(JSON.stringify(currentProjection("container"))),
@@ -513,14 +564,13 @@ describe("execution location target launch and resume", () => {
     expect(ensurePrivateDirectory).toHaveBeenCalledTimes(
       prepared.directories.length,
     );
-    expect(ensurePrivateDirectory).toHaveBeenCalledWith(
-      prepared.stateHome,
-      { applyWindowsAcl: false, failIfUnavailable: true },
-    );
-    expect(repairPrivatePaths).toHaveBeenCalledWith(
-      prepared.directories,
-      { platform: "win32" },
-    );
+    expect(ensurePrivateDirectory).toHaveBeenCalledWith(prepared.stateHome, {
+      applyWindowsAcl: false,
+      failIfUnavailable: true,
+    });
+    expect(repairPrivatePaths).toHaveBeenCalledWith(prepared.directories, {
+      platform: "win32",
+    });
   });
 
   it.each(["wsl", "container", "ssh"])(

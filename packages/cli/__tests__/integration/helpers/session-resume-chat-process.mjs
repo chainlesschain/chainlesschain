@@ -18,6 +18,9 @@ store.startSession("resume-auth-test", {
 store.appendUserMessage("resume-auth-test", "saved user input");
 store.appendAssistantMessage("resume-auth-test", "saved response");
 if (mode === "chat") {
+  // Container entrypoints may start at /. Resolve the profile relative to the
+  // known repository rather than treating every absolute home as a child of /.
+  process.chdir(path.parse(root).root);
   const { prepareTargetChatDeployment } =
     await import("../../../../../.github/scripts/prepare-ide-roadmap-location-deployment.mjs");
   await prepareTargetChatDeployment(path.join(root, "target-home"));

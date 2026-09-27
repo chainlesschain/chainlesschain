@@ -961,6 +961,40 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
   });
 }
 
+// Target output can contain session text, paths, or credentials. Report only
+// a fixed diagnostic category; this is never an authorization/retry decision.
+function targetCommandFailureCategory(result) {
+  const stderr = String(result?.stderr || "").slice(0, MAX_PROBE_BYTES);
+  const categories = [
+    ["stdin-empty", /session replica stdin is empty/u],
+    ["stdin-read-unavailable", /(?:EAGAIN|EINVAL)[^\r\n]*read/u],
+    ["stdin-identity", /local target stdin file (?:is invalid|changed)/u],
+    [
+      "target-facts-changed",
+      /target facts changed before location handoff append/u,
+    ],
+    ["filesystem-access", /\b(?:EACCES|EPERM)\b|Access is denied/iu],
+    ["filesystem-missing", /\bENOENT\b/u],
+    ["module-load", /\b(?:ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND)\b/u],
+    [
+      "file-identity",
+      /(?:identity changed|pathname and descriptor identities differ|physical, non-symlink|single-link file)/u,
+    ],
+    [
+      "storage-integrity",
+      /(?:[Aa]nti-rollback|[Tt]ranscript digest|[Hh]ash chain|[Aa]nchor|[Rr]eplica)[^\r\n]*(?:invalid|mismatch|failed|conflict)/u,
+    ],
+    [
+      "deployment-authority",
+      /(?:authenticated evolution ingress|evolution deployment)/u,
+    ],
+    ["memory-limit", /heap out of memory|Reached heap limit/iu],
+  ];
+  return (
+    categories.find(([, pattern]) => pattern.test(stderr))?.[0] || "unknown"
+  );
+}
+
 function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
   const invocation = targetInvocation(profile, cliArgs, deps, options);
   const spawnSync =
@@ -1010,10 +1044,12 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     });
     if (result?.error) throw result.error;
     if (!result || result.status !== 0) {
+      const failureCategory = targetCommandFailureCategory(result);
       const error = new Error(
-        `target command failed with status ${result?.status ?? "unknown"}`,
+        `target command failed with status ${result?.status ?? "unknown"} (${failureCategory})`,
       );
       error.code = "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED";
+      error.failureCategory = failureCategory;
       throw error;
     }
     return options.interactive ? null : result.stdout;

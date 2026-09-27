@@ -32,7 +32,7 @@ export async function prepareTargetChatDeployment(targetHome) {
       descriptorPath: deployment.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR,
       trustRootPath: deployment.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT,
     },
-    { env: { ...process.env, CHAINLESSCHAIN_HOME: cliHome } },
+    { cwd: repository, env: { ...process.env, CHAINLESSCHAIN_HOME: cliHome } },
   );
 }
 

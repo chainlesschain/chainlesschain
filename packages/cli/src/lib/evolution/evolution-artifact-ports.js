@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
 import { ArtifactStore } from "../artifact-store.js";
+import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
@@ -1060,19 +1061,12 @@ function isContained(root, candidate) {
   );
 }
 
-function physicalIdentity(stat) {
-  return Object.freeze({
-    birthtimeMs: Number(stat.birthtimeMs),
-    dev: String(stat.dev),
-    ino: String(stat.ino),
-  });
-}
-
 function samePhysicalIdentity(stat, expected) {
+  const actual = physicalIdentity(stat);
   return (
-    String(stat.dev) === expected.dev &&
-    String(stat.ino) === expected.ino &&
-    Number(stat.birthtimeMs) === expected.birthtimeMs
+    actual.dev === expected.dev &&
+    actual.ino === expected.ino &&
+    actual.birthtimeMs === expected.birthtimeMs
   );
 }
 

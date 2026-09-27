@@ -1,0 +1,106 @@
+{
+  "schema": "chainlesschain.local-ide-control-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "c448c08305fa05e3df7abecd6875234f988fe2f5",
+    "cleanAtRunStart": true,
+    "cleanAtIndependentVerification": false
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.4.139",
+  "startedAt": "2026-09-27T13:56:11.867Z",
+  "finishedAt": "2026-09-27T14:07:20.338Z",
+  "model": "deterministic fixture",
+  "inputReceipts": "synthetic isolated disk fixture; not canonical transcript acceptance",
+  "evidence": {
+    "digest": "sha256:faf3ac8163c01592c4cbe0c39b6f76c3dcad173e5913332b3376be1a3759eb71",
+    "artifactBundleDigest": "sha256:bed6c89e879332cef45553fec758ec6f28c4ac4115fad64d5efb118e739fa1e1",
+    "artifactsVerified": 44,
+    "bundleLocation": ".tmp/jetbrains-control-c448c08305",
+    "aggregateAssertionsRevalidated": true
+  },
+  "archiveSha256": "sha256:e57545ef4bdf9ddbaef7ed9e4f5896fe0e1af0e0ceb7f50ef9982caed8f6c556",
+  "phases": [
+    {
+      "phase": "initial",
+      "attempt": 1,
+      "processId": 25072,
+      "startedAt": "2026-09-27T13:56:46.862Z",
+      "completedAt": "2026-09-27T14:06:11.755Z"
+    },
+    {
+      "phase": "restart",
+      "attempt": 1,
+      "processId": 28292,
+      "startedAt": "2026-09-27T14:06:12.566Z",
+      "completedAt": "2026-09-27T14:07:19.545Z"
+    }
+  ],
+  "verification": {
+    "rewind": {
+      "timelineReads": 6,
+      "actions": [
+        "restore-code",
+        "restore-conversation",
+        "restore-both",
+        "summary-from",
+        "summary-to",
+        "branch"
+      ],
+      "coverage": "partial"
+    },
+    "model": {
+      "saves": 1,
+      "savedReads": 6,
+      "tests": 1,
+      "existingSessionReload": true,
+      "ideRestart": true,
+      "unsavedChangesDiscarded": true,
+      "providerEvidence": "deterministic keyless fixture"
+    },
+    "workbench": {
+      "samples": 100,
+      "readinessSamples": 40,
+      "warmupSamples": 40,
+      "finalReply": 1816,
+      "recoveredProjection": 1818,
+      "coverage": "canonical-workbench-restart"
+    },
+    "visibility": {
+      "samples": 100,
+      "minLatencyMs": 707,
+      "maxLatencyMs": 1923,
+      "p95LatencyMs": 1349,
+      "thresholdMs": 2000,
+      "readinessSamples": 40,
+      "readinessMinimumSamples": 40,
+      "readinessMaximumSamples": 75,
+      "readinessConsecutiveSamples": 10,
+      "quiescenceStableProbes": 4,
+      "warmupSamples": 40,
+      "networkCondition": "loopback fixture; no external network",
+      "transport": "installed-plugin-remote-robot-production-route",
+      "runnerEnvironment": "local",
+      "runnerName": null,
+      "runnerOS": "win32",
+      "runnerArch": "x64",
+      "runnerImageOS": null,
+      "runnerImageVersion": null
+    }
+  },
+  "limitations": [
+    "Windows x64 / IntelliJ 2024.2 ordinary control journey only",
+    "Protocol, model and input receipts use deterministic fixtures",
+    "Hash verification covers every collected file; collection includes older shared screenshots, which are not evidence of this run",
+    "Does not establish a real-provider, human accessibility, final-release-SHA or cross-platform pass"
+  ],
+  "receiptDigest": "sha256:771c0205dd8fe27d6d31016315a90321b6c26bff739dc1da34175ebac48f2564"
+}
