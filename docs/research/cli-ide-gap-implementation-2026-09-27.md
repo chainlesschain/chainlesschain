@@ -585,3 +585,5 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 扩大 10 文件回归：WSL 466 项通过、9 项平台跳过；Windows 467 项通过、8 项 Linux 场景跳过。覆盖原沙箱、工作区事务、AgentRouter 准入及 bridge 生命周期。真实 Linux 强杀监督器场景要求后代仍活着时在 ready 后 2 秒内返回失败，并验证没有 close、未释放句柄、新池执行被 Broker 拒绝；夹具自退出后仍保持隔离。ESLint 无新增错误或 warning（3 个既有文件共 11 个 unused warning），Prettier、diff 和进程调用清单检查通过。
 
 此阻断仅在当前运行时内有效，诊断明确 `durable:false`、`restartSafe:false`，**重启不能当作已清理或安全恢复**。持久隔离、跨重启恢复、监督器死亡后的实际后代回收及其他平台仍未完成。原始报告快照、20 组任务统计与生产 AgentRouter attestation gate 保持不变；未升版本、未发布。用户链接的 Workspace Publish Staleness 仍需候选版本冻结时修正 SDK / VS Code 版本及下游依赖；最新托管 CI 仍在等待，不据此称 Actions 全部修复。
+
+干净 `915653abfa` 的[独立回执](./cli/evidence/process-ownership-quarantine-windows-wsl-915653abfa.json)记录 Windows 117 项通过 / 8 项 Linux 跳过、WSL 125 项通过及 8 个真实进程场景。重新读取两个原始测试报告，并将 17 个源码/测试/清单文件逐项与该提交 Git blob 比较。监督器强杀后，仍有一个后代执行时在 ready 后 2.81 ms 返回 `quarantined`；没有 close、未释放句柄，Broker 继续阻断。回执 SHA-256 为 `f685a617531d30006836c5ee8c75ed7cb2dd5aafb7f3e864d628b1d616644fe9`。该验证不证明异常后代已被强制回收，也不扩展到持久恢复或最终托管矩阵。
