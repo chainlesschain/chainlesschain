@@ -146,6 +146,23 @@ function buildOrchestrator({
 // ─── Basic task lifecycle ─────────────────────────────────────────
 
 describe("Orchestrator: task lifecycle", () => {
+  it("rejects CLI-only routing before model work, notifications and Run creation", async () => {
+    const composition = vi.fn();
+    const notifyStart = vi.fn();
+    const orch = new Orchestrator({
+      agents: { backends: [{ type: "claude" }, { type: "codex" }] },
+      notifier: { isConfigured: true, notifyStart },
+      evolutionCompositionFactory: composition,
+    });
+    const decompose = vi.spyOn(orch, "_decompose");
+    await expect(orch.addTask("fix this")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+    expect(decompose).not.toHaveBeenCalled();
+    expect(composition).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+    expect(orch._tasks.size).toBe(0);
+  });
   let originalBridgeDeps;
   let originalOrchDeps;
 

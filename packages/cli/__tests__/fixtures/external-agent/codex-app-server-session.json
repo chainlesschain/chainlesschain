@@ -1,7 +1,109 @@
 [
-  {"jsonrpc":"2.0","method":"thread/started","params":{"thread":{"id":"codex-thread-1"}}},
-  {"jsonrpc":"2.0","method":"turn/started","params":{"turn":{"id":"codex-turn-1","threadId":"codex-thread-1","status":"running"}}},
-  {"jsonrpc":"2.0","method":"item/completed","params":{"item":{"id":"item-1","type":"agent_message","text":"App Server result"}}},
-  {"jsonrpc":"2.0","method":"future/telemetry","params":{"value":1}},
-  {"jsonrpc":"2.0","method":"turn/completed","params":{"turn":{"id":"codex-turn-1","status":"completed"},"usage":{"input_tokens":20,"output_tokens":4}}}
+  {
+    "jsonrpc": "2.0",
+    "method": "thread/started",
+    "params": { "thread": { "id": "codex-thread-1" } }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "turn/started",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turn": {
+        "id": "codex-turn-1",
+        "status": "inProgress",
+        "items": [],
+        "error": null
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "item/started",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "item": { "id": "item-1", "type": "agentMessage", "text": "" }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "itemId": "item-1",
+      "delta": "App Server "
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "itemId": "item-1",
+      "delta": "result"
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "item/completed",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "item": {
+        "id": "item-1",
+        "type": "agentMessage",
+        "text": "App Server result"
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "future/telemetry",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "value": 1
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "thread/tokenUsage/updated",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turnId": "codex-turn-1",
+      "tokenUsage": {
+        "last": {
+          "inputTokens": 20,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "reasoningOutputTokens": 0,
+          "totalTokens": 24
+        },
+        "total": {
+          "inputTokens": 20,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "reasoningOutputTokens": 0,
+          "totalTokens": 24
+        },
+        "modelContextWindow": null
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "turn/completed",
+    "params": {
+      "threadId": "codex-thread-1",
+      "turn": {
+        "id": "codex-turn-1",
+        "status": "completed",
+        "items": [],
+        "error": null
+      }
+    }
+  }
 ]

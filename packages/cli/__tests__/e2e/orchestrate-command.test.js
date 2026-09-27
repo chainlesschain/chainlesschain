@@ -107,6 +107,27 @@ describe("E2E: orchestrate --help", () => {
 // ─── detect sub-command ───────────────────────────────────────────
 
 describe("E2E: orchestrate detect", () => {
+  it("reports JSON admission separately from CLI installation", () => {
+    const out = run("orchestrate detect --json");
+    const parsed = JSON.parse(out);
+    expect(parsed.backends).toHaveLength(2);
+    expect(
+      parsed.backends.every(
+        (b) => b.runnable === false && b.governanceAdmitted === false,
+      ),
+    ).toBe(true);
+    expect(parsed.alternative).toBe("cc agent");
+  });
+
+  it("honors explicit CLI selection and stops at preflight", () => {
+    const result = tryRun(
+      'orchestrate "test preflight" --cli-tool codex --json --no-notify --no-ci',
+    );
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stdout + result.stderr).toContain(
+      "per-request model governance",
+    );
+  });
   it("shows AI CLI detection header", () => {
     const out = tryRun("orchestrate detect");
     expect(out.stdout).toContain("AI CLI Detection");

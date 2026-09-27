@@ -159,6 +159,9 @@ export class ClaudeCodeAgent extends EventEmitter {
    * @returns {Promise<{success, output, exitCode, duration, taskId}>}
    */
   async executeTask(taskDescription, options = {}) {
+    if (this.status === AGENT_STATUS.RUNNING) {
+      throw new Error("External agent already has a running task");
+    }
     const {
       cwd = process.cwd(),
       timeout = 300_000,
@@ -174,7 +177,29 @@ export class ClaudeCodeAgent extends EventEmitter {
 
     this.status = AGENT_STATUS.RUNNING;
     this.currentTask = taskDescription;
+    this._cancelRequested = false;
     this.emit("task:start", { agentId: this.id, task: taskDescription });
+    if (this._cancelRequested) {
+      this.status = AGENT_STATUS.CANCELLED;
+      this.currentTask = null;
+      const result = {
+        success: false,
+        status: AGENT_STATUS.CANCELLED,
+        output: "",
+        exitCode: -1,
+        duration: 0,
+        timedOut: false,
+        cancelled: true,
+        agentId: this.id,
+        error: "External agent was cancelled before spawn",
+        errorCode: EXTERNAL_AGENT_ERROR.CANCELLED,
+        protocol: this.adapter.capabilities().protocol,
+        runtimeClaims: VALIDATION_ONLY_CLAIMS,
+        terminalEvidence: [],
+      };
+      this.emit("task:complete", result);
+      return result;
+    }
 
     let args;
     try {
@@ -201,8 +226,6 @@ export class ClaudeCodeAgent extends EventEmitter {
       return result;
     }
 
-    this._cancelRequested = false;
-
     return new Promise((resolve) => {
       const startTime = Date.now();
       const outputChunks = [];
@@ -213,6 +236,65 @@ export class ClaudeCodeAgent extends EventEmitter {
       const outDecoder = new TextDecoder("utf-8");
       const errDecoder = new TextDecoder("utf-8");
       let timedOut = false;
+      let finalized = false;
+      let stopping = false;
+      let proc = null;
+      let timer = null;
+      let killTimer = null;
+      let processError = null;
+      const finalize = (result) => {
+        if (finalized) return;
+        finalized = true;
+        clearTimeout(timer);
+        clearTimeout(killTimer);
+        this._proc = null;
+        this._stop = null;
+        this.currentTask = null;
+        this.emit("task:complete", result);
+        resolve(result);
+      };
+      const failSpawn = (err) => {
+        if (finalized) return;
+        this.status = AGENT_STATUS.FAILED;
+        finalize({
+          success: false,
+          status: "failed",
+          output: "",
+          exitCode: -1,
+          duration: Date.now() - startTime,
+          timedOut,
+          cancelled: this._cancelRequested && !timedOut,
+          agentId: this.id,
+          error: err.message,
+          errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+          protocol: this.adapter.capabilities().protocol,
+          runtimeClaims: REAL_EXECUTION_CLAIMS,
+          terminalEvidence: [],
+        });
+      };
+      const stop = () => {
+        if (finalized || stopping) return;
+        stopping = true;
+        clearTimeout(timer);
+        // Schedule before TERM: a child can close synchronously in adapters.
+        // Use the broker's child handle (including its sandbox supervisor),
+        // never a delayed numeric PID which may have been reused.
+        killTimer = setTimeout(() => {
+          if (!finalized) {
+            try {
+              proc.kill("SIGKILL");
+            } catch (err) {
+              processError = err;
+            }
+          }
+        }, killGraceMs);
+        killTimer.unref?.();
+        try {
+          proc.kill("SIGTERM");
+        } catch (err) {
+          processError = err;
+        }
+      };
       // Tail-bounded byte counters for the two buffers (see MAX_AGENT_OUTPUT_BYTES).
       let outBytes = 0;
       let errBytes = 0;
@@ -227,33 +309,35 @@ export class ClaudeCodeAgent extends EventEmitter {
         return bytes;
       };
 
-      const proc = _deps.spawn(this.adapter.command, args, {
-        cwd,
-        env: { ...process.env },
-        windowsHide: true,
-        origin: "claude-code-bridge:agent",
-        policy: "allow",
-        scope: "orchestrator",
-        shell: false,
-      });
+      try {
+        proc = _deps.spawn(this.adapter.command, args, {
+          cwd,
+          env: { ...process.env },
+          windowsHide: true,
+          origin: "claude-code-bridge:agent",
+          policy: "allow",
+          scope: "orchestrator",
+          shell: false,
+        });
+      } catch (err) {
+        failSpawn(err);
+        return;
+      }
       this._proc = proc;
+      this._stop = stop;
 
       // SIGKILL-escalation timer is hoisted so the close/error handlers can
       // clear it — otherwise, when the process dies promptly from SIGTERM, this
       // inner timer still fires a redundant SIGKILL on a dead pid AND holds the
       // event loop open for the full grace period. unref() is a second guard so
       // it never keeps the process alive on its own.
-      let killTimer = null;
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         timedOut = true;
-        proc.kill("SIGTERM");
-        killTimer = setTimeout(() => proc.kill("SIGKILL"), killGraceMs);
-        if (killTimer && typeof killTimer.unref === "function") {
-          killTimer.unref();
-        }
+        stop();
       }, timeout);
 
       proc.stdout.on("data", (data) => {
+        if (finalized) return;
         const chunk =
           typeof data === "string"
             ? data
@@ -270,6 +354,7 @@ export class ClaudeCodeAgent extends EventEmitter {
       });
 
       proc.stderr.on("data", (data) => {
+        if (finalized) return;
         const chunk =
           typeof data === "string"
             ? data
@@ -282,18 +367,23 @@ export class ClaudeCodeAgent extends EventEmitter {
       });
 
       proc.on("close", (code) => {
-        clearTimeout(timer);
-        if (killTimer) clearTimeout(killTimer);
-        this._proc = null;
+        if (finalized) return;
         const duration = Date.now() - startTime;
         const rawOutput = outputChunks.join("");
         const cancelled = this._cancelRequested && !timedOut;
-        const projection = this.adapter.parseTranscript(rawOutput);
+        let projection;
+        try {
+          projection = this.adapter.parseTranscript(rawOutput);
+        } catch (err) {
+          projection = { terminal: "failed", error: err.message };
+        }
         const missingTerminal =
           this.adapter.capabilities().requiresTerminalEvent &&
           projection.terminal === null;
         const protocolFailed =
-          projection.terminal === "failed" || missingTerminal;
+          projection.terminal === "failed" ||
+          missingTerminal ||
+          Boolean(processError);
         const status = timedOut
           ? AGENT_STATUS.TIMEOUT
           : cancelled
@@ -356,7 +446,8 @@ export class ClaudeCodeAgent extends EventEmitter {
           stderr: errorChunks.join("").slice(-2000),
           error: success
             ? undefined
-            : projection.error ||
+            : processError?.message ||
+              projection.error ||
               (missingTerminal
                 ? "External agent JSONL stream ended without a terminal event"
                 : null) ||
@@ -376,42 +467,28 @@ export class ClaudeCodeAgent extends EventEmitter {
           terminalEvidence,
         };
 
-        this.emit("task:complete", result);
-        resolve(result);
+        finalize(result);
       });
 
       proc.on("error", (err) => {
-        clearTimeout(timer);
-        if (killTimer) clearTimeout(killTimer);
-        this._proc = null;
-        this.status = AGENT_STATUS.FAILED;
-        this.currentTask = null;
-        const result = {
-          success: false,
-          status: "failed",
-          output: "",
-          exitCode: -1,
-          duration: Date.now() - startTime,
-          timedOut: false,
-          cancelled: false,
-          agentId: this.id,
-          error: err.message,
-          errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
-          protocol: this.adapter.capabilities().protocol,
-          runtimeClaims: REAL_EXECUTION_CLAIMS,
-          terminalEvidence: [],
-        };
-        this.emit("task:complete", result);
-        resolve(result);
+        if (finalized) return;
+        // A post-spawn error (e.g. signal failure) is not proof of exit.
+        // Retain ownership and wait for close, escalating cancellation.
+        if (proc.pid && proc.exitCode == null && proc.signalCode == null) {
+          processError = err;
+          stop();
+        } else {
+          failSpawn(err);
+        }
       });
     });
   }
 
   /** Abort the currently running task. */
   abort() {
-    if (this._proc) {
+    if (this.status === AGENT_STATUS.RUNNING) {
       this._cancelRequested = true;
-      this._proc.kill("SIGTERM");
+      this._stop?.();
     }
   }
 

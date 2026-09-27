@@ -39,6 +39,39 @@ function projectNotification(notification) {
   if (method === "turn/started") {
     return { method: "turn/started", params: { turn: params.turn } };
   }
+  const deltaKinds = {
+    "item/agentMessage/delta": "assistant_message",
+    "item/commandExecution/outputDelta": "tool",
+    "item/fileChange/outputDelta": "tool",
+    "item/reasoning/textDelta": "reasoning",
+    "item/reasoning/summaryTextDelta": "reasoning",
+  };
+  if (Object.hasOwn(deltaKinds, method)) {
+    return {
+      method: "item/delta",
+      params: {
+        item: {
+          id: params.itemId,
+          kind: deltaKinds[method],
+          status: "streaming",
+          delta: params.delta || "",
+        },
+      },
+      ...(method === "item/agentMessage/delta"
+        ? {
+            outputDelta: String(params.delta || ""),
+            outputItemId: params.itemId,
+          }
+        : {}),
+    };
+  }
+  if (method === "thread/tokenUsage/updated") {
+    return {
+      method: "thread/usage",
+      params: { tokenUsage: params.tokenUsage },
+      usage: params.tokenUsage?.last || null,
+    };
+  }
   if (["item/started", "item/updated", "item/completed"].includes(method)) {
     const item = params.item || {};
     const status = method === "item/completed" ? "completed" : "streaming";
@@ -48,12 +81,11 @@ function projectNotification(notification) {
         item: {
           id: item.id,
           kind:
-            item.type === "agent_message"
+            item.type === "agentMessage"
               ? "assistant_message"
               : item.type === "reasoning"
                 ? "reasoning"
-                : item.type === "command_execution" ||
-                    item.type === "file_change"
+                : item.type === "commandExecution" || item.type === "fileChange"
                   ? "tool"
                   : "artifact",
           status,
@@ -61,9 +93,10 @@ function projectNotification(notification) {
         },
       },
       output:
-        method === "item/completed" && item.type === "agent_message"
+        method === "item/completed" && item.type === "agentMessage"
           ? String(item.text || "")
-          : "",
+          : undefined,
+      outputItemId: item.id,
     };
   }
   if (method === "turn/completed" || method === "turn/failed") {
@@ -160,44 +193,97 @@ export class CodexAppServerAdapter extends EventEmitter {
     }
     const notifications = [];
     const unknownMethods = new Set();
-    let output = "";
+    const outputItems = new Map();
+    let usage = null;
     let activeThreadId = threadId;
+    let activeTurnId = null;
     let submissionStarted = false;
     let admissionObserved = false;
     let observedTerminal = null;
     let terminalResolve;
-    let terminalReject;
-    const terminal = new Promise((resolve, reject) => {
+    const terminal = new Promise((resolve) => {
       terminalResolve = resolve;
-      terminalReject = reject;
     });
+    let deadlineReject;
+    const deadline = new Promise((_, reject) => {
+      deadlineReject = reject;
+    });
+    // Attach immediately: startup/RPC may hang or reject before terminal await.
+    deadline.catch(() => {});
     const timer = setTimeout(
       () =>
-        terminalReject(
+        deadlineReject(
           adapterError(
             "CC_CODEX_APP_SERVER_TIMEOUT",
-            "Codex App Server turn timed out after admission",
+            "Codex App Server request timed out",
           ),
         ),
       this.timeoutMs,
     );
     timer.unref?.();
+    const withinDeadline = (pending) => Promise.race([pending, deadline]);
+    let buffered = [];
+    let retainedBytes = 0;
+    let eventFailure = null;
+    const retain = (notification) => {
+      retainedBytes += Buffer.byteLength(JSON.stringify(notification));
+      if (
+        retainedBytes > 4 * 1024 * 1024 ||
+        notifications.length + buffered.length >= 4096
+      ) {
+        eventFailure = adapterError(
+          "CC_CODEX_APP_SERVER_EVENT_LIMIT",
+          "Codex App Server event retention limit exceeded",
+        );
+        deadlineReject(eventFailure);
+        return false;
+      }
+      return true;
+    };
     const onNotification = (notification) => {
+      if (observedTerminal || eventFailure || !submissionStarted) return;
+      const params = notification?.params || {};
+      const eventThread =
+        params.threadId ||
+        (notification.method === "thread/started" ? params.thread?.id : null);
+      if (!eventThread || eventThread !== activeThreadId) return;
+      if (!activeTurnId) {
+        if (retain(notification)) buffered.push(notification);
+        return;
+      }
+      const eventTurn = params.turnId || params.turn?.id;
+      // Thread-wide events carry no turn. Only thread/started is safe to
+      // project here; usage and terminal events require the exact turn ID.
+      if (
+        notification.method !== "thread/started" &&
+        eventTurn !== activeTurnId
+      )
+        return;
+      if (!retain(notification)) return;
       const projected = projectNotification(notification);
-      if (projected.unknownMethod) unknownMethods.add(projected.unknownMethod);
-      else {
+      if (projected.unknownMethod) {
+        if (unknownMethods.size < 64)
+          unknownMethods.add(projected.unknownMethod);
+      } else {
+        projected.params = {
+          ...projected.params,
+          threadId: activeThreadId,
+          turnId: activeTurnId,
+        };
         notifications.push(projected);
         this.emit("notification", projected);
       }
-      if (
-        submissionStarted &&
-        (projected.method === "turn/started" ||
-          projected.method?.startsWith("item/") ||
-          Boolean(projected.terminal))
-      ) {
-        admissionObserved = true;
+      if (projected.outputItemId) {
+        if (projected.output !== undefined)
+          outputItems.set(projected.outputItemId, projected.output);
+        else if (projected.outputDelta)
+          outputItems.set(
+            projected.outputItemId,
+            (outputItems.get(projected.outputItemId) || "") +
+              projected.outputDelta,
+          );
       }
-      if (projected.output) output = projected.output;
+      if (projected.usage) usage = projected.usage;
       if (projected.terminal) {
         observedTerminal = projected;
         terminalResolve(projected);
@@ -208,10 +294,11 @@ export class CodexAppServerAdapter extends EventEmitter {
       Object.freeze({
         protocol: CODEX_APP_SERVER_PROTOCOL,
         threadId: activeThreadId,
+        turnId: activeTurnId,
         terminal: terminalEvent.terminal,
-        output,
+        output: [...outputItems.values()].join("\n"),
         error: terminalEvent.error || null,
-        usage: terminalEvent.usage || null,
+        usage: terminalEvent.usage || usage,
         notifications: Object.freeze(notifications),
         unknownMethods: Object.freeze([...unknownMethods].sort()),
         fallback: false,
@@ -219,13 +306,14 @@ export class CodexAppServerAdapter extends EventEmitter {
       });
     try {
       if (!this.client.running && typeof this.client.start === "function") {
-        await this.client.start();
+        await withinDeadline(this.client.start());
       }
       if (!activeThreadId) {
-        const started = await this.client.request("thread/start", {
-          ephemeral: false,
-          provider: "codex",
-        });
+        const started = await withinDeadline(
+          this.client.request("thread/start", {
+            ephemeral: false,
+          }),
+        );
         activeThreadId = started?.thread?.id;
       }
       if (!activeThreadId) {
@@ -238,20 +326,49 @@ export class CodexAppServerAdapter extends EventEmitter {
       // the server did not accept the input. Never launch a second execution
       // path from that ambiguous state.
       submissionStarted = true;
-      const started = await this.client.request("turn/start", {
-        threadId: activeThreadId,
-        input: [{ type: "text", text: String(prompt || "") }],
-      });
+      const started = await withinDeadline(
+        this.client.request("turn/start", {
+          threadId: activeThreadId,
+          input: [{ type: "text", text: String(prompt || "") }],
+        }),
+      );
+      activeTurnId = started?.turn?.id;
+      if (typeof activeTurnId !== "string" || !activeTurnId) {
+        throw adapterError(
+          "CC_CODEX_APP_SERVER_PROTOCOL_FAILED",
+          "Codex App Server did not return a turn identity",
+        );
+      }
       admissionObserved = true;
+      if (eventFailure) throw eventFailure;
+      const early = buffered;
+      buffered = [];
+      retainedBytes = 0;
+      for (const notification of early) onNotification(notification);
+      if (eventFailure) throw eventFailure;
+      // Some servers finish before writing the RPC response, including items
+      // in the response without separate item notifications.
+      if (!observedTerminal)
+        for (const item of started.turn.items || []) {
+          onNotification({
+            method: "item/completed",
+            params: { threadId: activeThreadId, turnId: activeTurnId, item },
+          });
+        }
+      if (eventFailure) throw eventFailure;
       const initialStatus = String(started?.turn?.status || "");
       const terminalEvent = ["completed", "failed", "interrupted"].includes(
         initialStatus,
       )
         ? projectNotification({
             method: "turn/completed",
-            params: { turn: started.turn, usage: started.turn.usage || null },
+            params: {
+              threadId: activeThreadId,
+              turn: started.turn,
+              usage: started.turn.usage || null,
+            },
           })
-        : await terminal;
+        : await withinDeadline(terminal);
       return buildResult(terminalEvent);
     } catch (error) {
       if (!submissionStarted) {

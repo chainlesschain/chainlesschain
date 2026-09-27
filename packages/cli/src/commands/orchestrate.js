@@ -16,13 +16,42 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
 
+function agentOptions(options) {
+  if (options.cliTool && options.backends)
+    throw new Error("Choose --cli-tool or --backends, not both");
+  if (options.cliTool && !["claude", "codex"].includes(options.cliTool))
+    throw new Error("--cli-tool must be claude or codex");
+  const selected = options.backends || options.cliTool;
+  const config = { strategy: options.strategy || "round-robin" };
+  if (selected) {
+    const types = selected.split(",").map((s) => s.trim());
+    if (
+      types.some(
+        (type) =>
+          ![
+            "claude",
+            "codex",
+            "gemini",
+            "openai",
+            "anthropic",
+            "ollama",
+          ].includes(type),
+      )
+    ) {
+      throw new Error("Unknown orchestrate backend; see orchestrate --help");
+    }
+    config.backends = types.map((type) => ({ type, weight: 1 }));
+  }
+  return config;
+}
+
 export function registerOrchestrateCommand(program, dependencies = {}) {
   const evolutionCompositionFactory =
     dependencies.evolutionCompositionFactory ?? null;
   const cmd = program
     .command("orchestrate [task]")
     .description(
-      "Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify",
+      "Orchestrate AI coding tasks (experimental): API text generation only; external Claude/Codex execution is blocked pending governance admission. Use cc agent for tool execution.",
     )
     .option("-a, --agents <n>", "Max parallel agents", "3")
     .option(
@@ -41,10 +70,13 @@ export function registerOrchestrateCommand(program, dependencies = {}) {
     .option("--cwd <path>", "Project root directory (default: current dir)")
     .option("--provider <name>", "LLM provider for decomposition")
     .option("--model <name>", "Model for decomposition LLM calls")
-    .option("--cli-tool <name>", "Execution CLI: claude|codex (auto-detected)")
+    .option(
+      "--cli-tool <name>",
+      "Select claude|codex (currently blocked by governance preflight)",
+    )
     .option(
       "--backends <list>",
-      "Agent backends: claude,codex,gemini,openai,ollama (comma-separated)",
+      "Backends: claude,codex (blocked), gemini,openai,anthropic,ollama (text only)",
     )
     .option(
       "--strategy <name>",
@@ -89,26 +121,45 @@ export function registerOrchestrateCommand(program, dependencies = {}) {
         await import("../lib/claude-code-bridge.js");
       const claude = detectClaudeCode();
       const codex = detectCodex();
+      const { AgentRouter } = await import("../lib/agent-router.js");
+      const backends = new AgentRouter({
+        backends: [
+          { type: "claude", installed: claude.found },
+          { type: "codex", installed: codex.found },
+        ],
+      }).summary();
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            { cliTools: { claude, codex }, backends, alternative: "cc agent" },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
       console.log(chalk.bold("\n\uD83D\uDD0D AI CLI Detection\n"));
       console.log(
         claude.found
-          ? chalk.green(`  \u2713 claude  ${claude.version}`)
+          ? chalk.yellow(
+              `  claude  ${claude.version} — installed, execution blocked`,
+            )
           : chalk.red(
               "  \u2717 claude  not found (install: npm i -g @anthropic-ai/claude-code)",
             ),
       );
       console.log(
         codex.found
-          ? chalk.green(`  \u2713 codex   ${codex.version}`)
+          ? chalk.yellow(
+              `  codex   ${codex.version} — installed, execution blocked`,
+            )
           : chalk.gray("  \u2717 codex   not found"),
       );
-      if (!claude.found && !codex.found) {
-        console.log(
-          chalk.yellow(
-            "\n  \u26A0 No AI CLI found. Install Claude Code:\n    npm install -g @anthropic-ai/claude-code\n",
-          ),
-        );
-      }
+      console.log(
+        chalk.yellow(
+          "\n  External CLI model requests cannot be attested; installing a CLI does not enable execution. Use cc agent for tool execution.\n",
+        ),
+      );
       return;
     }
 
@@ -156,16 +207,7 @@ export function registerOrchestrateCommand(program, dependencies = {}) {
     }
 
     // Build agent backends from --backends option
-    let agentsConfig;
-    if (options.backends) {
-      const backendNames = options.backends.split(",").map((s) => s.trim());
-      agentsConfig = {
-        backends: backendNames.map((type) => ({ type, weight: 1 })),
-        strategy: options.strategy || "round-robin",
-      };
-    } else if (options.strategy && options.strategy !== "round-robin") {
-      agentsConfig = { strategy: options.strategy };
-    }
+    const agentsConfig = agentOptions(options);
 
     // Build orchestrator
     const orch = new Orchestrator({
@@ -471,11 +513,21 @@ async function _showStatus(cwd, options) {
       claude: claude.found ? claude.version : "not found",
       codex: codex.found ? codex.version : "not found",
     },
-    activeCliTool: claude.found ? "claude" : codex.found ? "codex" : "none",
+    activeCliTool: "none",
+    alternative: "cc agent",
   };
 
   const { AgentRouter } = await import("../lib/agent-router.js");
-  const router = AgentRouter.autoDetect();
+  const config = agentOptions(options);
+  const router = config.backends
+    ? new AgentRouter({
+        ...config,
+        backends: config.backends.map((b) => ({
+          ...b,
+          installed: { claude, codex }[b.type]?.found ?? null,
+        })),
+      })
+    : AgentRouter.autoDetect({ ...config, cliDetections: { claude, codex } });
   const backends = router.summary();
 
   if (options.json) {
@@ -498,9 +550,15 @@ async function _showStatus(cwd, options) {
   for (const b of backends) {
     const icon = b.kind === "cli" ? "🖥" : "🌐";
     console.log(
-      `    ${icon} ${chalk.cyan(b.type.padEnd(12))} ${chalk.gray(b.kind)}  weight:${b.weight}`,
+      `    ${icon} ${chalk.cyan(b.type.padEnd(12))} ${b.executionMode} — ${b.blockedReason}`,
     );
   }
+
+  console.log(
+    chalk.yellow(
+      "  Installed/configured does not mean runnable. Use cc agent for tool execution.",
+    ),
+  );
 
   console.log();
   console.log(chalk.bold("  Notification Channels"));
@@ -534,6 +592,7 @@ async function _webhookMode(cwd, options, evolutionCompositionFactory = null) {
 
   const orch = new Orchestrator({
     cwd,
+    agents: agentOptions(options),
     verbose: options.verbose,
     evolutionCompositionFactory,
   });
@@ -751,6 +810,7 @@ async function _watchMode(cwd, options, evolutionCompositionFactory = null) {
 
   const orch = new Orchestrator({
     cwd,
+    agents: agentOptions(options),
     verbose: options.verbose,
     evolutionCompositionFactory,
   });

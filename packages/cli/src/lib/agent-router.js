@@ -228,12 +228,14 @@ export class AgentRouter extends EventEmitter {
    */
   static autoDetect(options = {}) {
     const backends = [];
+    const claude = options.cliDetections?.claude || detectClaudeCode();
+    const codex = options.cliDetections?.codex || detectCodex();
 
-    if (detectClaudeCode().found) {
-      backends.push({ type: BACKEND_TYPE.CLAUDE, weight: 3 });
+    if (claude.found) {
+      backends.push({ type: BACKEND_TYPE.CLAUDE, weight: 3, installed: true });
     }
-    if (detectCodex().found) {
-      backends.push({ type: BACKEND_TYPE.CODEX, weight: 2 });
+    if (codex.found) {
+      backends.push({ type: BACKEND_TYPE.CODEX, weight: 2, installed: true });
     }
     if (process.env.GEMINI_API_KEY) {
       backends.push({ type: BACKEND_TYPE.GEMINI, weight: 2 });
@@ -263,7 +265,7 @@ export class AgentRouter extends EventEmitter {
     const { cwd = process.cwd() } = options;
     if (this._backends.length === 0) {
       throw new Error(
-        "No agent backends available. Install Claude Code: npm i -g @anthropic-ai/claude-code",
+        "No agent backends available. Use cc agent for tool execution; orchestrate API backends produce text only.",
       );
     }
     const evolutionIngress =
@@ -277,8 +279,7 @@ export class AgentRouter extends EventEmitter {
       error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
       throw error;
     }
-    const backends =
-      this._backends.filter((backend) => !backend.isCLI);
+    const backends = this._backends.filter((backend) => !backend.isCLI);
 
     if (backends.length === 0) {
       const error = new Error(
@@ -475,6 +476,7 @@ export class AgentRouter extends EventEmitter {
         return {
           type,
           isCLI: true,
+          installed: cfg.installed ?? null,
           weight: cfg.weight || 1,
           _pool: pool,
           timeout: cfg.timeout || 300_000,
@@ -530,7 +532,33 @@ export class AgentRouter extends EventEmitter {
       kind: b.isCLI ? "cli" : "api",
       provider: b.provider || b.type,
       weight: b.weight,
+      installed: b.isCLI ? (b.installed ?? null) : null,
+      configured: true,
+      governanceAdmitted: b.isCLI ? false : null,
+      requiresAuthenticatedRun: true,
+      dispatchable: !b.isCLI,
+      runnable: false,
+      executionMode: b.isCLI ? "blocked" : "text-only",
+      blockedReason: b.isCLI
+        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED
+        : "API_TEXT_ONLY_NO_TOOL_EXECUTION",
+      alternative: "cc agent",
     }));
+  }
+
+  /** Configuration preflight only; dispatch still authenticates each Run. */
+  assertDispatchAvailable() {
+    if (this._backends.some((backend) => !backend.isCLI)) return;
+    const error = new Error(
+      this._backends.length
+        ? "External Claude/Codex CLIs are blocked: per-request model governance is unattested. Use cc agent for tool execution."
+        : "No agent backends available. Use cc agent for tool execution.",
+    );
+    error.code = this._backends.length
+      ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED
+      : "AGENT_ROUTER_NO_BACKENDS";
+    error.backends = this.summary();
+    throw error;
   }
 }
 

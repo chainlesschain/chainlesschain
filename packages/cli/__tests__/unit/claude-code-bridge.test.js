@@ -269,6 +269,94 @@ describe("ClaudeCodeAgent", () => {
     expect(result.errorCode).toBe(EXTERNAL_AGENT_ERROR.SPAWN_FAILED);
   });
 
+  it("finalizes an error followed by close only once", async () => {
+    const proc = makeChildProcess({ errorMsg: "ENOENT" });
+    _deps.spawn = vi.fn(() => proc);
+    const agent = new ClaudeCodeAgent();
+    const complete = vi.fn();
+    agent.on("task:complete", complete);
+    const result = await agent.executeTask("task");
+    proc.emit("close", 0);
+    proc.emit("error", new Error("late error"));
+    expect(complete).toHaveBeenCalledExactlyOnceWith(result);
+    expect(agent.status).toBe(AGENT_STATUS.FAILED);
+  });
+
+  it("settles synchronous broker spawn rejection and can be reused", async () => {
+    _deps.spawn = vi.fn(() => {
+      throw new Error("broker rejected");
+    });
+    const agent = new ClaudeCodeAgent();
+    const complete = vi.fn();
+    agent.on("task:complete", complete);
+    expect(await agent.executeTask("task")).toMatchObject({
+      success: false,
+      errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+    });
+    expect(agent.currentTask).toBeNull();
+    _deps.spawn = vi.fn(() =>
+      makeChildProcess({ stdout: '{"type":"result","result":"ok"}\n' }),
+    );
+    expect((await agent.executeTask("next task")).success).toBe(true);
+    expect(complete).toHaveBeenCalledTimes(2);
+  });
+
+  it("escalates repeated abort once and does not signal a reused agent", async () => {
+    vi.useFakeTimers();
+    try {
+      const { EventEmitter } = require("events");
+      const proc = new EventEmitter();
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn((signal) => {
+        if (signal === "SIGKILL") proc.emit("close", null);
+      });
+      _deps.spawn = vi.fn(() => proc);
+      const agent = new ClaudeCodeAgent();
+      const complete = vi.fn();
+      agent.on("task:complete", complete);
+      const running = agent.executeTask("task", {
+        timeout: 100,
+        killGraceMs: 200,
+      });
+      await expect(agent.executeTask("overlapping task")).rejects.toThrow(
+        "already",
+      );
+      agent.abort();
+      agent.abort();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(await running).toMatchObject({ cancelled: true, timedOut: false });
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(proc.kill.mock.calls).toEqual([["SIGTERM"], ["SIGKILL"]]);
+      expect(complete).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("waits for close after a live child error", async () => {
+    const { EventEmitter } = require("events");
+    const proc = new EventEmitter();
+    proc.pid = 123;
+    proc.stdout = new EventEmitter();
+    proc.stderr = new EventEmitter();
+    proc.kill = vi.fn();
+    _deps.spawn = vi.fn(() => proc);
+    const agent = new ClaudeCodeAgent();
+    const complete = vi.fn();
+    agent.on("task:complete", complete);
+    const running = agent.executeTask("task");
+    proc.emit("error", new Error("transport failed"));
+    expect(complete).not.toHaveBeenCalled();
+    expect(proc.kill).toHaveBeenCalledWith("SIGTERM");
+    proc.emit("close", 0);
+    expect(await running).toMatchObject({
+      success: false,
+      error: "transport failed",
+    });
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
   it("prepends context to prompt when context is provided", async () => {
     _deps.spawn = vi.fn(() => makeChildProcess({ exitCode: 0 }));
     const agent = new ClaudeCodeAgent({ id: "a6" });
@@ -324,6 +412,22 @@ describe("ClaudeCodeAgent", () => {
     proc.emit("close", 1);
     await taskPromise;
     expect(agent.status).toBe(AGENT_STATUS.CANCELLED);
+  });
+
+  it("honors a cancellation in task:start without spawning a child", async () => {
+    const agent = new ClaudeCodeAgent();
+    _deps.spawn = vi.fn();
+    const complete = vi.fn();
+    agent.on("task:start", () => agent.abort());
+    agent.on("task:complete", complete);
+    expect(await agent.executeTask("cancel immediately")).toMatchObject({
+      cancelled: true,
+      success: false,
+      status: AGENT_STATUS.CANCELLED,
+    });
+    expect(_deps.spawn).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(agent.currentTask).toBeNull();
   });
 
   it("toJSON returns correct shape", () => {

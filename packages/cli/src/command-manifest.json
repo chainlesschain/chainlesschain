@@ -1320,7 +1320,7 @@
       "aliases": [],
       "module": "./commands/orchestrate.js",
       "register": "registerOrchestrateCommand",
-      "summary": "Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify",
+      "summary": "Orchestrate AI coding tasks (experimental): API text generation only; external Claude/Codex execution is blocked pending governance admission. Use cc agent for tool execution.",
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",

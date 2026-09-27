@@ -102,7 +102,7 @@
 - `note` — Note and knowledge base management
 - `notification` (aliases: notif) — Push notifications to paired mobile devices
 - `ops` — Autonomous operations / AIOps
-- `orchestrate` — Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify
+- `orchestrate` — Orchestrate AI coding tasks (experimental): API text generation only; external Claude/Codex execution is blocked pending governance admission. Use cc agent for tool execution.
 - `orchgov` — Orchestrator V2 governance
 - `org` — Organization, team, and approval management
 - `output-style` (aliases: output-styles) — List / show agent output-style personas

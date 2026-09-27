@@ -107,6 +107,35 @@ describe("AgentRouter.autoDetect", () => {
 // ─── AgentRouter.summary ──────────────────────────────────────────
 
 describe("AgentRouter.summary()", () => {
+  it("separates installation, admission and real execution", () => {
+    const router = new AgentRouter({
+      backends: [{ type: "claude", installed: true }, { type: "openai" }],
+    });
+    expect(router.summary()).toEqual([
+      expect.objectContaining({
+        installed: true,
+        configured: true,
+        governanceAdmitted: false,
+        runnable: false,
+        dispatchable: false,
+        blockedReason: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+      }),
+      expect.objectContaining({
+        installed: null,
+        configured: true,
+        governanceAdmitted: null,
+        runnable: false,
+        dispatchable: true,
+        executionMode: "text-only",
+      }),
+    ]);
+    expect(() => router.assertDispatchAvailable()).not.toThrow();
+    expect(() =>
+      new AgentRouter({
+        backends: [{ type: "codex" }],
+      }).assertDispatchAvailable(),
+    ).toThrow("blocked");
+  });
   it("returns array of backend summaries", () => {
     const router = makeRouter([
       makeCliBackend(BACKEND_TYPE.CLAUDE),
@@ -149,7 +178,6 @@ describe("AgentRouter round-robin strategy", () => {
       dispatchCounts[BACKEND_TYPE.GEMINI],
     );
   });
-
 });
 
 // ─── Primary strategy ─────────────────────────────────────────────
@@ -181,11 +209,10 @@ describe("AgentRouter default-deny dispatch", () => {
     const router = makeRouter([cli]);
 
     await expect(
-      router._runSingleTask(
-        { id: "t1", description: "task" },
-        cli,
-        { cwd: "/tmp", evolutionIngress: null },
-      ),
+      router._runSingleTask({ id: "t1", description: "task" }, cli, {
+        cwd: "/tmp",
+        evolutionIngress: null,
+      }),
     ).rejects.toMatchObject({
       code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
     });
@@ -206,7 +233,6 @@ describe("AgentRouter edge cases", () => {
       router.dispatch([{ id: "t1", description: "x" }], { cwd: "/tmp" }),
     ).rejects.toThrow("No agent backends available");
   });
-
 });
 
 // ===== V2 Tests: Agent Router governance overlay =====

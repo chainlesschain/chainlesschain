@@ -3525,13 +3525,16 @@ export class MCPClient extends EventEmitter {
    * Call a tool on a specific server. If the server has a registered
    * reconnector and the call fails with a connection-shaped error (server
    * restarted / token rotated / entry dropped), re-resolve the config,
-   * reconnect, and retry the call exactly once.
+   * reconnect, and retry the call exactly once. HTTP 404 only reinitializes
+   * the connection: an already-dispatched tool has an unknown outcome and
+   * must never be retried automatically just because its session expired.
    * @param {string} serverName - Server name
    * @param {string} toolName - Tool name
    * @param {object} args - Tool arguments
    * @param {{signal?: AbortSignal, dispatchAdmission?: Function}} options - Host-owned cancellation and dispatch authority
    */
   async callTool(serverName, toolName, args = {}, options = {}) {
+    const attemptedEntry = this.servers.get(serverName);
     if (options?.signal?.aborted) {
       throw mcpRequestAbortedError(
         serverName,
@@ -3542,6 +3545,43 @@ export class MCPClient extends EventEmitter {
     try {
       return await this._callToolOnce(serverName, toolName, args, options);
     } catch (err) {
+      if (
+        !isMcpRpcError(err) &&
+        safeRpcProperty(err, "code") === "CC_MCP_HTTP_STATUS" &&
+        safeRpcProperty(err, "status") === 404 &&
+        attemptedEntry?.httpUrl &&
+        !options?.signal?.aborted
+      ) {
+        // Both a stateless endpoint's transient 404 and an expired MCP
+        // session may recover through initialize. The HTTP status alone is
+        // insufficient evidence to replay a possibly effectful tool call.
+        const current = this.servers.get(serverName);
+        const recovered =
+          current && current !== attemptedEntry
+            ? current.state === ServerState.CONNECTED
+            : this._reconnecting.has(serverName) ||
+                (current && !current._httpDiscardStopping)
+              ? await this._tryReconnect(serverName, {
+                  connectAuthRetryUsed: true,
+                  expectedEntry: attemptedEntry,
+                })
+              : false;
+        const failure = mcpTransportError(
+          "CC_MCP_HTTP_TOOL_OUTCOME_UNKNOWN",
+          recovered
+            ? "MCP HTTP connection was reinitialized after HTTP 404; the tool outcome is unknown and was not replayed"
+            : "MCP HTTP 404 recovery failed; the tool outcome is unknown and was not replayed",
+          {
+            transport: attemptedEntry.transportKind,
+            url: attemptedEntry.config?.url,
+            status: 404,
+            dispatched: true,
+            outcomeUnknown: true,
+          },
+        );
+        failure.connectionRecovered = Boolean(recovered);
+        throw failure;
+      }
       if (
         mcpRpcControlData.has(err) &&
         (await this._resolveRequiredUrlElicitations(serverName, err))
@@ -3734,6 +3774,9 @@ export class MCPClient extends EventEmitter {
     const p = (async () => {
       try {
         const currentEntry = this.servers.get(name) || null;
+        if (options.expectedEntry && currentEntry !== options.expectedEntry) {
+          return currentEntry?.state === ServerState.CONNECTED;
+        }
         const currentConfig = currentEntry?.config || null;
         // Resource subscriptions belong to the logical client/server
         // relationship, not to one transport connection. Snapshot them before

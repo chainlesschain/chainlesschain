@@ -44,6 +44,177 @@ class FakeClient extends EventEmitter {
 const matrix = CODEX_APP_SERVER_COMPATIBILITY_MATRIX;
 
 describe("optional Codex App Server adapter", () => {
+  it("correlates interleaved turns, including events before RPC replies", async () => {
+    const client = new EventEmitter();
+    client.running = true;
+    const replies = new Map();
+    client.request = vi.fn(
+      (method, params) =>
+        new Promise((resolve) => {
+          expect(method).toBe("turn/start");
+          replies.set(params.threadId, resolve);
+        }),
+    );
+    const adapter = new CodexAppServerAdapter({
+      client,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+    });
+    const pendingA = adapter.execute({ threadId: "A", prompt: "a" });
+    const pendingB = adapter.execute({ threadId: "B", prompt: "b" });
+    const emit = (method, params) =>
+      client.emit("notification", { method, params });
+    emit("item/completed", {
+      threadId: "A",
+      turnId: "old-A",
+      item: { id: "x", type: "agentMessage", text: "stale" },
+    });
+    emit("turn/completed", {
+      threadId: "A",
+      turn: { id: "old-A", status: "completed" },
+    });
+    emit("turn/completed", { turn: { id: "turn-A", status: "completed" } });
+    emit("item/completed", {
+      threadId: "B",
+      turnId: "turn-B",
+      item: { id: "same-id", type: "agentMessage", text: "B answer" },
+    });
+    emit("turn/completed", {
+      threadId: "B",
+      turn: { id: "turn-B", status: "interrupted" },
+    });
+    replies.get("B")({ turn: { id: "turn-B", status: "inProgress" } });
+    expect(await pendingB).toMatchObject({
+      threadId: "B",
+      turnId: "turn-B",
+      output: "B answer",
+      terminal: "interrupted",
+    });
+    const finishedA = vi.fn();
+    pendingA.then(finishedA);
+    replies.get("A")({ turn: { id: "turn-A", status: "inProgress" } });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(finishedA).not.toHaveBeenCalled();
+    emit("item/agentMessage/delta", {
+      threadId: "A",
+      turnId: "turn-A",
+      itemId: "same-id",
+      delta: "partial",
+    });
+    emit("item/completed", {
+      threadId: "A",
+      turnId: "turn-A",
+      item: { id: "same-id", type: "agentMessage", text: "A answer" },
+    });
+    emit("item/commandExecution/outputDelta", {
+      threadId: "A",
+      turnId: "turn-A",
+      itemId: "tool",
+      delta: "tool output",
+    });
+    emit("turn/completed", {
+      threadId: "A",
+      turn: { id: "turn-A", status: "completed" },
+    });
+    const a = await pendingA;
+    expect(a).toMatchObject({
+      threadId: "A",
+      turnId: "turn-A",
+      output: "A answer",
+      terminal: "completed",
+      unknownMethods: [],
+    });
+    expect(
+      a.notifications.every(
+        (n) => n.params.threadId === "A" && n.params.turnId === "turn-A",
+      ),
+    ).toBe(true);
+    expect(a.notifications.some((n) => n.params.item?.kind === "tool")).toBe(
+      true,
+    );
+    expect(client.listenerCount("notification")).toBe(0);
+  });
+
+  it("times out a hung submission without fallback or detached rejection", async () => {
+    vi.useFakeTimers();
+    try {
+      const client = new EventEmitter();
+      client.running = true;
+      client.request = vi.fn(() => new Promise(() => {}));
+      const fallback = vi.fn();
+      const adapter = new CodexAppServerAdapter({
+        client,
+        fallback,
+        enabled: true,
+        upstreamVersion: "0.154.0",
+        timeoutMs: 10,
+      });
+      const assertion = expect(
+        adapter.execute({ threadId: "A", prompt: "a" }),
+      ).rejects.toMatchObject({
+        code: "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN",
+        cause: { code: "CC_CODEX_APP_SERVER_TIMEOUT" },
+      });
+      await vi.advanceTimersByTimeAsync(10);
+      await assertion;
+      expect(fallback).not.toHaveBeenCalled();
+      expect(client.listenerCount("notification")).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("bounds early notifications and suppresses fallback after submission", async () => {
+    const client = new EventEmitter();
+    client.running = true;
+    client.request = vi.fn(async () => {
+      client.emit("notification", {
+        method: "item/agentMessage/delta",
+        params: {
+          threadId: "A",
+          turnId: "a",
+          itemId: "i",
+          delta: "x".repeat(4 * 1024 * 1024),
+        },
+      });
+      return { turn: { id: "a", status: "completed" } };
+    });
+    const fallback = vi.fn();
+    const adapter = new CodexAppServerAdapter({
+      client,
+      fallback,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+    });
+    await expect(adapter.execute({ threadId: "A" })).rejects.toMatchObject({
+      cause: { code: "CC_CODEX_APP_SERVER_EVENT_LIMIT" },
+    });
+    expect(fallback).not.toHaveBeenCalled();
+    expect(client.listenerCount("notification")).toBe(0);
+  });
+
+  it("uses complete response items when a terminal RPC reply has no notifications", async () => {
+    const client = new EventEmitter();
+    client.running = true;
+    client.request = vi.fn(async () => ({
+      turn: {
+        id: "a",
+        status: "completed",
+        items: [{ id: "i", type: "agentMessage", text: "response answer" }],
+      },
+    }));
+    const adapter = new CodexAppServerAdapter({
+      client,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+    });
+    await expect(adapter.execute({ threadId: "A" })).resolves.toMatchObject({
+      terminal: "completed",
+      output: "response answer",
+    });
+  });
+
   it("uses a fail-closed compatibility matrix", () => {
     expect(isCodexAppServerVersionCompatible("codex-cli 0.165.0", matrix)).toBe(
       false,
@@ -107,7 +278,7 @@ describe("optional Codex App Server adapter", () => {
       fallback: false,
       authoritative: false,
       unknownMethods: ["future/telemetry"],
-      usage: { input_tokens: 20, output_tokens: 4 },
+      usage: { inputTokens: 20, outputTokens: 4 },
     });
     expect(result.notifications).toEqual(
       expect.arrayContaining([
@@ -138,6 +309,7 @@ describe("optional Codex App Server adapter", () => {
               this.emit("notification", {
                 method: "turn/completed",
                 params: {
+                  threadId: "codex-thread-terminal",
                   turn: {
                     id: "codex-turn-terminal",
                     status,
@@ -189,6 +361,7 @@ describe("optional Codex App Server adapter", () => {
             this.emit("notification", {
               method: "turn/completed",
               params: {
+                threadId: "codex-thread-invalid",
                 turn: { id: "codex-turn-invalid", status: "inProgress" },
               },
             });
@@ -226,6 +399,7 @@ describe("optional Codex App Server adapter", () => {
           this.emit("notification", {
             method: "turn/started",
             params: {
+              threadId: "codex-thread-accepted",
               turn: {
                 id: "codex-turn-accepted",
                 threadId: "codex-thread-accepted",
@@ -253,7 +427,9 @@ describe("optional Codex App Server adapter", () => {
     await expect(
       adapter.execute({ prompt: "accepted once" }),
     ).rejects.toMatchObject({
-      code: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+      // The RPC turn ID was lost; a shared thread event cannot identify this
+      // submission. Unknown and admitted failures both suppress fallback.
+      code: "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN",
     });
     expect(fallback).not.toHaveBeenCalled();
   });

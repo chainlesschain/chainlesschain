@@ -141,13 +141,16 @@ export class Orchestrator extends EventEmitter {
     // Multi-path agent router
     this._router =
       options.agentRouter ||
-      (options.agents
+      (Array.isArray(options.agents?.backends)
         ? new AgentRouter({
             backends: options.agents.backends || [],
             strategy: options.agents.strategy || "round-robin",
             maxParallel: this.maxParallel,
           })
-        : AgentRouter.autoDetect({ maxParallel: this.maxParallel }));
+        : AgentRouter.autoDetect({
+            maxParallel: this.maxParallel,
+            strategy: options.agents?.strategy,
+          }));
 
     // Multi-channel notification manager
     this.notifier =
@@ -188,6 +191,9 @@ export class Orchestrator extends EventEmitter {
    */
   async addTask(description, opts = {}) {
     assertCLILegacyMutationAllowed("Orchestrator.addTask");
+    // Reject opaque external CLIs before notifications, Run creation or paid
+    // decomposition. This preflight never replaces the dispatch ingress gate.
+    this._router.assertDispatchAvailable?.();
     const task = {
       id: generateId("task"),
       description,
