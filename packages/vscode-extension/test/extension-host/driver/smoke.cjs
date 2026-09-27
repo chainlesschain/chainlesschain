@@ -658,7 +658,11 @@ async function run() {
     );
   }
 
-  if (journeyMode !== "host-api" && journeyPhase === "restart") {
+  if (
+    journeyMode !== "host-api" &&
+    journeyPhase === "restart" &&
+    process.env.CC_UI_CONVERSATION_RECOVERY !== "1"
+  ) {
     await resumeFixtureSessionAfterHostRestart();
   }
 

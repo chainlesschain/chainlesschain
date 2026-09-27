@@ -33,6 +33,71 @@ const {
 const TOKEN = "ab".repeat(32);
 const temporaryRoots = [];
 
+test("recovery evidence rejects missing restart proof, duplicate rows, foreground completion and replayed drafts", () => {
+  const {
+    assertConversationRecoveryArtifacts,
+  } = require("./extension-host/driver/conversation-recovery.cjs");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-recovery-evidence-"));
+  temporaryRoots.push(root);
+  const at = "2026-09-27T00:00:01.000Z";
+  const initial = {
+    schema: "cc-ide-conversation-recovery/v1",
+    phase: "initial",
+    backgroundAt: "2026-09-27T00:00:00.000Z",
+    backgroundCompletedAt: at,
+    foregroundReturnAt: "2026-09-27T00:00:02.000Z",
+    a: {
+      savedRows: [0, 1, 2, 3].map((n) => ({ id: `session-a:hash-${n}:0` })),
+    },
+    b: { savedRows: [0, 1].map((n) => ({ id: `session-b:hash-${n}:0` })) },
+  };
+  const restart = {
+    schema: initial.schema,
+    phase: "restart",
+    historyIdsPreserved: true,
+    composerDraftsPreserved: true,
+    automaticInputReplay: false,
+  };
+  const records = [
+    { direction: "canonical", sessionId: "session-a", at },
+    ...["A", "B", "A"].map((letter) => ({
+      direction: "in",
+      event: { type: "user", text: `journey:history-${letter}` },
+    })),
+  ];
+  const write = () => {
+    fs.writeFileSync(
+      path.join(root, "conversation-recovery-initial.json"),
+      JSON.stringify(initial),
+    );
+    fs.writeFileSync(
+      path.join(root, "conversation-recovery-restart.json"),
+      JSON.stringify(restart),
+    );
+  };
+  assert.throws(
+    () => assertConversationRecoveryArtifacts(root, records),
+    /ENOENT/,
+  );
+  write();
+  assert.doesNotThrow(() => assertConversationRecoveryArtifacts(root, records));
+  initial.foregroundReturnAt = initial.backgroundAt;
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  initial.foregroundReturnAt = "2026-09-27T00:00:02.000Z";
+  initial.b.savedRows[0].id = initial.a.savedRows[0].id;
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  initial.b.savedRows[0].id = "session-b:hash-0:0";
+  write();
+  assert.throws(() =>
+    assertConversationRecoveryArtifacts(root, [
+      ...records,
+      { direction: "in", event: { type: "user", text: "unsent draft A" } },
+    ]),
+  );
+});
+
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -62,6 +127,34 @@ test("host DOM relay is token-gated and only accepts fixed semantic actions", ()
     () => validateHostDomRequest({ action: "click", target: "#arbitrary" }),
     /unsupported host DOM click target/u,
   );
+  assert.deepEqual(
+    validateHostDomRequest({
+      action: "editDraft",
+      text: "中文😀",
+      code: "ignored",
+    }),
+    { action: "editDraft", text: "中文😀" },
+  );
+  assert.deepEqual(
+    validateHostDomRequest({ action: "switchTab", id: "conv-2" }),
+    { action: "switchTab", id: "conv-2" },
+  );
+  assert.deepEqual(
+    validateHostDomRequest({ action: "click", target: "newTab" }),
+    { action: "click", target: "newTab" },
+  );
+  for (const text of [null, {}, "x".repeat(513)]) {
+    assert.throws(
+      () => validateHostDomRequest({ action: "editDraft", text }),
+      /at most 512/,
+    );
+  }
+  for (const id of [null, "", "x".repeat(129), 'conv-1\"]', "conv-1\n"]) {
+    assert.throws(
+      () => validateHostDomRequest({ action: "switchTab", id }),
+      /tab ID/,
+    );
+  }
 });
 
 test("chat HTML keeps the relay inert without a valid launch token", () => {

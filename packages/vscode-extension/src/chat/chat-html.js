@@ -1277,6 +1277,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             url: location.href,
             text: document.body ? document.body.innerText : "",
             inputPresent: Boolean(input),
+            inputText: input ? input.value : "",
+            draftStatus: draftPanel ? draftPanel.textContent : "",
+            tabs: [...tabsEl.querySelectorAll('[role="tab"]')].map(tab => ({ id: tab.dataset.tabId, title: tab.textContent, selected: tab.getAttribute("aria-selected") === "true" })),
+            savedRows: [...log.querySelectorAll('[data-saved-row-id]')].map(row => ({ id: row.dataset.savedRowId, text: row.textContent })),
             sendEnabled: Boolean(document.getElementById("send") && !document.getElementById("send").disabled),
             stopEnabled: Boolean(document.getElementById("stop") && !document.getElementById("stop").disabled),
             planVisible: Boolean(plan && getComputedStyle(plan).display !== "none"),
@@ -1284,6 +1288,16 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             approvalApproveEnabled: Boolean(approvalButton),
           });
           return;
+        }
+        if (command.action === "editDraft" && typeof command.text === "string" && command.text.length <= 512) {
+          input.value = command.text;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          respond(true, { edited: true }); return;
+        }
+        if (command.action === "switchTab" && typeof command.id === "string") {
+          const tab = [...tabsEl.querySelectorAll('[role="tab"]')].find(tab => tab.dataset.tabId === command.id);
+          if (!tab) throw new Error("conversation tab is unavailable");
+          tab.click(); respond(true, { switched: command.id }); return;
         }
         if (command.action === "send" && typeof command.text === "string" && command.text.length <= 512) {
           const button = document.getElementById("send");
@@ -1296,6 +1310,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         }
         if (command.action === "click") {
           let button = null;
+          if (command.target === "newTab") button = tabsEl.querySelector('button[aria-label="New conversation"]');
           if (command.target === "planApprove") button = document.getElementById("planApprove");
           if (command.target === "stop") button = document.getElementById("stop");
           if (command.target === "latestApprovalApprove") {

@@ -227,6 +227,8 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 
 Windows 本地验证：存储、安全及 canonical peer 3 文件 208 项通过、2 项既有平台条件跳过；补充安全、生成 Webview、Workbench 与 JetBrains 宿主夹具 4 文件 74 项通过。两轮有重叠，不相加为独立覆盖率。CLI CI / Strict Sandbox 的精确 SHA 三系统门禁尚未运行，这些结果不构成发布批准。
 
+VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 user-data profile 进行进程重启，停用旧的合成 deep-link resume；通过现有令牌保护的 DOM 控件编辑草稿、创建/切换会话并读取行 ID。验收步骤覆盖后台完成时间边界、相同正文的独立保存行、A/B 未发送中文草稿、重启后行 ID 与草稿恢复及协议日志无重放。生成 Webview 测试核对输入事件和保存 ACK，宿主驱动 69 项本地测试通过；VSIX 已本地打包。此处仅记录旅程实现与本地回归，真实宿主运行结果另行记录；尚不覆盖 canonical rewind/compaction、附件、问题表单或人工无障碍验收。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
@@ -262,5 +264,6 @@ Windows 本地验证：存储、安全及 canonical peer 3 文件 208 项通过�
 | `70a51435da` | 最终结果关联已提交 user/assistant event，输入 ID 与共享协议类型、生成产物及 SDK 同步；160 项本地回归通过              |
 | `44db0e64ab` | VS Code 连续增量历史合并、原 child 终态引用关联、重复正文独立身份、选区及原位显示保护；相关回归与本地 VSIX 验证       |
 | `c6852748ba` | JetBrains 连续增量历史合并、输入行写入前预约、终态身份关联、选区/滚动与有界淘汰；共享真实 CLI fixture 与本地 ZIP 验证 |
+| `71760f5da6` | Windows ACL 幂等互斥修复、身份缓存及会话目录初始化；真实 canonical 宿主 peer、双进程回执/历史与去重回归 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。

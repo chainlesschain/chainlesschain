@@ -5,11 +5,18 @@ const crypto = require("crypto");
 const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
 const HOST_DOM_DRIVER_COMMAND = "chainlesschainTests.runHostJourney";
 const HOST_DOM_TOKEN_PATTERN = /^[a-f0-9]{64}$/u;
-const HOST_DOM_ACTIONS = new Set(["snapshot", "send", "click"]);
+const HOST_DOM_ACTIONS = new Set([
+  "snapshot",
+  "send",
+  "click",
+  "editDraft",
+  "switchTab",
+]);
 const HOST_DOM_CLICK_TARGETS = new Set([
   "planApprove",
   "stop",
   "latestApprovalApprove",
+  "newTab",
 ]);
 
 function normalizeHostDomToken(value) {
@@ -32,13 +39,21 @@ function validateHostDomRequest(value) {
   if (!HOST_DOM_ACTIONS.has(value.action)) {
     throw new TypeError(`unsupported host DOM action: ${String(value.action)}`);
   }
-  if (value.action === "send") {
+  if (value.action === "send" || value.action === "editDraft") {
     if (typeof value.text !== "string" || value.text.length > 512) {
       throw new TypeError(
         "host DOM send text must be a string of at most 512 characters",
       );
     }
-    return { action: "send", text: value.text };
+    return { action: value.action, text: value.text };
+  }
+  if (value.action === "switchTab") {
+    if (
+      typeof value.id !== "string" ||
+      !/^[a-zA-Z0-9_-]{1,128}$/u.test(value.id)
+    )
+      throw new TypeError("Invalid host DOM tab ID");
+    return { action: "switchTab", id: value.id };
   }
   if (value.action === "click") {
     if (!HOST_DOM_CLICK_TARGETS.has(value.target)) {

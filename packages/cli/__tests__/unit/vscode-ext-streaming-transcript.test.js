@@ -4,6 +4,72 @@ import { createStreamingTranscript } from "../../../vscode-extension/src/chat/st
 import { buildChatHtml } from "../../../vscode-extension/src/chat/chat-html.js";
 
 describe("streaming transcript", () => {
+  it("drives bounded recovery actions through generated Webview controls and waits for the draft ACK", async () => {
+    const window = new Window({
+      settings: { enableJavaScriptEvaluation: true },
+    });
+    const messages = [];
+    const token = "ab".repeat(32);
+    window.acquireVsCodeApi = () => ({
+      postMessage: (m) => messages.push(m),
+      getState: () => ({}),
+      setState: vi.fn(),
+    });
+    try {
+      window.document.write(
+        buildChatHtml({
+          nonce: "n",
+          cspSource: "vscode-resource:",
+          hostDomToken: token,
+        }),
+      );
+      const receive = (data) =>
+        window.dispatchEvent(new window.MessageEvent("message", { data }));
+      const command = (action, extra = {}, suppliedToken = token) =>
+        receive({
+          kind: "hostDomCommand",
+          token: suppliedToken,
+          requestId: "cd".repeat(16),
+          command: { action, ...extra },
+        });
+      receive({
+        kind: "tabs",
+        activeId: "conv-1",
+        tabs: [
+          { id: "conv-1", title: "A", draftKey: "draft-a", draftStorage: true },
+          { id: "conv-2", title: "B" },
+        ],
+      });
+      command("editDraft", { text: "ignored" }, "ef".repeat(32));
+      expect(window.document.getElementById("input").value).toBe("");
+      command("editDraft", { text: "中文😀" });
+      command("snapshot");
+      const snapshot = () =>
+        messages
+          .filter((m) => m.type === "hostDomResult" && m.result?.tabs)
+          .at(-1).result;
+      expect(snapshot().inputText).toBe("中文😀");
+      expect(snapshot().draftStatus).toContain("Saving draft");
+      await new Promise((done) => setTimeout(done, 300));
+      const draft = messages.find(
+        (m) => m.type === "draftUpdate" && m.text === "中文😀",
+      );
+      expect(draft.convId).toBe("conv-1");
+      receive({ ...draft, kind: "draftSaved" });
+      command("snapshot");
+      expect(snapshot().draftStatus).toContain("Draft saved on this device");
+      command("switchTab", { id: "conv-2" });
+      expect(messages).toContainEqual({ type: "switchTab", id: "conv-2" });
+      command("click", { target: "newTab" });
+      expect(messages).toContainEqual({ type: "newTab" });
+      expect(
+        messages.some((m) => m.type === "send" || m.type === "draftSend"),
+      ).toBe(false);
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
+
   it.each([10000, 100000, 200000])(
     "parses %i characters once and preserves the live text node",
     (size) => {

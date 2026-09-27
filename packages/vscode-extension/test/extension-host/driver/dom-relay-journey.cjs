@@ -435,6 +435,15 @@ async function runDomRelayJourney({
       readyAt: new Date().toISOString(),
     });
     await drivePhase(commands, token, phase, traceFile);
+    if (process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
+      await require("./conversation-recovery.cjs").runConversationRecovery({
+        commands,
+        token,
+        phase,
+        artifactDir,
+        waitForSnapshot,
+      });
+    }
     const finalSnapshot = await waitForSnapshot({
       commands,
       token,

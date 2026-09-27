@@ -164,6 +164,12 @@ function createFixtureCli(runRoot, repoRoot) {
     command: process.platform === "win32" ? windows : posix,
     statePath: path.join(runRoot, "fixture-cli-state.json"),
     tracePath: path.join(runRoot, "fixture-cli-protocol.jsonl"),
+    canonicalRoot:
+      process.env.CC_UI_CONVERSATION_RECOVERY === "1"
+        ? fs.mkdtempSync(
+            path.join(require("node:os").tmpdir(), "cc-host-canonical-"),
+          )
+        : null,
   };
 }
 
@@ -1725,6 +1731,7 @@ function assertJourneyArtifacts({
   extensionsDir,
   workspaceDir,
   workspaceFolders,
+  conversationRecovery = false,
 }) {
   const tracePath = path.join(artifactDir, "cdp-journey.jsonl");
   const cdpRecords = readJsonLines(tracePath);
@@ -1984,10 +1991,18 @@ function assertJourneyArtifacts({
       (record) =>
         record.direction === "out" &&
         record.event?.type === "system" &&
-        Number(record.event?.resumed_messages) >= 10,
+        // The interrupted fifth turn has a committed user input only.
+        Number(record.event?.resumed_messages) >=
+          (conversationRecovery ? 9 : 10),
     )
   ) {
     throw new Error("fixture protocol ledger does not prove restart/resume");
+  }
+  if (conversationRecovery) {
+    require("./driver/conversation-recovery.cjs").assertConversationRecoveryArtifacts(
+      artifactDir,
+      fixtureRecords,
+    );
   }
   return {
     tracePath,

@@ -889,6 +889,12 @@ async function runRealDomPhase({
               CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
               CC_UI_FIXTURE_STATE: fixture.statePath,
               CC_UI_FIXTURE_TRACE: fixture.tracePath,
+              ...(fixture.canonicalRoot
+                ? {
+                    CC_UI_CANONICAL_ROOT: fixture.canonicalRoot,
+                    CC_UI_CONVERSATION_RECOVERY: "1",
+                  }
+                : {}),
             },
           }),
         )
@@ -967,6 +973,12 @@ async function runRealDomPhase({
     CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
     CC_UI_FIXTURE_STATE: fixture.statePath,
     CC_UI_FIXTURE_TRACE: fixture.tracePath,
+    ...(fixture.canonicalRoot
+      ? {
+          CC_UI_CANONICAL_ROOT: fixture.canonicalRoot,
+          CC_UI_CONVERSATION_RECOVERY: "1",
+        }
+      : {}),
   };
   const pipeHost = useCdpPipe
     ? launchExtensionHostWithCdpPipe({
@@ -1134,6 +1146,12 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_HOST_TRACE_FILE: traceFile,
       CC_UI_FIXTURE_STATE: fixture.statePath,
       CC_UI_FIXTURE_TRACE: fixture.tracePath,
+      ...(fixture.canonicalRoot
+        ? {
+            CC_UI_CANONICAL_ROOT: fixture.canonicalRoot,
+            CC_UI_CONVERSATION_RECOVERY: "1",
+          }
+        : {}),
       ...(includeMultiWindow
         ? {
             CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED: "1",
@@ -1538,6 +1556,9 @@ async function main() {
   );
   const progressPath = createHostProgressJournal(artifactDir);
   const hostApiMode = options.hostApiOnly;
+  if (hostApiMode && process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
+    throw new Error("Conversation recovery requires the real DOM journey");
+  }
   const hostJourneyTransport = resolveHostJourneyTransport(hostApiMode);
   recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
@@ -1644,7 +1665,13 @@ async function main() {
       recordHostProgress(progressPath, "multi_window_completed");
     }
     for (const phase of ["initial", "restart"]) {
-      const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
+      // The recovery journey must reopen the same persistent profile; the
+      // legacy deep-link smoke deliberately uses independent profiles.
+      const profileArgs = buildProfileArgs({
+        runRoot,
+        extensionsDir,
+        phase: fixture.canonicalRoot && phase === "restart" ? "initial" : phase,
+      });
       recordHostProgress(progressPath, `${phase}_started`);
       const runHostPhase = hostApiMode ? runHostApiPhase : runRealDomPhase;
       await runHostPhase({
@@ -1687,6 +1714,7 @@ async function main() {
         extensionsDir,
         workspaceDir,
         workspaceFolders,
+        conversationRecovery: Boolean(fixture.canonicalRoot),
       });
     }
     assertMultiWindowEvidence(multiWindowEvidenceFile);
@@ -1728,7 +1756,9 @@ async function main() {
         artifactDir,
         journeyId: hostApiMode
           ? "vscode-installed-vsix-multiroot-multiwindow-host-api-activation-view-relaunch"
-          : "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+          : fixture.canonicalRoot
+            ? "vscode-installed-vsix-real-dom-canonical-history-draft-recovery"
+            : "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
