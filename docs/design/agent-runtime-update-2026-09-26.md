@@ -1,18 +1,19 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
-本次按 `main@a231bc79df9661ea2fbcbbb9e806661b54299113` 核对代码和 Git 记录。本文补充系统主设计、模块 110 的发行边界和模块 112 的评测证据设计；历史验收只适用于其记录的提交。
+2026-09-27 按 `main@24911a536c9e9800c1e2e6b1d72e610841be4f5c` 核对代码和 Git 记录。主线新合入的 `24f0cb6fb1` 晚于当前 npm 发布 SHA。本文补充系统主设计、模块 110 的发行边界和模块 112 的评测证据设计；历史验收只适用于其记录的提交。
 
 ## 发行与源码身份
 
-| 组件                    | 2026-09-26 回读状态                              | 精确源码                                   |
-| ----------------------- | ------------------------------------------------ | ------------------------------------------ |
-| npm CLI                 | `0.166.76`，`latest`，标签 `v-npm-0-166-76`      | `b9d64ffd92106681d6e71451d87bbf13eacc9b28` |
-| Open VSX                | `0.37.117` 已公开，推荐 CLI `0.166.76`           | `f88fb58fc3`                               |
-| JetBrains Marketplace   | 公开列表为 `0.4.137`，内置推荐 CLI `0.166.74`    | `0bc6186742`                               |
-| JetBrains 新版          | `0.4.138` 已完成发布工作流，尚未在公开列表回读到 | `f88fb58fc3`                               |
-| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                        | `eb48ffa311`                               |
+| 组件                    | 2026-09-27 回读状态                           | 精确源码     |
+| ----------------------- | --------------------------------------------- | ------------ |
+| npm CLI                 | `0.166.77`，`latest`，标签 `v-npm-0-166-77`   | `8d97c58153` |
+| Open VSX                | `0.37.118` 已公开，推荐 CLI `0.166.77`        | `a7d582cd89` |
+| JetBrains Marketplace   | 公开列表为 `0.4.138`，内置推荐 CLI `0.166.76` | `f88fb58fc3` |
+| JetBrains 新版          | `0.4.139` 已上传，尚未在公开列表回读到        | `a7d582cd89` |
+| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                     | `eb48ffa311` |
+| 主线新增 PM 对账        | `24f0cb6fb1` 已合入主线，尚未进入 npm 制品    | `24f0cb6fb1` |
 
-CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36211826047)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36211825883) 已通过全部配置的 Linux、Windows、macOS 任务；[npm OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/36215737936)与[独立公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36216267726)成功。[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36216442080)及 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36216442040)工作流成功，但后者的上传成功不能替代公开 listing。Microsoft Marketplace 仍无公开发行。
+CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850) 已通过全部配置的 Linux、Windows、macOS 任务；[npm OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994)与[独立公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841)成功。[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36260129430)已通过公开 API/VSIX 回读；[JetBrains `0.4.139` 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36260141738)完成上传，但公开 API 仍只列出 `0.4.138`。上传成功不能替代 Marketplace 可见性。Microsoft Marketplace 仍无公开发行。
 
 ## PM 效果证据与保守统计
 
@@ -21,6 +22,8 @@ CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/ac
 `pm-exploration-benchmark.js` 与 `evolution-eval-gate.js` 将逐项签名报告、准备阶段 settlement 归因和 Eval 执行用量绑定到计划与槽位。缺失、拒绝、失败或尚未解析的运行不能从冻结分母中删除。签名零执行预检拒绝可以记录零执行用量，但不代表整个实验没有准备成本。已认证执行小计不能宣称覆盖全部 provider/tool 账单。
 
 摘要一致只能证明字节绑定；事前登记时间、签名信任根、外部回执和实际启动全集仍需独立认证。离线统计过门不会授予 Pilot、Skill 发布或 active promotion 权限。
+
+主线提交 `24f0cb6fb1` 另外实现封存准入与**提交给接口的**逐槽签名最终回执对账，并将已认证 PM 尝试绑定到冻结槽位分母。已准入但缺回执与未准入均保留为未解析观察，不能删去；接口不证明最终回执来源全集、全部目标启动入口覆盖、Actor 实际执行或完整成本，也不输出独立耐久效果报告。该提交晚于 CLI `0.166.77` 的发布 SHA，不在该 npm 制品或公开 IDE 制品中；其定向测试不构成发行门证据，`receiptSetCompletenessAuthenticated`、`executionCoverageAuthenticated`、`cohortCompletenessAuthenticated`、`reportAuthenticated` 和 `qualifiesForPromotion` 均保持 `false`。
 
 ## Eval 启动准入与 cohort 登记
 
@@ -41,12 +44,13 @@ flowchart LR
 
 ## 运行时可靠性修复
 
-| 提交                       | 问题与处理                                                                                                                       | 保持的边界                         |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `3083393523`               | 调查循环将 Git/CI 查询、日志解析和仓库检查统一计入进度，压缩后保留已有证据；Windows Bash 经 stdin 传入源码，避免临时路径解释错误 | 命令审批和沙箱不变                 |
-| `f51ed9d776`               | 抽取无依赖的 `evolution-eval-contracts.js`，消除循环导入在初始化前读取 attestation purpose 的错误                                | Gate 原有导出和合同不变            |
-| `e8fd51d10c`、`b9d64ffd92` | 文件锁交接记录已完成 release；原 owner 清理不得删除新 owner 的锁，也不得在事务已提交后误报 lost ownership                        | 身份校验和竞争串行化仍生效         |
-| `2e7266d76b`、`f88fb58fc3` | JetBrains UI 测试按 dialog 所属窗口关闭，并保留标题字符串类型                                                                    | 属于测试可靠性修复，无新增用户权限 |
+| 提交                       | 问题与处理                                                                                                                       | 保持的边界                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `3083393523`               | 调查循环将 Git/CI 查询、日志解析和仓库检查统一计入进度，压缩后保留已有证据；Windows Bash 经 stdin 传入源码，避免临时路径解释错误 | 命令审批和沙箱不变                      |
+| `f51ed9d776`               | 抽取无依赖的 `evolution-eval-contracts.js`，消除循环导入在初始化前读取 attestation purpose 的错误                                | Gate 原有导出和合同不变                 |
+| `e8fd51d10c`、`b9d64ffd92` | 文件锁交接记录已完成 release；原 owner 清理不得删除新 owner 的锁，也不得在事务已提交后误报 lost ownership                        | 身份校验和竞争串行化仍生效              |
+| `2e7266d76b`、`f88fb58fc3` | JetBrains UI 测试按 dialog 所属窗口关闭，并保留标题字符串类型                                                                    | 属于测试可靠性修复，无新增用户权限      |
+| `8d97c58153`               | 决策 HTTP 请求与响应各限制为 256 KiB；未知模型用量不产生 Skill 建议，同一耐久会话后续决策 provider 调用被阻断                    | 决策模式默认关闭；不授予 Skill 执行权限 |
 
 ## 验证与部署验收
 

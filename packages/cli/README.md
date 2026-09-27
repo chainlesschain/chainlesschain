@@ -4,13 +4,18 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Release target: `chainlesschain@0.166.77`, published only after the exact
-> source commit passes every configured Linux, Windows, and macOS job in CLI CI
-> and CLI Strict Sandbox. The release requires Session Core `0.3.13`,
-> Context/Memory Kernel `0.1.5`, and Personal Data Hub `0.4.62` to be public, then
-> compares all 13 child tarballs byte-for-byte with the public npm registry
-> before publishing the CLI with signed provenance. IDE marketplace releases
-> follow only after the CLI's fresh-registry install and provenance readback.
+> Public release: `chainlesschain@0.166.77` is npm `latest` from immutable tag
+> `v-npm-0-166-77` at `8d97c58153`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081)
+> and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850)
+> passed every configured Linux, Windows, and macOS job on that commit.
+> [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994)
+> and [public installation/provenance readback](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841)
+> succeeded after the 13 child tarballs were compared with the public registry.
+> Session Core `0.3.13`, Context/Memory Kernel `0.1.5`, and Personal Data Hub
+> `0.4.62` were already public. Open VSX `0.37.118` is public; JetBrains `0.4.139`
+> was uploaded but is awaiting public listing (`0.4.138` is currently public).
+
+Mainline commit `24f0cb6fb1` adds PM cohort receipt reconciliation after this npm release; the public `0.166.77` tarball does not contain that later code.
 
 ## Quick Start
 
