@@ -531,6 +531,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     assert.equal(completedResult.terminal, "completed");
     assert.equal(completedResult.output, "probe-ok");
     assert.deepEqual(completedResult.usage, {
+      cacheWriteInputTokens: 0,
       cachedInputTokens: 0,
       inputTokens: 10,
       outputTokens: 2,
