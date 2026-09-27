@@ -858,8 +858,8 @@ class ChatViewProvider {
     const row = appendTranscript(conv, transcriptMessage, conv._sessionToken);
     const diagnostic =
       msg?.kind === "turn_end" &&
-      msg.isError &&
-      conv.transcript?.at(-1)?.role === "error"
+      (msg.isError || msg.terminalNotice) &&
+      conv.transcript?.at(-1)?.role === (msg.isError ? "error" : "info")
         ? conv.transcript.at(-1)
         : null;
     if (

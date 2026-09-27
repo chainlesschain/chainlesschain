@@ -232,6 +232,7 @@ function mapAgentEvent(evt, state) {
         return {
           kind: "turn_end",
           isError: false,
+          terminalNotice: true,
           text: "⏹ interrupted",
           usage: null,
         };

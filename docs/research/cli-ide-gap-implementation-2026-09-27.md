@@ -84,6 +84,12 @@ Execution Location 的依赖安装已通过，后续 Linux/SSH/WSL 日志显示 
 
 ArtifactStore、WSL1 身份、根目录启动的 Chat 部署、迁移合同共 4 文件 58 项通过、1 项 Windows 符号链接测试按既有条件跳过；上述 WSL1 实机负例补充验证了实际符号链接拒绝。修改源 ESLint 通过。迁移证据的 producer 清单补入部署 helper、签名测试夹具、session resume 和 ArtifactStore 身份依赖，后续最终提交须重新取得完整矩阵。
 
+后续 `8db732245f` 的 Windows CI prepare 仍返回退出 1，固定类别为 `unknown`，因此未将其标为修复。进一步增加白名单源码标签/行号（例如 `session-store:5422`）：目标 JSON 命令在失败时发出有界标记，源端只允许已知标签和合法行号，不返回完整堆栈、目标路径或消息；未知格式丢弃，失败继续阻止迁移。相关 55 项单元/合同通过，真实命令路由与协议升级回归另 27 项通过。工作流路径过滤同步覆盖目标部署 helper、签名夹具、Chat resume 和 ArtifactStore 依赖。
+
+`c448c08305` 的 JetBrains ARM64 五个版本/系统单元最终均通过，SSH 100 次迁移也通过。VS Code Windows/macOS 的 minimum 宿主都在等待 interrupt 结果时超时，Windows 失败证据为 `sha256:7456b01e40422d7ff8289ebe0a225e8dbe914fcaa0cd2855fb85e3fc8425b2a8`；原始协议确认 Stop 已送达且 CLI 在 3 秒后返回 interrupted。产品 Webview 在有流式历史行时抑制了非错误终态文字，使中断提示只剩短暂的读屏播报。修复将 interruption 保留为独立 info 状态行，不覆盖已有回答，不依赖 aria-live 文本；缓存与切换会话的重绘使用同一行身份，内部 UI 协议 6→7 使旧保留 Webview 正常重载。带/不带流的两个回归先失败后通过，历史同步/恢复/流式渲染共 23 项通过，host/relay/SDK Node 测试 77 项通过；远端 minimum 宿主复验仍待新 SHA，不提前算通过。
+
+`8db732245f` 的本地 Windows→WSL1 缩小运行完成 prepare、断连/重连、生命周期故障、1 次 campaign 和 finalize，产物记录 2 条轨迹、graceful SIGTERM、结果收集/审查/导入各 2 次，以及秘密转移/重复/孤儿/静默 fallback 均为 0。不过外层 PowerShell 工具返回退出 1，日志仅有 Node 22.12 的 CJS/ESM ExperimentalWarning，尚未独立确认最外层退出状态；暂记为成功观察产物，不计作干净退出或完整 100 次 CI 验收。
+
 ### IDE-REPLAY 规范压缩前历史分页
 
 新增 `session show --json --history --page-size 50 [--before <cursor>] <id>`，使用 `chainlesschain.session-transcript-page/v2`；不带 `--history` 的 v1 active context 页保持兼容。规范 Kernel compaction 的摘要、类型及输出投影一致时，显示历史保留此前原始消息，不重复加入压缩摘要；不改变模型 resume context。每条显示消息按 session/event hash/item index 标识，重复正文仍是独立消息。游标包含 session、generation、revision、eventCount 与 before，读完整 hash chain/namespace/anchor 后核对历史前缀；追加消息和规范压缩不使旧页重复，回退或替换使旧游标失效。

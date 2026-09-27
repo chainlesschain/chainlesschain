@@ -38,7 +38,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 6;
+const CHAT_UI_PROTOCOL_VERSION = 7;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -1697,10 +1697,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           el.setAttribute("aria-busy", "false");
           streamEl = null;
         }
-        if (m.text && (m.isError || !m.transcriptRow)) {
-          if (m.isError) {
-            const el = add("error", m.text); // errors stay plain text
-            rememberTranscriptRow(el, { ...m.diagnosticRow, role: "error", text: m.text });
+        if (m.text && (m.isError || m.terminalNotice || !m.transcriptRow)) {
+          if (m.isError || m.terminalNotice) {
+            const role = m.isError ? "error" : "info";
+            const el = add(role, m.text); // terminal diagnostics stay plain text
+            rememberTranscriptRow(el, { ...m.diagnosticRow, role, text: m.text });
           } else {
             const el = add("assistant", "");
             const bounded = appendBoundedTranscriptText(

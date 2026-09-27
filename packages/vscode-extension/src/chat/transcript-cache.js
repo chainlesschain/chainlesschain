@@ -98,7 +98,9 @@ function appendTranscript(conv, message, source = null) {
       added = last;
     } else if (
       (message.finalText != null && message.refs) ||
-      (!message.isError && (message.finalText || message.text))
+      (!message.isError &&
+        !message.terminalNotice &&
+        (message.finalText || message.text))
     )
       append({
         role: "assistant",
@@ -121,9 +123,12 @@ function appendTranscript(conv, message, source = null) {
         }
       }
     }
-    if (message.isError && message.text) {
+    if ((message.isError || message.terminalNotice) && message.text) {
       const finalRow = added;
-      append({ role: "error", text: bound(message.text) });
+      append({
+        role: message.isError ? "error" : "info",
+        text: bound(message.text),
+      });
       added = finalRow;
     }
     for (const row of rows) row.streaming = false;
