@@ -199,6 +199,16 @@ export class ProbeClient extends EventEmitter {
   receive(message) {
     assert.equal(Object.hasOwn(message, "jsonrpc"), false);
     if (Object.hasOwn(message, "id")) {
+      assert.equal(
+        Object.hasOwn(message, "method"),
+        false,
+        "unexpected server request",
+      );
+      assert.notEqual(
+        Object.hasOwn(message, "result"),
+        Object.hasOwn(message, "error"),
+        "RPC response must contain exactly one result or error",
+      );
       const call = this.pending.get(message.id);
       assert.ok(call, "unexpected server request or unmatched RPC response");
       this.pending.delete(message.id);

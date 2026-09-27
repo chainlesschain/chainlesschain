@@ -134,6 +134,20 @@ describe("pinned Codex real-turn probe boundaries", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("rejects server requests that collide with a pending client RPC identity", async () => {
+    const child = childProcess(),
+      client = new ProbeClient(child, officialValidators());
+    const request = client.request("thread/list", { limit: 1 });
+    const rejected = expect(request).rejects.toThrow(
+      /unexpected server request/,
+    );
+    child.stdout.write(
+      `${JSON.stringify({ id: 1, method: "item/commandExecution/requestApproval", params: {} })}\n`,
+    );
+    await rejected;
+    child.emit("close", 1, null);
+  });
+
   it("clears bounded-wait timers when the observed operation resolves", async () => {
     vi.useFakeTimers();
     await expect(bounded(Promise.resolve("done"), 1000, "probe")).resolves.toBe(
