@@ -146,9 +146,16 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  package-cli:
+  linux-subreaper:
     needs: [exact-sha-gate]
     if: ${{ github.event_name == 'push' && needs.exact-sha-gate.result == 'success' }}
+    uses: ./.github/workflows/_cli-linux-subreaper.yml
+    with:
+      commit_sha: ${{ github.sha }}
+
+  package-cli:
+    needs: [exact-sha-gate, linux-subreaper]
+    if: ${{ github.event_name == 'push' && needs.exact-sha-gate.result == 'success' && needs.linux-subreaper.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
@@ -175,6 +182,18 @@ jobs:
           npm run commands:completions:check
           npm run build:web-panel:force
           npm run build:changelog
+
+      - name: Download tested Linux x64 helper
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: linux-subreaper-x64-${{ github.sha }}
+          path: packages/cli/src/assets/linux-subreaper
+
+      - name: Download tested Linux ARM64 helper
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: linux-subreaper-arm64-${{ github.sha }}
+          path: packages/cli/src/assets/linux-subreaper
 
       - name: Resolve and pack immutable CLI tarball
         shell: bash

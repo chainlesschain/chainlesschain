@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 618 (runtime: 305, tooling: 278, test: 35).
+Total matches: 624 (runtime: 305, tooling: 284, test: 35).
 Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unreviewed: 0.
 
 ## Policy
@@ -232,7 +232,7 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 674 | `non-executable` | declaration/comment/type/regex lexical match | `// Continue PATH resolution exactly as child_process would.` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 891 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `return runtime.spawnSync(launch.command, launch.args, {` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 1465 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(` |
-| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 127 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 182 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
 | `packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js` | 104 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `child = native.spawn(helper ? "/proc/self/fd/4" : options.helperPath, [], {` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 3 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 92 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `target = spawn(message.command, message.args, {` |
@@ -386,6 +386,8 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/background-agent-keeper-soak.mjs` | 309 | `const result = spawnSync("git", args, {` |
 | `packages/cli/scripts/background-agent-keeper-soak.mjs` | 355 | `'import { spawn } from "node:child_process";',` |
 | `packages/cli/scripts/background-agent-keeper-soak.mjs` | 367 | `'const descendant = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {',` |
+| `packages/cli/scripts/build-linux-subreaper.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/build-linux-subreaper.mjs` | 44 | `const build = spawnSync(` |
 | `packages/cli/scripts/build-web-panel.mjs` | 15 | `import { execFileSync, execSync } from "node:child_process";` |
 | `packages/cli/scripts/build-web-panel.mjs` | 200 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
 | `packages/cli/scripts/build-web-panel.mjs` | 211 | `execFileSync(` |
@@ -489,6 +491,10 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs` | 428 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-safety-gate.mjs` | 182 | `const result = executionBroker.spawnSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-safety-gate.mjs` | 451 | `child = executionBroker.fork(scriptPath, ["--worker", ...workerArgs], {` |
+| `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 7 | `import { spawn } from "node:child_process";` |
+| `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 52 | `spawnSync() {` |
+| `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 64 | `const {spawn}=require('node:child_process');` |
+| `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 68 | `const leaf=spawn(process.execPath,[__filename,'leaf'],{detached:true,stdio:['ignore','ignore','ignore','ipc']});` |
 | `packages/cli/scripts/macos-mcp-launcher-build.mjs` | 7 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/macos-mcp-launcher-build.mjs` | 72 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/macos-mcp-launcher-live-test.mjs` | 8 | `import { spawn, spawnSync } from "node:child_process";` |

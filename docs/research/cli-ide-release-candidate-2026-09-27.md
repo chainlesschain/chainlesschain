@@ -96,3 +96,5 @@ BRIDGE-01 的 `40addcedf1` 修复 Broker native spawn 后报错却提前完成�
 旧修复提交 `2c4fe52063` 的 Linux ARM64 VS Code `1.139.1` / `1.85.2` 已通过，[回执](./ide/evidence/vscode-linux-arm64-2c4fe52063.json)复核 60 个产物、各九步普通控制/重启旅程及真实双窗口/多根隔离。该结果仍使用合成模型，完整 11 单元和最终发布 SHA 未齐备，不能触发发布。
 
 Linux subreaper 在 `59ef6116e4` 已接入实际 Broker/bridge，并通过可信源码摘要、系统编译器和已 unlink 的继承 FD 绑定 helper 身份。[干净提交回执](./cli/evidence/bridge-subreaper-windows-wsl-59ef6116e4.json)记录 WSL 142 项通过、Windows 103 项通过及 39 项 Linux 专属跳过。WSL 8 个真实生产路径场景中，7 个在后代完全回收后结算；监督器被外部强杀的场景保持未确认和任务占用。最初的父子忽略 TERM 探针在 Windows/WSL 均复验通过，原 `linux-prlimit` 普通取消残留已获得本地修复证据；完整 BRIDGE-01 仍开放：预编译/无编译器安装、异常隔离恢复、macOS 与最终托管矩阵未完成。该进展不改变 20 组任务统计、生产准入或发布资格。
+
+预编译 helper 后续已进入 npm 构建与发布校验：Linux x64 / ARM64 原生构建、无编译器容器回收探针均设为必需单元；两种准确 SHA 的静态产物必须进入不可变 tarball，缺失或内容/源码/提交不匹配即拒绝发布。本地 x64 安装副本的 7 项真实回归通过且 compiler 调用为 0，实际无编译器容器、ARM64 和新最终 SHA 矩阵仍待远端验证。standalone native 分发及异常隔离恢复仍开放，不将已编写的 workflow 算作通过证据。

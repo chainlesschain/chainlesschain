@@ -3,14 +3,20 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import {
+  LINUX_SUBREAPER_SOURCE_DIGEST,
+  MAX_SUBREAPER_IMAGE_BYTES,
+  MAX_SUBREAPER_MANIFEST_BYTES,
+  validateLinuxSubreaperArtifact,
+  validateLinuxSubreaperElf,
+} from "./linux-subreaper-artifact.js";
+export { LINUX_SUBREAPER_SOURCE_DIGEST } from "./linux-subreaper-artifact.js";
 
 const SOURCE = fileURLToPath(
   new URL("./linux-subreaper-supervisor.c", import.meta.url),
 );
-export const LINUX_SUBREAPER_SOURCE_DIGEST =
-  "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424";
 const MAX_SOURCE_BYTES = 128 * 1024;
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BYTES = MAX_SUBREAPER_IMAGE_BYTES;
 const images = new Map();
 const leases = new WeakMap();
 const sha = (bytes) =>
@@ -64,19 +70,60 @@ function compilerPath() {
   return compiler;
 }
 
-function validateImage(bytes) {
-  const machine =
-    process.arch === "x64" ? 62 : process.arch === "arm64" ? 183 : null;
-  if (
-    !machine ||
-    bytes.length < 64 ||
-    !bytes.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46])) ||
-    bytes[4] !== 2 ||
-    bytes[5] !== 1 ||
-    bytes.readUInt16LE(18) !== machine ||
-    ![2, 3].includes(bytes.readUInt16LE(16))
-  )
-    throw failure("unexpected-helper-image");
+function packagedImage() {
+  const root = fileURLToPath(
+    new URL("../../assets/linux-subreaper/", import.meta.url),
+  );
+  // Only source checkouts with no packaged directory may use the development
+  // compiler path. A partial/corrupt installed payload must never fall back.
+  try {
+    if (!fs.lstatSync(root).isDirectory())
+      throw failure("invalid-packaged-directory");
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  let rootFd = null;
+  let dirFd = null;
+  const read = (name, maximum) => {
+    const fd = fs.openSync(
+      `/proc/self/fd/${dirFd}/${name}`,
+      fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+    );
+    try {
+      const snapshot = readDescriptor(fd, maximum);
+      if (snapshot.stat.nlink !== 1n) throw failure("invalid-packaged-file");
+      return snapshot.bytes;
+    } finally {
+      fs.closeSync(fd);
+    }
+  };
+  try {
+    rootFd = fs.openSync(
+      root,
+      fs.constants.O_RDONLY |
+        fs.constants.O_DIRECTORY |
+        fs.constants.O_NOFOLLOW,
+    );
+    dirFd = fs.openSync(
+      `/proc/self/fd/${rootFd}/linux-${process.arch}`,
+      fs.constants.O_RDONLY |
+        fs.constants.O_DIRECTORY |
+        fs.constants.O_NOFOLLOW,
+    );
+    const manifest = read("manifest.json", MAX_SUBREAPER_MANIFEST_BYTES);
+    const bytes = read("supervisor", MAX_IMAGE_BYTES);
+    const identity = validateLinuxSubreaperArtifact(manifest, bytes, {
+      arch: process.arch,
+    });
+    return { bytes, identity };
+  } catch (error) {
+    if (error.code === "EXTERNAL_AGENT_HELPER_UNAVAILABLE") throw error;
+    throw failure("packaged-helper-unavailable");
+  } finally {
+    if (dirFd !== null) fs.closeSync(dirFd);
+    if (rootFd !== null) fs.closeSync(rootFd);
+  }
 }
 
 function compileImage(spawnSync) {
@@ -103,7 +150,8 @@ function compileImage(spawnSync) {
       throw failure("source-digest-mismatch");
     fs.closeSync(sourceFd);
     sourceFd = null;
-    const compiler = compilerPath();
+    const packaged = packagedImage();
+    const compiler = packaged ? null : compilerPath();
     temporaryRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-linux-subreaper-build-"),
     );
@@ -124,34 +172,42 @@ function compileImage(spawnSync) {
     imagePath = path.join(temporaryRoot, "supervisor");
     // The compiler writes through its inherited directory handle. An ancestor
     // rename cannot redirect the build to a caller-supplied executable path.
-    const built = spawnSync(
-      compiler,
-      [
-        "-std=c11",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-O2",
-        "-fstack-protector-strong",
-        "-D_FORTIFY_SOURCE=2",
-        "-x",
-        "c",
-        "-",
-        "-o",
-        "/proc/self/fd/3/supervisor",
-      ],
-      {
-        cwd: temporaryRoot,
-        env: { PATH: "/usr/bin:/bin", LC_ALL: "C" },
-        shell: false,
-        input: sourceBytes,
-        timeout: 30000,
-        maxBuffer: 1024 * 1024,
-        stdio: ["pipe", "pipe", "pipe", directoryFd],
-      },
-    );
-    if (built.error || built.status !== 0 || built.signal)
-      throw failure("native-build-failed");
+    if (packaged) {
+      fs.writeFileSync(
+        `/proc/self/fd/${directoryFd}/supervisor`,
+        packaged.bytes,
+        { flag: "wx", mode: 0o500 },
+      );
+    } else {
+      const built = spawnSync(
+        compiler,
+        [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-O2",
+          "-fstack-protector-strong",
+          "-D_FORTIFY_SOURCE=2",
+          "-x",
+          "c",
+          "-",
+          "-o",
+          "/proc/self/fd/3/supervisor",
+        ],
+        {
+          cwd: temporaryRoot,
+          env: { PATH: "/usr/bin:/bin", LC_ALL: "C" },
+          shell: false,
+          input: sourceBytes,
+          timeout: 30000,
+          maxBuffer: 1024 * 1024,
+          stdio: ["pipe", "pipe", "pipe", directoryFd],
+        },
+      );
+      if (built.error || built.status !== 0 || built.signal)
+        throw failure("native-build-failed");
+    }
     imageFd = fs.openSync(
       `/proc/self/fd/${directoryFd}/supervisor`,
       fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
@@ -164,7 +220,12 @@ function compileImage(spawnSync) {
       (image.stat.mode & 0o777n) !== 0o500n
     )
       throw failure("untrusted-helper-image");
-    validateImage(image.bytes);
+    validateLinuxSubreaperElf(image.bytes, {
+      arch: process.arch,
+      staticOnly: Boolean(packaged),
+    });
+    if (packaged && sha(image.bytes) !== packaged.identity.imageDigest)
+      throw failure("packaged-copy-changed");
     // Remove the name before granting a launch lease. The executable can only
     // be reached through the held descriptor; a later pathname swap is inert.
     fs.unlinkSync(`/proc/self/fd/${directoryFd}/supervisor`);
@@ -181,6 +242,7 @@ function compileImage(spawnSync) {
       dev: held.dev,
       ino: held.ino,
       digest: sha(image.bytes),
+      distribution: packaged ? "packaged-static" : "local-build",
     };
     imageFd = null;
     return entry;
@@ -258,6 +320,7 @@ export function acquireLinuxSubreaperHelper({ spawnSync }) {
     descriptor,
     sourceDigest: LINUX_SUBREAPER_SOURCE_DIGEST,
     imageDigest: entry.digest,
+    distribution: entry.distribution,
   });
   return lease;
 }

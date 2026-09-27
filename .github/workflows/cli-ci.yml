@@ -33,6 +33,7 @@ on:
       - ".github/workflows/cli-native-release-readback.yml"
       - ".github/workflows/cli-native-validation.yml"
       - ".github/workflows/_cli-test.yml"
+      - ".github/workflows/_cli-linux-subreaper.yml"
       - ".github/actions/setup-node-deps/action.yml"
   pull_request:
     branches: [main]
@@ -63,6 +64,7 @@ on:
       - ".github/workflows/cli-native-release-readback.yml"
       - ".github/workflows/cli-native-validation.yml"
       - ".github/workflows/_cli-test.yml"
+      - ".github/workflows/_cli-linux-subreaper.yml"
       - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
 
@@ -74,6 +76,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  linux-subreaper:
+    uses: ./.github/workflows/_cli-linux-subreaper.yml
+    with:
+      commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+
   # Per-OS test fan-out via the shared reusable workflow.
   # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
   test-ubuntu:

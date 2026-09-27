@@ -242,6 +242,7 @@ export function spawnLinuxSubreaper(command, args, options, native) {
                 sourceDigest: helper.sourceDigest,
                 imageDigest: helper.imageDigest,
                 binding: "unlinked-inherited-fd",
+                distribution: helper.distribution,
               },
             }
           : {}),

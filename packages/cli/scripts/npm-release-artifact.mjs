@@ -5,11 +5,22 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { list as listTarball } from "tar";
+import {
+  LINUX_SUBREAPER_ARCHITECTURES,
+  LINUX_SUBREAPER_SOURCE_DIGEST,
+  MAX_SUBREAPER_IMAGE_BYTES,
+  MAX_SUBREAPER_MANIFEST_BYTES,
+  subreaperDigest,
+  validateLinuxSubreaperArtifact,
+} from "../src/lib/process-execution-broker/linux-subreaper-artifact.js";
 
 const WEB_PANEL_ROOT = "package/src/assets/web-panel";
 const WEB_PANEL_INDEX = `${WEB_PANEL_ROOT}/index.html`;
 const PACKAGE_JSON = "package/package.json";
 const CHANGELOG_JSON = "package/src/data/changelog.json";
+const SUBREAPER_ROOT = "package/src/assets/linux-subreaper";
+const SUBREAPER_SOURCE =
+  "package/src/lib/process-execution-broker/linux-subreaper-supervisor.c";
 const MAX_WEB_PANEL_INDEX_BYTES = 1024 * 1024;
 const MAX_PACKAGE_JSON_BYTES = 256 * 1024;
 const MAX_CHANGELOG_JSON_BYTES = 4 * 1024 * 1024;
@@ -18,6 +29,14 @@ const AUTHORITY_LIMITS = new Map([
   [WEB_PANEL_INDEX, MAX_WEB_PANEL_INDEX_BYTES],
   [PACKAGE_JSON, MAX_PACKAGE_JSON_BYTES],
   [CHANGELOG_JSON, MAX_CHANGELOG_JSON_BYTES],
+  [SUBREAPER_SOURCE, 128 * 1024],
+  ...LINUX_SUBREAPER_ARCHITECTURES.flatMap((arch) => [
+    [
+      `${SUBREAPER_ROOT}/linux-${arch}/manifest.json`,
+      MAX_SUBREAPER_MANIFEST_BYTES,
+    ],
+    [`${SUBREAPER_ROOT}/linux-${arch}/supervisor`, MAX_SUBREAPER_IMAGE_BYTES],
+  ]),
 ]);
 
 function hashFile(file, algorithm) {
@@ -191,6 +210,38 @@ function parseJsonObject(contents, label) {
   return value;
 }
 
+async function inspectLinuxSubreapers(context, commit) {
+  const source = await readRequiredAuthority(
+    context,
+    SUBREAPER_SOURCE,
+    "Linux subreaper source",
+  );
+  if (
+    subreaperDigest(
+      Buffer.from(source.toString("utf8").replace(/\r\n/g, "\n")),
+    ) !== LINUX_SUBREAPER_SOURCE_DIGEST
+  )
+    throw new Error("Packaged Linux subreaper source digest mismatch");
+  const artifacts = [];
+  for (const arch of LINUX_SUBREAPER_ARCHITECTURES) {
+    const prefix = `${SUBREAPER_ROOT}/linux-${arch}`;
+    const manifest = await readRequiredAuthority(
+      context,
+      `${prefix}/manifest.json`,
+      `Linux ${arch} subreaper manifest`,
+    );
+    const image = await readRequiredAuthority(
+      context,
+      `${prefix}/supervisor`,
+      `Linux ${arch} subreaper image`,
+    );
+    artifacts.push(
+      validateLinuxSubreaperArtifact(manifest, image, { arch, commit }),
+    );
+  }
+  return artifacts;
+}
+
 async function inspectWebPanel(context) {
   const indexBytes = await readRequiredAuthority(
     context,
@@ -306,6 +357,7 @@ export async function inspectNpmReleaseTarball(tarball, expected = {}) {
       },
     },
     webPanel: await inspectWebPanel(context),
+    linuxSubreapers: await inspectLinuxSubreapers(context, expected.commit),
   };
 }
 
@@ -322,6 +374,7 @@ export async function createReleaseArtifactManifest(options) {
   const inspected = await inspectNpmReleaseTarball(tarball, {
     packageName,
     version: options.version,
+    commit: options.commit,
   });
   const manifest = {
     schema: 2,
@@ -337,6 +390,7 @@ export async function createReleaseArtifactManifest(options) {
     provenance: "npm --provenance",
     releaseIdentity: inspected.releaseIdentity,
     webPanel: inspected.webPanel,
+    linuxSubreapers: inspected.linuxSubreapers,
   };
   return manifest;
 }
@@ -373,6 +427,7 @@ export async function verifyReleaseArtifact(tarball, manifest, expected = {}) {
   const inspected = await inspectNpmReleaseTarball(file, {
     packageName: expected.packageName || "chainlesschain",
     version: expected.version || manifest.version,
+    commit: expected.commit || manifest.commit,
   });
   if (
     JSON.stringify(inspected.releaseIdentity) !==
@@ -387,6 +442,14 @@ export async function verifyReleaseArtifact(tarball, manifest, expected = {}) {
   ) {
     throw new Error(
       "release artifact verification failed: web panel attestation",
+    );
+  }
+  if (
+    JSON.stringify(inspected.linuxSubreapers) !==
+    JSON.stringify(manifest.linuxSubreapers)
+  ) {
+    throw new Error(
+      "release artifact verification failed: Linux subreaper attestation",
     );
   }
   return true;

@@ -135,6 +135,41 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("release-artifacts/cli-public-child-install.json");
   });
 
+  it("requires both native Linux no-compiler cells before packing the release", () => {
+    const reusable = workflow("_cli-linux-subreaper.yml");
+    expectExternalActionsPinned(reusable);
+    expect(reusable).toContain("runner: ubuntu-24.04");
+    expect(reusable).toContain("runner: ubuntu-24.04-arm");
+    expect(reusable).toContain("arch: x64");
+    expect(reusable).toContain("arch: arm64");
+    expect(reusable).toContain("ref: ${{ inputs.commit_sha }}");
+    expect(reusable).toContain(
+      'test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"',
+    );
+    expect(reusable).toContain("--require-no-compiler");
+    expect(reusable).toContain("npm pack --ignore-scripts --json");
+    expect(reusable).toContain("subreaper-npm/installed/package:/package:ro");
+    expect(reusable).toContain("docker run --rm --network none");
+    expect(reusable).not.toContain("continue-on-error");
+    const release = workflow("npm-publish.yml");
+    const packageJob = release.slice(
+      release.indexOf("  package-cli:"),
+      release.indexOf("\n  dry-run:"),
+    );
+    expect(packageJob).toContain("needs: [exact-sha-gate, linux-subreaper]");
+    expect(packageJob).toContain("needs.linux-subreaper.result == 'success'");
+    for (const arch of ["x64", "arm64"]) {
+      const identity = `name: linux-subreaper-${arch}-\u0024{{ github.sha }}`;
+      expect(packageJob).toContain(identity);
+      expect(packageJob.indexOf(identity)).toBeLessThan(
+        packageJob.indexOf("npm pack --json"),
+      );
+    }
+    expect(workflow("cli-ci.yml")).toContain(
+      "uses: ./.github/workflows/_cli-linux-subreaper.yml",
+    );
+  });
+
   it("gates npm production on exact-SHA matrices and one immutable tarball", () => {
     const text = workflow("npm-publish.yml");
     expectExternalActionsPinned(text);
@@ -345,7 +380,7 @@ describe("CLI release workflow contracts", () => {
     const reusable = workflow("_cli-test.yml");
     const strict = workflow("cli-strict-sandbox.yml");
 
-    expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(4);
+    expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(5);
     expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(4);
     expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(4);
     expect(cliCi).toContain(`CC_PM_RECOVERY_EXPECTED_SHA: ${eventSha}`);

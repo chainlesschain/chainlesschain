@@ -1,0 +1,81 @@
+name: _CLI Linux packaged subreaper
+
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    name: Linux packaged subreaper (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+      - name: Verify source and native build architecture
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Build static helper from canonical source
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit_sha }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          node -e 'if (process.arch !== process.env.EXPECTED_ARCH) process.exit(1)'
+          node packages/cli/scripts/build-linux-subreaper.mjs --out packages/cli/src/assets/linux-subreaper --commit "$EXPECTED_COMMIT"
+      - name: Verify packaged execution without compiler or network
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/subreaper-npm/installed"
+          (
+            cd packages/cli
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/subreaper-npm"
+          ) > "$RUNNER_TEMP/subreaper-npm/pack.json"
+          TARBALL=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].filename)' "$RUNNER_TEMP/subreaper-npm/pack.json")
+          tar -xzf "$RUNNER_TEMP/subreaper-npm/$TARBALL" -C "$RUNNER_TEMP/subreaper-npm/installed"
+          sha256sum "$RUNNER_TEMP/subreaper-npm/$TARBALL" > "$RUNNER_TEMP/linux-subreaper-tarball.sha256"
+          docker pull node:22.12.0-bookworm-slim
+          docker run --rm --network none \
+            --volume "$RUNNER_TEMP/subreaper-npm/installed/package:/package:ro" \
+            --volume "$GITHUB_WORKSPACE/packages/cli/scripts/linux-subreaper-package-smoke.mjs:/smoke.mjs:ro" \
+            node:22.12.0-bookworm-slim \
+            node /smoke.mjs \
+            --package-root /package --commit "$EXPECTED_COMMIT" --require-no-compiler \
+            > "$RUNNER_TEMP/linux-subreaper-smoke.json"
+      - name: Upload tested architecture payload
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: linux-subreaper-${{ matrix.arch }}-${{ inputs.commit_sha }}
+          path: packages/cli/src/assets/linux-subreaper/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload no-compiler cleanup evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: linux-subreaper-smoke-${{ matrix.arch }}-${{ inputs.commit_sha }}
+          path: |
+            ${{ runner.temp }}/linux-subreaper-smoke.json
+            ${{ runner.temp }}/linux-subreaper-tarball.sha256
+          if-no-files-found: error
+          retention-days: 90

@@ -561,3 +561,15 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 相关 11 个文件的扩大回归：WSL1 480 项通过、9 项平台跳过；Windows 450 项通过、39 项平台跳过。覆盖 Broker 沙箱/工作区事务、helper 身份与 FD 生命周期、实际 bridge 树清理及既有 bridge 合同。ESLint 无新增错误（两个既有文件合计 10 个 unused warning）、Prettier 和进程调用清单一致性检查通过；本地结果不替代 GitHub Actions 的准确最终 SHA 发布门。
 
 干净 `59ef6116e4` 的[独立回执](./cli/evidence/bridge-subreaper-windows-wsl-59ef6116e4.json)记录 WSL 142 项通过、Windows 103 项通过及 39 项 Linux 专属平台跳过，附 8 条实际 bridge 生命周期记录、源码/测试文件摘要和每条 helper 镜像摘要。7 条确认清理中，非超时场景 ready→结算最大 186.49 ms，超时场景为 1975.65 ms。最初的父子忽略 TERM 探针保持原夹具和断言，仅更换回执文件名/限制说明，在 Windows 和 WSL 原样复验均退出 0；任务返回时 `liveAtSettlement:[]`，旧失败回执保留。新 SHA 的 `CLI CI` run `36336971821` 和 `CLI Strict Sandbox` run `36336971698` 查询时仍在等待，不计作远端通过。
+
+### BRIDGE-01：预编译 Linux helper 的 npm 分发与安装验证（2026-09-28）
+
+新增 x64 / ARM64 的静态构建与受限 ELF 校验：固定 canonical C 源码摘要、原生架构编译、无动态加载器/动态段，并记录源码提交、架构、字节长度和二进制摘要。运行时从包内固定目录读取 manifest 与镜像，同 FD 有界读取并校验，再复制到私有目录、unlink 并沿原继承 FD 启动。目录和文件均禁止链接替换，目录 FD 绑定后再读取子项。只有完全没有预编译目录的源码开发环境可使用系统编译器；已安装目录缺失某个文件、内容损坏或身份不匹配均拒绝，不通过重新编译掩盖损坏。
+
+`CLI CI` 新增原生 Linux x64 / ARM64 两个必需单元，复用同一构建工作流；每个单元先实际 `npm pack --ignore-scripts` 并解包，再在 `node:22.12.0-bookworm-slim`、无网络的容器中检查标准编译器路径确实不存在，针对解包目录运行 detached 后代取消/回收探针。探针还把任何运行时 compiler 调用设为失败。npm 发布在准确 SHA 门通过后运行相同矩阵，再下载两个准确 SHA 的产物，才允许打包。不可变 tarball 的创建与发布前复核均必须读到两种架构的有效静态镜像、匹配源码及 commit；缺 ARM64、旧 commit、坏镜像、源码漂移和伪造 attestation 均被拒绝，即使重新计算外层压缩包摘要也不能跳过内部检查。子 npm 包 → CLI → IDE 的发布次序不变。
+
+本地原生 x64 静态构建成功，安装副本执行 detached 后代取消时编译器调用为 0。7 项真实安装回归验证正常回收、缺文件、损坏、源码漂移、坏 manifest、符号链接及验证后路径替换；后者仍执行已绑定的原镜像。46 项 Linux helper/Broker/bridge 集成回归通过，80 项 artifact/发布合同/协议单测通过；ESLint、Prettier、actionlint 和进程调用清单检查通过。
+
+另外从实际项目执行 npm pack、解包后运行同一探针，确认 `files: ["src/"]` 会包含生成的静态 helper、manifest 及运行时模块，编译器调用仍为 0，实际后代回收通过。此次开发工作区探针标记 `sourceDirty:true`，不作为干净提交或发布资格；干净代码提交后另存回执。
+
+本机 Docker daemon 未运行，本地证明的是安装加载路径不调用编译器，**尚未取得物理上无编译器容器或 ARM64 的实际通过结果**。新矩阵实现不等于该验收已完成，必须复核远端结果及对应产物。完整 CLI 首次公开安装、standalone native 打包分发、监督器丢失后的有界失败/持久隔离恢复、macOS 和最终三系统门仍待验收；本批未发布、未扩展外部 Agent 准入，BRIDGE-01 继续局部完成。
