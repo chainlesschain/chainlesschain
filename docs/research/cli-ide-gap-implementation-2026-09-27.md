@@ -12,7 +12,7 @@
 | CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
-| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；上述 Windows 双宿主中文 emoji 草稿重启恢复且不自动发送；双 IDE Stop 取消异步输入准备本地回归通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；JetBrains Stop 实际 GUI 专项待补 |
+| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
 | IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
 | IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内     |
@@ -317,6 +317,10 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 
 首次 v2 宿主运行（`09c61578d7`）失败：取消提示、可编辑 composer 和 `Draft saved` 已出现，但驱动用 JavaScript `Boolean(...)` 转换反射返回的 Java boxed Boolean，将 false 对象判为 true，导致 `sendInFlight` 一直显示 true。等待至夹具 init gate 超时后失败，不能据此报告 Stop 旅程通过。驱动改为按 Java 布尔值的字符串表示显式比较；原失败 bundle `.tmp/jetbrains-canonical-recovery-09c61578d7`（digest `sha256:923ee464d21e3075afab2c893dac2c2fdb238995339a80fb2aeb365c64831f05`）保留，修正后需要重新运行。
 
+修正后的干净源码 `989a46cd6e` 完整 v2 旅程通过。真实控件确认 send 准备中且无 init → 点击 Stop → composer 可编辑、取消提示及草稿保存 → 显式放行 init → 共享 capability 正常完成；随后原 A/B 旅程和真实进程重启全部通过。重启后 C 草稿仍在，实际 CLI 返回空历史，未启动 C Agent，完整协议无 C 用户输入；模型输出仍为夹具。
+
+独立重跑全部 v2 验证器，核对 **34 个产物的长度/SHA-256**、完整 ZIP 安装清单、bundle/evidence digest、六条 A/B 渲染行与真实 canonical 提交引用，保存[恢复与 Stop 回执](./ide/evidence/jetbrains-canonical-recovery-windows-989a46cd6e.json)。证据 digest `sha256:66c4ed0f29ef58ff288b76e0ce328706230a6836e0fcd529807e5665f95b5d33`；插件 ZIP 与前一生产实现相同（`sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d`）。范围仅为 Windows x64 / IntelliJ 2024.2 的 init 等待取消；未覆盖磁盘保存/附件准备/阻塞 stdin 的全部 GUI 分支、再次发送后的 Stop、真实 provider 或其他系统。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
@@ -365,5 +369,6 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 | `b5ec362733` / `510b443ac3` | 独立项目/profile、无存储副作用的版本探测与四候选入口隔离；后者的实际 ZIP 完整恢复旅程通过 |
 | `3532bfd45f` | IDE 上传前验证配套 CLI 和子包已从公共 npm 安装并可执行；发布前置检查及公开旧版本安装探测 |
 | `30c1a0e183` | JetBrains 按选中标签发起恢复查询；27 项 Java 回归、旧七标签副本与完整实际 ZIP 重启旅程通过 |
+| `09c61578d7` / `989a46cd6e` | 受控 init gate 与 v2 Stop/草稿恢复旅程；后者修正 Java Boolean 取值并完成实际 ZIP 验收 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。

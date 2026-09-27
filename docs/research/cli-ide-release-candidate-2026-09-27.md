@@ -43,6 +43,8 @@ npm workflow 已在 CLI 发布前核对公开子包字节并全新安装候选 C
 
 后续 `30c1a0e183` 改为选中标签才发起恢复查询，[新诊断](./ide/evidence/jetbrains-old-profile-diagnostic-windows-30c1a0e183.json)再次通过，版本探测 29→6、历史查询 9→3；A/B 历史状态已完成。同一源码的完整 initial/restart ZIP 旅程和 31 个产物独立哈希复核通过。该单轮对照证明查询数量减少，没有冻结延迟 SLO。
 
+`989a46cd6e` 的[恢复 v2 回执](./ide/evidence/jetbrains-canonical-recovery-windows-989a46cd6e.json)进一步通过原生 Stop 取消 init 等待、迟到 init 正常完成及重启保留取消草稿且不重发；34 个产物独立复核通过。此结果仍限定 Windows / IntelliJ 2024.2，其他 Stop 阶段、附件/问题和其他宿主环境继续验收。
+
 ## 4. 后续独立任务
 
 本轮不宣称完成：NET-01 Linux 不可绕过域名出口、NET-02 已有连接撤销、CODEX-01 最新固定二进制与官方生成 schema 兼容、PERF-01 三系统正式 SLO、PERF-02 实际 usage 与压缩事实保真、VERIFY-01 30–50 真实任务、PLATFORM-01 完整平台矩阵，以及真人读屏和 8h/24h 观察。未知价格仍保持 unpriced；受限域名执行继续沿用 fail-closed。
