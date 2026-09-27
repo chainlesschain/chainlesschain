@@ -334,6 +334,116 @@ describe("ClaudeCodeAgent", () => {
     }
   });
 
+  it("retains a broker-owned child after a synchronous post-spawn failure", async () => {
+    vi.useFakeTimers();
+    try {
+      const { EventEmitter } = require("events");
+      const proc = new EventEmitter();
+      proc.pid = 123;
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+      let confirmClose;
+      const workspaceProcessClosed = new Promise((resolve) => {
+        confirmClose = resolve;
+      });
+      _deps.spawn = vi.fn(() => {
+        throw Object.assign(new Error("post-spawn admission failed"), {
+          spawnedProcess: proc,
+          workspaceProcessClosed,
+          workspaceTerminationRequested: true,
+        });
+      });
+      const agent = new ClaudeCodeAgent();
+      const complete = vi.fn();
+      agent.on("task:complete", complete);
+      const running = agent.executeTask("task", { killGraceMs: 200 });
+      await Promise.resolve();
+      expect(complete).not.toHaveBeenCalled();
+      expect(agent.status).toBe(AGENT_STATUS.RUNNING);
+      await expect(agent.executeTask("overlap")).rejects.toThrow("already");
+      await vi.advanceTimersByTimeAsync(200);
+      expect(proc.kill.mock.calls).toEqual([["SIGTERM"], ["SIGKILL"]]);
+      expect(complete).not.toHaveBeenCalled();
+      proc.emit("error", new Error("late signal error"));
+      proc.emit("close", 0);
+      confirmClose({ observed: true, exitCode: 0, signal: null });
+      expect(await running).toMatchObject({
+        success: false,
+        errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+        error: "post-spawn admission failed",
+      });
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(agent.currentTask).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("accepts only an observed broker close fence after post-spawn failure", async () => {
+    const { EventEmitter } = require("events");
+    const proc = new EventEmitter();
+    proc.pid = 124;
+    proc.stdout = new EventEmitter();
+    proc.stderr = new EventEmitter();
+    proc.kill = vi.fn();
+    let confirmClose;
+    const workspaceProcessClosed = new Promise((resolve) => {
+      confirmClose = resolve;
+    });
+    _deps.spawn = vi.fn(() => {
+      throw Object.assign(new Error("post-spawn bookkeeping failed"), {
+        spawnedProcess: proc,
+        workspaceProcessClosed,
+      });
+    });
+    const agent = new ClaudeCodeAgent();
+    const complete = vi.fn();
+    agent.on("task:complete", complete);
+    const running = agent.executeTask("task");
+    expect(complete).not.toHaveBeenCalled();
+    confirmClose({ observed: true, exitCode: null, signal: "SIGKILL" });
+    expect(await running).toMatchObject({
+      success: false,
+      errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+    });
+    proc.emit("close", 0);
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["unobserved", "rejected"])(
+    "retains ownership when the broker close fence is %s",
+    async (mode) => {
+      const { EventEmitter } = require("events");
+      const proc = new EventEmitter();
+      proc.pid = 125;
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+      _deps.spawn = vi.fn(() => {
+        throw Object.assign(new Error("post-spawn failure"), {
+          spawnedProcess: proc,
+          workspaceProcessClosed:
+            mode === "rejected"
+              ? Promise.reject(new Error("observer failed"))
+              : Promise.resolve({ observed: false, exitCode: 0 }),
+        });
+      });
+      const agent = new ClaudeCodeAgent();
+      const complete = vi.fn();
+      agent.on("task:complete", complete);
+      const running = agent.executeTask("task");
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(complete).not.toHaveBeenCalled();
+      expect(agent.status).toBe(AGENT_STATUS.RUNNING);
+      proc.emit("close", 0);
+      expect(await running).toMatchObject({ success: false });
+      expect(complete).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("waits for close after a live child error", async () => {
     const { EventEmitter } = require("events");
     const proc = new EventEmitter();

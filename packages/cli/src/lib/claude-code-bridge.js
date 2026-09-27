@@ -242,6 +242,8 @@ export class ClaudeCodeAgent extends EventEmitter {
       let timer = null;
       let killTimer = null;
       let processError = null;
+      let spawnFailure = null;
+      let brokerCloseFence = null;
       const finalize = (result) => {
         if (finalized) return;
         finalized = true;
@@ -320,8 +322,17 @@ export class ClaudeCodeAgent extends EventEmitter {
           shell: false,
         });
       } catch (err) {
-        failSpawn(err);
-        return;
+        // Broker admission/bookkeeping can fail after native spawn. Its
+        // attached child remains ours until close; a kill request is not exit
+        // evidence and must not release this agent for another task.
+        if (!err?.spawnedProcess) {
+          failSpawn(err);
+          return;
+        }
+        proc = err.spawnedProcess;
+        processError = err;
+        spawnFailure = err;
+        brokerCloseFence = err.workspaceProcessClosed;
       }
       this._proc = proc;
       this._stop = stop;
@@ -331,10 +342,12 @@ export class ClaudeCodeAgent extends EventEmitter {
       // inner timer still fires a redundant SIGKILL on a dead pid AND holds the
       // event loop open for the full grace period. unref() is a second guard so
       // it never keeps the process alive on its own.
-      timer = setTimeout(() => {
-        timedOut = true;
-        stop();
-      }, timeout);
+      if (!spawnFailure) {
+        timer = setTimeout(() => {
+          timedOut = true;
+          stop();
+        }, timeout);
+      }
 
       proc.stdout.on("data", (data) => {
         if (finalized) return;
@@ -366,7 +379,7 @@ export class ClaudeCodeAgent extends EventEmitter {
         }
       });
 
-      proc.on("close", (code) => {
+      const completeClosed = (code) => {
         if (finalized) return;
         const duration = Date.now() - startTime;
         const rawOutput = outputChunks.join("");
@@ -426,11 +439,13 @@ export class ClaudeCodeAgent extends EventEmitter {
           ? EXTERNAL_AGENT_ERROR.TIMEOUT
           : cancelled
             ? EXTERNAL_AGENT_ERROR.CANCELLED
-            : code !== 0
-              ? EXTERNAL_AGENT_ERROR.EXIT_NONZERO
-              : protocolFailed
-                ? EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED
-                : null;
+            : spawnFailure
+              ? EXTERNAL_AGENT_ERROR.SPAWN_FAILED
+              : code !== 0
+                ? EXTERNAL_AGENT_ERROR.EXIT_NONZERO
+                : protocolFailed
+                  ? EXTERNAL_AGENT_ERROR.PROTOCOL_FAILED
+                  : null;
 
         const result = {
           success,
@@ -468,10 +483,17 @@ export class ClaudeCodeAgent extends EventEmitter {
         };
 
         finalize(result);
-      });
+      };
+      proc.on("close", completeClosed);
 
       proc.on("error", (err) => {
         if (finalized) return;
+        if (spawnFailure) {
+          // Keep the original admission failure and wait for the owned child;
+          // another signal/transport error is still not proof of its exit.
+          stop();
+          return;
+        }
         // A post-spawn error (e.g. signal failure) is not proof of exit.
         // Retain ownership and wait for close, escalating cancellation.
         if (proc.pid && proc.exitCode == null && proc.signalCode == null) {
@@ -481,6 +503,20 @@ export class ClaudeCodeAgent extends EventEmitter {
           failSpawn(err);
         }
       });
+      if (spawnFailure) {
+        if (brokerCloseFence?.then) {
+          Promise.resolve(brokerCloseFence).then(
+            (receipt) => {
+              if (receipt?.observed === true) completeClosed(receipt.exitCode);
+            },
+            () => {
+              // A failed close observer proves nothing. Keep the actual
+              // ChildProcess close listener and termination deadline active.
+            },
+          );
+        }
+        stop();
+      }
     });
   }
 
