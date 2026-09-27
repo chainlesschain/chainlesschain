@@ -120,10 +120,13 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         /** New per-tab resume-id list (comma-joined); migrates the legacy single key. */
         private static final String SESSION_IDS_KEY = "chainlesschain.chat.sessionIds";
         private static final String LEGACY_SESSION_ID_KEY = "chainlesschain.chat.sessionId";
+        private static final String TABS_KEY = "chainlesschain.chat.tabs.v2";
 
         private final Project project;
         private String lastClosedSessionId; // §6 reopen-closed
         private String lastClosedTitle;
+        private String lastClosedDraftKey;
+        private final com.chainlesschain.ide.ChatDraftStore drafts;
         private final JPanel root = new JPanel(new BorderLayout(0, 2));
         private final JBTabbedPane tabs = new JBTabbedPane();
         // Factory MUST mint a real ChatEvents.TurnState — ConversationView casts
@@ -137,12 +140,19 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         ChatPanel(Project project) {
             this.project = project;
+            String workspace = project.getBasePath() == null ? project.getLocationHash() : project.getBasePath();
+            drafts = new com.chainlesschain.ide.ChatDraftStore(java.nio.file.Path.of(
+                    com.intellij.openapi.application.PathManager.getConfigPath(), "chainlesschain", "chat-drafts",
+                    com.chainlesschain.ide.ChatDraftStore.hash(workspace.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
             REGISTRY.put(project, this);
 
             JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
             JButton addBtn = new JButton("+ New chat");
             addBtn.addActionListener(e -> newConversation());
             north.add(addBtn);
+            JButton recoverBtn = new JButton("Recover drafts");
+            recoverBtn.addActionListener(e -> recoverDrafts());
+            north.add(recoverBtn);
             JButton handoffBtn = new JButton("Continue in new chat");
             handoffBtn.setToolTipText("Save task notes and continue with a fresh context");
             handoffBtn.addActionListener(e -> {
@@ -239,21 +249,52 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         /** §6 reopen-closed: re-open the most recently closed conversation, resuming it. */
         void reopenClosed() {
+            if (lastClosedDraftKey != null) {
+                for (String id : tabIds) if (lastClosedDraftKey.equals(conversations.get(id).draftKey)) {
+                    tabs.setSelectedIndex(tabIds.indexOf(id));
+                    lastClosedDraftKey = null; lastClosedSessionId = null; lastClosedTitle = null;
+                    return;
+                }
+            }
             if (lastClosedSessionId == null && lastClosedTitle == null) {
                 newConversation();
                 return;
             }
             ConversationManager.Conversation conv =
                     conversations.create(lastClosedTitle, lastClosedSessionId, true);
+            if (lastClosedDraftKey != null) conv.draftKey = lastClosedDraftKey;
             addTabFor(conv, true);
             persistSessionIds();
             lastClosedSessionId = null;
             lastClosedTitle = null;
+            lastClosedDraftKey = null;
+        }
+
+        private void recoverDrafts() {
+            com.chainlesschain.ide.ChatDraftTasks.submit(drafts::list).whenComplete((saved, error) ->
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    if (project.isDisposed() || REGISTRY.get(project) != this) return;
+                    if (error != null) { com.intellij.openapi.ui.Messages.showErrorDialog(project, error.getMessage(), "Saved drafts"); return; }
+                    if (saved.isEmpty()) { com.intellij.openapi.ui.Messages.showInfoMessage(project, "No saved input found", "Saved drafts"); return; }
+                    String[] labels = saved.stream().map(d -> (d.sessionId() == null ? "New chat" : d.sessionId())
+                            + " · " + d.composer().text().replace('\n', ' ').substring(0, Math.min(60, d.composer().text().length()))
+                            + " · " + d.submissions().size() + " saved input(s)").toArray(String[]::new);
+                    for (int i = 0; i < labels.length; i++) labels[i] = (i + 1) + ". " + labels[i];
+                    String choice = ChoiceDialog.choose(project, "Recover drafts", "Open local input without starting the agent", java.util.Arrays.asList(labels), labels[0]);
+                    if (choice == null) return;
+                    int picked = java.util.Arrays.asList(labels).indexOf(choice);
+                    com.chainlesschain.ide.ChatDraftStore.Draft draft = saved.get(picked);
+                    for (String id : tabIds) if (conversations.get(id).draftKey.equals(draft.key())) {
+                        tabs.setSelectedIndex(tabIds.indexOf(id)); return;
+                    }
+                    ConversationManager.Conversation conv = conversations.create("Recovered draft", draft.sessionId(), true);
+                    conv.draftKey = draft.key(); addTabFor(conv, true); persistSessionIds();
+                }));
         }
 
         /** Add a tab + view for an existing model conversation. */
         private void addTabFor(ConversationManager.Conversation conv, boolean select) {
-            ConversationView view = new ConversationView(project, conv,
+            ConversationView view = new ConversationView(project, conv, drafts,
                     (cid, sid) -> persistSessionIds());
             view.setContainerActions(this::newConversation);
             views.put(conv.id, view);
@@ -281,6 +322,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
             if (r.conv != null) { // remember for §6 reopen-closed
                 lastClosedSessionId = r.conv.sessionId;
                 lastClosedTitle = r.conv.title;
+                lastClosedDraftKey = r.conv.draftKey;
             }
             ConversationView view = views.remove(id);
             if (view != null) view.dispose();
@@ -327,23 +369,48 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
 
         private void persistSessionIds() {
             List<String> ids = new ArrayList<String>();
+            List<Map<String, Object>> savedTabs = new ArrayList<>();
             for (String id : tabIds) {
                 ConversationManager.Conversation c = conversations.get(id);
                 ids.add(c != null && c.sessionId != null ? c.sessionId : "");
+                if (c != null) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("key", c.draftKey); row.put("sessionId", c.sessionId); row.put("title", c.title);
+                    savedTabs.add(row);
+                }
             }
             PropertiesComponent.getInstance(project)
                     .setValue(SESSION_IDS_KEY, String.join(",", ids));
+            PropertiesComponent.getInstance(project).setValue(TABS_KEY, com.chainlesschain.ide.MiniJson.stringify(savedTabs));
         }
 
         /** Rebuild tabs from stored resume ids on open; migrate the legacy single key. */
         private void restoreOrCreate() {
             PropertiesComponent props = PropertiesComponent.getInstance(project);
+            String saved = props.getValue(TABS_KEY);
+            if (saved != null && saved.length() <= 100_000) {
+                try {
+                    Object parsed = com.chainlesschain.ide.MiniJson.parse(saved);
+                    if (parsed instanceof List<?> rows && rows.size() <= 128) {
+                        java.util.Set<String> keys = new java.util.HashSet<>();
+                        for (Object entry : rows) {
+                            if (!(entry instanceof Map<?, ?> row)) continue;
+                            String key = String.valueOf(row.get("key"));
+                            if (!com.chainlesschain.ide.ChatDraftStore.validKey(key) || !keys.add(key)) continue;
+                            String sid = row.get("sessionId") instanceof String s ? s : null;
+                            ConversationManager.Conversation conv = conversations.create(
+                                    row.get("title") instanceof String title ? title : null, sid, false);
+                            conv.draftKey = key; addTabFor(conv, false);
+                        }
+                    }
+                } catch (IllegalArgumentException ignored) { /* legacy migration; saved files remain recoverable */ }
+            }
             String stored = props.getValue(SESSION_IDS_KEY);
             if (stored == null) {
                 String legacy = props.getValue(LEGACY_SESSION_ID_KEY);
                 if (legacy != null && !legacy.trim().isEmpty()) stored = legacy;
             }
-            if (stored != null && !stored.trim().isEmpty()) {
+            if (tabIds.isEmpty() && stored != null && !stored.trim().isEmpty()) {
                 for (String raw : stored.split(",", -1)) {
                     String sid = raw.trim();
                     ConversationManager.Conversation conv =
@@ -357,6 +424,7 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
                 tabs.setSelectedIndex(0);
                 conversations.switchTo(tabIds.get(0));
             }
+            persistSessionIds();
         }
 
         @Override

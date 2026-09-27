@@ -125,6 +125,8 @@ final class ConversationView {
     private final JTextArea input = new JTextArea(3, 0); // multi-line composer
     // Attached images (paste + drag-drop + 📷 indicator) — see ChatComposerImages.
     private final ChatComposerImages images = new ChatComposerImages(input);
+    private final ChatComposerDrafts drafts;
+    private volatile java.util.concurrent.CompletableFuture<Boolean> receiptSupport;
     // `/` and `@` completion popups — see ChatMentionPopups (needs `project`; ctor-assigned).
     private final ChatMentionPopups popups;
     private final JButton sendBtn = new JButton("Send");
@@ -211,11 +213,14 @@ final class ConversationView {
     private final java.util.Deque<java.util.List<String>> sentImageBatches =
             new java.util.ArrayDeque<>();
 
-    ConversationView(Project project, ConversationManager.Conversation conv,
+    ConversationView(Project project, ConversationManager.Conversation conv, com.chainlesschain.ide.ChatDraftStore draftStore,
                      SessionIdSink sessionIdSink) {
         this.project = project;
         this.conv = conv;
         this.sessionIdSink = sessionIdSink;
+        if (conv.sessionId == null || conv.sessionId.isEmpty()) conv.sessionId = SessionArgs.newPanelSessionId();
+        this.drafts = new ChatComposerDrafts(project, conv, draftStore, input, images,
+                () -> sendInFlight, this::liveSession, this::append);
         this.popups = new ChatMentionPopups(project, input);
         if (conv.turnState == null) conv.turnState = new ChatEvents.TurnState();
 
@@ -274,6 +279,10 @@ final class ConversationView {
                 "Review and revoke exact permissions retained for this turn or session");
         grantsBtn.addActionListener(ev -> requestApprovalGrants());
         buttons.add(grantsBtn);
+        JButton savedBtn = new JButton("Saved inputs");
+        savedBtn.addActionListener(event -> drafts.review()); buttons.add(savedBtn);
+        JButton clearImagesBtn = new JButton("Clear attachments");
+        clearImagesBtn.addActionListener(event -> drafts.discardAttachments()); buttons.add(clearImagesBtn);
         buttons.add(sendBtn);
         buttons.add(stopBtn);
         JPanel buttonRow = new JPanel(new BorderLayout());
@@ -291,6 +300,7 @@ final class ConversationView {
         JPanel inputArea = new JPanel(new BorderLayout(0, 2));
         JPanel inputStatus = new JPanel(new java.awt.GridLayout(0, 1));
         inputStatus.add(modeLabel);
+        inputStatus.add(drafts.label());
         inputStatus.add(contextLabel);
         modeLabel.getAccessibleContext().setAccessibleName("Approval mode status");
         inputArea.add(inputStatus, BorderLayout.NORTH);
@@ -666,6 +676,7 @@ final class ConversationView {
 
     private void sendCurrentInput() {
         if (sendInFlight) return;
+        if (!drafts.ready()) { append("ℹ Resolve the saved input status before sending.\n"); return; }
         if (images.isPreparing()) {
             append("ℹ Wait for the images to finish preparing before sending.\n");
             return;
@@ -681,28 +692,49 @@ final class ConversationView {
         }
         final java.util.List<String> imgs = images.snapshot();
         final long modeRevision = conv.modeState.snapshot().revision();
+        final long draftRevision = drafts.revision();
         sendInFlight = true;
+        final java.util.concurrent.CompletableFuture<?> savedComposer = drafts.beginSend();
         sendExecutor.execute(() -> {
             if (disposed) return; // queued before a tab close — don't respawn cc
             boolean sent = false;
             String spawnError = null;
+            com.chainlesschain.ide.ChatDraftStore.Prepared prepared = null;
             try {
+                savedComposer.get(10, TimeUnit.SECONDS);
+                if (disposed) return;
                 if (!conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed; input was not dispatched");
                 ensureSession();
                 AgentChatSession s = liveSession();
                 String history = worklogSourceSent ? null : worklogSource;
-                sent = s != null && (history == null ? s.send(text, imgs)
-                        : s.sendWithWorklog(text, imgs, history));
+                Object owner = sessionGeneration;
+                java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
+                if (s == null || capability == null) throw new IOException("Agent startup was not confirmed");
+                boolean supported = capability.get(15, TimeUnit.SECONDS);
+                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
+                    throw new IOException("Agent changed before input preparation");
+                prepared = drafts.prepare(text, imgs, history, !turnActive && !s.hasPendingTurns()).get(10, TimeUnit.SECONDS);
+                drafts.markUnknown(prepared.submission().id()).get(10, TimeUnit.SECONDS);
+                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
+                    throw new IOException("Input saved; agent changed before delivery");
+                Map<String, Object> event = AgentChatSession.userEvent(text, prepared.paths());
+                if (supported) event.put("client_message_id", prepared.submission().id());
+                if (history != null) event.put("worklog_session_id", history);
+                sent = s.sendEvent(event);
                 if (sent && history != null) worklogSourceSent = true;
-            } catch (IOException ex) {
+            } catch (Exception ex) {
+                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
                 spawnError = ex.getMessage();
             } finally {
                 final boolean ok = sent;
                 final String err = spawnError;
+                final com.chainlesschain.ide.ChatDraftStore.Prepared saved = prepared;
                 SwingUtilities.invokeLater(() -> {
                     sendInFlight = false;
+                    if (disposed) return;
+                    drafts.finishSend(saved, draftRevision);
                     if (!conv.modeState.current(modeRevision)) {
-                        append("⚠ Approval mode changed during delivery. Input retained; check the conversation before resending.\n");
+                        append("⚠ Approval mode changed during delivery. Check Saved inputs and the conversation before resending.\n");
                     } else if (err != null) {
                         append("⚠ could not send message: " + err + "\n");
                     } else if (ok) {
@@ -713,16 +745,9 @@ final class ConversationView {
                         String tag = imgs.isEmpty() ? ""
                                 : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
                         append("\nyou> " + text + tag + "\n");
-                        input.setText("");
-                        // Take ownership of the composer's self-created temp pngs
-                        // BEFORE clearAll (which deletes still-pending own temps)
-                        // — these were just sent, so they're cleaned at THIS
-                        // message's turn end. One batch per send keeps the FIFO
-                        // aligned with turn_end events (empty batch for a
-                        // text-only / dropped-real-file send).
-                        sentImageBatches.addLast(
-                                new java.util.ArrayList<>(images.takeOwnedTemps(imgs)));
-                        images.clearAll();
+                        // Preserve the legacy turn FIFO; store snapshots remain
+                        // owned by saved submissions until confirmed idle/discard.
+                        sentImageBatches.addLast(new java.util.ArrayList<>());
                     } else {
                         append("⚠ agent session is not running — press New to restart\n");
                     }
@@ -1689,6 +1714,8 @@ final class ConversationView {
      * the EDT before invoking this, so the next spawn reads the new values.
      */
     void restartForModeChange() {
+        java.util.concurrent.CompletableFuture<Boolean> pendingCapabilities = receiptSupport;
+        if (pendingCapabilities != null) pendingCapabilities.completeExceptionally(new IOException("Agent mode changed"));
         if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
         final long revision = conv.modeState.request(conv.mode);
         sessionGeneration = null;
@@ -1807,6 +1834,8 @@ final class ConversationView {
         if (disposed || !conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed before agent launch");
         final Object generation = new Object();
         sessionGeneration = generation;
+        final java.util.concurrent.CompletableFuture<Boolean> capabilities = new java.util.concurrent.CompletableFuture<>();
+        receiptSupport = capabilities;
         worklogSupported = false;
         worklogSourceSent = false;
         if (reload) {
@@ -1929,6 +1958,10 @@ final class ConversationView {
                     && "init".equals(event.get("subtype"))) {
                 if (event.get("session_id") != null
                         && !java.util.Objects.equals(conv.sessionId, event.get("session_id"))) return;
+                Object rawReceipts = event.get("input_receipts");
+                capabilities.complete(rawReceipts instanceof Map<?, ?> receipts
+                        && receipts.get("version") instanceof Number version && version.doubleValue() == 1
+                        && java.util.Objects.equals(conv.sessionId, event.get("session_id")));
                 conv.modeState.acknowledge(generation, event);
                 refreshModeStatus();
                 Object worklog = event.get("task_worklog");
@@ -1987,6 +2020,13 @@ final class ConversationView {
                         planReviewTurn, ((Number) event.get("turn")).intValue());
             }
             if (handleApprovalGrantCommandEvent(event)) return;
+            if (event != null && "system".equals(event.get("type")) && "input_accepted".equals(event.get("subtype"))
+                    && java.util.Objects.equals(conv.sessionId, event.get("session_id"))
+                    && event.get("client_message_id") instanceof String clientId && event.get("receipt") instanceof Map<?, ?> receipt) {
+                @SuppressWarnings("unchecked") Map<String, Object> typed = (Map<String, Object>) receipt;
+                drafts.accept(clientId, typed);
+                return;
+            }
             final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
             if (ui == null) return;
             // Rendering plan events may update an open review document.
@@ -1997,6 +2037,7 @@ final class ConversationView {
         };
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
+            capabilities.completeExceptionally(new IOException("Agent exited before input acknowledgement"));
             if (disposed || sessionGeneration != generation) return;
             conv.modeState.exited(generation, code);
             refreshModeStatus();
@@ -3201,6 +3242,7 @@ final class ConversationView {
     }
 
     void dispose() {
+        drafts.dispose();
         if (modeAcknowledgementTimer != null) modeAcknowledgementTimer.stop();
         cancelWorklogHandoff();
         disposed = true; // gates ensureSession + every queued task body

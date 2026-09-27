@@ -24,6 +24,7 @@ public final class ConversationManager {
     /** One conversation/tab. The session handle + turn state are opaque. */
     public static final class Conversation {
         public final String id;
+        public String draftKey = ChatDraftStore.newKey();
         public String title;
         // session / sessionId / turnState are read+written from BOTH the EDT
         // (mode changes, Stop, tab lifecycle) and the per-tab send worker

@@ -37,9 +37,9 @@ responses carry the owning session and generation. Launch checks cancellation
 again after binary resolution and environment preparation. A stopped or exited
 session instance cannot be restarted.
 
-If the mode changes while an input is being written, its composer text is kept
-with an unknown-delivery notice. This does not replace durable input receipts:
-JetBrains receipt reconciliation remains a separate unfinished task.
+If the mode changes while an input is being written, its text is retained in the
+composer or Saved inputs with an unknown-delivery notice. Recovery and receipt reconciliation are
+documented in [Chat draft recovery](CHAT_DRAFT_RECOVERY.md).
 
 ## Evidence and limits
 

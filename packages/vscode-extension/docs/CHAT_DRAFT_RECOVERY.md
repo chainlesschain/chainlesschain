@@ -71,7 +71,7 @@ bounded to 256 instances. Webview backup holds at most 16 edited forms and 64K
 JSON characters, and protects newer local edits from delayed recovery. Wait for
 storage before closing the host; this does not promise zero loss on forced exit.
 
-JetBrains parity, native structured-schema review and current real IDE host
+JetBrains question-draft parity, native structured-schema review and current real IDE host
 acceptance remain separate work in IDE-DRAFT. No approvals are saved or replayed
 by this draft store. Empty windows without workspace storage keep in-memory
 question state and explicit response routing, without disk draft recovery.

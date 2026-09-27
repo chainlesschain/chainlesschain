@@ -11,6 +11,10 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 describes requested/effective mode status, stop confirmation, and the limits of
 observed process-tree termination in the current development branch.
 
+[Chat draft recovery](docs/CHAT_DRAFT_RECOVERY.md) describes persistent composer
+text, attachment snapshots, saved input review, and CLI acceptance receipts in
+the current development branch.
+
 **The bridge needs no IDE-specific CLI transport fork** — this plugin writes
 the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require

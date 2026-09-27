@@ -28,6 +28,17 @@ final class ChatComposerImages {
     private int inFlight;
     private long attachedBytes;
     private String lastError = "";
+    private Runnable onChange = () -> {};
+    private boolean editable = true;
+
+    void setOnChange(Runnable listener) { onChange = listener; }
+    void setEditable(boolean value) { editable = value; }
+    /** Restore already validated store snapshots; the composer does not own/delete them. */
+    void restore(List<String> paths, long bytes) {
+        clearAll();
+        pendingImages.addAll(paths); attachedBytes = bytes;
+        updateIndicator(); onChange.run();
+    }
 
     ChatComposerImages(JTextArea input) {
         this.input = input;
@@ -47,6 +58,7 @@ final class ChatComposerImages {
     boolean isPreparing() { return inFlight > 0; }
 
     private boolean reserve() {
+        if (!editable) return false;
         if (pendingImages.size() + inFlight >= ImageAttachments.MAX) {
             showError("Attach at most 4 images per message");
             return false;
@@ -99,6 +111,7 @@ final class ChatComposerImages {
         }
         pendingImages.clear();
         updateIndicator();
+        onChange.run();
     }
 
     /** Attach a clipboard image (Ctrl/Cmd+V). Returns true if one was taken. */
@@ -143,6 +156,7 @@ final class ChatComposerImages {
      * the text area's built-in drop handling, so re-implement that bit).
      */
     private boolean importDropped(java.awt.datatransfer.Transferable t) throws Exception {
+        if (!editable) return false;
         if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
             @SuppressWarnings("unchecked")
             List<java.io.File> files = (List<java.io.File>)
@@ -234,7 +248,7 @@ final class ChatComposerImages {
                 else if (error != null) errorHolder(ticket, path, error);
                 else {
                     String absolute = path.toAbsolutePath().toString();
-                    pendingImages.add(absolute); ownTemps.add(absolute); attachedBytes += bytes; updateIndicator();
+                    pendingImages.add(absolute); ownTemps.add(absolute); attachedBytes += bytes; updateIndicator(); onChange.run();
                 }
             } else if (path != null) path.toFile().delete();
         });
