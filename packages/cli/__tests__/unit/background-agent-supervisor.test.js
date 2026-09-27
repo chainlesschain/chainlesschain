@@ -1798,7 +1798,16 @@ describe("background agent supervisor", () => {
       endedAt: 3,
     });
 
-    const first = listBackgroundAgentsPage({ all: true, limit: 2 });
+    const observations = [];
+    const indexObserver = (observation) => {
+      observations.push(observation);
+      throw new Error("measurement sink unavailable");
+    };
+    const first = listBackgroundAgentsPage({
+      all: true,
+      limit: 2,
+      indexObserver,
+    });
     expect(first.sessions.map((state) => state.id)).toEqual([
       "bg-page-new",
       "bg-page-tie-a",
@@ -1812,12 +1821,18 @@ describe("background agent supervisor", () => {
       all: true,
       limit: 2,
       cursor: first.nextCursor,
+      indexObserver,
     });
     expect(second.sessions.map((state) => state.id)).toEqual([
       "bg-page-tie-b",
       "bg-page-old",
     ]);
     expect(second.nextCursor).toBeNull();
+    expect(observations).toEqual([
+      { source: "rebuilt", entryCount: 4 },
+      { source: "index", entryCount: 4 },
+    ]);
+    expect(Object.isFrozen(observations[0])).toBe(true);
   });
 
   it("keeps the running-only default and rejects malformed page inputs", () => {

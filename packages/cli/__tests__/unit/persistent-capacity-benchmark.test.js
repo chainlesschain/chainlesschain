@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -8,7 +8,9 @@ import {
   measureDurableMemoryTier,
   resolvePersistentCapacityProfile,
   summarizeDurations,
+  writeBackgroundAgentFixture,
 } from "../../scripts/persistent-capacity-benchmark.mjs";
+import { measureBackgroundPageComparison } from "../../scripts/background-capacity-comparison.mjs";
 import {
   DurableJsonMemoryPort,
   normalizeState,
@@ -23,6 +25,7 @@ function temporaryRoot() {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   while (roots.length > 0) {
     rmSync(roots.pop(), { recursive: true, force: true });
   }
@@ -95,7 +98,7 @@ describe("persistent capacity benchmark", () => {
     expect(observations[0].waitMs).toBeGreaterThanOrEqual(0);
   });
 
-  it("measures the actual durable port and background full-scan paths", async () => {
+  it("measures the actual durable port and compares full scans with indexed pages", async () => {
     const root = temporaryRoot();
     const memory = await measureDurableMemoryTier(root, 6, {
       samples: 1,
@@ -114,16 +117,67 @@ describe("persistent capacity benchmark", () => {
     expect(memory.query.samples).toBe(1);
     expect(memory.lockWait.samples).toBeGreaterThan(0);
 
-    const background = await measureBackgroundAgentTier(root, 6, {
+    const background = await measureBackgroundAgentTier(root, 105, {
       samples: 1,
     });
     expect(background).toMatchObject({
-      recordCount: 6,
-      observedCount: 6,
-      coldProcess: { ok: true, count: 6 },
+      recordCount: 105,
+      observedCount: 105,
+      coldProcess: { ok: true, count: 105 },
       fullDirectoryListAndSort: { samples: 1 },
-      paginationApplied: false,
-      indexApplied: false,
+      paginationApplied: true,
+      indexApplied: true,
+      comparison: {
+        coldBuild: {
+          ok: true,
+          count: 50,
+          validation: { ok: true, expectedSource: "rebuilt" },
+        },
+        coldCached: {
+          ok: true,
+          count: 50,
+          validation: { ok: true, expectedSource: "index" },
+        },
+        warmFirstPage: { samples: 1, sources: { index: 1 } },
+        warmNextPage: { samples: 1, sources: { index: 1 } },
+        invalidationRebuild: { samples: 1, sources: { rebuilt: 1 } },
+        traversal: { exact: true, records: 105, pages: 3 },
+        pathsVerified: true,
+        lockWait: { applicable: false },
+      },
     });
+    const restored = JSON.parse(
+      readFileSync(
+        join(root, "background-105", "bg-capacity-00000000.json"),
+        "utf8",
+      ),
+    );
+    expect(restored).toMatchObject({ title: "capacity task 0", startedAt: 1 });
+    expect(background.comparison.processPeakRssBytes).toBeGreaterThan(0);
   }, 30_000);
+
+  it("does not attest indexed comparison when a cold worker fails", async () => {
+    const directory = temporaryRoot();
+    writeBackgroundAgentFixture(directory, 3);
+    vi.stubEnv("CC_BACKGROUND_AGENTS_DIR", directory);
+    const comparison = await measureBackgroundPageComparison({
+      directory,
+      recordCount: 3,
+      samples: 1,
+      runWorker: async () => ({
+        ok: false,
+        code: "PERSISTENT_CAPACITY_WORKER_TIMEOUT",
+      }),
+      summarizeDurations,
+    });
+    expect(comparison.pathsVerified).toBe(false);
+    expect(comparison.coldBuild.validation.ok).toBe(false);
+    expect(comparison.coldCached.validation.ok).toBe(false);
+    expect(comparison.warmNextPage.samples).toBe(0);
+    expect(comparison.traversal).toMatchObject({
+      exact: true,
+      records: 3,
+      pages: 1,
+    });
+  });
 });

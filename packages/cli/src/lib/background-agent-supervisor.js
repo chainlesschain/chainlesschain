@@ -2174,14 +2174,22 @@ function isBackgroundAgentAfterCursor(state, cursor) {
   return String(state.id).localeCompare(cursor.id) > 0;
 }
 
+function observeBackgroundAgentList(options, source, entryCount) {
+  // Optional in-process measurement only; telemetry failures cannot change a read.
+  try {
+    options.indexObserver?.(Object.freeze({ source, entryCount }));
+  } catch {
+    // Keep observers outside the authoritative result.
+  }
+}
+
 /**
  * Return one stable, bounded page from the newest-first background session
  * feed. The cursor is an opaque ordering fence, not an authority token.
  *
- * State files are still read to preserve the current authoritative lifecycle
- * reconciliation. A future read-only index may reduce that I/O, but this API
- * immediately bounds the object graph and protocol response retained by a
- * caller.
+ * The index still enumerates and stats every authority file; selected rows are
+ * read again for lifecycle reconciliation. It reduces content reads, not the
+ * O(N) inventory fence. indexObserver receives the chosen read path and count.
  */
 export function listBackgroundAgentsPage(options = {}) {
   const limit = normalizeBackgroundAgentPageLimit(options.limit);
@@ -2223,6 +2231,7 @@ export function listBackgroundAgentsPage(options = {}) {
       projected.length > sessions.length
         ? encodeBackgroundAgentPageCursor(sessions.at(-1), options.all)
         : null;
+    observeBackgroundAgentList(options, indexed.source, indexed.entries.length);
     return Object.freeze({
       sessions: Object.freeze(sessions),
       nextCursor,
@@ -2238,6 +2247,7 @@ export function listBackgroundAgentsPage(options = {}) {
     eligible.length > sessions.length
       ? encodeBackgroundAgentPageCursor(sessions.at(-1), options.all)
       : null;
+  observeBackgroundAgentList(options, "full-scan", eligible.length);
   return Object.freeze({
     sessions: Object.freeze(sessions),
     nextCursor,

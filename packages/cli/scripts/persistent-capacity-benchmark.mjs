@@ -25,6 +25,11 @@ import {
   stateDigest,
 } from "../src/lib/context-memory-kernel/durable-memory-port.js";
 import { listBackgroundAgents } from "../src/lib/background-agent-supervisor.js";
+import {
+  backgroundPageEvidence,
+  measureBackgroundPageComparison,
+  readBackgroundCapacityPage,
+} from "./background-capacity-comparison.mjs";
 
 export const PERSISTENT_CAPACITY_SCHEMA =
   "chainlesschain.persistent-capacity-measurement/v1";
@@ -297,6 +302,8 @@ export async function runPersistentCapacityWorker(argv = process.argv) {
   const started = performance.now();
   try {
     let count = null;
+    let page = null;
+    let measuredMs = null;
     if (kind === "memory-query") {
       count = (await port.query()).length;
     } else if (kind === "memory-update") {
@@ -349,11 +356,18 @@ export async function runPersistentCapacityWorker(argv = process.argv) {
       const finalized = await port.commit(purged, deleted.record.revision);
       if (!finalized.ok) throw new Error(`worker purge raced: ${id}`);
       count = 1;
-    } else if (kind === "background-list") {
+    } else if (kind === "background-list" || kind === "background-page") {
       const previous = process.env.CC_BACKGROUND_AGENTS_DIR;
       process.env.CC_BACKGROUND_AGENTS_DIR = targetPath;
       try {
-        count = listBackgroundAgents({ all: true, persist: false }).length;
+        if (kind === "background-page") {
+          const result = readBackgroundCapacityPage();
+          measuredMs = performance.now() - started;
+          page = backgroundPageEvidence(result.page, result.observation);
+          count = page.count;
+        } else {
+          count = listBackgroundAgents({ all: true, persist: false }).length;
+        }
       } finally {
         if (previous === undefined) delete process.env.CC_BACKGROUND_AGENTS_DIR;
         else process.env.CC_BACKGROUND_AGENTS_DIR = previous;
@@ -365,9 +379,11 @@ export async function runPersistentCapacityWorker(argv = process.argv) {
       ok: true,
       kind,
       count,
-      operationMs: round(performance.now() - started),
+      ...(page ? { page } : {}),
+      operationMs: round(measuredMs ?? performance.now() - started),
       lockObservations,
       peakRssBytes: process.memoryUsage().rss,
+      processPeakRssBytes: process.resourceUsage().maxRSS * 1024,
     };
   } catch (error) {
     return {
@@ -615,6 +631,7 @@ export async function measureBackgroundAgentTier(
   process.env.CC_BACKGROUND_AGENTS_DIR = directory;
   const durations = [];
   let observedCount = null;
+  let comparison;
   try {
     for (let index = 0; index < samples; index += 1) {
       const measurement = await timed(() =>
@@ -623,6 +640,13 @@ export async function measureBackgroundAgentTier(
       observedCount = measurement.value.length;
       durations.push(measurement.durationMs);
     }
+    comparison = await measureBackgroundPageComparison({
+      directory,
+      recordCount,
+      samples,
+      runWorker,
+      summarizeDurations,
+    });
   } finally {
     if (previous === undefined) delete process.env.CC_BACKGROUND_AGENTS_DIR;
     else process.env.CC_BACKGROUND_AGENTS_DIR = previous;
@@ -633,8 +657,9 @@ export async function measureBackgroundAgentTier(
     observedCount,
     coldProcess: cold,
     fullDirectoryListAndSort: summarizeDurations(durations),
-    paginationApplied: false,
-    indexApplied: false,
+    comparison,
+    paginationApplied: comparison.pathsVerified,
+    indexApplied: comparison.pathsVerified,
     peakRssBytes: process.memoryUsage().rss,
   };
 }
@@ -721,7 +746,8 @@ export async function runPersistentCapacityBenchmark({
       limitations: [
         "fixtures are generated directly and setup time is reported separately",
         "first-process timing includes process startup but may benefit from the host filesystem cache",
-        "background listing still performs full directory enumeration and sorting",
+        "background baseline scans all content; indexed pages still enumerate/stat every file and sort summaries",
+        "background comparison validates first/next pages, full traversal, and authority-change rebuilds",
         "results apply only to the recorded host and exact checkout",
       ],
       finalPeakRssBytes: process.memoryUsage().rss,

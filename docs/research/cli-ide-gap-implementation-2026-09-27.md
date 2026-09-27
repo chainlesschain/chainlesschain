@@ -20,7 +20,7 @@
 | NET-02                  | 待实施           | 不宣称已有 HTTP/WS 撤销已覆盖                                                                                                                                                | 依赖 NET-01；revision 收紧终止存量连接                                           |
 | VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                       |
 | PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                                      |
-| PERF-01                 | 待实施           | 复用容量工具与分页实现                                                                                                                                                       | 全扫/冷热分页/失效重建对比及冻结 SLO                                             |
+| PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口              |
 | PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                               |
 | MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                               |
 | MAINT-01                | 待实施           | 以已有不变量为前提，不按行数拆分                                                                                                                                             | runtime 与平台职责抽取、保行为验证                                               |
@@ -77,6 +77,14 @@ App Server 原生 InputBox/QuickPick 捕获半输入文字、筛选词和选择�
 
 图片边界连同 stream 输入回执的扩展回归：5 文件 123 项通过；CLI 修改源文件 ESLint 0 errors、3 项既有 warnings；SDK 构建与 protocol schema drift check 通过。
 
+### PERF-01 后台列表真实分页对照
+
+容量 harness 保留原全扫基线，新增固定 50 条页大小的实际分页对照。首次建索引与已有索引分别运行新 Node 进程；热首页/下一页/权威记录原子替换后的重建分别计时。每阶段比较完整投影摘要，计时外遍历所有页防止遗漏/重复/乱序，失效测试同时改变排序与正文并最终恢复夹具。`indexObserver` 只提供读取路径与数量，回调抛错不改变结果；新进程失败或回退全扫不能标记 pathsVerified。
+
+保留 O(N) inventory/stat/sort 边界，RSS 新增进程高水位且明确包含此前分配，分页锁等待标为不适用而非 0。smoke / formal 仍为测量，不宣称 SLO 或生产 PASS。说明见 [容量对照记录](./cli/cli-persistent-capacity-comparison-2026-09-27.md)。
+
+相关回归 3 文件：130 通过、22 项既有平台条件跳过；最后的测量计时与夹具目录校验修改后，容量/index 2 文件 8 项再次通过。包含真实磁盘/Node 子进程、105 条三页遍历、失效重建/恢复、冷进程失败和观测回调异常。修改源文件 ESLint 0 errors / 0 warnings（Node 提示现有根 package.json 未声明 ESM），`git diff --check` 通过。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
@@ -97,5 +105,6 @@ App Server 原生 InputBox/QuickPick 捕获半输入文字、筛选词和选择�
 | `6b5da7f538` | CLI 普通图片入口的 header/字节/像素校验、固定句柄有界读取及超量明确拒绝                                      |
 | `4889036941` | VS Code composer/附件持久化、发送前保存、输入接受回执核对、关闭草稿恢复                                      |
 | `03957c15d4` | VS Code 问题表单与原生文本/选项草稿恢复、请求绑定隔离及回答交付预约                                          |
+| `d45175eeac` | JetBrains 权限 ACK、独立进程退出确认、启动取消与过期输入隔离；共享协议类型与生成产物同步                     |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、durable 输入接受、宿主或生产观察验收已完成。
