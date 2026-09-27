@@ -197,13 +197,22 @@ async function drivePhase(commands, token, phase, traceFile) {
     await action();
     appendTrace(traceFile, { phase, step: name, status: "passed" });
   };
-  const waitForText = (text, label) =>
-    waitForSnapshot({
+  const waitForText = async (text, label, evidenceName) => {
+    const observed = await waitForSnapshot({
       commands,
       token,
       predicate: (snapshot) => snapshot.text.includes(text),
       label,
     });
+    if (evidenceName && process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
+      fs.writeFileSync(
+        path.join(path.dirname(traceFile), evidenceName),
+        observed.text.slice(-128 * 1024),
+        { encoding: "utf8", mode: 0o600, flag: "wx" },
+      );
+    }
+    return observed;
+  };
 
   if (phase === "initial") {
     await step("stream", async () => {
@@ -243,6 +252,7 @@ async function drivePhase(commands, token, phase, traceFile) {
       await waitForText(
         "fixture permission approved #4",
         "permission continuation",
+        "initial-permission-dom.txt",
       );
     });
     await step("interrupt", async () => {
@@ -255,7 +265,11 @@ async function drivePhase(commands, token, phase, traceFile) {
         snapshotKey: "stopEnabled",
         label: "interrupt",
       });
-      await waitForText("interrupted", "interrupt result");
+      await waitForText(
+        "interrupted",
+        "interrupt result",
+        "initial-interrupt-dom.txt",
+      );
     });
     await step("workbench-dispatch-needs-input", async () => {
       const initial = await waitForWorkbench({

@@ -1859,7 +1859,13 @@ function assertJourneyArtifacts({
           ? "initial-before-rewind-dom.txt"
           : `${phase}-dom.txt`,
       ),
-      PHASE_DOM_MARKERS[phase],
+      conversationRecovery && phase === "initial"
+        ? PHASE_DOM_MARKERS.initial.filter(
+            (marker) =>
+              marker !== "fixture permission approved #4" &&
+              marker !== "interrupted",
+          )
+        : PHASE_DOM_MARKERS[phase],
     );
   }
   if (nativeTimeline) {
@@ -1999,6 +2005,14 @@ function assertJourneyArtifacts({
     throw new Error("fixture protocol ledger does not prove restart/resume");
   }
   if (conversationRecovery) {
+    // Capture live observations before tab restoration and canonical final-text
+    // reconciliation; transient status need not remain in the final view.
+    requireTextMarkers(path.join(artifactDir, "initial-permission-dom.txt"), [
+      "fixture permission approved #4",
+    ]);
+    requireTextMarkers(path.join(artifactDir, "initial-interrupt-dom.txt"), [
+      "interrupted",
+    ]);
     require("./driver/conversation-recovery.cjs").assertConversationRecoveryArtifacts(
       artifactDir,
       fixtureRecords,
@@ -2017,6 +2031,12 @@ function assertJourneyArtifacts({
       ),
       ...(nativeTimeline
         ? [path.join(artifactDir, "initial-before-rewind-dom.txt")]
+        : []),
+      ...(conversationRecovery
+        ? [
+            path.join(artifactDir, "initial-permission-dom.txt"),
+            path.join(artifactDir, "initial-interrupt-dom.txt"),
+          ]
         : []),
     ],
   };

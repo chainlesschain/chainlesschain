@@ -233,6 +233,8 @@ VS Code 新增 `CC_UI_CONVERSATION_RECOVERY=1` 真实宿主旅程：复用原 us
 
 第二次（源码 `e0d1ad3fd7`）通过初始双会话、重复正文、后台完成及草稿切换检查，但整个旅程仍失败，digest 为 `sha256:a0ed0a6fda121d27a7758134cb8c3eac7ed8e053503d91a1a7908ddf1756c169`。检查宿主 `main.js` 确认 `extensionTestsLocationURI` 会令 `getStorageOptions()` 返回 `useInMemoryStorage: true`；因此原 Extension Tests 启动方式即使复用 profile 也不能证明 Memento 重启恢复。canonical 模式改用不含 `--extensionTestsPath` 的普通隔离宿主，以已有令牌驱动命令运行旅程，并通过正常 Quit 保存状态。默认 smoke 模式保留原启动方式。启动器/relay 的 69 项本地回归通过；必须重新运行完整旅程后才能计入恢复验收。
 
+第三次（源码 `f2f3bbd554`）实际磁盘 profile 的初始/重启恢复步骤均通过：A/B 保存行 ID 与中文草稿不变、协议无自动重发。整体仍为失败（digest `sha256:df5f9cdcaab2ee37f7c603d5be7f3d170a8226a6be19e0fda89b1094f9584fc7`）：旧 DOM 聚合断言在切回原会话后要求临时 permission/interrupted 提示仍留在最终画面；规范 final 回复会替换相应 assistant 正文，而 ready 状态会替代 interruption 状态。驱动改为在两条提示实际被观察到时保存各自 DOM 文件；聚合继续要求这些原标记、初始/重启其余标记和恢复证据全部存在。不回写旧运行状态，须用新提交再跑整轮。相关 69 项启动器/relay 测试通过。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
