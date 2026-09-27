@@ -6,6 +6,10 @@
 
 ## 1. 候选功能范围
 
+草稿 PR：[#383](https://github.com/chainlesschain/chainlesschain/pull/383)。首轮远端检查绑定 `01b6c0b7e450c3dca60e03d1b0a5e965b1ff7c53`：[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36320841003)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36320840760)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/36320840743)。已触发，尚无完整通过结果；之后的新提交仍须重新取得对应 SHA 的证据。
+
+合并前版本检查已有明确待办：`node scripts/lint-publish-staleness.mjs --base=github/main --head=HEAD` 在上述 SHA 报出 Agent SDK `0.2.11` 和 VS Code 扩展 `0.37.118` 源码已变更而版本未增加。当前保留草稿，不跳过检查；候选冻结时须统一递增相关版本及下游依赖，并重新验证。本轮仍未定版或发布。
+
 | 组件           | 本轮已实现、拟纳入内容                                                                                                                                                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CLI / 共享协议 | 模型 profile 与计费一致性、外部 Agent 准入和退出处理、MCP 会话恢复；有界会话分页、压缩/回退/分支/摘要来源校验、增量显示历史、输入接受回执和最终消息引用；图片读取限制 |

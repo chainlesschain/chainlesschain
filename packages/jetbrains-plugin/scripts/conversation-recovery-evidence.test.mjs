@@ -144,6 +144,171 @@ test("v2 proves Stop before init, late capability completion and cancelled draft
   assert.equal(verify(valid()).stopBeforeInit, undefined);
 });
 
+function withContinuation() {
+  const value = withStop(),
+    { initial, restart, records } = value;
+  initial.schema = restart.schema = "cc-jetbrains-conversation-recovery/v3";
+  const preparation = JSON.parse(
+    JSON.stringify(initial.stopPreparation)
+      .replaceAll("draft-C", "draft-D")
+      .replaceAll("session-C", "session-D")
+      .replaceAll("held-init", "held-next-init"),
+  );
+  for (const [index, key] of [
+    "waiting",
+    "preparing",
+    "stopped",
+    "released",
+    "ready",
+  ].entries()) {
+    const event = preparation[key];
+    const at = `2026-09-27T00:00:00.${600 + index * 50}Z`;
+    if (event.command) {
+      event.at = at;
+      event.processId = 400;
+      records.push(structuredClone(event));
+    } else {
+      event.observedAt = at;
+      event.childProcessId = "400";
+      event.interruptPending = false;
+      event.text ??= "";
+    }
+  }
+  const running = {
+    ...preparation.ready,
+    inputText: "",
+    turnActive: true,
+    observedAt: "2026-09-27T00:00:00.900Z",
+    text: "fixture stop waiting",
+  };
+  const stopped = {
+    ...running,
+    turnActive: false,
+    observedAt: "2026-09-27T00:00:00.990Z",
+    text: "fixture stop waiting\n⏹ interrupted",
+  };
+  initial.stopContinuation = { preparation, running, stopped };
+  records.push(
+    {
+      direction: "out",
+      processId: 400,
+      at: "2026-09-27T00:00:00.775Z",
+      event: { type: "system", subtype: "init", session_id: "session-D" },
+    },
+    {
+      direction: "in",
+      processId: 400,
+      sessionId: "session-D",
+      at: "2026-09-27T00:00:00.850Z",
+      event: { type: "user", text: "journey:stop-after-cancel" },
+    },
+    {
+      direction: "in",
+      processId: 400,
+      sessionId: "session-D",
+      at: "2026-09-27T00:00:00.950Z",
+      event: { type: "interrupt" },
+    },
+    {
+      direction: "out",
+      processId: 400,
+      at: "2026-09-27T00:00:00.975Z",
+      event: { type: "result", subtype: "interrupted", interrupted: true },
+    },
+  );
+  return value;
+}
+
+test("v3 proves an explicit next send receives a soft first Stop on the same child", () => {
+  assert.equal(verify(withContinuation()).stopAfterCancelledPreparation, true);
+  assert.equal(verify(withContinuation()).firstStopPreservesChild, true);
+  assert.equal(verify(withStop()).firstStopPreservesChild, undefined);
+});
+
+for (const [name, change] of [
+  [
+    "missing continuation",
+    (v) => {
+      delete v.initial.stopContinuation;
+    },
+  ],
+  [
+    "stale interrupt marker",
+    (v) => {
+      v.initial.stopContinuation.running.interruptPending = true;
+    },
+  ],
+  [
+    "force-stopped next turn",
+    (v) => {
+      v.initial.stopContinuation.stopped.text += "Stopping the agent";
+    },
+  ],
+  [
+    "replacement child",
+    (v) => {
+      v.initial.stopContinuation.stopped.childProcessId = "401";
+    },
+  ],
+  [
+    "dead child",
+    (v) => {
+      v.initial.stopContinuation.stopped.childRunning = false;
+    },
+  ],
+  [
+    "still active after Stop",
+    (v) => {
+      v.initial.stopContinuation.stopped.turnActive = true;
+    },
+  ],
+  [
+    "missing soft interrupt",
+    (v) => {
+      v.records = v.records.filter((r) => r.event?.type !== "interrupt");
+    },
+  ],
+  [
+    "early interrupt during preparation",
+    (v) => {
+      v.records.unshift({
+        direction: "in",
+        processId: 400,
+        sessionId: "session-D",
+        at: "2026-09-27T00:00:00.660Z",
+        event: { type: "interrupt" },
+      });
+    },
+  ],
+  [
+    "missing terminal result",
+    (v) => {
+      v.records = v.records.filter((r) => r.event?.type !== "result");
+    },
+  ],
+  [
+    "another child result",
+    (v) => {
+      v.records.find((r) => r.event?.type === "result").processId = 401;
+    },
+  ],
+  [
+    "unexpected restart replay",
+    (v) => {
+      v.records.push(
+        structuredClone(
+          v.records.find((r) => r.event?.text === "journey:stop-after-cancel"),
+        ),
+      );
+    },
+  ],
+])
+  test(`v3 rejects ${name}`, () => {
+    const value = withContinuation();
+    change(value);
+    assert.throws(() => verify(value));
+  });
+
 for (const [name, change] of [
   [
     "missing Stop proof",

@@ -30,7 +30,7 @@ const timelineFixture = JSON.parse(
 
 function emit(event) {
   process.stdout.write(`${JSON.stringify(event)}\n`);
-  trace({ direction: "out", event });
+  trace({ direction: "out", processId: process.pid, event });
 }
 
 function trace(record) {

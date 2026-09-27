@@ -36,6 +36,7 @@ final class ConversationRecoveryJourney {
         var tabs = field(panel, 'tabs'), ids = field(panel, 'tabIds'), views = field(panel, 'views');
         var index = tabs.getSelectedIndex(), view = views.get(ids.get(index)), conv = field(view, 'conv');
         var receipt = field(view, 'receiptSupport'), child = field(conv, 'session');
+        var process = child == null ? null : field(child, 'child');
         var transcript = field(view, 'transcript'), pane = field(transcript, 'pane');
         var spans = field(field(transcript, 'savedHistory'), 'spans'), rows = [], tabList = [];
         for (var i = 0; i < spans.size(); i++) {
@@ -56,6 +57,9 @@ final class ConversationRecoveryJourney {
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
             sendInFlight:String(field(view,'sendInFlight')) === 'true', childRunning:child != null && child.isRunning(),
+            childProcessId:process == null ? '' : String(process.pid()),
+            turnActive:String(field(view,'turnActive')) === 'true',
+            interruptPending:child != null && field(view,'interruptRequested') != null && field(view,'interruptRequested').equals(child),
             receiptReady:receipt != null && receipt.isDone() && !receipt.isCompletedExceptionally() && String(receipt.getNow(false)) === 'true',
             draftStatus:String(field(field(view,'drafts'),'status').getText()),
             historyStatus:String(field(field(view,'history'),'status').getText()),
@@ -165,7 +169,7 @@ final class ConversationRecoveryJourney {
         gate.addProperty("sessionId", text(c,"sessionId"));
         gate.addProperty("nonce", java.util.UUID.randomUUID().toString());
         Path gatePath = root.resolve("init-gate.json"), releasePath = root.resolve("init-gate.json.release");
-        Files.writeString(gatePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+        Files.writeString(gatePath, JSON.toJson(gate), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         try {
             send("cancelled before init 中文😀");
             JsonObject waiting = waitForGate(text(c,"sessionId"), text(gate,"nonce"), "init-gate-waiting");
@@ -179,7 +183,7 @@ final class ConversationRecoveryJourney {
                     && text(s,"draftStatus").contains("Draft saved"));
             assertEquals(text(preparing,"inputText"), text(stopped,"inputText"));
             assertFalse(stopped.get("receiptReady").getAsBoolean());
-            Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+            Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             JsonObject released = waitForGate(text(c,"sessionId"), text(gate,"nonce"), "init-gate-released");
             JsonObject ready = waitFor("late init remains usable", s -> s.get("receiptReady").getAsBoolean());
             assertEquals(text(stopped,"inputText"), text(ready,"inputText"));
@@ -189,7 +193,35 @@ final class ConversationRecoveryJourney {
             proof.add("released", released); proof.add("ready", ready);
             return proof;
         } finally {
-            if (!Files.exists(releasePath)) Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+            Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        }
+    }
+    private JsonObject stopAfterCancelledPreparation() throws Exception {
+        JsonObject proof = new JsonObject();
+        try {
+            JsonObject preparation = stopBeforeInit();
+            proof.add("preparation", preparation);
+            JsonObject ready = preparation.getAsJsonObject("ready");
+            send("journey:stop-after-cancel");
+            JsonObject running = waitFor("explicit next turn started", s -> !s.get("sendInFlight").getAsBoolean()
+                    && s.get("turnActive").getAsBoolean() && text(s,"text").contains("fixture stop waiting"));
+            proof.add("running", running);
+            assertEquals(text(ready,"childProcessId"), text(running,"childProcessId"));
+            click("Stop");
+            JsonObject stopped = waitFor("first Stop of next turn", s ->
+                    text(s,"text").contains("⏹ interrupted") || text(s,"text").contains("Stopping the agent"));
+            proof.add("stopped", stopped);
+            assertFalse(text(stopped,"text").contains("Stopping the agent"),
+                    "first Stop after cancelling preparation must not force-stop the next turn");
+            assertTrue(stopped.get("childRunning").getAsBoolean());
+            assertFalse(stopped.get("turnActive").getAsBoolean());
+            assertFalse(stopped.get("interruptPending").getAsBoolean());
+            assertEquals(text(running,"childProcessId"), text(stopped,"childProcessId"));
+            return proof;
+        } finally {
+            proof.add("lastObserved", snapshot());
+            Files.writeString(root.resolve("stop-continuation-observations.json"), JSON.toJson(proof)+"\n",
+                    StandardOpenOption.CREATE_NEW);
         }
     }
     private static String digest(byte[] bytes) throws Exception {
@@ -229,13 +261,14 @@ final class ConversationRecoveryJourney {
     void run(String phase) throws Exception {
         Path baselinePath = root.resolve("conversation-recovery-initial.json");
         JsonObject evidence = new JsonObject();
-        evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v2");
+        evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v3");
         evidence.addProperty("phase", phase);
         evidence.addProperty("model", "deterministic fixture");
         evidence.addProperty("persistence", "production canonical store and actual CLI command");
         evidence.add("installation", verifyInstalledArchive());
         if (phase.equals("initial")) {
             evidence.add("stopPreparation", stopBeforeInit());
+            evidence.add("stopContinuation", stopAfterCancelledPreparation());
             JsonObject a = newTab(); send("journey:history-A");
             a = waitFor("A started", s -> text(s,"text").contains("checking history fixture"));
             JsonObject b = newTab();
@@ -271,6 +304,7 @@ final class ConversationRecoveryJourney {
             evidence.add("a", a); evidence.add("b", b);
         } else {
             JsonObject baseline = JsonParser.parseString(Files.readString(baselinePath)).getAsJsonObject();
+            evidence.addProperty("schema", text(baseline,"schema"));
             if (text(baseline,"schema").equals("cc-jetbrains-conversation-recovery/v1")) {
                 evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v1");
             } else {

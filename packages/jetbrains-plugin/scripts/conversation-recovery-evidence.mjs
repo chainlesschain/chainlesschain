@@ -25,6 +25,7 @@ export function assertConversationRecovery(initial, restart, records) {
     [
       "cc-jetbrains-conversation-recovery/v1",
       "cc-jetbrains-conversation-recovery/v2",
+      "cc-jetbrains-conversation-recovery/v3",
     ].includes(initial.schema),
   );
   assert.equal(restart.schema, initial.schema);
@@ -45,7 +46,7 @@ export function assertConversationRecovery(initial, restart, records) {
       ["b", "B", 1],
     ]) {
       const s = evidence[key];
-      if (initial.schema.endsWith("/v2"))
+      if (!initial.schema.endsWith("/v1"))
         assert.ok(s.historyStatus.includes("Saved messages"));
       assert.equal(s.visible, true);
       assert.equal(s.inputText, `unsent draft ${letter} 中文😀`);
@@ -126,7 +127,12 @@ export function assertConversationRecovery(initial, restart, records) {
     .map((r) => r.event.text);
   assert.deepEqual(
     inputs.slice().sort(),
-    ["journey:history-A", "journey:history-A", "journey:history-B"].sort(),
+    [
+      "journey:history-A",
+      "journey:history-A",
+      "journey:history-B",
+      ...(initial.schema.endsWith("/v3") ? ["journey:stop-after-cancel"] : []),
+    ].sort(),
     "unexpected user input or automatic draft replay",
   );
   for (const key of ["a", "b"]) {
@@ -140,8 +146,11 @@ export function assertConversationRecovery(initial, restart, records) {
       "actual CLI history subprocess missing",
     );
   }
-  const stop = initial.schema.endsWith("/v2")
+  const stop = !initial.schema.endsWith("/v1")
     ? assertStopPreparationRecovery(initial, restart, records)
+    : {};
+  const continuation = initial.schema.endsWith("/v3")
+    ? assertStopContinuation(initial, records)
     : {};
   return {
     backgroundCompletion: true,
@@ -151,7 +160,97 @@ export function assertConversationRecovery(initial, restart, records) {
     automaticInputReplay: false,
     providerEvidence: "deterministic fixture",
     ...stop,
+    ...continuation,
   };
+}
+
+function assertStopContinuation(initial, records) {
+  const { preparation, running, stopped } = initial.stopContinuation;
+  const { waiting, preparing, released, ready } = preparation;
+  const cancelled = preparation.stopped;
+  const sessionId = ready.sessionId;
+  for (const other of [initial.a, initial.b, initial.stopPreparation.ready]) {
+    assert.notEqual(other.id, ready.id);
+    assert.notEqual(other.sessionId, sessionId);
+  }
+  const times = [
+    waiting.at,
+    preparing.observedAt,
+    cancelled.observedAt,
+    released.at,
+    ready.observedAt,
+    running.observedAt,
+    stopped.observedAt,
+  ].map(Date.parse);
+  assert.ok(times.every(Number.isFinite));
+  assert.ok(times.every((time, i) => i === 0 || time >= times[i - 1]));
+  assert.equal(waiting.command, "init-gate-waiting");
+  assert.equal(released.command, "init-gate-released");
+  assert.equal(waiting.nonce, released.nonce);
+  assert.match(waiting.nonce, /^[a-zA-Z0-9-]{1,80}$/u);
+  for (const event of [waiting, released]) {
+    assert.equal(event.sessionId, sessionId);
+    assert.equal(String(event.processId), ready.childProcessId);
+    assert.ok(records.some((r) => JSON.stringify(r) === JSON.stringify(event)));
+  }
+  for (const state of [preparing, cancelled, ready, running, stopped]) {
+    assert.equal(state.id, ready.id);
+    assert.equal(state.sessionId, sessionId);
+    assert.equal(state.profile, initial.a.profile);
+    assert.equal(state.processId, initial.a.processId);
+    assert.equal(state.childProcessId, ready.childProcessId);
+    assert.match(state.childProcessId, /^\d+$/u);
+    assert.equal(state.childRunning, true);
+    assert.equal(state.visible, true);
+    assert.equal(state.tabs.filter((tab) => tab.selected).length, 1);
+    assert.equal(state.tabs.find((tab) => tab.selected).id, ready.id);
+    assert.ok(!state.text.includes("Stopping the agent"));
+  }
+  for (const state of [preparing, cancelled, ready])
+    assert.equal(state.inputText, "cancelled before init 中文😀");
+  assert.equal(preparing.sendInFlight, true);
+  assert.equal(preparing.receiptReady, false);
+  assert.equal(preparing.editable, false);
+  assert.equal(cancelled.receiptReady, false);
+  assert.ok(cancelled.text.includes("Input stopped before delivery"));
+  assert.ok(cancelled.draftStatus.includes("Draft saved"));
+  for (const state of [cancelled, ready, running, stopped]) {
+    assert.equal(state.sendInFlight, false);
+    assert.equal(state.editable, true);
+    assert.equal(state.interruptPending, false);
+  }
+  assert.equal(ready.receiptReady, true);
+  assert.equal(running.turnActive, true);
+  assert.ok(running.text.includes("fixture stop waiting"));
+  assert.equal(stopped.turnActive, false);
+  assert.ok(stopped.text.includes("⏹ interrupted"));
+  const incoming = records.filter(
+    (r) => r.direction === "in" && r.sessionId === sessionId,
+  );
+  assert.deepEqual(
+    incoming.map((r) => r.event.type),
+    ["user", "interrupt"],
+  );
+  assert.equal(incoming[0].event.text, "journey:stop-after-cancel");
+  for (const r of incoming)
+    assert.equal(String(r.processId), ready.childProcessId);
+  assert.ok(Date.parse(incoming[0].at) >= Date.parse(ready.observedAt));
+  assert.ok(Date.parse(incoming[1].at) >= Date.parse(running.observedAt));
+  const emitted = records.filter(
+    (r) =>
+      r.direction === "out" && String(r.processId) === ready.childProcessId,
+  );
+  const inits = emitted.filter((r) => r.event?.subtype === "init");
+  assert.equal(inits.length, 1);
+  assert.equal(inits[0].event.session_id, sessionId);
+  assert.ok(Date.parse(inits[0].at) >= Date.parse(released.at));
+  const results = emitted.filter((r) => r.event?.type === "result");
+  assert.equal(results.length, 1);
+  assert.equal(results[0].event.subtype, "interrupted");
+  assert.equal(results[0].event.interrupted, true);
+  assert.ok(Date.parse(results[0].at) >= Date.parse(incoming[1].at));
+  assert.ok(Date.parse(results[0].at) <= Date.parse(stopped.observedAt));
+  return { stopAfterCancelledPreparation: true, firstStopPreservesChild: true };
 }
 
 function assertStopPreparationRecovery(initial, restart, records) {
