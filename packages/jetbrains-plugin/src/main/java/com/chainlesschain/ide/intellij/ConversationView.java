@@ -656,6 +656,10 @@ final class ConversationView {
 
     private void sendCurrentInput() {
         if (sendInFlight) return;
+        if (images.isPreparing()) {
+            append("ℹ Wait for the images to finish preparing before sending.\n");
+            return;
+        }
         final String text = input.getText().trim();
         if (text.isEmpty() && images.isEmpty()) return;
         // §5 panel slash + §6 mode/thinking commands are handled locally, never

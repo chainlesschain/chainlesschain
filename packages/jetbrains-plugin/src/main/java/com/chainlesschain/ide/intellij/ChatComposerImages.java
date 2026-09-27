@@ -24,6 +24,10 @@ final class ChatComposerImages {
     private final java.util.Set<String> ownTemps = new java.util.HashSet<>();
     private final JLabel label = new JLabel();
     private final JTextArea input; // caret target for plain-text drops
+    private int generation;
+    private int inFlight;
+    private long attachedBytes;
+    private String lastError = "";
 
     ChatComposerImages(JTextArea input) {
         this.input = input;
@@ -38,6 +42,24 @@ final class ChatComposerImages {
 
     boolean isEmpty() {
         return pendingImages.isEmpty();
+    }
+
+    boolean isPreparing() { return inFlight > 0; }
+
+    private boolean reserve() {
+        if (pendingImages.size() + inFlight >= ImageAttachments.MAX) {
+            showError("Attach at most 4 images per message");
+            return false;
+        }
+        inFlight++;
+        lastError = "";
+        updateIndicator();
+        return true;
+    }
+
+    private void showError(String message) {
+        lastError = message;
+        updateIndicator();
     }
 
     /** Copy of the pending paths (what a send should attach). */
@@ -62,6 +84,10 @@ final class ChatComposerImages {
     /** Drop all pending attachments and hide the indicator (after send / reset).
      *  Self-created temp pngs still pending here were never sent — delete them. */
     void clearAll() {
+        generation++;
+        inFlight = 0;
+        attachedBytes = 0;
+        lastError = "";
         for (String p : pendingImages) {
             if (ownTemps.remove(p)) {
                 try {
@@ -86,10 +112,10 @@ final class ChatComposerImages {
             Object data = cb.getData(java.awt.datatransfer.DataFlavor.imageFlavor);
             if (!(data instanceof java.awt.Image)) return false;
             // Cap reached: still consume the paste (don't dump binary as text).
-            if (pendingImages.size() >= ImageAttachments.MAX) return true;
             attachRawImage((java.awt.Image) data, "cc-paste-");
             return true;
         } catch (Exception ex) {
+            showError("Image paste failed: " + ex.getMessage());
             return false; // any failure → fall back to normal text paste
         }
     }
@@ -104,6 +130,7 @@ final class ChatComposerImages {
                             e.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
                             e.dropComplete(importDropped(e.getTransferable()));
                         } catch (Exception ex) {
+                            showError("Image drop failed: " + ex.getMessage());
                             e.dropComplete(false);
                         }
                     }
@@ -120,19 +147,33 @@ final class ChatComposerImages {
             @SuppressWarnings("unchecked")
             List<java.io.File> files = (List<java.io.File>)
                     t.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
-            List<String> paths = new ArrayList<>();
-            for (java.io.File f : files) paths.add(f.getAbsolutePath());
-            List<String> accepted =
-                    ImageAttachments.acceptDropped(paths, pendingImages.size());
-            if (accepted.isEmpty()) return false;
-            pendingImages.addAll(accepted);
-            updateIndicator();
-            return true;
+            boolean handled = false;
+            for (java.io.File file : files) {
+                if (!ImageAttachments.isImagePath(file.getPath())) continue;
+                handled = true;
+                if (!reserve()) continue;
+                int ticket = generation;
+                com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    java.nio.file.Path copy = null;
+                    try {
+                        ImageAttachments.validateFile(file.toPath());
+                        String name = file.getName();
+                        copy = java.nio.file.Files.createTempFile("cc-drop-", name.substring(name.lastIndexOf('.')));
+                        copy.toFile().deleteOnExit();
+                        try (java.io.InputStream source = java.nio.file.Files.newInputStream(file.toPath());
+                             java.io.OutputStream dest = boundedOutput(copy)) {
+                            source.transferTo(dest);
+                        }
+                        long size = ImageAttachments.validateFile(copy);
+                        finish(ticket, copy, size, null);
+                    } catch (Exception error) { finish(ticket, copy, 0, file.getName() + ": " + error.getMessage()); }
+                });
+            }
+            return handled;
         }
         if (t.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.imageFlavor)) {
             Object data = t.getTransferData(java.awt.datatransfer.DataFlavor.imageFlavor);
             if (!(data instanceof java.awt.Image)) return false;
-            if (pendingImages.size() >= ImageAttachments.MAX) return true;
             attachRawImage((java.awt.Image) data, "cc-drop-");
             return true;
         }
@@ -150,36 +191,62 @@ final class ChatComposerImages {
      * Encode a raw AWT image to a temp png OFF the EDT, then attach it. The
      * image is already read from the clipboard/drop on the EDT; only the PNG
      * encode (multi-MB for a 4K screenshot) moves — doing it inline hitched the
-     * paste/drop handler. Best-effort: a failed encode is silently skipped
-     * (the paste was already consumed).
+     * paste/drop handler. Failures remain visible next to the attachment count.
      */
     private void attachRawImage(java.awt.Image img, String prefix) {
+        try { ImageAttachments.validateDimensions(img.getWidth(null), img.getHeight(null)); }
+        catch (java.io.IOException error) { showError(error.getMessage()); return; }
+        if (!reserve()) return;
+        final int ticket = generation;
         final java.awt.Image src = img;
         com.intellij.openapi.application.ApplicationManager.getApplication()
                 .executeOnPooledThread(() -> {
-            final String path;
+            java.nio.file.Path path = null;
             try {
                 java.io.File tmp = java.io.File.createTempFile(prefix, ".png");
                 tmp.deleteOnExit(); // backstop only — eager cleanup owns the normal path
-                javax.imageio.ImageIO.write(toBuffered(src), "png", tmp);
-                path = tmp.getAbsolutePath();
-            } catch (java.io.IOException ex) {
-                return; // encode/write failed — skip this image
-            }
-            com.intellij.openapi.application.ApplicationManager.getApplication()
-                    .invokeLater(() -> {
-                if (pendingImages.size() >= ImageAttachments.MAX) {
-                    new java.io.File(path).delete(); // raced past the cap
-                    return;
+                path = tmp.toPath();
+                try (java.io.OutputStream out = boundedOutput(path)) {
+                    if (!javax.imageio.ImageIO.write(toBuffered(src), "png", out)) throw new java.io.IOException("PNG encoder unavailable");
                 }
-                pendingImages.add(path);
-                ownTemps.add(path);
-                updateIndicator();
-            });
+                finish(ticket, path, ImageAttachments.validateFile(path), null);
+            } catch (Exception ex) { finish(ticket, path, 0, "Image could not be attached: " + ex.getMessage()); }
         });
     }
 
-    private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) {
+    private static java.io.OutputStream boundedOutput(java.nio.file.Path path) throws java.io.IOException {
+        return new java.io.FilterOutputStream(java.nio.file.Files.newOutputStream(path)) {
+            private long written;
+            private void reserve(int count) throws java.io.IOException {
+                if (written + count > ImageAttachments.MAX_IMAGE_BYTES) throw new java.io.IOException("Encoded image exceeds 20 MiB");
+                written += count;
+            }
+            @Override public void write(int value) throws java.io.IOException { reserve(1); out.write(value); }
+            @Override public void write(byte[] data, int off, int length) throws java.io.IOException { reserve(length); out.write(data, off, length); }
+        };
+    }
+
+    private void finish(int ticket, java.nio.file.Path path, long bytes, String error) {
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(() -> {
+            if (generation == ticket) {
+                inFlight--;
+                if (error == null && attachedBytes + bytes > ImageAttachments.MAX_TURN_BYTES) errorHolder(ticket, path, "Total images exceed 20 MiB");
+                else if (error != null) errorHolder(ticket, path, error);
+                else {
+                    String absolute = path.toAbsolutePath().toString();
+                    pendingImages.add(absolute); ownTemps.add(absolute); attachedBytes += bytes; updateIndicator();
+                }
+            } else if (path != null) path.toFile().delete();
+        });
+    }
+
+    private void errorHolder(int ticket, java.nio.file.Path path, String error) {
+        if (path != null) path.toFile().delete();
+        if (generation == ticket) showError(error);
+    }
+
+    private static java.awt.image.BufferedImage toBuffered(java.awt.Image img) throws java.io.IOException {
+        ImageAttachments.validateDimensions(img.getWidth(null), img.getHeight(null));
         if (img instanceof java.awt.image.BufferedImage) {
             return (java.awt.image.BufferedImage) img;
         }
@@ -195,7 +262,9 @@ final class ChatComposerImages {
 
     private void updateIndicator() {
         int n = pendingImages.size();
-        label.setText(n == 0 ? "" : "📷 " + n + " image" + (n == 1 ? "" : "s"));
-        label.setVisible(n > 0);
+        label.setText("📷 " + n + " image" + (n == 1 ? "" : "s") + (inFlight > 0 ? " · preparing " + inFlight : "") + (lastError.isEmpty() ? "" : " · " + lastError));
+        label.setToolTipText(lastError.isEmpty() ? "Up to 4 images, 20 MiB total, 40 megapixels per image" : lastError);
+        label.setVisible(n > 0 || inFlight > 0 || !lastError.isEmpty());
+        label.setEnabled(true);
     }
 }
