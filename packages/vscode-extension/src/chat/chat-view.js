@@ -9,6 +9,7 @@
  * feedback, and native diff reviews against THIS editor.
  */
 const crypto = require("crypto");
+const { DraftStore } = require("./draft-store");
 const {
   modeState,
   acceptModeAcknowledgement,
@@ -90,6 +91,13 @@ class ChatViewProvider {
   constructor(vscode, opts = {}) {
     this.vscode = vscode;
     this.opts = opts;
+    this._draftStore =
+      opts.deps?.draftStore ||
+      (opts.storagePath
+        ? new DraftStore(
+            require("path").join(opts.storagePath, "chat-drafts-v1"),
+          )
+        : null);
     this.view = null;
     // Multi-tab model: N conversations, each owning its own agent child +
     // resume id + per-turn reducer state. One is bootstrapped on demand so
@@ -178,6 +186,8 @@ class ChatViewProvider {
         sessionId: typeof t.sessionId === "string" ? t.sessionId : null,
         activate: false,
       });
+      if (typeof t.draftKey === "string" && /^[a-f0-9-]{36}$/.test(t.draftKey))
+        conv.draftKey = t.draftKey;
       if (t.mode) this._convs.setMode(conv.id, String(t.mode));
       if (t.thinking) this._convs.setThinking(conv.id, String(t.thinking));
       conv.worklogSource =
@@ -202,6 +212,7 @@ class ChatViewProvider {
     const tabs = list.map((t) => {
       const c = this._convs.get(t.id);
       return {
+        draftKey: this._draftKey(c),
         sessionId: c.sessionId || null,
         title: c.title,
         mode: c.mode || "default",
@@ -214,7 +225,251 @@ class ChatViewProvider {
       0,
       list.findIndex((t) => t.active),
     );
-    this.opts.state.update("chainlesschain.chat.tabs", { tabs, activeIndex });
+    return this.opts.state.update("chainlesschain.chat.tabs", {
+      tabs,
+      activeIndex,
+    });
+  }
+
+  _draftKey(conv) {
+    if (!conv.draftKey) conv.draftKey = crypto.randomUUID();
+    return conv.draftKey;
+  }
+
+  async _restoreDraft(conv, { composer = true, reconcile = false } = {}) {
+    if (!this._draftStore || !conv) return;
+    const key = this._draftKey(conv);
+    const token = this._asyncToken(conv);
+    try {
+      if (reconcile) {
+        // Show the composer before potentially slow CLI lookups. Receipt reads
+        // update only submission status, never overwrite new composer edits.
+        await this._restoreDraft(conv, { composer, reconcile: false });
+        composer = false;
+        const current = await this._draftStore.view(key, {
+          includeComposer: false,
+        });
+        for (const p of current.pending) {
+          if (
+            this._convs.get(conv.id) !== conv ||
+            conv.draftKey !== key ||
+            conv._asyncToken !== token
+          )
+            return;
+          if (p.status === "prepared" && !conv.preparingSubmission)
+            await this._draftStore.settle(key, p.id, "rejected");
+          if (p.status !== "unknown") continue;
+          try {
+            const receipt = await this._readInputReceipt(p.sessionId, p.id);
+            if (receipt.accepted)
+              await this._draftStore.settle(
+                key,
+                p.id,
+                "accepted",
+                receipt.receipt,
+              );
+            else
+              this._postFrom(
+                conv.id,
+                {
+                  kind: "info",
+                  text: "No acceptance receipt was found for a saved input. It remains unconfirmed; check any running task before sending it again.",
+                },
+                token,
+              );
+          } catch {
+            this._postFrom(
+              conv.id,
+              {
+                kind: "info",
+                text: "Saved input acceptance could not be verified. The input remains available; nothing was resent.",
+              },
+              token,
+            );
+          }
+        }
+      }
+      const saved = await this._draftStore.view(key, {
+        includeComposer: composer,
+      });
+      if (
+        this._convs.get(conv.id) !== conv ||
+        conv.draftKey !== key ||
+        conv._asyncToken !== token
+      )
+        return;
+      // Draft messages are explicitly addressed; background tabs retain them too.
+      this._post({
+        kind: "draftSnapshot",
+        convId: conv.id,
+        draftKey: key,
+        ...(composer ? { composer: saved.composer } : {}),
+        pending: saved.pending,
+      });
+    } catch (error) {
+      this._postFrom(
+        conv.id,
+        { kind: "error", text: `Draft recovery failed: ${error.message}` },
+        token,
+      );
+    }
+  }
+
+  async _readInputReceipt(sessionId, clientId) {
+    if (this.opts.deps?.readInputReceipt)
+      return this.opts.deps.readInputReceipt(sessionId, clientId);
+    if (
+      !/^[\w.:-]{1,256}$/.test(sessionId) ||
+      !/^[a-zA-Z0-9_-]{1,80}$/.test(clientId)
+    )
+      throw new Error("Invalid receipt identity");
+    const { runCliResult } = require("./introspect-commands");
+    const command = this._cliCommand();
+    if (hasUnsafeShellChars(command)) throw new Error("Invalid CLI path");
+    const result = await runCliResult({
+      command,
+      args: [
+        "session",
+        "show",
+        "--json",
+        "--input-receipt",
+        clientId,
+        "--",
+        sessionId,
+      ],
+      maxBufferBytes: 16384,
+      cwd: this._workspaceFolders()[0] || process.cwd(),
+      env: { ...process.env, ...(this.opts.getBridgeEnv?.() || {}) },
+      timeoutMs: 15000,
+    });
+    if (!result.ok) throw new Error("Input receipt could not be verified");
+    const receipt = JSON.parse(result.stdout);
+    if (
+      receipt.schema !== "chainlesschain.input-receipt/v1" ||
+      receipt.sessionId !== sessionId ||
+      receipt.clientMessageId !== clientId ||
+      typeof receipt.accepted !== "boolean"
+    )
+      throw new Error("Invalid receipt response");
+    return receipt;
+  }
+
+  _waitForInputCapability(conv, session) {
+    if (conv.inputReceiptVersion !== undefined)
+      return Promise.resolve(conv.inputReceiptVersion);
+    return new Promise((resolve, reject) => {
+      const pending = {
+        resolve: (version) => {
+          clearTimeout(timer);
+          conv.inputInitWaiters?.delete(pending);
+          resolve(version);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          conv.inputInitWaiters?.delete(pending);
+          reject(error);
+        },
+      };
+      const timer = setTimeout(
+        () =>
+          pending.reject(
+            new Error(
+              "Agent initialization timed out; input was not dispatched",
+            ),
+          ),
+        15000,
+      );
+      if (!session?.running) {
+        clearTimeout(timer);
+        reject(new Error("Agent is not running; input was not dispatched"));
+        return;
+      }
+      if (!conv.inputInitWaiters) conv.inputInitWaiters = new Set();
+      conv.inputInitWaiters.add(pending);
+    });
+  }
+
+  async _sendDurableMessage(message, conv) {
+    if (conv.preparingSubmission) {
+      this._post({
+        kind: "submissionFailed",
+        convId: conv.id,
+        draftKey: conv.draftKey,
+        clientMessageId: message.clientMessageId,
+        stored: false,
+        text: "Previous input is still being prepared; this input has not been sent",
+      });
+      return false;
+    }
+    conv.preparingSubmission = true;
+    const key = this._draftKey(conv);
+    const token = this._asyncToken(conv);
+    const id = /^[a-zA-Z0-9_-]{1,80}$/.test(message.clientMessageId || "")
+      ? message.clientMessageId
+      : crypto.randomUUID();
+    let prepared = false;
+    let dispatched = false;
+    try {
+      if (!conv.sessionId) conv.sessionId = `panel-${crypto.randomUUID()}`;
+      await this._persistTabs();
+      const input = await this._draftStore.prepare(key, conv.sessionId, id, {
+        text: String(message.text || ""),
+        images: message.images || [],
+      });
+      prepared = true;
+      this._post({
+        kind: "submissionStored",
+        convId: conv.id,
+        draftKey: key,
+        clientMessageId: id,
+      });
+      if (
+        this._convs.get(conv.id) !== conv ||
+        conv.draftKey !== key ||
+        conv._asyncToken !== token
+      )
+        throw new Error("Conversation changed; input was not dispatched");
+      const session = this._ensureSession(conv);
+      const sessionToken = conv._sessionToken;
+      const version = await this._waitForInputCapability(conv, session);
+      if (
+        this._convs.get(conv.id) !== conv ||
+        conv.draftKey !== key ||
+        conv._asyncToken !== token ||
+        conv.sessionId !== input.sessionId ||
+        conv._sessionToken !== sessionToken ||
+        !session.running
+      )
+        throw new Error("Agent changed; input was not dispatched");
+      // Persist UNKNOWN before entering the ambiguous pipe-write boundary.
+      await this._draftStore.settle(key, id, "unknown");
+      if (
+        conv.draftKey !== key ||
+        conv._sessionToken !== sessionToken ||
+        conv._asyncToken !== token
+      )
+        throw new Error("Conversation changed; input was not dispatched");
+      dispatched = true;
+      this._sendMessage(message, input.paths, conv, { id, version, session });
+      await this._restoreDraft(conv, { composer: false });
+      return true;
+    } catch (error) {
+      if (prepared && !dispatched)
+        await this._draftStore.settle(key, id, "rejected").catch(() => {});
+      this._post({
+        kind: "submissionFailed",
+        convId: conv.id,
+        draftKey: key,
+        clientMessageId: id,
+        stored: prepared,
+        text: error.message,
+      });
+      if (conv.draftKey === key)
+        await this._restoreDraft(conv, { composer: false });
+      return false;
+    } finally {
+      conv.preparingSubmission = false;
+    }
   }
 
   _workspaceFolders() {
@@ -303,10 +558,10 @@ class ChatViewProvider {
       this._post({ kind: "insertText", text: t });
     }
     if (this._pendingReopen) {
-      const { sessionId } = this._pendingReopen;
+      const { sessionId, draftKey } = this._pendingReopen;
       this._pendingReopen = null;
       this._pendingNewTab = false; // reopen subsumes a plain new tab
-      this._reopenInto(sessionId);
+      this._reopenInto(sessionId, draftKey);
     } else if (this._pendingNewTab) {
       this._pendingNewTab = false;
       this._openNewTab();
@@ -660,6 +915,9 @@ class ChatViewProvider {
    */
   _stopSession(conv, { requireConfirmation = false } = {}) {
     if (!conv) return false;
+    for (const waiter of conv.inputInitWaiters || [])
+      waiter.reject(new Error("Agent stopped; input was not dispatched"));
+    conv.inputReceiptVersion = undefined;
     if (conv.worklogHandoff) {
       clearTimeout(conv.worklogHandoff.timer);
       conv.worklogHandoff = null;
@@ -741,6 +999,7 @@ class ChatViewProvider {
   /** Clear state that belongs to a particular resumed session, not the tab. */
   _clearSessionState(conv, { clearGoal = false } = {}) {
     if (!conv) return;
+    conv.draftKey = crypto.randomUUID();
     this._invalidateAsync(conv);
     conv.transcript = [];
     conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
@@ -762,7 +1021,11 @@ class ChatViewProvider {
   _postTabs() {
     this._post({
       kind: "tabs",
-      tabs: this._convs.list(),
+      tabs: this._convs.list().map((tab) => ({
+        ...tab,
+        draftKey: this._draftKey(this._convs.get(tab.id)),
+        draftStorage: !!this._draftStore,
+      })),
       activeId: this._convs.activeId(),
     });
     this._updateModeStatus(); // the active tab (hence its mode) may have changed
@@ -776,6 +1039,32 @@ class ChatViewProvider {
       const conv = this._convs.get(convId);
       if (!conv) return;
       if (sessionToken && conv._sessionToken !== sessionToken) return;
+      if (evt?.type === "system" && evt.subtype === "init") {
+        conv.inputReceiptVersion = evt.input_receipts?.version === 1 ? 1 : 0;
+        for (const waiter of conv.inputInitWaiters || [])
+          waiter.resolve(conv.inputReceiptVersion);
+      }
+      if (
+        evt?.type === "system" &&
+        evt.subtype === "input_accepted" &&
+        this._draftStore &&
+        sessionToken &&
+        evt.session_id === conv.sessionId
+      ) {
+        const key = this._draftKey(conv);
+        this._draftStore
+          .settle(key, evt.client_message_id, "accepted", evt.receipt)
+          .then(() => {
+            if (conv.draftKey === key)
+              this._restoreDraft(conv, { composer: false });
+          })
+          .catch((error) =>
+            this._postFrom(convId, {
+              kind: "error",
+              text: `Input acceptance could not be saved: ${error.message}`,
+            }),
+          );
+      }
       if (evt?.type === "worklog_saved") {
         const pending = conv.worklogHandoff;
         if (!pending || pending.requestId !== evt.request_id) return;
@@ -1637,6 +1926,7 @@ class ChatViewProvider {
     }
     const sessionToken = {};
     conv._sessionToken = sessionToken;
+    conv.inputReceiptVersion = undefined;
     conv.modeRequestId = crypto.randomUUID();
     conv.modeStatus = "pending";
     conv.modeError = "";
@@ -1711,6 +2001,9 @@ class ChatViewProvider {
           if (!current || current._sessionToken !== sessionToken) {
             return;
           }
+          for (const waiter of current.inputInitWaiters || [])
+            waiter.reject(new Error("Agent exited; input was not dispatched"));
+          current.inputReceiptVersion = undefined;
           current._sessionToken = null;
           current.sessionSlashCommands = null;
           current.unconfirmedSessionSlashCommands = [];
@@ -2114,18 +2407,20 @@ class ChatViewProvider {
   /** Open a fresh conversation tab (becomes active); its child spawns on the
    * first message. `sessionId` resumes an existing session (reopen-closed);
    * null starts blank. No "reset" is posted, so other tabs stay buffered. */
-  _openNewTab(sessionId = null) {
+  _openNewTab(sessionId = null, draftKey = null) {
     this._activeConv(); // ensure at least the bootstrap exists first
-    this._convs.create({ sessionId: sessionId || null });
+    const created = this._convs.create({ sessionId: sessionId || null });
+    if (draftKey) created.draftKey = draftKey;
     this._rememberSessionId(sessionId || null);
     this._fileCache = null; // pick up files created since the last scan
     this._postTabs();
+    this._restoreDraft(this._convs.active());
     if (sessionId) this._restoreTranscript(this._convs.active());
   }
 
   /** Reopen the most recently closed chat as a new tab, resuming its session. */
-  _reopenInto(sessionId) {
-    this._openNewTab(sessionId);
+  _reopenInto(sessionId, draftKey = null) {
+    this._openNewTab(sessionId, draftKey);
     this._post({
       kind: "info",
       text: sessionId
@@ -2185,10 +2480,11 @@ class ChatViewProvider {
       return;
     }
     const sessionId = this._lastClosed.sessionId || null;
+    const draftKey = this._lastClosed.draftKey || null;
     this._lastClosed = null;
     this.vscode.commands.executeCommand("chainlesschainIdeChat.focus");
-    if (this._webviewReady && this.view) this._reopenInto(sessionId);
-    else this._pendingReopen = { sessionId };
+    if (this._webviewReady && this.view) this._reopenInto(sessionId, draftKey);
+    else this._pendingReopen = { sessionId, ...(draftKey ? { draftKey } : {}) };
   }
 
   /**
@@ -2243,15 +2539,15 @@ class ChatViewProvider {
     }
   }
 
-  _sendMessage(m, images, sendingConv) {
-    const session = this._ensureSession(sendingConv);
+  _sendMessage(m, images, sendingConv, dispatch = null) {
+    const session = dispatch?.session || this._ensureSession(sendingConv);
     const auto = deriveTabTitle(m.text);
     if (auto && isDefaultTitle(sendingConv.title)) {
       this._convs.setTitle(sendingConv.id, auto);
       this._postTabs();
     }
     const id = sendingConv.id;
-    if (images.length) {
+    if (images.length && !dispatch) {
       if (!this._imgTemps) this._imgTemps = new Map();
       this._imgTemps.set(id, (this._imgTemps.get(id) || []).concat(images));
     }
@@ -2260,11 +2556,14 @@ class ChatViewProvider {
         ? sendingConv.worklogSource
         : null;
     const ok =
-      images.length || history
+      images.length || history || dispatch
         ? session.sendEvent({
             type: "user",
             text: String(m.text || ""),
             images,
+            ...(dispatch?.version === 1
+              ? { client_message_id: dispatch.id }
+              : {}),
             ...(history ? { worklog_session_id: history } : {}),
           })
         : session.send(m.text);
@@ -2273,14 +2572,29 @@ class ChatViewProvider {
         kind: "user",
         text: String(m.text || ""),
       });
-      this._postFrom(id, { kind: "sendAccepted" });
+      if (!dispatch) this._postFrom(id, { kind: "sendAccepted" });
+      else
+        this._post({
+          kind: "submissionDispatched",
+          convId: id,
+          draftKey: sendingConv.draftKey,
+          clientMessageId: dispatch.id,
+          receiptSupported: dispatch.version === 1,
+        });
       if (history) sendingConv.worklogSourceSent = true;
       sendingConv.turnActive = true;
       if (!this._imgTurns) this._imgTurns = new Map();
       const turns = this._imgTurns.get(id) || [];
-      turns.push(images);
+      turns.push(dispatch ? [] : images);
       this._imgTurns.set(id, turns);
     } else {
+      if (dispatch) {
+        this._postFrom(id, {
+          kind: "error",
+          text: "Input delivery is unknown. Your saved input remains available; check acceptance before sending it again.",
+        });
+        return false;
+      }
       this._postFrom(id, {
         kind: "error",
         text: "could not reach the agent process — is the `cc` CLI installed? (npm i -g chainlesschain — requires Node.js >= 22.12.0, or set chainlesschain.cli.path)",
@@ -3687,10 +4001,98 @@ class ChatViewProvider {
         return;
       }
     }
-    if (m.type === "slashCommandFallback") {
+    if (m.type === "draftBrowse" && this._draftStore) {
+      return (async () => {
+        const drafts = await this._draftStore.list();
+        const selected = await this.vscode.window.showQuickPick(drafts, {
+          title: "Recover saved chat drafts",
+          placeHolder: "Open a saved draft without sending it",
+        });
+        if (!selected) return;
+        let conv = this._convs
+          .list()
+          .map((t) => this._convs.get(t.id))
+          .find((c) => c.draftKey === selected.key);
+        if (conv) this._convs.switchTo(conv.id);
+        else {
+          conv = this._convs.create({ sessionId: selected.sessionId });
+          conv.draftKey = selected.key;
+        }
+        this._postTabs();
+        this._restoreTranscript(conv);
+        await this._restoreDraft(conv, { reconcile: true });
+      })().catch((error) =>
+        this._post({
+          kind: "error",
+          text: `Draft recovery failed: ${error.message}`,
+        }),
+      );
+    } else if (m.type === "slashCommandFallback") {
       this._handleSlashCommandFallback(m);
+    } else if (
+      [
+        "draftUpdate",
+        "draftRecover",
+        "draftReconcile",
+        "draftDiscard",
+      ].includes(m.type)
+    ) {
+      const conv = this._convs.get(m.convId);
+      if (!this._draftStore || !conv || m.draftKey !== this._draftKey(conv))
+        return false;
+      const key = conv.draftKey;
+      const operation = async () => {
+        if (m.type === "draftUpdate") {
+          await this._persistTabs();
+          await this._draftStore.save(key, {
+            text: String(m.text || ""),
+            sessionId: conv.sessionId || null,
+            ...(m.images !== undefined ? { images: m.images } : {}),
+          });
+          this._post({
+            kind: "draftSaved",
+            convId: conv.id,
+            draftKey: key,
+            revision: m.revision,
+          });
+        } else if (m.type === "draftRecover") {
+          const draft = await this._draftStore.recover(key, m.clientMessageId);
+          if (conv.draftKey === key)
+            this._post({
+              kind: "draftCopy",
+              convId: conv.id,
+              draftKey: key,
+              composer: draft,
+            });
+        } else {
+          if (m.type === "draftDiscard")
+            await this._draftStore.discard(key, m.clientMessageId);
+          await this._restoreDraft(conv, {
+            composer: false,
+            reconcile: m.type === "draftReconcile",
+          });
+        }
+      };
+      return operation().catch((error) =>
+        this._post({
+          kind: "draftSaveError",
+          convId: conv.id,
+          draftKey: key,
+          revision: m.revision,
+          imagesChanged: m.images !== undefined,
+          text: error.message,
+        }),
+      );
     } else if (m.type === "send") {
-      const sendingConv = this._activeConv();
+      const sendingConv = m.convId
+        ? this._convs.get(m.convId)
+        : this._activeConv();
+      if (
+        !sendingConv ||
+        (m.draftKey && m.draftKey !== this._draftKey(sendingConv))
+      )
+        return false;
+      if (this._draftStore) return this._sendDurableMessage(m, sendingConv);
       if (
         sendingConv.preparingImages ||
         (m.images?.length && this._imagePreparation)
@@ -3898,6 +4300,7 @@ class ChatViewProvider {
       const conv = this._activeConv();
       this._postTabs();
       this._restoreTranscript(conv);
+      this._restoreDraft(conv, { reconcile: true });
       // A Webview can be recreated while the long-lived CLI child is blocked
       // on an approval/question. Rehydrate every unresolved card immediately;
       // the renderer deduplicates cards when VS Code retained the old DOM.
@@ -3942,6 +4345,7 @@ class ChatViewProvider {
         this._rememberSessionId(conv.sessionId);
         this._postTabs();
         this._restoreTranscript(conv);
+        this._restoreDraft(conv);
         // Re-post every unresolved interaction that was gated out while this
         // tab was backgrounded. They remain host-owned until a resolved event,
         // so a later Webview recreation can recover them again.
@@ -3971,6 +4375,7 @@ class ChatViewProvider {
         if (res.conv) {
           this._lastClosed = {
             sessionId: res.conv.sessionId || null,
+            draftKey: res.conv.draftKey || null,
             title: res.conv.title,
           };
           this._indexConversation(res.conv, "stopped");

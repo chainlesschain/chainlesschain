@@ -489,6 +489,7 @@ async function activate(context) {
           }
         : {},
     state: context.workspaceState, // per-workspace chat session resume
+    storagePath: context.storageUri?.fsPath,
     enableSessionIndex: true,
     hostDomToken,
     log,

@@ -183,12 +183,14 @@ async function writeImageBatch(
   }
 }
 
-function writeImageTemps(images) {
+function writeImageTemps(images, { directory } = {}) {
   checkImageEnvelope(images);
   if (!images.length) return Promise.resolve([]);
   // Decoding and header inspection run away from the Extension Host event loop.
   return new Promise((resolve, reject) => {
-    const worker = new Worker(__filename, { workerData: { images } });
+    const worker = new Worker(__filename, {
+      workerData: { images, directory },
+    });
     let replied = false;
     worker.once("message", (result) => {
       replied = true;
@@ -203,7 +205,7 @@ function writeImageTemps(images) {
 }
 
 if (!isMainThread && workerData?.images) {
-  writeImageBatch(workerData.images).then(
+  writeImageBatch(workerData.images, { directory: workerData.directory }).then(
     (files) => parentPort.postMessage({ files }),
     (error) => parentPort.postMessage({ error: error.message }),
   );

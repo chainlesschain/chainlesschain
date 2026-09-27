@@ -36,7 +36,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 3;
+const CHAT_UI_PROTOCOL_VERSION = 4;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -772,15 +772,85 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const attach = document.getElementById("attach");
   let pendingImages = [];
   const composerDrafts = Object.create(null);
-  function composerDraft(id = tabKey()) {
-    return composerDrafts[id] || (composerDrafts[id] = { text: "", images: [], reads: 0, readingBytes: 0 });
+  const draftBackup = vscode.getState?.()?.draftTextBackup || null;
+  function rememberComposer(id, draft) {
+    if (id !== tabKey() || !draft.key || draft.text.length > 100000) return;
+    // Small text-only fallback for a Webview reload before the host save ACK.
+    // Attachments live in bounded host files, never in Webview/Memento state.
+    vscode.setState?.({ draftTextBackup: { key: draft.key, text: draft.text, pendingId: draft.pendingSend?.id || null, hadImages: draft.images.length > 0 } });
   }
-  function saveComposer() {
+  function composerDraft(id = tabKey()) {
+    return composerDrafts[id] || (composerDrafts[id] = { text: "", images: [], imagesLoaded: false, reads: 0, readingBytes: 0, revision: 0, dirty: false, pending: [] });
+  }
+  const draftPanel = document.createElement("div");
+  draftPanel.className = "info";
+  draftPanel.setAttribute("aria-live", "polite");
+  attach.parentNode.insertBefore(draftPanel, attach);
+  function sendDraftUpdate(id, draft, imagesChanged) {
+    clearTimeout(draft.timer);
+    if (!draft.storage || !draft.key) return;
+    vscode.postMessage({ type: "draftUpdate", convId: id, draftKey: draft.key, revision: draft.revision, text: draft.text, ...(imagesChanged ? { images: draft.images } : {}) });
+  }
+  function queueDraft(id, draft, imagesChanged = false) {
+    draft.dirty = true; draft.revision += 1;
+    draft.imagesChanged = draft.imagesChanged || imagesChanged;
+    rememberComposer(id, draft);
+    clearTimeout(draft.timer);
+    draft.timer = setTimeout(() => {
+      sendDraftUpdate(id, draft, draft.imagesChanged);
+      draft.imagesChanged = false;
+    }, 250);
+  }
+  function renderDraftPanel() {
     const draft = composerDraft();
+    draftPanel.textContent = "";
+    if (!draft.storage) return;
+    const state = document.createElement("div");
+    state.textContent = draft.saveError ? "Draft could not be saved: " + draft.saveError : draft.dirty ? "Saving draft…" : "Draft saved on this device";
+    draftPanel.appendChild(state);
+    const browse = document.createElement("button"); browse.textContent = "Recover saved drafts";
+    browse.addEventListener("click", () => vscode.postMessage({ type: "draftBrowse" })); draftPanel.appendChild(browse);
+    if (draft.backupUnconfirmed) {
+      const copy = document.createElement("button"); copy.textContent = "Copy unconfirmed input text";
+      const warning = document.createElement("div"); warning.textContent = "An input from before reload has no saved acceptance record. Check the conversation before sending it again. ";
+      copy.addEventListener("click", () => {
+        if (input.value || pendingImages.length) { add("info", "Clear the current composer before copying another input."); return; }
+        input.value = draftBackup.text; draft.missingImages = !!draftBackup.hadImages; draft.backupUnconfirmed = false; saveComposer();
+      }); warning.appendChild(copy); draftPanel.appendChild(warning);
+    }
+    if (draft.missingImages) {
+      const clear = document.createElement("button");
+      clear.textContent = "Discard unavailable attachments";
+      clear.addEventListener("click", () => { draft.missingImages = false; draft.images = []; pendingImages = []; queueDraft(tabKey(), draft, true); renderDraftPanel(); });
+      draftPanel.appendChild(document.createTextNode("Saved attachments are unavailable. Attach them again or discard them before sending. "));
+      draftPanel.appendChild(clear);
+    }
+    for (const item of draft.pending || []) {
+      const row = document.createElement("div");
+      const status = item.status === "accepted" ? "Accepted; see the conversation for its outcome" : item.status === "rejected" ? "Not dispatched" : item.status === "prepared" ? "Saved; waiting to send" : "Acceptance unknown; do not resend until checked";
+      row.textContent = status + ": " + String(item.text || "(images)").slice(0, 80) + " ";
+      if (item.status === "unknown") {
+        const check = document.createElement("button"); check.textContent = "Check acceptance";
+        check.addEventListener("click", () => vscode.postMessage({ type: "draftReconcile", convId: activeTabId, draftKey: draft.key })); row.appendChild(check);
+      }
+      if (item.status === "rejected" || item.status === "unknown") {
+        const restore = document.createElement("button"); restore.textContent = "Copy to composer";
+        restore.addEventListener("click", () => vscode.postMessage({ type: "draftRecover", convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(restore);
+      }
+      const discard = document.createElement("button"); discard.textContent = "Discard saved input";
+      discard.addEventListener("click", () => vscode.postMessage({ type: "draftDiscard", convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(discard);
+      draftPanel.appendChild(row);
+    }
+  }
+  function saveComposer(imagesChanged = false) {
+    const draft = composerDraft();
+    const changed = draft.text !== input.value || (draft.images !== pendingImages && (draft.images.length || pendingImages.length));
     draft.text = input.value;
     draft.images = pendingImages;
+    if (changed || imagesChanged === true) queueDraft(tabKey(), draft, imagesChanged === true);
+    renderDraftPanel();
   }
-  input.addEventListener("input", saveComposer);
+  input.addEventListener("input", () => saveComposer());
   function renderAttach() {
     attach.textContent = "";
     if (!pendingImages.length) { attach.style.display = "none"; return; }
@@ -791,7 +861,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       const x = document.createElement("button");
       x.textContent = "×";
       x.title = "remove attachment";
-      x.addEventListener("click", () => { pendingImages.splice(i, 1); saveComposer(); renderAttach(); });
+      x.addEventListener("click", () => { pendingImages.splice(i, 1); saveComposer(true); renderAttach(); });
       chip.appendChild(x);
       attach.appendChild(chip);
     });
@@ -817,7 +887,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       draft.reads -= 1;
       draft.readingBytes -= blob.size;
       if (!error) draft.images.push({ data: fr.result, size: blob.size });
-      if (tabKey() === owner) {
+      if (!error) draft.imagesLoaded = true;
+      const currentOwner = Object.keys(composerDrafts).find((key) => composerDrafts[key] === draft) || owner;
+      if (!error) queueDraft(currentOwner, draft, true);
+      if (composerDraft() === draft) {
         pendingImages = draft.images;
         renderAttach();
         if (error) add("error", "Image could not be read. Please attach it again.");
@@ -860,6 +933,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   });
   function send() {
     if (composerDraft().reads) { add("info", "Wait for the images to finish loading before sending."); return; }
+    if (composerDraft().pendingSend || composerDraft().missingImages) { add("info", "Wait for the saved input or resolve missing attachments before sending."); return; }
+    if (composerDraft().storage && !composerDraft().imagesLoaded) { add("info", "Wait for the saved attachments to finish loading before sending."); return; }
     // Clicking the blue Send button must mirror Enter while the slash menu is
     // open. Previously Enter accepted the highlighted /status suggestion,
     // but Send submitted the still-partial /sta text and reported it as an
@@ -905,6 +980,16 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       return;
     }
     const images = pendingImages;
+    const draft = composerDraft();
+    if (draft.storage && draft.key) {
+      saveComposer(); clearTimeout(draft.timer);
+      const id = crypto.randomUUID();
+      draft.pendingSend = { id, text, images, revision: draft.revision };
+      rememberComposer(activeTabId, draft);
+      vscode.postMessage({ type: "send", convId: activeTabId, draftKey: draft.key, clientMessageId: id, text, images });
+      updateStatus("saving input…");
+      return;
+    }
     pendingImages = [];
     renderAttach();
     lastSentByTab[tabKey()] = text; // remember for /retry (per this tab)
@@ -1204,6 +1289,50 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     // switch: the default branch only handles unknown kinds, not every case.
     acceptAgentSignal();
     switch (m.kind) {
+      case "draftSaved":
+      case "draftSaveError":
+      case "draftSnapshot":
+      case "draftCopy":
+      case "submissionStored":
+      case "submissionFailed":
+      case "submissionDispatched": {
+        const draft = composerDrafts[m.convId];
+        if (!draft || draft.key !== m.draftKey) break;
+        const active = m.convId === activeTabId;
+        if (m.kind === "draftSaved") {
+          if (m.revision === draft.revision) { draft.dirty = false; draft.saveError = ""; }
+        } else if (m.kind === "draftSaveError") { draft.saveError = String(m.text || "storage error"); if (m.imagesChanged) draft.imagesChanged = true; }
+        else if (m.kind === "draftSnapshot" || m.kind === "draftCopy") {
+          if (Array.isArray(m.pending)) draft.pending = m.pending;
+          if (draftBackup && draftBackup.key === draft.key && draftBackup.pendingId) { draft.backupResolved = draft.backupResolved || draft.pending.some((item) => item.id === draftBackup.pendingId); draft.backupUnconfirmed = !draft.backupResolved; }
+          if (m.composer && !draft.imagesLoaded && !draft.imagesChanged) {
+            draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true;
+            if (active) { pendingImages = draft.images; renderAttach(); }
+          }
+          if (m.composer && (!draft.dirty || m.kind === "draftCopy")) {
+            if (m.kind === "draftCopy" && (draft.text || draft.images.length)) { if (active) add("info", "The composer has another draft. Save or clear it before restoring saved input."); }
+            else {
+              draft.text = String(m.composer.text || ""); draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true;
+              if (active) { input.value = draft.text; pendingImages = draft.images; renderAttach(); }
+              if (m.kind === "draftCopy") queueDraft(m.convId, draft, true);
+            }
+          }
+        } else if (m.kind === "submissionStored" && draft.pendingSend?.id === m.clientMessageId) {
+          const sent = draft.pendingSend; draft.pendingSend = null;
+          if (draft.revision === sent.revision) { draft.text = ""; draft.images = []; draft.dirty = false; if (active) { input.value = ""; pendingImages = []; renderAttach(); } }
+          rememberComposer(m.convId, draft);
+          lastSentByTab[m.convId] = sent.text;
+          if (active) { beginTurn(); add("user", sent.text + (sent.images.length ? " [images: " + sent.images.length + "]" : "")); updateStatus("waiting for acceptance…"); }
+        } else if (m.kind === "submissionFailed") {
+          if (draft.pendingSend?.id === m.clientMessageId) draft.pendingSend = null;
+          rememberComposer(m.convId, draft);
+          if (active) add("error", String(m.text || "Input could not be sent"));
+        } else if (m.kind === "submissionDispatched" && active) {
+          updateStatus(m.receiptSupported ? "waiting for durable acceptance…" : "sent; this CLI does not confirm durable acceptance");
+        }
+        if (active) renderDraftPanel();
+        break;
+      }
       default:
         break;
       case "transcript": {
@@ -1740,6 +1869,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         const caret = a + t.length;
         input.setSelectionRange(caret, caret);
         input.focus();
+        saveComposer();
         break;
       }
       case "pre":
@@ -1766,11 +1896,23 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         renderAttach();
         break;
       case "tabs": {
+        for (const tab of m.tabs || []) {
+          let draft = composerDraft(tab.id);
+          if (draft.key && draft.key !== tab.draftKey) { clearTimeout(draft.timer); delete composerDrafts[tab.id]; draft = composerDraft(tab.id); if (tab.id === activeTabId) { input.value = ""; pendingImages = []; renderAttach(); } }
+          draft.key = tab.draftKey; draft.storage = tab.draftStorage === true;
+          if (!draft.backupApplied && draftBackup && draftBackup.key === draft.key) {
+            draft.backupApplied = true;
+            if (!draftBackup.pendingId && !draft.text && typeof draftBackup.text === "string" && draftBackup.text.length <= 100000) {
+              draft.text = draftBackup.text; draft.dirty = true;
+            }
+          }
+        }
         renderTabBar(m.tabs, m.activeId);
         if (m.activeId !== activeTabId) {
           saveComposer();
-          if (!activeTabId && composerDrafts._ && !composerDrafts[m.activeId]) {
-            composerDrafts[m.activeId] = composerDrafts._;
+          if (!activeTabId && composerDrafts._ && !composerDrafts[m.activeId]?.dirty) {
+            const meta = composerDrafts[m.activeId] || {};
+            composerDrafts[m.activeId] = Object.assign(composerDrafts._, { key: meta.key, storage: meta.storage });
             delete composerDrafts._;
           }
           // A fast first send can beat the initial tabs message. Preserve that
@@ -1785,6 +1927,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           const draft = composerDraft();
           input.value = draft.text;
           pendingImages = draft.images;
+          if (draft.dirty) queueDraft(activeTabId, draft, draft.imagesChanged || draft.images.length > 0);
           renderAttach();
           attachLogNodes(tabNodes[activeTabId]);
           cancelStreamFrame(); // drop the outgoing tab's pending render
@@ -1814,8 +1957,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           if (k !== "_" && !live.has(k)) delete turnStateByTab[k];
         }
         for (const k of Object.keys(composerDrafts)) {
-          if (k !== "_" && !live.has(k)) delete composerDrafts[k];
+          if (k !== "_" && !live.has(k)) { clearTimeout(composerDrafts[k].timer); delete composerDrafts[k]; }
         }
+        renderDraftPanel();
         break;
       }
     }
