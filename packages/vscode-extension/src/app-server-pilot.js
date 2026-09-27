@@ -2,6 +2,7 @@
 
 const { EventEmitter } = require("node:events");
 const { AppServerPilotClient } = require("./vendor/agent-sdk/index.js");
+const { NativeQuestionLifecycle } = require("./app-server-question-lifecycle");
 
 /**
  * VS Code host adapter for the shared, fixed-capability App Server client.
@@ -14,6 +15,12 @@ class IdeAppServerPilot extends EventEmitter {
     this.options = options;
     this.ClientClass = options.ClientClass || AppServerPilotClient;
     this.client = options.client || null;
+    this.questions = new NativeQuestionLifecycle({
+      answer: (request, context) =>
+        this.options.answerQuestion?.(request, context) ?? null,
+      changed: (status) => this.emit("questionStatus", status),
+      timeoutMs: options.requestTimeoutMs ?? 120_000,
+    });
     this.lastThreadId = null;
     this.lastTurnId = null;
     this.contextMemoryProjection = {
@@ -33,6 +40,7 @@ class IdeAppServerPilot extends EventEmitter {
       surface: "vscode",
       lastThreadId: this.lastThreadId,
       lastTurnId: this.lastTurnId,
+      questions: this.questions.status,
       contextMemory: {
         lastPlan: this.contextMemoryProjection.lastPlan,
         lastCompactionReceipt:
@@ -55,7 +63,7 @@ class IdeAppServerPilot extends EventEmitter {
     if (this.client) return this.client;
     const cliPath = this.options.getCliPath?.() || this.options.cliPath || "cc";
     const cwd = this.options.getCwd?.() || this.options.cwd;
-    this.client = new this.ClientClass({
+    const client = new this.ClientClass({
       cliPath,
       cwd,
       env: this.options.env,
@@ -67,33 +75,46 @@ class IdeAppServerPilot extends EventEmitter {
       requestTimeoutMs: this.options.requestTimeoutMs ?? 120_000,
       clientName: "chainlesschain-vscode-app-server-pilot",
       clientVersion: this.options.clientVersion || "1",
-      onServerRequest: (request) => this._handleServerRequest(request),
+      onServerRequest: (request) => this._handleServerRequest(request, client),
     });
+    this.client = client;
     this._attach(this.client);
     return this.client;
   }
 
-  async _handleServerRequest(request) {
+  async _handleServerRequest(request, owner = this.client) {
     if (request?.method === "question/answer") {
       const question = request.params?.request || {};
+      const questionId = question.id;
+      const binding =
+        question.binding == null
+          ? null
+          : JSON.parse(JSON.stringify(question.binding));
+      const generation = this.questionOwner;
       if (typeof this.options.answerQuestion !== "function") {
         return {
-          questionId: question.id,
-          binding: question.binding,
+          questionId,
+          binding,
           answer: null,
         };
       }
       try {
-        const answer = await this.options.answerQuestion(question);
+        const answer =
+          owner === this.client
+            ? await this.questions.review(generation, question)
+            : null;
         return {
-          questionId: question.id,
-          binding: question.binding,
-          answer: answer ?? null,
+          questionId,
+          binding,
+          answer:
+            owner === this.client && generation === this.questionOwner
+              ? (answer ?? null)
+              : null,
         };
       } catch {
         return {
-          questionId: question.id,
-          binding: question.binding,
+          questionId,
+          binding,
           answer: null,
         };
       }
@@ -123,6 +144,7 @@ class IdeAppServerPilot extends EventEmitter {
   }
 
   _attach(client) {
+    this.questionOwner = { client };
     for (const eventName of [
       "ready",
       "notification",
@@ -132,7 +154,23 @@ class IdeAppServerPilot extends EventEmitter {
       "error",
     ]) {
       client.on(eventName, (payload) => {
-        if (eventName === "notification") this._projectNotification(payload);
+        if (client !== this.client) return;
+        if (eventName === "ready") {
+          this.questions.close(
+            this.questionOwner,
+            "App Server connection changed; saved fields require review",
+          );
+          this.questionOwner = { client };
+        }
+        if (eventName === "notification") {
+          this.questions.notification(this.questionOwner, payload);
+          this._projectNotification(payload);
+        }
+        if (eventName === "exit" || eventName === "error")
+          this.questions.close(
+            this.questionOwner,
+            "App Server connection ended; acceptance is unknown",
+          );
         this.emit(eventName, payload);
       });
     }
@@ -191,10 +229,15 @@ class IdeAppServerPilot extends EventEmitter {
 
   async close() {
     if (!this.client) return;
-    await this.client.close();
+    const client = this.client;
+    this.questions.close(this.questionOwner);
+    this.questionOwner = null;
     this.client = null;
-    this.lastThreadId = null;
-    this.lastTurnId = null;
+    await client.close();
+    if (!this.client) {
+      this.lastThreadId = null;
+      this.lastTurnId = null;
+    }
   }
 
   async threadStart(params = {}) {
@@ -231,6 +274,7 @@ class IdeAppServerPilot extends EventEmitter {
   }
 
   turnInterrupt(params) {
+    this.questions.interrupt(this.questionOwner, params);
     return this._getClient().turnInterrupt(params);
   }
 

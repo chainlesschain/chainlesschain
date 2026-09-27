@@ -129,10 +129,17 @@ async function ensureAppServerPilot() {
       clientVersion: require("../package.json").version,
       env: contextMemoryAuthority.cliEnvironment,
       reviewApproval: (request) => reviewAppServerApproval(vscode, request),
-      answerQuestion: (request) =>
+      answerQuestion: (request, { signal } = {}) =>
         answerAppServerQuestion(vscode, request, {
           store: _questionDraftStore,
+          signal,
         }),
+    });
+    _appServerPilot.on("questionStatus", ({ state, reason }) => {
+      vscode.window.setStatusBarMessage(
+        `CC question ${state}: ${reason}`,
+        8000,
+      );
     });
     _appServerPilot.on("stderr", (message) =>
       log(`App Server emitted stderr (${String(message).length} chars)`),
@@ -381,7 +388,10 @@ async function activate(context) {
             "CC App Server pilot: " +
               `${status.running ? "running" : "stopped"}, ` +
               `protocol ${status.capabilities?.protocolVersion || "unknown"}, ` +
-              `${status.pendingRequestCount} pending request(s)`,
+              `${status.pendingRequestCount} pending request(s); ` +
+              `${status.questions.filter((q) => q.state === "reviewing").length} question(s) under review, ` +
+              `${status.questions.filter((q) => q.state === "awaiting").length} awaiting confirmation, ` +
+              `${status.questions.filter((q) => q.state === "unknown").length} unconfirmed`,
           );
         } catch (error) {
           return vscode.window.showErrorMessage(

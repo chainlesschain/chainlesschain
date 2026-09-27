@@ -59,11 +59,43 @@ uses the host-owned reviewed URL and original session, rechecking ownership
 after opening the browser. Switching tabs cannot redirect its response.
 
 The App Server native text and choice dialogs save input/filter/selection changes
-using the same serial workspace store. Interrupted requests can recover their
-fields after an exactly matching reissue. Canceling or accepting archives the
-text; a later dialog does not preselect archived answers. Native schema responses
-and password inputs are not persisted. The native dialog returning a value is
-not a claim that the server accepted it; that surface has no acceptance receipt UI.
+using the same serial workspace store. Supported MCP schemas now use a native
+field review with individual InputBox/QuickPick editors, Back navigation and an
+explicit Submit action. The shared schema core validates and coerces text,
+number/integer, boolean, single-select and multi-select values. Partial edits save
+after 250 ms; final submission waits for storage. Interrupted requests recover
+fields only after an exactly matching complete binding and schema reissue.
+Canceling or submitting archives the fields, so later dialogs do not automatically
+preselect those answers. Password/write-only values are excluded from both disk
+and review previews. Unsupported schemas use an explicit, non-persistent JSON
+object fallback. The CLI App Server preserves MCP form/URL metadata for this path.
+
+Each native review belongs to an App Server connection generation. Expiry,
+interrupt, process exit/replacement and completion of a blocking turn revoke its
+UI immediately; deferred requests can remain live after their original turn.
+Unfinished archival joins an in-flight final save rather than duplicating it.
+Empty windows retain the same cancellation behavior without disk storage.
+Native reviews share one display queue, with at most 128 waiting requests. A
+whole form owns the QuickInput surface until it finishes; another question
+cannot hide its current field. Waiting requests can expire or be canceled
+without ever creating a control.
+URL requests require explicit HTTPS confirmation and check ownership again before
+and after opening the captured URL.
+
+Returning an answer leaves the native request **awaiting** server confirmation.
+Only a matching `question/resolved` notification changes it to **resolved**;
+the status bar reports the transition, and the existing App Server status command
+shows counts of reviews, pending confirmations and unconfirmed outcomes. Reused
+IDs with different content cannot establish unambiguous resolution. Expiry or
+connection failure stays **unknown**, and does not retry the answer. These are
+in-memory lifecycle observations, not durable acceptance receipts or proof of
+external effects occurring exactly once. Restart recovery preserves editable
+fields, not a previous response authority.
+
+The identity now distinguishes MCP form/URL mode independently of blocking/deferred
+mode, and distinguishes password prompts. Older MCP field records without that
+distinction remain available as editable text recovery; they are not automatically
+restored into a differently identified live review.
 
 Question limits: 16 records per draft, 128 fields, 32K characters per field,
 64 KiB normalized field payload and 128 KiB per record. Host request tracking is
@@ -71,7 +103,7 @@ bounded to 256 instances. Webview backup holds at most 16 edited forms and 64K
 JSON characters, and protects newer local edits from delayed recovery. Wait for
 storage before closing the host; this does not promise zero loss on forced exit.
 
-JetBrains question-draft parity, native structured-schema review and current real IDE host
-acceptance remain separate work in IDE-DRAFT. No approvals are saved or replayed
-by this draft store. Empty windows without workspace storage keep in-memory
-question state and explicit response routing, without disk draft recovery.
+JetBrains and VS Code question draft implementations have local tests. Current
+real IDE host lifecycle acceptance, accessibility listening and cross-platform
+validation remain outstanding in IDE-DRAFT. No approvals are saved or replayed
+by this draft store. The App Server remains an opt-in pilot.

@@ -222,3 +222,17 @@ test("VS Code cancellation is null and deferred free text does not trap focus", 
     null,
   );
 });
+
+test("native questions without workspace storage still close immediately on owner cancellation", async () => {
+  const vscode = nativeWindow();
+  const controller = new AbortController();
+  const response = answerAppServerQuestion(vscode, boundQuestion, {
+    signal: controller.signal,
+  });
+  const control = await shown(vscode);
+  control.value = "not submitted";
+  controller.abort();
+  assert.equal(await response, null);
+  assert.equal(control.disposed, true);
+  await control.emit("Accept");
+});

@@ -878,6 +878,118 @@ describe("CC App Server", () => {
     await server.close();
   });
 
+  it.each([
+    {
+      mode: "form",
+      server: "settings",
+      requestedSchema: {
+        type: "object",
+        properties: { count: { type: "integer" } },
+      },
+    },
+    {
+      mode: "url",
+      server: "login",
+      url: "https://example.com/review",
+      elicitationId: "external-1",
+    },
+  ])(
+    "preserves MCP $mode metadata in both native question paths",
+    async (metadata) => {
+      const messages = [];
+      const binding = {
+        backgroundAgentId: null,
+        sessionId: "mcp-thread",
+        turnId: "mcp-turn",
+        toolUseId: "mcp-tool",
+        sequence: 1,
+      };
+      let server;
+      const event = {
+        type: "question_request",
+        id: "mcp-question",
+        question: "Review settings",
+        binding,
+        mode: "blocking",
+        blocking: true,
+        metadata: { kind: "mcp_elicitation", ...metadata },
+      };
+      const kernel = {
+        cwd: process.cwd(),
+        close: vi.fn(),
+        async startTurn({ emit, requestQuestion }) {
+          await emit(event);
+          const pending = requestQuestion(event);
+          await waitFor(() =>
+            messages.some((message) => message.method === "question/answer"),
+          );
+          const rpc = messages.find(
+            (message) => message.method === "question/answer",
+          );
+          expect(rpc.params.request.metadata).toMatchObject(event.metadata);
+          await server.receive({
+            jsonrpc: "2.0",
+            id: rpc.id,
+            result: { questionId: event.id, binding, answer: { count: 3 } },
+          });
+          expect(await pending).toEqual({ count: 3 });
+          await emit({
+            type: "question_resolved",
+            id: event.id,
+            via: "user-answer",
+            mode: "blocking",
+            blocking: true,
+          });
+          return {
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            result: "done",
+          };
+        },
+      };
+      server = new CcAppServer({
+        store: new MemoryRolloutStore(),
+        kernel,
+        send: async (message) => messages.push(message),
+      });
+      try {
+        await server.receive(
+          initialize(1, [
+            "thread_turn_item",
+            "structured_approval",
+            "deferred_questions",
+          ]),
+        );
+        await server.receive(
+          request(2, "thread/start", { threadId: "mcp-thread" }),
+        );
+        await server.receive(
+          request(3, "turn/start", {
+            threadId: "mcp-thread",
+            turnId: "mcp-turn",
+            input: "configure",
+          }),
+        );
+        await waitFor(() =>
+          messages.some((message) => message.method === "turn/completed"),
+        );
+        expect(
+          messages.find((message) => message.method === "question/requested")
+            .params.request.metadata,
+        ).toMatchObject(event.metadata);
+        expect(
+          messages.find((message) => message.method === "turn/completed").params
+            .turn.status,
+        ).toBe("completed");
+        for (const message of messages)
+          expect(validateAppServerMessage(message).ok).toBe(true);
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
   it("rejects a stale question binding instead of accepting the answer", async () => {
     const messages = [];
     let server;

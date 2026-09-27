@@ -90,6 +90,92 @@ class FakeClient extends EventEmitter {
   }
 }
 
+test("pilot stops old native callbacks and ignores old-client confirmation after replacement", async () => {
+  let release, signal;
+  const pilot = new IdeAppServerPilot({
+    ClientClass: FakeClient,
+    answerQuestion: (_question, context) => {
+      signal = context.signal;
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    },
+  });
+  await pilot.start();
+  const prior = pilot.client;
+  const question = {
+    id: "q",
+    threadId: "thread",
+    turnId: "turn",
+    binding: {
+      sessionId: "thread",
+      turnId: "turn",
+      toolUseId: "tool",
+      sequence: 1,
+    },
+  };
+  const response = FakeClient.options.onServerRequest({
+    method: "question/answer",
+    params: { request: question },
+  });
+  await Promise.resolve();
+  question.binding.turnId = "mutated";
+  await pilot.close();
+  assert.equal(signal.aborted, true);
+  await pilot.start();
+  release("late");
+  assert.deepEqual(await response, {
+    questionId: "q",
+    binding: {
+      sessionId: "thread",
+      turnId: "turn",
+      toolUseId: "tool",
+      sequence: 1,
+    },
+    answer: null,
+  });
+  prior.emit("notification", {
+    method: "question/resolved",
+    params: {
+      threadId: "thread",
+      turnId: "turn",
+      questionId: "q",
+      via: "user-answer",
+    },
+  });
+  assert.equal(pilot.status.questions[0].state, "unknown");
+  await pilot.close();
+});
+
+test("ready after transport restart grants a fresh native request generation", async () => {
+  let calls = 0;
+  const pilot = new IdeAppServerPilot({
+    ClientClass: FakeClient,
+    answerQuestion: async () => {
+      calls++;
+      return "blue";
+    },
+  });
+  await pilot.start();
+  const rpc = {
+    method: "question/answer",
+    params: {
+      request: {
+        id: "q",
+        threadId: "thread",
+        turnId: "turn",
+        question: "Color?",
+      },
+    },
+  };
+  assert.equal((await FakeClient.options.onServerRequest(rpc)).answer, "blue");
+  pilot.client.emit("exit", 1);
+  pilot.client.emit("ready", {});
+  assert.equal((await FakeClient.options.onServerRequest(rpc)).answer, "blue");
+  assert.equal(calls, 2);
+  await pilot.close();
+});
+
 test("VS Code pilot uses the shared fixed-capability client lazily", async () => {
   const reviewApproval = async () => ({ kind: "acceptOnce" });
   const answerQuestion = async () => "blue";

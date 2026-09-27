@@ -1,10 +1,59 @@
 "use strict";
 const crypto = require("crypto");
 const {
+  answerNativeElicitation,
+  completeBinding,
+} = require("./app-server-elicitation-review");
+const {
   questionIdentity,
   normalizeQuestionFields,
   questionDraftText,
 } = require("./chat/question-draft-contract");
+
+// VS Code QuickInput is a single visible surface. Serialize whole reviews, not
+// individual fields, so another request cannot hide a partially edited form.
+const nativeQueues = new WeakMap();
+function queueReview(vscode, signal, run) {
+  if (signal?.aborted) return Promise.resolve(null);
+  let queue = nativeQueues.get(vscode);
+  if (!queue) {
+    queue = { active: false, waiting: [] };
+    nativeQueues.set(vscode, queue);
+  }
+  if (queue.waiting.length >= 128)
+    return Promise.reject(
+      new Error("Too many native questions waiting for review"),
+    );
+  const pump = () => {
+    if (queue.active) return;
+    const entry = queue.waiting.shift();
+    if (!entry) return;
+    queue.active = true;
+    entry.started = true;
+    entry.signal?.removeEventListener("abort", entry.abort);
+    Promise.resolve()
+      .then(() => (entry.signal?.aborted ? null : entry.run()))
+      .then(entry.resolve, entry.reject)
+      .finally(() => {
+        queue.active = false;
+        pump();
+      });
+  };
+  return new Promise((resolve, reject) => {
+    const entry = { run, signal, resolve, reject, started: false };
+    entry.abort = () => {
+      if (entry.started) return;
+      const index = queue.waiting.indexOf(entry);
+      if (index >= 0) queue.waiting.splice(index, 1);
+      signal.removeEventListener("abort", entry.abort);
+      resolve(null);
+    };
+    queue.waiting.push(entry);
+    signal?.addEventListener("abort", entry.abort, { once: true });
+    if (signal?.aborted) entry.abort();
+    pump();
+  });
+}
 
 function optionValue(option) {
   if (option && typeof option === "object") {
@@ -23,14 +72,80 @@ function optionLabel(option) {
 async function answerAppServerQuestion(
   vscode,
   request = {},
-  { store = null } = {},
+  { store = null, signal } = {},
 ) {
+  if (signal?.aborted) return null;
+  // Bound and detach the exact request before any UI await. Fields not used by
+  // question review are deliberately outside the recovery/response contract.
+  const snapshot = Object.fromEntries(
+    [
+      "id",
+      "threadId",
+      "turnId",
+      "sessionId",
+      "binding",
+      "question",
+      "options",
+      "multiSelect",
+      "mode",
+      "blocking",
+      "purpose",
+      "contextRevision",
+      "elicitation",
+      "requestedSchema",
+      "server",
+      "url",
+      "elicitationId",
+      "password",
+      "expiresAt",
+    ]
+      .filter((key) => request[key] !== undefined)
+      .map((key) => [key, request[key]]),
+  );
+  if (request.metadata?.kind === "mcp_elicitation")
+    snapshot.metadata = {
+      kind: "mcp_elicitation",
+      mode: request.metadata.mode,
+      requestedSchema: request.metadata.requestedSchema,
+      server: request.metadata.server,
+      url: request.metadata.url,
+      elicitationId: request.metadata.elicitationId,
+    };
+  questionIdentity(
+    snapshot.binding?.sessionId ||
+      snapshot.sessionId ||
+      snapshot.threadId ||
+      "",
+    snapshot,
+  );
+  const serialized = JSON.stringify(snapshot);
+  if (Buffer.byteLength(serialized) > 128 * 1024)
+    throw new Error("Question is too large to review");
+  request = JSON.parse(serialized);
+  return queueReview(vscode, signal, () =>
+    reviewQuestion(vscode, request, { store, signal }),
+  );
+}
+
+async function reviewQuestion(vscode, request, { store, signal }) {
+  if (signal?.aborted) return null;
+  if (
+    request.requestedSchema ||
+    request.metadata?.kind === "mcp_elicitation" ||
+    request.elicitation === true
+  )
+    return answerNativeElicitation(vscode, request, { store, signal });
   const question = String(request.question || "").slice(0, 16_384);
   const options = Array.isArray(request.options)
     ? request.options.slice(0, 128)
     : null;
-  if (store && vscode.window.createInputBox && vscode.window.createQuickPick) {
-    return persistentQuestion(vscode, request, { store, question, options });
+  if (vscode.window.createInputBox && vscode.window.createQuickPick) {
+    return persistentQuestion(vscode, request, {
+      store,
+      question,
+      options,
+      signal,
+    });
   }
   if (options?.length) {
     const items = options.map((option) => ({
@@ -46,7 +161,7 @@ async function answerAppServerQuestion(
       canPickMany: request.multiSelect === true,
       ignoreFocusOut: request.blocking !== false,
     });
-    if (picked == null) return null;
+    if (picked == null || signal?.aborted) return null;
     return Array.isArray(picked)
       ? picked.map((item) => item.value)
       : picked.value;
@@ -58,14 +173,15 @@ async function answerAppServerQuestion(
         : "Agent question",
     prompt: question,
     ignoreFocusOut: request.blocking !== false,
+    password: request.password === true,
   });
-  return answer ?? null;
+  return signal?.aborted ? null : (answer ?? null);
 }
 
 async function persistentQuestion(
   vscode,
   request,
-  { store, question, options },
+  { store, question, options, signal },
 ) {
   const sessionId = request.binding?.sessionId || request.sessionId || "";
   const digest = crypto
@@ -84,12 +200,7 @@ async function persistentQuestion(
     group.slice(16, 20),
     group.slice(20),
   ].join("-");
-  // Native review currently has no structured-schema renderer. Do not save
-  // potentially sensitive schema responses as ordinary free text.
-  const sensitive =
-    request.password === true ||
-    !!request.requestedSchema ||
-    !!request.metadata?.requestedSchema;
+  const sensitive = request.password === true;
   const fields = sensitive
     ? []
     : options?.length
@@ -99,15 +210,14 @@ async function persistentQuestion(
         ]
       : [{ key: "answer", label: "Answer", kind: "text" }];
   let recoveryFailed = false;
-  const saved = await store.view(key, { includeComposer: false }).catch(() => {
-    recoveryFailed = true;
-    return { questions: [] };
-  });
-  const bound =
-    request.binding?.sessionId &&
-    request.binding?.turnId &&
-    request.binding?.toolUseId &&
-    Number.isSafeInteger(request.binding.sequence);
+  const saved = store
+    ? await store.view(key, { includeComposer: false }).catch(() => {
+        recoveryFailed = true;
+        return { questions: [] };
+      })
+    : { questions: [] };
+  if (signal?.aborted) return null;
+  const bound = completeBinding(request);
   const prior = bound
     ? saved.questions.find((q) => q.digest === digest && q.status === "draft")
     : null;
@@ -169,7 +279,7 @@ async function persistentQuestion(
         : [{ key: "answer", value: control.value || "" }],
     );
   const save = async (status) => {
-    if (sensitive) return;
+    if (sensitive || !store) return;
     const values = capture();
     const text = pick
       ? [control.value, ...(control.selectedItems || []).map((i) => i.label)]
@@ -198,9 +308,21 @@ async function persistentQuestion(
     const finish = (answer) => {
       if (settled) return;
       settled = true;
+      signal?.removeEventListener("abort", abort);
       for (const subscription of subscriptions) subscription.dispose();
       control.dispose();
       resolve(answer);
+    };
+    const abort = () => {
+      // Revoke UI authority synchronously; the best-effort archive is independent
+      // of an old handler waiting on a blocked child or server timeout.
+      settling = true;
+      save("archived").catch(() =>
+        vscode.window.showWarningMessage?.(
+          "The expired question draft could not be saved.",
+        ),
+      );
+      finish(null);
     };
     const update = () => {
       if (!settling && !settled) save("draft").catch(failure);
@@ -209,7 +331,7 @@ async function persistentQuestion(
     if (pick) subscriptions.push(control.onDidChangeSelection(update));
     subscriptions.push(
       control.onDidAccept(async () => {
-        if (settling || settled) return;
+        if (settling || settled || signal?.aborted) return;
         if (pick && !control.canSelectMany && !control.selectedItems?.length)
           return;
         settling = true;
@@ -221,7 +343,7 @@ async function persistentQuestion(
           : control.value;
         try {
           await save("archived");
-          finish(answer);
+          finish(signal?.aborted ? null : answer);
         } catch {
           settling = false;
           control.enabled = true;
@@ -250,7 +372,9 @@ async function persistentQuestion(
         finish(null);
       }),
     );
-    control.show();
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+    else control.show();
   });
 }
 

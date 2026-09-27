@@ -33,6 +33,10 @@ function questionIdentity(sessionId, request) {
       options: request.options || null,
       multiSelect: !!request.multiSelect,
       mode: request.mode || request.metadata?.mode || null,
+      // App Server keeps blocking/deferred mode separately from MCP form/url.
+      // A changed presentation or sensitivity must replace the original review.
+      elicitationMode: request.metadata?.mode,
+      password: request.password === true ? true : undefined,
       blocking: request.blocking !== false,
       purpose: request.purpose || null,
       contextRevision:

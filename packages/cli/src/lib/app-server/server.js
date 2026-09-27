@@ -1463,6 +1463,20 @@ export class CcAppServer {
       contextRevision: Number.isSafeInteger(event.context_revision)
         ? event.context_revision
         : null,
+      // Preserve the MCP form/URL vocabulary for native host review. This is
+      // question metadata, not an approval decision or host execution authority.
+      ...(event.metadata?.kind === "mcp_elicitation"
+        ? {
+            metadata: {
+              kind: "mcp_elicitation",
+              mode: event.metadata.mode || "form",
+              server: event.metadata.server ?? null,
+              requestedSchema: event.metadata.requestedSchema ?? null,
+              url: event.metadata.url ?? null,
+              elicitationId: event.metadata.elicitationId ?? null,
+            },
+          }
+        : {}),
       expiresAt: new Date(this.now() + this.requestTimeoutMs).toISOString(),
     };
   }
