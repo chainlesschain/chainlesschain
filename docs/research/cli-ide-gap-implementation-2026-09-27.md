@@ -9,7 +9,7 @@
 | MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                |
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
-| CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback；0.157.1 官方生成 schema 及实际请求/事件回归，19 项通过 | 最新固定二进制真实 turn、官方 schema 三系统重生成 CI；未扩大生产白名单 |
+| CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态及已接纳断连拒绝重跑通过，37 通知独立复核；相关 33 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、真实审批/工具与 provider 验收；未扩大生产白名单 |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
@@ -477,3 +477,13 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 4 个夹具/宿主回归文件 20 项及宿主证据验证器 10 项通过，补充双会话计数断言；格式、ESLint、actionlint 和 IDE 工作流路径契约通过。ARM64 工作流补上共享夹具路径触发。原失败 ZIP 产物为 `10934718198`，其 journey evidence 摘要为 `sha256:b3d33e19a42cf9ffc5fb3595a9b33e67e4faa8d0a9a001c738e71a5a95431e0d`。本地进程回归不能代替修复提交的 Linux ARM64 实际 IDE 复验。
 
 另一个用户指定的 [作业 108645441714](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378862/job/108645441714) 是 `Workspace Publish Staleness`：Agent SDK `0.2.11`、VS Code `0.37.118` 的源码已变而版本未变，退出 2。该门行为正确，重复运行不会解决；候选冻结时须补版本、changelog 和下游依赖对齐。本批保留未完成状态，不跳过检查、不发布。发布顺序继续为子 npm 包 → CLI → IDE，并要求准确最终 SHA 的完整平台结果。
+
+### CODEX-01：固定上游原生进程的交错 turn 与通信故障
+
+新增[可重复探针](../../packages/cli/scripts/codex-app-server-turn-probe.mjs)，验证 npm 固定包和实际原生二进制均为 `0.157.1`，记录二进制 SHA-256。启动目录与 Codex home 位于源码仓库外；环境只继承必要系统项，配置只使用 loopback Responses SSE 合成 provider，未继承账号凭证、代理或 Node 注入变量。使用真实 `CodexAppServerAdapter`，仅探针注入该版本兼容项；生产白名单未变。
+
+真实第一线程先收到文字分片并保持未完成，第二线程返回 HTTP 400 并结束为 `failed`；此时第一线程仍未结束，释放 SSE 后才得到 `completed`、`probe-ok` 与 10/2/12 tokens。第三线程通过实际 `turn/interrupt` 得到 `interrupted`。第四线程在 provider 已收到请求后杀死原生进程，独立观察 `close`，适配器返回 `CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION`，fallback 调用为 0。每条请求和通知用固定官方生成 schema 校验；RPC/输出/通知/关闭等待均有界，成功与失败都保存可校验的通知产物。
+
+干净 `795434f14427cdf813201f19e0469cc5c20a0c83` 的 Windows x64 执行退出 0，保存[本地回执](./cli/evidence/codex-real-turns-windows-795434f144.json)。独立复核原始通知文件 SHA-256 `8a262b7a2bb3bd96216d5519dd9bb7b615c2063ce6f2ad21e3c01e398ed8291a`、37 条官方 schema 有效通知、失败先于第一线程完成的顺序、三种终态、usage 原值及第四线程无终态；四次 provider 请求均无 Authorization。前一次 `ce71f16051` 的探针精确 usage 断言遗漏上游 `cacheWriteInputTokens: 0` 而失败，补齐后才获得本回执。
+
+相关 4 文件 33 项回归通过，覆盖隔离环境、UTF-8 分片、畸形协议、进程死亡、RPC 超时和有界关闭。CI 将同一真进程探针加入最新 schema 的三系统单元，保留通知原始字节，并使总门依赖该单元全部成功。当前仅有 Windows 本地结果；合成 provider 不能冒称真实账号/模型、工具审批或三系统通过，CODEX-01 继续局部完成。

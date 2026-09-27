@@ -78,3 +78,5 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 新增用户反馈的 `984be3adbd` [Linux ARM64 / IntelliJ 2024.2 失败](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378841/job/108645440503) 已用真实双子进程复现：共享测试状态直接覆盖，投影刷新读到空文件后被误还原为初始 `done`，后续版本校验拒绝命令。改为完整快照原子替换、严格写入互斥及损坏状态拒绝；原有 100 样本和 SLA 保持不变。相关 20 项和宿主证据验证器 10 项通过，Linux ARM64 实际宿主仍须在修复 SHA 复验。
 
 同 SHA 的 [Workspace Publish Staleness 失败](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378862/job/108645441714) 明确列出 Agent SDK `0.2.11` 与 VS Code `0.37.118` 未升版本。这是候选版本/依赖尚未冻结的发布阻塞，不是 Actions 运行器故障；必须随候选版本准备解决，不能以旧 SHA 的成功矩阵替代，也不能跳过后直接发布。本批继续不升版本、不打发布 tag。
+
+CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/evidence/codex-real-turns-windows-795434f144.json)：交错线程、完成/失败/中断、已接纳断连不重跑通过，37 条原始通知和官方 schema 独立复核；4 文件 33 项回归通过。三系统 workflow 已接入此探针并纳入总门，远端结果待收集。该回执使用无凭证的 loopback 合成 provider，不扩展实验模块生产准入，也不替代真实账号与工具审批验收。

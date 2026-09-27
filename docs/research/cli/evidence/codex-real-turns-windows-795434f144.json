@@ -1,0 +1,112 @@
+{
+  "schema": "chainlesschain.codex-real-turn-probe/v1",
+  "status": "passed",
+  "commitSha": "795434f14427cdf813201f19e0469cc5c20a0c83",
+  "upstream": {
+    "version": "0.157.1",
+    "reported": "codex-cli 0.157.1",
+    "nativePackage": "@openai/codex-win32-x64",
+    "binarySha256": "8cb0e69e99ff2a158c54815db82d0f2e524d8f301bc30184722cfd1ae5973574"
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "officialSchema": {
+    "hashes": {
+      "request": "2ababf80956ae311d1dcee4b595dcd3ef86b29a764d31529d7bbf5c4b2f0f2b8",
+      "notification": "07d24f16d743d1956dee25ece38ed6656d9c9620519e8cf0c4a4186b2719dae3"
+    },
+    "validatedMessages": {
+      "request:initialize": 1,
+      "request:thread/start": 4,
+      "notification:remoteControl/status/changed": 1,
+      "notification:thread/started": 4,
+      "request:turn/start": 4,
+      "notification:warning": 4,
+      "notification:thread/status/changed": 7,
+      "notification:turn/started": 4,
+      "notification:item/started": 5,
+      "notification:item/completed": 5,
+      "notification:item/agentMessage/delta": 1,
+      "notification:error": 1,
+      "notification:turn/completed": 3,
+      "notification:thread/tokenUsage/updated": 1,
+      "notification:account/rateLimits/updated": 1,
+      "request:turn/interrupt": 1
+    }
+  },
+  "results": [
+    {
+      "terminal": "completed",
+      "output": "probe-ok",
+      "usage": {
+        "totalTokens": 12,
+        "inputTokens": 10,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 2,
+        "reasoningOutputTokens": 0
+      },
+      "fallback": false,
+      "threadId": "01a0e386-1014-7790-bc4f-e2a7d6873f6c",
+      "turnId": "01a0e386-1116-7a81-a11d-9d80cec318ee"
+    },
+    {
+      "terminal": "failed",
+      "output": "",
+      "usage": null,
+      "fallback": false,
+      "threadId": "01a0e386-123b-7892-bde2-900e24310bf6",
+      "turnId": "01a0e386-1278-7682-85ce-f15a3286bc7d"
+    },
+    {
+      "terminal": "interrupted",
+      "output": "",
+      "usage": null,
+      "fallback": false,
+      "threadId": "01a0e386-131b-7532-bfe8-a7c47c9525f0",
+      "turnId": "01a0e386-1351-7db2-b2a1-ae703cbfec85"
+    }
+  ],
+  "transportLoss": {
+    "errorCode": "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+    "fallbackCalls": 0
+  },
+  "interleavedThreads": true,
+  "providerRequests": [
+    {
+      "scenario": "completed",
+      "authorization": false,
+      "method": "POST",
+      "path": "/v1/responses"
+    },
+    {
+      "scenario": "failed",
+      "authorization": false,
+      "method": "POST",
+      "path": "/v1/responses"
+    },
+    {
+      "scenario": "interrupted",
+      "authorization": false,
+      "method": "POST",
+      "path": "/v1/responses"
+    },
+    {
+      "scenario": "transport-loss",
+      "authorization": false,
+      "method": "POST",
+      "path": "/v1/responses"
+    }
+  ],
+  "stdoutBytes": 21444,
+  "stderrBytes": 0,
+  "notificationCount": 37,
+  "processClosed": {
+    "code": null,
+    "signal": "SIGKILL"
+  },
+  "notificationsSha256": "8a262b7a2bb3bd96216d5519dd9bb7b615c2063ce6f2ad21e3c01e398ed8291a"
+}
