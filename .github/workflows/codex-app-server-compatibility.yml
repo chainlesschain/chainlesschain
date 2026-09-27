@@ -9,6 +9,8 @@ on:
       - "packages/cli/src/lib/external-agent-adapters.js"
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
+      - "packages/cli/scripts/codex-app-server-turn-probe.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js"
       - "packages/cli/__tests__/fixtures/external-agent/codex-app-server*"
       - "packages/cli/__tests__/unit/codex-app-server-official-schema.test.js"
       - "packages/cli/__tests__/unit/codex-app-server-adapter.test.js"
@@ -20,6 +22,8 @@ on:
       - "packages/cli/src/lib/external-agent-adapters.js"
       - "packages/cli/scripts/codex-app-server-compatibility.mjs"
       - "packages/cli/scripts/verify-codex-app-server-schema.mjs"
+      - "packages/cli/scripts/codex-app-server-turn-probe.mjs"
+      - "packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js"
       - "packages/cli/__tests__/fixtures/external-agent/codex-app-server*"
       - "packages/cli/__tests__/unit/codex-app-server-official-schema.test.js"
       - "packages/cli/__tests__/unit/codex-app-server-adapter.test.js"
@@ -65,10 +69,11 @@ jobs:
           npx vitest run
           packages/cli/__tests__/unit/codex-app-server-adapter.test.js
           packages/cli/__tests__/unit/codex-app-server-official-schema.test.js
+          packages/cli/__tests__/unit/codex-app-server-turn-probe.test.js
           packages/cli/__tests__/unit/external-agent-adapters.test.js
 
   upstream-schema:
-    name: Official Codex 0.157.1 schema (${{ matrix.runner }}, no admission)
+    name: Codex 0.157.1 schema and real turns (${{ matrix.runner }}, no admission)
     strategy:
       fail-fast: false
       matrix:
@@ -82,6 +87,8 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
+      - name: Install locked CLI schema-validator dependencies
+        run: npm ci --ignore-scripts --workspace=packages/cli --include-workspace-root=false --no-audit --no-fund
       - name: Install pinned schema generator and compare its unmodified output
         shell: bash
         run: |
@@ -91,6 +98,21 @@ jobs:
           test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli 0.157.1"
           node "${CODEX_GENERATOR}" app-server generate-json-schema --out "${RUNNER_TEMP}/codex-generated-schema"
           node packages/cli/scripts/verify-codex-app-server-schema.mjs --schema-dir "${RUNNER_TEMP}/codex-generated-schema"
+      - name: Exercise interleaved real turns, cancellation and admitted transport loss
+        shell: bash
+        run: >-
+          node packages/cli/scripts/codex-app-server-turn-probe.mjs
+          --commit-sha "${COMPAT_SHA}"
+          --codex-js "${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
+          --output "${RUNNER_TEMP}/codex-turn-probe/report.json"
+      - name: Retain real-process protocol evidence
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: codex-real-turns-${{ matrix.runner }}-${{ env.COMPAT_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-turn-probe/
+          if-no-files-found: error
+          retention-days: 90
 
   compatibility:
     name: ${{ matrix.platform }} / Codex ${{ matrix.codex_version }}
@@ -171,11 +193,12 @@ jobs:
     needs:
       - contracts
       - compatibility
+      - upstream-schema
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Refuse a partial or failed compatibility matrix
-        if: needs.contracts.result != 'success' || needs.compatibility.result != 'success'
+        if: needs.contracts.result != 'success' || needs.compatibility.result != 'success' || needs.upstream-schema.result != 'success'
         shell: bash
         run: |
           echo "::error::Codex App Server compatibility matrix is incomplete"
