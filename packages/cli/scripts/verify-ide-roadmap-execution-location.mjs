@@ -50,6 +50,7 @@ const PRODUCER_PATHS = Object.freeze([
   "packages/cli/src/harness/jsonl-session-store.js",
   "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
   "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+  "packages/cli/src/lib/execution-location-failure-site.js",
   "packages/cli/src/lib/execution-location-local-supervisor.mjs",
   "packages/cli/src/lib/execution-location-runner-lifecycle.js",
   "packages/cli/src/lib/execution-location-target-preflight.js",

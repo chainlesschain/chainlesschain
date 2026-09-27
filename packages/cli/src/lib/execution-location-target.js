@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TextDecoder } from "node:util";
+import { readExecutionLocationFailureSite } from "./execution-location-failure-site.js";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
   createExecutionLocationTargetAttestation,
@@ -1045,11 +1046,13 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     if (result?.error) throw result.error;
     if (!result || result.status !== 0) {
       const failureCategory = targetCommandFailureCategory(result);
+      const failureSite = readExecutionLocationFailureSite(result?.stderr);
       const error = new Error(
-        `target command failed with status ${result?.status ?? "unknown"} (${failureCategory})`,
+        `target command failed with status ${result?.status ?? "unknown"} (${failureCategory})${failureSite ? ` at ${failureSite}` : ""}`,
       );
       error.code = "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED";
       error.failureCategory = failureCategory;
+      if (failureSite) error.failureSite = failureSite;
       throw error;
     }
     return options.interactive ? null : result.stdout;

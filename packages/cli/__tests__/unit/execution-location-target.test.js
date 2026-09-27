@@ -390,6 +390,24 @@ describe("execution location target launch and resume", () => {
     },
   );
 
+  it("propagates only an allowed public source site for an unknown target failure", () => {
+    const spawnSync = vi.fn(() => ({
+      status: 1,
+      stdout: "private-content",
+      stderr:
+        "CC_EXECUTION_LOCATION_FAILURE_SITE=session-store:5422\nExecution location failed: private-content /private/path\n",
+    }));
+    expect(() =>
+      attestExecutionLocationTarget(
+        { profile: rawProfile(), handoff: handoff() },
+        { spawnSync },
+      ),
+    ).toThrow(
+      "target command failed with status 1 (unknown) at session-store:5422",
+    );
+    expect(spawnSync).toHaveBeenCalledTimes(1);
+  });
+
   it("attests a fixed Docker target command and exposes stable facts separately from time", () => {
     const spawnSync = vi.fn(() =>
       success(JSON.stringify(currentProjection("container"))),

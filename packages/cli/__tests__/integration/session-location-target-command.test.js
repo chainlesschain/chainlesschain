@@ -119,6 +119,35 @@ describe("session location target command routes", () => {
     };
   }
 
+  it("emits a content-free source marker before a JSON command's failure", async () => {
+    await program({
+      readSessionReplicaInput() {
+        throw new Error("synthetic-private-input");
+      },
+    }).parseAsync(
+      [
+        "session",
+        "location",
+        "receive",
+        "fixture-session",
+        "--expected-head-hash",
+        HEAD_HASH,
+        "--expected-event-count",
+        "2",
+        "--expected-transcript-digest",
+        DIGEST,
+        "--json",
+      ],
+      { from: "user" },
+    );
+    expect(process.exitCode).toBe(1);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(stderr.mock.calls[0][0]).toMatch(
+      /^CC_EXECUTION_LOCATION_FAILURE_SITE=session-location:[1-9][0-9]+\n$/u,
+    );
+    expect(stderr.mock.calls[0][0]).not.toContain("synthetic-private-input");
+  });
+
   it("routes attest through an allowed handoff and emits exact JSON", async () => {
     const attest = vi.fn(({ handoff, profile: targetProfile }) => ({
       schema: EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,

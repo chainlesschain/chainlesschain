@@ -4,11 +4,15 @@ on:
   pull_request:
     paths:
       - ".github/scripts/ide-roadmap-execution-location-target.sh"
+      - ".github/scripts/prepare-ide-roadmap-location-deployment.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
       - ".github/scripts/run-ide-roadmap-execution-location-local.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
       - ".github/workflows/ide-roadmap-execution-location.yml"
       - "packages/cli/src/commands/session-location.js"
+      - "packages/cli/src/commands/session.js"
+      - "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js"
+      - "packages/cli/src/lib/evolution/evolution-artifact-*.js"
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/execution-location-*.js"
       - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"
@@ -22,11 +26,15 @@ on:
     branches: [main]
     paths:
       - ".github/scripts/ide-roadmap-execution-location-target.sh"
+      - ".github/scripts/prepare-ide-roadmap-location-deployment.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-linux.sh"
       - ".github/scripts/run-ide-roadmap-execution-location-local.mjs"
       - ".github/scripts/run-ide-roadmap-execution-location-wsl.ps1"
       - ".github/workflows/ide-roadmap-execution-location.yml"
       - "packages/cli/src/commands/session-location.js"
+      - "packages/cli/src/commands/session.js"
+      - "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js"
+      - "packages/cli/src/lib/evolution/evolution-artifact-*.js"
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/execution-location-*.js"
       - "packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs"

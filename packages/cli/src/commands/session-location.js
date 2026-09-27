@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { TextDecoder } from "node:util";
+import { formatExecutionLocationFailureSite } from "../lib/execution-location-failure-site.js";
 import {
   buildExecutionLocationCatalog,
   buildExecutionLocationHandoffPreview,
@@ -1124,6 +1125,8 @@ function runAction(action, options = {}) {
     writeProjection(projection, options);
     return projection.allowed === false ? 2 : 0;
   } catch (error) {
+    if (options.json)
+      process.stderr.write(formatExecutionLocationFailureSite(error));
     process.stderr.write(`Execution location failed: ${error.message}\n`);
     return 1;
   }
@@ -1145,6 +1148,8 @@ async function runAsyncAction(action, options = {}) {
     writeProjection(projection, options);
     return projection.allowed === false ? 2 : 0;
   } catch (error) {
+    if (options.json)
+      process.stderr.write(formatExecutionLocationFailureSite(error));
     process.stderr.write(`Execution location failed: ${error.message}\n`);
     return 1;
   }
