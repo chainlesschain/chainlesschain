@@ -1,6 +1,6 @@
 # 110. Agent Platform 发布与运行时边界设计
 
-> **2026-09-26 当前核对**：源码 `main@a231bc79df`；公开 CLI `0.166.76@b9d64ffd92`、Open VSX `0.37.117`、JetBrains `0.4.137`。JetBrains `0.4.138` 已完成发布流程，尚待公开列表回读。最新 PM 效果证据、Eval 启动准入/cohort 登记、循环导入和并发锁修复见[增量设计](../agent-runtime-update-2026-09-26.md)。下文较早的版本与证据按历史时点阅读。
+> **2026-09-27 当前核对**：源码 `main@24911a536c`；公开 CLI `0.166.77@8d97c58153`、Open VSX `0.37.118@a7d582cd89`、JetBrains `0.4.138@f88fb58fc3`。JetBrains `0.4.139@a7d582cd89` 已上传，尚待公开列表回读；其上传不等于上架。CLI `0.166.77` 的三平台 CI/Strict、npm OIDC 与公开安装回读均成功。主线提交 `24f0cb6fb1` 的逐槽回执与 PM 分母对账晚于 npm 发布 SHA，尚未进入公开 CLI。最新 PM 效果证据、Eval 启动准入/cohort 登记、决策流量上限及未知用量失败闭合见[增量设计](../agent-runtime-update-2026-09-26.md)和[模块 114](114-jev-decision-layer-design.md)。下文较早的版本与证据按历史时点阅读。
 
 > 状态：2026-09-20 核对，CLI、发生变化的子 npm 包与双 IDE 已按顺序发布并完成公共注册表回读
 >
