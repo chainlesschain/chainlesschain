@@ -657,7 +657,7 @@ describe("owner-only filesystem helpers", () => {
       expect(failure.message).toContain(`[windows-acl:${diagnostic}]`);
       expect(failure.message).not.toContain("private-path");
       expect(failure.message).not.toContain("private-session");
-      expect(spawnSync).toHaveBeenCalledTimes(diagnostic === "timeout" ? 2 : 1);
+      expect(spawnSync).toHaveBeenCalledOnce();
     },
   );
 
@@ -902,23 +902,24 @@ describe("owner-only filesystem helpers", () => {
     expect(spawnSync).toHaveBeenCalledOnce();
   });
 
-  it("retries a transient Windows ACL repair timeout exactly once", () => {
+  it("lets a slow Windows ACL repair use the full bounded startup budget", () => {
     const fs = fakeFs(0, true);
-    const spawnSync = vi
-      .fn()
-      .mockReturnValueOnce({
-        error: Object.assign(new Error("PowerShell timed out"), {
-          code: "ETIMEDOUT",
-        }),
-        status: null,
-        stderr: "",
-        stdout: "",
-      })
-      .mockReturnValue({
-        status: 0,
-        stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
-        stderr: "",
-      });
+    const spawnSync = vi.fn((_file, _args, options) =>
+      options.timeout < 10_000
+        ? {
+            error: Object.assign(new Error("PowerShell timed out"), {
+              code: "ETIMEDOUT",
+            }),
+            status: null,
+            stderr: "",
+            stdout: "",
+          }
+        : {
+            status: 0,
+            stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
+            stderr: "",
+          },
+    );
 
     expect(
       ensurePrivateDirectory("C:\\private-existing", {
@@ -928,11 +929,11 @@ describe("owner-only filesystem helpers", () => {
         deps: { fs, spawnSync, platform: () => "win32" },
       }),
     ).toBe("C:\\private-existing");
-    expect(spawnSync).toHaveBeenCalledTimes(2);
+    expect(spawnSync).toHaveBeenCalledOnce();
     const timeouts = spawnSync.mock.calls.map(([, , options]) =>
       Number(options.timeout),
     );
-    expect(timeouts).toEqual([7500, 7500]);
+    expect(timeouts).toEqual([15_000]);
     expect(
       timeouts.reduce((total, timeout) => total + timeout, 0),
     ).toBeLessThanOrEqual(15_000);
@@ -1358,7 +1359,7 @@ describe("owner-only filesystem helpers", () => {
     expect(spawnSync).not.toHaveBeenCalled();
   });
 
-  it("retries a transient Windows preflight timeout before creating a directory", () => {
+  it("lets slow Windows preflight use the full budget before creating a directory", () => {
     const target = "C:\\Users\\owner\\AppData\\Local\\state";
     const missing = "C:\\Users\\owner";
     const events = [];
@@ -1374,30 +1375,30 @@ describe("owner-only filesystem helpers", () => {
       existsSync: () => false,
       mkdirSync: () => events.push("mkdir"),
     };
-    const spawnSync = vi
-      .fn((_file, _args, options) => {
-        events.push("preflight");
-        const request = JSON.parse(options.input);
+    const spawnSync = vi.fn((_file, _args, options) => {
+      if (options.timeout < 20_000)
         return {
-          status: 0,
-          stdout: JSON.stringify(
-            request.targets.map((candidate) => ({
-              target: candidate,
-              exists: false,
-              ok: true,
-            })),
-          ),
+          error: Object.assign(new Error("PowerShell timed out"), {
+            code: "ETIMEDOUT",
+          }),
+          status: null,
           stderr: "",
+          stdout: "",
         };
-      })
-      .mockReturnValueOnce({
-        error: Object.assign(new Error("PowerShell timed out"), {
-          code: "ETIMEDOUT",
-        }),
-        status: null,
+      events.push("preflight");
+      const request = JSON.parse(options.input);
+      return {
+        status: 0,
+        stdout: JSON.stringify(
+          request.targets.map((candidate) => ({
+            target: candidate,
+            exists: false,
+            ok: true,
+          })),
+        ),
         stderr: "",
-        stdout: "",
-      });
+      };
+    });
 
     expect(
       ensurePrivateDirectory(target, {
@@ -1407,17 +1408,17 @@ describe("owner-only filesystem helpers", () => {
       }),
     ).toBe(target);
     expect(events).toEqual(["preflight", "mkdir"]);
-    expect(spawnSync).toHaveBeenCalledTimes(2);
+    expect(spawnSync).toHaveBeenCalledOnce();
     const timeouts = spawnSync.mock.calls.map(([, , options]) =>
       Number(options.timeout),
     );
-    expect(timeouts).toEqual([15_000, 15_000]);
+    expect(timeouts).toEqual([30_000]);
     expect(
       timeouts.reduce((total, timeout) => total + timeout, 0),
     ).toBeLessThanOrEqual(30_000);
   });
 
-  it("fails closed after a second Windows preflight timeout", () => {
+  it("fails closed without creating a directory after the full preflight budget expires", () => {
     const target = "C:\\Users\\owner\\AppData\\Local\\state";
     const missing = "C:\\Users\\owner";
     const mkdirSync = vi.fn();
@@ -1449,7 +1450,7 @@ describe("owner-only filesystem helpers", () => {
         deps: { fs, spawnSync, platform: () => "win32" },
       }),
     ).toThrow(/Could not verify Windows path ancestors.*PowerShell timed out/);
-    expect(spawnSync).toHaveBeenCalledTimes(2);
+    expect(spawnSync).toHaveBeenCalledOnce();
     expect(mkdirSync).not.toHaveBeenCalled();
   });
 

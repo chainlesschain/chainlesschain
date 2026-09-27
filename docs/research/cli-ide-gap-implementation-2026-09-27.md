@@ -447,3 +447,5 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 干净 `3b0bc23021` 的 Windows VS Code 1.85.2 实际 VSIX 普通控制旅程退出 0，独立复核 29 个产物、bundle/evidence digest、完整初始/重启与双窗口断言，保存[回执](./ide/evidence/vscode-control-minimum-windows-3b0bc23021.json)。覆盖 Stop 可见提示与 Workbench 100 样本，模型和输入回执仍为合成夹具，不扩展为 canonical 恢复或真实 provider 通过。
 
 同一干净源码 Windows→已有 Ubuntu WSL1 的完整缩小流程退出 0；初始化、准备、断连探测、恢复、生命周期故障、结果返回和 finalize 均完成。独立复核 9 个产物及 2 条轨迹 outcome，保存[回执](./cli/evidence/execution-location-wsl-windows-3b0bc23021.json)。临时 home/security 为 `/tmp` 兄弟目录；仓库从 Windows 挂载，不能代替 CI 独立 rootfs 或 100 条轨迹门。旧 `8db732245f` Container 100 条轨迹远端通过；最终 SHA 的三系统发布门仍待齐备。
+
+`a7d2ebb721` 的 [Windows 复跑](https://github.com/chainlesschain/chainlesschain/actions/runs/36327273639/job/108642337841) 明确返回 `windows-acl [timeout]`。原逻辑将单路径 15 秒拆成两次 7.5 秒，批量 30 秒拆成两次 15 秒，冷启动每次重新开始；单路径甚至短于原生互斥锁的 10 秒等待。调整为一次进程使用完整的原预算，超时仍拒绝，不提高总上限、不重试延长阻塞、不跳过 ACL 校验。模拟 10 秒单路径/20 秒批量操作的回归在修改前失败；修复后的相关测试和原生权限/幂等/拒绝探测通过。托管 Windows 是否已解决仍须新 SHA 作业确认。

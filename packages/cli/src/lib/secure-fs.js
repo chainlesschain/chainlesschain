@@ -708,7 +708,6 @@ function isSecuredWindowsPath(target, deps) {
 const WINDOWS_ACL_BATCH_SIZE = 500;
 const WINDOWS_ACL_TIMEOUT_ENV = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
 const MAX_WINDOWS_ACL_TIMEOUT_MS = 5 * 60_000;
-const WINDOWS_ACL_TIMEOUT_RETRY_LIMIT = 1;
 
 export function _windowsAclWorkingDirectory(
   environment = process.env,
@@ -742,35 +741,16 @@ export function _resolveWindowsAclTimeout(
   );
 }
 
-// A timed-out spawn has already been terminated by Node. Retrying that one
-// transient runner-startup failure is safe: preflight is read-only and ACL
-// repair is idempotent. Both attempts share the caller's original timeout
-// budget so a busy Windows runner cannot multiply synchronous blocking time.
-// Every other failure remains fail-closed so this never treats a script, parse,
-// or permission failure as a transient condition.
+// Give one cold PowerShell process the full bounded operation budget. Splitting
+// it into two shorter spawns repeatedly kills a slow startup before it can
+// finish (and can leave less time than the native mutex's 10-second wait).
+// A process that exhausts the budget remains a failure; never start another
+// process with a fresh budget or accept an unverified ACL after a timeout.
 function runWindowsAclCommand(deps, args, options) {
-  const totalTimeoutMs = Math.max(1, Math.floor(Number(options?.timeout) || 1));
-  const retryTimeoutMs = Math.max(
-    1,
-    Math.floor(totalTimeoutMs / (WINDOWS_ACL_TIMEOUT_RETRY_LIMIT + 1)),
-  );
-  const firstTimeoutMs = Math.max(1, totalTimeoutMs - retryTimeoutMs);
-  let result = deps.spawnSync("powershell.exe", args, {
+  return deps.spawnSync("powershell.exe", args, {
     ...options,
-    timeout: firstTimeoutMs,
+    timeout: Math.max(1, Math.floor(Number(options?.timeout) || 1)),
   });
-  for (
-    let attempt = 0;
-    result?.error?.code === "ETIMEDOUT" &&
-    attempt < WINDOWS_ACL_TIMEOUT_RETRY_LIMIT;
-    attempt += 1
-  ) {
-    result = deps.spawnSync("powershell.exe", args, {
-      ...options,
-      timeout: retryTimeoutMs,
-    });
-  }
-  return result;
 }
 
 function repairWindowsAclOnce(target, deps, options) {
