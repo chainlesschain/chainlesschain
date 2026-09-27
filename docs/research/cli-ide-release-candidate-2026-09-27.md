@@ -88,3 +88,5 @@ CODEX-01 追加 `795434f144` 的 [Windows 固定 0.157.1 真进程回执](./cli/
 `4b9be3c6f4` Windows 位置矩阵在前 8 条 campaign 恢复后出现 `session location show` 外层进程超时。`f61a1a5480` 修正所有目标误用 eager 测试入口的问题，统一为 npm 实际入口，并对进程超时错误保留固定诊断、屏蔽原始 argv；没有增加超时或减少轨迹。138 项相关测试通过，[Windows 两轨迹隔离回执](./cli/evidence/execution-location-local-windows-f61a1a5480.json)的 9 个产物独立复核通过。Windows 100 条托管 CI 尚未确认解决，当前仍不升版本、不发布；子 npm 包 → CLI → IDE 的发布次序和最终提交完整矩阵门禁继续有效。
 
 BRIDGE-01 的 `40addcedf1` 修复 Broker native spawn 后报错却提前完成的问题，改为持有 child 直到真实 close；88 项测试及 Windows/WSL 真进程验证通过。[本地回执](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)同时保留未解决的 WSL `linux-prlimit` 取消后代残留反例，不能据此开放外部 Agent 主路由或宣布跨平台树清理完成。该项下一步继续实现进程树所有权，不升版本、不发布。
+
+`ebfec202c6` 追加保持组长存活的 POSIX 监督器基础组件，[回执](./cli/evidence/owned-posix-group-windows-wsl-ebfec202c6.json)记录 WSL 25 项通过、Windows 14 项通过及 11 项平台跳过。它尚未接入生产 Broker/bridge，原残留缺陷仍开放；真实新会话逃逸反例继续成立，进程组清理不等于完整进程树隔离。该进展不改变候选发布门禁或生产外部 Agent 准入。

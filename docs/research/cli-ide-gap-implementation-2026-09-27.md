@@ -10,7 +10,7 @@
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
-| BRIDGE-01               | 局部实现并验证   | finalize-once、统一 TERM/KILL；Broker 启动后抛错保留 child，等待真实 close 后结算；Windows/WSL 真进程通过该反例，相关 88 项通过 | WSL linux-prlimit 取消后仍有存活后代；跨平台完整树退出仍未完成，主路由继续拒绝未 attested CLI |
+| BRIDGE-01               | 局部实现并验证   | Broker 启动后抛错保留 child 至真实 close，88 项通过；新增持有存活组长的 POSIX 监督器基础组件，WSL 25 项通过 | 基础组件尚未接入生产 Broker/bridge；原 linux-prlimit 残留仍未修复，setsid 逃逸及跨平台完整树退出待完成；主路由继续拒绝未 attested CLI |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
@@ -521,3 +521,11 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 相关 4 文件 88 项通过，包括真实 Broker 的启动后失败集成测试，后者进入既有 CLI CI 三系统 integration 矩阵。干净提交的 Windows `windows-job-restricted-token` 与 WSL1 `linux-prlimit` 原生进程均观察到关闭先于任务结算；保存[四组本地探针回执](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)。ESLint 无新增错误（文件原有两个 unused catch warning）、Prettier 和 diff 检查通过。
 
 独立取消探针保留另一个未解决反例：两个合成 Node 进程均安装 TERM handler，子进程关闭 stdio 但保留 IPC。Windows 父/子进程在 bridge 返回取消时均已退出；WSL1 的 `linux-prlimit` 后端只终止父进程，返回时后代 PID 103 仍存在，`/proc/103/stat` 状态为 `S`。夹具自带 15 秒生命周期上限，探针最终退出 1；不能将其计作取消通过或宣称 Linux 全进程树已收束。下一步需为该后端建立真实进程树所有权与退出证据，覆盖根先退出、后代忽略 TERM、重复取消和身份复用，不能仅依赖父进程 close。BRIDGE-01 继续局部完成。
+
+### BRIDGE-01：保持进程组身份的监督器基础组件（2026-09-28）
+
+`ebfec202c600c3280404b01a53bbbb8c7f62ab7f` 新增 Broker 底层 POSIX 生命周期组件。独立监督器持有存活的 detached 组长，原始目标退出后仍由该组长执行 TERM → KILL；父调用方通过私有 fd 3 控制，不在根退出后向可复用的数字 PID/PGID 发送延迟信号。目标不继承控制描述符，使用原始 argv 和环境；监督器不加载目标 `NODE_OPTIONS`。只读 `/proc` 或 macOS `ps` 检查组内可执行进程，不把未知探测结果、控制通道异常或直接子进程关闭当成确认；回执明确 `processTreeContained:false`。
+
+干净提交的 [Windows / WSL 回执](./cli/evidence/owned-posix-group-windows-wsl-ebfec202c6.json)记录 WSL1 / Node 22.12.0 的 25 项通过，以及 Windows / Node 22.22.2 的 14 项通过、11 项 POSIX 真进程用例按平台跳过。实际覆盖原目标正常退出、响应 TERM 退出、父子均忽略 TERM、重复取消、直接 KILL、调用方控制通道丢失、启动失败和跨分块中文/emoji 参数。新增明确反例：后代通过 detached 新建会话后，原进程组已停止而该后代仍存活；夹具在 5 秒上限后自行退出并复核无可执行残留。这一用例证明能力边界，不能计作全树清理通过。
+
+本次仅完成基础组件，**没有接入生产 Broker/bridge，也没有修复原 `linux-prlimit` bridge 反例**。后续接入必须保持原始命令的权限、凭据、沙箱计划与描述符检查，并让任务结算等待相应所有权关闭证据；`setsid` 逃逸、监督器异常退出和跨平台强后端仍需实现/验收。macOS 实机及最终准确 SHA 的三系统 CI 待收集，不增加准入、不升版本、不发布。进程调用清单重新生成，未修改审计豁免规则；ESLint、格式和清单一致性检查通过。

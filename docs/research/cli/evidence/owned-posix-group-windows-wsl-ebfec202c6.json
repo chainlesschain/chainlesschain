@@ -1,0 +1,341 @@
+{
+  "schema": "chainlesschain.owned-posix-process-group-evidence/v1",
+  "commit": "ebfec202c600c3280404b01a53bbbb8c7f62ab7f",
+  "status": "primitive-verified-production-integration-pending",
+  "releaseEligible": false,
+  "scope": "Stable POSIX process-group ownership primitive; no production Broker/bridge integration in this commit",
+  "limitation": "A live new-session escape is demonstrated. Group cleanup is not full process-tree containment.",
+  "reports": [
+    {
+      "metadata": {
+        "schema": "chainlesschain.owned-posix-process-group-tests/v1",
+        "commit": "ebfec202c600c3280404b01a53bbbb8c7f62ab7f",
+        "cleanAtStart": true,
+        "cleanAtEnd": true,
+        "start": "2026-09-27T16:40:42.115Z",
+        "finishedAt": "2026-09-27T16:40:45.504Z",
+        "host": {
+          "platform": "win32",
+          "arch": "x64",
+          "node": "v22.22.2",
+          "release": "10.0.19045"
+        },
+        "exitCode": 0,
+        "tests": {
+          "passed": 14,
+          "pending": 11,
+          "failed": 0
+        },
+        "sourceFiles": [
+          {
+            "path": "packages/cli/src/lib/process-execution-broker/owned-posix-process-group.js",
+            "digest": "sha256:0bdb5abecceee16e4a4d9f85bf66529f3666a240bd84a26b1ae8b6e4c9ca6e3c"
+          },
+          {
+            "path": "packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs",
+            "digest": "sha256:9a7b697da61751668fd31288908933d553ee1ac7d2c68cab4bcc1a3b2b03a69e"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/owned-posix-process-group.test.js",
+            "digest": "sha256:4f0470988b11e2db852879f089200352df93da5d715eaec6a9d8d25167698a3d"
+          },
+          {
+            "path": "packages/cli/__tests__/integration/owned-posix-process-group.test.js",
+            "digest": "sha256:59a621d26935d91c5f059430f234308e9527da5aa3c3c9bc52b101e2a4f6ad7b"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+            "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+          },
+          {
+            "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+            "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+          },
+          {
+            "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+            "digest": "sha256:b30d2950cbbf77b77e5ccbccd707d5860fcc7e3a2b3183ccb4d325507781039d"
+          }
+        ],
+        "report": {
+          "path": ".tmp/owned-posix-group-win32-tests.json",
+          "digest": "sha256:15a79b4fea11ae381da54817492707b91f7ec53a5e2d421e6c342afaf45ba5c2"
+        },
+        "limitations": [
+          "Lower-level lifecycle primitive only; production bridge is not wired to it",
+          "POSIX groups permit new-session escape; live escape counterexample is an expected limitation test",
+          "Windows skips POSIX native integration; macOS and hosted exact-SHA matrix not yet observed",
+          "Local Node processes without real external model or account; not release acceptance"
+        ]
+      },
+      "metadataDigest": "sha256:da3a840f9845d3b3177b52bcfc502080bb87bd3432b5842af3adca47bb760fb5",
+      "assertions": [
+        {
+          "name": "owned POSIX group: real processes preserves exact stdout, Unicode argv/environment and successful target exit",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes decodes a multi-chunk Unicode launch without changing target arguments",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans an ignoring descendant after the original root exits normally",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes keeps the group leader alive when the root exits on TERM",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans two TERM-ignoring processes after repeated cancellation",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes forwards hard cancellation through the living group owner",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes does not load target NODE_OPTIONS into the supervisor",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes reports missing executables and still confirms group cleanup",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans on a lost caller lifeline without inventing a control receipt",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes reports only group cleanup when a descendant escapes with a new session",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group: real processes never sends signals through an exited leader's numeric identity",
+          "status": "skipped"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: null",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: \"S\"",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: \"?\"",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract requires an intentional cleanup receipt even when no live group remains",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not upgrade zombie-only groups to hostile descendant containment",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract de-duplicates stop requests and escalates once without native kill",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract rejects malformed control output without signalling a stale PID",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not silently accept descriptor, shell, or sandbox options",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract fails closed on macOS probe errors and unparseable snapshots",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "schema": "chainlesschain.owned-posix-process-group-tests/v1",
+        "commit": "ebfec202c600c3280404b01a53bbbb8c7f62ab7f",
+        "cleanAtStart": true,
+        "cleanAtEnd": true,
+        "start": "2026-09-27T16:41:02.624Z",
+        "finishedAt": "2026-09-27T16:41:35.262Z",
+        "host": {
+          "platform": "linux",
+          "arch": "x64",
+          "node": "v22.12.0",
+          "release": "4.4.0-19041-Microsoft"
+        },
+        "exitCode": 0,
+        "tests": {
+          "passed": 25,
+          "pending": 0,
+          "failed": 0
+        },
+        "sourceFiles": [
+          {
+            "path": "packages/cli/src/lib/process-execution-broker/owned-posix-process-group.js",
+            "digest": "sha256:0bdb5abecceee16e4a4d9f85bf66529f3666a240bd84a26b1ae8b6e4c9ca6e3c"
+          },
+          {
+            "path": "packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs",
+            "digest": "sha256:9a7b697da61751668fd31288908933d553ee1ac7d2c68cab4bcc1a3b2b03a69e"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/owned-posix-process-group.test.js",
+            "digest": "sha256:4f0470988b11e2db852879f089200352df93da5d715eaec6a9d8d25167698a3d"
+          },
+          {
+            "path": "packages/cli/__tests__/integration/owned-posix-process-group.test.js",
+            "digest": "sha256:59a621d26935d91c5f059430f234308e9527da5aa3c3c9bc52b101e2a4f6ad7b"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/process-spawn-inventory.test.js",
+            "digest": "sha256:70973a5ece0e84ab20407fd93fdd088d71df06eb6da23c39970ebf925b33307f"
+          },
+          {
+            "path": "packages/cli/scripts/gen-process-spawn-inventory.mjs",
+            "digest": "sha256:b17b859857c683685606821d2747dcd25056ac21c1807af856a7c2446b9aa891"
+          },
+          {
+            "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+            "digest": "sha256:b30d2950cbbf77b77e5ccbccd707d5860fcc7e3a2b3183ccb4d325507781039d"
+          }
+        ],
+        "report": {
+          "path": ".tmp/owned-posix-group-linux-tests.json",
+          "digest": "sha256:1ee01123fb65c5ec2f11afdb21e14b0035a79dd9a48de5a3a5977f72654ffe03"
+        },
+        "limitations": [
+          "Lower-level lifecycle primitive only; production bridge is not wired to it",
+          "POSIX groups permit new-session escape; live escape counterexample is an expected limitation test",
+          "Windows skips POSIX native integration; macOS and hosted exact-SHA matrix not yet observed",
+          "Local Node processes without real external model or account; not release acceptance"
+        ]
+      },
+      "metadataDigest": "sha256:9829482ed6d98e681d5b9e9702e055a5898e821ea9e7f492e488eb5691d2dff1",
+      "assertions": [
+        {
+          "name": "owned POSIX group: real processes preserves exact stdout, Unicode argv/environment and successful target exit",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes decodes a multi-chunk Unicode launch without changing target arguments",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans an ignoring descendant after the original root exits normally",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes keeps the group leader alive when the root exits on TERM",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans two TERM-ignoring processes after repeated cancellation",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes forwards hard cancellation through the living group owner",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes does not load target NODE_OPTIONS into the supervisor",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes reports missing executables and still confirms group cleanup",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes cleans on a lost caller lifeline without inventing a control receipt",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes reports only group cleanup when a descendant escapes with a new session",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group: real processes never sends signals through an exited leader's numeric identity",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: null",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: \"S\"",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not treat a supervisor close as cleanup: \"?\"",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract requires an intentional cleanup receipt even when no live group remains",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not upgrade zombie-only groups to hostile descendant containment",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract de-duplicates stop requests and escalates once without native kill",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract rejects malformed control output without signalling a stale PID",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract does not silently accept descriptor, shell, or sandbox options",
+          "status": "passed"
+        },
+        {
+          "name": "owned POSIX group ownership contract fails closed on macOS probe errors and unparseable snapshots",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit separates lexical noise from executable process calls",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit recognizes direct and default-seam Broker routing",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit applies explicit host-boundary exemptions",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit does not hide a multiline dynamic child_process load behind a string literal",
+          "status": "passed"
+        },
+        {
+          "name": "process spawn inventory audit fails the current runtime inventory closed at zero unreviewed",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "evidenceDigest": "sha256:590537e9c98565c60db136e95f00b95b4dc4b375a29b1048dddf2dc149447323"
+}
