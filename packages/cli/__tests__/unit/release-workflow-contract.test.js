@@ -150,6 +150,15 @@ describe("CLI release workflow contracts", () => {
     expect(reusable).toContain("npm pack --ignore-scripts --json");
     expect(reusable).toContain("subreaper-npm/installed/package:/package:ro");
     expect(reusable).toContain("docker run --rm --network none");
+    // The archived npm bytes must be the same bytes extracted for the smoke
+    // test and named in its digest record, so a reviewer can read them back.
+    expect(reusable).toContain(
+      'tar -xzf "$RUNNER_TEMP/linux-subreaper-tested.tgz"',
+    );
+    expect(reusable).toContain(
+      'sha256sum "$RUNNER_TEMP/linux-subreaper-tested.tgz"',
+    );
+    expect(reusable).toContain("${{ runner.temp }}/linux-subreaper-tested.tgz");
     expect(reusable).not.toContain("continue-on-error");
     const release = workflow("npm-publish.yml");
     const packageJob = release.slice(

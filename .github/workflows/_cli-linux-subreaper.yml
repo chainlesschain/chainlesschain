@@ -53,8 +53,9 @@ jobs:
             npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/subreaper-npm"
           ) > "$RUNNER_TEMP/subreaper-npm/pack.json"
           TARBALL=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].filename)' "$RUNNER_TEMP/subreaper-npm/pack.json")
-          tar -xzf "$RUNNER_TEMP/subreaper-npm/$TARBALL" -C "$RUNNER_TEMP/subreaper-npm/installed"
-          sha256sum "$RUNNER_TEMP/subreaper-npm/$TARBALL" > "$RUNNER_TEMP/linux-subreaper-tarball.sha256"
+          mv "$RUNNER_TEMP/subreaper-npm/$TARBALL" "$RUNNER_TEMP/linux-subreaper-tested.tgz"
+          tar -xzf "$RUNNER_TEMP/linux-subreaper-tested.tgz" -C "$RUNNER_TEMP/subreaper-npm/installed"
+          sha256sum "$RUNNER_TEMP/linux-subreaper-tested.tgz" > "$RUNNER_TEMP/linux-subreaper-tarball.sha256"
           docker pull node:22.12.0-bookworm-slim
           docker run --rm --network none \
             --volume "$RUNNER_TEMP/subreaper-npm/installed/package:/package:ro" \
@@ -77,5 +78,6 @@ jobs:
           path: |
             ${{ runner.temp }}/linux-subreaper-smoke.json
             ${{ runner.temp }}/linux-subreaper-tarball.sha256
+            ${{ runner.temp }}/linux-subreaper-tested.tgz
           if-no-files-found: error
           retention-days: 90

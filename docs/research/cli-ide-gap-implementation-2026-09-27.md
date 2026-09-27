@@ -631,3 +631,5 @@ Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 
 再次检查准确提交的队列：当前 feature 分支旧提交的 queued / pending / in-progress 数为 0。仓库列表另显示 3 个 5 月或 8 月的旧 `main` run（`25907160592`、`25907303349`、`32212457155`）仍为 queued；普通取消 API 返回“已完成”，force-cancel 返回 HTTP 409（未排队或非进行中），与读取状态矛盾，不能声称已清理或它们实际占用 runner。当前提交的检查仍在排队，尚无完整矩阵失败结论；不因这些历史记录取消当前验收或重启排队作业。
 
 随后同一 `CLI CI` 的 [x64 helper 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36356096679/job/108724636035)也完成且成功。独立下载其 smoke 与 helper 产物，按同一源码 Git blob 和严格静态 ELF 合同复核[原始回执](./cli/evidence/linux-subreaper-x64-no-compiler-hosted-71919bc5c1.json)，回执 SHA-256 为 `ff1d8b0219c63838ffd193ec397d03a299798d8cae987e4a14a383fad9bcc87e`。Node 22.12.0 / x64 无编译器，运行时 compiler 调用 0，两个观测进程已回收，ready 后约 123.99 ms；静态镜像 934,160 字节、SHA-256 `f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e`。tarball 仍只上传了摘要而未上传字节，两个架构的单元成功不等于完整 CLI CI / CLI Strict Sandbox 或 IDE 发布门通过。
+
+为补足独立包回读，复用工作流现在把 `npm pack` 产生的 tarball 移到固定路径，**同一份字节**用于解包、计算 SHA-256 和上传到架构 smoke artifact；下一轮托管任务完成后才能独立下载并重读新 tarball。发布依赖、两架构无编译器探针及完整矩阵门不变。发布 workflow 合同 23 项、actionlint、修改文件 Prettier 和 diff 检查通过；这是本地工作流验证，不把旧 SHA 的作业结果转移给新提交。
