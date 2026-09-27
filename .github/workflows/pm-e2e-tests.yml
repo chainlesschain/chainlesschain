@@ -272,7 +272,7 @@ jobs:
     name: Generate Test Report
     needs: [test-journey, test-approval, test-error, test-performance]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
 
     steps:
       - name: Checkout code
@@ -364,7 +364,7 @@ jobs:
     name: Notify Results
     needs: [test-journey, test-approval, test-error, test-performance]
     runs-on: ubuntu-latest
-    if: always() && github.ref == 'refs/heads/main'
+    if: always() && !cancelled() && github.ref == 'refs/heads/main'
 
     steps:
       - name: Check test results

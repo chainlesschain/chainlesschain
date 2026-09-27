@@ -123,7 +123,7 @@ jobs:
     name: Test Summary
     needs: e2e-tests
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && !cancelled()
 
     steps:
       - name: Download all test results

@@ -369,7 +369,7 @@ jobs:
     name: Test Summary
     runs-on: ubuntu-latest
     needs: [unit-tests, instrumented-tests, code-coverage]
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
 
     steps:
       - name: Download Unit Test Results
@@ -504,7 +504,7 @@ jobs:
     name: Build Status Check
     runs-on: ubuntu-latest
     needs: [unit-tests, instrumented-tests, code-coverage, lint-and-detekt]
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
 
     steps:
       - name: Check Build Status

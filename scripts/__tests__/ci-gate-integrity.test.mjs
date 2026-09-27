@@ -2651,6 +2651,9 @@ test("Android aggregate gates reject failed, cancelled, or skipped dependencies"
   const summaryStart = workflow.indexOf("  test-summary:");
   const summaryEnd = workflow.indexOf("  lint-and-detekt:", summaryStart);
   const summary = workflow.slice(summaryStart, summaryEnd);
+  const automaticCancellationGuard =
+    "if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())";
+  assert.ok(summary.includes(automaticCancellationGuard));
   assert.match(summary, /name: Enforce Test Gate Results/);
   for (const result of [
     "UNIT_RESULT",
@@ -2662,6 +2665,7 @@ test("Android aggregate gates reject failed, cancelled, or skipped dependencies"
 
   const buildStart = workflow.indexOf("  build-status:");
   const buildStatus = workflow.slice(buildStart);
+  assert.ok(buildStatus.includes(automaticCancellationGuard));
   for (const dependency of [
     "unit-tests",
     "instrumented-tests",

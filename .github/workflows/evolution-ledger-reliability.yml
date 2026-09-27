@@ -105,7 +105,7 @@ jobs:
 
   ledger-reliability-aggregate:
     name: Test-only Evolution Ledger three-OS aggregate
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || !cancelled())
     needs: ledger-reliability
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -4,25 +4,25 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'desktop-app-vue/tests/e2e/project/detail/**'
-      - 'desktop-app-vue/tests/e2e/helpers/**'
-      - 'desktop-app-vue/src/renderer/pages/projects/**'
-      - 'desktop-app-vue/src/renderer/components/**'
-      - '.github/workflows/e2e-project-detail-tests.yml'
+      - "desktop-app-vue/tests/e2e/project/detail/**"
+      - "desktop-app-vue/tests/e2e/helpers/**"
+      - "desktop-app-vue/src/renderer/pages/projects/**"
+      - "desktop-app-vue/src/renderer/components/**"
+      - ".github/workflows/e2e-project-detail-tests.yml"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'desktop-app-vue/tests/e2e/project/detail/**'
-      - 'desktop-app-vue/tests/e2e/helpers/**'
-      - 'desktop-app-vue/src/renderer/pages/projects/**'
-      - 'desktop-app-vue/src/renderer/components/**'
-      - '.github/workflows/e2e-project-detail-tests.yml'
+      - "desktop-app-vue/tests/e2e/project/detail/**"
+      - "desktop-app-vue/tests/e2e/helpers/**"
+      - "desktop-app-vue/src/renderer/pages/projects/**"
+      - "desktop-app-vue/src/renderer/components/**"
+      - ".github/workflows/e2e-project-detail-tests.yml"
   workflow_dispatch:
     inputs:
       test-suite:
-        description: 'Test suite to run'
+        description: "Test suite to run"
         required: false
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -47,9 +47,9 @@ jobs:
         node-version: [22.x]
         include:
           - os: ubuntu-latest
-            display: ':99'
+            display: ":99"
           - os: windows-latest
-            display: ''
+            display: ""
 
     steps:
       - name: Checkout code
@@ -59,8 +59,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: 'desktop-app-vue/package-lock.json'
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install root dependencies
         uses: ./.github/actions/setup-node-deps
@@ -108,8 +108,8 @@ jobs:
           fi
         env:
           CI: true
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-          ELECTRON_ENABLE_LOGGING: 'true'
+          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+          ELECTRON_ENABLE_LOGGING: "true"
 
       # Run Perfect Score Tests - Panels, UI State, Navigation (expected 100%).
       # No continue-on-error: failures block the workflow.
@@ -155,8 +155,8 @@ jobs:
           fi
         env:
           CI: true
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-          ELECTRON_ENABLE_LOGGING: 'true'
+          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+          ELECTRON_ENABLE_LOGGING: "true"
 
       # Run All New Tests (Week 2) - includes modal/button tests with mixed
       # results that document UI behavior. Step-level continue-on-error: true
@@ -195,8 +195,8 @@ jobs:
           fi
         env:
           CI: true
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-          ELECTRON_ENABLE_LOGGING: 'true'
+          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
+          ELECTRON_ENABLE_LOGGING: "true"
         continue-on-error: true
 
       - name: Upload test results
@@ -231,7 +231,7 @@ jobs:
     name: Test Summary Report
     needs: e2e-project-detail
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
 
     steps:
       - name: Download all test artifacts

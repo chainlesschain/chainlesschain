@@ -257,7 +257,7 @@ jobs:
 
   pm-exploration-recovery-aggregate:
     name: Test-only PM exploration recovery three-OS aggregate
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
     needs: verify-cli
     runs-on: ubuntu-latest
     timeout-minutes: 15

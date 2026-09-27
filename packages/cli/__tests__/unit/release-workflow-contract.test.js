@@ -174,8 +174,16 @@ describe("CLI release workflow contracts", () => {
         packageJob.indexOf("npm pack --json"),
       );
     }
-    expect(workflow("cli-ci.yml")).toContain(
+    const cliCi = workflow("cli-ci.yml");
+    expect(cliCi).toContain(
       "uses: ./.github/workflows/_cli-linux-subreaper.yml",
+    );
+    const pmAggregate = cliCi.slice(
+      cliCi.indexOf("  pm-exploration-recovery-aggregate:"),
+      cliCi.indexOf("\n  pack-linux-dryrun:"),
+    );
+    expect(pmAggregate).toContain(
+      "if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())",
     );
   });
 

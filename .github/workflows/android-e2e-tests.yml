@@ -2,21 +2,21 @@ name: Android E2E Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
-      - '.github/workflows/android-e2e-tests.yml'
+      - "android-app/**"
+      - ".github/workflows/android-e2e-tests.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
+      - "android-app/**"
   schedule:
     # 每日凌晨2点运行
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 env:
-  JAVA_VERSION: '17'
+  JAVA_VERSION: "17"
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
         #   (a) x86_64 builds of all 5 native libs land in repo,
         #   (b) frida-inject prebuilt for x86_64 becomes available, OR
         #   (c) GHA hosted API 33+ images regain ndk_translation.
-        api-level: [30]  # Android 11
+        api-level: [30] # Android 11
         arch: [x86_64]
         target: [google_apis]
 
@@ -73,9 +73,9 @@ jobs:
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: "temurin"
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
+          cache: "gradle"
 
       - name: Grant execute permission for gradlew
         run: chmod +x android-app/gradlew
@@ -278,7 +278,7 @@ jobs:
         if: always()
         uses: mikepenz/action-junit-report@v6
         with:
-          report_paths: 'android-app/**/build/outputs/androidTest-results/connected/*.xml'
+          report_paths: "android-app/**/build/outputs/androidTest-results/connected/*.xml"
           check_name: E2E Test Results (API ${{ matrix.api-level }})
           detailed_summary: true
           include_passed: true
@@ -288,7 +288,7 @@ jobs:
     name: Test Summary
     runs-on: ubuntu-latest
     needs: e2e-tests
-    if: always()
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || !cancelled())
 
     steps:
       - name: Download all test results
@@ -379,7 +379,7 @@ jobs:
     name: Send Notifications
     runs-on: ubuntu-latest
     needs: [e2e-tests, report-summary]
-    if: always() && github.event_name == 'schedule'
+    if: always() && !cancelled() && github.event_name == 'schedule'
 
     steps:
       - name: Notify on Success
