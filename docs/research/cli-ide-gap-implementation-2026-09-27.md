@@ -219,6 +219,14 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 
 干净 SHA `6c47788623d6bc4ab64afa096d8ce739ebbacf0a` 默认 smoke 23.279 秒完成；Windows 10.0.19045 / x64 / Node 22.22.2。后台 100/1k 均 pathsVerified，1k 全扫/热首页/失效重建 p95 分别 336.129 / 164.045 / 694.739 ms（3 样本）。Memory 两档可读，并发读/更新/删除全部成功；[原始 receipt](./cli/evidence/persistent-capacity-smoke-windows-6c47788623.json) 的 canonical digest 已核对。保留单机少样本与重建成本边界，未设定性能 PASS。
 
+## Windows 并发初始化与真实存储宿主夹具
+
+新增宿主夹具的可选 canonical 模式：模型回复仍为确定性测试内容，输入接受回执、去重、最终事件引用和历史查询使用生产存储与真实 CLI 子进程；数据根为工作区外的临时目录，home/security 为同级隔离目录。相同正文与输入 ID 的双会话并发测试暴露了 Windows ACL 初始化竞态。
+
+修复包括：会话目录在首次使用前完成显式权限校验；单项与批量 PowerShell ACL 修复使用同一路径互斥并在锁内重新检查，已有合规 ACL 不再重写；进程内权限缓存核对 dev/ino/birthtime，避免同路径替换目录命中旧缓存。保留物理 witness 的 ctime 检查以及 owner/reparse 拒绝边界。重复修复真实目录/文件不改变子文件身份和时间戳，替换目录会重新校验。
+
+Windows 本地验证：存储、安全及 canonical peer 3 文件 208 项通过、2 项既有平台条件跳过；补充安全、生成 Webview、Workbench 与 JetBrains 宿主夹具 4 文件 74 项通过。两轮有重叠，不相加为独立覆盖率。CLI CI / Strict Sandbox 的精确 SHA 三系统门禁尚未运行，这些结果不构成发布批准。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

@@ -235,6 +235,50 @@ function assertNoLinkTraversal(
   return target;
 }
 
+// Reapplying an unchanged directory DACL propagates to existing children on
+// Windows and changes their ctime, invalidating otherwise intact session
+// witnesses. Serialize check-and-repair across processes and skip a verified
+// owner-only ACL. Keep the post-repair inspection and all traversal guards.
+const WINDOWS_ACL_IDEMPOTENT_REPAIR = String.raw`
+function Test-CcOwnerOnlySecurity($item, $security) {
+  $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+  $rules = @($security.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
+  if ($owner -ne $sid.Value -or $rules.Count -ne 1 -or ($item.PSIsContainer -and -not $security.AreAccessRulesProtected)) { return $false }
+  $rule = $rules[0]
+  $inheritance = [System.Security.AccessControl.InheritanceFlags]::None
+  if ($item.PSIsContainer) {
+    $inheritance = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+  }
+  return ($rule.IdentityReference.Value -eq $sid.Value -and
+    $rule.AccessControlType -eq [System.Security.AccessControl.AccessControlType]::Allow -and
+    (-not $item.PSIsContainer -or -not $rule.IsInherited) -and
+    $rule.InheritanceFlags -eq $inheritance -and
+    $rule.PropagationFlags -eq [System.Security.AccessControl.PropagationFlags]::None -and
+    ($rule.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -eq [System.Security.AccessControl.FileSystemRights]::FullControl)
+}
+function Write-CcOwnerOnlyAcl($item, [string]$path) {
+  $digest = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $key = [System.BitConverter]::ToString($digest.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($sid.Value + ':' + [System.IO.Path]::GetFullPath($path).ToUpperInvariant()))).Replace('-', '')
+  } finally { $digest.Dispose() }
+  $mutex = [System.Threading.Mutex]::new($false, ('Global\ChainlessChain.PrivateAcl.' + $key))
+  $held = $false
+  try {
+    try { $held = $mutex.WaitOne(10000) }
+    catch [System.Threading.AbandonedMutexException] { $held = $true }
+    if (-not $held) { throw 'Timed out waiting for owner-only ACL repair' }
+    Assert-CcNoReparseTraversal $path
+    $current = Get-Item -LiteralPath $path -Force
+    $security = Read-CcAcl $path
+    if (Test-CcOwnerOnlySecurity $current $security) { return }
+    Write-CcOwnerOnlyAclImpl $current $path
+  } finally {
+    if ($held) { $mutex.ReleaseMutex() }
+    $mutex.Dispose()
+  }
+}
+`;
+
 const WINDOWS_ACL_SCRIPT = String.raw`
 param([string]$target, [string]$operation)
 $ErrorActionPreference = 'Stop'
@@ -273,7 +317,8 @@ function Read-CcAcl([string]$path) {
   return [System.Security.AccessControl.FileSecurity]::new($path, $sections)
 }
 
-function Write-CcOwnerOnlyAcl($item, [string]$path) {
+${WINDOWS_ACL_IDEMPOTENT_REPAIR}
+function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
   $security = Read-CcAcl $path
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
@@ -481,7 +526,8 @@ function Read-CcAcl([string]$path) {
   return [System.Security.AccessControl.FileSecurity]::new($path, $sections)
 }
 
-function Write-CcOwnerOnlyAcl($item, [string]$path) {
+${WINDOWS_ACL_IDEMPOTENT_REPAIR}
+function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
   $security = Read-CcAcl $path
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
@@ -614,9 +660,31 @@ export const _deps = {
 };
 
 // ACL repair starts a short PowerShell process on Windows. Cache successful
-// production repairs by path for this process; explicit injected-dependency
+// production repairs by path and filesystem identity for this process; injected-dependency
 // tests and repairPrivatePath() always execute and verify the operation.
-const securedWindowsPaths = new Set();
+const securedWindowsPaths = new Map();
+
+function windowsPathIdentity(target, deps) {
+  try {
+    const entry = deps.fs.lstatSync(target, { bigint: true });
+    if (entry.isSymbolicLink() || !entry.ino) return null;
+    return `${entry.dev}:${entry.ino}:${entry.birthtimeNs}`;
+  } catch {
+    // An unreliable Node stat must take the native verification path again.
+    return null;
+  }
+}
+
+function rememberSecuredWindowsPath(target, deps) {
+  const identity = windowsPathIdentity(target, deps);
+  if (identity) securedWindowsPaths.set(target, identity);
+  else securedWindowsPaths.delete(target);
+}
+
+function isSecuredWindowsPath(target, deps) {
+  const cached = securedWindowsPaths.get(target);
+  return Boolean(cached && cached === windowsPathIdentity(target, deps));
+}
 const WINDOWS_ACL_BATCH_SIZE = 500;
 const WINDOWS_ACL_TIMEOUT_ENV = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
 const MAX_WINDOWS_ACL_TIMEOUT_MS = 5 * 60_000;
@@ -687,11 +755,11 @@ function runWindowsAclCommand(deps, args, options) {
 
 function repairWindowsAclOnce(target, deps, options) {
   const cacheable = !options.deps;
-  if (cacheable && securedWindowsPaths.has(target)) {
+  if (cacheable && isSecuredWindowsPath(target, deps)) {
     return { ok: true, platform: "win32", cached: true };
   }
   const result = windowsAcl(target, "repair", deps);
-  if (result.ok && cacheable) securedWindowsPaths.add(target);
+  if (result.ok && cacheable) rememberSecuredWindowsPath(target, deps);
   return result;
 }
 
@@ -999,7 +1067,7 @@ export function repairPrivatePaths(targets, options = {}) {
     if (!options.deps) {
       for (const result of results) {
         if (result.ok && result.exists !== false) {
-          securedWindowsPaths.add(result.target);
+          rememberSecuredWindowsPath(result.target, deps);
         }
       }
     }
@@ -1064,7 +1132,7 @@ function repairPrivatePathAfterPreflight(target, options, deps) {
     const result = windowsAcl(target, "repair", deps);
     if (!result.ok)
       throw new Error(result.error || "owner-only ACL repair failed");
-    if (!options.deps) securedWindowsPaths.add(target);
+    if (!options.deps) rememberSecuredWindowsPath(target, deps);
     return result;
   }
   const stat = deps.fs.lstatSync(target);
@@ -1183,7 +1251,7 @@ export function ensurePrivateFile(target, options = {}) {
     }
   } else if (
     options.applyWindowsAcl === true &&
-    (options.deps || !securedWindowsPaths.has(target))
+    (options.deps || !isSecuredWindowsPath(target, deps))
   ) {
     const [result] = windowsAclBatch([String(target)], "repair", deps, "file");
     if (result.errorCode === "EXPECTED_KIND_MISMATCH") {
@@ -1192,7 +1260,7 @@ export function ensurePrivateFile(target, options = {}) {
     if (!result.ok && result.exists !== false && options.failIfUnavailable) {
       throw new Error(result.error || `Could not secure ${target}`);
     }
-    if (result.ok && !options.deps) securedWindowsPaths.add(target);
+    if (result.ok && !options.deps) rememberSecuredWindowsPath(target, deps);
   }
   return target;
 }

@@ -730,7 +730,13 @@ function getSessionsDir() {
     if (claudeProjectDir) {
       ensureClaudeProjectStorageTree(homeDir, claudeProjectDir);
     } else {
-      ensurePrivateDirectory(dir);
+      // Another process may have created the directory but still be securing
+      // its Windows ACL. Join that check/repair before writing an anchored
+      // child; a later directory DACL change also changes child ctime.
+      ensurePrivateDirectory(dir, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
     }
     securedSessionsDir = dir;
     const secured = lstatSync(dir);

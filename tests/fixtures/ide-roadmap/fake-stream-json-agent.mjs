@@ -11,6 +11,7 @@
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline";
+import { randomUUID } from "node:crypto";
 import { buildSessionProjection } from "../../../packages/cli/src/lib/session-projection.js";
 
 const argv = process.argv.slice(2);
@@ -522,9 +523,28 @@ function finish(turn, result, extra = {}) {
     turn,
     result,
     usage: { input_tokens: 32, output_tokens: 12 },
+    ...(canonical
+      ? {
+          session_id: sessionId,
+          transcript_refs: canonical.finish(
+            sessionId,
+            result,
+            acceptedInputs.get(turn),
+          ),
+        }
+      : {}),
     ...extra,
   });
+  acceptedInputs.delete(turn);
 }
+
+const canonical = process.env.CC_UI_CANONICAL_ROOT
+  ? await (
+      await import("./canonical-transcript-peer.mjs")
+    ).canonicalTranscriptPeer(process.env.CC_UI_CANONICAL_ROOT, trace)
+  : null;
+if (canonical && (await canonical.command(argv)))
+  await exitAfterStdout(process.exitCode || 0);
 
 if (argv.includes("--version")) {
   process.stdout.write("0.999.0-ui-journey\n");
@@ -555,13 +575,19 @@ if (argv[0] !== "agent") {
   await exitAfterStdout(0);
 }
 
-const sessionId = option("--resume", "ui-host-session");
+const sessionId = option(
+  "--resume",
+  canonical ? `ui-host-${randomUUID()}` : "ui-host-session",
+);
+const canonicalPrior = canonical?.start(sessionId);
+const acceptedInputs = new Map();
 const state = readState();
 const savedModelConfig = readModelConfig();
 const sessionModel = option("--model", savedModelConfig.model);
 const sessionProvider = option("--provider", savedModelConfig.provider);
-const priorMessages = Number(state.sessions[sessionId] || 0);
-let turn = Math.floor(priorMessages / 2);
+const priorMessages =
+  canonicalPrior?.messages ?? Number(state.sessions[sessionId] || 0);
+let turn = canonicalPrior?.turns ?? Math.floor(priorMessages / 2);
 let pending = null;
 let interruptedTimer = null;
 
@@ -574,20 +600,61 @@ emit({
   session_id: sessionId,
   resumed_messages: priorMessages,
   slash_commands: ["compact", "context", "cost", "doctor"],
+  ...(canonical ? { input_receipts: { version: 1 } } : {}),
 });
 
 function rememberTurn() {
-  state.sessions[sessionId] = Math.max(
-    Number(state.sessions[sessionId] || 0),
+  const current = readState();
+  current.sessions[sessionId] = Math.max(
+    Number(current.sessions[sessionId] || 0),
     turn * 2,
   );
-  writeState(state);
+  writeState(current);
 }
 
 function handleUser(event) {
+  const accepted = canonical?.accept(sessionId, event, emit);
+  if (accepted?.duplicate) {
+    emit({
+      type: "result",
+      subtype: "input_already_accepted",
+      session_id: sessionId,
+      is_error: false,
+      result: "",
+    });
+    return;
+  }
   turn += 1;
+  if (accepted) acceptedInputs.set(turn, accepted);
   rememberTurn();
   const text = String(event.text || "");
+
+  if (canonical && text.startsWith("journey:history-")) {
+    const current = turn;
+    textDelta("checking history fixture\n");
+    emit({
+      type: "tool_use",
+      tool: "read_file",
+      args: { path: "fixture.txt" },
+    });
+    emit({
+      type: "tool_result",
+      tool: "read_file",
+      result: "fixture tool diagnostic",
+    });
+    // A remains pending long enough to complete while the other tab is active.
+    setTimeout(
+      () => {
+        textDelta(`canonical answer ${text.slice("journey:history-".length)}`);
+        finish(
+          current,
+          `canonical answer ${text.slice("journey:history-".length)}`,
+        );
+      },
+      text === "journey:history-A" ? 5000 : 40,
+    );
+    return;
+  }
 
   if (text.includes("journey:model")) {
     trace({

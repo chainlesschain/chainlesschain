@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import {
   existsSync,
   mkdtempSync,
+  mkdirSync,
+  renameSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -720,11 +723,48 @@ describe("owner-only filesystem helpers", () => {
           expect.objectContaining({ target: directory, ok: true }),
           expect.objectContaining({ target, ok: true }),
         ]);
+        const witness = statSync(target, { bigint: true });
+        // Exercise both native repair protocols, bypassing the process cache.
+        // Reapplying the parent DACL used to change the child's ctime and
+        // invalidate session witnesses despite unchanged bytes and identity.
+        expect(repairPrivatePath(directory).ok).toBe(true);
+        expect(repairPrivatePath(target).ok).toBe(true);
+        expect(repairPrivatePaths([directory, target]).every((r) => r.ok)).toBe(
+          true,
+        );
+        const afterRepair = statSync(target, { bigint: true });
+        for (const field of ["dev", "ino", "size", "mtimeNs", "ctimeNs"]) {
+          expect(afterRepair[field], field).toBe(witness[field]);
+        }
       } finally {
         rmSync(directory, { recursive: true, force: true });
       }
     },
     150000,
+  );
+
+  it.runIf(process.platform === "win32")(
+    "does not reuse a private ACL cache entry for a replaced directory",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "cc-acl-replaced-"));
+      const target = join(root, "sessions");
+      try {
+        ensurePrivateDirectory(target, {
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+        });
+        renameSync(target, join(root, "previous-sessions"));
+        mkdirSync(target);
+        ensurePrivateDirectory(target, {
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+        });
+        expect(inspectPrivatePath(target).ok).toBe(true);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+    90000,
   );
 
   it.runIf(process.platform === "win32")(
