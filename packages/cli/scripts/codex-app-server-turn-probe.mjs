@@ -5,7 +5,13 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import http from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -17,7 +23,15 @@ import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
 
 export const PROBE_VERSION = "0.157.1";
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const SCENARIOS = ["completed", "failed", "interrupted", "transport-loss"];
+const SCENARIOS = [
+  "completed",
+  "failed",
+  "interrupted",
+  "approval-cancel",
+  "transport-loss",
+];
+const APPROVAL_COMMAND = "echo approval-probe > approval-probe-marker.txt";
+const APPROVAL_ITEM_ID = "call_approval_probe";
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const deferred = () => {
   let resolve, reject;
@@ -105,7 +119,12 @@ export function officialValidators() {
     counts = {},
     schemas = {},
     hashes = {};
-  for (const kind of ["request", "notification"]) {
+  for (const kind of [
+    "request",
+    "notification",
+    "server-request",
+    "approval-response",
+  ]) {
     const bytes = readFileSync(
       new URL(
         `../__tests__/fixtures/external-agent/codex-app-server-${PROBE_VERSION}-${kind}.schema.json`,
@@ -124,12 +143,15 @@ export function officialValidators() {
         false,
         "unexpected stdio JSON-RPC header",
       );
-      const key = `${kind}:${message.method}`,
+      const key = `${kind}:${message.method || "command"}`,
         schema = schemas[kind];
       if (!compiled.has(key)) {
-        const branch = schema?.oneOf.find((entry) =>
-          entry.properties?.method?.enum?.includes(message.method),
-        );
+        const branch =
+          kind === "approval-response"
+            ? schema
+            : schema?.oneOf.find((entry) =>
+                entry.properties?.method?.enum?.includes(message.method),
+              );
         assert.ok(branch, `unknown official ${key}`);
         compiled.set(
           key,
@@ -151,13 +173,15 @@ export function officialValidators() {
 }
 
 export class ProbeClient extends EventEmitter {
-  constructor(child, validators) {
+  constructor(child, validators, { onApprovalRequest } = {}) {
     super();
     this.child = child;
     this.validators = validators;
     this.running = true;
     this.pending = new Map();
     this.notifications = [];
+    this.approvals = [];
+    this.onApprovalRequest = onApprovalRequest;
     this.sequence = 0;
     this.bytes = 0;
     this.stderrBytes = 0;
@@ -198,6 +222,31 @@ export class ProbeClient extends EventEmitter {
   }
   receive(message) {
     assert.equal(Object.hasOwn(message, "jsonrpc"), false);
+    if (Object.hasOwn(message, "id") && Object.hasOwn(message, "method")) {
+      assert.equal(
+        typeof this.onApprovalRequest,
+        "function",
+        "unexpected server request",
+      );
+      assert.equal(message.method, "item/commandExecution/requestApproval");
+      this.validators.check("server-request", message);
+      assert.ok(
+        this.approvals.length < 16 &&
+          !this.approvals.some((entry) => entry.request.id === message.id),
+        "duplicate or excessive approval request",
+      );
+      const result = this.onApprovalRequest(message);
+      this.validators.check("approval-response", result);
+      assert.equal(
+        result.decision,
+        "cancel",
+        "probe may only cancel approval requests",
+      );
+      const response = { id: message.id, result };
+      this.approvals.push({ request: message, response });
+      this.child.stdin.write(`${JSON.stringify(response)}\n`);
+      return;
+    }
     if (Object.hasOwn(message, "id")) {
       assert.equal(
         Object.hasOwn(message, "method"),
@@ -262,7 +311,28 @@ export class ProbeClient extends EventEmitter {
   }
 }
 
-function fixtureProvider() {
+export function cancelBoundApproval(request, binding, notifications) {
+  assert.ok(binding, "approval arrived outside its fixture scenario");
+  assert.equal(request.params.threadId, binding.threadId);
+  assert.equal(resolve(request.params.cwd), resolve(binding.workspace));
+  assert.equal(request.params.itemId, APPROVAL_ITEM_ID);
+  assert.ok(request.params.command.includes(APPROVAL_COMMAND));
+  assert.ok(request.params.availableDecisions.includes("cancel"));
+  assert.ok(
+    notifications.some(
+      (event) =>
+        event.method === "item/started" &&
+        event.params.threadId === binding.threadId &&
+        event.params.turnId === request.params.turnId &&
+        event.params.item.id === APPROVAL_ITEM_ID &&
+        event.params.item.type === "commandExecution",
+    ),
+    "approval lacks its observed tool identity",
+  );
+  return { decision: "cancel" };
+}
+
+function fixtureProvider(workspace) {
   const received = new Map(SCENARIOS.map((name) => [name, deferred()]));
   const requests = [],
     failure = deferred();
@@ -338,7 +408,53 @@ function fixtureProvider() {
           type: "response.created",
           response: { ...response, status: "in_progress", output: [] },
         });
-        if (scenario === "completed") {
+        if (scenario === "approval-cancel") {
+          const tools = (body.tools || []).flatMap((tool) =>
+            tool.type === "namespace" ? tool.tools || [] : [tool],
+          );
+          assert.ok(
+            tools.some(
+              (tool) =>
+                tool.type === "function" && tool.name === "exec_command",
+            ),
+            "pinned Codex did not advertise exec_command",
+          );
+          const call = {
+            type: "function_call",
+            id: "fc_approval_probe",
+            call_id: APPROVAL_ITEM_ID,
+            name: "exec_command",
+            status: "completed",
+            arguments: JSON.stringify({
+              cmd: APPROVAL_COMMAND,
+              workdir: workspace,
+              login: false,
+              sandbox_permissions: "require_escalated",
+              justification: "Deterministic cancellation probe.",
+            }),
+          };
+          send(res, {
+            type: "response.output_item.added",
+            output_index: 0,
+            item: { ...call, arguments: "", status: "in_progress" },
+          });
+          send(res, {
+            type: "response.function_call_arguments.delta",
+            item_id: call.id,
+            output_index: 0,
+            delta: call.arguments,
+          });
+          send(res, {
+            type: "response.output_item.done",
+            output_index: 0,
+            item: call,
+          });
+          send(res, {
+            type: "response.completed",
+            response: { ...response, output: [call] },
+          });
+          res.end();
+        } else if (scenario === "completed") {
           send(res, {
             type: "response.output_item.added",
             output_index: 0,
@@ -434,7 +550,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     timeout: 15_000,
   }).trim();
   assert.equal(reported, `codex-cli ${PROBE_VERSION}`);
-  const provider = fixtureProvider(),
+  const provider = fixtureProvider(workspace),
     validators = officialValidators();
   let client, shutdown, report, failure;
   try {
@@ -473,7 +589,11 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
         stdio: ["pipe", "pipe", "pipe"],
       },
     );
-    client = new ProbeClient(child, validators);
+    let approvalBinding;
+    client = new ProbeClient(child, validators, {
+      onApprovalRequest: (request) =>
+        cancelBoundApproval(request, approvalBinding, client.notifications),
+    });
     const guard = (promise, label) =>
       client.guard(Promise.race([promise, provider.failure.promise]), label);
     await guard(
@@ -494,10 +614,13 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
           model: "fixture-codex",
           modelProvider: "fixture",
           sandbox: "read-only",
-          approvalPolicy: "never",
+          approvalPolicy:
+            scenario === "approval-cancel" ? "on-request" : "never",
         }),
         "thread start",
       );
+      if (scenario === "approval-cancel")
+        approvalBinding = { threadId: started.thread.id, workspace };
       const adapter = new CodexAppServerAdapter({
         client,
         enabled: true,
@@ -511,7 +634,10 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
       });
       const result = adapter.execute({
         threadId: started.thread.id,
-        prompt: `fixture-${scenario}: Say probe-ok. Do not call any tools.`,
+        prompt:
+          scenario === "approval-cancel"
+            ? "fixture-approval-cancel: Request the deterministic test command; cancel its approval."
+            : `fixture-${scenario}: Say probe-ok. Do not call any tools.`,
       });
       result.catch(() => {});
       return { threadId: started.thread.id, result };
@@ -569,6 +695,27 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     );
     assert.equal(interruptedResult.terminal, "interrupted");
 
+    const approval = await start("approval-cancel");
+    const approvalResult = await guard(
+      approval.result,
+      "cancelled command approval",
+    );
+    assert.equal(approvalResult.terminal, "interrupted");
+    assert.equal(client.approvals.length, 1);
+    const declined = approvalResult.notifications.find(
+      (event) =>
+        event.method === "item/completed" &&
+        event.params.item.id === APPROVAL_ITEM_ID,
+    );
+    assert.equal(declined?.params.item.kind, "tool");
+    assert.equal(declined.params.item.status, "declined");
+    assert.equal(declined.params.item.content.status, "declined");
+    assert.equal(declined.params.item.content.processId, null);
+    assert.equal(declined.params.item.content.exitCode, null);
+    const marker = join(workspace, "approval-probe-marker.txt");
+    assert.equal(existsSync(marker), false, "cancelled command ran");
+    approvalBinding = null;
+
     const lost = await start("transport-loss");
     await guard(provider.wait("transport-loss"), "loss provider request");
     child.kill("SIGKILL");
@@ -590,8 +737,18 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
       provider.requests.map((entry) => entry.scenario),
       SCENARIOS,
     );
-    const results = [completedResult, failedResult, interruptedResult];
-    assert.equal(new Set(results.map((result) => result.threadId)).size, 3);
+    const results = [
+      completedResult,
+      failedResult,
+      interruptedResult,
+      approvalResult,
+    ];
+    assert.equal(new Set(results.map((result) => result.threadId)).size, 4);
+    assert.equal(
+      existsSync(marker),
+      false,
+      "cancelled command ran after turn completion",
+    );
     for (const result of results) {
       assert.equal(result.fallback, false);
       for (const event of result.notifications) {
@@ -633,6 +790,15 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
         errorCode: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
         fallbackCalls: fallbackCalls.length,
       },
+      approvalCancellation: {
+        requests: 1,
+        decision: "cancel",
+        toolStatus: "declined",
+        terminal: approvalResult.terminal,
+        markerPresent: false,
+        processId: null,
+        exitCode: null,
+      },
       interleavedThreads: true,
       providerRequests: provider.requests,
       stdoutBytes: client.bytes,
@@ -661,6 +827,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
   const destination = resolve(output);
   mkdirSync(dirname(destination), { recursive: true });
   const notifications = `${JSON.stringify(client?.notifications || [])}\n`;
+  const approvals = `${JSON.stringify(client?.approvals || [])}\n`;
   report = {
     ...(report || {
       schema: "chainlesschain.codex-real-turn-probe/v1",
@@ -672,6 +839,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
     }),
     status: failure ? "failed" : "passed",
     notificationsSha256: sha256(notifications),
+    approvalsSha256: sha256(approvals),
     ...(failure
       ? {
           error: {
@@ -682,6 +850,7 @@ export async function runTurnProbe({ codexJs, commitSha, output }) {
       : {}),
   };
   writeFileSync(`${destination}.notifications.json`, notifications);
+  writeFileSync(`${destination}.approvals.json`, approvals);
   writeFileSync(destination, `${JSON.stringify(report, null, 2)}\n`);
   if (failure) throw failure;
   return report;

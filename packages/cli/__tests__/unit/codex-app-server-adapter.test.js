@@ -44,6 +44,50 @@ class FakeClient extends EventEmitter {
 const matrix = CODEX_APP_SERVER_COMPATIBILITY_MATRIX;
 
 describe("optional Codex App Server adapter", () => {
+  it.each([
+    ["commandExecution", "completed", "completed"],
+    ["commandExecution", "failed", "failed"],
+    ["commandExecution", "declined", "declined"],
+    ["fileChange", "completed", "completed"],
+    ["fileChange", "failed", "failed"],
+    ["fileChange", "declined", "declined"],
+    ["commandExecution", "future-status", "unknown"],
+    ["fileChange", undefined, "unknown"],
+  ])("preserves %s tool outcome %s as %s", async (type, status, expected) => {
+    const client = new EventEmitter();
+    client.running = true;
+    client.request = vi.fn(async () => {
+      queueMicrotask(() => {
+        client.emit("notification", {
+          method: "item/completed",
+          params: {
+            threadId: "tools",
+            turnId: "turn-tools",
+            item: { id: "tool-1", type, status },
+          },
+        });
+        client.emit("notification", {
+          method: "turn/completed",
+          params: {
+            threadId: "tools",
+            turn: { id: "turn-tools", status: "interrupted" },
+          },
+        });
+      });
+      return { turn: { id: "turn-tools", status: "inProgress" } };
+    });
+    const result = await new CodexAppServerAdapter({
+      client,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+    }).execute({ threadId: "tools", prompt: "tool outcome" });
+    expect(result.terminal).toBe("interrupted");
+    expect(
+      result.notifications.find((event) => event.method === "item/completed")
+        .params.item,
+    ).toMatchObject({ kind: "tool", status: expected, content: { type } });
+  });
+
   it("correlates interleaved turns, including events before RPC replies", async () => {
     const client = new EventEmitter();
     client.running = true;

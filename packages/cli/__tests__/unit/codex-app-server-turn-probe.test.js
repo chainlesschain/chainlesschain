@@ -3,6 +3,7 @@ import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   bounded,
+  cancelBoundApproval,
   isolatedEnvironment,
   officialValidators,
   ProbeClient,
@@ -22,7 +23,88 @@ function childProcess() {
   return child;
 }
 
+function approvalRequest() {
+  return {
+    id: 1,
+    method: "item/commandExecution/requestApproval",
+    params: {
+      itemId: "call_approval_probe",
+      threadId: "approval-thread",
+      turnId: "approval-turn",
+      startedAtMs: 1790467200000,
+      cwd: "/isolated/workspace",
+      command: "echo approval-probe > approval-probe-marker.txt",
+      availableDecisions: ["accept", "cancel"],
+    },
+  };
+}
+
 describe("pinned Codex real-turn probe boundaries", () => {
+  it("keeps handled server approvals separate from colliding client RPC IDs", async () => {
+    const child = childProcess();
+    const client = new ProbeClient(child, officialValidators(), {
+      onApprovalRequest: () => ({ decision: "cancel" }),
+    });
+    const request = client.request("thread/list", { limit: 1 });
+    child.stdout.write(`${JSON.stringify(approvalRequest())}\n`);
+    expect(client.pending.has(1)).toBe(true);
+    expect(client.approvals).toHaveLength(1);
+    expect(client.approvals[0].response).toEqual({
+      id: 1,
+      result: { decision: "cancel" },
+    });
+    child.stdout.write(`${JSON.stringify({ id: 1, result: { data: [] } })}\n`);
+    await expect(request).resolves.toEqual({ data: [] });
+    child.emit("close", 0, null);
+  });
+
+  it("never accepts an approval even if a probe callback attempts to", async () => {
+    const child = childProcess();
+    const client = new ProbeClient(child, officialValidators(), {
+      onApprovalRequest: () => ({ decision: "accept" }),
+    });
+    const rejected = expect(
+      client.request("thread/list", { limit: 1 }),
+    ).rejects.toThrow(/may only cancel/);
+    child.stdout.write(`${JSON.stringify(approvalRequest())}\n`);
+    await rejected;
+    expect(client.approvals).toEqual([]);
+    child.emit("close", 1, null);
+  });
+
+  it("binds cancellation to the expected workspace, thread and observed command item", () => {
+    const request = approvalRequest();
+    const binding = {
+      threadId: "approval-thread",
+      workspace: "/isolated/workspace",
+    };
+    const events = [
+      {
+        method: "item/started",
+        params: {
+          threadId: "approval-thread",
+          turnId: "approval-turn",
+          item: { id: "call_approval_probe", type: "commandExecution" },
+        },
+      },
+    ];
+    expect(cancelBoundApproval(request, binding, events)).toEqual({
+      decision: "cancel",
+    });
+    expect(() => cancelBoundApproval(request, null, events)).toThrow();
+    for (const [key, value] of [
+      ["cwd", "/different"],
+      ["threadId", "different"],
+      ["turnId", "old-turn"],
+      ["itemId", "other-command"],
+      ["command", "another-command"],
+    ]) {
+      const changed = structuredClone(request);
+      changed.params[key] = value;
+      expect(() => cancelBoundApproval(changed, binding, events)).toThrow();
+    }
+  });
+
   it("does not forward user credentials, proxy, config, or Node injection variables", () => {
     const env = isolatedEnvironment("/isolated", {
       PATH: "/usr/bin",

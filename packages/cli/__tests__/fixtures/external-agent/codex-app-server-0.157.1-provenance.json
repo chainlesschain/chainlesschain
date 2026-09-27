@@ -8,9 +8,11 @@
     "npmIntegrity": "sha512-qJ/UZ0bmYP+/Umav1L9WpmtMYeA6q1+4r4qILSYOKQZhP7WRdjyTQWz3O0dTImZ9RT7AazZa85D87xRDHogcHw=="
   },
   "generator": "codex app-server generate-json-schema --out <isolated-schema-directory>",
-  "scope": "Unmodified generated ClientRequest and ServerNotification schemas; schema agreement alone does not admit the upstream version or prove a provider-backed turn.",
+  "scope": "Unmodified generated ClientRequest, ServerNotification, ServerRequest and command approval response schemas; schema agreement alone does not admit the upstream version or prove a provider-backed turn.",
   "files": {
     "ClientRequest.json": "codex-app-server-0.157.1-request.schema.json",
-    "ServerNotification.json": "codex-app-server-0.157.1-notification.schema.json"
+    "ServerNotification.json": "codex-app-server-0.157.1-notification.schema.json",
+    "ServerRequest.json": "codex-app-server-0.157.1-server-request.schema.json",
+    "CommandExecutionRequestApprovalResponse.json": "codex-app-server-0.157.1-approval-response.schema.json"
   }
 }

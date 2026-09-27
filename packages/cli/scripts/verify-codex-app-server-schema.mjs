@@ -12,6 +12,9 @@ const FILES = Object.freeze({
   "ClientRequest.json": "codex-app-server-0.157.1-request.schema.json",
   "ServerNotification.json":
     "codex-app-server-0.157.1-notification.schema.json",
+  "ServerRequest.json": "codex-app-server-0.157.1-server-request.schema.json",
+  "CommandExecutionRequestApprovalResponse.json":
+    "codex-app-server-0.157.1-approval-response.schema.json",
 });
 
 export function verifyGeneratedCodexSchemas(

@@ -74,7 +74,16 @@ function projectNotification(notification) {
   }
   if (["item/started", "item/updated", "item/completed"].includes(method)) {
     const item = params.item || {};
-    const status = method === "item/completed" ? "completed" : "streaming";
+    const tool = item.type === "commandExecution" || item.type === "fileChange";
+    let status = method === "item/completed" ? "completed" : "streaming";
+    // item/completed means lifecycle closure, not successful execution. A
+    // declined approval still closes the tool item before interrupting the
+    // turn. Preserve that outcome and never infer success for unknown states.
+    if (method === "item/completed" && tool) {
+      status = ["completed", "failed", "declined"].includes(item.status)
+        ? item.status
+        : "unknown";
+    }
     return {
       method: method === "item/updated" ? "item/delta" : method,
       params: {
@@ -85,7 +94,7 @@ function projectNotification(notification) {
               ? "assistant_message"
               : item.type === "reasoning"
                 ? "reasoning"
-                : item.type === "commandExecution" || item.type === "fileChange"
+                : tool
                   ? "tool"
                   : "artifact",
           status,
