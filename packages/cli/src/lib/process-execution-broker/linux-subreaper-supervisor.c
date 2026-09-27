@@ -266,7 +266,7 @@ int main(void) {
   uint32_t length = be32(header + 8), argc = be32(header + 12);
   uint32_t envc = be32(header + 16), grace_ms = be32(header + 20);
   if (memcmp(header, "CCSUBR01", 8) || length < HEADER_SIZE || length > MAX_FRAME ||
-      argc < 1 || argc > 4096 || envc > 8192 || grace_ms < 1 || grace_ms > 5000) return 70;
+      argc < 1 || argc > 4096 || envc > 8192 || grace_ms > INT_MAX) return 70;
   size_t body_length = length - HEADER_SIZE, offset = 0;
   unsigned char *body = malloc(body_length ? body_length : 1);
   char **args = calloc((size_t)argc + 1, sizeof(char *));
@@ -290,6 +290,8 @@ int main(void) {
   if (root_pid == 0) {
     close(error_pipe[0]);
     close(CONTROL_FD);
+    /* Optional pinned helper image; never pass installation handles to target. */
+    if (error_pipe[1] != 4) close(4);
     /* Reset handlers inherited across fork, including SIGPIPE for the target. */
     action.sa_handler = SIG_DFL;
     if (sigaction(SIGTERM, &action, NULL) || sigaction(SIGINT, &action, NULL) ||

@@ -320,6 +320,9 @@ export class ClaudeCodeAgent extends EventEmitter {
           policy: "allow",
           scope: "orchestrator",
           shell: false,
+          ...(process.platform === "linux"
+            ? { linuxSubreaper: { graceMs: killGraceMs } }
+            : {}),
         });
       } catch (err) {
         // Broker admission/bookkeeping can fail after native spawn. Its
@@ -488,6 +491,13 @@ export class ClaudeCodeAgent extends EventEmitter {
 
       proc.on("error", (err) => {
         if (finalized) return;
+        if (
+          err.code === EXTERNAL_AGENT_ERROR.SPAWN_FAILED &&
+          proc.ownedProcessTreeClosed
+        ) {
+          processError = err;
+          spawnFailure = err;
+        }
         if (spawnFailure) {
           // Keep the original admission failure and wait for the owned child;
           // another signal/transport error is still not proof of its exit.

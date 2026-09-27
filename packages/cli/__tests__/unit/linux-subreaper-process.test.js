@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   encodeLinuxSubreaperLaunch,
   spawnLinuxSubreaper,
+  spawnLinuxSubreaperChild,
 } from "../../src/lib/process-execution-broker/linux-subreaper-process.js";
 
 const options = {
@@ -11,7 +12,7 @@ const options = {
   env: {},
   helperPath: path.resolve("supervisor"),
 };
-function create() {
+function create(facade = false) {
   const channel = new EventEmitter();
   channel.writable = true;
   channel.destroyed = false;
@@ -21,13 +22,19 @@ function create() {
   };
   const child = new EventEmitter();
   child.kill = vi.fn();
+  child.pid = 456;
   child.stdio = [null, null, null, channel];
   const native = { platform: "linux", spawn: vi.fn(() => child) };
   return {
     child,
     channel,
     native,
-    owner: spawnLinuxSubreaper("node", [], options, native),
+    owner: (facade ? spawnLinuxSubreaperChild : spawnLinuxSubreaper)(
+      "node",
+      [],
+      options,
+      native,
+    ),
   };
 }
 const messages =
@@ -131,5 +138,110 @@ describe("Linux subreaper control contract", () => {
       spawnLinuxSubreaper("node", [], { ...options, shell: true }, native),
     ).toThrow();
     expect(native.spawn).not.toHaveBeenCalled();
+  });
+  it.each([0, 6000, 2147483647])(
+    "preserves a caller grace period of %s ms",
+    (graceMs) => {
+      expect(
+        encodeLinuxSubreaperLaunch("node", [], {
+          ...options,
+          graceMs,
+        }).readUInt32BE(20),
+      ).toBe(graceMs);
+    },
+  );
+});
+
+describe("Linux subreaper Broker child facade", () => {
+  it("keeps the close fence until both cleanup receipt and native close", async () => {
+    const { owner, child, channel } = create(true);
+    const events = [];
+    owner.on("exit", (...args) => events.push(["exit", ...args]));
+    owner.on("close", (...args) => events.push(["close", ...args]));
+    channel.emit("data", Buffer.from(messages));
+    child.emit("exit", 0, null);
+    expect(owner.exitCode).toBeNull();
+    expect(events).toEqual([]);
+    child.emit("close", 0, null);
+    await owner.ownedProcessTreeClosed;
+    expect(events).toEqual([
+      ["exit", 0, null],
+      ["close", 0, null],
+    ]);
+    expect(owner.sandboxTargetPid).toBe(123);
+    expect(owner.ownedProcessTreeEvidence.cleanup.confirmed).toBe(true);
+    child.emit("close", 0, null);
+    expect(events).toHaveLength(2);
+  });
+  it("reports target exec failure before releasing a confirmed close", async () => {
+    const { owner, child, channel } = create(true);
+    const events = [];
+    owner.on("error", (error) => events.push(error.code));
+    owner.on("close", (code) => events.push(code));
+    channel.emit(
+      "data",
+      Buffer.from(
+        messages.replace(
+          '"code":0,"signal":0,"spawnErrno":0',
+          '"code":127,"signal":0,"spawnErrno":2',
+        ),
+      ),
+    );
+    child.emit("close", 0, null);
+    await owner.ownedProcessTreeClosed;
+    expect(events).toEqual(["EXTERNAL_AGENT_SPAWN_FAILED", 127]);
+  });
+  it("does not release ownership after supervisor loss even with a prior receipt", async () => {
+    const { owner, child, channel } = create(true);
+    const error = vi.fn();
+    const close = vi.fn();
+    const unconfirmed = vi.fn();
+    owner.on("error", error);
+    owner.on("close", close);
+    owner.on("cleanup:unconfirmed", unconfirmed);
+    channel.emit("data", Buffer.from(messages));
+    child.emit("close", null, "SIGKILL");
+    await owner.ownedProcessTreeClosed;
+    expect(error.mock.calls[0][0].code).toBe(
+      "EXTERNAL_AGENT_CLEANUP_UNCONFIRMED",
+    );
+    expect(close).not.toHaveBeenCalled();
+    expect(unconfirmed).toHaveBeenCalledOnce();
+    expect(owner.exitCode).toBeNull();
+    expect(owner.signalCode).toBeNull();
+    expect(owner.kill()).toBe(false);
+  });
+  it("closes a native spawn that never acquired a PID with the spawn error", async () => {
+    const { owner, child } = create(true);
+    child.pid = undefined;
+    const events = [];
+    owner.on("error", (error) => events.push(error.code));
+    owner.on("close", (code) => events.push(code));
+    child.emit("error", new Error("ENOENT"));
+    child.emit("close", -2, null);
+    await owner.ownedProcessTreeClosed;
+    expect(events).toEqual(["EXTERNAL_AGENT_SPAWN_FAILED", -1]);
+  });
+  it("signals over the private control channel and exposes the target signal", async () => {
+    const { owner, child, channel } = create(true);
+    owner.kill();
+    owner.kill();
+    owner.kill("SIGKILL");
+    expect(owner.killed).toBe(true);
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(channel.write.mock.calls.slice(1).map(([value]) => value)).toEqual([
+      "T",
+      "K",
+    ]);
+    channel.emit(
+      "data",
+      Buffer.from(
+        messages.replace('"code":0,"signal":0', '"code":-1,"signal":9'),
+      ),
+    );
+    child.emit("close", 0, null);
+    await owner.ownedProcessTreeClosed;
+    expect(owner.exitCode).toBeNull();
+    expect(owner.signalCode).toBe("SIGKILL");
   });
 });

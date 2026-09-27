@@ -1,0 +1,279 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+const SOURCE = fileURLToPath(
+  new URL("./linux-subreaper-supervisor.c", import.meta.url),
+);
+export const LINUX_SUBREAPER_SOURCE_DIGEST =
+  "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424";
+const MAX_SOURCE_BYTES = 128 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const images = new Map();
+const leases = new WeakMap();
+const sha = (bytes) =>
+  "sha256:" + crypto.createHash("sha256").update(bytes).digest("hex");
+
+function failure(reason) {
+  const error = new Error(
+    `Linux process supervision helper unavailable: ${reason}`,
+  );
+  error.code = "EXTERNAL_AGENT_HELPER_UNAVAILABLE";
+  return error;
+}
+
+function readDescriptor(fd, maximum) {
+  const before = fs.fstatSync(fd, { bigint: true });
+  if (!before.isFile() || before.size < 1n || before.size > BigInt(maximum))
+    throw failure("invalid-file");
+  const bytes = Buffer.alloc(Number(before.size));
+  let offset = 0;
+  while (offset < bytes.length) {
+    const count = fs.readSync(fd, bytes, offset, bytes.length - offset, offset);
+    if (count <= 0) throw failure("short-file-read");
+    offset += count;
+  }
+  const after = fs.fstatSync(fd, { bigint: true });
+  if (
+    before.dev !== after.dev ||
+    before.ino !== after.ino ||
+    before.size !== after.size ||
+    before.mtimeNs !== after.mtimeNs ||
+    before.ctimeNs !== after.ctimeNs
+  )
+    throw failure("file-changed");
+  return { bytes, stat: after };
+}
+
+function compilerPath() {
+  // Only the system toolchain is eligible. Do not consult PATH, CC, loader,
+  // include-path, or plugin-provided compiler settings.
+  const compiler = fs.realpathSync("/usr/bin/cc");
+  let current = compiler;
+  for (;;) {
+    const info = fs.lstatSync(current);
+    if (info.isSymbolicLink() || info.uid !== 0 || (info.mode & 0o022) !== 0)
+      throw failure("untrusted-system-compiler");
+    if (current === compiler && (!info.isFile() || (info.mode & 0o111) === 0))
+      throw failure("invalid-system-compiler");
+    if (current === "/") break;
+    current = path.dirname(current);
+  }
+  return compiler;
+}
+
+function validateImage(bytes) {
+  const machine =
+    process.arch === "x64" ? 62 : process.arch === "arm64" ? 183 : null;
+  if (
+    !machine ||
+    bytes.length < 64 ||
+    !bytes.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46])) ||
+    bytes[4] !== 2 ||
+    bytes[5] !== 1 ||
+    bytes.readUInt16LE(18) !== machine ||
+    ![2, 3].includes(bytes.readUInt16LE(16))
+  )
+    throw failure("unexpected-helper-image");
+}
+
+function compileImage(spawnSync) {
+  let sourceFd = null;
+  let directoryFd = null;
+  let imageFd = null;
+  let temporaryRoot = null;
+  let imagePath = null;
+  try {
+    sourceFd = fs.openSync(
+      SOURCE,
+      fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+    );
+    const snapshot = readDescriptor(sourceFd, MAX_SOURCE_BYTES);
+    // npm/git may transport text with CRLF. Compile the exact canonical bytes
+    // that the source digest commits to, passed on stdin rather than reopened.
+    const sourceBytes = Buffer.from(
+      snapshot.bytes.toString("utf8").replace(/\r\n/g, "\n"),
+    );
+    if (
+      snapshot.stat.nlink !== 1n ||
+      sha(sourceBytes) !== LINUX_SUBREAPER_SOURCE_DIGEST
+    )
+      throw failure("source-digest-mismatch");
+    fs.closeSync(sourceFd);
+    sourceFd = null;
+    const compiler = compilerPath();
+    temporaryRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-linux-subreaper-build-"),
+    );
+    fs.chmodSync(temporaryRoot, 0o700);
+    directoryFd = fs.openSync(
+      temporaryRoot,
+      fs.constants.O_RDONLY |
+        fs.constants.O_DIRECTORY |
+        fs.constants.O_NOFOLLOW,
+    );
+    const directory = fs.fstatSync(directoryFd);
+    if (
+      !directory.isDirectory() ||
+      directory.uid !== process.getuid() ||
+      (directory.mode & 0o777) !== 0o700
+    )
+      throw failure("untrusted-build-directory");
+    imagePath = path.join(temporaryRoot, "supervisor");
+    // The compiler writes through its inherited directory handle. An ancestor
+    // rename cannot redirect the build to a caller-supplied executable path.
+    const built = spawnSync(
+      compiler,
+      [
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-fstack-protector-strong",
+        "-D_FORTIFY_SOURCE=2",
+        "-x",
+        "c",
+        "-",
+        "-o",
+        "/proc/self/fd/3/supervisor",
+      ],
+      {
+        cwd: temporaryRoot,
+        env: { PATH: "/usr/bin:/bin", LC_ALL: "C" },
+        shell: false,
+        input: sourceBytes,
+        timeout: 30000,
+        maxBuffer: 1024 * 1024,
+        stdio: ["pipe", "pipe", "pipe", directoryFd],
+      },
+    );
+    if (built.error || built.status !== 0 || built.signal)
+      throw failure("native-build-failed");
+    imageFd = fs.openSync(
+      `/proc/self/fd/${directoryFd}/supervisor`,
+      fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+    );
+    fs.fchmodSync(imageFd, 0o500);
+    const image = readDescriptor(imageFd, MAX_IMAGE_BYTES);
+    if (
+      image.stat.uid !== BigInt(process.getuid()) ||
+      image.stat.nlink !== 1n ||
+      (image.stat.mode & 0o777n) !== 0o500n
+    )
+      throw failure("untrusted-helper-image");
+    validateImage(image.bytes);
+    // Remove the name before granting a launch lease. The executable can only
+    // be reached through the held descriptor; a later pathname swap is inert.
+    fs.unlinkSync(`/proc/self/fd/${directoryFd}/supervisor`);
+    imagePath = null;
+    const held = fs.fstatSync(imageFd, { bigint: true });
+    if (
+      held.nlink !== 0n ||
+      held.dev !== image.stat.dev ||
+      held.ino !== image.stat.ino
+    )
+      throw failure("helper-unlink-unconfirmed");
+    const entry = {
+      fd: imageFd,
+      dev: held.dev,
+      ino: held.ino,
+      digest: sha(image.bytes),
+    };
+    imageFd = null;
+    return entry;
+  } catch (error) {
+    if (error.code === "EXTERNAL_AGENT_HELPER_UNAVAILABLE") throw error;
+    // Do not expose compiler stdout/stderr, paths, environment, or native argv.
+    throw failure(
+      error.code === "ENOENT"
+        ? "system-compiler-or-source-missing"
+        : "native-build-setup-failed",
+    );
+  } finally {
+    if (sourceFd !== null) fs.closeSync(sourceFd);
+    if (imageFd !== null) fs.closeSync(imageFd);
+    if (imagePath && directoryFd !== null) {
+      try {
+        fs.unlinkSync(`/proc/self/fd/${directoryFd}/supervisor`);
+      } catch {
+        /* Preserve the admission failure. */
+      }
+    }
+    if (directoryFd !== null) fs.closeSync(directoryFd);
+    if (temporaryRoot) {
+      try {
+        fs.rmdirSync(temporaryRoot);
+      } catch {
+        /* Never recursively remove an unexpected build entry. */
+      }
+    }
+  }
+}
+
+/** Acquire a one-use descriptor lease from trusted packaged source. */
+export function acquireLinuxSubreaperHelper({ spawnSync }) {
+  if (process.platform !== "linux" || typeof spawnSync !== "function")
+    throw failure("unsupported-host");
+  let entry = images.get(spawnSync);
+  if (!entry) {
+    entry = compileImage(spawnSync);
+    images.set(spawnSync, entry);
+    // Outstanding leases hold their own duplicated descriptor. Bound cached
+    // native-seam variants without invalidating already-started children.
+    if (images.size > 4) {
+      const oldest = images.keys().next().value;
+      fs.closeSync(images.get(oldest).fd);
+      images.delete(oldest);
+    }
+  }
+  const held = readDescriptor(entry.fd, MAX_IMAGE_BYTES);
+  if (
+    held.stat.dev !== entry.dev ||
+    held.stat.ino !== entry.ino ||
+    held.stat.nlink !== 0n ||
+    sha(held.bytes) !== entry.digest
+  )
+    throw failure("cached-helper-changed");
+  const descriptor = fs.openSync(
+    `/proc/self/fd/${entry.fd}`,
+    fs.constants.O_RDONLY,
+  );
+  try {
+    const borrowed = fs.fstatSync(descriptor, { bigint: true });
+    if (
+      borrowed.dev !== entry.dev ||
+      borrowed.ino !== entry.ino ||
+      borrowed.nlink !== 0n
+    )
+      throw failure("helper-lease-changed");
+  } catch (error) {
+    fs.closeSync(descriptor);
+    throw error;
+  }
+  const lease = Object.freeze({ kind: "linux-subreaper-helper-lease/v1" });
+  leases.set(lease, {
+    descriptor,
+    sourceDigest: LINUX_SUBREAPER_SOURCE_DIGEST,
+    imageDigest: entry.digest,
+  });
+  return lease;
+}
+
+export function consumeLinuxSubreaperHelper(lease) {
+  const entry = leases.get(lease);
+  if (!entry) throw failure("invalid-or-consumed-helper-lease");
+  leases.delete(lease);
+  let released = false;
+  return Object.freeze({
+    ...entry,
+    release() {
+      if (!released) {
+        released = true;
+        fs.closeSync(entry.descriptor);
+      }
+    },
+  });
+}

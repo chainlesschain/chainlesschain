@@ -46,6 +46,8 @@ import {
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
 import { normalizeLinuxCgroupPolicy } from "./linux-cgroup-v2.js";
+import { acquireLinuxSubreaperHelper } from "./linux-subreaper-helper.js";
+import { spawnLinuxSubreaperChild } from "./linux-subreaper-process.js";
 import {
   MACOS_MCP_LAUNCHER_INPUTS,
   isMacosMcpLauncherPackageVersion,
@@ -1187,6 +1189,7 @@ class ProcessExecutionBroker extends EventEmitter {
   _sanitizeOptions(options) {
     if (!options) return {};
     const safe = { ...options };
+    delete safe.linuxSubreaper;
     if (process.platform === "win32" && safe.shell === true) {
       safe.windowsHide = true;
     }
@@ -4800,7 +4803,55 @@ class ProcessExecutionBroker extends EventEmitter {
         );
         auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
       }
-      proc = nativeSpawnFn(command, args, optsForSpawn);
+      if (
+        process.platform === "linux" &&
+        options.linuxSubreaper &&
+        !sandboxPlan.guarantees.includes(SANDBOX_BOUNDARIES.PROCESS_TREE)
+      ) {
+        const request = options.linuxSubreaper;
+        const stdio = optsForSpawn.stdio;
+        if (
+          !request ||
+          typeof request !== "object" ||
+          Array.isArray(request) ||
+          Object.keys(request).some((key) => key !== "graceMs") ||
+          !Number.isSafeInteger(request.graceMs) ||
+          request.graceMs < 0 ||
+          request.graceMs > 2147483647 ||
+          sandboxPlan.postSpawn.required ||
+          options.shell ||
+          optsForSpawn.shell ||
+          optsForSpawn.detached ||
+          (stdio !== undefined && stdio !== "pipe") ||
+          ["uid", "gid", "signal", "timeout", "input", "argv0"].some(
+            (key) => optsForSpawn[key] !== undefined,
+          ) ||
+          (sandboxPlan.applied && sandboxPlan.backend !== "linux-prlimit")
+        ) {
+          const error = new Error(
+            "Linux external-agent supervision cannot preserve this launch plan",
+          );
+          error.code = "EXTERNAL_AGENT_SUPERVISION_UNSUPPORTED_PLAN";
+          throw error;
+        }
+        const helper = acquireLinuxSubreaperHelper({
+          spawnSync: this._native?.spawnSync || nativeSpawnSync,
+        });
+        proc = spawnLinuxSubreaperChild(
+          command,
+          args,
+          {
+            cwd: path.resolve(optsForSpawn.cwd || cwd),
+            env: optsForSpawn.env || process.env,
+            graceMs: request.graceMs,
+            helper,
+          },
+          { spawn: nativeSpawnFn },
+        );
+        auditEntry.processLifecycleOwner = "linux-subreaper";
+      } else {
+        proc = nativeSpawnFn(command, args, optsForSpawn);
+      }
       if (builtInMacMcpPlan) {
         const callerLifeline = proc?.stdio?.[8];
         if (
@@ -4912,6 +4963,10 @@ class ProcessExecutionBroker extends EventEmitter {
 
       proc.on("exit", (code, signal) => {
         const endTime = Date.now();
+        if (proc.ownedProcessTreeEvidence) {
+          auditEntry.processLifecycleReceipt = proc.ownedProcessTreeEvidence;
+          auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
+        }
         auditEntry.exitCode = code;
         auditEntry.signal = signal;
         auditEntry.endTime = endTime;
@@ -4929,6 +4984,10 @@ class ProcessExecutionBroker extends EventEmitter {
         this.emit("exit", auditEntry);
       });
       proc.on("error", (err) => {
+        if (proc.ownedProcessTreeEvidence) {
+          auditEntry.processLifecycleReceipt = proc.ownedProcessTreeEvidence;
+          auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
+        }
         auditEntry.error = err.message;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;

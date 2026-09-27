@@ -545,3 +545,17 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 `2c4fe5206393d02b8527c45f75846709e48a2cd1` 的 [Linux ARM64 VS Code 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36329903276/job/108656030091)已通过。下载 artifact `10936184083`，独立复核 stable `1.139.1` 和 minimum `1.85.2` 的 60 个文件、两个 evidence/bundle digest、同一 VSIX 摘要、初始/重启宿主 ARM64 身份及九个实际 DOM 旅程步骤，保存[回执](./ide/evidence/vscode-linux-arm64-2c4fe52063.json)。两版本均验证 stream、retry、plan approval、permission、interrupt、Workbench 调度/回复/产物、IDE 重启及 Workbench 恢复；真实主/伴随窗口同时监听，bridge token 和 workspace identity 不同，主窗口保留两个 workspace roots。
 
 这两单元使用合成模型夹具，属于记录的旧修复提交；不替代最终 SHA，不扩展为真实 provider、完整 canonical replay/rewind/compaction 或真人可访问性验收。部分诊断日志按既有上限截断，回执保留该限制，已校验保存字节而非宣称完整日志。该 run 的五个 JetBrains 单元已通过，VS Code Windows/macOS 作业及 11 单元总验收在本次查询时仍未齐备。
+
+### BRIDGE-01：可信 Linux helper 接入实际 Broker 与 bridge（2026-09-28）
+
+本批把 subreaper 接入实际 `ClaudeCodeAgent` → Broker → `linux-prlimit` 启动路径。先执行原命令权限、凭据、工作区和沙箱准入，再监督已经批准的 command/argv/env/cwd；已有强进程树后端继续使用其既有路径。生命周期回执不增加 `process-tree` 沙箱保证。拒绝不支持的 shell、detached、stdio、身份和异步控制选项，防止包装后默默改变原计划。真实参数/环境/目录回归与拒绝命令负例通过；另一个负例发现 prlimit 已把 `shell:true` 转换为显式 shell 命令，因而同时检查原始请求和转换后的选项。
+
+helper 只从包内固定摘要的 C 源码构建，canonical LF 摘要为 `sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424`。使用 root 所有且不可被普通用户写入的系统编译器、固定参数和干净环境；源码通过同一 FD 有界读取校验，再从 stdin 编译。构建目录通过继承 FD 绑定，产物校验 ELF/架构/权限/身份后 unlink，单次私有 lease 经 fd 4 启动同一镜像，不再打开可替换的可执行路径。缓存有界，验证失败、原生启动抛错和重复消费均有描述符释放回归；真实原生目标确认不继承 fd 3/4 等安装控制句柄。编译失败、源码漂移和错误 ELF 明确拒绝，不输出编译器原始诊断。
+
+Broker-facing child 仅在监督器正常关闭且收到有效零子进程回执时发出目标 exit/close，保留目标退出码、信号和 exec 失败。Bridge 沿该关闭证据结算，启动后 bookkeeping 失败也等待后代清理；审计保留 lifecycle receipt 和真实目标 PID。取消宽限支持 Node 计时器的非负整数范围，不将调用方超过 5 秒的设置默默截断。
+
+WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新会话后代、根正常先退出、根响应 TERM 退出、双重 fork、超时、后代启动后 bookkeeping 抛错、监督器被外部强杀。前 7 个场景确认回收，所有观测 PID 均消失；取消类从 ready 到结算须小于 2 秒，超时类小于 4 秒，不能借夹具 6 秒自退出冒充成功。第 8 个场景保留反例：后代仍执行时回执为 unconfirmed，Bridge 不发完成、不允许新任务复用，夹具随后自行退出。此进展验证原 bridge 的 Linux 正常取消残留修复，但不证明监督器死亡后的强制回收。
+
+安装分发仍未完成：当前 Linux 主机需要可用的系统 C 编译器，预编译/无编译器安装与 Linux 架构矩阵待补；未确认清理后的有界失败展示、持久隔离及恢复也待实现。macOS、最终准确 SHA 的托管三系统和真实 provider 继续验收，生产 AgentRouter attestation gate 不变。BRIDGE-01 继续局部完成，不升版本、不发布。
+
+相关 11 个文件的扩大回归：WSL1 480 项通过、9 项平台跳过；Windows 450 项通过、39 项平台跳过。覆盖 Broker 沙箱/工作区事务、helper 身份与 FD 生命周期、实际 bridge 树清理及既有 bridge 合同。ESLint 无新增错误（两个既有文件合计 10 个 unused warning）、Prettier 和进程调用清单一致性检查通过；本地结果不替代 GitHub Actions 的准确最终 SHA 发布门。
