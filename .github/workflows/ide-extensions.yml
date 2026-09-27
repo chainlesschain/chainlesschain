@@ -885,8 +885,14 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
-      - name: Verify Remote Robot startup retry contract
-        run: node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
+      - name: Install CLI dependencies for canonical host recovery
+        run: >-
+          npm ci --workspace packages/cli --include-workspace-root=false
+          --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Verify Remote Robot startup and recovery evidence contracts
+        run: >-
+          node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
+          packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs
       - name: Make gradlew executable
         if: runner.os != 'Windows'
         working-directory: packages/jetbrains-plugin
@@ -911,6 +917,25 @@ jobs:
           --ide-version ${{ matrix.ide.version }}
           --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/${{ runner.os }}-${{ matrix.ide.version }}
+      - name: Run canonical recovery and Stop journey (Linux)
+        if: runner.os == 'Linux'
+        env:
+          CC_UI_CONVERSATION_RECOVERY: "1"
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide.version }}
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
+          --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/canonical-${{ runner.os }}-${{ matrix.ide.version }}
+      - name: Run canonical recovery and Stop journey (Windows/macOS)
+        if: runner.os != 'Linux'
+        env:
+          CC_UI_CONVERSATION_RECOVERY: "1"
+        run: >-
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide.version }}
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
+          --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/canonical-${{ runner.os }}-${{ matrix.ide.version }}
       - name: Upload host journey evidence
         if: always()
         uses: actions/upload-artifact@v6

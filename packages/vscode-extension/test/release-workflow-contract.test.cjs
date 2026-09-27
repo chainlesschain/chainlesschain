@@ -83,9 +83,48 @@ test("every IDE gate checks out and records the exact source commit", () => {
   assert.equal(
     workflow.match(/--release-commit \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)
       ?.length,
-    8,
-    "all six local VS Code and two JetBrains host journeys must record that commit",
+    10,
+    "all six local VS Code and four JetBrains host journey commands must record that commit",
   );
+});
+
+test("JetBrains host matrix gates both original controls and canonical Stop recovery", () => {
+  const job = workflowJob(
+    read(".github/workflows/ide-extensions.yml"),
+    "jetbrains-host-matrix",
+  );
+  assert.match(job, /os: \[windows-latest, ubuntu-latest, macos-latest\]/u);
+  assert.match(job, /version: "2024\.2"/u);
+  assert.match(job, /version: "2025\.2"/u);
+  assert.match(
+    job,
+    /npm ci --workspace packages\/cli --include-workspace-root=false/u,
+  );
+  assert.match(job, /conversation-recovery-evidence\.test\.mjs/u);
+  assert.equal(
+    job.match(/Run deterministic chat\/control\/resume journey/gu)?.length,
+    2,
+  );
+  assert.equal(
+    job.match(/Run canonical recovery and Stop journey/gu)?.length,
+    2,
+  );
+  assert.equal(job.match(/CC_UI_CONVERSATION_RECOVERY: "1"/gu)?.length, 2);
+  assert.equal(
+    job.match(
+      /ide-journey\/canonical-\$\{\{ runner\.os \}\}-\$\{\{ matrix\.ide\.version \}\}/gu,
+    )?.length,
+    2,
+  );
+  assert.ok(
+    job.indexOf("Install CLI dependencies") <
+      job.indexOf("Run canonical recovery"),
+  );
+  assert.ok(
+    job.lastIndexOf("Run canonical recovery") <
+      job.indexOf("Upload host journey evidence"),
+  );
+  assert.doesNotMatch(job, /continue-on-error: true/u);
 });
 
 test("VS Code channel credentials are checked before their immutable publishes", () => {

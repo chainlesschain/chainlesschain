@@ -321,6 +321,12 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 
 独立重跑全部 v2 验证器，核对 **34 个产物的长度/SHA-256**、完整 ZIP 安装清单、bundle/evidence digest、六条 A/B 渲染行与真实 canonical 提交引用，保存[恢复与 Stop 回执](./ide/evidence/jetbrains-canonical-recovery-windows-989a46cd6e.json)。证据 digest `sha256:66c4ed0f29ef58ff288b76e0ce328706230a6836e0fcd529807e5665f95b5d33`；插件 ZIP 与前一生产实现相同（`sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d`）。范围仅为 Windows x64 / IntelliJ 2024.2 的 init 等待取消；未覆盖磁盘保存/附件准备/阻塞 stdin 的全部 GUI 分支、再次发送后的 Stop、真实 provider 或其他系统。
 
+### JetBrains canonical 恢复接入发布宿主矩阵
+
+`IDE Extensions` 的 Windows/Linux/macOS × IntelliJ 2024.2/2025.2 六个宿主单元，保留原 chat/control/Workbench/rewind 旅程，额外执行 canonical recovery v2（包括 init 等待中的 Stop）。新增锁文件约束的 CLI workspace 依赖安装，以运行实际 CLI 历史子进程；每个旅程独立 profile/项目及证据目录，使用同一准确源码 SHA，任一旅程失败即阻止该宿主 job 通过。
+
+更新后的发布/前置检查契约共 21 项 Node 测试通过，actionlint 通过。此处记录 CI 配置已接入，尚未取得六单元的远端通过结果；本地 Windows 2024.2 回执不扩大为整套矩阵通过。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。
