@@ -27,6 +27,9 @@ export function assertConversationRecovery(initial, restart, records) {
   ]) {
     assert.equal(evidence.schema, "cc-jetbrains-conversation-recovery/v1");
     assert.equal(evidence.phase, phase);
+    assert.equal(evidence.installation.exactZipContents, true);
+    assert.match(evidence.installation.archiveSha256, /^sha256:[a-f0-9]{64}$/u);
+    assert.ok(Object.keys(evidence.installation.files).length > 0);
     assert.notEqual(evidence.a.id, evidence.b.id);
     assert.notEqual(evidence.a.sessionId, evidence.b.sessionId);
     const ids = new Set();
@@ -77,6 +80,11 @@ export function assertConversationRecovery(initial, restart, records) {
       restart[key].savedRows.map((row) => row.id),
     );
   }
+  assert.deepEqual(
+    initial.installation,
+    restart.installation,
+    "same packaged plugin must be installed in both host processes",
+  );
   const start = Date.parse(initial.backgroundAt),
     done = Date.parse(initial.backgroundCompletedAt),
     end = Date.parse(initial.foregroundReturnAt);

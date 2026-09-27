@@ -847,6 +847,20 @@ export async function runJourney(options) {
       "prepare",
     );
     const fixtureEnvironment = createFakeCliEnvironment(logRoot);
+    const pluginArchive = findPluginArchive(
+      path.join(PACKAGE_ROOT, "build", "distributions"),
+      readPluginVersion(
+        path.join(
+          PACKAGE_ROOT,
+          "src",
+          "main",
+          "resources",
+          "META-INF",
+          "plugin.xml",
+        ),
+      ),
+    );
+    if (!pluginArchive) throw new Error("Built plugin archive is missing");
     const hostPhases = [];
     for (const phase of ["initial", "restart"]) {
       for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -877,7 +891,10 @@ export async function runJourney(options) {
               `-Dui.journey.phase=${phase}`,
               `-Dui.metrics.path=${metricsPath}`,
               ...(fixtureEnvironment.CC_UI_CANONICAL_ROOT
-                ? [`-Dui.recovery.root=${logRoot}`]
+                ? [
+                    `-Dui.recovery.root=${logRoot}`,
+                    `-Dui.plugin.archive=${pluginArchive}`,
+                  ]
                 : []),
               ...gradleOptions,
             ],

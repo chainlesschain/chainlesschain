@@ -35,6 +35,12 @@ function valid() {
     initial.backgroundAt,
     initial.foregroundReturnAt,
   ].map((observedAt) => ({ ...initial.b, observedAt }));
+  initial.installation = {
+    pluginPath: "sandbox/plugin",
+    archiveSha256: `sha256:${"a".repeat(64)}`,
+    exactZipContents: true,
+    files: { "lib/plugin.jar": `sha256:${"b".repeat(64)}` },
+  };
   const restart = structuredClone(initial);
   restart.phase = "restart";
   restart.a.processId = restart.b.processId = "200";
@@ -63,6 +69,19 @@ test("accepts native recovery with same saved identities, new process and no rep
   assert.equal(verify(valid()).processRestart, true);
 });
 for (const [name, mutate] of [
+  [
+    "non-package installation",
+    (v) => {
+      v.initial.installation.exactZipContents = false;
+    },
+  ],
+  [
+    "changed installed artifact",
+    (v) => {
+      v.restart.installation.files["lib/extra.jar"] =
+        `sha256:${"c".repeat(64)}`;
+    },
+  ],
   [
     "same process",
     (v) => {

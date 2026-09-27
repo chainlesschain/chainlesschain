@@ -1,0 +1,117 @@
+{
+  "schema": "chainlesschain.local-ide-recovery-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "edc2d89cc6a5bc537137e91415800f10e89004de",
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.4.139",
+  "startedAt": "2026-09-27T09:24:41.009Z",
+  "finishedAt": "2026-09-27T09:27:26.311Z",
+  "model": "deterministic fixture",
+  "persistence": "production canonical store, receipts, and actual CLI history subprocess",
+  "evidence": {
+    "digest": "sha256:dd3747653fbdb75161ddf0aa1b6d20544de58ed9c356d490f6c73fd783b2a29f",
+    "artifactBundleDigest": "sha256:b1a0ec4debaa53b8ae24fb32f293dea35010229afd85b306777b49672b65e7e7",
+    "artifactsVerified": 24,
+    "bundleLocation": ".tmp/jetbrains-canonical-recovery-edc2d89cc6",
+    "allJourneyAssertionsRevalidated": true,
+    "renderedIdsMatchCommittedReferences": true
+  },
+  "archiveSha256": "sha256:111483296646e9f9f084fba46664c9f5e7396478a53536fe3ff2eef724002c0a",
+  "artifactInstall": {
+    "method": "Gradle sandbox",
+    "productionJarMatchesArchive": true,
+    "fullZipParity": false,
+    "extra": [
+      "lib/annotations-13.0.jar",
+      "lib/junit-jupiter-5.10.2.jar",
+      "lib/junit-jupiter-api-5.10.2.jar",
+      "lib/junit-jupiter-engine-5.10.2.jar",
+      "lib/junit-jupiter-params-5.10.2.jar",
+      "lib/junit-platform-commons-1.10.2.jar",
+      "lib/junit-platform-engine-1.10.2.jar",
+      "lib/junit-platform-launcher-1.10.2.jar",
+      "lib/kotlin-stdlib-1.9.24.jar",
+      "lib/opentest4j-1.3.0.jar"
+    ],
+    "missing": [
+      "lib/chainlesschain-ide-bridge-0.4.139-searchableOptions.jar"
+    ],
+    "changed": []
+  },
+  "initial": {
+    "processId": "9868",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790501163998-b06418",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790501163998-b06418:e0ff5f73962e56aac82ffabf90851a8dc2d9e6b1d417e723a77cd73c39d2878a:0",
+        "panel-1790501163998-b06418:ac87fd3dee52063f90b0c7ffa5056bb5530cd00c60c6c7a31e71660b8596b4bb:0",
+        "panel-1790501163998-b06418:7affa4f4305d2156173f9088cc149e176eee61cf94580f3b2d7efe0ab1380ff3:0",
+        "panel-1790501163998-b06418:34e12f75dee7ff49b87af899f6ec0a65d9475fb9371eea3be5a14f7c2ee943c3:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790501172473-0d7e70",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790501172473-0d7e70:e350e1678421d193c1071b20f839253f3d91e4e98c329cdcc3002387f6f717d0:0",
+        "panel-1790501172473-0d7e70:aa608ca47a5ac7f9a3984b74cf7a00c03694b08a2ac46f43e87e3ca172432283:0"
+      ]
+    }
+  },
+  "restart": {
+    "processId": "25640",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\IC-2024.2\\config_runIdeForUiTests",
+    "a": {
+      "sessionId": "panel-1790501163998-b06418",
+      "draft": "unsent draft A 中文😀",
+      "savedRowIds": [
+        "panel-1790501163998-b06418:e0ff5f73962e56aac82ffabf90851a8dc2d9e6b1d417e723a77cd73c39d2878a:0",
+        "panel-1790501163998-b06418:ac87fd3dee52063f90b0c7ffa5056bb5530cd00c60c6c7a31e71660b8596b4bb:0",
+        "panel-1790501163998-b06418:7affa4f4305d2156173f9088cc149e176eee61cf94580f3b2d7efe0ab1380ff3:0",
+        "panel-1790501163998-b06418:34e12f75dee7ff49b87af899f6ec0a65d9475fb9371eea3be5a14f7c2ee943c3:0"
+      ]
+    },
+    "b": {
+      "sessionId": "panel-1790501172473-0d7e70",
+      "draft": "unsent draft B 中文😀",
+      "savedRowIds": [
+        "panel-1790501172473-0d7e70:e350e1678421d193c1071b20f839253f3d91e4e98c329cdcc3002387f6f717d0:0",
+        "panel-1790501172473-0d7e70:aa608ca47a5ac7f9a3984b74cf7a00c03694b08a2ac46f43e87e3ca172432283:0"
+      ]
+    }
+  },
+  "background": {
+    "start": "2026-09-27T09:26:12.718672600Z",
+    "completed": "2026-09-27T09:26:17.366Z",
+    "foregroundReturn": "2026-09-27T09:26:21.882223800Z"
+  },
+  "verification": {
+    "backgroundCompletion": true,
+    "distinctSavedRows": 6,
+    "independentDrafts": true,
+    "processRestart": true,
+    "automaticInputReplay": false,
+    "providerEvidence": "deterministic fixture"
+  },
+  "limitations": [
+    "Windows x64 / IntelliJ 2024.2 only",
+    "Standalone recovery journey; does not replace existing chat/control/Workbench/rewind journey",
+    "Model replies are deterministic; no live-provider quality, image/question recovery, canonical rewind/compaction, human accessibility, or long observation acceptance",
+    "Exact release SHA CLI CI and Strict Sandbox matrices remain required; release child npm packages, then CLI, then IDE",
+    "Gradle sandbox includes test runtime libraries and lacks packaged searchable options; this is not a clean ZIP installation acceptance"
+  ],
+  "receiptDigest": "sha256:e7e178b5783baa764579aaf82d5acc48a3fa37be6d47491d377099d65cf88ba2"
+}

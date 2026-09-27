@@ -263,6 +263,12 @@ UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有�
 
 第二次（源码 `1b9a0190d1`）初始及真实进程重启的 GUI 断言均通过，保存行身份和双草稿保留，但整体证据验证失败：Windows `JTextPane.getText()` 经 EditorKit 输出 CRLF，而每条保存行从 `Document.getText()` 读取为 LF，严格的“行正文属于渲染文档”比较因此不匹配。驱动统一从同一 Document API 读取全文和行，保留严格归属断言。旧失败 bundle `.tmp/jetbrains-canonical-recovery-1b9a0190d1`（digest `sha256:96d287db4ba4fd126f20d0cfc3cc307c5dfc61e6e07cd7a5377dcf12205659f4`）不回写为成功。
 
+第三次（干净源码 `edc2d89cc6`）完整旅程及证据汇总通过，工具退出码 0。独立复核 24 个产物哈希、bundle/evidence digest、全部恢复断言及六条渲染行与 canonical 提交引用的对应关系，通过后保存[本地回执](./ide/evidence/jetbrains-canonical-recovery-windows-edc2d89cc6.json)。证据 digest 为 `sha256:dd3747653fbdb75161ddf0aa1b6d20544de58ed9c356d490f6c73fd783b2a29f`。
+
+安装核对同时发现：Gradle testing extension 的 GUI 沙箱将 JUnit/Kotlin test runtime 放入本插件目录，且未包含 ZIP 的 searchable-options JAR。生产插件 JAR 与 ZIP 字节相同，但该次不是干净 ZIP 安装验收，回执明确保留这一限制。新增 `installUiJourneyPlugin`：在宿主启动前将本插件目录同步为实际构建 ZIP 的内容，保留独立的 Robot 插件；同步前检查规范路径限定在工作区 `build/idea-sandbox` 内。恢复驱动初始/重启两阶段均读取实际已加载插件路径，逐文件比较 ZIP 的完整清单和 SHA-256，禁止额外测试依赖，记录安装证据。
+
+新增安装任务及 UI 编译通过，实际沙箱本插件目录仅有 ZIP 中两个 JAR；25 项 Node 证据/启动器测试、11 项既有夹具回归通过，JS ESLint 无错误。干净 ZIP 的实际 GUI 重跑待完成，第三次有限通过结果不扩大为这一新增门禁通过。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

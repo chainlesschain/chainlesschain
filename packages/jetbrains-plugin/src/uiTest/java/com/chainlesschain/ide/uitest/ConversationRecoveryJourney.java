@@ -137,6 +137,40 @@ final class ConversationRecoveryJourney {
         }
         return null;
     }
+    private static String digest(byte[] bytes) throws Exception {
+        return "sha256:" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+    }
+    private JsonObject verifyInstalledArchive() throws Exception {
+        Object location = frame.callJs("String(Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin("
+                + "Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginPath());");
+        Path installed = Paths.get(String.valueOf(location)).toRealPath();
+        Path archive = Paths.get(System.getProperty("ui.plugin.archive"));
+        assertTrue(Files.isRegularFile(archive), "actual built ZIP is required");
+        java.util.Map<String,String> expected = new java.util.TreeMap<>(), actual = new java.util.TreeMap<>();
+        try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(archive.toFile())) {
+            for (var entries = zip.entries(); entries.hasMoreElements();) {
+                var entry = entries.nextElement(); if (entry.isDirectory()) continue;
+                assertTrue(entry.getName().startsWith("chainlesschain-ide-bridge/"));
+                String name = entry.getName().substring("chainlesschain-ide-bridge/".length());
+                assertTrue(installed.resolve(name).normalize().startsWith(installed));
+                try (var stream = zip.getInputStream(entry)) {
+                    assertNull(expected.put(name, digest(stream.readAllBytes())), "duplicate archive entry");
+                }
+            }
+        }
+        try (var files = Files.walk(installed)) {
+            for (Path file : files.toList()) {
+                assertFalse(Files.isSymbolicLink(file), "installed plugin must not redirect reads");
+                if (Files.isRegularFile(file)) actual.put(installed.relativize(file).toString().replace('\\','/'), digest(Files.readAllBytes(file)));
+            }
+        }
+        assertFalse(expected.isEmpty());
+        assertEquals(expected, actual, "GUI plugin contents must exactly match the built ZIP, without test runtime libraries");
+        JsonObject result = new JsonObject();
+        result.addProperty("pluginPath", installed.toString()); result.addProperty("archiveSha256", digest(Files.readAllBytes(archive)));
+        result.add("files", JSON.toJsonTree(actual)); result.addProperty("exactZipContents", true);
+        return result;
+    }
     void run(String phase) throws Exception {
         Path baselinePath = root.resolve("conversation-recovery-initial.json");
         JsonObject evidence = new JsonObject();
@@ -144,6 +178,7 @@ final class ConversationRecoveryJourney {
         evidence.addProperty("phase", phase);
         evidence.addProperty("model", "deterministic fixture");
         evidence.addProperty("persistence", "production canonical store and actual CLI command");
+        evidence.add("installation", verifyInstalledArchive());
         if (phase.equals("initial")) {
             JsonObject a = newTab(); send("journey:history-A");
             a = waitFor("A started", s -> text(s,"text").contains("checking history fixture"));
