@@ -1,0 +1,150 @@
+{
+  "schema": "chainlesschain.packaged-subreaper-evidence/v1",
+  "commit": "3385b2871dfaad491bddd539fea44308f09611dc",
+  "sourceDirty": false,
+  "cleanAtEnd": true,
+  "releaseEligible": false,
+  "host": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v22.12.0"
+  },
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+      "digest": "sha256:da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+      "digest": "sha256:b4ca79285db04bb31f686b5a50fbeaa107dc3041e2d17b5cd9cf12d8dce1a432"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+      "digest": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+      "digest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+    },
+    {
+      "path": "packages/cli/scripts/build-linux-subreaper.mjs",
+      "digest": "sha256:d06386a2f98f22ed07775970a33d5e7515754768a207c2a2425e806636e0c090"
+    },
+    {
+      "path": "packages/cli/scripts/linux-subreaper-package-smoke.mjs",
+      "digest": "sha256:5b01b634e44224f7d2436a2d53af59878f2170b9eaba4c3960831a84b8e8b572"
+    },
+    {
+      "path": "packages/cli/scripts/npm-release-artifact.mjs",
+      "digest": "sha256:f127ad8e3bd5de619b8d57be38c25603248e7852bb4c0f297ffb4187f70ead1b"
+    },
+    {
+      "path": ".github/workflows/_cli-linux-subreaper.yml",
+      "digest": "sha256:45f32b4098f872d68518ec05155ffb6de05f0d6803bcd31d2b776776a5915073"
+    },
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "digest": "sha256:04cc5fab101c4a246a09276b56a87b56e88e7020a01fed0cfb186861c604a7eb"
+    },
+    {
+      "path": ".github/workflows/npm-publish.yml",
+      "digest": "sha256:864acfc684b84659149da054198007b50d93cdca695b538223f001bcfdcc4ac5"
+    }
+  ],
+  "tarball": {
+    "path": ".tmp/subreaper-npm-ijWMDA/chainlesschain-0.166.77.tgz",
+    "bytes": 8776555,
+    "digest": "sha256:c914fbdd57a10ecc5163748c151278f7e619dda1c1d79be74009cc0cea117346"
+  },
+  "smoke": {
+    "schema": "chainlesschain.linux-subreaper-package-smoke/v1",
+    "commit": "3385b2871dfaad491bddd539fea44308f09611dc",
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v22.12.0",
+    "compilerAbsent": false,
+    "compilerCalls": 0,
+    "manifest": {
+      "schema": "chainlesschain.linux-subreaper-artifact/v1",
+      "platform": "linux",
+      "arch": "x64",
+      "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "imageDigest": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b",
+      "bytes": 934136,
+      "linkage": "static",
+      "commit": "3385b2871dfaad491bddd539fea44308f09611dc"
+    },
+    "receipt": {
+      "targetPid": 78,
+      "target": {
+        "code": -1,
+        "signal": 9,
+        "spawnErrno": 0
+      },
+      "supervisor": {
+        "code": 0,
+        "signal": null,
+        "closed": true
+      },
+      "cleanup": {
+        "mode": "linux-subreaper",
+        "confirmed": true,
+        "descendantsReaped": true,
+        "reaped": 2,
+        "protocolError": null,
+        "processTreeContained": false
+      },
+      "helper": {
+        "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+        "imageDigest": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b",
+        "binding": "unlinked-inherited-fd",
+        "distribution": "packaged-static"
+      }
+    },
+    "pids": [
+      78,
+      85
+    ],
+    "elapsedAfterReadyMs": 135.04680000000002
+  },
+  "limitations": [
+    "Local WSL1 x64 with a compiler installed; proves zero compiler invocation, not physical compiler absence",
+    "Only current-architecture helper is in this local tarball; production release requires both native architecture artifacts",
+    "No public npm install, full CLI/provider acceptance or production release"
+  ],
+  "status": "local-x64-npm-tarball-verified-hosted-no-compiler-matrix-pending",
+  "sourceReportDigest": "sha256:5558c4ad064d533ec21c4a3ded48245cc2e19e45a209f3fe3bed11481125fa69",
+  "archiveAuthorities": [
+    {
+      "path": "package/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+      "bytes": 4032,
+      "digest": "sha256:da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa"
+    },
+    {
+      "path": "package/src/lib/process-execution-broker/linux-subreaper-helper.js",
+      "bytes": 10865,
+      "digest": "sha256:b4ca79285db04bb31f686b5a50fbeaa107dc3041e2d17b5cd9cf12d8dce1a432"
+    },
+    {
+      "path": "package/src/lib/process-execution-broker/linux-subreaper-process.js",
+      "bytes": 10633,
+      "digest": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3"
+    },
+    {
+      "path": "package/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+      "bytes": 13923,
+      "digest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424"
+    },
+    {
+      "path": "package/src/assets/linux-subreaper/linux-x64/manifest.json",
+      "bytes": 384,
+      "digest": "sha256:324f42e31df16e819625b25de5091a443f89aa7b388bb01799d11fb3d2b9b436"
+    },
+    {
+      "path": "package/src/assets/linux-subreaper/linux-x64/supervisor",
+      "bytes": 934136,
+      "digest": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b"
+    }
+  ],
+  "evidenceDigest": "sha256:6582ce8bcb8976cdb7a0e3a7dc38f72af60a3ddf60a1d02f46d5ab42d664c012"
+}

@@ -10,7 +10,7 @@
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
 | CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
-| BRIDGE-01               | 局部实现并验证   | Broker 启动后抛错保留 child 至真实 close，88 项通过；Linux subreaper 原生组件已清理新会话和双重 fork 后代，WSL 27 项通过 | helper 安装与身份校验、生产 Broker/bridge 接入及跨平台验收待完成；原 bridge 残留仍开放，监督器被强杀不保证清树；主路由继续拒绝未 attested CLI |
+| BRIDGE-01               | 局部实现并验证   | `59ef6116e4` 已接入实际 Broker/bridge 并修复 WSL 普通取消残留；`3385b2871d` 加入静态 helper 分发，干净提交实际 npm tarball 的 x64 安装探针通过且 compiler 调用为 0 | 托管 x64/ARM64 无编译器矩阵、standalone 分发、监督器丢失后的隔离恢复、macOS 及最终三系统验收；主路由继续拒绝未 attested CLI |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
 | IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
@@ -564,7 +564,7 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 
 ### BRIDGE-01：预编译 Linux helper 的 npm 分发与安装验证（2026-09-28）
 
-新增 x64 / ARM64 的静态构建与受限 ELF 校验：固定 canonical C 源码摘要、原生架构编译、无动态加载器/动态段，并记录源码提交、架构、字节长度和二进制摘要。运行时从包内固定目录读取 manifest 与镜像，同 FD 有界读取并校验，再复制到私有目录、unlink 并沿原继承 FD 启动。目录和文件均禁止链接替换，目录 FD 绑定后再读取子项。只有完全没有预编译目录的源码开发环境可使用系统编译器；已安装目录缺失某个文件、内容损坏或身份不匹配均拒绝，不通过重新编译掩盖损坏。
+`3385b2871dfaad491bddd539fea44308f09611dc` 新增 x64 / ARM64 的静态构建与受限 ELF 校验：固定 canonical C 源码摘要、原生架构编译、无动态加载器/动态段，并记录源码提交、架构、字节长度和二进制摘要。运行时从包内固定目录读取 manifest 与镜像，同 FD 有界读取并校验，再复制到私有目录、unlink 并沿原继承 FD 启动。目录和文件均禁止链接替换，目录 FD 绑定后再读取子项。只有完全没有预编译目录的源码开发环境可使用系统编译器；已安装目录缺失某个文件、内容损坏或身份不匹配均拒绝，不通过重新编译掩盖损坏。
 
 `CLI CI` 新增原生 Linux x64 / ARM64 两个必需单元，复用同一构建工作流；每个单元先实际 `npm pack --ignore-scripts` 并解包，再在 `node:22.12.0-bookworm-slim`、无网络的容器中检查标准编译器路径确实不存在，针对解包目录运行 detached 后代取消/回收探针。探针还把任何运行时 compiler 调用设为失败。npm 发布在准确 SHA 门通过后运行相同矩阵，再下载两个准确 SHA 的产物，才允许打包。不可变 tarball 的创建与发布前复核均必须读到两种架构的有效静态镜像、匹配源码及 commit；缺 ARM64、旧 commit、坏镜像、源码漂移和伪造 attestation 均被拒绝，即使重新计算外层压缩包摘要也不能跳过内部检查。子 npm 包 → CLI → IDE 的发布次序不变。
 
@@ -573,3 +573,5 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 另外从实际项目执行 npm pack、解包后运行同一探针，确认 `files: ["src/"]` 会包含生成的静态 helper、manifest 及运行时模块，编译器调用仍为 0，实际后代回收通过。此次开发工作区探针标记 `sourceDirty:true`，不作为干净提交或发布资格；干净代码提交后另存回执。
 
 本机 Docker daemon 未运行，本地证明的是安装加载路径不调用编译器，**尚未取得物理上无编译器容器或 ARM64 的实际通过结果**。新矩阵实现不等于该验收已完成，必须复核远端结果及对应产物。完整 CLI 首次公开安装、standalone native 打包分发、监督器丢失后的有界失败/持久隔离恢复、macOS 和最终三系统门仍待验收；本批未发布、未扩展外部 Agent 准入，BRIDGE-01 继续局部完成。
+
+干净 `3385b2871d` 的[实际 npm 包回执](./cli/evidence/packaged-subreaper-wsl-3385b2871d.json)确认开始/结束源码干净，8,776,555 字节 tarball 的 SHA-256 为 `c914fbdd57a10ecc5163748c151278f7e619dda1c1d79be74009cc0cea117346`。独立重新读取压缩包中的 4 个运行时源码/C 文件、manifest 和 ELF，逐项核对源文件及镜像摘要；实际运行镜像摘要 `af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b` 与打包字节一致。ready 后 135.05 ms 完成取消和两进程回收，compiler 调用为 0，`compilerAbsent:false` 如实保留。此本地 tarball 只含 x64，按新的完整发布门不能发布；x64/ARM64 无编译器托管单元和最终 SHA 的 CI 继续等待。
