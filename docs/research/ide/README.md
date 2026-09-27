@@ -11,3 +11,4 @@
 - [ChainlessChain IDE 相对插件与 Claude Code 的不足及优化建议](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 - [ChainlessChain IDE 对照 Claude Code：净差距与优化路线图](./CLAUDE_CODE_IDE_NET_GAPS_AND_ROADMAP_2026-08-01.md)
 - [ChainlessChain 对照 Claude Code 2.1.221～2.1.238 的 IDE/CLI/Runtime 增量审计](./CLAUDE_CODE_IDE_LATEST_INCREMENT_GAP_ANALYSIS_2026-08-21.md)
+- [ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-09-27）](./ide-claude-code-codex-gap-analysis-2026-09-27.md)

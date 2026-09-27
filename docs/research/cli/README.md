@@ -10,3 +10,4 @@
 - [ChainlessChain CLI 对照 Claude Code CLI 当前净差距与优化建议](./CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md)
 - [ChainlessChain CLI 对照 Claude Code CLI 补齐与优化方案](./cli-claude-code-gap-analysis-2026-08-01.md)
 - [ChainlessChain CLI 对照 Claude Code 增量差距分析（2026-08-21）](./cli-claude-code-latest-gap-analysis-2026-08-21.md)
+- [ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-09-27）](./cli-claude-code-codex-gap-analysis-2026-09-27.md)
