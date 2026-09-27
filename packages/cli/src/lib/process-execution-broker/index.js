@@ -49,6 +49,11 @@ import { normalizeLinuxCgroupPolicy } from "./linux-cgroup-v2.js";
 import { acquireLinuxSubreaperHelper } from "./linux-subreaper-helper.js";
 import { spawnLinuxSubreaperChild } from "./linux-subreaper-process.js";
 import {
+  assertProcessOwnershipAvailable,
+  getProcessOwnershipStatus,
+  observeProcessOwnership,
+} from "./process-ownership-quarantine.js";
+import {
   MACOS_MCP_LAUNCHER_INPUTS,
   isMacosMcpLauncherPackageVersion,
 } from "./macos-mcp-launcher-contract.js";
@@ -4482,6 +4487,7 @@ class ProcessExecutionBroker extends EventEmitter {
    * and durable evidence APIs.
    */
   beginWorkspaceTransaction(options = {}) {
+    assertProcessOwnershipAvailable();
     return this._workspaceTransactionManager(
       options.stateDir,
       options.lockDir,
@@ -4489,6 +4495,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   recoverWorkspaceTransactions(options = {}) {
+    assertProcessOwnershipAvailable();
     return this._workspaceTransactionManager(
       options.stateDir,
       options.lockDir,
@@ -4502,6 +4509,10 @@ class ProcessExecutionBroker extends EventEmitter {
     ).inspect(id);
   }
 
+  getProcessOwnershipStatus() {
+    return getProcessOwnershipStatus();
+  }
+
   listWorkspaceTransactions(options = {}) {
     return this._workspaceTransactionManager(
       options.stateDir,
@@ -4510,6 +4521,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   restoreWorkspaceTransaction(id, options = {}) {
+    assertProcessOwnershipAvailable();
     return this._workspaceTransactionManager(
       options.stateDir,
       options.lockDir,
@@ -4517,6 +4529,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   undoWorkspaceTransactionRestore(id, options = {}) {
+    assertProcessOwnershipAvailable();
     return this._workspaceTransactionManager(
       options.stateDir,
       options.lockDir,
@@ -4572,6 +4585,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawn(command, args, options = {}) {
+    assertProcessOwnershipAvailable();
     options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
@@ -4849,6 +4863,7 @@ class ProcessExecutionBroker extends EventEmitter {
           { spawn: nativeSpawnFn },
         );
         auditEntry.processLifecycleOwner = "linux-subreaper";
+        observeProcessOwnership(proc, executionId);
       } else {
         proc = nativeSpawnFn(command, args, optsForSpawn);
       }
@@ -5016,6 +5031,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawnSync(command, args, options = {}) {
+    assertProcessOwnershipAvailable();
     options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
@@ -5262,6 +5278,7 @@ class ProcessExecutionBroker extends EventEmitter {
    * together with the descriptor-pinned generic bwrap plan.
    */
   spawnPty(ptyModule, command, args = [], options = {}) {
+    assertProcessOwnershipAvailable();
     if (!ptyModule || typeof ptyModule.spawn !== "function") {
       throw new TypeError("pty_module_spawn_unavailable");
     }

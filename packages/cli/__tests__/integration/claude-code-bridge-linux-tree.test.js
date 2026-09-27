@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ClaudeAdapter,
   ClaudeCodeAgent,
+  ClaudeCodePool,
   _deps,
 } from "../../src/lib/claude-code-bridge.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
@@ -136,8 +137,8 @@ describe.skipIf(process.platform !== "linux")(
             timeout: scenario === "timeout" ? 2000 : 15000,
             killGraceMs: 100,
           });
-          // On an unconfirmed cleanup the bridge intentionally stays occupied;
-          // await the owner's diagnostic receipt, not a fabricated task terminal.
+          // The owner's receipt and user-facing failure report have different
+          // meanings: an unconfirmed receipt never releases process ownership.
           const receipt = await child.ownedProcessTreeClosed;
           const audit = broker
             .getAuditLog()
@@ -160,10 +161,59 @@ describe.skipIf(process.platform !== "linux")(
             expect(pids.some(executing)).toBe(true);
             expect(observedClose).toBe(false);
             expect(completed).not.toHaveBeenCalled();
-            expect(agent.status).toBe("running");
+            outcome = await pending;
+            task.meta.bridgeTree.result = outcome;
+            task.meta.bridgeTree.failureFeedback = {
+              elapsedAfterReadyMs: performance.now() - readyAt,
+              livePids: pids.filter(executing),
+              closeObserved: observedClose,
+              ownershipRetained: agent._proc === child,
+              broker: broker.getProcessOwnershipStatus(),
+            };
+            expect(
+              task.meta.bridgeTree.failureFeedback.livePids.length,
+            ).toBeGreaterThan(0);
+            expect(outcome).toMatchObject({
+              success: false,
+              status: "quarantined",
+              errorCode: "EXTERNAL_AGENT_CLEANUP_UNCONFIRMED",
+              processOwnershipReleased: false,
+              recoveryRequired: true,
+              terminalEvidence: [],
+            });
+            expect(elapsedAfterReadyMs).toBeLessThan(2000);
+            expect(agent.status).toBe("quarantined");
+            expect(agent._proc).toBe(child);
             await expect(
               agent.executeTask("must remain owned"),
-            ).rejects.toThrow("already has a running task");
+            ).rejects.toThrow("unconfirmed process tree");
+            expect(broker.getProcessOwnershipStatus()).toMatchObject({
+              blocked: true,
+              restartSafe: false,
+            });
+            expect(() =>
+              broker.spawn(process.execPath, [], {
+                policy: "allow",
+                cwd: root,
+              }),
+            ).toThrow(
+              expect.objectContaining({
+                code: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+              }),
+            );
+            const newPool = new ClaudeCodePool();
+            expect(
+              (
+                await newPool.dispatch([
+                  { id: "new", description: "must not execute" },
+                ])
+              )[0],
+            ).toMatchObject({
+              success: false,
+              executionStarted: false,
+              status: "not-started",
+              errorCode: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+            });
             agent.abort();
           } else {
             outcome = await pending;
@@ -199,6 +249,11 @@ describe.skipIf(process.platform !== "linux")(
           while (pids?.some(executing) && Date.now() < deadline)
             await delay(25);
           if (pids) expect(pids.filter(executing)).toEqual([]);
+          if (scenario === "supervisor-loss") {
+            // Fixture expiry/PID absence is not a kernel-owned tree receipt.
+            expect(agent.status).toBe("quarantined");
+            expect(broker.getProcessOwnershipStatus().blocked).toBe(true);
+          }
           fs.rmSync(root, { recursive: true, force: true });
         }
       },

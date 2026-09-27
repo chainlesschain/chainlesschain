@@ -575,3 +575,13 @@ WSL1 真进程的 8 个生产路径场景通过：同组父子忽略 TERM、新�
 本机 Docker daemon 未运行，本地证明的是安装加载路径不调用编译器，**尚未取得物理上无编译器容器或 ARM64 的实际通过结果**。新矩阵实现不等于该验收已完成，必须复核远端结果及对应产物。完整 CLI 首次公开安装、standalone native 打包分发、监督器丢失后的有界失败/持久隔离恢复、macOS 和最终三系统门仍待验收；本批未发布、未扩展外部 Agent 准入，BRIDGE-01 继续局部完成。
 
 干净 `3385b2871d` 的[实际 npm 包回执](./cli/evidence/packaged-subreaper-wsl-3385b2871d.json)确认开始/结束源码干净，8,776,555 字节 tarball 的 SHA-256 为 `c914fbdd57a10ecc5163748c151278f7e619dda1c1d79be74009cc0cea117346`。独立重新读取压缩包中的 4 个运行时源码/C 文件、manifest 和 ELF，逐项核对源文件及镜像摘要；实际运行镜像摘要 `af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b` 与打包字节一致。ready 后 135.05 ms 完成取消和两进程回收，compiler 调用为 0，`compilerAbsent:false` 如实保留。此本地 tarball 只含 x64，按新的完整发布门不能发布；x64/ARM64 无编译器托管单元和最终 SHA 的 CI 继续等待。
+
+### BRIDGE-01：监督器丢失的失败反馈与运行时执行阻断（2026-09-28）
+
+监督器丢失后，Bridge 现在返回 `quarantined` / `EXTERNAL_AGENT_CLEANUP_UNCONFIRMED`，明确 `processOwnershipReleased:false`、`recoveryRequired:true`，不再让调用方永久等待。失败报告不代表进程关闭：保留 child、当前任务和池内占用，只发 `task:quarantined` / `agent:quarantined`，不发任务完成事件或伪造 terminal evidence。运行中、取消中、超时中及 native spawn 后 bookkeeping 失败四条路径均覆盖；收到迟到 close、重复错误或之后 PID 消失也不解除隔离。
+
+池内故障会请求取消已启动的同批任务，各自仍等待原关闭证据；后续批次及重复 dispatch 返回未启动结果。每次尝试使用独立 agent ID，防止重复 task ID 覆盖保留的实例。同一 JS 运行时的所有 Broker 共享内存准入阻断，错误回调重入、新建 Broker、换 cwd、清空审计历史都不能恢复执行。spawn / spawnSync / PTY 及它们的 exec、execFile、fork 包装在原生调用前拒绝；Broker 的工作区新事务、恢复、restore/undo 入口也拒绝，诊断查询保持可读。既有工作区事务仍只接受真实 close 和原 process-tree 保证，本次没有复用 checkpoint-restore 专属恢复租约，也没有另造可释放的工作区锁。
+
+扩大 10 文件回归：WSL 466 项通过、9 项平台跳过；Windows 467 项通过、8 项 Linux 场景跳过。覆盖原沙箱、工作区事务、AgentRouter 准入及 bridge 生命周期。真实 Linux 强杀监督器场景要求后代仍活着时在 ready 后 2 秒内返回失败，并验证没有 close、未释放句柄、新池执行被 Broker 拒绝；夹具自退出后仍保持隔离。ESLint 无新增错误或 warning（3 个既有文件共 11 个 unused warning），Prettier、diff 和进程调用清单检查通过。
+
+此阻断仅在当前运行时内有效，诊断明确 `durable:false`、`restartSafe:false`，**重启不能当作已清理或安全恢复**。持久隔离、跨重启恢复、监督器死亡后的实际后代回收及其他平台仍未完成。原始报告快照、20 组任务统计与生产 AgentRouter attestation gate 保持不变；未升版本、未发布。用户链接的 Workspace Publish Staleness 仍需候选版本冻结时修正 SDK / VS Code 版本及下游依赖；最新托管 CI 仍在等待，不据此称 Actions 全部修复。

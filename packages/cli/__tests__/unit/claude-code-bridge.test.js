@@ -16,6 +16,30 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
+function makeOwnedChild() {
+  const { EventEmitter } = require("events");
+  const proc = new EventEmitter();
+  proc.pid = 123;
+  proc.stdout = new EventEmitter();
+  proc.stderr = new EventEmitter();
+  proc.kill = vi.fn();
+  proc.ownedProcessTreeClosed = new Promise(() => {});
+  return proc;
+}
+
+function loseOwner(proc) {
+  proc.ownedProcessTreeEvidence = {
+    cleanup: { confirmed: false, protocolError: "missing-cleanup-receipt" },
+  };
+  proc.emit(
+    "error",
+    Object.assign(new Error("owner lost"), {
+      code: EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED,
+    }),
+  );
+  proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+}
+
 function makeChildProcess({
   stdout = "",
   stderr = "",
@@ -467,6 +491,92 @@ describe("ClaudeCodeAgent", () => {
     expect(complete).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["running", "cancelled", "timeout", "post-spawn"])(
+    "reports lost ownership while retaining the %s task and handle",
+    async (phase) => {
+      vi.useFakeTimers();
+      try {
+        const proc = makeOwnedChild();
+        _deps.spawn = vi.fn(() => {
+          if (phase === "post-spawn")
+            throw Object.assign(new Error("bookkeeping failed"), {
+              spawnedProcess: proc,
+              workspaceProcessClosed: new Promise(() => {}),
+            });
+          return proc;
+        });
+        const agent = new ClaudeCodeAgent();
+        const completed = vi.fn();
+        const quarantined = vi.fn();
+        agent.on("task:complete", completed);
+        agent.on("task:quarantined", quarantined);
+        const pending = agent.executeTask("owned task", {
+          timeout: 100,
+          killGraceMs: 50,
+        });
+        proc.stdout.emit(
+          "data",
+          Buffer.from('{"type":"result","result":"looks successful"}\n'),
+        );
+        if (phase === "cancelled") agent.abort();
+        if (phase === "timeout") await vi.advanceTimersByTimeAsync(100);
+        loseOwner(proc);
+        const result = await pending;
+        expect(result).toMatchObject({
+          success: false,
+          status: "quarantined",
+          errorCode: EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED,
+          exitCode: null,
+          processOwnershipReleased: false,
+          recoveryRequired: true,
+          terminalEvidence: [],
+          runtimeClaims: { durable: false, crashSafe: false },
+        });
+        expect(result.timedOut).toBe(phase === "timeout");
+        expect(result.cancelled).toBe(phase === "cancelled");
+        expect(agent._proc).toBe(proc);
+        expect(agent.toJSON()).toMatchObject({
+          status: "quarantined",
+          currentTask: "owned task",
+        });
+        await expect(agent.executeTask("reuse")).rejects.toMatchObject({
+          code: EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED,
+        });
+        // A stale/malformed caller-side close cannot convert this report into
+        // terminal success or release ownership after the supervisor is lost.
+        proc.emit("close", 0);
+        loseOwner(proc);
+        const kills = proc.kill.mock.calls.length;
+        agent.abort();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(proc.kill).toHaveBeenCalledTimes(kills);
+        expect(quarantined).toHaveBeenCalledOnce();
+        expect(completed).not.toHaveBeenCalled();
+        expect(agent.status).toBe(AGENT_STATUS.QUARANTINED);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("reports broker quarantine admission without claiming a new execution", async () => {
+    _deps.spawn = vi.fn(() => {
+      throw Object.assign(new Error("quarantined"), {
+        code: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+      });
+    });
+    const agent = new ClaudeCodeAgent();
+    expect(await agent.executeTask("blocked")).toMatchObject({
+      success: false,
+      status: "not-started",
+      executionStarted: false,
+      recoveryRequired: true,
+      runtimeClaims: { mode: "validate-only" },
+      errorCode: "BROKER_PROCESS_OWNERSHIP_UNCONFIRMED",
+    });
+    expect(agent._proc).toBeNull();
+  });
+
   it("prepends context to prompt when context is provided", async () => {
     _deps.spawn = vi.fn(() => makeChildProcess({ exitCode: 0 }));
     const agent = new ClaudeCodeAgent({ id: "a6" });
@@ -687,6 +797,44 @@ describe("ClaudeCodePool", () => {
     expect(status.activeCount).toBe(0);
   });
 
+  it("retains quarantine slots and blocks later batches and repeated dispatch", async () => {
+    const proc = makeOwnedChild();
+    _deps.spawn = vi.fn(() => {
+      process.nextTick(() => loseOwner(proc));
+      return proc;
+    });
+    const pool = new ClaudeCodePool({ maxParallel: 1 });
+    const completed = vi.fn();
+    const quarantined = vi.fn();
+    pool.on("agent:complete", completed);
+    pool.on("agent:quarantined", quarantined);
+    const results = await pool.dispatch([
+      { id: "owned", description: "lost owner" },
+      { id: "next", description: "must not start" },
+    ]);
+    expect(results.map((r) => r.status)).toEqual([
+      "quarantined",
+      "not-started",
+    ]);
+    expect(results[1]).toMatchObject({
+      executionStarted: false,
+      runtimeClaims: { mode: "validate-only" },
+    });
+    expect(pool.status()).toMatchObject({
+      activeCount: 1,
+      active: [{ status: "quarantined", currentTask: "lost owner" }],
+    });
+    expect(pool._completed).toEqual([]);
+    expect(completed).not.toHaveBeenCalled();
+    expect(quarantined).toHaveBeenCalledOnce();
+    // Reusing the task id must not overwrite the retained agent in the map.
+    expect(
+      (await pool.dispatch([{ id: "owned", description: "retry" }]))[0].status,
+    ).toBe("not-started");
+    expect(_deps.spawn).toHaveBeenCalledOnce();
+    expect(pool.status().activeCount).toBe(1);
+  });
+
   it("bounds _completed history to maxCompleted (no unbounded leak)", async () => {
     _deps.spawn = vi.fn(() =>
       makeChildProcess({
@@ -707,6 +855,39 @@ describe("ClaudeCodePool", () => {
     // All 12 ran, but only the most recent 3 are retained.
     expect(pool._completed.length).toBe(3);
     expect(pool._completed.map((c) => c.taskId)).toEqual(["t9", "t10", "t11"]);
+  });
+
+  it("cancels admitted siblings without letting duplicate task ids erase quarantine", async () => {
+    const lost = makeOwnedChild();
+    const sibling = makeOwnedChild();
+    sibling.kill.mockImplementation(() =>
+      process.nextTick(() => sibling.emit("close", null)),
+    );
+    _deps.spawn = vi
+      .fn()
+      .mockReturnValueOnce(lost)
+      .mockReturnValueOnce(sibling);
+    const pool = new ClaudeCodePool({ maxParallel: 2 });
+    const pending = pool.dispatch([
+      { id: "same", description: "lost owner" },
+      { id: "same", description: "sibling" },
+      { id: "queued", description: "must not start" },
+    ]);
+    loseOwner(lost);
+    expect(sibling.kill).toHaveBeenCalledWith("SIGTERM");
+    const results = await pending;
+    expect(results.map((r) => r.status)).toEqual([
+      "quarantined",
+      "cancelled",
+      "not-started",
+    ]);
+    expect(results[0].agentId).not.toBe(results[1].agentId);
+    expect(pool.status()).toMatchObject({
+      activeCount: 1,
+      active: [{ currentTask: "lost owner", status: "quarantined" }],
+    });
+    expect(pool._completed.map((r) => r.status)).toEqual(["cancelled"]);
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
   });
 
   it("forwards agent:output events from agents", async () => {

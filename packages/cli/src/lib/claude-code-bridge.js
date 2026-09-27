@@ -17,6 +17,7 @@ import { EventEmitter } from "events";
 import crypto from "crypto";
 import runtimeClaimsContract from "@chainlesschain/session-core/runtime-claims";
 import executionBroker from "./process-execution-broker/index.js";
+import { PROCESS_OWNERSHIP_UNCONFIRMED } from "./process-execution-broker/process-ownership-quarantine.js";
 import {
   createExternalAgentAdapter,
   EXTERNAL_AGENT_ERROR,
@@ -68,6 +69,7 @@ export const AGENT_STATUS = {
   FAILED: "failed",
   TIMEOUT: "timeout",
   CANCELLED: "cancelled",
+  QUARANTINED: "quarantined",
 };
 
 // Bound how much of a child's stdout/stderr we retain in memory. A verbose or
@@ -157,8 +159,17 @@ export class ClaudeCodeAgent extends EventEmitter {
    * @param {string} options.context     - Extra context prepended to task
    * @param {string} options.allowedTools - Comma-separated tool allow-list
    * @returns {Promise<{success, output, exitCode, duration, taskId}>}
+   * A quarantined failure report does not release process ownership. It emits
+   * task:quarantined instead of task:complete and the agent cannot be reused.
    */
   async executeTask(taskDescription, options = {}) {
+    if (this.status === AGENT_STATUS.QUARANTINED) {
+      const error = new Error(
+        "External agent still owns an unconfirmed process tree",
+      );
+      error.code = EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED;
+      throw error;
+    }
     if (this.status === AGENT_STATUS.RUNNING) {
       throw new Error("External agent already has a running task");
     }
@@ -257,10 +268,11 @@ export class ClaudeCodeAgent extends EventEmitter {
       };
       const failSpawn = (err) => {
         if (finalized) return;
+        const admissionBlocked = err.code === PROCESS_OWNERSHIP_UNCONFIRMED;
         this.status = AGENT_STATUS.FAILED;
         finalize({
           success: false,
-          status: "failed",
+          status: admissionBlocked ? "not-started" : "failed",
           output: "",
           exitCode: -1,
           duration: Date.now() - startTime,
@@ -268,11 +280,53 @@ export class ClaudeCodeAgent extends EventEmitter {
           cancelled: this._cancelRequested && !timedOut,
           agentId: this.id,
           error: err.message,
-          errorCode: EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+          errorCode: admissionBlocked
+            ? err.code
+            : EXTERNAL_AGENT_ERROR.SPAWN_FAILED,
+          protocol: this.adapter.capabilities().protocol,
+          runtimeClaims: admissionBlocked
+            ? VALIDATION_ONLY_CLAIMS
+            : REAL_EXECUTION_CLAIMS,
+          terminalEvidence: [],
+          ...(admissionBlocked
+            ? { executionStarted: false, recoveryRequired: true }
+            : {}),
+        });
+      };
+      const quarantine = (receipt) => {
+        if (finalized || receipt?.cleanup?.confirmed !== false) return;
+        // Return a failure report without declaring task completion or releasing
+        // the process handle, task identity or pool slot. No synthetic close.
+        finalized = true;
+        clearTimeout(timer);
+        clearTimeout(killTimer);
+        this._stop = null;
+        this.status = AGENT_STATUS.QUARANTINED;
+        const rawOutput = outputChunks.join("");
+        const result = {
+          success: false,
+          status: AGENT_STATUS.QUARANTINED,
+          output: rawOutput.slice(-4000),
+          rawOutput,
+          outputTruncated,
+          stderr: errorChunks.join("").slice(-2000),
+          exitCode: null,
+          duration: Date.now() - startTime,
+          timedOut,
+          cancelled: this._cancelRequested && !timedOut,
+          agentId: this.id,
+          error:
+            "External agent process-tree cleanup is unconfirmed; recovery is required",
+          errorCode: EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED,
           protocol: this.adapter.capabilities().protocol,
           runtimeClaims: REAL_EXECUTION_CLAIMS,
           terminalEvidence: [],
-        });
+          processOwnershipReleased: false,
+          recoveryRequired: true,
+          cleanup: { ...receipt.cleanup },
+        };
+        resolve(result);
+        this.emit("task:quarantined", result);
       };
       const stop = () => {
         if (finalized || stopping) return;
@@ -491,6 +545,10 @@ export class ClaudeCodeAgent extends EventEmitter {
 
       proc.on("error", (err) => {
         if (finalized) return;
+        if (err.code === EXTERNAL_AGENT_ERROR.CLEANUP_UNCONFIRMED) {
+          quarantine(proc.ownedProcessTreeEvidence);
+          if (finalized) return;
+        }
         if (
           err.code === EXTERNAL_AGENT_ERROR.SPAWN_FAILED &&
           proc.ownedProcessTreeClosed
@@ -513,6 +571,7 @@ export class ClaudeCodeAgent extends EventEmitter {
           failSpawn(err);
         }
       });
+      proc.on("cleanup:unconfirmed", quarantine);
       if (spawnFailure) {
         if (brokerCloseFence?.then) {
           Promise.resolve(brokerCloseFence).then(
@@ -545,6 +604,9 @@ export class ClaudeCodeAgent extends EventEmitter {
       cliCommand: this.cliCommand,
       protocol: this.adapter.capabilities().protocol,
       currentTask: this.currentTask,
+      ...(this.status === AGENT_STATUS.QUARANTINED
+        ? { processOwnershipReleased: false, recoveryRequired: true }
+        : {}),
     };
   }
 }
@@ -598,6 +660,10 @@ export class ClaudeCodePool extends EventEmitter {
 
     // Process in batches of maxParallel
     for (let i = 0; i < tasks.length; i += this.maxParallel) {
+      if (this._hasQuarantinedAgent()) {
+        results.push(...tasks.slice(i).map((task) => this._blockedTask(task)));
+        break;
+      }
       const batch = tasks.slice(i, i + this.maxParallel);
       this.emit("batch:start", {
         batchIndex: i / this.maxParallel,
@@ -619,8 +685,9 @@ export class ClaudeCodePool extends EventEmitter {
   }
 
   async _runTask(task, { cwd }) {
+    if (this._hasQuarantinedAgent()) return this._blockedTask(task);
     const agent = new ClaudeCodeAgent({
-      id: `agent-${task.id}`,
+      id: `agent-${task.id}-${crypto.randomUUID()}`,
       cliCommand: this.cliCommand,
       model: this.model,
       sandbox: this.sandbox,
@@ -628,6 +695,12 @@ export class ClaudeCodePool extends EventEmitter {
 
     this._agents.set(agent.id, agent);
     agent.on("output", (ev) => this.emit("agent:output", ev));
+    agent.on("task:quarantined", (result) => {
+      // Stop already admitted siblings through their retained handles. Their
+      // own close fences still decide release; no new batch may start.
+      this.abortAll();
+      this.emit("agent:quarantined", { taskId: task.id, ...result });
+    });
 
     const result = await agent.executeTask(task.description, {
       cwd,
@@ -636,6 +709,9 @@ export class ClaudeCodePool extends EventEmitter {
       allowedTools: task.allowedTools || null,
     });
 
+    if (agent.status === AGENT_STATUS.QUARANTINED) {
+      return { taskId: task.id, ...result };
+    }
     this._agents.delete(agent.id);
     this._completed.push({ ...result, taskId: task.id });
     if (this._completed.length > this.maxCompleted) {
@@ -644,6 +720,30 @@ export class ClaudeCodePool extends EventEmitter {
 
     this.emit("agent:complete", { taskId: task.id, ...result });
     return { taskId: task.id, ...result };
+  }
+
+  _hasQuarantinedAgent() {
+    return [...this._agents.values()].some(
+      (agent) => agent.status === AGENT_STATUS.QUARANTINED,
+    );
+  }
+
+  _blockedTask(task) {
+    return {
+      taskId: task.id,
+      agentId: null,
+      success: false,
+      status: "not-started",
+      output: "",
+      exitCode: null,
+      duration: 0,
+      executionStarted: false,
+      recoveryRequired: true,
+      error: "External agent pool retains an unconfirmed process tree",
+      errorCode: EXTERNAL_AGENT_ERROR.EXECUTION_BLOCKED,
+      runtimeClaims: VALIDATION_ONLY_CLAIMS,
+      terminalEvidence: [],
+    };
   }
 
   /** Current pool status snapshot. */
