@@ -1,0 +1,39 @@
+{
+  "schema": "chainlesschain.local-ide-control-receipt/v1",
+  "status": "local-host-journey-passed",
+  "releaseEligible": false,
+  "source": {
+    "commit": "3b0bc23021530d0624ca07e52515d5e8ac040cb7",
+    "cleanAtRunStart": true,
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "name": "vscode",
+    "version": "1.85.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "cliSourceVersion": "0.166.77",
+  "extensionVersion": "0.37.118",
+  "startedAt": "2026-09-27T14:33:58.995Z",
+  "finishedAt": "2026-09-27T14:37:31.057Z",
+  "model": "deterministic fixture",
+  "inputReceipts": "synthetic isolated disk fixture; not canonical transcript acceptance",
+  "evidence": {
+    "digest": "sha256:25c95ee94aa8d059cc4084bc4eb6554773f79d4d1ba35f42ecdfc60944667d6e",
+    "artifactBundleDigest": "sha256:74d93e88ae609794348387489aaded1ffb2eae6a51afeba1150ebd03f861244f",
+    "artifactsVerified": 29,
+    "bundleLocation": ".tmp/vscode-minimum-control-3b0bc23021",
+    "aggregateAssertionsRevalidated": true,
+    "multiWindowAssertionsRevalidated": true
+  },
+  "archiveSha256": "sha256:de53efb43ba4284c45aaf0f24a4c69d051477beeb89b3621fe935afa1032dced",
+  "limitations": [
+    "Windows x64 / VS Code 1.85.2 ordinary control journey only",
+    "Includes initial/restart, two workspace roots, two windows, Stop and 100 Workbench visibility samples",
+    "Protocol, model and input receipts use deterministic fixtures",
+    "Does not establish a real-provider, canonical recovery, human accessibility, final-release-SHA or cross-platform pass"
+  ],
+  "receiptDigest": "sha256:266ec88e7cd45f0016c74e506a9257cb0a82d9f7049cc34862dea35744cf3745"
+}

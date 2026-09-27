@@ -16,6 +16,17 @@ const LABELS = new Set(Object.values(SOURCES));
 const PREFIX = "CC_EXECUTION_LOCATION_FAILURE_SITE=";
 const MAX_DIAGNOSTIC_CHARS = 8192;
 
+// PowerShell diagnostics are deliberately bounded to fixed native operation
+// labels and HRESULTs; neither paths nor exception text cross the boundary.
+export function readExecutionLocationStorageFailure(stderr) {
+  const match = String(stderr || "")
+    .slice(0, MAX_DIAGNOSTIC_CHARS)
+    .match(
+      /\[windows-acl:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|timeout|spawn|output)(:0x[0-9a-f]{8})?\]/u,
+    );
+  return match ? `${match[1]}${match[2] || ""}` : null;
+}
+
 export function executionLocationFailureSite(error) {
   const stack = String(error?.stack || "").slice(0, MAX_DIAGNOSTIC_CHARS);
   for (const frame of stack.split(/\r?\n/u).slice(1)) {

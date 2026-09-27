@@ -3,8 +3,35 @@ import {
   executionLocationFailureSite,
   formatExecutionLocationFailureSite,
   readExecutionLocationFailureSite,
+  readExecutionLocationStorageFailure,
 } from "../../src/lib/execution-location-failure-site.js";
 import { prepareSessionReplicaHandoff } from "../../src/commands/session-location.js";
+
+it.each([
+  "repair-lock:0x80070005",
+  "repair-write:0x80070522",
+  "timeout",
+  "output",
+])(
+  "preserves a fixed native ACL diagnostic without private content: %s",
+  (diagnostic) => {
+    expect(
+      readExecutionLocationStorageFailure(
+        `private-session [windows-acl:${diagnostic}] private-path`,
+      ),
+    ).toBe(diagnostic);
+  },
+);
+
+it.each([
+  "[windows-acl:private-path:0x80070005]",
+  "[windows-acl:lookup:private-session]",
+  "[windows-acl:lookup:0x800700050]",
+  "[windows-acl:lookup:0x80070005:private-session]",
+  "x".repeat(8192) + "[windows-acl:timeout]",
+])("rejects arbitrary or oversized native ACL diagnostics", (stderr) => {
+  expect(readExecutionLocationStorageFailure(stderr)).toBeNull();
+});
 
 it("extracts a public source label from a real command failure without private text", () => {
   let failure;

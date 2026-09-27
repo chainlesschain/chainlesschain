@@ -437,3 +437,13 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 | `09c61578d7` / `989a46cd6e` | 受控 init gate 与 v2 Stop/草稿恢复旅程；后者修正 Java Boolean 取值并完成实际 ZIP 验收 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。
+
+### Windows Actions ACL 定位与追加实机回执
+
+`3b0bc23021530d0624ca07e52515d5e8ac040cb7` 的 [Windows Local 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36326262392/job/108639499011) 报 `private-storage:1210`，对应 `ensurePrivateDirectory` 的 ACL 修复失败。固定目录树已经由源端批量创建并修复，目标进程仍会独立校验会话目录；本机 prepare 通过，尚未确认托管 Windows 原生失败原因。
+
+追加 PowerShell 固定操作阶段和 HRESULT；上层仅接受白名单阶段及固定长度十六进制值，不返回目标路径、会话正文、原生异常消息。保持 owner-only、链接拒绝、失败拒绝、原超时与重试预算。相关 3 文件 116 项测试通过；真实 PowerShell 验证权限修复成功、重复检查不改变子文件 ctime、缺失路径仍拒绝且仅输出 `lookup:0x80131501`。这次提交是诊断补全，尚不标为 Windows CI 修复。
+
+干净 `3b0bc23021` 的 Windows VS Code 1.85.2 实际 VSIX 普通控制旅程退出 0，独立复核 29 个产物、bundle/evidence digest、完整初始/重启与双窗口断言，保存[回执](./ide/evidence/vscode-control-minimum-windows-3b0bc23021.json)。覆盖 Stop 可见提示与 Workbench 100 样本，模型和输入回执仍为合成夹具，不扩展为 canonical 恢复或真实 provider 通过。
+
+同一干净源码 Windows→已有 Ubuntu WSL1 的完整缩小流程退出 0；初始化、准备、断连探测、恢复、生命周期故障、结果返回和 finalize 均完成。独立复核 9 个产物及 2 条轨迹 outcome，保存[回执](./cli/evidence/execution-location-wsl-windows-3b0bc23021.json)。临时 home/security 为 `/tmp` 兄弟目录；仓库从 Windows 挂载，不能代替 CI 独立 rootfs 或 100 条轨迹门。旧 `8db732245f` Container 100 条轨迹远端通过；最终 SHA 的三系统发布门仍待齐备。

@@ -59,6 +59,10 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 
 ## 5. 工作量与时间估算
 
+最新 `3b0bc23021` 的 Windows Local 作业 [108639499011](https://github.com/chainlesschain/chainlesschain/actions/runs/36326262392/job/108639499011) 已定位到 `secure-fs.js:1210` 的目录 ACL 修复失败，尚未确认原生原因。追加固定阶段/HRESULT 诊断，保持失败拒绝、原超时预算和权限要求；116 项相关测试及真实 PowerShell 成功/幂等/缺失路径负例通过，远端复跑待结果。`8db732245f` 的 Container 100 条轨迹已通过，不能替代最终发布 SHA 的矩阵。
+
+干净 `3b0bc23021` 的 Windows VS Code 1.85.2 实际 VSIX 普通控制旅程退出 0，29 个产物独立哈希复核、初始/重启/双窗口断言通过，保存[回执](./ide/evidence/vscode-control-minimum-windows-3b0bc23021.json)。同一源码 Windows→WSL1 缩小迁移退出 0，9 个产物哈希和 2 条轨迹结果通过，保存[回执](./cli/evidence/execution-location-wsl-windows-3b0bc23021.json)。两者均为隔离合成夹具验证，不作为真实模型、WSL 100 条或完整平台发布证明。
+
 第三轮 `c448c08305` 新增 Windows JetBrains [普通控制旅程回执](./ide/evidence/jetbrains-control-windows-c448c08305.json) 和 Windows local [2 条轨迹缩小迁移回执](./cli/evidence/execution-location-local-windows-c448c08305.json)。Linux ARM64 两个 JetBrains 版本远端已通过；完整平台矩阵仍未齐备。Container 配置工作目录和 WSL1 birthtime/ctime 兼容修复已有本地证据，Windows CI prepare 的退出 1 仍待固定类别诊断，不按本地成功宣称解决。不升版本、不跳过 staleness 门，也不提前发布。
 
 截至本轮，台账共 20 个分组工作项（IDE-REPLAY / SESSION-01 合并统计）：5 项本地验证通过但仍有外部验证条件，8 项局部实现/验证，5 项待实施/系统验收，2 项持续文档/体验改进。该计数不是完成百分比，也不把所有待验收项计作缺失实现。

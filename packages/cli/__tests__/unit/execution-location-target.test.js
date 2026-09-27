@@ -408,6 +408,34 @@ describe("execution location target launch and resume", () => {
     expect(spawnSync).toHaveBeenCalledTimes(1);
   });
 
+  it("reports a bounded native ACL failure without target paths or messages", () => {
+    const spawnSync = vi.fn(() => ({
+      status: 1,
+      stdout: "private-session",
+      stderr:
+        "CC_EXECUTION_LOCATION_FAILURE_SITE=private-storage:1210\nExecution location failed: private-path [windows-acl:repair-lock:0x80070005]\n",
+    }));
+    let failure;
+    try {
+      attestExecutionLocationTarget(
+        { profile: rawProfile(), handoff: handoff() },
+        { spawnSync },
+      );
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      failureCategory: "windows-acl",
+      storageFailure: "repair-lock:0x80070005",
+    });
+    expect(failure.message).toBe(
+      "target command failed with status 1 (windows-acl) at private-storage:1210 [repair-lock:0x80070005]",
+    );
+    expect(failure.stack).not.toContain("private-path");
+    expect(JSON.stringify(failure)).not.toContain("private-session");
+    expect(spawnSync).toHaveBeenCalledTimes(1);
+  });
+
   it("attests a fixed Docker target command and exposes stable facts separately from time", () => {
     const spawnSync = vi.fn(() =>
       success(JSON.stringify(currentProjection("container"))),

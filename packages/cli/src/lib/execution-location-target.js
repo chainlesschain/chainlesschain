@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TextDecoder } from "node:util";
-import { readExecutionLocationFailureSite } from "./execution-location-failure-site.js";
+import {
+  readExecutionLocationFailureSite,
+  readExecutionLocationStorageFailure,
+} from "./execution-location-failure-site.js";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
   createExecutionLocationTargetAttestation,
@@ -966,6 +969,7 @@ function targetInvocation(profile, cliArgs, deps = {}, options = {}) {
 // a fixed diagnostic category; this is never an authorization/retry decision.
 function targetCommandFailureCategory(result) {
   const stderr = String(result?.stderr || "").slice(0, MAX_PROBE_BYTES);
+  if (readExecutionLocationStorageFailure(stderr)) return "windows-acl";
   const categories = [
     ["stdin-empty", /session replica stdin is empty/u],
     ["stdin-read-unavailable", /(?:EAGAIN|EINVAL)[^\r\n]*read/u],
@@ -1047,12 +1051,16 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     if (!result || result.status !== 0) {
       const failureCategory = targetCommandFailureCategory(result);
       const failureSite = readExecutionLocationFailureSite(result?.stderr);
+      const storageFailure = readExecutionLocationStorageFailure(
+        result?.stderr,
+      );
       const error = new Error(
-        `target command failed with status ${result?.status ?? "unknown"} (${failureCategory})${failureSite ? ` at ${failureSite}` : ""}`,
+        `target command failed with status ${result?.status ?? "unknown"} (${failureCategory})${failureSite ? ` at ${failureSite}` : ""}${storageFailure ? ` [${storageFailure}]` : ""}`,
       );
       error.code = "CC_EXECUTION_LOCATION_TARGET_COMMAND_FAILED";
       error.failureCategory = failureCategory;
       if (failureSite) error.failureSite = failureSite;
+      if (storageFailure) error.storageFailure = storageFailure;
       throw error;
     }
     return options.interactive ? null : result.stdout;

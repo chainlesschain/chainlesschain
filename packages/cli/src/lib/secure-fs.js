@@ -257,6 +257,7 @@ function Test-CcOwnerOnlySecurity($item, $security) {
     ($rule.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -eq [System.Security.AccessControl.FileSystemRights]::FullControl)
 }
 function Write-CcOwnerOnlyAcl($item, [string]$path) {
+  $script:ccAclStage = 'repair-lock'
   $digest = [System.Security.Cryptography.SHA256]::Create()
   try {
     $key = [System.BitConverter]::ToString($digest.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($sid.Value + ':' + [System.IO.Path]::GetFullPath($path).ToUpperInvariant()))).Replace('-', '')
@@ -268,9 +269,11 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
     catch [System.Threading.AbandonedMutexException] { $held = $true }
     if (-not $held) { throw 'Timed out waiting for owner-only ACL repair' }
     Assert-CcNoReparseTraversal $path
+    $script:ccAclStage = 'repair-inspect'
     $current = Get-Item -LiteralPath $path -Force
     $security = Read-CcAcl $path
     if (Test-CcOwnerOnlySecurity $current $security) { return }
+    $script:ccAclStage = 'repair-write'
     Write-CcOwnerOnlyAclImpl $current $path
   } finally {
     if ($held) { $mutex.ReleaseMutex() }
@@ -282,6 +285,8 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
 const WINDOWS_ACL_SCRIPT = String.raw`
 param([string]$target, [string]$operation)
 $ErrorActionPreference = 'Stop'
+$script:ccAclStage = 'initialize'
+try {
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8
 $sections =
@@ -307,7 +312,9 @@ function Assert-CcNoReparseTraversal([string]$path) {
   }
 }
 
+$script:ccAclStage = 'traversal'
 Assert-CcNoReparseTraversal $target
+$script:ccAclStage = 'lookup'
 $item = Get-Item -LiteralPath $target -Force
 
 function Read-CcAcl([string]$path) {
@@ -367,6 +374,7 @@ if ($operation -eq 'repair') {
   Write-CcOwnerOnlyAcl $item $target
 }
 
+$script:ccAclStage = 'verify'
 $acl = Read-CcAcl $target
 $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
 $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
@@ -411,6 +419,18 @@ if ($ownerOnly) {
   aceCount = $rules.Count
 } | ConvertTo-Json -Compress
 if (-not $ownerOnly) { exit 4 }
+} catch {
+  # Emit only a fixed stage and the deepest native HRESULT. Never emit the
+  # exception message, target path or arbitrary PowerShell error record.
+  $failure = $_.Exception
+  while ($null -ne $failure.InnerException) { $failure = $failure.InnerException }
+  [pscustomobject]@{
+    ownerOnly = $false
+    failureStage = $script:ccAclStage
+    hresult = ('0x{0:X8}' -f $failure.HResult)
+  } | ConvertTo-Json -Compress
+  exit 5
+}
 `;
 
 const WINDOWS_ACL_BATCH_SCRIPT = String.raw`
@@ -792,19 +812,43 @@ function windowsAcl(target, operation, deps) {
     details = null;
   }
   if (result?.error) {
-    return { ok: false, platform: "win32", error: result.error.message };
+    const stage = result.error.code === "ETIMEDOUT" ? "timeout" : "spawn";
+    return {
+      ok: false,
+      platform: "win32",
+      error: `owner-only ACL process failed [windows-acl:${stage}]`,
+    };
   }
   if (result?.status !== 0 || details?.ownerOnly !== true) {
     return {
       ok: false,
       platform: "win32",
-      error:
-        String(result?.stderr || "").trim() ||
-        `owner-only ACL verification exited ${result?.status}`,
+      error: `owner-only ACL verification failed ${windowsAclFailureMarker(details)}`,
       details,
     };
   }
   return { ok: true, platform: "win32", details };
+}
+
+function windowsAclFailureMarker(details) {
+  const allowedStages = new Set([
+    "initialize",
+    "traversal",
+    "lookup",
+    "repair-lock",
+    "repair-inspect",
+    "repair-write",
+    "verify",
+  ]);
+  if (
+    allowedStages.has(details?.failureStage) &&
+    /^0x[0-9a-f]{8}$/iu.test(details?.hresult || "")
+  ) {
+    return `[windows-acl:${details.failureStage}:${details.hresult.toLowerCase()}]`;
+  }
+  return details?.ownerOnly === false
+    ? "[windows-acl:verify]"
+    : "[windows-acl:output]";
 }
 
 function windowsAclBatch(targets, operation, deps, expectedKind = null) {

@@ -601,6 +601,66 @@ describe("owner-only filesystem helpers", () => {
     expect(fs.lstatSync).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [
+      {
+        status: 5,
+        stdout: JSON.stringify({
+          ownerOnly: false,
+          failureStage: "repair-lock",
+          hresult: "0x80070005",
+        }),
+      },
+      "repair-lock:0x80070005",
+    ],
+    [
+      {
+        status: 5,
+        stdout: JSON.stringify({
+          ownerOnly: false,
+          failureStage: "private-path",
+          hresult: "private-session",
+        }),
+      },
+      "verify",
+    ],
+    [{ status: 4, stdout: JSON.stringify({ ownerOnly: false }) }, "verify"],
+    [{ status: 1, stdout: "private-session" }, "output"],
+    [
+      {
+        error: Object.assign(new Error("private-path"), { code: "ETIMEDOUT" }),
+      },
+      "timeout",
+    ],
+    [
+      { error: Object.assign(new Error("private-path"), { code: "ENOENT" }) },
+      "spawn",
+    ],
+  ])(
+    "fails closed with a bounded Windows ACL diagnostic",
+    (result, diagnostic) => {
+      const spawnSync = vi.fn(() => ({
+        ...result,
+        stderr: "private-path private-session",
+      }));
+      let failure;
+      try {
+        ensurePrivateDirectory("C:\\private", {
+          platform: "win32",
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+          deps: { fs: fakeFs(0o700, true), spawnSync, platform: () => "win32" },
+        });
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure.message).toContain(`[windows-acl:${diagnostic}]`);
+      expect(failure.message).not.toContain("private-path");
+      expect(failure.message).not.toContain("private-session");
+      expect(spawnSync).toHaveBeenCalledTimes(diagnostic === "timeout" ? 2 : 1);
+    },
+  );
+
   it("checks multiple Windows ACLs in one fixed-script process", () => {
     const targets = ["C:\\private", "C:\\private\\config.json"];
     const spawnSync = vi.fn((_file, args, options) => {

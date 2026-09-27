@@ -1,0 +1,101 @@
+{
+  "schema": "chainlesschain.local-execution-location-smoke-receipt/v1",
+  "releaseEligible": false,
+  "source": {
+    "commit": "3b0bc23021530d0624ca07e52515d5e8ac040cb7",
+    "cleanAtRunStart": true,
+    "cleanAtIndependentVerification": true
+  },
+  "host": {
+    "operatingSystem": "win32",
+    "architecture": "x64"
+  },
+  "scope": "Two Windows to WSL1 trajectories, including reconnect, lifecycle faults and result return",
+  "target": "Existing Ubuntu WSL1, isolated /tmp sibling home/security roots; actual CLI from /mnt/c/code/chainlesschain",
+  "deployment": "Ephemeral signed Chat fixture, no provider request or source credentials transferred",
+  "artifactRoot": "C:/Users/longfa/AppData/Local/Temp/cc-wsl-source-smoke-Iad9Un/artifacts",
+  "manifest": {
+    "files": {
+      "bootstrap.json": {
+        "bytes": 434,
+        "sha256": "sha256:93f751ebe1d07e27b7f8e00703d81b3ea10e7a3c399f83dc215c2b5cb63b821e"
+      },
+      "campaign.json": {
+        "bytes": 2074,
+        "sha256": "sha256:c9e1372eae3cf3c637d2a4797d1260a2eb3ffa1dbbd5ab3a0db414d357b4fc05"
+      },
+      "exact-commit.json": {
+        "bytes": 146,
+        "sha256": "sha256:a7182afc34affa49bd9ad5fdd83badb57244a47217a71abb3a64f6d77b753049"
+      },
+      "lifecycle-faults.json": {
+        "bytes": 2032,
+        "sha256": "sha256:5c39b877d84cef1dcf669c5052e9f66a0268cbedbf4d24f8342f2d3258e862d9"
+      },
+      "network-fault.json": {
+        "bytes": 413,
+        "sha256": "sha256:5ed0a274db0bdea6aa33f3fc3494c8c3ef6b412673f30d55e6be7f01b28d8c6b"
+      },
+      "outcome-observations.json": {
+        "bytes": 871,
+        "sha256": "sha256:b20321d16587cc666765204abbc0596efa980936c9626f3055cee1f36fdc0c3e"
+      },
+      "provenance.json": {
+        "bytes": 336,
+        "sha256": "sha256:d6d432d4ab2ec0b698662d2490e338bcd6b82a9c9c25a1ca1d80c9fc0ff0c263"
+      },
+      "reconnect-completed.json": {
+        "bytes": 2135,
+        "sha256": "sha256:441ff7c2619eec7b3bb6a7a90e02b22cbdfb9d441b8f7c853ee2ca5e1657ee8b"
+      },
+      "reconnect-prepared.json": {
+        "bytes": 523,
+        "sha256": "sha256:0644ec2d57f86ca94552c742ccbb4a6058ba9e214fcbd81c54295829e6f7e61b"
+      }
+    },
+    "releaseCommit": "3b0bc23021530d0624ca07e52515d5e8ac040cb7",
+    "schema": "chainlesschain.execution-location-manifest.v1",
+    "transport": "wsl"
+  },
+  "manifestSha256": "sha256:5c8d138a0462d43e3768afbbed1052accb7c42dcac269d6d1cba7cec2a901459",
+  "outcome": {
+    "checkoutFailureParkCount": 1,
+    "duplicateHandoffCount": 0,
+    "duplicateResultSettlementCount": 0,
+    "exactCommitBound": true,
+    "injectedOutageCount": 1,
+    "launchCount": 2,
+    "lostPollParkCount": 1,
+    "orphanProcessCount": 0,
+    "postSessionHookCount": 2,
+    "reclaimCount": 2,
+    "reconnectCount": 1,
+    "releaseCommit": "3b0bc23021530d0624ca07e52515d5e8ac040cb7",
+    "resultCollectCount": 2,
+    "resultImportCount": 2,
+    "resultReviewCount": 2,
+    "resumeCount": 3,
+    "schema": "chainlesschain.execution-location-outcome.v1",
+    "secretTransferCount": 0,
+    "sigtermCapability": "graceful-sigterm",
+    "sigtermDrainCount": 2,
+    "sigtermSignalDeliveryCount": 1,
+    "silentFallbackCount": 0,
+    "sourceFencedDrainCount": 1,
+    "staleAuthorityAcceptanceCount": 0,
+    "success": true,
+    "targetResourceParkCount": 2,
+    "targetResourceTerminationCount": 2,
+    "tokenRotationCount": 1,
+    "trajectoryCount": 2,
+    "transport": "wsl",
+    "unavailableProbeFailureCount": 1,
+    "unexpectedUnsupportedSigtermCount": 0
+  },
+  "limitations": [
+    "Two trajectories do not meet the 100-trajectory release gate",
+    "Existing WSL1 distro and mounted repository differ from CI independent Ubuntu rootfs",
+    "Does not establish final-release-SHA or cross-platform acceptance"
+  ],
+  "receiptDigest": "sha256:bc7b29f3b5c813a6d2fa28c2781e778df2aa32bfcc8b854ec35a7e90e0f22f71"
+}

@@ -56,6 +56,7 @@ const PRODUCER_PATHS = Object.freeze([
   "packages/cli/src/lib/execution-location-target-preflight.js",
   "packages/cli/src/lib/execution-location-target.js",
   "packages/cli/src/lib/process-execution-broker/credential-agent.js",
+  "packages/cli/src/lib/secure-fs.js",
 ]);
 const THRESHOLDS = Object.freeze({
   requiredOperatingSystems: REQUIRED_OPERATING_SYSTEMS,
