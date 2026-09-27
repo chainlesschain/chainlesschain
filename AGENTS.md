@@ -37,6 +37,7 @@
 
 ## npm Release Validation
 
+- Publish required child npm packages in dependency order before publishing the CLI; publish IDE extensions only after the CLI release is available. Verify each published package can be fetched and downstream dependency versions are aligned before proceeding to the next stage. Release order: child npm packages → CLI → VS Code / JetBrains IDE extensions.
 - Treat GitHub Actions as the authoritative npm release gate; local tests are supplementary.
 - Before publishing an npm package, verify the exact release commit with the relevant Linux, Windows, and macOS workflow matrix.
 - For CLI releases, require both `CLI CI` and `CLI Strict Sandbox` to pass on all configured operating systems.
