@@ -539,3 +539,9 @@ Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，AC
 干净提交的 [Linux subreaper 回执](./cli/evidence/linux-subreaper-windows-wsl-0f0bc7da2a.json)记录 WSL1 / Node 22.12.0 的 27 项通过，以及 Windows 的 14 项通过、13 项 Linux 真进程测试按平台跳过。原生 C 使用 `-Wall -Wextra -Werror` 和栈保护编译，报告记录 C 源码/可执行文件摘要及 8 条实际生命周期回执。覆盖忽略 TERM、根先正常退出/响应 TERM 退出、`setsid`、双重 fork、中间进程先由原父进程回收、重复/强制取消、失联和监督器被杀。正常清理确认时所有观测 PID 已消失；从 ready 到返回须小于 2 秒，不能等待夹具 5 秒自退出后冒充取消成功。双重 fork 的中间进程由 Node 父进程先回收，监督器实际回收的是根及被接管的叶进程，未将其错误计成三次 supervisor wait。
 
 本次推进到**原生生命周期组件验证**，仍未接入生产 Broker/bridge，未解决安装分发和 helper 可执行身份/FD 绑定；原 bridge 的 Linux 残留问题仍开放。下一步保持既有命令权限、凭据和沙箱计划，接入可信 helper 与任务结算关闭证据；最终 SHA 的托管 Linux/架构矩阵及 macOS 后端继续验收。原 POSIX 进程组组件的逃逸反例仍成立，不能把它的回执自动升级为本原生实现的能力。
+
+### Actions 后续复验：Linux ARM64 VS Code 双版本（2026-09-28）
+
+`2c4fe5206393d02b8527c45f75846709e48a2cd1` 的 [Linux ARM64 VS Code 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36329903276/job/108656030091)已通过。下载 artifact `10936184083`，独立复核 stable `1.139.1` 和 minimum `1.85.2` 的 60 个文件、两个 evidence/bundle digest、同一 VSIX 摘要、初始/重启宿主 ARM64 身份及九个实际 DOM 旅程步骤，保存[回执](./ide/evidence/vscode-linux-arm64-2c4fe52063.json)。两版本均验证 stream、retry、plan approval、permission、interrupt、Workbench 调度/回复/产物、IDE 重启及 Workbench 恢复；真实主/伴随窗口同时监听，bridge token 和 workspace identity 不同，主窗口保留两个 workspace roots。
+
+这两单元使用合成模型夹具，属于记录的旧修复提交；不替代最终 SHA，不扩展为真实 provider、完整 canonical replay/rewind/compaction 或真人可访问性验收。部分诊断日志按既有上限截断，回执保留该限制，已校验保存字节而非宣称完整日志。该 run 的五个 JetBrains 单元已通过，VS Code Windows/macOS 作业及 11 单元总验收在本次查询时仍未齐备。

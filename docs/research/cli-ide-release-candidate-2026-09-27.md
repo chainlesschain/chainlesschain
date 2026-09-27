@@ -92,3 +92,5 @@ BRIDGE-01 的 `40addcedf1` 修复 Broker native spawn 后报错却提前完成�
 `ebfec202c6` 追加保持组长存活的 POSIX 监督器基础组件，[回执](./cli/evidence/owned-posix-group-windows-wsl-ebfec202c6.json)记录 WSL 25 项通过、Windows 14 项通过及 11 项平台跳过。它尚未接入生产 Broker/bridge，原残留缺陷仍开放；真实新会话逃逸反例继续成立，进程组清理不等于完整进程树隔离。该进展不改变候选发布门禁或生产外部 Agent 准入。
 
 `0f0bc7da2a` 的原生 Linux subreaper 已在 WSL 接管、清理并回收新会话/双重 fork 后代，[回执](./cli/evidence/linux-subreaper-windows-wsl-0f0bc7da2a.json)记录 27 项通过、8 条原生生命周期结果及源码/二进制摘要。它仍是待接入组件：helper 安装与可执行身份绑定、生产 Broker/bridge 接线和托管架构验收未完成；监督器被外部强杀时明确返回未确认。原 bridge 残留仍不计作已修复，不改变版本、准入及发布门禁。
+
+旧修复提交 `2c4fe52063` 的 Linux ARM64 VS Code `1.139.1` / `1.85.2` 已通过，[回执](./ide/evidence/vscode-linux-arm64-2c4fe52063.json)复核 60 个产物、各九步普通控制/重启旅程及真实双窗口/多根隔离。该结果仍使用合成模型，完整 11 单元和最终发布 SHA 未齐备，不能触发发布。

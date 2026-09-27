@@ -1,0 +1,94 @@
+{
+  "schema": "chainlesschain.ci-host-reverification/v1",
+  "releaseEligible": false,
+  "source": {
+    "commit": "2c4fe5206393d02b8527c45f75846709e48a2cd1",
+    "runId": "36329903276",
+    "jobId": "108656030091",
+    "artifactId": "10936184083",
+    "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/36329903276/job/108656030091"
+  },
+  "result": "passed",
+  "cells": [
+    {
+      "slot": "stable",
+      "host": {
+        "name": "vscode",
+        "version": "1.139.1",
+        "operatingSystem": "linux",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "result": "passed",
+      "evidenceSha256": "sha256:541e953c9a6dea65f8f1ca9e2178ee5b023e6cc61d2606e7f2ffd5b977dc3079",
+      "evidenceDigest": "sha256:a8432366b4812eb976f0e6434664947db6eea04b6028cf3ee55188df5a745550",
+      "artifactBundleDigest": "sha256:9d9dc73015aba415e1ce16dca6aa1c7d1d6f17f136d7f3d3676bf88532bb1621",
+      "verifiedArtifactCount": 30,
+      "vsixDigest": "sha256:6664b12798f9a4f7802088c4ccaced2b5923a055b865e93107e13b787f1e9a98",
+      "cliVersion": "0.166.77",
+      "extensionVersion": "0.37.118",
+      "passedSteps": [
+        "initial:stream",
+        "initial:retry",
+        "initial:plan-approval",
+        "initial:permission",
+        "initial:interrupt",
+        "initial:workbench-dispatch-needs-input",
+        "initial:workbench-reply-artifact",
+        "restart:ide-restart-resume",
+        "restart:workbench-restart-recovery"
+      ],
+      "multiWindow": {
+        "primaryRootCount": 2,
+        "companionRootCount": 1,
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "truncatedDiagnosticCount": 4
+    },
+    {
+      "slot": "minimum",
+      "host": {
+        "name": "vscode",
+        "version": "1.85.2",
+        "operatingSystem": "linux",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "result": "passed",
+      "evidenceSha256": "sha256:a9ebd4ee42edb9d09625b3576e921428965deb16e23dc331c26095f6228ccdf7",
+      "evidenceDigest": "sha256:214228ea84582b4ea26e702cb5d7a8b8e1ee10477f35a5c926e3d4fe41b26bf8",
+      "artifactBundleDigest": "sha256:0ee5c4e01df99deb88861456f8c86f6c384e4c3d57bb2b51b9a90c236ca06422",
+      "verifiedArtifactCount": 30,
+      "vsixDigest": "sha256:6664b12798f9a4f7802088c4ccaced2b5923a055b865e93107e13b787f1e9a98",
+      "cliVersion": "0.166.77",
+      "extensionVersion": "0.37.118",
+      "passedSteps": [
+        "initial:stream",
+        "initial:retry",
+        "initial:plan-approval",
+        "initial:permission",
+        "initial:interrupt",
+        "initial:workbench-dispatch-needs-input",
+        "initial:workbench-reply-artifact",
+        "restart:ide-restart-resume",
+        "restart:workbench-restart-recovery"
+      ],
+      "multiWindow": {
+        "primaryRootCount": 2,
+        "companionRootCount": 1,
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "truncatedDiagnosticCount": 2
+    }
+  ],
+  "verifiedArtifactCount": 60,
+  "limitations": [
+    "Two Linux ARM64 VS Code host cells at the recorded old fix commit, not the final release matrix",
+    "Ordinary stream/retry/plan/permission/interrupt/workbench/restart and real multi-window/multi-root journey only",
+    "Model responses are synthetic fixtures; real provider, full canonical replay/rewind/compaction, accessibility and remaining host cells are not established",
+    "Some bounded diagnostic logs are truncated; saved bytes and truncation flags were preserved"
+  ],
+  "receiptDigest": "sha256:4d28c66c5af7ae5d0aee4caa10bb13ec2addbb7aa4156792b740687e40a0a548"
+}
