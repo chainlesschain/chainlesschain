@@ -4,6 +4,7 @@
  * volcengine doubao) in an E2E.
  */
 import { describe, it, expect } from "vitest";
+import { PNG_BYTES, imageFsFixture } from "../helpers/image-file-fixtures.js";
 import {
   resolveImages,
   buildUserContent,
@@ -17,9 +18,7 @@ import {
   DEFAULT_VISION_MODEL,
 } from "../../src/lib/image-input.js";
 
-const fakeFs = {
-  readFileSync: (p) => Buffer.from(`bytes-of-${p}`),
-};
+const fakeFs = imageFsFixture();
 
 describe("resolveImages", () => {
   it("returns [] for no paths", () => {
@@ -34,7 +33,7 @@ describe("resolveImages", () => {
       "image/jpeg",
       "image/webp",
     ]);
-    expect(out[0].data).toBe(Buffer.from("bytes-of-a.png").toString("base64"));
+    expect(out[0].data).toBe(PNG_BYTES.toString("base64"));
   });
 
   it("throws on an unsupported extension", () => {
@@ -286,7 +285,7 @@ describe("detectImagePaths (Claude-Code-style path auto-detect)", () => {
 describe("prepareVisionTurn (REPL interactive composition)", () => {
   const deps = (existing) => ({
     existsSync: (p) => existing.includes(p),
-    fs: { readFileSync: (p) => Buffer.from(`bytes-of-${p}`) },
+    fs: imageFsFixture(),
   });
   const llm = {
     provider: "volcengine",

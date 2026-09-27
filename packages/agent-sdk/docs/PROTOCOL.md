@@ -110,6 +110,16 @@ interactive decisions.
 
 #### Other stdin events
 
+Local image admission uses at most eight paths per CLI turn (IDE
+composers may impose a smaller limit), at most 20 MiB combined file bytes and
+40 megapixels per declared image canvas. Excess input is rejected rather than
+silently truncated. The CLI checks PNG/JPEG/GIF/WebP headers against the file
+extension, scans at most 1 MiB for dimensions, and reads a bounded regular-file
+descriptor. Concurrent file growth/truncation or observed metadata changes
+reject the turn; the stream remains available for subsequent inputs. These
+are header and byte admission limits, not full codec decoding, animation-frame
+limits or a bound on filesystem latency.
+
 | Event            | Shape                                                                                                                                         | Notes                                                                                                                                                            |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | capability hello | `{"type":"hello","protocol_version":int?,"min_protocol_version":int?,"features":[str...]?}`                                                   | optional first line; negotiates a common level — see 1.2.2. CLI replies `system/negotiated`                                                                      |

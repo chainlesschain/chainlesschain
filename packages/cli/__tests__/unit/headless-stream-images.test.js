@@ -60,7 +60,7 @@ describe("parseInputEvent — images", () => {
     ).toEqual({ text: "look", images: ["/a.png"] });
   });
 
-  it("filters junk entries and caps at 8", () => {
+  it("rejects excess attachments instead of silently dropping them", () => {
     const imgs = Array.from({ length: 12 }, (_, i) => `/img${i}.png`);
     const parsed = parseInputEvent(
       JSON.stringify({
@@ -69,8 +69,7 @@ describe("parseInputEvent — images", () => {
         images: [1, "", null, ...imgs],
       }),
     );
-    expect(parsed.images).toHaveLength(8);
-    expect(parsed.images[0]).toBe("/img0.png");
+    expect(parsed.error).toMatch(/at most 8/);
   });
 
   it("accepts an image-only turn with a default instruction", () => {
@@ -276,5 +275,23 @@ describe("stream turn with images", () => {
     const h = harness({ inputObjs: [{ type: "user", text: "plain" }] });
     await h.run();
     expect(h.seenTurns[0].find((m) => m.role === "user").content).toBe("plain");
+  });
+
+  it("rejects an oversized file before the model and serves the next text input", async () => {
+    fs.truncateSync(pngPath, 20 * 1024 * 1024 + 1);
+    const h = harness({
+      inputObjs: [
+        { type: "user", text: "oversized", images: [pngPath] },
+        { type: "user", text: "still alive" },
+      ],
+    });
+    await h.run();
+    expect(h.seenTurns).toHaveLength(1);
+    expect(h.seenTurns[0].find((m) => m.role === "user").content).toBe(
+      "still alive",
+    );
+    expect(
+      h.events().find((e) => e.type === "result" && e.is_error).result,
+    ).toMatch(/20 MiB/);
   });
 });

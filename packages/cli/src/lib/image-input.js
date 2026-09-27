@@ -15,6 +15,11 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import {
+  MAX_INPUT_IMAGES,
+  MAX_INPUT_IMAGE_BYTES,
+  readBoundedImage,
+} from "./image-file-boundary.js";
 
 /**
  * Candidate on-disk forms for a path token typed in a prompt, so a path copied
@@ -66,7 +71,10 @@ const EXT_MEDIA = {
 export function resolveImages(paths, deps = {}) {
   const _fs = deps.fs || fs;
   if (!Array.isArray(paths) || paths.length === 0) return [];
-  return paths.map((p) => {
+  if (paths.length > MAX_INPUT_IMAGES)
+    throw new Error(`Attach at most ${MAX_INPUT_IMAGES} images per message`);
+  let remainingBytes = MAX_INPUT_IMAGE_BYTES;
+  return paths.map((p, index) => {
     const ext = path.extname(String(p)).toLowerCase();
     const mediaType = EXT_MEDIA[ext];
     if (!mediaType) {
@@ -74,8 +82,13 @@ export function resolveImages(paths, deps = {}) {
         `Unsupported image type "${ext || p}" — use png/jpg/jpeg/gif/webp.`,
       );
     }
-    const data = _fs.readFileSync(p).toString("base64");
-    return { mediaType, data };
+    try {
+      const data = readBoundedImage(p, mediaType, remainingBytes, _fs);
+      remainingBytes -= data.length;
+      return { mediaType, data: data.toString("base64") };
+    } catch (error) {
+      throw new Error(`Image ${index + 1}: ${error.message}`, { cause: error });
+    }
   });
 }
 

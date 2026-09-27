@@ -84,6 +84,7 @@ import {
   buildUserContent,
   resolveVisionLlm,
 } from "../lib/image-input.js";
+import { MAX_INPUT_IMAGES } from "../lib/image-file-boundary.js";
 import {
   buildIdePromptContext,
   expandIdeMentions,
@@ -753,7 +754,9 @@ export function parseInputEvent(line) {
       content = detected.text;
     }
   }
-  images = [...new Set(images)].slice(0, 8);
+  images = [...new Set(images)];
+  if (images.length > MAX_INPUT_IMAGES)
+    return { error: `Attach at most ${MAX_INPUT_IMAGES} images per message` };
   // §3.5.10 接线6: optional per-turn LLM override (PDH privacy-tier switch) —
   // {"type":"user","text":…,"llm":{"provider","model","baseUrl"?,"apiKey"?}}.
   // Switches THIS turn's model (e.g. cloud → your own PC Ollama) without
