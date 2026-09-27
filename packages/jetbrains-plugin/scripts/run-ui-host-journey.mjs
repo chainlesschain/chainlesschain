@@ -237,6 +237,7 @@ export function createFakeCliEnvironment(
       ...baseEnvironment,
       CC_UI_FIXTURE_STATE: path.join(logRoot, "fake-cli-state.json"),
       CC_UI_FIXTURE_TRACE: path.join(logRoot, "fake-cli-protocol.jsonl"),
+      CC_UI_INIT_GATE: path.join(logRoot, "init-gate.json"),
       ...(canonicalRoot
         ? {
             CC_UI_CANONICAL_ROOT: canonicalRoot,

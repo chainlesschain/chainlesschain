@@ -35,6 +35,7 @@ final class ConversationRecoveryJourney {
         var binaryField = agentClass.getDeclaredField('resolvedBinary'); binaryField.setAccessible(true);
         var tabs = field(panel, 'tabs'), ids = field(panel, 'tabIds'), views = field(panel, 'views');
         var index = tabs.getSelectedIndex(), view = views.get(ids.get(index)), conv = field(view, 'conv');
+        var receipt = field(view, 'receiptSupport'), child = field(conv, 'session');
         var transcript = field(view, 'transcript'), pane = field(transcript, 'pane');
         var spans = field(field(transcript, 'savedHistory'), 'spans'), rows = [], tabList = [];
         for (var i = 0; i < spans.size(); i++) {
@@ -54,6 +55,8 @@ final class ConversationRecoveryJourney {
             profile:String(Packages.com.intellij.openapi.application.PathManager.getConfigPath()),
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
+            sendInFlight:Boolean(field(view,'sendInFlight')), childRunning:child != null && child.isRunning(),
+            receiptReady:receipt != null && receipt.isDone() && !receipt.isCompletedExceptionally() && Boolean(receipt.getNow(false)),
             draftStatus:String(field(field(view,'drafts'),'status').getText()),
             historyStatus:String(field(field(view,'history'),'status').getText()),
             binaryChoice:String(binaryField.get(null)),
@@ -142,6 +145,53 @@ final class ConversationRecoveryJourney {
         }
         return null;
     }
+    private JsonObject waitForGate(String sessionId, String nonce, String command) throws Exception {
+        long deadline = System.nanoTime() + BUDGET.toNanos();
+        Path trace = root.resolve("fake-cli-protocol.jsonl");
+        while (System.nanoTime() < deadline) {
+            if (Files.exists(trace)) for (String line : Files.readAllLines(trace)) {
+                JsonObject value;
+                try { value = JsonParser.parseString(line).getAsJsonObject(); }
+                catch (RuntimeException partialLine) { continue; }
+                if (value.has("command") && text(value,"command").equals(command)
+                        && text(value,"sessionId").equals(sessionId) && text(value,"nonce").equals(nonce)) return value;
+            }
+            Thread.sleep(25);
+        }
+        throw new AssertionError("Missing init gate observation: " + command);
+    }
+    private JsonObject stopBeforeInit() throws Exception {
+        JsonObject c = newTab(), proof = new JsonObject(), gate = new JsonObject();
+        gate.addProperty("sessionId", text(c,"sessionId"));
+        gate.addProperty("nonce", java.util.UUID.randomUUID().toString());
+        Path gatePath = root.resolve("init-gate.json"), releasePath = root.resolve("init-gate.json.release");
+        Files.writeString(gatePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+        try {
+            send("cancelled before init 中文😀");
+            JsonObject waiting = waitForGate(text(c,"sessionId"), text(gate,"nonce"), "init-gate-waiting");
+            JsonObject preparing = snapshot();
+            assertTrue(preparing.get("sendInFlight").getAsBoolean());
+            assertFalse(preparing.get("editable").getAsBoolean());
+            assertFalse(preparing.get("receiptReady").getAsBoolean());
+            click("Stop");
+            JsonObject stopped = waitFor("Stop cancelled preparation", s -> !s.get("sendInFlight").getAsBoolean()
+                    && s.get("editable").getAsBoolean() && text(s,"text").contains("Input stopped before delivery")
+                    && text(s,"draftStatus").contains("Draft saved"));
+            assertEquals(text(preparing,"inputText"), text(stopped,"inputText"));
+            assertFalse(stopped.get("receiptReady").getAsBoolean());
+            Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+            JsonObject released = waitForGate(text(c,"sessionId"), text(gate,"nonce"), "init-gate-released");
+            JsonObject ready = waitFor("late init remains usable", s -> s.get("receiptReady").getAsBoolean());
+            assertEquals(text(stopped,"inputText"), text(ready,"inputText"));
+            assertEquals(0, ready.getAsJsonArray("savedRows").size());
+            assertTrue(ready.get("childRunning").getAsBoolean());
+            proof.add("waiting", waiting); proof.add("preparing", preparing); proof.add("stopped", stopped);
+            proof.add("released", released); proof.add("ready", ready);
+            return proof;
+        } finally {
+            if (!Files.exists(releasePath)) Files.writeString(releasePath, JSON.toJson(gate), StandardOpenOption.CREATE_NEW);
+        }
+    }
     private static String digest(byte[] bytes) throws Exception {
         return "sha256:" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
     }
@@ -179,12 +229,13 @@ final class ConversationRecoveryJourney {
     void run(String phase) throws Exception {
         Path baselinePath = root.resolve("conversation-recovery-initial.json");
         JsonObject evidence = new JsonObject();
-        evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v1");
+        evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v2");
         evidence.addProperty("phase", phase);
         evidence.addProperty("model", "deterministic fixture");
         evidence.addProperty("persistence", "production canonical store and actual CLI command");
         evidence.add("installation", verifyInstalledArchive());
         if (phase.equals("initial")) {
+            evidence.add("stopPreparation", stopBeforeInit());
             JsonObject a = newTab(); send("journey:history-A");
             a = waitFor("A started", s -> text(s,"text").contains("checking history fixture"));
             JsonObject b = newTab();
@@ -220,6 +271,19 @@ final class ConversationRecoveryJourney {
             evidence.add("a", a); evidence.add("b", b);
         } else {
             JsonObject baseline = JsonParser.parseString(Files.readString(baselinePath)).getAsJsonObject();
+            if (text(baseline,"schema").equals("cc-jetbrains-conversation-recovery/v1")) {
+                evidence.addProperty("schema", "cc-jetbrains-conversation-recovery/v1");
+            } else {
+                JsonObject cancelled = baseline.getAsJsonObject("stopPreparation").getAsJsonObject("ready");
+                select(text(cancelled,"id"));
+                JsonObject restoredCancelled = waitFor("cancelled draft restored without replay", s ->
+                        text(s,"inputText").equals(text(cancelled,"inputText")) && s.get("editable").getAsBoolean()
+                        && text(s,"historyStatus").contains("No saved messages"));
+                assertEquals(0, restoredCancelled.getAsJsonArray("savedRows").size());
+                assertFalse(restoredCancelled.get("childRunning").getAsBoolean());
+                assertFalse(restoredCancelled.get("sendInFlight").getAsBoolean());
+                evidence.add("cancelledDraft", restoredCancelled);
+            }
             for (String key : new String[]{"a","b"}) {
                 JsonObject prior = baseline.getAsJsonObject(key);
                 select(text(prior,"id"));

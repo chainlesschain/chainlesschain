@@ -307,6 +307,14 @@ UI 驱动编译通过；证据验证器与启动器 23 项 Node 测试、既有�
 
 同一干净源码的完整 initial/restart 恢复旅程也通过，模型仍为夹具；实际 ZIP 安装、后台完成、重复正文独立身份、双草稿及真实进程重启恢复均通过，四份 A/B 快照全部显示历史已加载完成。独立核对 31 个产物的长度和 SHA-256、bundle/evidence digest、行身份与真实提交引用及完整 ZIP 清单后保存[完整恢复回执](./ide/evidence/jetbrains-canonical-recovery-windows-30c1a0e183.json)。证据 digest `sha256:8005d099a4aabf8bff1e5125b18324382d1b3d6be15ce76787d5b90b80a42244`，ZIP `sha256:5a89b430908371d980a2cf8e5dd62ab845fb7b57a82ad047e79d94448305541d`。范围仍为 Windows x64 / IntelliJ 2024.2；未替代其他宿主/交互场景、真实模型和最终 SHA Actions。
 
+### JetBrains Stop 初始化等待的真实宿主验收准备
+
+canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce 在 init 前等待显式放行，驱动通过原生 Send/Stop 控件取消准备中的输入，先确认 composer 可编辑、草稿已保存及尚未收到 init，再放行并确认共享 capability future 正常完成。随后运行原 A/B 后台完成与重复正文旅程；重启恢复 C 的未发送草稿，要求真实 CLI 历史为空、不启动 Agent，并从完整协议记录检查没有自动重发。
+
+新证据使用 recovery v2，验证 gate 原始 trace、观察顺序、原 session/标签身份、初始/重启进程以及保存行与加载状态。v1 旧证据仍可按原范围读取，不新增 Stop 通过声明。fixture gate 仅在隔离 GUI 子进程环境启用，不修改生产 CLI 初始化逻辑。
+
+39 项 Node 证据/启动器测试、16 项 CLI 真实 peer/宿主夹具测试及 UI 驱动编译通过；修改 JS 的 ESLint 与 diff check 通过。实际 ZIP 的新 GUI 场景待源码提交后运行，尚不将新增测试代码计为宿主验收完成。
+
 ## 本地验证与提交记录
 
 - 第一轮跨模块回归：45 文件、822 项通过，覆盖模型/费用/ledger/恢复、编排、外部 adapter/bridge、MCP、Chat/replay/streaming。

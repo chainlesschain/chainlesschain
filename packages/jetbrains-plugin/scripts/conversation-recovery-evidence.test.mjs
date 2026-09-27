@@ -65,6 +65,175 @@ function valid() {
 function verify({ initial, restart, records }) {
   return assertConversationRecovery(initial, restart, records);
 }
+
+function withStop() {
+  const value = valid(),
+    { initial, restart, records } = value;
+  initial.schema = restart.schema = "cc-jetbrains-conversation-recovery/v2";
+  for (const phase of [initial, restart])
+    for (const key of ["a", "b"]) phase[key].historyStatus = "Saved messages";
+  const c = {
+    id: "draft-C",
+    sessionId: "session-C",
+    processId: "100",
+    profile: "isolated-profile",
+    inputText: "cancelled before init 中文😀",
+    visible: true,
+    savedRows: [],
+    tabs: [{ id: "draft-C", selected: true }],
+    childRunning: true,
+    sendInFlight: true,
+    editable: false,
+    receiptReady: false,
+  };
+  const waiting = {
+    at: "2026-09-27T00:00:00.100Z",
+    direction: "fixture",
+    command: "init-gate-waiting",
+    sessionId: c.sessionId,
+    nonce: "held-init",
+    processId: 300,
+  };
+  const released = {
+    ...waiting,
+    at: "2026-09-27T00:00:00.400Z",
+    command: "init-gate-released",
+  };
+  const preparing = { ...c, observedAt: "2026-09-27T00:00:00.200Z" };
+  const stopped = {
+    ...c,
+    observedAt: "2026-09-27T00:00:00.300Z",
+    sendInFlight: false,
+    editable: true,
+    text: "Input stopped before delivery",
+    draftStatus: "Draft saved",
+  };
+  const ready = {
+    ...stopped,
+    observedAt: "2026-09-27T00:00:00.500Z",
+    receiptReady: true,
+  };
+  initial.stopPreparation = { waiting, preparing, stopped, released, ready };
+  restart.cancelledDraft = {
+    ...ready,
+    processId: "200",
+    childRunning: false,
+    receiptReady: false,
+    historyStatus: "No saved messages",
+  };
+  records.push(
+    structuredClone(waiting),
+    structuredClone(released),
+    {
+      at: "2026-09-27T00:00:00.450Z",
+      direction: "out",
+      event: { type: "system", subtype: "init", session_id: c.sessionId },
+    },
+    {
+      direction: "command",
+      command: "canonical-session-show",
+      args: ["session", "show", "--history", c.sessionId],
+    },
+  );
+  return value;
+}
+
+test("v2 proves Stop before init, late capability completion and cancelled draft recovery", () => {
+  assert.equal(verify(withStop()).stopBeforeInit, true);
+  assert.equal(verify(withStop()).cancelledDraftRecovered, true);
+  assert.equal(verify(valid()).stopBeforeInit, undefined);
+});
+
+for (const [name, change] of [
+  [
+    "missing Stop proof",
+    (v) => {
+      delete v.initial.stopPreparation;
+    },
+  ],
+  [
+    "Stop after init",
+    (v) => {
+      v.initial.stopPreparation.preparing.receiptReady = true;
+    },
+  ],
+  [
+    "no pending send",
+    (v) => {
+      v.initial.stopPreparation.preparing.sendInFlight = false;
+    },
+  ],
+  [
+    "still sending after Stop",
+    (v) => {
+      v.initial.stopPreparation.stopped.sendInFlight = true;
+    },
+  ],
+  [
+    "lost cancelled composer",
+    (v) => {
+      v.restart.cancelledDraft.inputText = "";
+    },
+  ],
+  [
+    "unexpected saved message",
+    (v) => {
+      v.restart.cancelledDraft.savedRows = [{ id: "new" }];
+    },
+  ],
+  [
+    "cancelled session auto-started",
+    (v) => {
+      v.restart.cancelledDraft.childRunning = true;
+    },
+  ],
+  [
+    "history still loading",
+    (v) => {
+      v.restart.a.historyStatus = "Loading saved conversation";
+    },
+  ],
+  [
+    "lost init completion",
+    (v) => {
+      v.initial.stopPreparation.ready.receiptReady = false;
+    },
+  ],
+  [
+    "wrong gate nonce",
+    (v) => {
+      v.initial.stopPreparation.released.nonce = "wrong";
+    },
+  ],
+  [
+    "unobserved release",
+    (v) => {
+      v.records = v.records.filter((r) => r.command !== "init-gate-released");
+    },
+  ],
+  [
+    "early init",
+    (v) => {
+      v.records.find((r) => r.event?.subtype === "init").at =
+        "2026-09-27T00:00:00.050Z";
+    },
+  ],
+  [
+    "automatic cancelled input",
+    (v) => {
+      v.records.push({
+        direction: "in",
+        sessionId: "session-C",
+        event: { type: "user", text: "cancelled before init 中文😀" },
+      });
+    },
+  ],
+])
+  test(`rejects ${name}`, () => {
+    const value = withStop();
+    change(value);
+    assert.throws(() => verify(value));
+  });
 test("accepts native recovery with same saved identities, new process and no replay", () => {
   assert.equal(verify(valid()).processRestart, true);
 });

@@ -21,11 +21,18 @@ export function verifyConversationRecovery(logRoot, tracePath) {
 }
 
 export function assertConversationRecovery(initial, restart, records) {
+  assert.ok(
+    [
+      "cc-jetbrains-conversation-recovery/v1",
+      "cc-jetbrains-conversation-recovery/v2",
+    ].includes(initial.schema),
+  );
+  assert.equal(restart.schema, initial.schema);
   for (const [phase, evidence] of [
     ["initial", initial],
     ["restart", restart],
   ]) {
-    assert.equal(evidence.schema, "cc-jetbrains-conversation-recovery/v1");
+    assert.equal(evidence.schema, initial.schema);
     assert.equal(evidence.phase, phase);
     assert.equal(evidence.installation.exactZipContents, true);
     assert.match(evidence.installation.archiveSha256, /^sha256:[a-f0-9]{64}$/u);
@@ -38,6 +45,8 @@ export function assertConversationRecovery(initial, restart, records) {
       ["b", "B", 1],
     ]) {
       const s = evidence[key];
+      if (initial.schema.endsWith("/v2"))
+        assert.ok(s.historyStatus.includes("Saved messages"));
       assert.equal(s.visible, true);
       assert.equal(s.inputText, `unsent draft ${letter} 中文😀`);
       assert.equal(s.savedRows.length, turns * 2);
@@ -131,6 +140,9 @@ export function assertConversationRecovery(initial, restart, records) {
       "actual CLI history subprocess missing",
     );
   }
+  const stop = initial.schema.endsWith("/v2")
+    ? assertStopPreparationRecovery(initial, restart, records)
+    : {};
   return {
     backgroundCompletion: true,
     distinctSavedRows: 6,
@@ -138,5 +150,97 @@ export function assertConversationRecovery(initial, restart, records) {
     processRestart: true,
     automaticInputReplay: false,
     providerEvidence: "deterministic fixture",
+    ...stop,
   };
+}
+
+function assertStopPreparationRecovery(initial, restart, records) {
+  const { waiting, preparing, stopped, released, ready } =
+    initial.stopPreparation;
+  const restored = restart.cancelledDraft;
+  assert.notEqual(ready.id, initial.a.id);
+  assert.notEqual(ready.id, initial.b.id);
+  assert.notEqual(ready.sessionId, initial.a.sessionId);
+  assert.notEqual(ready.sessionId, initial.b.sessionId);
+  const times = [
+    waiting.at,
+    preparing.observedAt,
+    stopped.observedAt,
+    released.at,
+    ready.observedAt,
+  ].map(Date.parse);
+  assert.ok(times.every(Number.isFinite));
+  assert.ok(
+    times.every((time, index) => index === 0 || time >= times[index - 1]),
+  );
+  assert.equal(waiting.command, "init-gate-waiting");
+  assert.equal(released.command, "init-gate-released");
+  assert.equal(waiting.sessionId, ready.sessionId);
+  assert.equal(released.sessionId, ready.sessionId);
+  assert.equal(released.nonce, waiting.nonce);
+  assert.match(waiting.nonce, /^[a-zA-Z0-9-]{1,80}$/u);
+  assert.equal(released.processId, waiting.processId);
+  for (const event of [waiting, released])
+    assert.ok(
+      records.some((r) => JSON.stringify(r) === JSON.stringify(event)),
+      "gate observation must come from the protocol trace",
+    );
+  for (const s of [preparing, stopped, ready, restored]) {
+    assert.equal(s.id, ready.id);
+    assert.equal(s.sessionId, ready.sessionId);
+    assert.equal(s.profile, ready.profile);
+    assert.equal(s.inputText, "cancelled before init 中文😀");
+    assert.equal(s.visible, true);
+    assert.equal(s.savedRows.length, 0);
+    assert.equal(s.tabs.filter((tab) => tab.selected).length, 1);
+    assert.equal(s.tabs.find((tab) => tab.selected).id, s.id);
+  }
+  for (const s of [preparing, stopped, ready])
+    assert.equal(s.processId, initial.a.processId);
+  assert.equal(restored.processId, restart.a.processId);
+  assert.notEqual(ready.processId, restored.processId);
+  assert.equal(preparing.sendInFlight, true);
+  assert.equal(preparing.editable, false);
+  assert.equal(preparing.receiptReady, false);
+  assert.equal(preparing.childRunning, true);
+  assert.equal(stopped.receiptReady, false);
+  assert.ok(stopped.draftStatus.includes("Draft saved"));
+  assert.ok(stopped.text.includes("Input stopped before delivery"));
+  assert.equal(ready.receiptReady, true);
+  assert.equal(ready.childRunning, true);
+  for (const s of [stopped, ready, restored]) {
+    assert.equal(s.sendInFlight, false);
+    assert.equal(s.editable, true);
+  }
+  assert.equal(restored.childRunning, false);
+  assert.ok(restored.historyStatus.includes("No saved messages"));
+  const init = records.filter(
+    (r) =>
+      r.direction === "out" &&
+      r.event?.subtype === "init" &&
+      r.event.session_id === ready.sessionId,
+  );
+  assert.equal(
+    init.length,
+    1,
+    "cancelled tab must not start another agent on recovery",
+  );
+  assert.ok(Date.parse(init[0].at) >= Date.parse(released.at));
+  assert.ok(
+    !records.some(
+      (r) =>
+        r.direction === "in" &&
+        r.sessionId === ready.sessionId &&
+        r.event?.type === "user",
+    ),
+  );
+  assert.ok(
+    records.some(
+      (r) =>
+        r.command === "canonical-session-show" &&
+        r.args?.includes(ready.sessionId) &&
+        r.args?.includes("--history"),
+    ),
+  );
+  return { stopBeforeInit: true, cancelledDraftRecovered: true };
 }

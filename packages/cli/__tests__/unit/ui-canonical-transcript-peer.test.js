@@ -1,5 +1,11 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdtempSync, rmSync, readdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -22,8 +28,31 @@ function harness() {
     CC_UI_CANONICAL_ROOT: root,
     CC_UI_FIXTURE_STATE: join(root, "state.json"),
     CC_UI_FIXTURE_TRACE: join(root, "trace.jsonl"),
+    CC_UI_INIT_GATE: join(root, "init-gate.json"),
   };
   return {
+    root,
+    waitTrace: async (predicate) => {
+      for (let i = 0; i < 600; i++) {
+        let lines = [];
+        try {
+          lines = readFileSync(env.CC_UI_FIXTURE_TRACE, "utf8").split(/\r?\n/u);
+        } catch {
+          /* not started */
+        }
+        for (const line of lines) {
+          let value;
+          try {
+            value = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (predicate(value)) return value;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      throw new Error("Trace observation timed out");
+    },
     query: (args) => {
       const result = spawnSync(process.execPath, [script, ...args], {
         env,
@@ -106,6 +135,49 @@ it("reports its version without initializing canonical storage during binary dis
   expect(result.status, result.stderr).toBe(0);
   expect(result.stdout.trim()).toBe("0.999.0-ui-journey");
   expect(readdirSync(root)).toEqual([]);
+});
+it("holds init until an explicit matching release and preserves the real pipe input boundary", async () => {
+  const h = harness(),
+    gate = { sessionId: "held-peer", nonce: "hold-one" };
+  const gatePath = join(h.root, "init-gate.json");
+  writeFileSync(gatePath, JSON.stringify(gate));
+  const held = h.peer(gate.sessionId),
+    other = h.peer("unheld-peer");
+  try {
+    await h.waitTrace((r) => r.command === "init-gate-waiting");
+    expect(held.events).toEqual([]);
+    await other.wait((e) => e.subtype === "init");
+    writeFileSync(
+      `${gatePath}.release`,
+      JSON.stringify({ ...gate, nonce: "wrong" }),
+    );
+    held.send({ type: "interrupt" });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(held.events).toEqual([]);
+    writeFileSync(`${gatePath}.release`, JSON.stringify(gate));
+    await held.wait((e) => e.subtype === "init");
+    const input = await h.waitTrace(
+      (r) => r.direction === "in" && r.sessionId === gate.sessionId,
+    );
+    expect(input.event).toEqual({ type: "interrupt" });
+    const history = h.query([
+      "session",
+      "show",
+      "--json",
+      "--history",
+      "--",
+      gate.sessionId,
+    ]);
+    expect(history.messages).toEqual([]);
+    held.send({
+      type: "user",
+      text: "journey:history-B",
+      client_message_id: "after-release",
+    });
+    await held.wait((e) => e.type === "result");
+  } finally {
+    writeFileSync(`${gatePath}.release`, JSON.stringify(gate));
+  }
 });
 it("persists real receipts and history across fixture/CLI processes without replaying duplicate input", async () => {
   const h = harness(),

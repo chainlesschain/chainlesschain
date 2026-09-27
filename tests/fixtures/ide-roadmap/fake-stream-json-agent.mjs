@@ -13,6 +13,7 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline";
 import { randomUUID } from "node:crypto";
 import { buildSessionProjection } from "../../../packages/cli/src/lib/session-projection.js";
+import { waitForInitGate } from "./init-gate.mjs";
 
 const argv = process.argv.slice(2);
 const statePath = process.env.CC_UI_FIXTURE_STATE || "";
@@ -597,6 +598,8 @@ let turn = canonicalPrior?.turns ?? Math.floor(priorMessages / 2);
 let pending = null;
 let interruptedTimer = null;
 
+await waitForInitGate(sessionId, trace);
+
 emit({
   type: "system",
   subtype: "init",
@@ -835,7 +838,7 @@ input.on("line", (line) => {
   } catch {
     return;
   }
-  trace({ direction: "in", event });
+  trace({ direction: "in", sessionId, processId: process.pid, event });
   if (event?.type === "user") handleUser(event);
   else handleControl(event || {});
 });
