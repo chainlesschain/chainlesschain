@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { DEFAULT_CONFIG } from "../../src/constants.js";
 import {
   CONFIG_SCHEMA,
@@ -439,6 +439,38 @@ describe("owner-only filesystem helpers", () => {
       }),
     ).toBe(300_000);
     expect(_resolveWindowsAclTimeout(15_000, {})).toBe(15_000);
+  });
+
+  it("contains Local target ACL helpers in existing isolated state only", () => {
+    const configHome = resolve(tmpdir(), "cc-local-target", ".chainlesschain");
+    const environment = {
+      CC_EXECUTION_LOCATION_RUNNER_ID: "local-fixture",
+      CHAINLESSCHAIN_HOME: configHome,
+    };
+    expect(_windowsAclWorkingDirectory(environment, fakeFs(0o700, true))).toBe(
+      configHome,
+    );
+    expect(
+      _windowsAclWorkingDirectory(
+        { ...environment, CHAINLESSCHAIN_HOME: "relative-home" },
+        fakeFs(0o700, true),
+      ),
+    ).toBeNull();
+    expect(
+      _windowsAclWorkingDirectory(environment, {
+        lstatSync() {
+          throw new Error("missing");
+        },
+      }),
+    ).toBeNull();
+    expect(
+      _windowsAclWorkingDirectory(environment, {
+        lstatSync: () => ({
+          isDirectory: () => true,
+          isSymbolicLink: () => true,
+        }),
+      }),
+    ).toBeNull();
   });
 
   function fakeFs(initialMode, directory = false) {

@@ -720,7 +720,15 @@ export function _windowsAclWorkingDirectory(
   environment = process.env,
   filesystem = fs,
 ) {
-  if (!isFormalQualityHermeticRuntime(environment)) return null;
+  // Isolated profiles can make Windows PowerShell first-use caches relative
+  // to cwd. Contain those writes in application state, never the source tree.
+  const isolatedLocalTarget =
+    typeof environment.CC_EXECUTION_LOCATION_RUNNER_ID === "string" &&
+    environment.CC_EXECUTION_LOCATION_RUNNER_ID.length > 0 &&
+    typeof environment.CHAINLESSCHAIN_HOME === "string" &&
+    isNativeAbsolute(environment.CHAINLESSCHAIN_HOME);
+  if (!isFormalQualityHermeticRuntime(environment) && !isolatedLocalTarget)
+    return null;
   const configuredHome = resolve(String(environment.CHAINLESSCHAIN_HOME));
   try {
     const entry = filesystem.lstatSync(configuredHome);

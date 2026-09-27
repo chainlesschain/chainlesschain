@@ -65,6 +65,8 @@ canonical recovery v2 已接入 JetBrains 三系统 × 两版本的 CI 宿主矩
 
 `ded3eee808` 复验仍超时，尚未解决。后续对齐 CLI 集成工作流既有的 Windows 60 秒额度，并向 Local 目标只转发校验后的有界数值；增加固定原生执行阶段以区分进程启动和 ACL 操作超时。生产默认、权限要求和目标命令上限不变，继续等待下一次远端验收。
 
+`984be3adbd` 已越过 ACL 阻塞并完成两次 Windows 实际会话恢复，随后干净源码门发现 `Microsoft/` 缓存目录并拒绝生命周期阶段。本批修正隔离 AppData 目录准备及 ACL PowerShell 工作目录，保留严格干净源码门；待下一次远端验证。`8db732245f` 其余五个迁移单元、`3b0bc23021` JetBrains ARM64 五个单元通过，均属于旧 SHA，当前仍不发布。
+
 干净 `3b0bc23021` 的 Windows VS Code 1.85.2 实际 VSIX 普通控制旅程退出 0，29 个产物独立哈希复核、初始/重启/双窗口断言通过，保存[回执](./ide/evidence/vscode-control-minimum-windows-3b0bc23021.json)。同一源码 Windows→WSL1 缩小迁移退出 0，9 个产物哈希和 2 条轨迹结果通过，保存[回执](./cli/evidence/execution-location-wsl-windows-3b0bc23021.json)。两者均为隔离合成夹具验证，不作为真实模型、WSL 100 条或完整平台发布证明。
 
 第三轮 `c448c08305` 新增 Windows JetBrains [普通控制旅程回执](./ide/evidence/jetbrains-control-windows-c448c08305.json) 和 Windows local [2 条轨迹缩小迁移回执](./cli/evidence/execution-location-local-windows-c448c08305.json)。Linux ARM64 两个 JetBrains 版本远端已通过；完整平台矩阵仍未齐备。Container 配置工作目录和 WSL1 birthtime/ctime 兼容修复已有本地证据，Windows CI prepare 的退出 1 仍待固定类别诊断，不按本地成功宣称解决。不升版本、不跳过 staleness 门，也不提前发布。

@@ -459,3 +459,11 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 旧手写会话夹具在官方 schema 下发现线程元数据、`startedAtMs` 和 `completedAtMs` 缺失，三项测试先失败；补齐后通过。夹具移除上游 stdio 不发送的 jsonrpc 头；刻意未知的 future/telemetry 单独保留，不伪称官方方法。新增验证器检查适配器实际生成的 thread/start、turn/start 请求、完整通知、必填字段负例以及早到通知的输出/usage 投影；兼容白名单未增加 0.157.1，测试仅显式注入局部矩阵。新增三系统 CI 用固定二进制重新生成并逐字节比较两份 schema，避免仅在字符串中搜索方法名就视为协议兼容。
 
 本地 19 项适配器/官方 schema 回归及实际生成字节比较通过。此批没有发起模型请求，未取得最新二进制真实 turn、真实 provider 或三系统 CI 结果；CODEX-01 继续为局部实现，实验模块仍无生产调用方。
+
+### Windows 迁移越过 ACL 后的缓存落点修正
+
+`984be3adbd` 的 [Windows 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36328378916/job/108645440449) 已完成 prepare、断连恢复及两次实际 Chat `/exit`，原 ACL 超时阻塞已越过。新失败在 lifecycle-faults 的干净源码断言：`?? Microsoft/`。保留该失败，不忽略目录、不删除失败证据、不放宽干净提交要求。
+
+Local 目标设置了隔离 APPDATA/LOCALAPPDATA，但未创建这些目录，ACL PowerShell 仍从仓库 cwd 启动；项目既有 formal-quality 分支已有隔离工作目录防护。本批将同一防护用于已配置的 Local runner，把 ACL helper 的 cwd 固定在存在且非链接的目标应用状态目录，并将 AppData/Local/Roaming 纳入原固定树的创建与批量 ACL 修复。真实原生探测核对 helper cwd、权限修复、子文件 ctime 幂等和缺失路径拒绝通过；完整远端迁移仍待新 SHA 结果。
+
+旧 `8db732245f` 的 Local Linux/macOS、Container、SSH、WSL 五个 100 条轨迹单元均已通过；Windows 失败使聚合正确拒绝。旧 `3b0bc23021` 的 JetBrains ARM64 五个单元也全部通过，VS Code ARM64 三系统后续作业继续等待。旧提交成功结果不能替代本轮最终 SHA 发布门。

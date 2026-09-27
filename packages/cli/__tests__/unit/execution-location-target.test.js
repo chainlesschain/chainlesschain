@@ -612,6 +612,13 @@ describe("execution location target launch and resume", () => {
     expect(prepared.stateHome).toBe(
       join(root, "target-home", ".chainlesschain"),
     );
+    expect(prepared.directories).toEqual(
+      expect.arrayContaining([
+        join(profile.transport.home, "AppData"),
+        join(profile.transport.home, "AppData", "Local"),
+        join(profile.transport.home, "AppData", "Roaming"),
+      ]),
+    );
     expect(prepared.directories).toContain(
       join(
         prepared.antiRollbackDirectory,

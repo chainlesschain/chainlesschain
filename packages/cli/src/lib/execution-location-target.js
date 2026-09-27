@@ -719,6 +719,7 @@ export function prepareLocalTargetState(profile, cliArgs, deps = {}) {
     anchorBase: profile.transport.securityHome,
   });
   const sessionDigest = createHash("sha256").update(sessionId).digest("hex");
+  const platform = deps.platform || process.platform;
   const directories = [
     stateHome,
     path.join(stateHome, "sessions"),
@@ -728,11 +729,19 @@ export function prepareLocalTargetState(profile, cliArgs, deps = {}) {
     path.join(antiRollbackDirectory, "namespace"),
     path.join(antiRollbackDirectory, "records"),
     path.join(antiRollbackDirectory, "records", sessionDigest.slice(0, 2)),
+    // Windows known-folder APIs can return an empty path for nonexistent
+    // isolated profile directories, making first-use caches relative to cwd.
+    ...(platform === "win32"
+      ? [
+          path.join(profile.transport.home, "AppData"),
+          path.join(profile.transport.home, "AppData", "Local"),
+          path.join(profile.transport.home, "AppData", "Roaming"),
+        ]
+      : []),
   ];
   const uniqueDirectories = [...new Set(directories)];
   const ensure = deps.ensurePrivateDirectory || ensurePrivateDirectory;
   const repair = deps.repairPrivatePaths || repairPrivatePaths;
-  const platform = deps.platform || process.platform;
   for (const directory of uniqueDirectories) {
     ensure(
       directory,
