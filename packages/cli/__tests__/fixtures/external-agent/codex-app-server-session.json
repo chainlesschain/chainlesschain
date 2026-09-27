@@ -1,11 +1,25 @@
 [
   {
-    "jsonrpc": "2.0",
     "method": "thread/started",
-    "params": { "thread": { "id": "codex-thread-1" } }
+    "params": {
+      "thread": {
+        "id": "codex-thread-1",
+        "sessionId": "codex-session-1",
+        "cliVersion": "0.157.1",
+        "createdAt": 1790467200,
+        "updatedAt": 1790467200,
+        "cwd": "/isolated-fixture",
+        "ephemeral": true,
+        "modelProvider": "fixture",
+        "preview": "official schema fixture",
+        "projectId": null,
+        "source": "appServer",
+        "status": { "type": "idle" },
+        "turns": []
+      }
+    }
   },
   {
-    "jsonrpc": "2.0",
     "method": "turn/started",
     "params": {
       "threadId": "codex-thread-1",
@@ -18,16 +32,15 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "item/started",
     "params": {
+      "startedAtMs": 1790467200000,
       "threadId": "codex-thread-1",
       "turnId": "codex-turn-1",
       "item": { "id": "item-1", "type": "agentMessage", "text": "" }
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "item/agentMessage/delta",
     "params": {
       "threadId": "codex-thread-1",
@@ -37,7 +50,6 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "item/agentMessage/delta",
     "params": {
       "threadId": "codex-thread-1",
@@ -47,9 +59,9 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "item/completed",
     "params": {
+      "completedAtMs": 1790467200001,
       "threadId": "codex-thread-1",
       "turnId": "codex-turn-1",
       "item": {
@@ -60,7 +72,6 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "future/telemetry",
     "params": {
       "threadId": "codex-thread-1",
@@ -69,7 +80,6 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "thread/tokenUsage/updated",
     "params": {
       "threadId": "codex-thread-1",
@@ -94,7 +104,6 @@
     }
   },
   {
-    "jsonrpc": "2.0",
     "method": "turn/completed",
     "params": {
       "threadId": "codex-thread-1",

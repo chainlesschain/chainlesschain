@@ -9,7 +9,7 @@
 | MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                |
 | MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
 | READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
-| CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback。12 项通过                                                    | 官方生成 schema 校验、最新固定版本真实 turn；未扩大生产白名单       |
+| CODEX-01                | 局部实现并验证   | camelCase item、文本/工具 delta、tokenUsage；thread/turn 关联；早到通知有界缓冲；RPC 超时；未知提交不 fallback；0.157.1 官方生成 schema 及实际请求/事件回归，19 项通过 | 最新固定二进制真实 turn、官方 schema 三系统重生成 CI；未扩大生产白名单 |
 | BRIDGE-01               | 局部实现并验证   | finalize-once；abort/timeout 共用 TERM/KILL；同步 spawn 拒绝；存活 child 的 error 等待 close；task:start 内取消不会 spawn。32 项通过                                         | 各平台真实进程树退出证明；主路由继续拒绝未 attested CLI             |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
 | IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
@@ -451,3 +451,11 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 `a7d2ebb721` 的 [Windows 复跑](https://github.com/chainlesschain/chainlesschain/actions/runs/36327273639/job/108642337841) 明确返回 `windows-acl [timeout]`。原逻辑将单路径 15 秒拆成两次 7.5 秒，批量 30 秒拆成两次 15 秒，冷启动每次重新开始；单路径甚至短于原生互斥锁的 10 秒等待。调整为一次进程使用完整的原预算，超时仍拒绝，不提高总上限、不重试延长阻塞、不跳过 ACL 校验。模拟 10 秒单路径/20 秒批量操作的回归在修改前失败；修复后的相关测试和原生权限/幂等/拒绝探测通过。托管 Windows 是否已解决仍须新 SHA 作业确认。
 
 `ded3eee808` 的 [Windows 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36327648662/job/108643388246) 仍在目标目录 ACL 处超时，完整 15 秒不足，不能将预算修正称为最终解决。现有 `_cli-test.yml` 已对托管 Windows 使用 60 秒 ACL 额度；执行位置工作流未配置该值，Local 目标环境也未转发它。新增相同的 Windows 工作流额度，并仅转发经过既有上下限校验的数值，不转发原字符串或其他凭证环境。生产默认保持 15/30 秒，目标外层命令上限不变；原生脚本发出固定阶段标记，超时仅返回最后已到达的白名单阶段或 `startup`，不输出路径/原异常。下一轮远端结果仍待验证。
+
+### CODEX-01：官方生成 schema 约束协议夹具
+
+从 [OpenAI 官方 App Server 文档](https://developers.openai.com/codex/app-server) 核对 `generate-json-schema`、initialize/initialized 和通知格式，并安装隔离的 npm `@openai/codex@0.157.1`，实际二进制报告 `codex-cli 0.157.1`。保留其未修改的 `ClientRequest.json`（206057 字节，SHA-256 `2ababf80956ae311d1dcee4b595dcd3ef86b29a764d31529d7bbf5c4b2f0f2b8`）和 `ServerNotification.json`（206585 字节，`07d24f16d743d1956dee25ece38ed6656d9c9620519e8cf0c4a4186b2719dae3`）作为协议夹具，附上来源/版本/生成命令/许可证；禁止 formatter 改写这两个生成文件。
+
+旧手写会话夹具在官方 schema 下发现线程元数据、`startedAtMs` 和 `completedAtMs` 缺失，三项测试先失败；补齐后通过。夹具移除上游 stdio 不发送的 jsonrpc 头；刻意未知的 future/telemetry 单独保留，不伪称官方方法。新增验证器检查适配器实际生成的 thread/start、turn/start 请求、完整通知、必填字段负例以及早到通知的输出/usage 投影；兼容白名单未增加 0.157.1，测试仅显式注入局部矩阵。新增三系统 CI 用固定二进制重新生成并逐字节比较两份 schema，避免仅在字符串中搜索方法名就视为协议兼容。
+
+本地 19 项适配器/官方 schema 回归及实际生成字节比较通过。此批没有发起模型请求，未取得最新二进制真实 turn、真实 provider 或三系统 CI 结果；CODEX-01 继续为局部实现，实验模块仍无生产调用方。
