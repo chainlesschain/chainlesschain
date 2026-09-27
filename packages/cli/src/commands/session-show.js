@@ -18,16 +18,20 @@ export function registerSessionShowSubcommand(session, program) {
     .option("-n, --limit <n>", "Max messages to show")
     .option("--json", "Output as JSON")
     .option(
+      "--history",
+      "Page verified display history across canonical compaction (requires --json)",
+    )
+    .option(
       "--input-receipt <client-message-id>",
       "Read verified input acceptance without replay (requires --json)",
     )
     .option(
       "--page-size <n>",
-      "Verified saved-context page size (1–100; requires --json)",
+      "Verified context/history page size (1–100; requires --json)",
     )
     .option(
       "--before <cursor>",
-      "Load the previous verified context page (requires --json)",
+      "Load the previous page in the selected view (requires --json)",
     )
     .action(async (id, options) => {
       let ctx = null;
@@ -53,6 +57,7 @@ export function registerSessionShowSubcommand(session, program) {
               !options.json ||
               options.pageSize ||
               options.before ||
+              options.history ||
               options.limit
             )
               throw new Error(
@@ -65,10 +70,18 @@ export function registerSessionShowSubcommand(session, program) {
             );
             return;
           }
-          if (options.pageSize || options.before) {
+          if (options.pageSize || options.before || options.history) {
             if (!options.json)
               throw new Error("Transcript pagination requires --json");
-            const page = readSessionTranscriptPage(jsonlId, {
+            if (options.limit)
+              throw new Error(
+                "Transcript pagination cannot be combined with --limit",
+              );
+            const readPage = options.history
+              ? (await import("../lib/session-transcript-history.js"))
+                  .readSessionTranscriptHistory
+              : readSessionTranscriptPage;
+            const page = readPage(jsonlId, {
               limit: numericOption(options.pageSize || "50", {
                 name: "--page-size",
                 integer: true,
@@ -99,6 +112,7 @@ export function registerSessionShowSubcommand(session, program) {
           if (
             options.pageSize ||
             options.before ||
+            options.history ||
             options.inputReceipt !== undefined
           )
             throw new Error(

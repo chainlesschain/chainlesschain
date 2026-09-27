@@ -843,7 +843,11 @@ class ChatViewProvider {
   async _restoreTranscript(conv, cursor = null) {
     if (!conv) return;
     if (!cursor && conv.transcript?.length)
-      this._postFromTranscript(conv, { messages: conv.transcript, live: true });
+      this._postFromTranscript(conv, {
+        ...conv.transcriptPageMetadata,
+        messages: conv.transcript,
+        live: true,
+      });
     if (!conv.sessionId) return;
     if (conv.turnActive) {
       conv.transcriptAwaiting = true;
@@ -887,6 +891,13 @@ class ChatViewProvider {
       if (!cursor) {
         conv.transcript = page.messages.map((m) => ({ ...m }));
         conv.transcriptTrimmed = !!page.nextCursor;
+        conv.transcriptPageMetadata = {
+          generation: page.generation,
+          revision: page.revision,
+          contextOnly: page.contextOnly,
+          coverage: page.coverage,
+          nextCursor: page.nextCursor,
+        };
       }
       this._postFromTranscript(conv, { ...page, earlier: !!cursor });
     } catch (error) {
@@ -1016,6 +1027,7 @@ class ChatViewProvider {
     conv.draftKey = crypto.randomUUID();
     this._invalidateAsync(conv);
     conv.transcript = [];
+    conv.transcriptPageMetadata = null;
     conv.transcriptRevision = (conv.transcriptRevision || 0) + 1;
     conv.transcriptRequest = null;
     conv.transcriptAwaiting = false;

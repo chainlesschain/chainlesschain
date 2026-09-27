@@ -7,7 +7,7 @@ import {
 const MAX_PAGE_BYTES = 1024 * 1024;
 const MAX_TEXT_CHARS = 200000;
 
-function displayText(content) {
+export function displayTranscriptText(content) {
   const parts =
     typeof content === "string"
       ? [content]
@@ -68,7 +68,7 @@ export function createSessionTranscriptPageProjection(
     if (!["user", "assistant", "tool"].includes(message?.role)) return;
     const ordinal = count++;
     if (ordinal >= before) return;
-    const content = displayText(message.content);
+    const content = displayTranscriptText(message.content);
     const row = {
       id: `${generation}:${ordinal}`,
       ordinal,

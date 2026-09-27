@@ -1365,6 +1365,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           label.textContent = "Saved conversation context · ";
           navigation.appendChild(label);
         }
+        if (m.coverage?.kind === "snapshot-boundary") {
+          const label = document.createElement("span");
+          label.textContent = "History begins at a saved snapshot · ";
+          navigation.appendChild(label);
+        }
         if (m.nextCursor) {
           const older = document.createElement("button");
           older.textContent = "Older messages";
