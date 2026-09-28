@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.ide-roadmap-live-provider-trajectory-failure.v1",
+  "schemaVersion": 1,
+  "caseId": "s0-live-provider-trajectory",
+  "mode": "live",
+  "releaseCommit": "e3591426b9d386a1b188f0a86709023f1c342973",
+  "generatedAt": "2026-09-28T16:46:56.179Z",
+  "result": "failed",
+  "failureCode": "trajectory_invariant_failed",
+  "diagnostic": {
+    "eventCount": 3,
+    "eventOrder": [
+      "run-started",
+      "semantic-compaction:model-usage-started",
+      "compaction-degraded",
+      "compaction-usage-unknown"
+    ],
+    "eventOrderTruncated": false,
+    "failureKind": "compaction-usage-unknown",
+    "compactionReason": "semantic-summary-provider-outcome-unknown",
+    "usageUnknownReason": "provider_transport_outcome_unknown"
+  },
+  "rawProviderMaterialPersisted": false,
+  "evidenceDigest": "sha256:2d6128be2064ecb36ee16983117db3f7234060c7aafcbce1417a8a0b0b33c1ff"
+}

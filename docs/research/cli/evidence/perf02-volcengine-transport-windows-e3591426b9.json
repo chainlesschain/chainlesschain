@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.perf02-live-transport-diagnostic/v1",
+  "releaseCommit": "e3591426b9d386a1b188f0a86709023f1c342973",
+  "generatedAt": "2026-09-28T16:50:31.386Z",
+  "provider": "volcengine",
+  "transport": [
+    {
+      "outcome": "response",
+      "status": 200,
+      "elapsedMs": 9757
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "elapsedMs": 1600
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "elapsedMs": 1121
+    },
+    {
+      "outcome": "error",
+      "name": "Error",
+      "elapsedMs": 95265
+    }
+  ],
+  "result": "failed",
+  "failureCode": "trajectory_invariant_failed",
+  "failureKind": "compaction-usage-unknown",
+  "rawProviderMaterialPersisted": false,
+  "evidenceDigest": "sha256:96e8878306a3cd6b8e280a19eab9916b306504af4296831c3c1b6f57f846fd8e"
+}
