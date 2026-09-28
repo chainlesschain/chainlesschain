@@ -1,28 +1,9 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.140] - Pair with CLI 0.166.78 recovery candidate (2026-09-28)
+## [0.4.138] - Pair with CLI 0.166.75 evaluation loading fix (2026-09-26)
 
-- Recommend `chainlesschain@0.166.78` after its exact-commit release checks and
-  public npm readback complete.
-- Recover configuration reads after Stop and resume with separate CLI JSON and
-  diagnostic streams, bounded readers, and safe failure classification.
-- Keep editor approval and sandbox authority with the paired CLI.
-
-## [0.4.139] - Pair with CLI 0.166.77 bounded Skill decisions (2026-09-27)
-
-- Recommend `chainlesschain@0.166.77` in runtime upgrade guidance and release
-  metadata, including when npm lookup is unavailable.
-- Carry the CLI's 256 KiB request/response limits for optional local Skill
-  decisions and its fail-closed handling of unknown model usage across durable
-  session resume. The plugin does not invoke decision modes in IDE chat.
-- Keep approval, sandbox, and editor bridge authority in the CLI host.
-
-## [0.4.138] - Pair with CLI 0.166.76 state lock and evaluation fixes (2026-09-26)
-
-- Recommend `chainlesschain@0.166.76` in runtime upgrade guidance and release
+- Recommend `chainlesschain@0.166.75` in runtime upgrade guidance and release
   metadata, including when the npm version lookup is unavailable.
-- Include the paired CLI's concurrent state lock handoff fix, preserving a
-  replacement owner's lock and recognizing completed release handoffs.
 - Include the paired CLI's fix for circular evaluation module imports that
   could fail before evaluation, evidence, supervision, or promotion initialized.
 - Keep existing execution approval, sandbox boundaries, and bridge compatibility;
