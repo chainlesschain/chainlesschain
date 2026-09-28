@@ -817,8 +817,8 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
   assert.match(
     smokeDriver,
-    /if \(process\.platform === "darwin"\) \{[\s\S]*?multi_window_companion_close_requested[\s\S]*?void vscode\.commands\.executeCommand\("workbench\.action\.closeWindow"\);/u,
-    "macOS must close only the synchronized companion window",
+    /if \(process\.platform === "darwin" && !externalCompanionManaged\) \{[\s\S]*?multi_window_companion_close_requested[\s\S]*?void vscode\.commands\.executeCommand\("workbench\.action\.closeWindow"\);/u,
+    "macOS must close only inherited companion windows, leaving managed hosts to their native test runner",
   );
   assert.match(
     smokeDriver,
@@ -827,8 +827,8 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
   assert.match(
     smokeDriver,
-    /multi_window_primary_result_published[\s\S]*?waitForMultiWindowProgressStage\([\s\S]*?multi_window_companion_primary_result_observed[\s\S]*?3_000[\s\S]*?multi_window_primary_quit_requested[\s\S]*?workbench\.action\.quit/u,
-    "macOS must bound companion synchronization before clean application exit",
+    /multi_window_primary_result_published[\s\S]*?if \(process\.platform === "darwin" && !externalCompanionManaged\) \{[\s\S]*?waitForMultiWindowProgressStage\([\s\S]*?multi_window_companion_primary_result_observed[\s\S]*?3_000[\s\S]*?multi_window_primary_quit_requested[\s\S]*?workbench\.action\.quit/u,
+    "macOS must bound inherited-window synchronization without racing the managed test runner's exit",
   );
 });
 

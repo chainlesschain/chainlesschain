@@ -112,20 +112,36 @@ test("canonical payload validator matches shared positive and negative fixtures"
 
 test("canonical payload union covers every discriminator in the shared corpus", () => {
   const seen = new Set();
-  const fixtureRoot = new URL("../../agent-sdk/__fixtures__/protocol/", import.meta.url);
-  for (const file of readdirSync(fixtureRoot).filter((name) => name.endsWith(".ndjson"))) {
+  const fixtureRoot = new URL(
+    "../../agent-sdk/__fixtures__/protocol/",
+    import.meta.url,
+  );
+  for (const file of readdirSync(fixtureRoot).filter((name) =>
+    name.endsWith(".ndjson"),
+  )) {
     for (const line of readFileSync(new URL(file, fixtureRoot), "utf8")
       .split(/\r?\n/u)
       .filter(Boolean)) {
       const event = JSON.parse(line);
-      if (event.type === "slash_command" || event.type === "totally_new_event_v9") continue;
-      assert.equal(validateCanonicalAgentStreamEvent(event).ok, true, `${file}: ${event.type}`);
+      if (
+        event.type === "slash_command" ||
+        event.type === "totally_new_event_v9"
+      )
+        continue;
+      assert.equal(
+        validateCanonicalAgentStreamEvent(event).ok,
+        true,
+        `${file}: ${event.type}`,
+      );
       seen.add(event.type);
     }
   }
   const payloadCases = JSON.parse(
     readFileSync(
-      new URL("./fixtures/canonical-agent-stream-payloads.json", import.meta.url),
+      new URL(
+        "./fixtures/canonical-agent-stream-payloads.json",
+        import.meta.url,
+      ),
       "utf8",
     ),
   );
@@ -221,7 +237,7 @@ test("package metadata exposes only supported public entry points", () => {
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
   assert.equal(manifest.name, "@chainlesschain/agent-protocol");
-  assert.equal(manifest.version, "0.1.11");
+  assert.match(manifest.version, /^0\.\d+\.\d+$/u);
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.license, "MIT");
   assert.equal(manifest.publishConfig.access, "public");

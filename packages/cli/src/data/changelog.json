@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.78",
+      "cliVersions": ["0.166.78"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.78: CLI and IDE recovery candidate",
+          "body": "- Add verified session history paging and recovery across CLI, VS Code, and\n  JetBrains, including bounded input and draft handling.\n- Improve process lifecycle and IDE host recovery; keep approval and sandbox\n  boundaries with the CLI host.\n- Repair cross-platform CI fixtures and release validation for the exact source\n  commit. Publish child npm packages before the CLI, then the IDE extensions."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.77",
       "cliVersions": ["0.166.77"],
       "date": null,

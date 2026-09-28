@@ -13,7 +13,10 @@ import { join } from "node:path";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const testHome = join(tmpdir(), `cc-cloud-${Date.now()}`);
-vi.mock("../../src/lib/paths.js", () => ({ getHomeDir: () => testHome }));
+vi.mock("../../src/lib/paths.js", () => ({
+  getHomeDir: () => testHome,
+  getMachineSecurityAnchorDir: () => join(testHome, "security"),
+}));
 
 const {
   CloudClient,

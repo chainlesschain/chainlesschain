@@ -86,7 +86,10 @@ jobs:
           - runner: windows-2025
             audit_os: windows
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    # Hosted Windows needs about 100 seconds per genuine trajectory with
+    # owner-only ACL checks; 100 trajectories cannot finish within 90 minutes.
+    # Preserve the full evidence count instead of truncating the campaign.
+    timeout-minutes: 210
     env:
       CC_LOCATION_ARTIFACT: ide-execution-location-local-${{ matrix.audit_os }}-${{ github.run_attempt }}
       # Match CLI integration's hosted-Windows cold-start allowance.

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.78: CLI and IDE recovery candidate
+
+- Add verified session history paging and recovery across CLI, VS Code, and
+  JetBrains, including bounded input and draft handling.
+- Improve process lifecycle and IDE host recovery; keep approval and sandbox
+  boundaries with the CLI host.
+- Repair cross-platform CI fixtures and release validation for the exact source
+  commit. Publish child npm packages before the CLI, then the IDE extensions.
+
 ### Fixed - cc CLI 0.166.77: bounded Skill decision usage
 
 - Reject decision HTTP requests and streamed responses above 256 KiB before

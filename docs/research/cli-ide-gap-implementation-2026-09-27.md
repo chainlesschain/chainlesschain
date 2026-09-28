@@ -635,3 +635,13 @@ Windows 的 bridge 与四类信任存储回归共 146 项通过。WSL 扩大 10 
 为补足独立包回读，复用工作流现在把 `npm pack` 产生的 tarball 移到固定路径，**同一份字节**用于解包、计算 SHA-256 和上传到架构 smoke artifact；下一轮托管任务完成后才能独立下载并重读新 tarball。发布依赖、两架构无编译器探针及完整矩阵门不变。发布 workflow 合同 23 项、actionlint、修改文件 Prettier 和 diff 检查通过；这是本地工作流验证，不把旧 SHA 的作业结果转移给新提交。
 
 `982123680e` 推送后，旧 `71919bc5c1` 又留下 `CLI CI` 的 PM recovery 汇总及 Android Tests 的 Test Summary / Build Status Check 排队。4 个旧 run 的普通取消请求均接受；其中两条仍有 `always()` 汇总，补用 force-cancel 后才确认结束。再审计自动工作流的 job 级 `always()`，为 8 个 workflow 的 12 个汇总/构建/通知 job 增加取消条件：被取代的自动 PR/push 停止排队，普通测试失败仍进入汇总；手工精确 SHA 验收及原 schedule 汇总保持原准入，schedule 通知在显式取消后停止。发布/回滚专属 workflow 未改。GitHub 官方表达式求值器对最先复现的 3 个 job、18 个事件/取消组合通过；CLI 发布合同 23 项、根 CI 门合同 47 项和 8 个修改 workflow 的 actionlint 通过。新条件仍须由托管 Actions 在准确提交上验证，不能把旧 run 取消或本地合同通过写成发布门通过。
+
+### PR #383 准确提交 CI 失败与下一版候选（2026-09-28）
+
+`3e39a6b76ff56129480e87a374928a09c2587da4` 的所有任务结束后，GitHub 显示 14 个失败检查及 1 个取消任务，非旧提交队列造成。独立原因集中在：测试路径 mock 缺少机器安全锚目录；Windows session-index 夹具在设置 ACL 前记录文件 ctime；桌面 Vite 模块加载时非 `file:` URL 被 Linux subreaper helper 顶层解析；macOS VS Code managed multi-window 主进程在原生 runner 退出时重复触发 workbench quit/close；JetBrains Stop 后配置读取混合 stdout/stderr 且丢弃底层失败分类；Windows Local x100 因 90 分钟 job 预算只完成约 51 条轨迹。PM、ARM64 和执行位置汇总失败是这些上游任务的连带阻断。自动生成的 [#384](https://github.com/chainlesschain/chainlesschain/issues/384) 指向同一 Full Test Automation 运行，Linux/Windows 终端测试复现了非 `file:` URL 错误，不另算独立根因。
+
+本批候选修正了上述源码、夹具和宿主退出路径；JetBrains 将 JSON stdout 与诊断 stderr 分离，改用专用读流线程，并只展示安全失败类别。Windows Local x100 的 50 个相邻轮次平均 101.61 秒，100 条约 169 分钟；独立一条真实轨迹约 66.20 秒，其中 ACL 与目标原生进程占 95.71%。没有删减样本或跳过安全校验，工作流 job 预算改为 210 分钟。JetBrains 旧日志丢弃了底层异常，因此其确切 macOS 触发分支仍需新提交的真实宿主复验。
+
+候选版本按本次改动与 registry 核对为：`@chainlesschain/agent-protocol@0.1.12`、`@chainlesschain/agent-sdk@0.2.12`、`chainlesschain@0.166.78`、VS Code `0.37.119`、JetBrains `0.4.140`。14 个可发布 workspace 包逐一比对 npm registry，另外 11 个版本一致且本 PR 没有其源码变更；Agent Protocol 的 schema/generated 变化虽未被普通 `src/lib/bin` staleness lint 捕获，仍纳入子包发布。Python SDK 生成绑定也变化，但它属于独立 PyPI 轨道，不列入子 npm 包顺序。发布须先 Agent Protocol / Agent SDK 等需更新的子 npm 包，再 CLI，最后两个 IDE 插件；准确候选提交的 CLI CI 与 CLI Strict Sandbox 三系统完整矩阵、相关 IDE 宿主检查及公共包回读仍是未完成的发布门。
+
+提交前本地证据：session-index 14/14、cloud-handoff 与 CLI 发布合同合计 47/47、桌面 ws-cli-loader 21/21、Agent Protocol 19/19、Agent SDK 83/83、VS Code runner/Marketplace 55/55、JetBrains Java 21 定向 23/23 通过；生成协议、vendored SDK 与 Marketplace 描述检查通过。以上不代表新 SHA Actions 已通过，本机 Docker 因虚拟化未开启仍不可用。

@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.119] - Pair with CLI 0.166.78 recovery candidate (2026-09-28)
+
+- Recommend `chainlesschain@0.166.78` after its exact-commit release checks and
+  public npm readback complete.
+- Preserve verified history, draft, and interruption state through host reloads;
+  avoid a redundant workbench quit during managed macOS multi-window tests.
+- Keep host authority, approval, and sandbox enforcement in the paired CLI.
+
 ## [0.37.118] - Pair with CLI 0.166.77 bounded Skill decisions (2026-09-27)
 
 - Recommend `chainlesschain@0.166.77` in runtime upgrade guidance and release

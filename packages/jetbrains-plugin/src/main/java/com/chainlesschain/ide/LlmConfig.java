@@ -95,10 +95,17 @@ public final class LlmConfig {
     public static final class CliResult {
         public final boolean ok;
         public final String output;
+        // Safe classification only: config output and stderr may contain secrets.
+        final String failure;
 
         CliResult(boolean ok, String output) {
+            this(ok, output, ok ? null : "CLI command failed");
+        }
+
+        CliResult(boolean ok, String output, String failure) {
             this.ok = ok;
             this.output = output;
+            this.failure = failure;
         }
     }
 
@@ -132,8 +139,12 @@ public final class LlmConfig {
 
     static Connection readConnection(CliRunner cli) {
         CliResult result = cli.run(args("config", "list", "--json"), null);
-        if (!result.ok) throw new IllegalStateException("Could not read the saved CLI configuration");
-        Map<String, Object> document = MiniJson.parseObject(result.output.trim());
+        if (!result.ok) throw new IllegalStateException("Could not read the saved CLI configuration: " + result.failure);
+        final Map<String, Object> document;
+        try { document = MiniJson.parseObject(result.output.trim()); }
+        catch (RuntimeException error) {
+            throw new IllegalStateException("CLI returned malformed configuration JSON");
+        }
         if (document == null || !(document.get("llm") instanceof Map))
             throw new IllegalStateException("CLI returned an invalid configuration snapshot");
         Map<?, ?> values = (Map<?, ?>) document.get("llm");
@@ -236,37 +247,61 @@ public final class LlmConfig {
         // the C compiler) — its probes already run with the augmented PATH.
         cmd.add(AgentChatSession.resolveBinary());
         cmd.addAll(ccArgs);
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        CliLauncher.augmentPath(pb);
+        return runCliProcess(pb, stdin);
+    }
+
+    /** Separate pipes preserve machine-readable stdout even when Node emits warnings. */
+    static CliResult runCliProcess(ProcessBuilder pb, String stdin) {
         Process p = null;
         try {
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            CliLauncher.augmentPath(pb);
-            pb.redirectErrorStream(true);
+            pb.redirectErrorStream(false);
             p = pb.start();
-            final InputStream output = p.getInputStream();
-            CompletableFuture<String> reading = CompletableFuture.supplyAsync(() -> {
-                try { return readAll(output); }
-                catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
-            });
+            CompletableFuture<String> reading = readCliStream(p.getInputStream(), "cc-config-stdout");
+            CompletableFuture<String> errors = readCliStream(p.getErrorStream(), "cc-config-stderr");
             try (OutputStream out = p.getOutputStream()) {
                 if (stdin != null) out.write(stdin.getBytes(StandardCharsets.UTF_8));
             }
             boolean finished = p.waitFor(60, TimeUnit.SECONDS);
             if (!finished) {
                 stopCliProcess(p);
-                return new CliResult(false, "cc timed out");
+                return new CliResult(false, "cc timed out", "CLI process timed out");
             }
             String out = reading.get(5, TimeUnit.SECONDS);
+            String stderr = errors.get(5, TimeUnit.SECONDS);
             boolean ok = p.exitValue() == 0;
+            if (!ok) out = out + stderr;
             if (!ok && CliLauncher.looksLikeMissingCli(out)) {
                 return new CliResult(false, CliLauncher.missingCliMessage());
             }
-            return new CliResult(ok, out);
+            return new CliResult(ok, out, ok ? null : "CLI exited with code " + p.exitValue());
         } catch (Exception e) {
             if (p != null && p.isAlive()) stopCliProcess(p);
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             String msg = String.valueOf(e.getMessage());
             return new CliResult(false,
-                    CliLauncher.looksLikeMissingCli(msg) ? CliLauncher.missingCliMessage() : msg);
+                    CliLauncher.looksLikeMissingCli(msg) ? CliLauncher.missingCliMessage() : msg,
+                    "CLI execution failed (" + e.getClass().getSimpleName() + ")");
+        } finally {
+            if (p != null) {
+                try { p.getInputStream().close(); } catch (Exception ignored) { }
+                try { p.getErrorStream().close(); } catch (Exception ignored) { }
+                try { p.getOutputStream().close(); } catch (Exception ignored) { }
+            }
         }
+    }
+
+    private static CompletableFuture<String> readCliStream(InputStream stream, String name) {
+        CompletableFuture<String> result = new CompletableFuture<>();
+        // Blocking pipe reads must not queue behind unrelated IDE common-pool work.
+        Thread reader = new Thread(() -> {
+            try (InputStream input = stream) { result.complete(readAll(input)); }
+            catch (Exception error) { result.completeExceptionally(error); }
+        }, name);
+        reader.setDaemon(true);
+        reader.start();
+        return result;
     }
 
     private static void stopCliProcess(Process process) {

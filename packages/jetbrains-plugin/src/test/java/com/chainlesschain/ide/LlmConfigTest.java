@@ -15,6 +15,59 @@ import org.junit.jupiter.api.Test;
 /** Real JUnit 5 coverage for the pure (parse/build) parts of {@link LlmConfig}. */
 class LlmConfigTest {
 
+    /** Real pipes exercise stdout/stderr separation and concurrent draining. */
+    public static class ConfigProcess {
+        public static void main(String[] args) {
+            String warning = "runtime warning ".repeat(10000);
+            System.err.print(warning);
+            if (args.length > 0) {
+                System.err.print("sensitive-diagnostic");
+                System.exit(7);
+            }
+            System.out.print("{\"llm\":{\"provider\":\"ollama\",\"model\":\"fixture\"}}");
+        }
+    }
+
+    private ProcessBuilder configProcess(String... args) {
+        List<String> command = new ArrayList<>();
+        command.add(java.nio.file.Paths.get(System.getProperty("java.home"), "bin",
+                System.getProperty("os.name", "").toLowerCase().contains("win") ? "java.exe" : "java").toString());
+        command.add("-cp");
+        String resourceName = ConfigProcess.class.getName().replace('.', '/') + ".class";
+        String resource = ConfigProcess.class.getResource("/" + resourceName).toExternalForm();
+        command.add(java.nio.file.Paths.get(java.net.URI.create(
+                resource.substring(0, resource.length() - resourceName.length()))).toString());
+        command.add(ConfigProcess.class.getName());
+        java.util.Collections.addAll(command, args);
+        return new ProcessBuilder(command);
+    }
+
+    @Test
+    void configurationJsonSurvivesLargeStderrWarnings() {
+        LlmConfig.Connection connection = LlmConfig.readConnection((args, stdin) ->
+                LlmConfig.runCliProcess(configProcess(), stdin));
+        assertEquals("ollama", connection.provider);
+        assertEquals("fixture", connection.model);
+    }
+
+    @Test
+    void failedConfigurationReadReportsExitWithoutLeakingOutput() {
+        IllegalStateException error = assertThrows(IllegalStateException.class, () ->
+                LlmConfig.readConnection((args, stdin) ->
+                        LlmConfig.runCliProcess(configProcess("fail"), stdin)));
+        assertTrue(error.getMessage().contains("CLI exited with code 7"), error.getMessage());
+        assertFalse(error.getMessage().contains("sensitive-diagnostic"));
+    }
+
+    @Test
+    void malformedConfigurationReadDoesNotExposePayload() {
+        IllegalStateException error = assertThrows(IllegalStateException.class, () ->
+                LlmConfig.readConnection((args, stdin) ->
+                        new LlmConfig.CliResult(true, "sensitive-diagnostic {broken-json")));
+        assertTrue(error.getMessage().contains("configuration"));
+        assertFalse(error.getMessage().contains("sensitive-diagnostic"));
+    }
+
     @Test
     void parseLlmProviderModelExtractsBothFields() {
         String[] full = LlmConfig.parseLlmProviderModel(

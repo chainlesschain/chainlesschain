@@ -1,5 +1,9 @@
 # chainlesschain CLI
 
+> Release candidate `chainlesschain@0.166.78` is under exact-commit CI validation.
+> The publicly available npm `latest` remains `0.166.77` until child packages
+> are published and the CLI release gates pass.
+
 > **0.166.77 发布说明**：决策模型 HTTP 请求和响应各限制为 256 KiB；模型用量未知时不会生成 Skill 建议，同一耐久会话的后续决策调用也会被阻断。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [决策层设计](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/114-jev-decision-layer-design.md)。决策模式仍默认关闭，不授予 Skill 执行权限；自动 active Skill 晋升保持 HOLD。
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.

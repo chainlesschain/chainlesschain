@@ -33,6 +33,8 @@ const { createMirror, createFsMirror, createHttpMirror } =
   await import("../../src/harness/session-mirror.js");
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
+const { ensurePrivateDirectory, ensurePrivateFile } =
+  await import("../../src/lib/secure-fs.js");
 
 sessionIndexDeps.Database = Database;
 
@@ -41,6 +43,12 @@ beforeEach(() => {
   mkdirSync(testHome, { recursive: true });
   sessionsDir = join(testHome, "sessions");
   mkdirSync(sessionsDir, { recursive: true });
+  // Session-store secures the directory before it writes any transcript.
+  // A later inherited ACL repair changes child ctime on Windows.
+  ensurePrivateDirectory(sessionsDir, {
+    applyWindowsAcl: true,
+    failIfUnavailable: true,
+  });
 });
 afterEach(() => {
   rmSync(testHome, { recursive: true, force: true });
@@ -76,6 +84,9 @@ function writeSession(id, { title = "T", ts = 1000, msgs = [] } = {}) {
     `${events.map(JSON.stringify).join("\n")}\n`,
     "utf-8",
   );
+  // The canonical writer secures a new transcript before capturing its
+  // physical witness; on Windows the ACL update changes the file ctime.
+  ensurePrivateFile(transcript);
   const physical = statSync(transcript);
   writeFileSync(
     join(sessionsDir, `${id}.meta.json`),

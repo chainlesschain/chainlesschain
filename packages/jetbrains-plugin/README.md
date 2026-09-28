@@ -22,7 +22,8 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Release candidate `0.4.139` pairs with public CLI `0.166.77`. Upgrade the CLI
+Release candidate `0.4.140` pairs with CLI candidate `0.166.78` after its
+exact-commit release gate and npm publication. Upgrade the CLI
 to bound optional Skill decision requests and streamed responses at 256 KiB.
 When model usage is missing or malformed, the CLI withholds Skill suggestions
 and blocks later decision calls in the same durable session, including after
@@ -53,7 +54,7 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.77` for older installations, including when the
+- Recommend `chainlesschain@0.166.78` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -72,7 +73,7 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.77` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.78` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -90,7 +91,7 @@ after this exact IDE commit passes its gates.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.139** is the current release candidate that re-certifies the read-only
+Plugin **0.4.140** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -109,10 +110,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.77`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.78`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.139` accepts only the exact
+permission/budget enforcement. Version `0.4.140` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -121,7 +122,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.139` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.140` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -130,7 +131,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.139`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.140`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph

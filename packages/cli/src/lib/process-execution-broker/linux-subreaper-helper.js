@@ -12,9 +12,6 @@ import {
 } from "./linux-subreaper-artifact.js";
 export { LINUX_SUBREAPER_SOURCE_DIGEST } from "./linux-subreaper-artifact.js";
 
-const SOURCE = fileURLToPath(
-  new URL("./linux-subreaper-supervisor.c", import.meta.url),
-);
 const MAX_SOURCE_BYTES = 128 * 1024;
 const MAX_IMAGE_BYTES = MAX_SUBREAPER_IMAGE_BYTES;
 const images = new Map();
@@ -133,8 +130,13 @@ function compileImage(spawnSync) {
   let temporaryRoot = null;
   let imagePath = null;
   try {
+    // Vite may import the Broker through an http: module URL on non-Linux
+    // hosts. Resolve this Linux-only asset only when native supervision runs.
+    const source = fileURLToPath(
+      new URL("./linux-subreaper-supervisor.c", import.meta.url),
+    );
     sourceFd = fs.openSync(
-      SOURCE,
+      source,
       fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
     );
     const snapshot = readDescriptor(sourceFd, MAX_SOURCE_BYTES);

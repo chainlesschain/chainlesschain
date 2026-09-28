@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.140] - Pair with CLI 0.166.78 recovery candidate (2026-09-28)
+
+- Recommend `chainlesschain@0.166.78` after its exact-commit release checks and
+  public npm readback complete.
+- Recover configuration reads after Stop and resume with separate CLI JSON and
+  diagnostic streams, bounded readers, and safe failure classification.
+- Keep editor approval and sandbox authority with the paired CLI.
+
 ## [0.4.139] - Pair with CLI 0.166.77 bounded Skill decisions (2026-09-27)
 
 - Recommend `chainlesschain@0.166.77` in runtime upgrade guidance and release

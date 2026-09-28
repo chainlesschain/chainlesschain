@@ -184,6 +184,7 @@ async function runCompanionWindow({
   primaryResultFile,
   journeyPhase,
   multiWindowProgressFile,
+  externalCompanionManaged = false,
 }) {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -227,7 +228,7 @@ async function runCompanionWindow({
     "multi_window_companion_primary_result_observed",
     { actor: "companion" },
   );
-  if (process.platform === "darwin") {
+  if (process.platform === "darwin" && !externalCompanionManaged) {
     // VS Code 1.132 keeps the macOS app alive after both inherited test
     // promises settle while the companion window remains open. At this point
     // the primary has already published success, so closing only this window
@@ -604,6 +605,7 @@ async function run() {
       primaryResultFile: resultFile,
       journeyPhase,
       multiWindowProgressFile,
+      externalCompanionManaged,
     });
   }
   assertOpenedWorkspaceFolders(workspaceFolders);
@@ -782,7 +784,11 @@ async function run() {
         "multi_window_primary_result_published",
         { actor: "primary" },
       );
-      if (process.platform === "darwin") {
+      // Separate managed test hosts already exit through VS Code's native
+      // extension-test runner. A concurrent workbench quit/close races that
+      // shutdown on macOS ARM64 (SIGSEGV after both test runners report 0).
+      // Retain explicit workbench shutdown only for inherited same-app windows.
+      if (process.platform === "darwin" && !externalCompanionManaged) {
         const companionObserved = await waitForMultiWindowProgressStage(
           multiWindowProgressFile,
           "multi_window_companion_primary_result_observed",

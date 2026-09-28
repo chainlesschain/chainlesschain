@@ -1961,7 +1961,9 @@ final class ConversationView {
         // resolves the matching provider's key from its secure config store.
         final String[] llm;
         try { llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock(); }
-        catch (RuntimeException error) { throw new IOException(CcBundle.message("llm.form.readFailed")); }
+        catch (RuntimeException error) {
+            throw new IOException(CcBundle.message("llm.form.readFailed") + " " + error.getMessage(), error);
+        }
         // Declare the session id UP FRONT (VS Code twin fix): anonymous
         // stream sessions are persistence-free by CLI design, so a first
         // conversation spawned without an id was never written — an IDE
