@@ -12,6 +12,8 @@ import {
   runLiveProviderTrajectory,
   safeProviderFailureDiagnostic,
   safeTrajectoryEventOrderMismatch,
+  safeTrajectoryFailureDiagnostic,
+  safeTrajectoryFailureKind,
   verifyLiveProviderTrajectoryEvidence,
   verifyLiveProviderTrajectoryEvidenceSet,
 } from "../../scripts/ide-roadmap-live-provider-trajectory.mjs";
@@ -55,6 +57,54 @@ it("reports only bounded event order labels on a live mismatch", () => {
   expect(
     safeTrajectoryEventOrderMismatch(EXPECTED_EVENT_ORDER.slice(0, 8)),
   ).toBe("index=8, observed=other, count=8");
+});
+
+it("retains only fixed failure categories in a failed trajectory receipt", () => {
+  const events = [
+    { type: "run-started" },
+    { type: "compaction-degraded", reason: "PRIVATE_PROVIDER_SECRET" },
+    {
+      type: "compaction-usage-unknown",
+      reason: "provider_transport_outcome_unknown",
+      code: "PRIVATE_PROVIDER_SECRET",
+    },
+  ];
+  expect(safeTrajectoryFailureKind(events)).toBe("compaction-usage-unknown");
+  const diagnostic = safeTrajectoryFailureDiagnostic(events, [
+    "run-started",
+    "semantic-compaction:model-usage-started",
+    "tool:PRIVATE_PROVIDER_SECRET:started",
+    "compaction-usage-unknown",
+  ]);
+  expect(diagnostic).toEqual({
+    eventCount: 3,
+    eventOrder: [
+      "run-started",
+      "semantic-compaction:model-usage-started",
+      "other",
+      "compaction-usage-unknown",
+    ],
+    eventOrderTruncated: false,
+    failureKind: "compaction-usage-unknown",
+    compactionReason: "other",
+    usageUnknownReason: "provider_transport_outcome_unknown",
+  });
+  const receipt = createLiveProviderTrajectoryFailureEvidence({
+    mode: "live",
+    releaseCommit: "f".repeat(40),
+    code: "trajectory_invariant_failed",
+    diagnostic,
+  });
+  expect(receipt.diagnostic).toEqual(diagnostic);
+  expect(JSON.stringify(receipt)).not.toContain("PRIVATE_PROVIDER_SECRET");
+  expect(
+    createLiveProviderTrajectoryFailureEvidence({
+      mode: "live",
+      releaseCommit: "f".repeat(40),
+      code: "trajectory_invariant_failed",
+      diagnostic: { ...diagnostic, eventOrder: ["PRIVATE_PROVIDER_SECRET"] },
+    }).diagnostic,
+  ).toBeUndefined();
 });
 
 const temporaryRoots = [];

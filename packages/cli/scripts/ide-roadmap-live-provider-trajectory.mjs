@@ -104,6 +104,17 @@ const SAFE_DIAGNOSTIC_EVENT_LABELS = new Set([
   "model-usage-unknown",
   "iteration-budget-exhausted",
 ]);
+const SAFE_COMPACTION_REASONS = new Set([
+  "semantic-summary-provider-outcome-unknown",
+  "semantic-summary-degraded",
+  "session_messages_changed_during_compaction",
+  "canonical_compaction_reconciliation_required",
+  "canonical_compaction_settlement_failed",
+]);
+const SAFE_USAGE_UNKNOWN_REASONS = new Set([
+  "provider_transport_outcome_unknown",
+  "provider_usage_not_reported",
+]);
 const FAILURE_CODES = new Set([
   "invalid_arguments",
   "invalid_release_commit",
@@ -755,6 +766,89 @@ export function safeTrajectoryEventOrderMismatch(eventOrder) {
   return `index=${firstMismatch}, observed=${observed}, count=${eventOrder.length}`;
 }
 
+export function safeTrajectoryFailureKind(events) {
+  const observed = new Set(events.map((event) => event?.type));
+  for (const kind of [
+    "compaction-usage-unknown",
+    "model-usage-unknown",
+    "compaction-degraded",
+    "iteration-budget-exhausted",
+  ]) {
+    if (observed.has(kind)) return kind;
+  }
+  return null;
+}
+
+export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
+  const degraded = events.find(
+    (event) => event?.type === "compaction-degraded",
+  );
+  const unknown = events.find(
+    (event) => event?.type === "compaction-usage-unknown",
+  );
+  return {
+    eventCount: events.length,
+    eventOrder: eventOrder
+      .slice(0, 32)
+      .map((label) =>
+        SAFE_DIAGNOSTIC_EVENT_LABELS.has(label) ? label : "other",
+      ),
+    eventOrderTruncated: eventOrder.length > 32,
+    failureKind: safeTrajectoryFailureKind(events),
+    compactionReason: degraded
+      ? SAFE_COMPACTION_REASONS.has(degraded.reason)
+        ? degraded.reason
+        : "other"
+      : null,
+    usageUnknownReason: unknown
+      ? SAFE_USAGE_UNKNOWN_REASONS.has(unknown.reason)
+        ? unknown.reason
+        : "other"
+      : null,
+  };
+}
+
+function validatedTrajectoryFailureDiagnostic(value) {
+  if (
+    !isRecord(value) ||
+    canonicalJson(Object.keys(value).sort()) !==
+      canonicalJson(
+        [
+          "eventCount",
+          "eventOrder",
+          "eventOrderTruncated",
+          "failureKind",
+          "compactionReason",
+          "usageUnknownReason",
+        ].sort(),
+      ) ||
+    !Number.isSafeInteger(value.eventCount) ||
+    value.eventCount < 0 ||
+    !Array.isArray(value.eventOrder) ||
+    value.eventOrder.length > 32 ||
+    value.eventOrder.some(
+      (label) => label !== "other" && !SAFE_DIAGNOSTIC_EVENT_LABELS.has(label),
+    ) ||
+    typeof value.eventOrderTruncated !== "boolean" ||
+    (value.failureKind !== null &&
+      ![
+        "compaction-usage-unknown",
+        "model-usage-unknown",
+        "compaction-degraded",
+        "iteration-budget-exhausted",
+      ].includes(value.failureKind)) ||
+    (value.compactionReason !== null &&
+      value.compactionReason !== "other" &&
+      !SAFE_COMPACTION_REASONS.has(value.compactionReason)) ||
+    (value.usageUnknownReason !== null &&
+      value.usageUnknownReason !== "other" &&
+      !SAFE_USAGE_UNKNOWN_REASONS.has(value.usageUnknownReason))
+  ) {
+    return null;
+  }
+  return value;
+}
+
 function normalizedUsage(event, phase) {
   const usage = event?.usage;
   const inputTokens = usage?.input_tokens ?? usage?.prompt_tokens;
@@ -811,22 +905,14 @@ function ensureCycleOutcome({
   events,
   eventOrder,
 }) {
+  const failureKind = safeTrajectoryFailureKind(events);
+  if (failureKind) {
+    fail("trajectory_invariant_failed", `provider event: ${failureKind}`);
+  }
   if (canonicalJson(eventOrder) !== canonicalJson(EXPECTED_EVENT_ORDER)) {
     fail(
       "trajectory_invariant_failed",
       `production event order did not match the trajectory contract (${safeTrajectoryEventOrderMismatch(eventOrder)})`,
-    );
-  }
-  const forbidden = new Set([
-    "compaction-degraded",
-    "compaction-usage-unknown",
-    "model-usage-unknown",
-    "iteration-budget-exhausted",
-  ]);
-  if (events.some((event) => forbidden.has(event?.type))) {
-    fail(
-      "trajectory_invariant_failed",
-      "a degraded or unknown provider event was observed",
     );
   }
   const compactions = events.filter((event) => event?.type === "compaction");
@@ -1030,26 +1116,47 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
         }
       } catch (error) {
         if (controller.signal.aborted) {
-          fail(
+          const timeout = new LiveProviderTrajectoryError(
             "trajectory_timeout",
             "provider trajectory exceeded its timeout",
           );
+          timeout.safeDiagnostic = safeTrajectoryFailureDiagnostic(
+            events,
+            eventOrder,
+          );
+          throw timeout;
         }
         if (error instanceof LiveProviderTrajectoryError) throw error;
         const diagnostic = safeProviderFailureDiagnostic(error);
-        fail(
+        const failure = new LiveProviderTrajectoryError(
           "provider_trajectory_failed",
           `provider trajectory did not complete (cycle=${cycleIndex + 1}, events=${events.length}, error=${JSON.stringify(diagnostic)})`,
         );
+        failure.safeDiagnostic = safeTrajectoryFailureDiagnostic(
+          events,
+          eventOrder,
+        );
+        throw failure;
       }
-      const evidence = ensureCycleOutcome({
-        cycle,
-        cycleIndex,
-        fixture,
-        messages,
-        events,
-        eventOrder,
-      });
+      let evidence;
+      try {
+        evidence = ensureCycleOutcome({
+          cycle,
+          cycleIndex,
+          fixture,
+          messages,
+          events,
+          eventOrder,
+        });
+      } catch (error) {
+        if (error instanceof LiveProviderTrajectoryError) {
+          error.safeDiagnostic = safeTrajectoryFailureDiagnostic(
+            events,
+            eventOrder,
+          );
+        }
+        throw error;
+      }
       cycles.push(evidence);
       const completion = events.find(
         (event) => event?.type === "response-complete",
@@ -2145,10 +2252,12 @@ export function createLiveProviderTrajectoryFailureEvidence({
   mode,
   releaseCommit,
   code,
+  diagnostic,
 } = {}) {
   const failureCode = FAILURE_CODES.has(code)
     ? code
     : "provider_trajectory_failed";
+  const safeDiagnostic = validatedTrajectoryFailureDiagnostic(diagnostic);
   const evidence = {
     schema: LIVE_PROVIDER_TRAJECTORY_FAILURE_SCHEMA,
     schemaVersion: 1,
@@ -2161,6 +2270,7 @@ export function createLiveProviderTrajectoryFailureEvidence({
     generatedAt: new Date().toISOString(),
     result: "failed",
     failureCode,
+    ...(safeDiagnostic ? { diagnostic: safeDiagnostic } : {}),
     rawProviderMaterialPersisted: false,
   };
   evidence.evidenceDigest = createIdeRoadmapRuntimeEvidenceDigest(evidence);
@@ -2277,6 +2387,7 @@ if (isDirectExecution()) {
           mode: options.mode,
           releaseCommit: options.releaseCommit,
           code,
+          diagnostic: error?.safeDiagnostic,
         });
         assertNoSecret(failureEvidence, process.env.CC_LLM_API_KEY);
         atomicWriteJson(options.outputPath, failureEvidence);
