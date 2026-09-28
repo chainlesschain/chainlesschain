@@ -48,6 +48,10 @@ it("reports only bounded event order labels on a live mismatch", () => {
   expect(safeTrajectoryEventOrderMismatch(unexpected)).toBe(
     "index=6, observed=other, count=12",
   );
+  unexpected[6] = "compaction-degraded";
+  expect(safeTrajectoryEventOrderMismatch(unexpected)).toBe(
+    "index=6, observed=compaction-degraded, count=12",
+  );
   expect(
     safeTrajectoryEventOrderMismatch(EXPECTED_EVENT_ORDER.slice(0, 8)),
   ).toBe("index=8, observed=other, count=8");

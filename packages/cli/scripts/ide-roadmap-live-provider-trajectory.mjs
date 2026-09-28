@@ -97,6 +97,13 @@ const EXPECTED_EVENT_ORDER = Object.freeze([
   "response-complete",
   "run-ended:complete",
 ]);
+const SAFE_DIAGNOSTIC_EVENT_LABELS = new Set([
+  ...EXPECTED_EVENT_ORDER,
+  "compaction-degraded",
+  "compaction-usage-unknown",
+  "model-usage-unknown",
+  "iteration-budget-exhausted",
+]);
 const FAILURE_CODES = new Set([
   "invalid_arguments",
   "invalid_release_commit",
@@ -742,7 +749,7 @@ export function safeTrajectoryEventOrderMismatch(eventOrder) {
     { length: Math.max(eventOrder.length, EXPECTED_EVENT_ORDER.length) },
     (_, index) => index,
   ).find((index) => eventOrder[index] !== EXPECTED_EVENT_ORDER[index]);
-  const observed = EXPECTED_EVENT_ORDER.includes(eventOrder[firstMismatch])
+  const observed = SAFE_DIAGNOSTIC_EVENT_LABELS.has(eventOrder[firstMismatch])
     ? eventOrder[firstMismatch]
     : "other";
   return `index=${firstMismatch}, observed=${observed}, count=${eventOrder.length}`;
