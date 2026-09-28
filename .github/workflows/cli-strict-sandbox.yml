@@ -508,11 +508,22 @@ jobs:
           __tests__/unit/agent-sandbox.test.js
           __tests__/unit/sandbox-network-policy.test.js
           __tests__/integration/sandbox-egress-proxy.test.js
-          __tests__/unit/background-agent-supervisor.test.js
           __tests__/integration/background-task-worker.test.js
           src/lib/lsp/__tests__/lsp-client.test.js
           __tests__/unit/plugin-runtime-bin.test.js
           __tests__/unit/plugin-runtime-bin-agent-core.test.js
+
+      # This suite launches a real worker and keeper that contend for a strict
+      # state lock. Give those processes a quiet runner, while retaining the
+      # suite as a required gate on every OS in this matrix.
+      - name: Run background agent supervisor contract tests
+        working-directory: packages/cli
+        run: >-
+          node scripts/run-vitest-with-worker-retry.mjs -- run
+          --no-file-parallelism --reporter=default --reporter=json
+          --silent=passed-only --testTimeout=35000
+          --outputFile.json=background-agent-supervisor-result.json
+          __tests__/unit/background-agent-supervisor.test.js
 
       - name: Run native ProcessExecutionBroker strict boundary
         id: strict-native-boundary

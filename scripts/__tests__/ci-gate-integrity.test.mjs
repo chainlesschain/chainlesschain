@@ -2177,6 +2177,28 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   }
 });
 
+test("strict sandbox runs the live background supervisor on a quiet matrix runner", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "cli-strict-sandbox.yml"),
+    "utf8",
+  );
+  const bulk = workflow.match(
+    /- name: Run platform sandbox contract tests[\s\S]*?(?=\n      - name: Run background agent supervisor contract tests)/u,
+  )?.[0];
+  const dedicated = workflow.match(
+    /- name: Run background agent supervisor contract tests[\s\S]*?(?=\n      - name: Run native ProcessExecutionBroker strict boundary)/u,
+  )?.[0];
+  assert.ok(bulk, "missing bulk strict sandbox test step");
+  assert.ok(dedicated, "missing dedicated supervisor test step");
+  assert.doesNotMatch(bulk, /background-agent-supervisor\.test\.js/u);
+  assert.match(dedicated, /--no-file-parallelism/u);
+  assert.match(
+    dedicated,
+    /__tests__\/unit\/background-agent-supervisor\.test\.js/u,
+  );
+  assert.doesNotMatch(dedicated, /continue-on-error: true/u);
+});
+
 test("failure issue reporter updates an existing scope instead of duplicating it", async () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "test-automation-full.yml"),
