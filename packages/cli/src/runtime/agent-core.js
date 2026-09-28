@@ -6639,10 +6639,9 @@ async function executeToolInner(
         await admitShellDispatch();
         const { executeSandboxedShell, sandboxSummary } =
           await import("../lib/agent-sandbox.js");
-        // Domain-restricted networking is ENFORCED by routing the sandboxed
-        // process's egress through a local filtering proxy (see
-        // sandbox-egress-proxy.js). Start it only when the policy actually
-        // restricts domains and network is on; tear it down after the command.
+        // Keep the proxy on a separate event loop: the legacy sandbox dispatch
+        // below is synchronous. The sandbox still refuses domain-restricted
+        // execution until a non-bypassable network backend is available.
         const sboxPolicy = shellSandbox.policy || {};
         const needsEgress =
           shellSandbox.network === true &&
@@ -6653,18 +6652,17 @@ async function executeToolInner(
         let proxyHandle = null;
         if (needsEgress) {
           try {
-            const { createEgressProxy } =
-              await import("../lib/sandbox-egress-proxy.js");
-            proxyHandle = createEgressProxy(
+            const { startEgressProxyWorker } =
+              await import("../lib/sandbox-egress-worker.js");
+            proxyHandle = await startEgressProxyWorker(
               {
                 allowedDomains: sboxPolicy.allowedDomains || [],
                 deniedDomains: sboxPolicy.deniedDomains || [],
                 allowPrivate: sboxPolicy.allowPrivate === true,
               },
-              { bindHost: "0.0.0.0" }, // reachable from the container/netns
+              { bindHost: "127.0.0.1" },
             );
-            const listened = await proxyHandle.listen();
-            egressProxy = { port: listened.port };
+            egressProxy = { port: proxyHandle.port };
           } catch {
             // If the proxy can't start, leave egressProxy null so the sandbox
             // fails closed (refuses) rather than running without enforcement.

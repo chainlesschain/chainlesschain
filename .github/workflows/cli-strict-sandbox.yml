@@ -541,6 +541,7 @@ jobs:
           __tests__/unit/agent-sandbox.test.js
           __tests__/unit/sandbox-network-policy.test.js
           __tests__/integration/sandbox-egress-proxy.test.js
+          __tests__/integration/sandbox-egress-worker.test.js
           __tests__/integration/background-task-worker.test.js
           src/lib/lsp/__tests__/lsp-client.test.js
           __tests__/unit/plugin-runtime-bin.test.js

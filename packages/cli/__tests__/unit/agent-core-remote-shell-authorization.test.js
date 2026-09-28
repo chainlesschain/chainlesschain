@@ -17,11 +17,11 @@ vi.mock("../../src/lib/agent-sandbox.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../src/lib/sandbox-egress-proxy.js", async (importOriginal) => {
+vi.mock("../../src/lib/sandbox-egress-worker.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    createEgressProxy: (...args) => sandboxMocks.createProxy(...args),
+    startEgressProxyWorker: (...args) => sandboxMocks.createProxy(...args),
   };
 });
 
@@ -677,12 +677,12 @@ describe("run_shell durable remote authorization dispatch fence", () => {
     const close = vi.fn(async () => {
       events.push("proxy-close");
     });
-    sandboxMocks.createProxy.mockReturnValue({
-      listen: vi.fn(async () => {
-        events.push("proxy-listen");
-        return { port: 42424 };
-      }),
-      close,
+    sandboxMocks.createProxy.mockImplementation(async () => {
+      events.push("proxy-listen");
+      return {
+        port: 42424,
+        close,
+      };
     });
     sandboxMocks.execute.mockImplementation(() => {
       events.push("dispatch");
@@ -728,13 +728,10 @@ describe("run_shell durable remote authorization dispatch fence", () => {
     const close = vi.fn(async () => {
       events.push("proxy-close");
     });
-    sandboxMocks.createProxy.mockReturnValue({
-      listen: vi.fn(async () => {
-        events.push("proxy-listen");
-        revoked = true;
-        return { port: 42426 };
-      }),
-      close,
+    sandboxMocks.createProxy.mockImplementation(async () => {
+      events.push("proxy-listen");
+      revoked = true;
+      return { port: 42426, close };
     });
     const gate = durableGate(events);
     const sandbox = {
@@ -849,13 +846,10 @@ describe("run_shell durable remote authorization dispatch fence", () => {
     const close = vi.fn(async () => {
       events.push("proxy-close");
     });
-    sandboxMocks.createProxy.mockReturnValue({
-      listen: vi.fn(async () => {
-        events.push("proxy-listen");
-        fs.writeFileSync(target, "process.stdout.write('changed');\n", "utf8");
-        return { port: 42427 };
-      }),
-      close,
+    sandboxMocks.createProxy.mockImplementation(async () => {
+      events.push("proxy-listen");
+      fs.writeFileSync(target, "process.stdout.write('changed');\n", "utf8");
+      return { port: 42427, close };
     });
     const dispatch = vi.spyOn(sandboxMocks, "execute");
     const sandbox = {
