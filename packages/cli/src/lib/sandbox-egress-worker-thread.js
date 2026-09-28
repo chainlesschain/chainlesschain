@@ -5,9 +5,10 @@ let proxy;
 try {
   proxy = createEgressProxy(workerData.policy, {
     bindHost: workerData.bindHost,
+    socketPath: workerData.socketPath,
   });
-  const { port } = await proxy.listen();
-  parentPort.postMessage({ type: "ready", port });
+  const { port, socketPath } = await proxy.listen();
+  parentPort.postMessage({ type: "ready", port, socketPath });
   parentPort.on("message", async (message) => {
     if (!Number.isSafeInteger(message?.id) || message.id < 1) return;
     try {

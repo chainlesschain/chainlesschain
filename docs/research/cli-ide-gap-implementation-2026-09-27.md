@@ -29,6 +29,12 @@
 
 真人 NVDA/VoiceOver/Orca 听测及 8h/24h 生产观察尚无本轮新增结果。Volcengine 真实账号仅用于下述 input usage 试点，不构成双 IDE 真实任务验收。真实宿主新增 Windows VS Code 1.132.0 与 IntelliJ 2024.2 的有限恢复旅程证据，分别绑定下述提交；这些宿主旅程的模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
 
+### NET-01 Linux 候选后端与验收边界（2026-09-29）
+
+已增加宿主 Worker 的私有 Unix socket 监听，以及 Linux Docker 双容器候选后端：relay 容器使用 `--network none` 并独占宿主策略 broker socket；目标容器共享 relay 的网络命名空间，只挂载工作区，使用默认拒绝的 seccomp 限制 socket 家族和其他系统调用。容器创建、运行与按身份回收均通过 ProcessExecutionBroker 审计；创建结果未知时保留不含命令或路径的恢复记录并报告清理未完成。新增真实 Docker 探针列入 `CLI Strict Sandbox` 的 Ubuntu 作业，包含允许请求正对照、清除代理变量后直连 TCP、UDP、工作区 Unix socket 拒绝及宿主连接计数。
+
+本地 Docker daemon 未运行，候选后端尚无真实容器通过证据，也尚未接入 agent shell 的能力声明和执行路径。当前受限域名命令继续在启动前拒绝；首轮探针即使通过，也不能替代 IPv6、DNS、子进程、redirect、WebSocket、策略撤销和崩溃恢复的完整 NET-01/02 验收。
+
 ### NET-02 代理层撤销切片（2026-09-29）
 
 出口代理现在对策略保存不可变快照，用单调 revision 和预期版本 CAS 更新。更新时撤销所有存量 HTTP 响应与 CONNECT 隧道；DNS 等待、上游连接回调和响应回调均检查原租约版本，防止旧请求在策略变化后建立连接。普通 HTTP 上游 Host 固定为已校验 URL 的 authority，真实上游回执确认客户端伪造 Host 不会透传。原始 WebSocket upgrade 明确拒绝，避免进入未登记连接。Windows 真实 loopback 测试覆盖 HTTP 已收首帧后撤销、CONNECT 已收首帧后撤销、DNS 延迟期间撤销、旧 revision 重放和新请求拒绝；代理集成测试共 27 项通过。

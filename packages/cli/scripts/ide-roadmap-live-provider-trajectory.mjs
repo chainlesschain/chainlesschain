@@ -115,6 +115,20 @@ const SAFE_USAGE_UNKNOWN_REASONS = new Set([
   "provider_transport_outcome_unknown",
   "provider_usage_not_reported",
 ]);
+const SAFE_COMPACTION_CODES = new Set([
+  "SESSION_REVISION_STALE",
+  "CC_COMPACTION_RECONCILIATION_REQUIRED",
+  "CC_COMPACTION_SETTLEMENT_FAILED",
+  "CC_COMPACTION_SETTLEMENT_ASYNC",
+  "CC_COMPACTION_LOCAL_STATE_CHANGED",
+  "CC_COMPACTION_SETTLEMENT_HEAD_UNKNOWN",
+]);
+const SAFE_COMPACTION_USAGE_STATUSES = new Set([
+  "unknown",
+  "reported",
+  "pending",
+  "not-started",
+]);
 const FAILURE_CODES = new Set([
   "invalid_arguments",
   "invalid_release_commit",
@@ -786,6 +800,20 @@ export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
   const unknown = events.find(
     (event) => event?.type === "compaction-usage-unknown",
   );
+  const startedCalls = eventOrder.filter(
+    (label) => label === "semantic-compaction:model-usage-started",
+  ).length;
+  const reportedCalls = events.filter((event) => {
+    if (event?.type !== "token-usage" || event.source !== "semantic-compaction")
+      return false;
+    const usage = event.usage;
+    return [
+      usage?.input_tokens ?? usage?.prompt_tokens,
+      usage?.output_tokens ?? usage?.completion_tokens,
+      usage?.cache_read_input_tokens ?? 0,
+      usage?.cache_creation_input_tokens ?? 0,
+    ].every((count) => Number.isSafeInteger(count) && count >= 0);
+  }).length;
   return {
     eventCount: events.length,
     eventOrder: eventOrder
@@ -795,6 +823,19 @@ export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
       ),
     eventOrderTruncated: eventOrder.length > 32,
     failureKind: safeTrajectoryFailureKind(events),
+    // A valid usage event proves reporting, not durable ledger settlement.
+    compactionUsageStatus: unknown
+      ? "unknown"
+      : reportedCalls > 0 && reportedCalls >= startedCalls
+        ? "reported"
+        : startedCalls > 0
+          ? "pending"
+          : "not-started",
+    compactionCode: degraded?.code
+      ? SAFE_COMPACTION_CODES.has(degraded.code)
+        ? degraded.code
+        : "other"
+      : null,
     compactionReason: degraded
       ? SAFE_COMPACTION_REASONS.has(degraded.reason)
         ? degraded.reason
@@ -818,6 +859,8 @@ function validatedTrajectoryFailureDiagnostic(value) {
           "eventOrder",
           "eventOrderTruncated",
           "failureKind",
+          "compactionUsageStatus",
+          "compactionCode",
           "compactionReason",
           "usageUnknownReason",
         ].sort(),
@@ -830,6 +873,10 @@ function validatedTrajectoryFailureDiagnostic(value) {
       (label) => label !== "other" && !SAFE_DIAGNOSTIC_EVENT_LABELS.has(label),
     ) ||
     typeof value.eventOrderTruncated !== "boolean" ||
+    !SAFE_COMPACTION_USAGE_STATUSES.has(value.compactionUsageStatus) ||
+    (value.compactionCode !== null &&
+      value.compactionCode !== "other" &&
+      !SAFE_COMPACTION_CODES.has(value.compactionCode)) ||
     (value.failureKind !== null &&
       ![
         "compaction-usage-unknown",

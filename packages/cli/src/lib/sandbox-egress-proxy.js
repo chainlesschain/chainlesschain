@@ -18,6 +18,8 @@
 import http from "node:http";
 import net from "node:net";
 import dns from "node:dns";
+import fs from "node:fs";
+import path from "node:path";
 import {
   evaluateNetworkAccess,
   isPrivateHost,
@@ -132,14 +134,37 @@ export function proxyEnv(port, host = "127.0.0.1") {
 /**
  * Create (but do not yet listen on) an egress-filtering proxy for a policy.
  * @param {object} policy  { allowedDomains?, deniedDomains?, allowPrivate? }
- * @param {object} [opts]  { onDecision?(info), bindHost? }
- * @returns {{ listen():Promise<{port,env,server}>, close():Promise<void>,
+ * @param {object} [opts]  { onDecision?(info), bindHost?, socketPath? }
+ * @returns {{ listen():Promise<{port?,socketPath?,env?,server}>, close():Promise<void>,
  *             updatePolicy(nextPolicy:object, expectedRevision:number):number,
  *             server:import('http').Server, blocked:number, allowed:number,
  *             revision:number }}
  */
 export function createEgressProxy(policy = {}, opts = {}) {
   const bindHost = opts.bindHost || "127.0.0.1";
+  const socketPath = opts.socketPath || null;
+  if (socketPath) {
+    if (
+      process.platform !== "linux" ||
+      !path.isAbsolute(socketPath) ||
+      Buffer.byteLength(socketPath) > 107
+    ) {
+      throw new Error(
+        "A short Linux absolute path is required for the egress broker socket",
+      );
+    }
+    const parent = path.dirname(socketPath);
+    const stat = fs.lstatSync(parent);
+    if (
+      !stat.isDirectory() ||
+      stat.mode & 0o077 ||
+      stat.uid !== process.getuid()
+    ) {
+      throw new Error(
+        "The egress broker socket requires an owner-only directory",
+      );
+    }
+  }
   const state = { blocked: 0, allowed: 0 };
   const snapshot = (value) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -399,11 +424,24 @@ export function createEgressProxy(policy = {}, opts = {}) {
           return;
         }
         server.once("error", reject);
-        server.listen(0, bindHost, () => {
+        const onListening = () => {
           server.removeListener("error", reject);
+          if (socketPath) {
+            try {
+              fs.chmodSync(socketPath, 0o600);
+            } catch (error) {
+              server.close();
+              reject(error);
+              return;
+            }
+            resolve({ socketPath, server });
+            return;
+          }
           const port = server.address().port;
           resolve({ port, env: proxyEnv(port), server });
-        });
+        };
+        if (socketPath) server.listen(socketPath, onListening);
+        else server.listen(0, bindHost, onListening);
       });
     },
     close() {

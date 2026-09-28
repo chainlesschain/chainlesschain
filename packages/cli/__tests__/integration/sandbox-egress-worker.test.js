@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
+import path from "node:path";
 import { startEgressProxyWorker } from "../../src/lib/sandbox-egress-worker.js";
 
 let proxy;
@@ -56,7 +59,51 @@ function syncProxyGet(port, target) {
   });
 }
 
+function syncUnixProxyGet(socketPath, target) {
+  const script =
+    'const http=require("node:http");const req=http.get({socketPath:process.argv[1],path:process.argv[2]},r=>{' +
+    'let body="";r.on("data",c=>body+=c);r.on("end",()=>console.log(`${r.statusCode}:${body.trim()}`));});' +
+    'req.setTimeout(5000,()=>req.destroy(new Error("timeout")));req.on("error",e=>{console.error(e.message);process.exitCode=1});';
+  return spawnSync(process.execPath, ["-e", script, socketPath, target], {
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+}
+
 describe("egress proxy worker", () => {
+  it.skipIf(process.platform !== "linux")(
+    "serves policy decisions through a private Unix socket during synchronous shell execution",
+    async () => {
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-"));
+      fs.chmodSync(directory, 0o700);
+      const socketPath = path.join(directory, "broker.sock");
+      try {
+        const upPort = await startUpstream();
+        proxy = await startEgressProxyWorker(
+          { allowedDomains: ["127.0.0.1"] },
+          { socketPath },
+        );
+        expect(proxy.port).toBeNull();
+        expect(proxy.socketPath).toBe(socketPath);
+        expect(fs.statSync(socketPath).mode & 0o777).toBe(0o600);
+        const target = `http://127.0.0.1:${upPort}/`;
+        const allowed = syncUnixProxyGet(socketPath, target);
+        expect(allowed.status, allowed.stderr).toBe(0);
+        expect(allowed.stdout.trim()).toBe("200:allowed");
+        await proxy.updatePolicy({ allowedDomains: ["elsewhere.test"] }, 0);
+        const denied = syncUnixProxyGet(socketPath, target);
+        expect(denied.status, denied.stderr).toBe(0);
+        expect(denied.stdout.trim()).toMatch(/^403:/);
+        await proxy.close();
+        expect(syncUnixProxyGet(socketPath, target).status).not.toBe(0);
+      } finally {
+        if (proxy) await proxy.close();
+        if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
+        fs.rmdirSync(directory);
+      }
+    },
+  );
+
   it("serves allow and deny decisions while the caller is blocked in spawnSync", async () => {
     const upPort = await startUpstream();
     const failures = [];

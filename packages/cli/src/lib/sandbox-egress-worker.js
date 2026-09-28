@@ -4,6 +4,7 @@
  * domain-restricted sandbox command to start.
  */
 import { Worker } from "node:worker_threads";
+import path from "node:path";
 
 const RESPONSE_TIMEOUT_MS = 10_000;
 
@@ -15,7 +16,12 @@ function workerError(code) {
 
 export async function startEgressProxyWorker(policy, options = {}) {
   const bindHost = options.bindHost || "127.0.0.1";
-  if (bindHost !== "127.0.0.1" && bindHost !== "::1") {
+  const socketPath = options.socketPath || null;
+  if (socketPath) {
+    if (process.platform !== "linux" || !path.isAbsolute(socketPath)) {
+      throw workerError("ERR_EGRESS_WORKER_SOCKET_PATH");
+    }
+  } else if (bindHost !== "127.0.0.1" && bindHost !== "::1") {
     throw workerError("ERR_EGRESS_WORKER_BIND_HOST");
   }
   const timeoutMs = options.timeoutMs || RESPONSE_TIMEOUT_MS;
@@ -24,7 +30,7 @@ export async function startEgressProxyWorker(policy, options = {}) {
   }
   const worker = new Worker(
     new URL("./sandbox-egress-worker-thread.js", import.meta.url),
-    { workerData: { policy, bindHost } },
+    { workerData: { policy, bindHost, socketPath } },
   );
   const pending = new Map();
   let nextId = 1;
@@ -78,17 +84,18 @@ export async function startEgressProxyWorker(policy, options = {}) {
       return;
     }
     if (message?.type === "ready") {
-      if (
-        !Number.isSafeInteger(message.port) ||
-        message.port < 1 ||
-        message.port > 65535
-      ) {
+      const validEndpoint = socketPath
+        ? message.socketPath === socketPath && message.port === undefined
+        : Number.isSafeInteger(message.port) &&
+          message.port >= 1 &&
+          message.port <= 65535;
+      if (!validEndpoint) {
         fail(workerError("ERR_EGRESS_WORKER_PROTOCOL"));
         void terminateWorker();
         return;
       }
       clearTimeout(startupTimer);
-      resolveReady(message.port);
+      resolveReady(socketPath ? socketPath : message.port);
       return;
     }
     const entry = pending.get(message?.id);
@@ -135,15 +142,16 @@ export async function startEgressProxyWorker(policy, options = {}) {
     });
   }
 
-  let port;
+  let endpoint;
   try {
-    port = await ready;
+    endpoint = await ready;
   } catch (error) {
     await terminateWorker();
     throw error;
   }
   return {
-    port,
+    port: socketPath ? null : endpoint,
+    socketPath: socketPath ? endpoint : null,
     get revision() {
       return revision;
     },

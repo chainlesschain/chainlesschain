@@ -86,6 +86,8 @@ it("retains only fixed failure categories in a failed trajectory receipt", () =>
     ],
     eventOrderTruncated: false,
     failureKind: "compaction-usage-unknown",
+    compactionUsageStatus: "unknown",
+    compactionCode: null,
     compactionReason: "other",
     usageUnknownReason: "provider_transport_outcome_unknown",
   });
@@ -105,6 +107,97 @@ it("retains only fixed failure categories in a failed trajectory receipt", () =>
       diagnostic: { ...diagnostic, eventOrder: ["PRIVATE_PROVIDER_SECRET"] },
     }).diagnostic,
   ).toBeUndefined();
+});
+
+it.each([
+  {
+    name: "stale CAS with reported provider usage",
+    degraded: {
+      reason: "session_messages_changed_during_compaction",
+      code: "SESSION_REVISION_STALE",
+    },
+    lastEvent: {
+      type: "token-usage",
+      source: "semantic-compaction",
+      usage: { input_tokens: 10, output_tokens: 5 },
+    },
+    lastLabel: "semantic-compaction:token-usage",
+    status: "reported",
+    kind: "compaction-degraded",
+    unknownReason: null,
+  },
+  {
+    name: "provider transport outcome unknown",
+    degraded: { reason: "semantic-summary-provider-outcome-unknown" },
+    lastEvent: {
+      type: "compaction-usage-unknown",
+      reason: "provider_transport_outcome_unknown",
+    },
+    lastLabel: "compaction-usage-unknown",
+    status: "unknown",
+    kind: "compaction-usage-unknown",
+    unknownReason: "provider_transport_outcome_unknown",
+  },
+])("preserves the terminal compaction state: $name", (scenario) => {
+  const eventOrder = [
+    "run-started",
+    "semantic-compaction:model-usage-started",
+    "compaction-degraded",
+    scenario.lastLabel,
+  ];
+  const diagnostic = safeTrajectoryFailureDiagnostic(
+    [
+      { type: "run-started" },
+      { type: "compaction-degraded", ...scenario.degraded },
+      scenario.lastEvent,
+    ],
+    eventOrder,
+  );
+  expect(diagnostic).toMatchObject({
+    eventOrder,
+    failureKind: scenario.kind,
+    compactionUsageStatus: scenario.status,
+    compactionCode: scenario.degraded.code ?? null,
+    compactionReason: scenario.degraded.reason,
+    usageUnknownReason: scenario.unknownReason,
+  });
+  const receipt = createLiveProviderTrajectoryFailureEvidence({
+    mode: "live",
+    releaseCommit: "f".repeat(40),
+    code: "trajectory_invariant_failed",
+    diagnostic,
+  });
+  expect(receipt.diagnostic).toEqual(diagnostic);
+  for (const key of ["compactionCode", "compactionUsageStatus"]) {
+    expect(
+      createLiveProviderTrajectoryFailureEvidence({
+        mode: "live",
+        releaseCommit: "f".repeat(40),
+        code: "trajectory_invariant_failed",
+        diagnostic: { ...diagnostic, [key]: "PRIVATE_PROVIDER_SECRET" },
+      }).diagnostic,
+    ).toBeUndefined();
+  }
+});
+
+it("does not claim usage was reported from a boundary or malformed usage", () => {
+  expect(safeTrajectoryFailureDiagnostic([], []).compactionUsageStatus).toBe(
+    "not-started",
+  );
+  const diagnostic = safeTrajectoryFailureDiagnostic(
+    [
+      {
+        type: "token-usage",
+        source: "semantic-compaction",
+        usage: { input_tokens: 1 },
+      },
+      { type: "compaction-degraded", code: "PRIVATE_PROVIDER_SECRET" },
+    ],
+    ["semantic-compaction:model-usage-started"],
+  );
+  expect(diagnostic.compactionUsageStatus).toBe("pending");
+  expect(diagnostic.compactionCode).toBe("other");
+  expect(JSON.stringify(diagnostic)).not.toContain("PRIVATE_PROVIDER_SECRET");
 });
 
 const temporaryRoots = [];

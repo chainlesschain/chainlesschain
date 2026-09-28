@@ -612,3 +612,14 @@ jobs:
         run: >-
           npx vitest run --reporter=default
           __tests__/integration/sandbox-bwrap-live.test.js
+
+      - name: Run Linux Docker egress boundary with real containers
+        if: runner.os == 'Linux'
+        working-directory: packages/cli
+        env:
+          CC_DOCKER_EGRESS_LIVE: "1"
+          CC_DOCKER_EGRESS_IMAGE: "node@sha256:25330af3531fb5e23318554a0aa911125b6e91b1b777edf7655501d207c067a2"
+        run: |
+          docker info --format '{{.ServerVersion}}'
+          docker pull "$CC_DOCKER_EGRESS_IMAGE"
+          npx vitest run --reporter=default __tests__/integration/sandbox-docker-egress-live.test.js
