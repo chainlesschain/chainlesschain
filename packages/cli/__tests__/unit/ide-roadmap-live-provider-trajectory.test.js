@@ -11,6 +11,7 @@ import {
   resolveLiveProviderTrajectoryProfile,
   runLiveProviderTrajectory,
   safeProviderFailureDiagnostic,
+  safeTrajectoryEventOrderMismatch,
   verifyLiveProviderTrajectoryEvidence,
   verifyLiveProviderTrajectoryEvidenceSet,
 } from "../../scripts/ide-roadmap-live-provider-trajectory.mjs";
@@ -40,6 +41,17 @@ const EXPECTED_EVENT_ORDER = [
   "response-complete",
   "run-ended:complete",
 ];
+
+it("reports only bounded event order labels on a live mismatch", () => {
+  const unexpected = [...EXPECTED_EVENT_ORDER];
+  unexpected[6] = "tool:PRIVATE_PROVIDER_SECRET:started";
+  expect(safeTrajectoryEventOrderMismatch(unexpected)).toBe(
+    "index=6, observed=other, count=12",
+  );
+  expect(
+    safeTrajectoryEventOrderMismatch(EXPECTED_EVENT_ORDER.slice(0, 8)),
+  ).toBe("index=8, observed=other, count=8");
+});
 
 const temporaryRoots = [];
 let releaseCommit;

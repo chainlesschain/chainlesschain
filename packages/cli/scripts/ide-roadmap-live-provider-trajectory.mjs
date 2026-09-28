@@ -737,6 +737,17 @@ function eventLabel(event) {
   return String(event?.type || "unknown-event");
 }
 
+export function safeTrajectoryEventOrderMismatch(eventOrder) {
+  const firstMismatch = Array.from(
+    { length: Math.max(eventOrder.length, EXPECTED_EVENT_ORDER.length) },
+    (_, index) => index,
+  ).find((index) => eventOrder[index] !== EXPECTED_EVENT_ORDER[index]);
+  const observed = EXPECTED_EVENT_ORDER.includes(eventOrder[firstMismatch])
+    ? eventOrder[firstMismatch]
+    : "other";
+  return `index=${firstMismatch}, observed=${observed}, count=${eventOrder.length}`;
+}
+
 function normalizedUsage(event, phase) {
   const usage = event?.usage;
   const inputTokens = usage?.input_tokens ?? usage?.prompt_tokens;
@@ -796,7 +807,7 @@ function ensureCycleOutcome({
   if (canonicalJson(eventOrder) !== canonicalJson(EXPECTED_EVENT_ORDER)) {
     fail(
       "trajectory_invariant_failed",
-      "production event order did not match the trajectory contract",
+      `production event order did not match the trajectory contract (${safeTrajectoryEventOrderMismatch(eventOrder)})`,
     );
   }
   const forbidden = new Set([
