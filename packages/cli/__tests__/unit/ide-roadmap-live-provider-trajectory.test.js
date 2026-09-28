@@ -10,6 +10,7 @@ import {
   createLiveProviderTrajectoryFailureEvidence,
   resolveLiveProviderTrajectoryProfile,
   runLiveProviderTrajectory,
+  safeProviderFailureDiagnostic,
   verifyLiveProviderTrajectoryEvidence,
   verifyLiveProviderTrajectoryEvidenceSet,
 } from "../../scripts/ide-roadmap-live-provider-trajectory.mjs";
@@ -93,6 +94,25 @@ afterAll(() => {
 });
 
 describe("IDE roadmap live-provider trajectory", () => {
+  it("classifies provider failures without copying arbitrary error text", () => {
+    const diagnostic = safeProviderFailureDiagnostic({
+      name: "PRIVATE_PROVIDER_SECRET",
+      code: "PRIVATE_PROVIDER_SECRET",
+      status: 401,
+      cause: {
+        name: "TypeError",
+        code: "ECONNRESET",
+        status: 999,
+        message: "PRIVATE_PROVIDER_SECRET",
+      },
+    });
+    expect(diagnostic).toEqual([
+      { name: "other", code: null, status: 401 },
+      { name: "TypeError", code: "ECONNRESET", status: null },
+    ]);
+    expect(JSON.stringify(diagnostic)).not.toContain("PRIVATE_PROVIDER_SECRET");
+  });
+
   it("runs two independent double-compaction trajectories through production APIs", () => {
     expect(loopbackEvidence.profile).toMatchObject({
       mode: "loopback",

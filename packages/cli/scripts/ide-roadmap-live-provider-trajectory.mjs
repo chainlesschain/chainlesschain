@@ -141,6 +141,51 @@ function fail(code, message) {
   throw new LiveProviderTrajectoryError(code, message);
 }
 
+const SAFE_PROVIDER_ERROR_NAMES = new Set([
+  "AbortError",
+  "APIError",
+  "Error",
+  "FetchError",
+  "HTTPError",
+  "NetworkError",
+  "RangeError",
+  "SyntaxError",
+  "TimeoutError",
+  "TypeError",
+]);
+const SAFE_PROVIDER_ERROR_CODES = new Set([
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+]);
+
+/** Keep useful failure categories without copying provider messages or inputs. */
+export function safeProviderFailureDiagnostic(error) {
+  const entries = [];
+  let current = error;
+  for (let depth = 0; depth < 3 && current; depth += 1) {
+    const name = SAFE_PROVIDER_ERROR_NAMES.has(current.name)
+      ? current.name
+      : "other";
+    const code = SAFE_PROVIDER_ERROR_CODES.has(current.code)
+      ? current.code
+      : null;
+    const status =
+      Number.isSafeInteger(current.status) &&
+      current.status >= 100 &&
+      current.status <= 599
+        ? current.status
+        : null;
+    entries.push({ name, code, status });
+    current = current.cause;
+  }
+  return entries;
+}
+
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -948,9 +993,10 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
           );
         }
         if (error instanceof LiveProviderTrajectoryError) throw error;
+        const diagnostic = safeProviderFailureDiagnostic(error);
         fail(
           "provider_trajectory_failed",
-          "provider trajectory did not complete",
+          `provider trajectory did not complete (cycle=${cycleIndex + 1}, events=${events.length}, error=${JSON.stringify(diagnostic)})`,
         );
       }
       const evidence = ensureCycleOutcome({
