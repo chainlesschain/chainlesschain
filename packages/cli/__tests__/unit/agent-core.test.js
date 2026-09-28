@@ -14,6 +14,7 @@ import {
   getCodingAgentFunctionToolDefinitions,
 } from "../../src/runtime/coding-agent-contract.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
+import { snapshotAgentModelRequest } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   markDurableSystemMessage,
@@ -1652,6 +1653,78 @@ describe("chatWithTools", () => {
     });
 
     expect(capturedHeaders["Authorization"]).toBe("Bearer sk-test-key");
+  });
+
+  it("replays a provider tool call without leaking reasoning_content into the next turn", async () => {
+    const requests = [];
+    const toolCall = {
+      id: "call_1",
+      type: "function",
+      function: { name: "read_file", arguments: '{"path":"notes.txt"}' },
+    };
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      requests.push(JSON.parse(opts.body));
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message:
+                requests.length === 1
+                  ? {
+                      role: "assistant",
+                      content: null,
+                      reasoning_content: "private provider reasoning",
+                      tool_calls: [toolCall],
+                    }
+                  : { role: "assistant", content: "done" },
+            },
+          ],
+        }),
+      };
+    });
+    const options = {
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: "sk-test-key",
+      contextMemorySkipPlanning: true,
+    };
+    const user = { role: "user", content: "Read notes" };
+    const first = await chatWithTools([user], options);
+    expect(first.message).toEqual({
+      role: "assistant",
+      content: null,
+      tool_calls: [toolCall],
+    });
+    const toolResult = {
+      role: "tool",
+      tool_call_id: "call_1",
+      content: "notes",
+    };
+    const transcript = [user, first.message, toolResult];
+    expect(() =>
+      snapshotAgentModelRequest({ messages: transcript, tools: [] }),
+    ).not.toThrow();
+    const second = await chatWithTools(transcript, options);
+    expect(second.message.content).toBe("done");
+    expect(requests[1].messages).toEqual(transcript);
+    expect(JSON.stringify(requests[1])).not.toContain("reasoning_content");
+  });
+
+  it("rejects an unsupported OpenAI assistant response shape", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { role: "user", content: "wrong role" } }],
+      }),
+    });
+    await expect(
+      chatWithTools([{ role: "user", content: "test" }], {
+        provider: "openai",
+        model: "gpt-4o",
+        apiKey: "sk-test-key",
+      }),
+    ).rejects.toThrow("unsupported assistant message");
   });
 
   it("OpenAI provider: sends a bounded client request id and captures returned request identifiers", async () => {

@@ -11740,7 +11740,33 @@ export async function chatWithTools(rawMessages, options) {
     throw new Error("Invalid API response: no choices returned");
   }
   const choice = data.choices[0];
-  const out = { message: choice.message };
+  const providerMessage = choice.message;
+  if (
+    !providerMessage ||
+    typeof providerMessage !== "object" ||
+    Array.isArray(providerMessage) ||
+    providerMessage.role !== "assistant" ||
+    (providerMessage.content !== null &&
+      providerMessage.content !== undefined &&
+      typeof providerMessage.content !== "string") ||
+    (Object.hasOwn(providerMessage, "tool_calls") &&
+      !Array.isArray(providerMessage.tool_calls)) ||
+    (Object.hasOwn(providerMessage, "reasoning_content") &&
+      providerMessage.reasoning_content !== null &&
+      typeof providerMessage.reasoning_content !== "string") ||
+    Object.keys(providerMessage).some(
+      (key) =>
+        !["role", "content", "tool_calls", "reasoning_content"].includes(key),
+    )
+  ) {
+    throw new TypeError("Invalid API response: unsupported assistant message");
+  }
+  // Provider reasoning text is not part of the governed replay protocol.
+  const message = { role: "assistant", content: providerMessage.content };
+  if (Object.hasOwn(providerMessage, "tool_calls")) {
+    message.tool_calls = providerMessage.tool_calls;
+  }
+  const out = { message };
   const providerReceipt = supportsOpenAIRequestIdentity
     ? _openAIProviderRequestReceipt(response, data, providerRequestId)
     : null;
