@@ -897,10 +897,12 @@ function handleControl(event) {
       approved: event.approve === true,
       via: "ui-host-fixture",
     });
-    textDelta(
-      `fixture permission ${event.approve === true ? "approved" : "denied"} #${approval.turn}`,
-    );
-    finish(approval.turn, "fixture permission settled");
+    const answer = `fixture permission ${event.approve === true ? "approved" : "denied"} #${approval.turn}`;
+    textDelta(answer);
+    // The transcript reconciles streamed text with the authoritative result.
+    // Keep the journey marker in that final text so observing it cannot race
+    // the renderer's handling of these adjacent events.
+    finish(approval.turn, answer);
     return;
   }
 

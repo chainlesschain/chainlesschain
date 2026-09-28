@@ -174,8 +174,16 @@ if (inputVersion) {
   const name = at > 0 ? inputVersion.slice(0, at) : inputVersion;
   const protectedPackage = publicPackages.find((p) => p.name === name);
   if (protectedPackage && isProtectedPackage(protectedPackage)) {
+    if (
+      protectedPackage.name === "chainlesschain-ide" ||
+      protectedPackage.dir === "vscode-extension"
+    ) {
+      err(
+        `Package "${name}" is protected and must use its dedicated CLI or IDE release workflow.`,
+      );
+    }
     err(
-      `Package "${name}" is protected and must use its dedicated CLI or IDE release workflow.`,
+      `Package "${name}" is protected and must use the dedicated exact-SHA CLI/Agent SDK/Context Memory release workflow.`,
     );
   }
   const pkg = pub.find((p) => p.name === name);
