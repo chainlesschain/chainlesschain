@@ -1,0 +1,12 @@
+{
+  "schema": "chainlesschain.ide-roadmap-live-provider-trajectory-failure.v1",
+  "schemaVersion": 1,
+  "caseId": "s0-live-provider-trajectory",
+  "mode": "live",
+  "releaseCommit": "cf69ba0efb9610a38623b4f84d1280ec34a77f9f",
+  "generatedAt": "2026-09-28T16:31:49.636Z",
+  "result": "failed",
+  "failureCode": "trajectory_timeout",
+  "rawProviderMaterialPersisted": false,
+  "evidenceDigest": "sha256:1f45a9357dbc016661ac6fb7f2e1ac5c72fdf6dce761caea303a19fa2a18b3cf"
+}
