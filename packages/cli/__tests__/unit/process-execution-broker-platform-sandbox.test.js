@@ -11427,6 +11427,21 @@ describe.runIf(process.platform === "win32")(
     }, 120_000);
 
     it("fails closed for detached numeric file stdio in strict mode", () => {
+      const workspace = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-windows-detached-file-stdio-"),
+      );
+      const markerPath = path.join(workspace, "executed.marker");
+      const stdoutPath = path.join(workspace, "stdout.txt");
+      const stderrPath = path.join(workspace, "stderr.txt");
+      const stdoutFd = fs.openSync(stdoutPath, "w+");
+      const stderrFd = fs.openSync(stderrPath, "w+");
+      const nonce = crypto.randomUUID();
+      const payload = [
+        "const fs = require('node:fs');",
+        `fs.writeFileSync(${JSON.stringify(markerPath)}, ${JSON.stringify(nonce)});`,
+        `process.stdout.write(${JSON.stringify(nonce)});`,
+        `process.stderr.write(${JSON.stringify(nonce)});`,
+      ].join("\n");
       const previousStrict = process.env.CC_SANDBOX_STRICT;
       const previousDisable = process.env.CC_SANDBOX_DISABLE;
       const previousSandboxEnabled = executionBroker._sandboxEnabled;
@@ -11437,16 +11452,30 @@ describe.runIf(process.platform === "win32")(
       executionBroker._platformSandboxEnabled = true;
       let unexpectedChild;
       try {
+        const control = nativeSpawnSync(liveNodeExecutable, ["-e", payload], {
+          stdio: ["ignore", stdoutFd, stderrFd],
+          windowsHide: true,
+          timeout: 30_000,
+        });
+        expect(control.error).toBeUndefined();
+        expect(control.status).toBe(0);
+        expect(fs.readFileSync(markerPath, "utf8")).toBe(nonce);
+        expect(fs.readFileSync(stdoutPath, "utf8")).toBe(nonce);
+        expect(fs.readFileSync(stderrPath, "utf8")).toBe(nonce);
+        fs.unlinkSync(markerPath);
+        fs.ftruncateSync(stdoutFd, 0);
+        fs.ftruncateSync(stderrFd, 0);
+
         let failure;
         try {
           unexpectedChild = executionBroker.spawn(
-            process.execPath,
-            ["worker.mjs"],
+            liveNodeExecutable,
+            ["-e", payload],
             {
               origin: "test:windows-native-sandbox-detached-file-stdio-live",
               policy: "allow",
               detached: true,
-              stdio: ["ignore", 17, 17],
+              stdio: ["ignore", stdoutFd, stderrFd],
               windowsHide: true,
               timeout: 30_000,
               env: process.env,
@@ -11459,6 +11488,10 @@ describe.runIf(process.platform === "win32")(
           code: "ERR_PROCESS_SANDBOX",
           sandboxReason: "windows_detached_file_stdio_unsupported",
         });
+        expect(unexpectedChild).toBeUndefined();
+        expect(fs.existsSync(markerPath)).toBe(false);
+        expect(fs.readFileSync(stdoutPath, "utf8")).toBe("");
+        expect(fs.readFileSync(stderrPath, "utf8")).toBe("");
         expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
           sandboxed: false,
           sandboxState: "denied",
@@ -11482,6 +11515,12 @@ describe.runIf(process.platform === "win32")(
         }
         executionBroker._sandboxEnabled = previousSandboxEnabled;
         executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+        fs.closeSync(stdoutFd);
+        fs.closeSync(stderrFd);
+        for (const file of [markerPath, stdoutPath, stderrPath]) {
+          if (fs.existsSync(file)) fs.unlinkSync(file);
+        }
+        fs.rmdirSync(workspace);
       }
     }, 90_000);
   },

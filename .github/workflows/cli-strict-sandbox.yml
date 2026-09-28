@@ -382,6 +382,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  macos-latest-capability:
+    name: "macOS latest native capability"
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: Probe current macOS Seatbelt capability with a real process
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          node packages/cli/scripts/macos-latest-sandbox-capability.mjs
+          "${RUNNER_TEMP}/macos-latest-sandbox-capability.json"
+      - name: Upload capability evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-latest-sandbox-capability
+          path: ${{ runner.temp }}/macos-latest-sandbox-capability.json
+          if-no-files-found: error
+          retention-days: 7
+
   strict-platform:
     name: "strict native boundary (${{ matrix.os }})"
     strategy:
