@@ -5,6 +5,7 @@
 // com.chainlesschain.ide is pure JDK and is also compiled + interop-tested
 // independently (see README "Verification").
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 import org.gradle.api.tasks.WriteProperties
 
 plugins {
@@ -19,10 +20,14 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.138"
+version = "0.4.140"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 val hostIdeLocalPath = providers.gradleProperty("hostIdeLocalPath")
+val uiJourneyRunId = providers.gradleProperty("uiJourneyRunId")
+if (uiJourneyRunId.isPresent) require(uiJourneyRunId.get().matches(Regex("[A-Za-z0-9-]{1,80}"))) {
+    "uiJourneyRunId must be a bounded directory name"
+}
 
 repositories {
     mavenCentral()
@@ -84,6 +89,7 @@ dependencies {
     "uiTestImplementation"("com.intellij.remoterobot:remote-robot:0.11.23")
     "uiTestImplementation"("com.intellij.remoterobot:remote-fixtures:0.11.23")
     "uiTestImplementation"("org.junit.jupiter:junit-jupiter:5.10.2")
+    "uiTestImplementation"("com.google.code.gson:gson:2.10.1")
     "uiTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
 
@@ -180,6 +186,7 @@ fun renderChangeNotes(changelog: java.io.File, maxSections: Int): String {
 }
 
 intellijPlatform {
+    if (uiJourneyRunId.isPresent) sandboxContainer.set(layout.buildDirectory.dir("idea-sandbox/${uiJourneyRunId.get()}"))
     // Plain-Java plugin: no UI forms / no @NotNull bytecode instrumentation, so
     // skip code instrumentation (avoids the InstrumentIdeaExtensions ant-task
     // dependency the 2.x plugin otherwise needs).
@@ -292,6 +299,8 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.robot.url", System.getProperty("ui.robot.url") ?: "http://127.0.0.1:8082")
     systemProperty("ui.journey.phase", System.getProperty("ui.journey.phase") ?: "initial")
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
+    systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
+    systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
     systemProperty("file.encoding", "UTF-8")
     maxParallelForks = 1 // one live IDE + one robot client, never parallelize
     outputs.upToDateWhen { false } // always re-drive the live IDE
@@ -304,7 +313,8 @@ tasks.register<Test>("uiSmokeTest") {
 }
 
 runCatching {
-    val uiTestProjectDir = layout.buildDirectory.dir("uiTest-project")
+    val uiTestProjectDir = layout.buildDirectory.dir(if (uiJourneyRunId.isPresent)
+        "uiTest-project/${uiJourneyRunId.get()}" else "uiTest-project")
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
         // Compile/package once against the minimum supported 2024.2 API, then
         // launch that exact artifact in each declared real-host version. Newer
@@ -341,6 +351,38 @@ runCatching {
             robotServerPlugin("0.11.23")
         }
     }
+    // The testing extension prepares testRuntimeClasspath (including JUnit and
+    // a standalone Kotlin stdlib). Replace only OUR plugin with its actual ZIP
+    // before the GUI host starts; keep Remote Robot as a separate test plugin.
+    val uiSandbox = tasks.named<PrepareSandboxTask>("prepareSandbox_runIdeForUiTests")
+    val distribution = tasks.named<Zip>("buildPlugin")
+    val sandboxRoot = layout.buildDirectory.dir("idea-sandbox")
+    val workspaceRoot = layout.projectDirectory.asFile.parentFile.parentFile.canonicalFile
+    val installUiJourneyPlugin = tasks.register<Sync>("installUiJourneyPlugin") {
+        group = "verification"
+        description = "Install exactly the packaged plugin into the isolated GUI sandbox"
+        dependsOn(uiSandbox, distribution)
+        into(uiSandbox.flatMap { it.pluginDirectory })
+        from(zipTree(distribution.flatMap { it.archiveFile })) {
+            eachFile {
+                val segments = relativePath.segments
+                require(segments.size > 1 && segments.first() == "chainlesschain-ide-bridge") {
+                    "Unexpected plugin archive path: $relativePath"
+                }
+                relativePath = org.gradle.api.file.RelativePath(true, *segments.drop(1).toTypedArray())
+            }
+            includeEmptyDirs = false
+        }
+        doFirst {
+            val root = sandboxRoot.get().asFile.canonicalFile.toPath()
+            val target = destinationDir.canonicalFile.toPath()
+            require(root.startsWith(workspaceRoot.toPath()) && target.startsWith(root)
+                    && target != root && target.fileName.toString() == "chainlesschain-ide-bridge") {
+                "Refusing to sync GUI plugin outside the workspace sandbox: $target"
+            }
+        }
+    }
+    tasks.named("runIdeForUiTests") { dependsOn(installUiJourneyPlugin) }
 }.onFailure {
     logger.warn(
         "ChainlessChain: runIdeForUiTests registration failed (${it.message}) — " +
