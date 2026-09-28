@@ -1057,9 +1057,14 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     ) {
       throw new Error("target command output boundary is invalid");
     }
-    const timeoutMs = Number(
-      options.timeoutMs ?? DEFAULT_TARGET_COMMAND_TIMEOUT_MS,
-    );
+    // Hosted Windows Local targets can spend most of the generic 30-second
+    // window on owner-only ACL checks before the CLI command runs. Keep the
+    // existing bounded 120-second ceiling for this attested target platform.
+    const defaultTimeoutMs =
+      profile.target === "local" && profile.expected.platform === "win32"
+        ? MAX_TARGET_COMMAND_TIMEOUT_MS
+        : DEFAULT_TARGET_COMMAND_TIMEOUT_MS;
+    const timeoutMs = Number(options.timeoutMs ?? defaultTimeoutMs);
     if (
       !Number.isSafeInteger(timeoutMs) ||
       timeoutMs < 1 ||

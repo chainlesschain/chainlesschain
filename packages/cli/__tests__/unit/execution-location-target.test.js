@@ -248,6 +248,7 @@ function currentProjection(
   target = "container",
   observedAt = "2026-08-18T07:00:00.000Z",
   commit = COMMIT,
+  platform = "linux",
 ) {
   return {
     schema: "cc-session-execution-location-authority/v1",
@@ -265,7 +266,7 @@ function currentProjection(
         },
       },
       runtime: {
-        platform: "linux",
+        platform,
         arch: "x64",
         nodeVersion: "v22.12.0",
         cliVersion: "0.200.0-test",
@@ -659,6 +660,48 @@ describe("execution location target launch and resume", () => {
       );
     },
   );
+
+  it("allows the bounded Windows Local ACL window for target commands", () => {
+    const profile = rawLifecycleProfile({
+      id: "local-profile-1",
+      target: "local",
+      evidenceId: "local-evidence-1",
+      cliCommand: "/work/repo/packages/cli/src/index.js",
+      transport: {
+        home: "/target/home",
+        securityHome: "/target/security",
+      },
+      expected: { ...rawProfile().expected, platform: "win32" },
+    });
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(preflightReceipt(profile))))
+      .mockReturnValueOnce(
+        success(
+          JSON.stringify(
+            currentProjection(
+              "local",
+              "2026-08-18T07:00:00.000Z",
+              COMMIT,
+              "win32",
+            ),
+          ),
+        ),
+      );
+
+    attestExecutionLocationTarget(
+      { profile, handoff: handoff("local") },
+      {
+        spawnSync,
+        now: () => Date.parse("2026-08-18T07:01:00.000Z"),
+        assertRunnerLifecycleAuthority: vi.fn(),
+      },
+    );
+
+    expect(
+      spawnSync.mock.calls.map(([, , options]) => options.timeout),
+    ).toEqual([120_000, 120_000]);
+  });
 
   it("prepares the fixed Local replica state tree in one Windows ACL batch", () => {
     const profile = rawLifecycleProfile({
