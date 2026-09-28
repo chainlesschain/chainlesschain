@@ -984,12 +984,12 @@ final class IdeUiSmokeTest {
                         + "new java.awt.Point(bounds.x + Math.floor(bounds.width / 2),"
                         + "bounds.y + Math.floor(bounds.height / 2));",
                 true);
-        // Native mouse input selects and activates the real chooser. Calling
-        // requestFocusInWindow() followed immediately by dispatchEvent(Enter)
-        // races the asynchronous focus transfer. The Windows ARM64 failure
-        // reached a hidden chooser without invoking its chosen-item callback.
-        System.out.println("[ui-smoke] clicking popup item " + label);
-        list.click(point);
+        // The first chooser advances on one click. On Windows ARM64 the
+        // second chooser can disappear after one click without invoking its
+        // chosen-item callback, so activate that item with a double-click.
+        System.out.println("[ui-smoke] activating popup item " + label);
+        if (prefix) list.click(point);
+        else list.doubleClick(point);
         waitUntilHidden(list, "popup item " + label, FIND_BUDGET);
     }
 
