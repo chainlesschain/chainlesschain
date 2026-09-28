@@ -331,6 +331,8 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 
 在 `e3591426b9` 上的一次独立真实旅程留下[固定类别失败回执](./cli/evidence/ide-roadmap-live-provider-trajectory-volcengine-windows-e3591426b9.json)：第二轮开始后只记录 `run-started`、摘要 usage 边界、`compaction-degraded`、`compaction-usage-unknown`，原因为 `semantic-summary-provider-outcome-unknown` / `provider_transport_outcome_unknown`。随后同一提交的一次仅观测 HTTP 状态的[脱敏传输回执](./cli/evidence/perf02-volcengine-transport-windows-e3591426b9.json)记录连续三次 HTTP 200，第四次约 95 秒后抛出 `Error`，未取得 HTTP 状态；独立重算其摘要并核对四次结果。仓库 loopback 单轮恰好三次模型请求，本地再次运行一轮 6 次请求的 loopback 旅程通过，因此这些序列与第一轮三次请求完成、第二轮摘要传输失败一致。失败回执目前没有保存已完成轮次的逐轮证据，不能据此计算整段冻结事实保留率或任务成功率；这次结果也不能证明服务端已接受第四次请求、是否计费或具体断线原因，故不自动重试未知结果。
 
+对 `e3591426b9` 的准确提交 CI，[CLI CI 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36453175772)中 Ubuntu unit 1/4 失败；从已上传的 `unit-1.xml` 核对，唯一失败为本旅程测试要求每种运行时栈格式都必须有仓库内源码位点，Linux 实际返回 `null`。随后将安全栈位点解析扩展到 Linux 绝对路径，并用合成的本机绝对路径验证允许的仓库内位点；运行时无法可靠解析的栈仍保持 `null`。Windows 本地该旅程 11/11、Prettier、ESLint（0 errors）和 diff 检查通过；修复是否通过 Linux 与最终 SHA 的全矩阵，以新 CI 为准。
+
 ## Windows 并发初始化与真实存储宿主夹具
 
 新增宿主夹具的可选 canonical 模式：模型回复仍为确定性测试内容，输入接受回执、去重、最终事件引用和历史查询使用生产存储与真实 CLI 子进程；数据根为工作区外的临时目录，home/security 为同级隔离目录。相同正文与输入 ID 的双会话并发测试暴露了 Windows ACL 初始化竞态。

@@ -185,7 +185,7 @@ function safeRepoStackSite(error) {
   if (typeof error?.stack !== "string") return null;
   for (const frame of error.stack.split(/\r?\n/u).slice(1, 12)) {
     const match = frame.match(
-      /((?:file:\/\/\/|[a-zA-Z]:[\\/])[^)\s]+):(\d+):(\d+)/u,
+      /((?:file:\/\/\/|[a-zA-Z]:[\\/]|\/)[^)\s]+):(\d+):(\d+)/u,
     );
     if (!match) continue;
     let absolute;

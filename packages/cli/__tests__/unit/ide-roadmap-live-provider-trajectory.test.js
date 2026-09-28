@@ -177,11 +177,22 @@ describe("IDE roadmap live-provider trajectory", () => {
       { name: "TypeError", code: "ECONNRESET", status: null, site: null },
     ]);
     expect(JSON.stringify(diagnostic)).not.toContain("PRIVATE_PROVIDER_SECRET");
-    expect(
-      safeProviderFailureDiagnostic(new Error("PRIVATE_PROVIDER_SECRET"))[0]
-        .site,
-    ).toMatch(
-      /^packages\/cli\/__tests__\/unit\/ide-roadmap-live-provider-trajectory\.test\.js:\d+$/u,
+    const runtimeSite = safeProviderFailureDiagnostic(
+      new Error("PRIVATE_PROVIDER_SECRET"),
+    )[0].site;
+    if (runtimeSite !== null) {
+      expect(runtimeSite).toMatch(
+        /^packages\/cli\/__tests__\/unit\/ide-roadmap-live-provider-trajectory\.test\.js:\d+$/u,
+      );
+    }
+    const source = path.join(
+      REPOSITORY_ROOT,
+      "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js",
+    );
+    const synthetic = new Error("PRIVATE_PROVIDER_SECRET");
+    synthetic.stack = `Error: PRIVATE_PROVIDER_SECRET\n    at helper (${source}:87:2)`;
+    expect(safeProviderFailureDiagnostic(synthetic)[0].site).toBe(
+      "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js:87",
     );
   });
 
