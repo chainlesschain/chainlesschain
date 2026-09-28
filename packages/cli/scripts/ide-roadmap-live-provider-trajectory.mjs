@@ -163,6 +163,31 @@ const SAFE_PROVIDER_ERROR_CODES = new Set([
   "UND_ERR_HEADERS_TIMEOUT",
 ]);
 
+function safeRepoStackSite(error) {
+  if (typeof error?.stack !== "string") return null;
+  for (const frame of error.stack.split(/\r?\n/u).slice(1, 12)) {
+    const match = frame.match(
+      /((?:file:\/\/\/|[a-zA-Z]:[\\/])[^)\s]+):(\d+):(\d+)/u,
+    );
+    if (!match) continue;
+    let absolute;
+    try {
+      absolute = match[1].startsWith("file:")
+        ? fileURLToPath(match[1])
+        : match[1];
+    } catch {
+      continue;
+    }
+    const relative = path
+      .relative(DEFAULT_REPO_ROOT, absolute)
+      .replaceAll("\\", "/");
+    if (relative.startsWith("packages/cli/") && relative.length <= 180) {
+      return `${relative}:${Number(match[2])}`;
+    }
+  }
+  return null;
+}
+
 /** Keep useful failure categories without copying provider messages or inputs. */
 export function safeProviderFailureDiagnostic(error) {
   const entries = [];
@@ -180,7 +205,7 @@ export function safeProviderFailureDiagnostic(error) {
       current.status <= 599
         ? current.status
         : null;
-    entries.push({ name, code, status });
+    entries.push({ name, code, status, site: safeRepoStackSite(current) });
     current = current.cause;
   }
   return entries;

@@ -107,10 +107,16 @@ describe("IDE roadmap live-provider trajectory", () => {
       },
     });
     expect(diagnostic).toEqual([
-      { name: "other", code: null, status: 401 },
-      { name: "TypeError", code: "ECONNRESET", status: null },
+      { name: "other", code: null, status: 401, site: null },
+      { name: "TypeError", code: "ECONNRESET", status: null, site: null },
     ]);
     expect(JSON.stringify(diagnostic)).not.toContain("PRIVATE_PROVIDER_SECRET");
+    expect(
+      safeProviderFailureDiagnostic(new Error("PRIVATE_PROVIDER_SECRET"))[0]
+        .site,
+    ).toMatch(
+      /^packages\/cli\/__tests__\/unit\/ide-roadmap-live-provider-trajectory\.test\.js:\d+$/u,
+    );
   });
 
   it("runs two independent double-compaction trajectories through production APIs", () => {
