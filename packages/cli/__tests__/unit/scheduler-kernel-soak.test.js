@@ -19,6 +19,7 @@ import {
   schedulerSoakRoundDelayMs,
   validateSchedulerSoakEvidence,
   verifySchedulerSoakEvidenceSet,
+  waitForOccurrences,
 } from "../../scripts/scheduler-kernel-soak.mjs";
 
 const RELEASE_COMMIT = "a".repeat(40);
@@ -217,6 +218,46 @@ function verifyOptions(evidenceDir, overrides = {}) {
 }
 
 describe("scheduler kernel soak coordinator", () => {
+  it("reports a fatal steady worker before a generic occurrence timeout", async () => {
+    const worker = {
+      workerId: "steady-1",
+      child: { exitCode: null, signalCode: null },
+      stderr: "lease renewal failed",
+      events: [],
+    };
+    await expect(
+      waitForOccurrences(
+        { getOccurrence: () => ({ id: "pending", status: "running" }) },
+        ["pending"],
+        {
+          timeoutMs: 1000,
+          pollMs: 1,
+          workers: [worker],
+          onPoll: () => {
+            worker.events.push({
+              type: "fatal",
+              error: { code: "SCHEDULER_LEASE_LOST", message: "lease expired" },
+            });
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "SCHEDULER_LEASE_LOST",
+      message: expect.stringContaining("lease expired"),
+    });
+  });
+
+  it("reports an exited steady worker even without a fatal event", async () => {
+    const failure = new Error("worker steady-2 exited: signal=SIGKILL");
+    await expect(
+      waitForOccurrences(
+        { getOccurrence: () => ({ id: "pending", status: "queued" }) },
+        ["pending"],
+        { timeoutMs: 1000, pollMs: 1, workers: [{ failure }] },
+      ),
+    ).rejects.toBe(failure);
+  });
+
   it("preserves bounded fatal, stderr, and recent-event context on worker exit", () => {
     const error = createSchedulerSoakWorkerExitError({
       workerId: "steady-1",

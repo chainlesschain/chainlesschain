@@ -1087,6 +1087,9 @@ function createWorkerProcess({
     get stderr() {
       return stderr;
     },
+    get failure() {
+      return parseError || exitError;
+    },
   };
   if (!closed) activeWorkers.add(workerHandle);
   return workerHandle;
@@ -1424,9 +1427,22 @@ function enqueueOccurrence(store, job, triggerKey, payload = {}) {
   });
 }
 
-async function waitForOccurrences(store, occurrenceIds, options = {}) {
+export async function waitForOccurrences(store, occurrenceIds, options = {}) {
   const deadline = performance.now() + options.timeoutMs;
   for (;;) {
+    for (const worker of options.workers || []) {
+      if (worker.failure) throw worker.failure;
+      const fatal = worker.events.find((event) => event.type === "fatal");
+      if (fatal) {
+        throw createSchedulerSoakWorkerExitError({
+          workerId: worker.workerId,
+          code: worker.child.exitCode,
+          signal: worker.child.signalCode,
+          events: worker.events,
+          stderr: worker.stderr,
+        });
+      }
+    }
     const occurrences = occurrenceIds.map((id) => store.getOccurrence(id));
     const failed = occurrences.find(
       (occurrence) => occurrence?.status === "dead_letter",
@@ -2112,6 +2128,8 @@ export async function runSchedulerKernelSoak(options = {}) {
   let store = null;
   const activeWorkers = new Set();
   const transientRetirements = [];
+  let longWorkers = [];
+  const steadyOccurrenceIds = [];
   try {
     assertInvariant(
       report.exactShaVerified,
@@ -2133,7 +2151,7 @@ export async function runSchedulerKernelSoak(options = {}) {
     store = openSchedulerStore({ file: db });
     seedSchedulerJobs(store, seed);
 
-    const longWorkers = [0, 1].map((index) =>
+    longWorkers = [0, 1].map((index) =>
       createWorkerProcess({
         db,
         effectsDir,
@@ -2214,7 +2232,6 @@ export async function runSchedulerKernelSoak(options = {}) {
         }
       }
     };
-    const steadyOccurrenceIds = [];
     for (let roundIndex = 0; roundIndex < profile.rounds; roundIndex += 1) {
       const delayMs = schedulerSoakRoundDelayMs(
         roundIndex,
@@ -2256,6 +2273,7 @@ export async function runSchedulerKernelSoak(options = {}) {
       resumeSteadyCheckpoints();
       const settledSteady = await waitForOccurrences(store, [...currentIds], {
         timeoutMs,
+        workers: longWorkers,
         pollMs: profile.pollMs,
         onPoll: () => {
           resumeSteadyCheckpoints();
@@ -2305,6 +2323,7 @@ export async function runSchedulerKernelSoak(options = {}) {
     resumeSteadyCheckpoints();
     await waitForOccurrences(store, steadyOccurrenceIds, {
       timeoutMs,
+      workers: longWorkers,
       pollMs: profile.pollMs,
       onPoll: () => {
         resumeSteadyCheckpoints();
@@ -2497,6 +2516,28 @@ export async function runSchedulerKernelSoak(options = {}) {
     if (store && temporaryRoot) {
       try {
         report.failureDiagnostics = {
+          workers: longWorkers.map((worker) => ({
+            workerId: worker.workerId,
+            pid: worker.pid,
+            exitCode: worker.child.exitCode,
+            signal: worker.child.signalCode,
+            error: worker.failure ? safeError(worker.failure) : null,
+            stderr: worker.stderr,
+            events: worker.events.slice(-40),
+          })),
+          unsettledSteady: steadyOccurrenceIds
+            .map((id) => store.getOccurrence(id))
+            .filter(
+              (occurrence) => occurrence && occurrence.status !== "succeeded",
+            )
+            .slice(-100)
+            .map((occurrence) => ({
+              occurrence,
+              history: store.history({
+                occurrenceId: occurrence.id,
+                limit: 100,
+              }),
+            })),
           deadLetters: store
             .listDeadLetters({ limit: 100 })
             .map((occurrence) => {

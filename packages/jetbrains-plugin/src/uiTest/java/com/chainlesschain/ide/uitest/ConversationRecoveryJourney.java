@@ -303,6 +303,9 @@ final class ConversationRecoveryJourney {
                 Thread.sleep(150);
             }
             assertNotNull(completion, "background A never committed");
+            JsonObject afterCompletion = snapshot();
+            assertEquals(text(b,"id"), text(afterCompletion,"id"), "B must remain active after A commits");
+            backgroundObservations.add(afterCompletion);
             String foregroundReturnAt = Instant.now().toString();
             assertFalse(Instant.parse(text(completion,"at")).isBefore(Instant.parse(backgroundAt)), "A finished before B was selected");
             select(text(a,"id")); history("A",1);
