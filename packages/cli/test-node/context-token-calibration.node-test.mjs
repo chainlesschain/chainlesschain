@@ -121,3 +121,16 @@ test("the command reports usage without echoing prompts or malformed input", () 
     rmdirSync(directory);
   }
 });
+
+test("live calibration requires an explicit paid-call flag", () => {
+  const command = fileURLToPath(
+    new URL(
+      "../scripts/context-token-volcengine-live-probe.mjs",
+      import.meta.url,
+    ),
+  );
+  const result = spawnSync(process.execPath, [command], { encoding: "utf8" });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /live probe failed/u);
+});
