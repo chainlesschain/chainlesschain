@@ -130,6 +130,8 @@ async function fixture(source, { allowWrites = false, durable = true } = {}) {
     ...trust(`attest-${purpose}`),
     value: sha(`${purpose}:${payloadDigest}`),
   });
+  // Observe the supervised child's close fence; a PID probe is racy on Windows.
+  const children = [];
   const supervisor = createEvolutionEvalProcessSupervisor({
     targets: new Map([
       [
@@ -160,10 +162,18 @@ async function fixture(source, { allowWrites = false, durable = true } = {}) {
     attestInvocation: attest,
     attestRevocation: attest,
     verifyEnforcement: () => true,
-    spawnProcess: spawn,
+    spawnProcess: (...args) => {
+      const child = spawn(...args);
+      const observed = { child, closed: false };
+      child.once("close", () => {
+        observed.closed = true;
+      });
+      children.push(observed);
+      return child;
+    },
     childEvidenceStore: store?.port ?? null,
   });
-  return { root, target, supervisor, store };
+  return { root, target, supervisor, store, children };
 }
 
 function request(deadlineAt, overrides = {}) {
@@ -260,7 +270,7 @@ describe("Volcengine function process executor", () => {
       "  return { toolResult: { late: true }, auditEvidence: {} };",
       "}",
     ].join("\n");
-    const { root, target, supervisor, store } = await fixture(source, {
+    const { root, target, supervisor, store, children } = await fixture(source, {
       allowWrites: true,
     });
     const executor = createVolcengineFunctionProcessExecutor({
@@ -280,7 +290,9 @@ describe("Volcengine function process executor", () => {
     });
     const childPid = Number(await readFile(pidFile, "utf8"));
     expect(childPid).not.toBe(process.pid);
-    expect(() => process.kill(childPid, 0)).toThrow();
+    expect(children).toHaveLength(1);
+    expect(children[0].child.pid).toBe(childPid);
+    expect(children[0].closed).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 950));
     await expect(readFile(lateFile, "utf8")).rejects.toMatchObject({
       code: "ENOENT",
@@ -301,7 +313,7 @@ describe("Volcengine function process executor", () => {
       "  return { toolResult: { late: true }, auditEvidence: {} };",
       "}",
     ].join("\n");
-    const { root, target, supervisor, store } = await fixture(source, {
+    const { root, target, supervisor, store, children } = await fixture(source, {
       allowWrites: true,
     });
     const executor = createVolcengineFunctionProcessExecutor({
@@ -322,7 +334,9 @@ describe("Volcengine function process executor", () => {
 
     await rejection;
     expect(childPid).not.toBe(process.pid);
-    expect(() => process.kill(childPid, 0)).toThrow();
+    expect(children).toHaveLength(1);
+    expect(children[0].child.pid).toBe(childPid);
+    expect(children[0].closed).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 1_250));
     await expect(readFile(lateFile, "utf8")).rejects.toMatchObject({
       code: "ENOENT",
