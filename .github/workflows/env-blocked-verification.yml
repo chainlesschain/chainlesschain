@@ -53,6 +53,10 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
 
       - name: Install gopls (Go preinstalled on the runner)
         run: |
@@ -66,11 +70,14 @@ jobs:
 
       - name: Install Eclipse JDT LS (jdtls)
         run: |
-          # jdtls needs a modern JDK; the runner image ships several — pick 21.
-          echo "JAVA_HOME=${JAVA_HOME_21_X64:-$JAVA_HOME_17_X64}" >> "$GITHUB_ENV"
+          # Pin the milestone; snapshots/latest can change between runs.
+          archive="$RUNNER_TEMP/jdt-language-server-1.61.0.tar.gz"
+          curl --fail --location --silent --show-error --retry 3 \
+            https://download.eclipse.org/jdtls/milestones/1.61.0/jdt-language-server-1.61.0-202609031315.tar.gz \
+            --output "$archive"
+          echo "338e7e73d61836651ba2453919a0d34fa763eb4e7c03342092309bffb8934c64  $archive" | sha256sum --check
           mkdir -p "$HOME/jdtls"
-          curl -fsSL https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz \
-            | tar -xz -C "$HOME/jdtls"
+          tar -xz -f "$archive" -C "$HOME/jdtls"
           echo "$HOME/jdtls/bin" >> "$GITHUB_PATH"
 
       - name: Verify all three servers resolve (fail fast on a broken install)
@@ -79,6 +86,7 @@ jobs:
           command -v rust-analyzer
           command -v jdtls
           gopls version
+          java -version
 
       - name: Live LSP suite (go+rust+java REQUIRED — missing server = failure)
         working-directory: packages/cli
@@ -86,6 +94,16 @@ jobs:
           CC_LSP_LIVE: "1"
           CC_LSP_LIVE_REQUIRE: "go,rust,java"
         run: npx vitest run --reporter=default __tests__/integration/lsp-live-multilang.test.js
+
+      - name: Print JDT LS crash logs
+        if: failure()
+        run: |
+          for dir in /tmp "$HOME/jdtls" "$HOME/.cache/jdtls"; do
+            if [ -d "$dir" ]; then
+              find "$dir" -type f \( -path '*/.metadata/.log' -o -path '*/config_linux/*.log' \) \
+                -print -exec tail -n 120 {} \;
+            fi
+          done
 
   sandbox-bwrap:
     name: "live bubblewrap kernel isolation (ubuntu)"
