@@ -1,0 +1,253 @@
+{
+  "schema": "chainlesschain.context-token-volcengine-live-probe/v1",
+  "capturedAt": "2026-09-28T13:15:22.195Z",
+  "requestCount": 20,
+  "repeats": 5,
+  "maxOutputTokensPerRequest": 8,
+  "timeoutMsPerRequest": 20000,
+  "responseIdSha256": [
+    "d7ece12c2065e1f57b800b04086d7b6bfa420830b056cc496377b68e32499617",
+    "c019cd9dcc8bd2f9c0f4192ba5b4bac906c2a03b1afea4ddcb359e99ffc49c51",
+    "ce1f87d76b5da3ee359307cf32de47b3d63a7b5a79bdf7230ec39bf14e78bcda",
+    "217a66fc1654053eacde1855cc145ad109c0f557e5cffa81a6348cdd931d800b",
+    "f14fa14095958342b16a82f159db3ce9fac26ffd48c30ad89fc7b828f46c431b",
+    "9c7e3e6bfb7ae90d67d18921842a50504a7a18be6588b3ac869bb233e9fd0e00",
+    "fdca50e111e85c06ac28ac872f3a447a56ad81401f3038f2bcccddaa2dcb2e46",
+    "d3b6258b496ea5e6305763838b9c47ab3252d191650622ff739053761f49ce16",
+    "39db2dd85ecb2973a85a1ba9d092a406c559784ccd98f2183398bf6151f4c62d",
+    "3778dfee7b2136647e8783e2ad2ef368fb0e923080e40a42ab405e142a31a0fd",
+    "ed70325a0343831ef6cdef1af3396fe6f4d5df120da10c0091782d68dd00b730",
+    "6f9fd7d227b4ecdb95af33ff3de91cf86aac5d3cdb78d14d0a9dc7226cc1b4d0",
+    "82abe2f9915a96b759a618dc88af3cc0d4c11466fc4859dcdfe3c9779dc7d8b9",
+    "e7230aee2f0e1dc197313da5e46bd06d2d96e6e25f85224f8427cc0a671895e0",
+    "120ff78410960bf71f11982b2ef43127647a3a26349ae85cb8a620c027ae376d",
+    "b283eb70b48ca714d3a96ded0a4379118cbaeda02b35202abf728cc85958b662",
+    "85ca0a6e732c05d39acc817cb38097478ef896a85b61394e8912fb7af5505628",
+    "0a650f1f73a7fe13f42adfbd2348e64ed1b7b4974cf2d35e13a31ed94f2915b0",
+    "3ca56e40e482bcb0ee5e1315aea47bcc5a436eaa76cf53e079eb768d908feb9d",
+    "c5aec5d68c8bfb7959bbfb47484faed78021a368a337bad752c97503eac4caa9"
+  ],
+  "outputTokens": 672,
+  "estimatedCostUsd": 0.0021785119999999996,
+  "calibration": {
+    "schema": "chainlesschain.context-token-calibration/v1",
+    "estimator": "canonical-context-item-utf8-bytes-divided-by-four",
+    "caveat": "Provider input usage includes request framing and may include hidden tokens; only captured real provider responses establish calibration evidence.",
+    "total": {
+      "samples": 20,
+      "estimatedTokens": 12846,
+      "observedTokens": 16060,
+      "underestimates": 15,
+      "p95RelativeAbsoluteError": 0.46530612244897956,
+      "p95UnderestimateTokens": 498
+    },
+    "groups": [
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "chinese",
+        "samples": 5,
+        "estimatedTokens": 3045,
+        "observedTokens": 2435,
+        "underestimates": 0,
+        "p95RelativeAbsoluteError": 0.31424766977363516,
+        "p95UnderestimateTokens": 0
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "code",
+        "samples": 5,
+        "estimatedTokens": 2456,
+        "observedTokens": 2865,
+        "underestimates": 5,
+        "p95RelativeAbsoluteError": 0.24302788844621515,
+        "p95UnderestimateTokens": 103
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "emoji",
+        "samples": 5,
+        "estimatedTokens": 1860,
+        "observedTokens": 3450,
+        "underestimates": 5,
+        "p95RelativeAbsoluteError": 0.47586206896551725,
+        "p95UnderestimateTokens": 498
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "tool-schema",
+        "samples": 5,
+        "estimatedTokens": 5485,
+        "observedTokens": 7310,
+        "underestimates": 5,
+        "p95RelativeAbsoluteError": 0.3860759493670886,
+        "p95UnderestimateTokens": 425
+      }
+    ],
+    "requests": [
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "b3680e4e1421f84388e13dc844443ac14dc053f937320f217550234320875bcf",
+        "estimatedTokens": 231,
+        "observedTokens": 223
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "0246b7692c2b2c799191a119c80db7d609f4fd3372f900eb58869ae9ad3570fb",
+        "estimatedTokens": 190,
+        "observedTokens": 251
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "ae937b5df04a90803765d5811e4963586f37068581862f64926cad5754b8dfeb",
+        "estimatedTokens": 152,
+        "observedTokens": 290
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "c35a205dee8f828b27b4e3901fb15e60ebdd9cb2f3c2055fd55fae74450d5fb5",
+        "estimatedTokens": 485,
+        "observedTokens": 790
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "0518dca31c37a7943e11f8560e3307ed34c0e202a765ed0fb7892e2aa066bf7b",
+        "estimatedTokens": 420,
+        "observedTokens": 355
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "5d7e17427bea2ffa4ca36e9a99772053893d68a41317d44607c1a00853a5e700",
+        "estimatedTokens": 341,
+        "observedTokens": 412
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "4b1b13fb564ad9a60e580c609a5fecb61e0017d07d37edb21df3446bfb6c27e7",
+        "estimatedTokens": 262,
+        "observedTokens": 490
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "c4425cea774063037f589424ffb3df3a1634a5dfa06093a93c698ec206dab723",
+        "estimatedTokens": 791,
+        "observedTokens": 1126
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "786f8d4527fa67019f7e29c0b30318a1ba8a82a582b8c3f973382c2551695598",
+        "estimatedTokens": 609,
+        "observedTokens": 487
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "e566d0083557e6007a3686b46c18cdaf676a90424220af482b7a6abb60fcaf1a",
+        "estimatedTokens": 491,
+        "observedTokens": 573
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "ad4ab4e03847f302600fb90b93b2ded5fa26b715fa19a221dc685f84c42183fb",
+        "estimatedTokens": 372,
+        "observedTokens": 690
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "72f2a0b9a155802c877b4cb3c79667a3ae7db3a5f0395e67c5e79f5701e60a28",
+        "estimatedTokens": 1097,
+        "observedTokens": 1462
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "3ddcc86377713d8e69a2bc5846d8fd687a1adc3ed064bcd788e153f363567969",
+        "estimatedTokens": 798,
+        "observedTokens": 619
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "0f8290aeb91232982100e215a3b7a9cc5c679f145c85ccec73fcd9cef9cf533a",
+        "estimatedTokens": 642,
+        "observedTokens": 734
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "97e9a6a00a730187f14ed747908ae03d6f14bb6abbee6593566b4f24fc5531c2",
+        "estimatedTokens": 482,
+        "observedTokens": 890
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "230dd28bfce9a189ddbb1d381f77113836e4d9af1105a16f04e9ea9a59833f2c",
+        "estimatedTokens": 1403,
+        "observedTokens": 1798
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "5de8fc571233b735b2171041cf788e7805f5f0bce2ca26d44a9d181ba66fe8e1",
+        "estimatedTokens": 987,
+        "observedTokens": 751
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "8c084301f76feb7ccfe9a000a4d961a3e6afa26684500f5ef0862331bd6a5258",
+        "estimatedTokens": 792,
+        "observedTokens": 895
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "01e9435bd8624e9908e2a68cdf4597c9ecae722922aa1369b8c42168b0156d59",
+        "estimatedTokens": 592,
+        "observedTokens": 1090
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "c39735d26c0f135335312c47c23212de0e466b09c55b80aea40710a7fb8c0877",
+        "estimatedTokens": 1709,
+        "observedTokens": 2134
+      }
+    ]
+  }
+}
