@@ -40,6 +40,8 @@
 
 以上不能推导 Linux ARM64、其他 macOS 架构或全部 stdio 组合已有强制隔离。`macos-latest` 的缺后端成功回执只证明拒绝准确，不证明隔离后端可用。
 
+`5027bb6236` 的独立 [macOS latest 回执](./cli/evidence/platform-macos-latest-arm64-5027bb6236.json)记录 macOS 26 / ARM64 的 `sandbox-exec` 实际可用，原生写入正对照成功，严格 broker 阻止宿主 home 写入并记录 `macos-seatbelt` enforcement。这推翻了工作流原注释中 latest 镜像缺少该二进制的假设，但只覆盖该提交、镜像及 pipe stdio；该提交的 Strict Sandbox 总作业因安全映射文件摘要未更新而失败，不能计作整个矩阵通过。下一提交同步摘要并重跑。
+
 共 20 个分组工作项：5 项本地验证通过、9 项局部实现/验证、4 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
 
 ### 当前状态索引与审计结论替代关系（2026-09-28）

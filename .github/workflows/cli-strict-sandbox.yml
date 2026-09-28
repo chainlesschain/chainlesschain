@@ -420,9 +420,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-latest currently resolves to macOS 26, where Apple removed the
-        # sandbox-exec binary. Keep the Seatbelt acceptance lane on the newest
-        # hosted image that still exposes the declared production primitive.
+        # Keep the full Seatbelt acceptance lane pinned to macOS 15 while the
+        # separate macos-latest job probes the current hosted image. A latest
+        # capability result does not substitute for this full contract suite.
         os: [ubuntu-24.04, macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
