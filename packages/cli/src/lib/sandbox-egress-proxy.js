@@ -254,13 +254,20 @@ export function createEgressProxy(policy = {}, opts = {}) {
         res.end("bad request target\n");
         return;
       }
+      if (u.protocol !== "http:" || u.username || u.password) {
+        res.writeHead(400, { "content-type": "text/plain" });
+        res.end("unsupported proxy target\n");
+        return;
+      }
       const upstream = http.request(
         {
           hostname: ip || u.hostname, // pin to the validated IP when re-checked
           port: u.port || 80,
           path: `${u.pathname}${u.search}`,
           method: req.method,
-          headers: req.headers, // preserves the original Host header
+          // The URL is the policy authority. Do not forward a conflicting
+          // client Host header to a different virtual host on the allowed IP.
+          headers: { ...req.headers, host: u.host },
         },
         (upRes) => {
           if (!live(lease)) {

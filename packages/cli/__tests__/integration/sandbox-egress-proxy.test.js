@@ -320,6 +320,43 @@ describe("sandbox egress proxy", () => {
     expect(proxy.allowed).toBeGreaterThanOrEqual(1);
   });
 
+  it("pins the upstream Host header to the policy-checked URL authority", async () => {
+    upstream = http.createServer((req, res) => {
+      res.end(req.headers.host);
+    });
+    const upPort = await new Promise((resolve) =>
+      upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)),
+    );
+    proxy = createEgressProxy({ allowedDomains: ["127.0.0.1"] });
+    const { port } = await proxy.listen();
+    const response = await new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          host: "127.0.0.1",
+          port,
+          path: `http://127.0.0.1:${upPort}/`,
+          headers: { Host: "blocked.example.test" },
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.once("end", () => resolve({ status: res.statusCode, body }));
+        },
+      );
+      req.once("error", reject);
+      req.end();
+    });
+    expect(response).toEqual({ status: 200, body: `127.0.0.1:${upPort}` });
+  });
+
+  it("requires HTTPS targets to use governed CONNECT tunnels", async () => {
+    proxy = createEgressProxy({ allowedDomains: ["127.0.0.1"] });
+    const { port } = await proxy.listen();
+    const response = await getVia(port, "https://127.0.0.1:443/");
+    expect(response.status).toBe(400);
+    expect(response.body).toMatch(/unsupported proxy target/);
+  });
+
   it("blocks a plain-HTTP request to a denied host with 403", async () => {
     proxy = createEgressProxy({
       allowedDomains: ["*"],
