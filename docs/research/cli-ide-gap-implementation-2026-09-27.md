@@ -4,45 +4,78 @@
 
 实现分支：`feature/cli-ide-gap-closure-2026-09-27`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。按已验证范围分批提交，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
-| ID                      | 当前状态         | 实现与有效证据                                                                                                                                                               | 剩余条件                                                            |
-| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                |
-| MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced               |
-| READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                       |
-| CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过 | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单 |
-| BRIDGE-01               | 局部实现并验证   | Broker/bridge 回收；静态 helper/npm 包探针；`71919bc5c1` 托管 x64/ARM64 无编译器单元通过 | standalone 分发、监督器丢失后恢复、macOS 及最终三系统验收；主路由拒绝未 attested CLI |
-| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过 | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction |
-| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过 | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
-| IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                             |
-| IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离   |
-| IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内     |
-| NET-01                  | 待实施           | 当前受限域名执行继续 fail-closed                                                                                                                                             | Linux 不可绕过出口后端及真实绕过探针                                |
-| NET-02                  | 待实施           | 不宣称已有 HTTP/WS 撤销已覆盖                                                                                                                                                | 依赖 NET-01；revision 收紧终止存量连接                              |
-| VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口          |
-| PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                         |
-| PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口 |
-| PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                  |
-| MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                  |
-| MAINT-01                | 局部实现并验证   | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                      | 其余 runtime 与平台职责抽取、保行为验证                             |
-| DOC-01                  | 实现中           | 本表为两份报告共享状态入口                                                                                                                                                   | 随实现更新证据、最终 SHA 与验收条件                                 |
-| UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                  |
+| ID                      | 当前状态         | 实现与有效证据                                                                                                                                                               | 剩余条件                                                                                         |
+| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                                             |
+| MODEL-02                | 本地合同验证通过 | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                      | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced                                            |
+| READY-01                | 本地验证通过     | CLI-only 在 Run/付费分解/通知前拒绝；help、detect JSON、status 区分安装与准入；API 标为 text-only；`--cli-tool` 真正选后端。router/orchestrator 73 项通过，实际命令 4 项通过 | 精确提交 CI；保留逐请求治理门                                                                    |
+| CODEX-01                | 局部实现并验证   | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过               | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单             |
+| BRIDGE-01               | 局部实现并验证   | Broker/bridge 回收；静态 helper/npm 包探针；`71919bc5c1` 托管 x64/ARM64 无编译器单元通过                                                                                     | standalone 分发、监督器丢失后恢复、macOS 及最终三系统验收；主路由拒绝未 attested CLI             |
+| IDE-REPLAY / SESSION-01 | 局部实现并验证   | v2 历史与双 IDE 增量合并、来源与身份检查；Windows 双 IDE 实际包恢复通过；JetBrains 旧七标签副本恢复和按选中读取后的完整旅程通过                                              | 原旧 profile 失败唯一根因未定；其他宿主版本/系统、旧历史边界及真实 rewind/compaction             |
+| IDE-DRAFT               | 局部实现并验证   | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；JetBrains 实际 GUI 的 init 等待中 Stop、迟到 init、取消草稿重启且不重发已通过               | 附件/问题表单真实宿主、跨平台和可访问性待验收；其余准备/写入阶段及再次发送后的 Stop 宿主专项待补 |
+| IDE-STREAM              | 本地验证通过     | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                                | 真实宿主 frame p95/最长 task 基准与验收                                                          |
+| IDE-MODE                | 局部实现并验证   | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                                |
+| IDE-IMAGE               | 局部实现并验证   | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                                  |
+| NET-01                  | 待实施           | 当前受限域名执行继续 fail-closed                                                                                                                                             | Linux 不可绕过出口后端及真实绕过探针                                                             |
+| NET-02                  | 待实施           | 不宣称已有 HTTP/WS 撤销已覆盖                                                                                                                                                | 依赖 NET-01；revision 收紧终止存量连接                                                           |
+| VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                       |
+| PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                                                      |
+| PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                              |
+| PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                                               |
+| MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                                               |
+| MAINT-01                | 局部实现并验证   | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                      | 其余 runtime 与平台职责抽取、保行为验证                                                          |
+| DOC-01                  | 本地索引已补齐   | 本表为两份报告共享状态入口；下方按全部 20 个 ID 记录代表提交、可复核证据与被替代的旧结论                                                                                     | 新提交及最终发布结果仍须持续回填                                                                 |
+| UX-01                   | 按现有入口改进   | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                           | 复用 doctor/instructions/cost；语音/主题不自动立项                                               |
 
 真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号尚无本轮新增结果。真实宿主新增 Windows VS Code 1.132.0 与 IntelliJ 2024.2 的有限恢复旅程证据，分别绑定下述提交；模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
 
 共 20 个分组工作项：5 项本地验证通过、8 项局部实现/验证、5 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
 
+### 当前状态索引与审计结论替代关系（2026-09-28）
+
+本索引对应两份 09-27 审计的全部任务 ID。提交列是能在本仓库 `git cat-file` 复核的代表性实现，不代表该 ID 的所有工作已经完成；没有实现提交的项目保留原审计结论。证据列只在其实际覆盖的系统、入口和场景内有效，剩余验收以表首“剩余条件”为准。发布候选提交为 `d6fc25c073d0261809ba421498b6e6d28753145b`，它的 CI 与发布资格须按准确 SHA 另行核对，不能由下列旧提交或本地证据推导。
+
+| ID                      | 代表实现提交                                           | 可复核证据与替代边界                                                                                                                                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MODEL-01                | `3571acda0e`                                           | 精确模型 profile 与 Responses 合同替代审计时的旧窗口/协议选择；目标账号的真实请求仍未验证。                                                                                                                                                                                                              |
+| MODEL-02                | `3571acda0e`                                           | 统一价格及 durable usage 回归替代静态计价分叉；官方账单、旧聚合缺失字段仍未验证。                                                                                                                                                                                                                        |
+| READY-01                | `42010e7148`                                           | router/orchestrator 与实际命令回归替代“已安装即可运行”的提示；外部 CLI 仍须逐请求准入。                                                                                                                                                                                                                  |
+| CODEX-01                | `42010e7148`、`795434f144`、`312cdba006`               | [真实 turn](./cli/evidence/codex-real-turns-windows-795434f144.json)和[审批取消](./cli/evidence/codex-approval-cancel-windows-312cdba006.json)替代早期 snake_case/跨 thread 反例；不构成生产白名单或真实 provider 准入。                                                                                 |
+| BRIDGE-01               | `40addcedf1`、`915653abfa`、`e106b753d8`               | [生命周期](./cli/evidence/bridge-lifecycle-windows-wsl-40addcedf1.json)、[隔离失败](./cli/evidence/process-ownership-quarantine-windows-wsl-915653abfa.json)和[持久阻断](./cli/evidence/durable-process-ownership-windows-wsl-e106b753d8.json)替代早期提前释放任务的行为；异常树回收和安全解除仍未实现。 |
+| IDE-REPLAY / SESSION-01 | `44db0e64ab`、`c6852748ba`、`604ae5db28`               | [VS Code Windows 回执](./ide/evidence/vscode-canonical-recovery-windows-5382a8c3be.json)及[JetBrains Windows 回执](./ide/evidence/jetbrains-canonical-recovery-windows-989a46cd6e.json)替代后台正文无恢复的原始反例；其余宿主与真实模型范围不随之扩大。                                                  |
+| IDE-DRAFT               | `4889036941`、`38fc29e634`、`e5dc0aa6ed`、`989a46cd6e` | 同两份 Windows 宿主回执证明有限 composer/Stop 恢复；附件和问题表单真实宿主旅程尚未由这些回执证明。                                                                                                                                                                                                       |
+| IDE-STREAM              | `025dddcd46`                                           | 增量节点/选择区本地基准替代每帧全文重绘路径；真实宿主 frame p95 与最长 task 待测。                                                                                                                                                                                                                       |
+| IDE-MODE                | `025dddcd46`、`d45175eeac`                             | CLI ACK 与双 IDE 状态/退出回归替代“请求值即生效值”的界面行为；组织策略及完整 OS 进程树仍待验收。                                                                                                                                                                                                         |
+| IDE-IMAGE               | `6b5da7f538`、`8e9c6f9d4d`                             | CLI/双 IDE 图片大小、像素和格式前置检查替代原无预算路径；真实宿主吞吐、完整 codec/动画帧不在现有 header 证明内。                                                                                                                                                                                         |
+| NET-01                  | 无                                                     | 原审计的失败即拒绝仍生效；没有可联网且不可绕过的域名强制出口实现或验收。                                                                                                                                                                                                                                 |
+| NET-02                  | 无                                                     | 依赖 NET-01；没有可证明的运行中 HTTP/WS 策略收紧及存量连接撤销。                                                                                                                                                                                                                                         |
+| VERIFY-01               | 无本轮实现                                             | 历史 Windows/Volcengine 试点仍按原范围记录，不能替代冻结的 30–50 个真实项目任务及双 IDE 旅程。                                                                                                                                                                                                           |
+| PLATFORM-01             | 无本轮完整实现                                         | 现有 Strict Sandbox 真 cell 与 unsupported 分支有效，不替代最新 OS/架构/stdio 完整矩阵。                                                                                                                                                                                                                 |
+| PERF-01                 | `6c47788623`、`f6f7840502`                             | [Windows 容量回执](./cli/evidence/persistent-capacity-smoke-windows-6c47788623.json)替代“只有全扫”的审计快照；formal SLO、其他系统及 Memory 生产端口仍开放。                                                                                                                                             |
+| PERF-02                 | 无                                                     | 现有 bytes/4 估算、压缩和工具配对保护保留；真实 usage 误差与事实保真尚未测得。                                                                                                                                                                                                                           |
+| MCP-01                  | `42010e7148`                                           | loopback HTTP 回归替代短暂 404 必然断连的反例；目标 MCP 服务端互操作仍待验证。                                                                                                                                                                                                                           |
+| MAINT-01                | `f9fb1ec91b`、`e5dc0aa6ed`                             | IDE 问答字段与请求生命周期已拆出，替代这部分混杂职责；agent-core 与平台职责拆分仍开放。                                                                                                                                                                                                                  |
+| DOC-01                  | 本文                                                   | 此索引将历史审计、现行实现和待验收条件分开；每次新实现与发布结果需更新准确提交和证据。                                                                                                                                                                                                                   |
+| UX-01                   | `42010e7148`、`3571acda0e`                             | help/status 与费用未知值已经改进；语音、主题等仍是条件性产品决策。                                                                                                                                                                                                                                       |
+
+### 子 npm 包与 IDE 发布路径复核（2026-09-28）
+
+重新逐一查询 15 个非 private workspace 包的公开 npm `latest`：Agent Protocol 源码 `0.1.12` 对应公开 `0.1.11`，Agent SDK `0.2.12` 对应 `0.2.11`，CLI `0.166.78` 对应 `0.166.77`；其余 11 个子 npm 包的源码版本均等于公开版本。另一个非 private 包 `chainlesschain-ide` 源码为 `0.37.119`，npm `latest` 仍是 2026-08-03 更新的 `0.37.40`；它是 VS Code 扩展的历史 npm 记录，当前 IDE 发布由 `ide-extensions.yml` 的 VSIX/Marketplace 路径负责，不能因 npm 版本落后就把它混入 CLI 之前的子包批次。
+
+通用 `workspace-npm-publish.yml` 原先会把这个 VS Code 扩展选作普通包，可能绕过“子 npm 包 → CLI → IDE”的顺序。下一批修复在检测器和发布循环两处拒绝 `vscode-extension`/`chainlesschain-ide`，仍允许 Agent Protocol 由通用发布器选择；Agent SDK 与 CLI 保持由 `npm-publish.yml` 按依赖顺序发布。本地隔离夹具的 tag 选择和手工 IDE 请求两项行为测试通过，`actionlint` 与 Prettier 通过。此处尚无该修复提交的 GitHub Actions 证据，也没有触发任何发布。
+
 ### 首轮 GitHub Actions 失败定位与修复
 
 草稿 [PR #383](https://github.com/chainlesschain/chainlesschain/pull/383) 的首轮检查绑定 `01b6c0b7e450c3dca60e03d1b0a5e965b1ff7c53`。用户要求同时处理 Actions 错误；截至本次日志核对，23 个失败作业主要归于下列原因，包含下游聚合失败，不能当作 23 个独立产品缺陷。
 
-| 类别 | 失败证据与原因 | 本批处理与验证边界 |
-| --- | --- | --- |
-| Strict Sandbox / Session Host Consistency | 三系统 MCP 恢复报 `completion-authority-malformed`；新 canonical projection 增加 `replayEvents`，严格字段校验仍只接受原三字段 | 明确允许可选函数字段，保留未知字段、accessor、head/count 拒绝；不调用 replay lease。原 3 项在 Windows 复现失败，修复后 4 文件 115 项通过 |
-| Execution Location | Local 三系统、WSL、Container、SSH 共 6 作业在 npm 安装报 `Cannot read properties of null (reading 'edgesOut')`，下游 aggregate 无产物 | 源宿主与隔离目标均从仓库根使用锁文件及指定 CLI workspace 的 `npm ci`，保留 ignore-scripts。隔离清单目录 dry-run、7 项矩阵合同、actionlint、Bash/PowerShell 语法检查通过；真实各目标仍需新 SHA Actions |
-| VS Code ARM64 | Linux / Windows 完整旅程末尾 DOM 缺已出现过的 permission/interrupt 状态 | 普通和 canonical 旅程均在状态出现时保存独立 DOM，仍强制核验两种状态与完整协议记录；不要求瞬时状态在历史重建后保留。69 项宿主/relay 回归通过；新宿主矩阵待跑 |
-| JetBrains ARM64 | 四个 macOS/Linux × 2024.2/2025.2 作业等待旧 `force-stopped the agent process` 提示，实际已显示等待退出确认 | 使用当前提示，并在双击 Stop 前只读观测真实 child/descendant PID，等待观测进程全部退出后才继续 resume。UI driver 编译通过，远端实机结果待新提交 |
-| Accessibility / Performance | 三系统同一失败摘要；Linux 原始产物含 1 个页面错误、1 个语义播报遗漏，无性能阈值超限 | 本地真实 Chromium 复现 about:blank 缺 `crypto.randomUUID`，发送未发生；夹具改为本地拦截 HTTPS 来源，与实际 webview 安全上下文一致，不模拟 UUID。完整 Chromium 分支页面错误、关键播报遗漏、重复播报、stream replay、heading 遗漏均为 0；不等于人工听测或完整 P2-4 验收 |
-| Workspace Publish Staleness | Agent SDK 和 VS Code 源码改动未递增版本 | 保留门禁失败；候选冻结时统一版本和依赖，本批没有发布或改版本 |
+| 类别                                      | 失败证据与原因                                                                                                                        | 本批处理与验证边界                                                                                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Strict Sandbox / Session Host Consistency | 三系统 MCP 恢复报 `completion-authority-malformed`；新 canonical projection 增加 `replayEvents`，严格字段校验仍只接受原三字段         | 明确允许可选函数字段，保留未知字段、accessor、head/count 拒绝；不调用 replay lease。原 3 项在 Windows 复现失败，修复后 4 文件 115 项通过                                                                                                                              |
+| Execution Location                        | Local 三系统、WSL、Container、SSH 共 6 作业在 npm 安装报 `Cannot read properties of null (reading 'edgesOut')`，下游 aggregate 无产物 | 源宿主与隔离目标均从仓库根使用锁文件及指定 CLI workspace 的 `npm ci`，保留 ignore-scripts。隔离清单目录 dry-run、7 项矩阵合同、actionlint、Bash/PowerShell 语法检查通过；真实各目标仍需新 SHA Actions                                                                 |
+| VS Code ARM64                             | Linux / Windows 完整旅程末尾 DOM 缺已出现过的 permission/interrupt 状态                                                               | 普通和 canonical 旅程均在状态出现时保存独立 DOM，仍强制核验两种状态与完整协议记录；不要求瞬时状态在历史重建后保留。69 项宿主/relay 回归通过；新宿主矩阵待跑                                                                                                           |
+| JetBrains ARM64                           | 四个 macOS/Linux × 2024.2/2025.2 作业等待旧 `force-stopped the agent process` 提示，实际已显示等待退出确认                            | 使用当前提示，并在双击 Stop 前只读观测真实 child/descendant PID，等待观测进程全部退出后才继续 resume。UI driver 编译通过，远端实机结果待新提交                                                                                                                        |
+| Accessibility / Performance               | 三系统同一失败摘要；Linux 原始产物含 1 个页面错误、1 个语义播报遗漏，无性能阈值超限                                                   | 本地真实 Chromium 复现 about:blank 缺 `crypto.randomUUID`，发送未发生；夹具改为本地拦截 HTTPS 来源，与实际 webview 安全上下文一致，不模拟 UUID。完整 Chromium 分支页面错误、关键播报遗漏、重复播报、stream replay、heading 遗漏均为 0；不等于人工听测或完整 P2-4 验收 |
+| Workspace Publish Staleness               | Agent SDK 和 VS Code 源码改动未递增版本                                                                                               | 保留门禁失败；候选冻结时统一版本和依赖，本批没有发布或改版本                                                                                                                                                                                                          |
 
 另补 v3 宿主旅程检查“取消准备后显式再次发送，第一次 Stop 应为普通中断且保留同一 child”。验证器 51 项、真实 CLI peer/夹具 16 项通过。`1c4cfc08b8` 首次实际 ZIP 尝试在第一个 init gate 前已用尽发送等待时间，未执行到新场景，失败证据摘要为 `sha256:640425af19c82410eaf7f5aa886de5fb6d3bf52a66b0b529cf4cab1bad9c08e6`。夹具 gate 已移到 canonical store 导入/首次 ACL 初始化之前；该失败不作为产品 Stop 缺陷已复现或已修复的证据，后续实机结果另记。
 
@@ -76,11 +109,11 @@ Execution Location 的依赖安装已通过，后续 Linux/SSH/WSL 日志显示 
 
 同一干净提交的 Windows local [缩小迁移冒烟](./cli/evidence/execution-location-local-windows-c448c08305.json) 完成 prepare、断连/重连、生命周期故障、结果收集/审查/导入和 finalize，共 2 条轨迹；9 个产物哈希/长度复核通过。秘密转移、重复 handoff/settlement、孤儿进程、过期授权接受和静默 fallback 均为 0。此结果不满足 100 次门槛，也没有确定 Windows CI prepare 失败原因。
 
-| 失败类别 | 已核实原因与处理 | 验证与剩余条件 |
-| --- | --- | --- |
-| Container target provisioning | Docker exec 默认从 `/` 启动，使 home 防护将临时 home 视为工作目录后代而正确拒绝；测试部署配置改用已知仓库路径作为 cwd | 真实子进程从文件系统根启动配置 Chat 部署通过；保持仓库外 home 和签名部署校验，远端 Container 待重跑 |
-| WSL1 ArtifactStore identity | 实机内核 `4.4.0-19041-Microsoft` 将 birthtime 回退为 ctime，创建子目录后该值变化而 dev/inode 未变 | 只在 Linux / 4.4 Microsoft 内核且两时间相等时不将该值作为创建身份；dev/inode、无链接、包含关系和句柄校验保留。Node 22.12.0 实机正常 start/complete 通过，目录替换、root/files/index 符号链接四负例仍拒绝；不宣称能防所有 inode reuse/ABA |
-| Windows target prepare | 本地两版 Node 和完整缩小流程未复现 CI 退出 1；现有上层错误丢弃目标输出，不能判断根因 | 增加固定枚举失败类别，不回传目标 stdout/stderr、路径或参数，不影响授权/重试决策。12 类回归含秘密哨兵，相关目标/监督器共 34 项通过；等待远端类别后继续修复，不能标为已解决 |
+| 失败类别                      | 已核实原因与处理                                                                                                      | 验证与剩余条件                                                                                                                                                                                                                           |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Container target provisioning | Docker exec 默认从 `/` 启动，使 home 防护将临时 home 视为工作目录后代而正确拒绝；测试部署配置改用已知仓库路径作为 cwd | 真实子进程从文件系统根启动配置 Chat 部署通过；保持仓库外 home 和签名部署校验，远端 Container 待重跑                                                                                                                                      |
+| WSL1 ArtifactStore identity   | 实机内核 `4.4.0-19041-Microsoft` 将 birthtime 回退为 ctime，创建子目录后该值变化而 dev/inode 未变                     | 只在 Linux / 4.4 Microsoft 内核且两时间相等时不将该值作为创建身份；dev/inode、无链接、包含关系和句柄校验保留。Node 22.12.0 实机正常 start/complete 通过，目录替换、root/files/index 符号链接四负例仍拒绝；不宣称能防所有 inode reuse/ABA |
+| Windows target prepare        | 本地两版 Node 和完整缩小流程未复现 CI 退出 1；现有上层错误丢弃目标输出，不能判断根因                                  | 增加固定枚举失败类别，不回传目标 stdout/stderr、路径或参数，不影响授权/重试决策。12 类回归含秘密哨兵，相关目标/监督器共 34 项通过；等待远端类别后继续修复，不能标为已解决                                                                |
 
 ArtifactStore、WSL1 身份、根目录启动的 Chat 部署、迁移合同共 4 文件 58 项通过、1 项 Windows 符号链接测试按既有条件跳过；上述 WSL1 实机负例补充验证了实际符号链接拒绝。修改源 ESLint 通过。迁移证据的 producer 清单补入部署 helper、签名测试夹具、session resume 和 ArtifactStore 身份依赖，后续最终提交须重新取得完整矩阵。
 
@@ -396,45 +429,45 @@ canonical 恢复驱动新增独立 C 标签场景：fixture 按 session/nonce �
 - JetBrains 初次 Gradle 被缺少完整 JDK 21 阻断；下载官方 Temurin JDK 21.0.12.1+1 并核对 SHA-256 后，`compileKotlin`、`compileJava`、`compileTestJava` 与 `ImageAttachmentsTest` 的 8 项测试通过（0 skipped / failures / errors）。未跑真实 GUI。
 - 以下为本地提交，没有推送或发布；后续未完成工作继续沿用上表任务 ID。
 
-| 提交         | 已提交范围                                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `3571acda0e` | 最新模型 profile、Responses 三型号回归、统一价格与 durable ledger / budget / Eval 计费                                |
-| `42010e7148` | 外部 Agent 生命周期与 Codex 事件关联、MCP 404 安全重建、编排准入状态及生成文档                                        |
-| `025dddcd46` | 有界 canonical context 分页、VS Code 后台正文恢复与流式渲染、CLI mode ACK/退出确认、异步图片与会话内输入隔离          |
-| `8e9c6f9d4d` | JetBrains 图片 header/字节/像素限制、异步处理、错误显示与 JUnit                                                       |
-| `2d5084605c` | CLI canonical 输入接受回执、只读查询与 ID 去重，SDK 可选传参、共享协议 fixture 及 vendor 同步                         |
-| `6b5da7f538` | CLI 普通图片入口的 header/字节/像素校验、固定句柄有界读取及超量明确拒绝                                               |
-| `4889036941` | VS Code composer/附件持久化、发送前保存、输入接受回执核对、关闭草稿恢复                                               |
-| `03957c15d4` | VS Code 问题表单与原生文本/选项草稿恢复、请求绑定隔离及回答交付预约                                                   |
-| `d45175eeac` | JetBrains 权限 ACK、独立进程退出确认、启动取消与过期输入隔离；共享协议类型与生成产物同步                              |
-| `6c47788623` | 实际后台列表全扫/索引分页/失效重建容量对照、完整内容遍历与路径观测回归                                                |
-| `f6f7840502` | 干净 Windows SHA 的实际分页容量对照 receipt；保留少样本与未冻结 SLO 边界                                              |
-| `38fc29e634` | JetBrains composer/附件草稿、稳定 tab 身份、输入接受回执核对与安全恢复                                                |
-| `e5dc0aa6ed` | JetBrains 问题表单草稿、原 child/generation 响应隔离、归档恢复与敏感字段排除                                          |
-| `f9fb1ec91b` | VS Code 原生结构化 schema review、字段草稿、QuickInput 队列、原连接请求生命周期与确认状态；CLI 传递 MCP metadata      |
-| `6a3498820c` | v2 display history 保留规范压缩前正文、revision 游标、fork 隔离与替换边界；VS Code 历史分页及真实 store / Kernel 回归 |
-| `0616351a36` | JetBrains v2 历史页、独立有界读取与取消、历史/现场切换、选择及滚动保留；共享 CLI fixture、真实子进程及 Swing 回归     |
-| `e873b93667` | 新 timeline 回退前缀来源校验、跨规范压缩的有效祖先范围、同锁有界重扫与旧游标失效；真实 CLI / store 回归               |
-| `c5cff5f5df` | 分支流式复制独立显示历史、上下文来源与创建摘要校验、失败重试和父会话删除后读取；完整文字分片及 v1/v2 页字节边界修复   |
-| `f60236db18` | timeline 摘要来源证书、原始正文与游标保留、system 摘要依赖的回退检查及 branch-history v2；连续摘要/分支/压缩回归      |
-| `875b15d560` | verified sync cursor 与连续增量历史读取、JSON 错误分类及真实存储/CLI 回归；双 IDE 仍使用快照读取                      |
-| `70a51435da` | 最终结果关联已提交 user/assistant event，输入 ID 与共享协议类型、生成产物及 SDK 同步；160 项本地回归通过              |
-| `44db0e64ab` | VS Code 连续增量历史合并、原 child 终态引用关联、重复正文独立身份、选区及原位显示保护；相关回归与本地 VSIX 验证       |
-| `c6852748ba` | JetBrains 连续增量历史合并、输入行写入前预约、终态身份关联、选区/滚动与有界淘汰；共享真实 CLI fixture 与本地 ZIP 验证 |
-| `71760f5da6` | Windows ACL 幂等互斥修复、身份缓存及会话目录初始化；真实 canonical 宿主 peer、双进程回执/历史与去重回归 |
-| `6ea65d987d` | VS Code 实际宿主双会话、重复正文、草稿与重启恢复旅程实现 |
-| `e0d1ad3fd7` | Stop 取消保存/init/UNKNOWN/图片准备中的未发送输入，保留恢复记录与清理新建图片 |
-| `f2f3bbd554` | 恢复旅程使用实际磁盘 profile 的普通宿主，并正常 Quit 保存状态 |
-| `5382a8c3be` | 单独保留瞬时控制 DOM 证据；此 SHA 的完整 Windows VS Code 恢复旅程通过 |
-| `a6bc8a5b0f` | VS Code Windows 恢复旅程的独立哈希复核与本地回执 |
-| `356d7fd794` | JetBrains Stop 取消准备、stdin 原子预约、未发送草稿恢复和临时行清理；56 项回归通过 |
-| `bf5829ba7f` | JetBrains 独立 canonical 恢复旅程、原生控件驱动及证据验证器 |
-| `1b9a0190d1` / `edc2d89cc6` | 修正 Robot 泛型返回类型和 Windows 文档换行；旧沙箱的有限完整旅程通过并保留其安装限制 |
-| `fdbdd382b0` | GUI 宿主安装实际 ZIP，初始/重启逐文件校验，排除额外 test runtime |
-| `b5ec362733` / `510b443ac3` | 独立项目/profile、无存储副作用的版本探测与四候选入口隔离；后者的实际 ZIP 完整恢复旅程通过 |
-| `3532bfd45f` | IDE 上传前验证配套 CLI 和子包已从公共 npm 安装并可执行；发布前置检查及公开旧版本安装探测 |
-| `30c1a0e183` | JetBrains 按选中标签发起恢复查询；27 项 Java 回归、旧七标签副本与完整实际 ZIP 重启旅程通过 |
-| `09c61578d7` / `989a46cd6e` | 受控 init gate 与 v2 Stop/草稿恢复旅程；后者修正 Java Boolean 取值并完成实际 ZIP 验收 |
+| 提交                        | 已提交范围                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `3571acda0e`                | 最新模型 profile、Responses 三型号回归、统一价格与 durable ledger / budget / Eval 计费                                |
+| `42010e7148`                | 外部 Agent 生命周期与 Codex 事件关联、MCP 404 安全重建、编排准入状态及生成文档                                        |
+| `025dddcd46`                | 有界 canonical context 分页、VS Code 后台正文恢复与流式渲染、CLI mode ACK/退出确认、异步图片与会话内输入隔离          |
+| `8e9c6f9d4d`                | JetBrains 图片 header/字节/像素限制、异步处理、错误显示与 JUnit                                                       |
+| `2d5084605c`                | CLI canonical 输入接受回执、只读查询与 ID 去重，SDK 可选传参、共享协议 fixture 及 vendor 同步                         |
+| `6b5da7f538`                | CLI 普通图片入口的 header/字节/像素校验、固定句柄有界读取及超量明确拒绝                                               |
+| `4889036941`                | VS Code composer/附件持久化、发送前保存、输入接受回执核对、关闭草稿恢复                                               |
+| `03957c15d4`                | VS Code 问题表单与原生文本/选项草稿恢复、请求绑定隔离及回答交付预约                                                   |
+| `d45175eeac`                | JetBrains 权限 ACK、独立进程退出确认、启动取消与过期输入隔离；共享协议类型与生成产物同步                              |
+| `6c47788623`                | 实际后台列表全扫/索引分页/失效重建容量对照、完整内容遍历与路径观测回归                                                |
+| `f6f7840502`                | 干净 Windows SHA 的实际分页容量对照 receipt；保留少样本与未冻结 SLO 边界                                              |
+| `38fc29e634`                | JetBrains composer/附件草稿、稳定 tab 身份、输入接受回执核对与安全恢复                                                |
+| `e5dc0aa6ed`                | JetBrains 问题表单草稿、原 child/generation 响应隔离、归档恢复与敏感字段排除                                          |
+| `f9fb1ec91b`                | VS Code 原生结构化 schema review、字段草稿、QuickInput 队列、原连接请求生命周期与确认状态；CLI 传递 MCP metadata      |
+| `6a3498820c`                | v2 display history 保留规范压缩前正文、revision 游标、fork 隔离与替换边界；VS Code 历史分页及真实 store / Kernel 回归 |
+| `0616351a36`                | JetBrains v2 历史页、独立有界读取与取消、历史/现场切换、选择及滚动保留；共享 CLI fixture、真实子进程及 Swing 回归     |
+| `e873b93667`                | 新 timeline 回退前缀来源校验、跨规范压缩的有效祖先范围、同锁有界重扫与旧游标失效；真实 CLI / store 回归               |
+| `c5cff5f5df`                | 分支流式复制独立显示历史、上下文来源与创建摘要校验、失败重试和父会话删除后读取；完整文字分片及 v1/v2 页字节边界修复   |
+| `f60236db18`                | timeline 摘要来源证书、原始正文与游标保留、system 摘要依赖的回退检查及 branch-history v2；连续摘要/分支/压缩回归      |
+| `875b15d560`                | verified sync cursor 与连续增量历史读取、JSON 错误分类及真实存储/CLI 回归；双 IDE 仍使用快照读取                      |
+| `70a51435da`                | 最终结果关联已提交 user/assistant event，输入 ID 与共享协议类型、生成产物及 SDK 同步；160 项本地回归通过              |
+| `44db0e64ab`                | VS Code 连续增量历史合并、原 child 终态引用关联、重复正文独立身份、选区及原位显示保护；相关回归与本地 VSIX 验证       |
+| `c6852748ba`                | JetBrains 连续增量历史合并、输入行写入前预约、终态身份关联、选区/滚动与有界淘汰；共享真实 CLI fixture 与本地 ZIP 验证 |
+| `71760f5da6`                | Windows ACL 幂等互斥修复、身份缓存及会话目录初始化；真实 canonical 宿主 peer、双进程回执/历史与去重回归               |
+| `6ea65d987d`                | VS Code 实际宿主双会话、重复正文、草稿与重启恢复旅程实现                                                              |
+| `e0d1ad3fd7`                | Stop 取消保存/init/UNKNOWN/图片准备中的未发送输入，保留恢复记录与清理新建图片                                         |
+| `f2f3bbd554`                | 恢复旅程使用实际磁盘 profile 的普通宿主，并正常 Quit 保存状态                                                         |
+| `5382a8c3be`                | 单独保留瞬时控制 DOM 证据；此 SHA 的完整 Windows VS Code 恢复旅程通过                                                 |
+| `a6bc8a5b0f`                | VS Code Windows 恢复旅程的独立哈希复核与本地回执                                                                      |
+| `356d7fd794`                | JetBrains Stop 取消准备、stdin 原子预约、未发送草稿恢复和临时行清理；56 项回归通过                                    |
+| `bf5829ba7f`                | JetBrains 独立 canonical 恢复旅程、原生控件驱动及证据验证器                                                           |
+| `1b9a0190d1` / `edc2d89cc6` | 修正 Robot 泛型返回类型和 Windows 文档换行；旧沙箱的有限完整旅程通过并保留其安装限制                                  |
+| `fdbdd382b0`                | GUI 宿主安装实际 ZIP，初始/重启逐文件校验，排除额外 test runtime                                                      |
+| `b5ec362733` / `510b443ac3` | 独立项目/profile、无存储副作用的版本探测与四候选入口隔离；后者的实际 ZIP 完整恢复旅程通过                             |
+| `3532bfd45f`                | IDE 上传前验证配套 CLI 和子包已从公共 npm 安装并可执行；发布前置检查及公开旧版本安装探测                              |
+| `30c1a0e183`                | JetBrains 按选中标签发起恢复查询；27 项 Java 回归、旧七标签副本与完整实际 ZIP 重启旅程通过                            |
+| `09c61578d7` / `989a46cd6e` | 受控 init gate 与 v2 Stop/草稿恢复旅程；后者修正 Java Boolean 取值并完成实际 ZIP 验收                                 |
 
 提交表示这部分实现及其本地回归已经保存，不表示同 ID 下的真实账号、跨平台、完整历史、宿主输入接受旅程或生产观察验收已完成。
 

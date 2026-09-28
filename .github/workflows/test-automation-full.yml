@@ -108,7 +108,10 @@ jobs:
         run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Verify CI gate integrity contracts
-        run: node --test scripts/__tests__/ci-gate-integrity.test.mjs
+        run: >-
+          node --test
+          scripts/__tests__/ci-gate-integrity.test.mjs
+          scripts/__tests__/detect-publishable-packages.test.mjs
 
       - name: Run comprehensive test suite
         id: primary-tests

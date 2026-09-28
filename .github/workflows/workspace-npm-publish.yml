@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Specific workspace package, e.g. "@chainlesschain/core-db@0.1.4". The CLI, Agent SDK, and Context Memory Kernel are released only by npm-publish.yml.'
+        description: 'Specific workspace package, e.g. "@chainlesschain/core-db@0.1.4". CLI, Agent SDK and Context Memory Kernel use npm-publish.yml; the VS Code extension uses ide-extensions.yml.'
         required: false
         type: string
       dry-run:
@@ -52,6 +52,9 @@ jobs:
         run: |
           npm install --global npm@11.18.0
           npm --version
+
+      - name: Verify package routing before publication
+        run: node --test scripts/__tests__/detect-publishable-packages.test.mjs
 
       - name: Install root dependencies
         run: npm install --ignore-scripts
@@ -100,15 +103,15 @@ jobs:
             PKG_VER=$(node -p "require('./packages/$pkg_dir/package.json').version")
             echo "  → $PKG_NAME@$PKG_VER"
 
-            # The CLI, Agent SDK, and its Context Memory Kernel dependency share
-            # a separate exact-SHA, three-platform release workflow and npm
-            # Trusted Publisher identity. Keep this second check in the publish
-            # loop so a detector regression cannot bypass that authority or
-            # select an untrusted workflow identity.
+            # CLI, Agent SDK and Context Memory Kernel use the exact-SHA npm
+            # release workflow. The VS Code extension uses the IDE Marketplace
+            # workflow after the paired CLI is public. Keep this second check
+            # so a detector regression cannot bypass either release order.
             if [ "$pkg_dir" = "cli" ] || [ "$PKG_NAME" = "chainlesschain" ] || \
+               [ "$pkg_dir" = "vscode-extension" ] || [ "$PKG_NAME" = "chainlesschain-ide" ] || \
                [ "$pkg_dir" = "agent-sdk" ] || [ "$PKG_NAME" = "@chainlesschain/agent-sdk" ] || \
                [ "$pkg_dir" = "context-memory-kernel" ] || [ "$PKG_NAME" = "@chainlesschain/context-memory-kernel" ]; then
-              echo "  ✗ Refusing protected CLI/Agent SDK/Context Memory package; use npm-publish.yml" >&2
+              echo "  ✗ Refusing protected CLI/Agent SDK/Context Memory/IDE package; use its dedicated release workflow" >&2
               exit 1
             fi
 

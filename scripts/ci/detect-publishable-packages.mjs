@@ -30,11 +30,13 @@ const PACKAGES_DIR = join(REPO_ROOT, "packages");
 const ORDER_FILE = join(REPO_ROOT, ".publish-order.txt");
 const PROTECTED_PACKAGE_NAMES = new Set([
   "chainlesschain",
+  "chainlesschain-ide",
   "@chainlesschain/agent-sdk",
   "@chainlesschain/context-memory-kernel",
 ]);
 const PROTECTED_PACKAGE_DIRS = new Set([
   "cli",
+  "vscode-extension",
   "agent-sdk",
   "context-memory-kernel",
 ]);
@@ -173,7 +175,7 @@ if (inputVersion) {
   const protectedPackage = publicPackages.find((p) => p.name === name);
   if (protectedPackage && isProtectedPackage(protectedPackage)) {
     err(
-      `Package "${name}" is protected and must use the dedicated exact-SHA CLI/Agent SDK/Context Memory release workflow.`,
+      `Package "${name}" is protected and must use its dedicated CLI or IDE release workflow.`,
     );
   }
   const pkg = pub.find((p) => p.name === name);

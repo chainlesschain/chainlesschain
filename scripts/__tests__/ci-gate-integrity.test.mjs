@@ -2120,7 +2120,7 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   assert.match(workflow, /test-results\/auto-fix-report\.json/);
   assert.match(
     workflow,
-    /Verify CI gate integrity contracts\s+run: node --test scripts\/__tests__\/ci-gate-integrity\.test\.mjs/,
+    /Verify CI gate integrity contracts\s+run: >-\s+node --test\s+scripts\/__tests__\/ci-gate-integrity\.test\.mjs\s+scripts\/__tests__\/detect-publishable-packages\.test\.mjs/,
   );
   assert.match(
     workflow,
