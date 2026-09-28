@@ -134,13 +134,58 @@ export function proxyEnv(port, host = "127.0.0.1") {
  * @param {object} policy  { allowedDomains?, deniedDomains?, allowPrivate? }
  * @param {object} [opts]  { onDecision?(info), bindHost? }
  * @returns {{ listen():Promise<{port,env,server}>, close():Promise<void>,
- *             server:import('http').Server, blocked:number, allowed:number }}
+ *             updatePolicy(nextPolicy:object, expectedRevision:number):number,
+ *             server:import('http').Server, blocked:number, allowed:number,
+ *             revision:number }}
  */
 export function createEgressProxy(policy = {}, opts = {}) {
   const bindHost = opts.bindHost || "127.0.0.1";
   const state = { blocked: 0, allowed: 0 };
+  const snapshot = (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new TypeError("Egress policy must be an object");
+    }
+    for (const key of ["allowedDomains", "deniedDomains"]) {
+      if (
+        value[key] !== undefined &&
+        (!Array.isArray(value[key]) ||
+          value[key].some((item) => typeof item !== "string"))
+      ) {
+        throw new TypeError(`${key} must be an array of strings`);
+      }
+    }
+    if (
+      value.allowPrivate !== undefined &&
+      typeof value.allowPrivate !== "boolean"
+    ) {
+      throw new TypeError("allowPrivate must be a boolean");
+    }
+    return Object.freeze({
+      allowedDomains: Object.freeze([...(value.allowedDomains || [])]),
+      deniedDomains: Object.freeze([...(value.deniedDomains || [])]),
+      allowPrivate: value.allowPrivate === true,
+    });
+  };
+  let currentPolicy = snapshot(policy);
+  let revision = 0;
+  let closed = false;
+  const active = new Set();
+  const connections = new Set();
+  const register = (client) => {
+    const lease = { revision, client, upstream: null, cancelled: false };
+    active.add(lease);
+    return lease;
+  };
+  const revoke = (lease) => {
+    lease.cancelled = true;
+    lease.upstream?.destroy();
+    lease.client.destroy();
+    active.delete(lease);
+  };
+  const live = (lease) =>
+    !closed && !lease.cancelled && lease.revision === revision;
   const decide = (target, kind) => {
-    const verdict = evaluateNetworkAccess(target, policy);
+    const verdict = evaluateNetworkAccess(target, currentPolicy);
     if (verdict.allowed) state.allowed += 1;
     else state.blocked += 1;
     if (typeof opts.onDecision === "function") {
@@ -162,11 +207,11 @@ export function createEgressProxy(policy = {}, opts = {}) {
   // exact address to pin the connection to (null → connect by the original
   // name). When the resolved IP is private the name-based allow is overturned:
   // fix the counters and re-notify observers with the block reason.
-  const guard = async (verdict, kind) => {
+  const guard = async (verdict, kind, policySnapshot) => {
     if (!verdict.allowed || verdict.specific || !rebindGuard) {
       return { verdict, ip: null };
     }
-    const res = await guardResolvedTarget(verdict.host, policy, lookup);
+    const res = await guardResolvedTarget(verdict.host, policySnapshot, lookup);
     if (res.ok) return { verdict, ip: res.ip };
     state.allowed -= 1;
     state.blocked += 1;
@@ -182,9 +227,20 @@ export function createEgressProxy(policy = {}, opts = {}) {
   };
 
   const server = http.createServer(async (req, res) => {
+    const lease = register(res);
+    res.once("close", () => {
+      active.delete(lease);
+      if (!res.writableEnded) lease.upstream?.destroy();
+    });
     try {
       // A forward-proxy request carries the absolute URL in the request line.
-      const { verdict, ip } = await guard(decide(req.url, "http"), "http");
+      const policySnapshot = currentPolicy;
+      const { verdict, ip } = await guard(
+        decide(req.url, "http"),
+        "http",
+        policySnapshot,
+      );
+      if (!live(lease)) return;
       if (!verdict.allowed) {
         res.writeHead(403, { "content-type": "text/plain" });
         res.end(`egress blocked: ${verdict.host} — ${verdict.reason}\n`);
@@ -207,17 +263,24 @@ export function createEgressProxy(policy = {}, opts = {}) {
           headers: req.headers, // preserves the original Host header
         },
         (upRes) => {
+          if (!live(lease)) {
+            upRes.destroy();
+            return;
+          }
           res.writeHead(upRes.statusCode || 502, upRes.headers);
           upRes.pipe(res);
         },
       );
+      lease.upstream = upstream;
       upstream.on("error", () => {
+        if (!live(lease)) return;
         if (!res.headersSent)
           res.writeHead(502, { "content-type": "text/plain" });
         res.end("upstream error\n");
       });
       req.pipe(upstream);
     } catch {
+      if (!live(lease)) return;
       if (!res.headersSent)
         res.writeHead(502, { "content-type": "text/plain" });
       res.end("proxy error\n");
@@ -226,11 +289,19 @@ export function createEgressProxy(policy = {}, opts = {}) {
 
   // HTTPS (and any TLS) goes through CONNECT — tunnel only allowed hosts.
   server.on("connect", async (req, clientSocket, head) => {
+    const lease = register(clientSocket);
+    clientSocket.once("close", () => {
+      active.delete(lease);
+      lease.upstream?.destroy();
+    });
     try {
+      const policySnapshot = currentPolicy;
       const { verdict, ip } = await guard(
         decide(req.url, "connect"),
         "connect",
+        policySnapshot,
       ); // req.url = "host:port"
+      if (!live(lease)) return;
       if (!verdict.allowed) {
         clientSocket.write(
           "HTTP/1.1 403 Forbidden\r\n" +
@@ -245,11 +316,16 @@ export function createEgressProxy(policy = {}, opts = {}) {
       // Connect to the pinned validated IP so a rebind at connect time can't
       // swap in a private address between our check and the socket.
       const upstream = net.connect(port, ip || host, () => {
+        if (!live(lease)) {
+          upstream.destroy();
+          return;
+        }
         clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
         if (head && head.length) upstream.write(head);
         upstream.pipe(clientSocket);
         clientSocket.pipe(upstream);
       });
+      lease.upstream = upstream;
       upstream.on("error", () => {
         try {
           clientSocket.end();
@@ -265,12 +341,23 @@ export function createEgressProxy(policy = {}, opts = {}) {
         }
       });
     } catch {
+      if (!live(lease)) return;
       try {
         clientSocket.end();
       } catch {
         /* already closed */
       }
     }
+  });
+
+  // Raw HTTP Upgrade is not a governed tunnel. WebSocket clients may use a
+  // CONNECT tunnel, which remains registered above for revision revocation.
+  server.on("upgrade", (_req, socket) => {
+    socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+  });
+  server.on("connection", (socket) => {
+    connections.add(socket);
+    socket.once("close", () => connections.delete(socket));
   });
 
   return {
@@ -281,8 +368,29 @@ export function createEgressProxy(policy = {}, opts = {}) {
     get allowed() {
       return state.allowed;
     },
+    get revision() {
+      return revision;
+    },
+    updatePolicy(nextPolicy, expectedRevision) {
+      if (closed || expectedRevision !== revision) {
+        const error = new Error("Stale or closed egress policy revision");
+        error.code = "ERR_EGRESS_POLICY_REVISION";
+        throw error;
+      }
+      const next = snapshot(nextPolicy);
+      currentPolicy = next;
+      revision += 1;
+      // A new revision has no inherited connection authority. Closing every
+      // existing lease also covers in-flight DNS and HTTP connect callbacks.
+      for (const lease of active) revoke(lease);
+      return revision;
+    },
     listen() {
       return new Promise((resolve, reject) => {
+        if (closed) {
+          reject(new Error("Egress proxy is closed"));
+          return;
+        }
         server.once("error", reject);
         server.listen(0, bindHost, () => {
           server.removeListener("error", reject);
@@ -292,6 +400,10 @@ export function createEgressProxy(policy = {}, opts = {}) {
       });
     },
     close() {
+      closed = true;
+      for (const lease of active) revoke(lease);
+      for (const socket of connections) socket.destroy();
+      if (!server.listening) return Promise.resolve();
       return new Promise((resolve) => server.close(() => resolve()));
     },
   };

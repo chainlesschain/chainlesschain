@@ -59,7 +59,233 @@ function getVia(port, absoluteUrl) {
   });
 }
 
+async function within(promise, label) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), 5000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 describe("sandbox egress proxy", () => {
+  it("keeps the admitted policy independent of caller mutations", async () => {
+    const policy = { allowedDomains: ["example.test"] };
+    proxy = createEgressProxy(policy);
+    policy.allowedDomains.push("127.0.0.1");
+    const { port } = await proxy.listen();
+    expect(proxy.revision).toBe(0);
+    const denied = await getVia(port, "http://127.0.0.1:1/");
+    expect(denied.status).toBe(403);
+  });
+
+  it("revokes an active HTTP response and rejects stale policy updates", async () => {
+    let sendUpstream;
+    let upstreamClosed;
+    let hits = 0;
+    const upstreamReady = new Promise((resolve) => {
+      sendUpstream = resolve;
+    });
+    const upstreamDone = new Promise((resolve) => {
+      upstreamClosed = resolve;
+    });
+    upstream = http.createServer((_req, res) => {
+      hits += 1;
+      res.once("close", upstreamClosed);
+      res.writeHead(200);
+      res.write("first");
+      sendUpstream(res);
+    });
+    const upPort = await new Promise((resolve) =>
+      upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)),
+    );
+    proxy = createEgressProxy({ allowedDomains: ["127.0.0.1"] });
+    const { port } = await proxy.listen();
+    let received = "";
+    let clientResponse;
+    const firstChunk = new Promise((resolve) => {
+      const req = http.get(
+        { host: "127.0.0.1", port, path: `http://127.0.0.1:${upPort}/` },
+        (res) => {
+          clientResponse = res;
+          res.on("data", (chunk) => {
+            received += chunk;
+            resolve();
+          });
+        },
+      );
+      req.on("error", () => {});
+    });
+    const upstreamResponse = await within(upstreamReady, "upstream HTTP start");
+    await within(firstChunk, "first HTTP frame");
+    const clientClosed = new Promise((resolve) =>
+      clientResponse.once("close", resolve),
+    );
+    expect(proxy.updatePolicy({ allowedDomains: ["elsewhere.test"] }, 0)).toBe(
+      1,
+    );
+    expect(() =>
+      proxy.updatePolicy({ allowedDomains: ["127.0.0.1"] }, 0),
+    ).toThrow(/revision/);
+    await within(Promise.all([clientClosed, upstreamDone]), "HTTP revocation");
+    upstreamResponse.write("late");
+    expect(received).toBe("first");
+    const denied = await getVia(port, `http://127.0.0.1:${upPort}/`);
+    expect(denied.status).toBe(403);
+    expect(hits).toBe(1);
+  });
+
+  it("closes an active upstream response when the proxy shuts down", async () => {
+    let upstreamClosed;
+    const upstreamDone = new Promise((resolve) => {
+      upstreamClosed = resolve;
+    });
+    upstream = http.createServer((_req, res) => {
+      res.once("close", upstreamClosed);
+      res.writeHead(200);
+      res.write("first");
+    });
+    const upPort = await new Promise((resolve) =>
+      upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)),
+    );
+    proxy = createEgressProxy({ allowedDomains: ["127.0.0.1"] });
+    const { port } = await proxy.listen();
+    let clientResponse;
+    const firstChunk = new Promise((resolve) => {
+      const req = http.get(
+        { host: "127.0.0.1", port, path: `http://127.0.0.1:${upPort}/` },
+        (res) => {
+          clientResponse = res;
+          res.once("data", resolve);
+        },
+      );
+      req.on("error", () => {});
+    });
+    await within(firstChunk, "first HTTP frame");
+    const clientClosed = new Promise((resolve) =>
+      clientResponse.once("close", resolve),
+    );
+    await within(proxy.close(), "proxy close");
+    proxy = null;
+    await within(Promise.all([clientClosed, upstreamDone]), "close cleanup");
+  });
+
+  it("revokes a live CONNECT tunnel before another frame arrives", async () => {
+    let upstreamClosed;
+    const upstreamDone = new Promise((resolve) => {
+      upstreamClosed = resolve;
+    });
+    upstream = net.createServer((socket) => {
+      socket.once("close", upstreamClosed);
+      socket.write("hello");
+    });
+    const upPort = await new Promise((resolve) =>
+      upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)),
+    );
+    proxy = createEgressProxy({ allowedDomains: ["127.0.0.1"] });
+    const { port } = await proxy.listen();
+    const client = net.connect(port, "127.0.0.1");
+    client.on("error", () => {});
+    let received = "";
+    const firstFrame = new Promise((resolve) => {
+      client.on("data", (chunk) => {
+        received += chunk;
+        if (received.includes("hello")) resolve();
+      });
+    });
+    client.once("connect", () => {
+      client.write(
+        `CONNECT 127.0.0.1:${upPort} HTTP/1.1\r\nHost: 127.0.0.1:${upPort}\r\n\r\n`,
+      );
+    });
+    await within(firstFrame, "first CONNECT frame");
+    expect(received).toContain("200 Connection Established");
+    const clientClosed = new Promise((resolve) =>
+      client.once("close", resolve),
+    );
+    expect(proxy.updatePolicy({ allowedDomains: ["elsewhere.test"] }, 0)).toBe(
+      1,
+    );
+    await within(
+      Promise.all([clientClosed, upstreamDone]),
+      "CONNECT revocation",
+    );
+    expect(received).not.toContain("late");
+    expect(await connectVia(port, `127.0.0.1:${upPort}`)).toMatch(/403/);
+  });
+
+  it("cancels a request whose DNS lookup finishes after a policy revision", async () => {
+    let releaseLookup;
+    let lookupStarted;
+    const lookupPending = new Promise((resolve) => {
+      lookupStarted = resolve;
+    });
+    const lookupGate = new Promise((resolve) => {
+      releaseLookup = resolve;
+    });
+    let hits = 0;
+    upstream = http.createServer((_req, res) => {
+      hits += 1;
+      res.end("unexpected");
+    });
+    const upPort = await new Promise((resolve) =>
+      upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)),
+    );
+    proxy = createEgressProxy(
+      { allowedDomains: ["*"], allowPrivate: true },
+      {
+        lookup: async () => {
+          lookupStarted();
+          return lookupGate;
+        },
+      },
+    );
+    const { port } = await proxy.listen();
+    const req = http.get({
+      host: "127.0.0.1",
+      port,
+      path: `http://delayed.test:${upPort}/`,
+    });
+    const requestDone = new Promise((resolve) => {
+      req.once("error", resolve);
+      req.once("response", (res) => res.once("close", resolve));
+    });
+    await within(lookupPending, "DNS lookup start");
+    proxy.updatePolicy({ allowedDomains: ["elsewhere.test"] }, 0);
+    releaseLookup([{ address: "127.0.0.1", family: 4 }]);
+    await within(requestDone, "revoked DNS request");
+    expect(hits).toBe(0);
+  });
+
+  it("rejects raw WebSocket upgrades instead of forwarding an untracked socket", async () => {
+    proxy = createEgressProxy({ allowedDomains: ["*"] });
+    const { port } = await proxy.listen();
+    const status = await within(
+      new Promise((resolve, reject) => {
+        const client = net.connect(port, "127.0.0.1", () => {
+          client.write(
+            "GET http://example.test/socket HTTP/1.1\r\n" +
+              "Host: example.test\r\n" +
+              "Connection: Upgrade\r\n" +
+              "Upgrade: websocket\r\n\r\n",
+          );
+        });
+        client.once("data", (chunk) => {
+          resolve(chunk.toString("utf8").split("\r\n")[0]);
+          client.destroy();
+        });
+        client.once("error", reject);
+      }),
+      "WebSocket upgrade rejection",
+    );
+    expect(status).toMatch(/403 Forbidden/);
+  });
+
   it("refuses a CONNECT to a denied host with 403 (no upstream contacted)", async () => {
     proxy = createEgressProxy({ allowedDomains: ["*.github.com"] });
     const { port } = await proxy.listen();

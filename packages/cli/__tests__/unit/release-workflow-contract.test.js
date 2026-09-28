@@ -412,9 +412,9 @@ describe("CLI release workflow contracts", () => {
       3,
     );
 
-    expect(strict).toContain(`ref: ${eventSha}`);
+    expect(strict.split(`ref: ${eventSha}`)).toHaveLength(3);
     expect(strict.match(/name: Verify exact source identity/gu)).toHaveLength(
-      1,
+      2,
     );
   });
 
