@@ -9,6 +9,7 @@ import {
   compareContextTokenEstimates,
   observedInputTokens,
 } from "../scripts/context-token-calibration.mjs";
+import { parseLiveProbeArgs } from "../scripts/context-token-volcengine-live-probe.mjs";
 
 test("input usage includes Anthropic cache creation and read tokens", () => {
   assert.equal(
@@ -133,4 +134,17 @@ test("live calibration requires an explicit paid-call flag", () => {
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /live probe failed/u);
+});
+
+test("live calibration caps paid sampling at five variants per category", () => {
+  assert.equal(parseLiveProbeArgs(["--confirm-live"]), 1);
+  assert.equal(parseLiveProbeArgs(["--confirm-live", "--repeats", "5"]), 5);
+  for (const args of [
+    ["--repeats", "5"],
+    ["--confirm-live", "--repeats", "0"],
+    ["--confirm-live", "--repeats", "6"],
+    ["--confirm-live", "--repeats", "5", "extra"],
+  ]) {
+    assert.throws(() => parseLiveProbeArgs(args));
+  }
 });
