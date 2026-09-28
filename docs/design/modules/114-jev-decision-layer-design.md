@@ -1,8 +1,8 @@
 # 114 可替换模型的类型化 Skill 决策层设计
 
-> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 增加 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；当前公开 CLI `0.166.77` 已将决策 HTTP 请求与响应各限制为 256 KiB，并使未知用量的答案及后续决策模型调用失败闭合。决策模式仍默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
-> 发行与 CLI 契约核对日期：2026-09-27；原文基线：`main@c036888c3c`；当前主线基线：`main@24911a536c`。<br>
-> Jev 历史实现提交：`80806fd4e9`；Jev 截止与评测修复发布提交：`5f411309b2`；当前公开 CLI 发布提交：`8d97c58153`。
+> 状态：CLI P0 已随 `chainlesschain@0.166.70` 发布，`0.166.71` 增加 Laya 本地模型和通用 System One 提供方，`0.166.72` 修复本地决策截止并收紧离线质量统计；当前公开 CLI `0.166.78` 保留决策 HTTP 请求与响应各 256 KiB 上限，以及未知用量的答案和后续调用失败闭合。决策模式仍默认关闭。Laya 已完成一次本地 CPU 真实权重冒烟联调，但中文 CLI 请求误路由到英文权重，热请求延迟超出默认截止；TypeSafe 真实 API 与正式质量、延迟、费用评测尚未完成。<br>
+> 发行与 CLI 契约核对日期：2026-09-28；原文基线：`main@c036888c3c`；当前主线基线：`main@c2ff6d036e`。<br>
+> Jev 历史实现提交：`80806fd4e9`；Jev 截止与评测修复发布提交：`5f411309b2`；当前公开 CLI 发布提交：`3400318446`。
 
 ## 1. 目标与非目标
 
@@ -28,7 +28,7 @@ Jev 是初始托管模型实现，不构成决策层的专属模型依赖。CLI 
 | TypeSafe 真实 API        | provider 已实现，但当前项目尚无生产凭据，未形成真实兼容性或效果报告   |
 | 自动 Skill 执行          | 不支持；建议不产生执行权限                                            |
 
-公开发行身份彼此独立：npm CLI 当前为 `0.166.77@8d97c58153`，其中 Jev 修复的首次发行是 `0.166.72@5f411309b2`；Open VSX `0.37.118@a7d582cd89` 已公开并推荐 CLI `0.166.77`。JetBrains Marketplace 当前公开 `0.4.138@f88fb58fc3`，推荐 CLI `0.166.76`；`0.4.139@a7d582cd89` 已成功上传并推荐 CLI `0.166.77`，但公开列表尚未回读到该版。Microsoft VS Code Marketplace 未发布。上述后续版本不扩大 Jev 的 headless 接入范围，精确发行证据见[2026-09-26 运行时增量设计](../agent-runtime-update-2026-09-26.md)。
+公开发行身份彼此独立：npm CLI 当前为 `0.166.78@3400318446`，其中 Jev 修复的首次发行是 `0.166.72@5f411309b2`；Open VSX `0.37.119@3400318446` 与 JetBrains Marketplace `0.4.140@3400318446` 均已公开并推荐 CLI `0.166.78`。Microsoft VS Code Marketplace 未发布。上述后续版本不扩大 Jev 的 headless 接入范围，精确发行证据见[2026-09-26 运行时增量设计](../agent-runtime-update-2026-09-26.md)。
 
 官网发布页与本设计共用上述制品边界；本次文档同步未产生新的 CLI、IDE 或 Desktop 制品。[CLI 官网](https://www.chainlesschain.com/cli)与[IDE 官网](https://www.chainlesschain.com/ide)展示的是已公开版本，部署站点不代表扩大决策层的运行范围。
 
@@ -199,7 +199,7 @@ CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数�
 - `packages/cli/src/runtime/agent-core.js`
 - `packages/cli/src/runtime/headless-runner.js`
 
-单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线；另验证请求预检、分块响应超限取消、声明长度超限拒绝、真实 loopback HTTP 超限响应、缺失/畸形 usage 的失败闭合，以及同一运行时和恢复的注入会话不再调用决策 provider。真实 JSONL 集成测试覆盖未知决策用量后的恢复阻断与篡改记录的恢复拒绝，使用隔离的临时 CLI home 和安全锚目录。CLI `0.166.72@5f411309b2` 首次发行了多提供方接线、本地截止失败闭合与离线统计修复；当前公开的 `0.166.77@8d97c58153` 已在其精确提交上通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm OIDC/provenance 和公共制品回读，覆盖本节的报文与用量修复。这些发行门证明代码与制品一致，不证明模型效果合格。后续 npm 发布仍须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
+单元测试覆盖契约、provider、runtime、benchmark、Agent `list_skills` 和 headless 接线；另验证请求预检、分块响应超限取消、声明长度超限拒绝、真实 loopback HTTP 超限响应、缺失/畸形 usage 的失败闭合，以及同一运行时和恢复的注入会话不再调用决策 provider。真实 JSONL 集成测试覆盖未知决策用量后的恢复阻断与篡改记录的恢复拒绝，使用隔离的临时 CLI home 和安全锚目录。CLI `0.166.72@5f411309b2` 首次发行了多提供方接线、本地截止失败闭合与离线统计修复；当前公开的 `0.166.78@3400318446` 已在其精确提交上通过 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，并完成 npm 发布及公共 registry 回读，覆盖本节的报文与用量修复。这些发行门证明代码与制品一致，不证明模型效果合格。后续 npm 发布仍须在新版本精确提交上重新通过两个工作流的全部操作系统矩阵。模拟 System One 服务的测试只证明协议与失败闭合；本地单题真实权重冒烟仍不能替代冻结数据集模型评测。
 
 在 `packages/cli` 运行定向回归可用 `npm.cmd test -- __tests__/unit/decision-layer-contracts.test.js __tests__/unit/decision-layer-providers.test.js __tests__/unit/decision-layer-typesafe-provider.test.js __tests__/unit/decision-layer-runtime.test.js __tests__/unit/decision-layer-benchmark.test.js __tests__/unit/direct-model-usage.test.js __tests__/unit/agent-core-skill-decision.test.js __tests__/unit/headless-skill-decision.test.js __tests__/integration/headless-decision-usage-resume.test.js`。它覆盖本地契约与失败路径，不会调用真实 TypeSafe/Laya 服务。
 

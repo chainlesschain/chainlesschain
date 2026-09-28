@@ -2,7 +2,7 @@
 
 ## 概述
 
-截至 2026-09-27，公开 CLI `0.166.77@8d97c58153` 包含 PM 效果证据和 Eval 准入代码。本页的离线工具从仓库 `packages/cli` 目录运行，供实验维护者冻结对照计划、检查任务分组和复算报告；它不启动模型，也不提供一键自主探索或 Skill 自动晋升。主线核对提交为 `24911a536c`。
+截至 2026-09-28，公开 CLI `0.166.78@3400318446` 包含 PM 效果证据、Eval 准入和逐槽签名最终回执对账的源码。本页的离线工具从仓库 `packages/cli` 目录运行，供实验维护者冻结对照计划、检查任务分组和复算报告；它不启动模型，也不提供一键自主探索或 Skill 自动晋升。
 
 ## 核心特性
 
@@ -51,9 +51,9 @@ node scripts/pm-exploration-effect.mjs verify --plan plan.json --plan-digest sha
 
 每个命令将 JSON 写到标准输出；后续引用的 `slot-manifest.json`、`report.json` 需由使用者保存对应输出，工具不会自动创建它们。`runs.json` 必须覆盖冻结任务和 seed，并记录两组准备阶段成本、逐任务结果、失败类别及证据摘要。不要删除失败，也不要补造缺失回执。
 
-## 主线新增代码与公开版边界
+## 逐槽回执与公开版边界
 
-主线提交 `24f0cb6fb1` 增加封存准入与逐槽签名最终回执对账，并把已认证 PM 尝试绑定到冻结槽位分母。该提交晚于 CLI `0.166.77` 的发布 SHA，不在公开 npm 制品中；本页列出的离线命令不提供这项新接口。对账也只核验提交给接口的回执，无法证明全部实际启动、完整回执来源或总成本，不能据此宣称真实 PM 收益或解除 automatic promotion 的 HOLD。
+提交 `24f0cb6fb1` 增加封存准入与逐槽签名最终回执对账，并把已认证 PM 尝试绑定到冻结槽位分母；该提交已包含在 CLI `0.166.78` 的发布 SHA 中。这是可信宿主的接口能力，本页的离线命令不提供一键对账开关。对账只核验提交给接口的回执，无法证明全部实际启动、完整回执来源或总成本，不能据此宣称真实 PM 收益或解除 automatic promotion 的 HOLD。
 
 ## 性能指标
 
@@ -61,7 +61,7 @@ node scripts/pm-exploration-effect.mjs verify --plan plan.json --plan-digest sha
 
 ## 测试覆盖
 
-仓库回归覆盖 plan → inspect → report → verify、槽位清单复算、UTF-8/BOM、摘要替换、缺失任务、签名篡改、重复启动、CAS 竞争和 fresh-process 导入次序。公开 `0.166.77` 的三平台 CI 与 Strict Sandbox 证据见[发布与升级指南](./agent-platform-release)。本地 fixture 是工程验证输入，不能替代真实 PM/Pilot 采样。
+仓库回归覆盖 plan → inspect → report → verify、槽位清单复算、UTF-8/BOM、摘要替换、缺失任务、签名篡改、重复启动、CAS 竞争和 fresh-process 导入次序。公开 `0.166.78` 的三平台 CI 与 Strict Sandbox 证据见[发布与升级指南](./agent-platform-release)。本地 fixture 是工程验证输入，不能替代真实 PM/Pilot 采样。
 
 ## 安全考虑
 

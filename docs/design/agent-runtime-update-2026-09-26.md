@@ -1,19 +1,20 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
-2026-09-27 按 `main@24911a536c9e9800c1e2e6b1d72e610841be4f5c` 核对代码和 Git 记录。主线新合入的 `24f0cb6fb1` 晚于当前 npm 发布 SHA。本文补充系统主设计、模块 110 的发行边界和模块 112 的评测证据设计；历史验收只适用于其记录的提交。
+2026-09-28 按 `main@c2ff6d036e40cfeb25cfb819fa9cef2d02055445` 核对代码、标签与公开渠道。发布标签仍指向 `3400318446`；后续主线提交 `c2ff6d036e` 修正 IDE 清单的版本配对。`24f0cb6fb1` 已包含在 CLI `0.166.78` 的发布提交中。本文补充系统主设计、模块 110 的发行边界和模块 112 的评测证据设计；历史验收只适用于其记录的提交。
 
 ## 发行与源码身份
 
-| 组件                    | 2026-09-27 回读状态                           | 精确源码     |
-| ----------------------- | --------------------------------------------- | ------------ |
-| npm CLI                 | `0.166.77`，`latest`，标签 `v-npm-0-166-77`   | `8d97c58153` |
-| Open VSX                | `0.37.118` 已公开，推荐 CLI `0.166.77`        | `a7d582cd89` |
-| JetBrains Marketplace   | 公开列表为 `0.4.138`，内置推荐 CLI `0.166.76` | `f88fb58fc3` |
-| JetBrains 新版          | `0.4.139` 已上传，尚未在公开列表回读到        | `a7d582cd89` |
-| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                     | `eb48ffa311` |
-| 主线新增 PM 对账        | `24f0cb6fb1` 已合入主线，尚未进入 npm 制品    | `24f0cb6fb1` |
+| 组件                    | 2026-09-28 回读状态                            | 精确源码     |
+| ----------------------- | ---------------------------------------------- | ------------ |
+| npm CLI                 | `0.166.78`，`latest`，标签 `v-npm-0-166-78`    | `3400318446` |
+| Open VSX                | `0.37.119` 已公开，推荐 CLI `0.166.78`         | `3400318446` |
+| JetBrains Marketplace   | `0.4.140` 已批准并公开，推荐 CLI `0.166.78`    | `3400318446` |
+| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                      | `eb48ffa311` |
+| 逐槽 PM 对账            | `24f0cb6fb1` 已纳入公开 CLI 的源码身份        | `24f0cb6fb1` |
 
-CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850) 已通过全部配置的 Linux、Windows、macOS 任务；[npm OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994)与[独立公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841)成功。[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36260129430)已通过公开 API/VSIX 回读；[JetBrains `0.4.139` 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36260141738)完成上传，但公开 API 仍只列出 `0.4.138`。上传成功不能替代 Marketplace 可见性。Microsoft Marketplace 仍无公开发行。
+CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803981)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803887) 已通过全部配置的 Linux、Windows、macOS 任务；[npm 精确提交发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675)成功，公共 registry `latest` 回读为 `0.166.78`。Open VSX API 回读 `0.37.119`；JetBrains 公共更新列表的 `0.4.140` 返回 `approve=true`、`listed=true`、`hidden=false`。Microsoft Marketplace 仍无公开发行。
+
+`0.166.78` 将 CLI、VS Code 与 JetBrains 的会话历史分页、已提交消息引用及草稿恢复接入同一耐久会话记录；Stop、重启和后台完成后的 UI 状态需要与 CLI 权威记录重新对齐。Linux 外部 Agent 子进程由打包的本机 supervisor 持有并清理后代，Windows 本地目标启动保持有界 ACL/启动等待。IDE 继续只投影会话与审批结果，执行、沙箱和恢复裁决仍由 CLI 宿主负责。上述版本证据不替代目标环境长期运行或真实 PM 收益验证。
 
 ## PM 效果证据与保守统计
 
@@ -23,7 +24,7 @@ CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/ac
 
 摘要一致只能证明字节绑定；事前登记时间、签名信任根、外部回执和实际启动全集仍需独立认证。离线统计过门不会授予 Pilot、Skill 发布或 active promotion 权限。
 
-主线提交 `24f0cb6fb1` 另外实现封存准入与**提交给接口的**逐槽签名最终回执对账，并将已认证 PM 尝试绑定到冻结槽位分母。已准入但缺回执与未准入均保留为未解析观察，不能删去；接口不证明最终回执来源全集、全部目标启动入口覆盖、Actor 实际执行或完整成本，也不输出独立耐久效果报告。该提交晚于 CLI `0.166.77` 的发布 SHA，不在该 npm 制品或公开 IDE 制品中；其定向测试不构成发行门证据，`receiptSetCompletenessAuthenticated`、`executionCoverageAuthenticated`、`cohortCompletenessAuthenticated`、`reportAuthenticated` 和 `qualifiesForPromotion` 均保持 `false`。
+提交 `24f0cb6fb1` 另外实现封存准入与**提交给接口的**逐槽签名最终回执对账，并将已认证 PM 尝试绑定到冻结槽位分母。它已纳入 `0.166.78@3400318446` 的源码身份。已准入但缺回执与未准入均保留为未解析观察，不能删去；接口不证明最终回执来源全集、全部目标启动入口覆盖、Actor 实际执行或完整成本，也不输出独立耐久效果报告。`receiptSetCompletenessAuthenticated`、`executionCoverageAuthenticated`、`cohortCompletenessAuthenticated`、`reportAuthenticated` 和 `qualifiesForPromotion` 均保持 `false`。
 
 ## Eval 启动准入与 cohort 登记
 

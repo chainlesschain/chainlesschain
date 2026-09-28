@@ -1,22 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-09-27 current release and source review
+## 2026-09-28 current release and source review
 
-Install **CLI 0.166.77**, the public npm `latest`, with `npm i -g chainlesschain@0.166.77 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-77` resolves to `8d97c58153`; [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850), [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994), and [public installation readback](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841) succeeded on the exact release identity. Optional Skill-decision HTTP requests and responses are each limited to 256 KiB; unknown model usage yields no suggestion and blocks later decision-provider calls in the same durable session. Decision mode remains off by default.
+Install **CLI 0.166.78**, the public npm `latest`, with `npm i -g chainlesschain@0.166.78 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-78` resolves to `3400318446`; [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803981) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803887) passed the configured Linux, Windows, and macOS jobs. [Exact-commit npm publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675) succeeded, and the public registry now reports `0.166.78` as `latest`. This release adds paged session history and recovery across CLI and IDE clients, bounded draft handling, and stronger process and host recovery. Optional Skill decisions remain off by default with the 256 KiB request/response and unknown-usage fail-closed limits.
 
-Open VSX **0.37.118** is public and recommends CLI `0.166.77`. JetBrains publicly lists **0.4.138**, recommending CLI `0.166.76`; paired version `0.4.139` was uploaded but is not yet publicly listed. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release; the iOS ad-hoc IPA supports provisioned devices only.
+Open VSX **0.37.119** is public and recommends CLI `0.166.78`. JetBrains Marketplace **0.4.140** is approved and publicly listed, also recommending CLI `0.166.78`. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release; the iOS ad-hoc IPA supports provisioned devices only.
 
-Reviewed against `main@24911a536c`: the public CLI contains frozen PM effect plans, cohort slots, signed Eval evidence, conservative missing-run accounting, and optional host-owned launch admission/cohort enrollment. Runtime fixes cover stalled investigations, Windows Bash stdin execution, evaluation import cycles, and concurrent file-lock handoffs. Mainline commit `24f0cb6fb1` adds per-slot signed receipt and PM denominator reconciliation, but it follows the CLI `0.166.77` release SHA and is not in the public npm artifact. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion remains HOLD.
+Reviewed against `main@c2ff6d036e`: frozen PM effect plans, cohort slots, signed Eval evidence, per-slot final receipts, and conservative denominator reconciliation are in the `0.166.78@3400318446` source identity. Main subsequently corrected the IDE manifest version pairing. A trusted host must still independently prove every target launch path, the complete receipt source, and actual costs; the current interface verifies only receipts submitted to it. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion remains HOLD.
 
 See the [design update](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Older dated sections below describe historical states.
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.77` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.78` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.77 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.78 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
