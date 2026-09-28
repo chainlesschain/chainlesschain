@@ -21,7 +21,7 @@
 | VERIFY-01               | 待实施/验收      | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                       |
 | PLATFORM-01             | 待实施/验收      | 保留 Strict Sandbox 与 unsupported 分支                                                                                                                                      | OS/架构/后端/stdio 矩阵及最新系统真进程探针                                                      |
 | PERF-01                 | 局部实现并验证   | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                              |
-| PERF-02                 | 待实施/验收      | 复用压缩与工具配对保护                                                                                                                                                       | 真实 usage 校准；中文/代码/emoji/schema 与事实保真                                               |
+| PERF-02                 | 测量工具已实现   | 复用压缩与工具配对保护；新增真实请求 input usage 对照工具，按中文/代码/emoji/schema 分组，只输出误差与请求哈希，输入校验和保密输出合同已通过                                 | 采集并核对目标 provider 的真实 usage；冻结误差门限，测压缩后的事实保真和任务成功率               |
 | MCP-01                  | 本地验证通过     | 真实 loopback HTTP 验证 stateless 404、过期 session、并发单次重建、重建失败；只恢复连接，不重放结果未知的工具调用。相关 57 项回归通过                                        | 目标 MCP 服务端互操作与最终提交 CI                                                               |
 | MAINT-01                | 局部实现并验证   | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                      | 其余 runtime 与平台职责抽取、保行为验证                                                          |
 | DOC-01                  | 本地索引已补齐   | 本表为两份报告共享状态入口；下方按全部 20 个 ID 记录代表提交、可复核证据与被替代的旧结论                                                                                     | 新提交及最终发布结果仍须持续回填                                                                 |
@@ -29,7 +29,7 @@
 
 真人 NVDA/VoiceOver/Orca 听测、8h/24h 生产观察、真实模型账号尚无本轮新增结果。真实宿主新增 Windows VS Code 1.132.0 与 IntelliJ 2024.2 的有限恢复旅程证据，分别绑定下述提交；模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
 
-共 20 个分组工作项：5 项本地验证通过、8 项局部实现/验证、5 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
+共 20 个分组工作项：5 项本地验证通过、9 项局部实现/验证、4 项待实施/系统验收、2 项持续文档/体验。该计数不是最终验收完成率。[候选发布范围](./cli-ide-release-candidate-2026-09-27.md)单独冻结；长期差距仍按本表继续追踪。用户要求先按依赖顺序发布子 npm 包，再发布并验证 CLI，最后发布 VS Code / JetBrains 插件，已同步到根 AGENTS.md。
 
 ### 当前状态索引与审计结论替代关系（2026-09-28）
 
@@ -52,7 +52,7 @@
 | VERIFY-01               | 无本轮实现                                             | 历史 Windows/Volcengine 试点仍按原范围记录，不能替代冻结的 30–50 个真实项目任务及双 IDE 旅程。                                                                                                                                                                                                           |
 | PLATFORM-01             | 无本轮完整实现                                         | 现有 Strict Sandbox 真 cell 与 unsupported 分支有效，不替代最新 OS/架构/stdio 完整矩阵。                                                                                                                                                                                                                 |
 | PERF-01                 | `6c47788623`、`f6f7840502`                             | [Windows 容量回执](./cli/evidence/persistent-capacity-smoke-windows-6c47788623.json)替代“只有全扫”的审计快照；formal SLO、其他系统及 Memory 生产端口仍开放。                                                                                                                                             |
-| PERF-02                 | 无                                                     | 现有 bytes/4 估算、压缩和工具配对保护保留；真实 usage 误差与事实保真尚未测得。                                                                                                                                                                                                                           |
+| PERF-02                 | 本轮独立分支待提交                                     | 原 bytes/4 估算和压缩/工具配对保护不变；新增可重复的 usage 对照工具，仅工具合同已验证，真实 usage 误差与事实保真尚未测得。                                                                                                                                                                               |
 | MCP-01                  | `42010e7148`                                           | loopback HTTP 回归替代短暂 404 必然断连的反例；目标 MCP 服务端互操作仍待验证。                                                                                                                                                                                                                           |
 | MAINT-01                | `f9fb1ec91b`、`e5dc0aa6ed`                             | IDE 问答字段与请求生命周期已拆出，替代这部分混杂职责；agent-core 与平台职责拆分仍开放。                                                                                                                                                                                                                  |
 | DOC-01                  | 本文                                                   | 此索引将历史审计、现行实现和待验收条件分开；每次新实现与发布结果需更新准确提交和证据。                                                                                                                                                                                                                   |
@@ -310,6 +310,14 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 相关回归 3 文件：130 通过、22 项既有平台条件跳过；最后的测量计时与夹具目录校验修改后，容量/index 2 文件 8 项再次通过。包含真实磁盘/Node 子进程、105 条三页遍历、失效重建/恢复、冷进程失败和观测回调异常。修改源文件 ESLint 0 errors / 0 warnings（Node 提示现有根 package.json 未声明 ESM），`git diff --check` 通过。
 
 干净 SHA `6c47788623d6bc4ab64afa096d8ce739ebbacf0a` 默认 smoke 23.279 秒完成；Windows 10.0.19045 / x64 / Node 22.22.2。后台 100/1k 均 pathsVerified，1k 全扫/热首页/失效重建 p95 分别 336.129 / 164.045 / 694.739 ms（3 样本）。Memory 两档可读，并发读/更新/删除全部成功；[原始 receipt](./cli/evidence/persistent-capacity-smoke-windows-6c47788623.json) 的 canonical digest 已核对。保留单机少样本与重建成本边界，未设定性能 PASS。
+
+### PERF-02：真实 usage 对照工具（2026-09-28）
+
+新增 `packages/cli/scripts/context-token-calibration.mjs`，从按行 JSON 请求记录读取 provider 返回的输入 token 数，并调用生产用的 `messagesToContextItems()` 与 `toolDefinitionsToContextItems()` 计算同一估算口径。每行必须包含 `category`（`chinese` / `code` / `emoji` / `tool-schema`）、`provider`、`model`、实际发送的 `messages`、`toolDefinitions` 和原始响应 `usage`。`usage` 接受 OpenAI `prompt_tokens` 或 `input_tokens`；Anthropic 的 `input_tokens` 加上独立报告的 cache creation/read token。两种输入字段同时出现或缺失、非整数及不明类别均拒绝。
+
+从 `packages/cli` 运行 `node scripts/context-token-calibration.mjs --input requests.jsonl`。输出按 provider/model/category 汇总实际与估算 token、p95 相对绝对误差及低估量，仅保存请求 SHA-256，不输出提示词或工具 schema。输入文件可能包含敏感正文，应留在本地受控目录；脚本不联网、不写回输入文件。输入必须是最终送给 provider 的请求及**同一次响应**的 usage，不能把预压缩消息与压缩后 usage 混用。provider 的隐含开销和格式框架也计入 usage，因此对照值用于测量端到端预算偏差，不声称是 tokenizer 的逐字节真值。
+
+新增四个本地 Node 合同测试，覆盖缓存 usage、分组且不泄露正文、无效输入拒绝，以及坏 JSON 的命令行诊断不泄露正文。测试使用合成 usage，仅证明测量工具行为；四类真实 provider 采样、误差门限、压缩事实保真和任务成功率尚未验收。当前生产 bytes/4 估算及留白未更改。
 
 ## Windows 并发初始化与真实存储宿主夹具
 
