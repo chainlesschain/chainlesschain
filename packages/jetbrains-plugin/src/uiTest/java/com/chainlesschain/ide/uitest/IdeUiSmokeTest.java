@@ -151,17 +151,17 @@ final class IdeUiSmokeTest {
             waitForTranscript(transcript, "fixture stream complete #6", FIND_BUDGET);
 
             runRewindAction(robot, input, send, transcript,
-                    0, "Restore code");
+                    "Restore code");
             runRewindAction(robot, input, send, transcript,
-                    1, "Restore conversation");
+                    "Restore conversation");
             runRewindAction(robot, input, send, transcript,
-                    2, "Restore code + conversation");
+                    "Restore code + conversation");
             runRewindAction(robot, input, send, transcript,
-                    3, "Summarize from here");
+                    "Summarize from here");
             runRewindAction(robot, input, send, transcript,
-                    4, "Summarize up to here");
+                    "Summarize up to here");
             runRewindAction(robot, input, send, transcript,
-                    5, "Branch from here");
+                    "Branch from here");
             runModelConfigurationJourney(robot, false);
             saveProjectBeforeRestart(frame);
             runSessionsWorkbenchJourney(robot, false);
@@ -895,23 +895,41 @@ final class IdeUiSmokeTest {
             ComponentFixture input,
             ComponentFixture send,
             ComponentFixture transcript,
-            int actionIndex,
             String actionLabel) throws InterruptedException {
+        System.out.println("[ui-smoke] opening timeline for " + actionLabel);
         send(input, send, "/rewind");
+        ComponentFixture timeline;
         try {
-            choosePopupIndex(
-                    robot, 1, FIRST_POPUP_BUDGET); // canonical partial row
+            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIRST_POPUP_BUDGET);
         } catch (RuntimeException firstPopupMissed) {
             // IDEA 2025.2 on a loaded Linux EDT has occasionally completed the
             // CLI timeline read without presenting its queued first chooser.
             // Re-enter through the same real /rewind UI path once; the second
             // attempt still has to render and complete under the full budget.
             send(input, send, "/rewind");
-            choosePopupIndex(robot, 1, FIND_BUDGET);
+            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIND_BUDGET);
         }
-        choosePopupIndex(robot, actionIndex);
+        clickPopupItem(timeline, "partial  turn-2  ", true);
+        // A hidden list can also mean cancellation. The expected next-stage
+        // item, then the matching preview, are the actual transition checks.
+        ComponentFixture actions = findPopupItem(robot, actionLabel, false, FIND_BUDGET);
+        clickPopupItem(actions, actionLabel, false);
         ComponentFixture confirm = robot.find(ComponentFixture.class,
-                Locators.byXpath("//div[@text='Confirm action']"), FIND_BUDGET);
+                Locators.byXpath("//div[@text='Confirm action' and @visible='true']"), FIND_BUDGET);
+        Boolean expectedPreview = confirm.callJs(
+                "function hasActionLabel(c) {"
+                        + "if (c instanceof javax.swing.JLabel && String(c.getText()).indexOf("
+                        + jsString("<b>" + actionLabel + "</b>") + ") >= 0) return true;"
+                        + "if (c instanceof java.awt.Container) {"
+                        + "var children = c.getComponents();"
+                        + "for (var i = 0; i < children.length; i++) {"
+                        + "if (hasActionLabel(children[i])) return true;}} return false;}"
+                        + "hasActionLabel(javax.swing.SwingUtilities.getWindowAncestor(component));",
+                true);
+        if (!Boolean.TRUE.equals(expectedPreview)) {
+            throw new AssertionError("Wrong checkpoint preview for " + actionLabel);
+        }
+        System.out.println("[ui-smoke] confirming preview for " + actionLabel);
         clickButton(confirm);
         waitUntilHidden(confirm, "timeline confirmation", FIND_BUDGET);
         waitForTranscript(
@@ -920,37 +938,59 @@ final class IdeUiSmokeTest {
                 FIND_BUDGET);
     }
 
-    private static void choosePopupIndex(RemoteRobot robot, int index)
+    private static ComponentFixture findPopupItem(
+            RemoteRobot robot, String label, boolean prefix, Duration budget)
             throws InterruptedException {
-        choosePopupIndex(robot, index, FIND_BUDGET);
+        long deadline = System.nanoTime() + budget.toNanos();
+        String last = "";
+        while (System.nanoTime() < deadline) {
+            StringBuilder visibleItems = new StringBuilder();
+            ComponentFixture match = null;
+            for (ComponentFixture list : robot.findAll(ComponentFixture.class,
+                    Locators.byXpath("//div[@class='JBList' and @visible='true']"))) {
+                String items = list.callJs(
+                        "var items = []; if (component.isShowing()) {"
+                                + "var model = component.getModel();"
+                                + "for (var i = 0; i < model.getSize(); i++) {"
+                                + "items.push(String(model.getElementAt(i)));}} items.join('\\n');", true);
+                visibleItems.append('[').append(items).append("] ");
+                for (String item : items.split("\n")) {
+                    if (prefix ? item.startsWith(label) : item.equals(label)) {
+                        if (match != null) throw new AssertionError("Ambiguous popup item: " + label);
+                        match = list;
+                    }
+                }
+            }
+            if (match != null) return match;
+            last = visibleItems.toString();
+            Thread.sleep(100);
+        }
+        throw new IllegalStateException("Popup item '" + label + "' did not appear within "
+                + budget.toSeconds() + "s; visible lists=" + last);
     }
 
-    private static void choosePopupIndex(
-            RemoteRobot robot, int index, Duration budget)
+    private static void clickPopupItem(ComponentFixture list, String label, boolean prefix)
             throws InterruptedException {
-        ComponentFixture list = robot.find(ComponentFixture.class,
-                Locators.byXpath("//div[@class='JBList' and @visible='true']"),
-                budget);
-        list.runJs(
-                "component.setSelectedIndex(" + index + ");"
-                        + "component.requestFocusInWindow();"
-                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
-                        + "component, java.awt.event.KeyEvent.KEY_PRESSED,"
-                        + "java.lang.System.currentTimeMillis(), 0,"
-                        + "java.awt.event.KeyEvent.VK_ENTER,"
-                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
-                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
-                        + "component, java.awt.event.KeyEvent.KEY_RELEASED,"
-                        + "java.lang.System.currentTimeMillis(), 0,"
-                        + "java.awt.event.KeyEvent.VK_ENTER,"
-                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));",
+        java.awt.Point point = list.callJs(
+                "var model = component.getModel(), index = -1;"
+                        + "for (var i = 0; i < model.getSize(); i++) {"
+                        + "var item = String(model.getElementAt(i));"
+                        + "if (" + (prefix ? "item.indexOf(" + jsString(label) + ") === 0"
+                                : "item === " + jsString(label)) + ") {index = i; break;}}"
+                        + "if (index < 0 || !component.isShowing()) throw new Error('Popup item disappeared');"
+                        + "component.ensureIndexIsVisible(index);"
+                        + "var bounds = component.getCellBounds(index, index).intersection(component.getVisibleRect());"
+                        + "if (bounds.isEmpty()) throw new Error('Popup item is not visible');"
+                        + "new java.awt.Point(bounds.x + Math.floor(bounds.width / 2),"
+                        + "bounds.y + Math.floor(bounds.height / 2));",
                 true);
-        // The next timeline stage also uses a JBList. On a loaded Linux EDT,
-        // a fixed sleep could let the next lookup bind to the outgoing list,
-        // eventually leaving a hidden popup stack that suppressed later
-        // actions. Require the selected popup to be disposed before looking
-        // for the next stage.
-        waitUntilHidden(list, "selected timeline popup", FIND_BUDGET);
+        // Native mouse input selects and activates the real chooser. Calling
+        // requestFocusInWindow() followed immediately by dispatchEvent(Enter)
+        // races the asynchronous focus transfer. The Windows ARM64 failure
+        // reached a hidden chooser without invoking its chosen-item callback.
+        System.out.println("[ui-smoke] clicking popup item " + label);
+        list.click(point);
+        waitUntilHidden(list, "popup item " + label, FIND_BUDGET);
     }
 
     private static void send(

@@ -426,6 +426,10 @@ export async function runTeamFairnessSoak({
 
     runner = new TeamRunner(registry, {
       teammates: profile.teammates,
+      // This campaign measures scheduler fairness. Hook dispatch performs
+      // synchronous durable audit writes on every idle transition and is
+      // covered by the separate Hooks v2 tests.
+      emitHook: () => {},
       ttlMs: Math.max(60_000, profile.durationMs * 3),
       maxTasks:
         profile.initialHighTasks +
