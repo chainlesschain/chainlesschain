@@ -86,7 +86,12 @@ export class CodeIntelligence {
   }
 
   /** Find references to the symbol under a 1-based position. */
-  async references(filePath, line, col, { includeDeclaration = true } = {}) {
+  async references(
+    filePath,
+    line,
+    col,
+    { includeDeclaration = true, timeoutMs } = {},
+  ) {
     const ready = await this._ensure(filePath);
     if (ready.unavailable) return unavailable(ready.reason);
     const result = await this._readRequest(
@@ -97,6 +102,7 @@ export class CodeIntelligence {
         position: toLspPosition({ line, col }),
         context: { includeDeclaration },
       },
+      { timeoutMs },
     );
     return { available: true, locations: this._normalizeLocations(result) };
   }

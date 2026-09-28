@@ -39,6 +39,8 @@
 
 `3bd8d9d012` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36460431722) 四个作业均通过，包含 macOS latest 真进程能力探针；同一提交的 [Env-Blocked Verification](https://github.com/chainlesschain/chainlesschain/actions/runs/36460431518) 中 Go/Rust 真 LSP 与 Linux bubblewrap 通过，Java 真 LSP 因 JDTLS 以代码 13 退出而失败。该工作流原先下载可变的 `latest` snapshot 并使用 JDK 21（可回退 JDK 17）；当日 snapshot 的 `org.eclipse.core.filesystem` 与 `org.eclipse.equinox.security.linux` bundle 声明需要 JavaSE-25。下一提交将 JDTLS 固定为 1.61.0 milestone，以官方 SHA-256 校验下载包，明确安装 Temurin 21，并在失败时打印 Eclipse 日志。该修复需以新提交的真实 Java LSP 作业通过为准；旧提交的失败或成功均不能转移。
 
+`403a1f0bb5` 的 [Env-Blocked Verification](https://github.com/chainlesschain/chainlesschain/actions/runs/36461909363) 证明固定版 JDTLS 在 Java 21 上能完成 initialize、definition 与 diagnostics；Java references 查询仍触发客户端默认 15 秒请求超时，Go/Rust 和 bubblewrap 均通过。下一提交只为真实 Java references 查询设置 60 秒有界请求预算，保留完整引用数量断言，并修复日志步骤遇到无权限 `/tmp` 目录时提前退出的问题；是否足够仍须由新提交的真 LSP 作业判断。
+
 | 系统 / 架构                     | 后端与 stdio                                    | 现有或待运行证据                                             | 结论范围                                                          |
 | ------------------------------- | ----------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
 | Ubuntu 24.04 / 托管 x64         | prlimit 与 bubblewrap；平台合同中的标准 stdio   | Strict Sandbox 的现有真进程作业                              | 仅限该 runner 和已测试组合                                        |

@@ -189,6 +189,9 @@ for (const lang of LANGS) {
               path.join(dir, lang.defAt.file),
               lang.defAt.line + shift,
               lang.id === "java" ? 19 : 6,
+              // JDT LS may still be indexing after definition succeeds; keep
+              // the real references check, with a bounded per-request budget.
+              { timeoutMs: lang.id === "java" ? 60_000 : undefined },
             );
             expect(res.available).toBe(true);
             locations = res.locations;

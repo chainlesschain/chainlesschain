@@ -101,7 +101,7 @@ jobs:
           for dir in /tmp "$HOME/jdtls" "$HOME/.cache/jdtls"; do
             if [ -d "$dir" ]; then
               find "$dir" -type f \( -path '*/.metadata/.log' -o -path '*/config_linux/*.log' \) \
-                -print -exec tail -n 120 {} \;
+                -print -exec tail -n 120 {} \; 2>/dev/null || true
             fi
           done
 
