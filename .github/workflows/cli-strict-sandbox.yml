@@ -623,3 +623,92 @@ jobs:
           docker info --format '{{.ServerVersion}}'
           docker pull "$CC_DOCKER_EGRESS_IMAGE"
           npx vitest run --reporter=default __tests__/integration/sandbox-docker-egress-live.test.js
+
+  strict-linux-arm64:
+    name: strict native boundary (ubuntu-24.04-arm)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source and native ARM64 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$RUNNER_ARCH" = ARM64
+          test "$(uname -m)" = aarch64
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: Record native environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.platform')" = linux
+          test "$(node -p 'process.arch')" = arm64
+          {
+            echo "source_sha=$(git rev-parse HEAD)"
+            echo "runner_arch=$RUNNER_ARCH"
+            echo "kernel=$(uname -srmo)"
+            echo "node=$(node --version)"
+          } > "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+      - uses: ./.github/actions/setup-linux-bwrap
+      - name: Record bubblewrap version
+        shell: bash
+        run: /usr/bin/bwrap --version >> "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+      - name: Run native broker and MCP capsule boundary
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: >-
+          npx vitest run --reporter=default --reporter=json
+          --outputFile=arm64-native-sandbox-result.json
+          __tests__/integration/process-broker-platform-sandbox-live.test.js
+          __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js
+      - name: Run native bubblewrap boundary
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: >-
+          npx vitest run --reporter=default --reporter=json
+          --outputFile=arm64-bwrap-result.json
+          __tests__/integration/sandbox-bwrap-live.test.js
+      - name: Run native Docker egress boundary
+        working-directory: packages/cli
+        env:
+          CC_DOCKER_EGRESS_LIVE: "1"
+          CC_DOCKER_EGRESS_IMAGE: "node@sha256:a0ddbc73510e98f5e824fd64266ffe1c2c343ba9cf260d95ca2985ad632a3f3e"
+        run: |
+          set -euo pipefail
+          docker info --format '{{.ServerVersion}}'
+          docker pull "$CC_DOCKER_EGRESS_IMAGE"
+          test "$(docker image inspect "$CC_DOCKER_EGRESS_IMAGE" --format '{{.Architecture}}')" = arm64
+          {
+            echo "docker_image=$CC_DOCKER_EGRESS_IMAGE"
+            echo "docker_image_arch=$(docker image inspect "$CC_DOCKER_EGRESS_IMAGE" --format '{{.Architecture}}')"
+          } >> "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+          npx vitest run --reporter=default --reporter=json \
+            --outputFile=arm64-docker-egress-result.json \
+            __tests__/integration/sandbox-docker-egress-live.test.js
+      - name: Upload native ARM64 evidence
+        if: always()
+        shell: bash
+        run: |
+          for report in packages/cli/arm64-*-result.json; do
+            if test -f "$report"; then sha256sum "$report"; fi
+          done > "${RUNNER_TEMP}/strict-linux-arm64-sha256.txt"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: strict-sandbox-result-ubuntu-24.04-arm
+          path: |
+            packages/cli/arm64-*-result.json
+            ${{ runner.temp }}/strict-linux-arm64-environment.txt
+            ${{ runner.temp }}/strict-linux-arm64-sha256.txt
+          if-no-files-found: warn
+          retention-days: 7
