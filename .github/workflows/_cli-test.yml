@@ -65,6 +65,10 @@ jobs:
   unit:
     name: "unit (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.unit-shards }})"
     runs-on: ${{ inputs.runs-on }}
+    env:
+      # Unit tests use the same fail-closed ACL preflight as integration tests.
+      # Hosted Windows cold starts can exceed the production 15-second budget.
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -93,9 +97,12 @@ jobs:
       # parallelism only when the Vitest worker signature and a clean,
       # non-empty JUnit report both prove that exact infrastructure failure;
       # assertion failures remain hard failures.
+      # Windows service tests compile a secure-pipe helper on cold start.
+      # A second unit fork has caused bounded readiness timeouts on hosted
+      # runners; keep the sixteen Windows shards but serialize files in each.
       - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.unit-shards }}
         working-directory: packages/cli
-        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.unit-shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only __tests__/unit/
+        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/${{ inputs.unit-shards }} --reporter=default --reporter=junit --outputFile.junit=test-results/unit-${{ matrix.shard }}.xml --silent=passed-only ${{ startsWith(inputs.runs-on, 'windows') && '--maxWorkers=1 --no-file-parallelism' || '' }} __tests__/unit/
       - name: Upload failed unit report
         if: failure()
         uses: actions/upload-artifact@v4

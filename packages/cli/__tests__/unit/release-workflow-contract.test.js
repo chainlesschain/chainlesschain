@@ -307,9 +307,11 @@ describe("CLI release workflow contracts", () => {
       text.indexOf('- name: "Publish chainlesschain (CLI)"'),
       text.indexOf("      - name: Publish summary"),
     );
+    const cliReadbackLoop = "for ATTEMPT in {1..90}; do";
     expect(cliPublish).toContain('find "$GITHUB_WORKSPACE/release-artifacts"');
     expect(cliPublish).not.toContain("TARBALL=$(find release-artifacts");
-    expect(cliPublish).toContain("for ATTEMPT in {1..30}; do");
+    expect(cliPublish).toContain(cliReadbackLoop);
+    expect(cliPublish).toContain("after 90 attempts");
     expect(cliPublish).toContain(
       "Registry has not exposed chainlesschain@$PKG_VER yet",
     );
@@ -318,9 +320,9 @@ describe("CLI release workflow contracts", () => {
       cliPublish.indexOf('npm publish "$TARBALL"'),
     );
     expect(cliPublish.indexOf('npm publish "$TARBALL"')).toBeLessThan(
-      cliPublish.indexOf("for ATTEMPT in {1..30}; do"),
+      cliPublish.indexOf(cliReadbackLoop),
     );
-    expect(cliPublish.indexOf("for ATTEMPT in {1..30}; do")).toBeLessThan(
+    expect(cliPublish.indexOf(cliReadbackLoop)).toBeLessThan(
       cliPublish.lastIndexOf("npm-release-artifact.mjs verify"),
     );
     expect(text).toContain("Verify published CLI npm provenance");
