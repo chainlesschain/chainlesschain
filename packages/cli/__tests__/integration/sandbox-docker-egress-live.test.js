@@ -366,7 +366,7 @@ console.log(JSON.stringify({allowed,denied:denied.status,tcp,unix,udp}));})().ca
 });
 
 describe.runIf(LIVE)("Docker egress extended real traffic", () => {
-  it("blocks direct DNS queries while the host DNS service is reachable", async () => {
+  it("blocks direct UDP DNS queries while the host DNS service is reachable", async () => {
     const f = await liveFixture({ allowedDomains: ["127.0.0.1"] });
     const server = dgram.createSocket("udp4");
     let queries = 0;
@@ -435,8 +435,11 @@ resolver.resolve4('nonce.policy.test').then(addresses=>console.log(JSON.stringif
       expect(report.error).toBeTruthy();
       expect(queries).toBe(1);
     } finally {
-      await f.close();
-      await new Promise((resolve) => server.close(resolve));
+      try {
+        await f.close();
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
     }
   }, 180_000);
 
@@ -451,11 +454,24 @@ resolver.resolve4('nonce.policy.test').then(addresses=>console.log(JSON.stringif
         response.write("first-http-frame\n");
       }),
     );
-    upstream.on("upgrade", (_request, socket) => {
+    const webSocketFrame = (text) =>
+      Buffer.concat([
+        Buffer.from([0x81, Buffer.byteLength(text)]),
+        Buffer.from(text),
+      ]);
+    upstream.on("upgrade", (request, socket) => {
       webSocket = socket;
+      const accept = crypto
+        .createHash("sha1")
+        .update(
+          request.headers["sec-websocket-key"] +
+            "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+        )
+        .digest("base64");
       socket.write(
-        "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\nfirst-ws-frame\n",
+        `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`,
       );
+      socket.write(webSocketFrame("first-ws-frame"));
     });
     let running;
     try {
@@ -472,7 +488,7 @@ const req=http.get({host:'127.0.0.1',port:3128,path:'http://127.0.0.1:${port}/st
 req.on('error',()=>{closed.http=true;finish()});
 const ws=net.connect(3128,'127.0.0.1');let tunnel=false;
 ws.on('connect',()=>ws.write('CONNECT 127.0.0.1:${port} HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\n\\r\\n'));
-ws.on('data',chunk=>{seen.ws+=chunk;if(!tunnel&&seen.ws.includes('\\r\\n\\r\\n')){if(!seen.ws.startsWith('HTTP/1.1 200'))process.exit(7);tunnel=true;ws.write('GET /ws HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\nUpgrade: websocket\\r\\nConnection: Upgrade\\r\\n\\r\\n')}markReady()});
+ws.on('data',chunk=>{seen.ws+=chunk;if(!tunnel&&seen.ws.includes('\\r\\n\\r\\n')){if(!seen.ws.startsWith('HTTP/1.1 200'))process.exit(7);tunnel=true;ws.write('GET /ws HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\nUpgrade: websocket\\r\\nConnection: Upgrade\\r\\nSec-WebSocket-Version: 13\\r\\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\\r\\n\\r\\n')}markReady()});
 ws.on('error',()=>{});ws.on('close',()=>{closed.ws=true;finish()});`,
       );
       const { proxy, session } = await f.start();
@@ -488,7 +504,7 @@ ws.on('error',()=>{});ws.on('close',()=>{closed.ws=true;finish()});`,
       ).toBe(1);
       // The upstream tries another frame after the revision acknowledgement.
       httpResponse.write("after-http-revocation\n");
-      webSocket.write("after-ws-revocation\n");
+      webSocket.write(webSocketFrame("after-ws-revocation"));
       const result = await running;
       expect(result.exitCode, result.stderr).toBe(0);
       const report = JSON.parse(result.stdout);
