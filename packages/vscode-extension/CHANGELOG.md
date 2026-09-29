@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.120] - Pair with CLI 0.166.79 Docker egress candidate (2026-09-29)
+
+- Recommend `chainlesschain@0.166.79` after its exact-commit release checks and
+  public npm readback complete.
+- Keep Docker domain egress and command approval in the CLI host; the editor
+  receives only the CLI capability report and command outcome.
+
 ## [0.37.119] - Pair with CLI 0.166.78 recovery candidate (2026-09-28)
 
 - Recommend `chainlesschain@0.166.78` after its exact-commit release checks and

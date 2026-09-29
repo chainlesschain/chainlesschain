@@ -1,30 +1,22 @@
 # chainlesschain CLI
 
-> Release candidate `chainlesschain@0.166.78` is under exact-commit CI validation.
-> The publicly available npm `latest` remains `0.166.77` until child packages
-> are published and the CLI release gates pass.
+> Release candidate `chainlesschain@0.166.79` is under exact-commit CI validation.
+> The publicly available npm `latest` remains `0.166.78` until the complete CLI
+> release gates pass and the new package is published and read back.
 
 > **0.166.77 发布说明**：决策模型 HTTP 请求和响应各限制为 256 KiB；模型用量未知时不会生成 Skill 建议，同一耐久会话的后续决策调用也会被阻断。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [决策层设计](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/114-jev-decision-layer-design.md)。决策模式仍默认关闭，不授予 Skill 执行权限；自动 active Skill 晋升保持 HOLD。
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> Public release: `chainlesschain@0.166.77` is npm `latest` from immutable tag
-> `v-npm-0-166-77` at `8d97c58153`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36249631081)
-> and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36249630850)
-> passed every configured Linux, Windows, and macOS job on that commit.
-> [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36255608994)
-> and [public installation/provenance readback](https://github.com/chainlesschain/chainlesschain/actions/runs/36256245841)
-> succeeded after the 13 child tarballs were compared with the public registry.
-> Session Core `0.3.13`, Context/Memory Kernel `0.1.5`, and Personal Data Hub
-> `0.4.62` were already public. Open VSX `0.37.118` is public; JetBrains `0.4.139`
-> was uploaded but is awaiting public listing (`0.4.138` is currently public).
-
-Mainline commit `24f0cb6fb1` adds PM cohort receipt reconciliation after this npm release; the public `0.166.77` tarball does not contain that later code.
+> Public release: `chainlesschain@0.166.78` is npm `latest` from immutable tag
+> `v-npm-0-166-78` at `3400318446`. Open VSX `0.37.119` and JetBrains
+> `0.4.140` are also publicly listed. The `0.166.79` Docker egress product
+> path is newer than those immutable releases.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.77
+npm install -g chainlesschain@0.166.78
 chainlesschain setup
 ```
 

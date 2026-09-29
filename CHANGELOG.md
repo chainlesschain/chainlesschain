@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.79: opt-in Docker domain egress
+
+- Add an explicit Linux Docker egress engine for `run_shell`, with pinned target
+  and relay images, a Unix-socket policy broker, target isolation verification,
+  and a real product-path Docker probe.
+- Report an unknown execution outcome after target start or cleanup uncertainty
+  without suggesting a safe automatic retry. Runtime policy-revision revocation
+  remains under development.
+
 ### Added - cc CLI 0.166.78: CLI and IDE recovery candidate
 
 - Add verified session history paging and recovery across CLI, VS Code, and

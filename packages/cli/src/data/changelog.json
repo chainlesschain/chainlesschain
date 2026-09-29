@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.79",
+      "cliVersions": ["0.166.79"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.79: opt-in Docker domain egress",
+          "body": "- Add an explicit Linux Docker egress engine for `run_shell`, with pinned target\n  and relay images, a Unix-socket policy broker, target isolation verification,\n  and a real product-path Docker probe.\n- Report an unknown execution outcome after target start or cleanup uncertainty\n  without suggesting a safe automatic retry. Runtime policy-revision revocation\n  remains under development."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.78",
       "cliVersions": ["0.166.78"],
       "date": null,
