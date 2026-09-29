@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   dockerEgressSeccompProfile,
   startDockerEgressSession,
@@ -44,7 +44,14 @@ function fixture({
         Name: name,
         Config: { Labels: { "chainless.egress.owner": token } },
         State: { Running: true, ExitCode: 0 },
-        HostConfig: { NetworkMode: args[args.indexOf("--network") + 1] },
+        HostConfig: {
+          NetworkMode: args[args.indexOf("--network") + 1],
+          ReadonlyRootfs: args.includes("--read-only"),
+          CapDrop: [args[args.indexOf("--cap-drop") + 1]],
+          SecurityOpt: args.flatMap((value, index) =>
+            value === "--security-opt" ? [args[index + 1]] : [],
+          ),
+        },
       });
       await onCreate?.(records.get(id), records);
       return id;
@@ -242,6 +249,37 @@ describe("Docker egress lifecycle (Docker transport simulated)", () => {
     expect((await running).message).toContain("closed during launch");
     expect(f.records.size).toBe(0);
     expect(f.calls.some((args) => args.includes("--attach"))).toBe(false);
+  });
+
+  it("rejects revoked authority after target creation and before target start", async () => {
+    const f = fixture();
+    const session = await f.start();
+    const beforeStart = vi.fn(async () => {
+      throw new Error("authority revoked");
+    });
+    await expect(
+      session.run("network command", { beforeStart }),
+    ).rejects.toThrow("authority revoked");
+    expect(beforeStart).toHaveBeenCalledOnce();
+    expect(f.calls.filter((args) => args[0] === "create")).toHaveLength(2);
+    expect(f.calls.some((args) => args.includes("--attach"))).toBe(false);
+    expect(f.records.size).toBe(0);
+  });
+
+  it("refuses a target whose Docker isolation options differ from the requested boundary", async () => {
+    const f = fixture({
+      onCreate(record) {
+        if (record.Name.startsWith("cc-target-")) {
+          record.HostConfig.NetworkMode = "bridge";
+        }
+      },
+    });
+    const session = await f.start();
+    await expect(session.run("network command")).rejects.toThrow(
+      "isolation options",
+    );
+    expect(f.calls.some((args) => args.includes("--attach"))).toBe(false);
+    expect(f.records.size).toBe(0);
   });
 
   it("preserves an ordinary failing command's exit code and output", async () => {

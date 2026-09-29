@@ -183,11 +183,10 @@ export async function startDockerEgressSession(options, deps = {}) {
     path.join(options.tempRoot || os.tmpdir(), "cc-egress-"),
   );
   const profilePath = path.join(stateDir, "target-seccomp.json");
-  io.writeFileSync(
-    profilePath,
-    JSON.stringify(dockerEgressSeccompProfile(deps.arch)),
-    { mode: 0o600 },
-  );
+  const seccompProfile = dockerEgressSeccompProfile(deps.arch);
+  io.writeFileSync(profilePath, JSON.stringify(seccompProfile), {
+    mode: 0o600,
+  });
   let closed = false;
   let closing;
   let active = false;
@@ -343,6 +342,11 @@ export async function startDockerEgressSession(options, deps = {}) {
           throw new Error("Docker egress session is closed or already running");
         if (typeof shellCommand !== "string")
           throw new TypeError("A shell command is required");
+        if (
+          runOptions.beforeStart !== undefined &&
+          typeof runOptions.beforeStart !== "function"
+        )
+          throw new TypeError("beforeStart must be a trusted function");
         active = true;
         let executionError;
         let result;
@@ -386,6 +390,48 @@ export async function startDockerEgressSession(options, deps = {}) {
             "-lc",
             shellCommand,
           ]);
+          if (closed) {
+            throw new Error("Docker egress session closed during launch");
+          }
+          const targetBeforeStart = JSON.parse(
+            await command(["inspect", targetId]),
+          )[0];
+          const hostConfig = targetBeforeStart?.HostConfig;
+          const securityOptions = hostConfig?.SecurityOpt || [];
+          const seccompMatched = securityOptions.some((entry) => {
+            if (entry === `seccomp=${profilePath}`) return true;
+            if (!entry.startsWith("seccomp={")) return false;
+            try {
+              return (
+                JSON.stringify(JSON.parse(entry.slice("seccomp=".length))) ===
+                JSON.stringify(seccompProfile)
+              );
+            } catch {
+              return false;
+            }
+          });
+          const missing = [
+            ["network", hostConfig?.NetworkMode === `container:${relayId}`],
+            ["readonly-root", hostConfig?.ReadonlyRootfs === true],
+            ["capabilities", hostConfig?.CapDrop?.includes("ALL")],
+            [
+              "no-new-privileges",
+              securityOptions.some((entry) =>
+                entry.startsWith("no-new-privileges"),
+              ),
+            ],
+            ["seccomp", seccompMatched],
+          ]
+            .filter(([, passed]) => !passed)
+            .map(([name]) => name);
+          if (missing.length) {
+            throw new Error(
+              `Docker target isolation options were not applied: ${missing.join(", ")}`,
+            );
+          }
+          // The caller can revalidate its live permission and network
+          // authority after every asynchronous create step and before start.
+          await runOptions.beforeStart?.();
           if (closed) {
             throw new Error("Docker egress session closed during launch");
           }

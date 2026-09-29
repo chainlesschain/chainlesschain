@@ -33,7 +33,7 @@
 
 已增加宿主 Worker 的私有 Unix socket 监听，以及 Linux Docker 双容器候选后端：relay 容器使用 `--network none` 并独占宿主策略 broker socket；目标容器共享 relay 的网络命名空间，只挂载工作区，使用默认拒绝的 seccomp 限制 socket 家族和其他系统调用。容器创建、运行与按身份回收均通过 ProcessExecutionBroker 审计；创建结果未知时保留不含命令或路径的恢复记录并报告清理未完成。新增真实 Docker 探针列入 `CLI Strict Sandbox` 的 Ubuntu 作业，包含允许请求正对照、清除代理变量后直连 TCP、UDP、工作区 Unix socket 拒绝及宿主连接计数。
 
-本地 Docker daemon 未运行，候选后端尚无真实容器通过证据，也尚未接入 agent shell 的能力声明和执行路径。当前受限域名命令继续在启动前拒绝；首轮探针即使通过，也不能替代 IPv6、DNS、子进程、redirect、WebSocket、策略撤销和崩溃恢复的完整 NET-01/02 验收。
+本地 Docker daemon 未运行。`c1f761dc32b73bbfe30c9d35126c33bf91ada48c` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36469139935) 四个作业全绿；Ubuntu 作业中真实 Docker 探针 1/1 通过，证明该提交下允许请求可到达宿主 nonce 上游，清空代理变量后的 IPv4 直连、UDP 与工作区 Unix socket 探针受阻。后续新增的 IPv6、子进程、redirect、WebSocket 和故障探针需由自己的精确提交重新验收。候选后端尚未接入 agent shell 的能力声明和执行路径，当前受限域名命令继续在启动前拒绝；已通过的局部探针不能替代策略撤销、DNS 和完整 NET-01/02 验收。
 
 ### NET-02 代理层撤销切片（2026-09-29）
 
@@ -349,6 +349,8 @@ Saved inputs 提供只读核对与恢复到空 composer；Recover drafts 可找�
 干净 SHA `6c47788623d6bc4ab64afa096d8ce739ebbacf0a` 默认 smoke 23.279 秒完成；Windows 10.0.19045 / x64 / Node 22.22.2。后台 100/1k 均 pathsVerified，1k 全扫/热首页/失效重建 p95 分别 336.129 / 164.045 / 694.739 ms（3 样本）。Memory 两档可读，并发读/更新/删除全部成功；[原始 receipt](./cli/evidence/persistent-capacity-smoke-windows-6c47788623.json) 的 canonical digest 已核对。保留单机少样本与重建成本边界，未设定性能 PASS。
 
 ### PERF-02：真实 usage 对照工具（2026-09-28）
+
+`c1f761dc32` 的本地安全诊断补充固定白名单 `compactionCode` 和 `compactionUsageStatus`，将 usage 未知、已报告、等待结果与尚未开始分开；“已报告”不代表持久账本已结算。stale CAS、provider transport outcome unknown 和敏感字段拒绝的定向测试连同自动压缩测试 28/28 通过。该改动没有新增真实 provider 成功样本，也不改变未知传输结果不得自动重试的结论。
 
 新增 `packages/cli/scripts/context-token-calibration.mjs`，从按行 JSON 请求记录读取 provider 返回的输入 token 数，并调用生产用的 `messagesToContextItems()` 与 `toolDefinitionsToContextItems()` 计算同一估算口径。每行必须包含 `category`（`chinese` / `code` / `emoji` / `tool-schema`）、`provider`、`model`、实际发送的 `messages`、`toolDefinitions` 和原始响应 `usage`。`usage` 接受 OpenAI `prompt_tokens` 或 `input_tokens`；Anthropic 的 `input_tokens` 加上独立报告的 cache creation/read token。两种输入字段同时出现或缺失、非整数及不明类别均拒绝。
 
