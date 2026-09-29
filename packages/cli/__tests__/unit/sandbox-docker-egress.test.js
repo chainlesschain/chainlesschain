@@ -301,7 +301,9 @@ describe("Docker egress lifecycle (Docker transport simulated)", () => {
   it("keeps broker mounts out of target and cleans both containers after a completed command", async () => {
     const f = fixture();
     const session = await f.start();
-    const result = await session.run("printf probe-output");
+    const result = await session.run("printf probe-output", {
+      env: { CLAUDECODE: "1", SECRET: "must-not-cross" },
+    });
     expect(result).toEqual({ stdout: "probe-output", stderr: "", exitCode: 0 });
     const creates = f.calls.filter((c) => c[0] === "create");
     expect(creates).toHaveLength(2);
@@ -309,6 +311,8 @@ describe("Docker egress lifecycle (Docker transport simulated)", () => {
     expect(creates[1]).toContain(`container:${session.relayId}`);
     expect(creates[1].join(" ")).not.toContain("/private/proxy.sock");
     expect(creates[1]).toContain("no-new-privileges");
+    expect(creates[1]).toContain("CLAUDECODE=1");
+    expect(creates[1].join(" ")).not.toContain("must-not-cross");
     expect(f.records.size).toBe(0);
     await expect(session.run("true")).rejects.toThrow("closed");
   });

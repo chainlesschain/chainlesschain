@@ -13,6 +13,9 @@ export const AGENT_SANDBOX_MODES = Object.freeze([
 ]);
 export const AGENT_SANDBOX_CAPABILITY_SCHEMA =
   "chainlesschain.agent-sandbox-capabilities/v1";
+const dockerEgressReceipts = new WeakMap();
+const PINNED_DOCKER_IMAGE =
+  /^[a-zA-Z0-9][a-zA-Z0-9./:_-]*@sha256:[a-f0-9]{64}$/;
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
   host: () => ({
@@ -249,12 +252,21 @@ export function normalizeAgentSandbox(value, options = {}) {
   return {
     engine: effectiveSettings.engine || "docker",
     image: effectiveSettings.image || image,
+    ...(effectiveSettings.engine === "docker-egress"
+      ? { relayImage: effectiveSettings.relayImage || null }
+      : {}),
     cwd: path.resolve(options.cwd || process.cwd()),
     network: managedNetworkDisabled
       ? false
       : options.network === true || effectiveSettings.network === true,
     policy: normalizeSandboxPolicy(
-      effectiveSettings,
+      effectiveSettings.engine === "docker-egress"
+        ? {
+            ...effectiveSettings,
+            allowUnsandboxedCommands: false,
+            failIfUnavailable: true,
+          }
+        : effectiveSettings,
       options.cwd || process.cwd(),
     ),
   };
@@ -340,6 +352,149 @@ function addUniqueCapability(target, entry) {
   }
 }
 
+function egressBinding(sandbox) {
+  return JSON.stringify({
+    engine: sandbox.engine,
+    image: sandbox.image,
+    relayImage: sandbox.relayImage,
+    cwd: sandbox.cwd,
+    network: sandbox.network,
+    mode: sandbox.mode || null,
+    policy: sandbox.policy || {},
+  });
+}
+
+function assessDockerEgressCapabilities(sandbox, options, host) {
+  const policy = sandbox.policy || {};
+  const domainRules =
+    (policy.allowedDomains?.length || 0) + (policy.deniedDomains?.length || 0);
+  const requested = [
+    capability("isolation.container"),
+    capability("filesystem.workspace-read-write"),
+    capability("network.domain-policy", { entries: domainRules }),
+  ];
+  const unsupported = [];
+  const reject = (id, reason, message) =>
+    unsupported.push(capability(id, { reason, message }));
+  if (policy.excludedCommands?.length)
+    reject(
+      "execution.excluded-commands",
+      "docker_egress_exclusions_prohibited",
+      "Docker egress does not allow commands to bypass its execution route.",
+    );
+  if (host.platform !== "linux")
+    reject(
+      "backend.platform",
+      "docker_egress_requires_linux",
+      "Docker egress requires a Linux host.",
+    );
+  if (!["x64", "arm64"].includes(host.arch))
+    reject(
+      "backend.architecture",
+      "docker_egress_architecture_unsupported",
+      "Docker egress requires x64 or arm64.",
+    );
+  if (sandbox.mode === "strict" || sandbox.network !== true)
+    reject(
+      "network.domain-policy",
+      "docker_egress_network_disabled",
+      "Docker egress requires network=true and is prohibited in strict mode.",
+    );
+  if (!domainRules)
+    reject(
+      "network.domain-policy",
+      "docker_egress_domain_policy_required",
+      "Docker egress requires explicit domain rules.",
+    );
+  for (const field of ["image", "relayImage"]) {
+    if (
+      typeof sandbox[field] !== "string" ||
+      !PINNED_DOCKER_IMAGE.test(sandbox[field])
+    )
+      reject(
+        `backend.${field}`,
+        "docker_egress_image_digest_required",
+        `Docker egress ${field} must be pinned to a sha256 digest.`,
+      );
+  }
+  for (const field of ["allowRead", "denyRead", "allowWrite", "denyWrite"]) {
+    if (policy[field]?.length)
+      reject(
+        `filesystem.${field}`,
+        "docker_fine_grained_filesystem_unsupported",
+        "Docker egress does not support additional or masked filesystem paths.",
+      );
+  }
+  const enforceable = unsupported.length
+    ? []
+    : [
+        capability("isolation.container", { enforcement: "docker-container" }),
+        capability("filesystem.workspace-read-write", {
+          enforcement: "docker-bind-mount",
+        }),
+        capability("network.domain-policy", {
+          enforcement: "docker-none-network-uds-proxy-seccomp",
+        }),
+      ];
+  const receipt = options.execution?.receipt;
+  const registered =
+    receipt && typeof receipt === "object"
+      ? dockerEgressReceipts.get(receipt)
+      : null;
+  const started =
+    unsupported.length === 0 &&
+    registered?.binding === egressBinding(sandbox) &&
+    registered.host.platform === host.platform &&
+    registered.host.arch === host.arch;
+  const attempted = started || options.execution?.attempted === true;
+  const outcomeUnknown = options.execution?.outcomeUnknown === true;
+  const checked = started || options.availability != null;
+  const available = started
+    ? true
+    : checked
+      ? options.availability?.available === true
+      : null;
+  return {
+    schema: AGENT_SANDBOX_CAPABILITY_SCHEMA,
+    host: {
+      platform: String(host.platform),
+      release: String(host.release),
+      arch: String(host.arch),
+    },
+    backend: {
+      engine: "docker-egress",
+      isolationLevel: "container",
+      availabilityChecked: checked,
+      available,
+      reason: started
+        ? null
+        : outcomeUnknown
+          ? "docker_egress_outcome_unknown"
+          : options.availability?.reason || null,
+    },
+    status: unsupported.length
+      ? "unsupported"
+      : started
+        ? "applied"
+        : outcomeUnknown
+          ? "outcome-unknown"
+          : attempted
+            ? "failed-to-start"
+            : checked && !available
+              ? "unavailable"
+              : "ready",
+    execution: {
+      observed: Boolean(started || options.execution),
+      attempted,
+      started: Boolean(started),
+    },
+    requested,
+    enforceable,
+    applied: started ? enforceable.map((entry) => ({ ...entry })) : [],
+    unsupported,
+  };
+}
+
 /**
  * Describe the exact legacy agent-shell sandbox request without claiming that
  * a command has run. `enforceable` is backend capability; `applied` is only
@@ -351,6 +506,8 @@ export function assessAgentSandboxCapabilities(sandbox, options = {}) {
     release: os.release(),
     arch: process.arch,
   };
+  if (sandbox?.engine === "docker-egress")
+    return assessDockerEgressCapabilities(sandbox, options, host);
   const execution = options.execution || null;
   const availability = options.availability || null;
   const requested = [];
@@ -594,6 +751,22 @@ function attachSandboxCapabilityReport(
 }
 
 export function executeSandboxedShell(command, sandbox, options = {}) {
+  if (sandbox?.engine === "docker-egress") {
+    return {
+      stdout: "",
+      stderr: "Docker egress requires the asynchronous execution route",
+      exitCode: 1,
+      failedToStart: true,
+      sandboxCapabilities: assessAgentSandboxCapabilities(sandbox, {
+        host: _deps.host(),
+        execution: { attempted: true },
+        availability: {
+          available: false,
+          reason: "docker_egress_async_execution_required",
+        },
+      }),
+    };
+  }
   if (!sandbox || !["docker", "bubblewrap"].includes(sandbox.engine)) {
     throw new Error("A supported agent sandbox configuration is required");
   }
@@ -783,7 +956,7 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
 export function isolationLevel(sandbox) {
   if (!sandbox) return "policy-only";
   if (sandbox.engine === "bubblewrap") return "os-sandbox";
-  if (sandbox.engine === "docker") return "container";
+  if (["docker", "docker-egress"].includes(sandbox.engine)) return "container";
   return "policy-only";
 }
 
@@ -836,6 +1009,11 @@ export function assertSandboxAvailable(sandbox, deps = _deps) {
   if (!sandbox || sandbox.policy?.failIfUnavailable !== true) return;
   const probe = probeSandboxAvailability(sandbox, deps);
   if (!probe.available) {
+    if (sandbox.engine === "docker-egress") {
+      throw new Error(
+        "Docker egress is unavailable; this backend never falls back to unsandboxed execution.",
+      );
+    }
     throw new Error(
       `sandbox.failIfUnavailable: ${sandbox.engine} sandbox is unavailable (${probe.reason}) — refusing to start. Install/start ${sandbox.engine === "bubblewrap" ? "bubblewrap" : "Docker"}, or unset failIfUnavailable to allow per-command degradation.`,
     );
@@ -860,5 +1038,127 @@ export function sandboxSummary(sandbox) {
     },
   };
   if (sandbox.mode) summary.mode = sandbox.mode;
+  if (sandbox.engine === "docker-egress")
+    summary.relayImage = sandbox.relayImage;
   return summary;
+}
+
+/** Own the asynchronous session and mint execution evidence only after its
+ * real implementation reports a terminal result and cleanup completes. */
+export async function executeDockerEgressShell(command, sandbox, options = {}) {
+  if (sandbox?.engine !== "docker-egress")
+    throw new TypeError("docker-egress configuration is required");
+  const host = _deps.host();
+  const snapshot = JSON.parse(JSON.stringify(sandbox));
+  const preflight = assessAgentSandboxCapabilities(snapshot, { host });
+  let startAuthorized = false;
+  let observedResult;
+  const failure = () => ({
+    stdout:
+      startAuthorized && typeof observedResult?.stdout === "string"
+        ? observedResult.stdout
+        : "",
+    stderr: startAuthorized
+      ? "Docker egress execution outcome or cleanup could not be verified; do not retry automatically."
+      : preflight.unsupported.length
+        ? preflight.unsupported.map((entry) => entry.message).join("; ")
+        : "Docker egress execution is unavailable or did not complete safely.",
+    exitCode: 1,
+    ...(startAuthorized
+      ? {
+          executionOutcome: observedResult
+            ? "completed-cleanup-unknown"
+            : "unknown",
+          retrySafe: false,
+        }
+      : { failedToStart: true }),
+    sandboxCapabilities: assessAgentSandboxCapabilities(snapshot, {
+      host,
+      execution: { attempted: true, outcomeUnknown: startAuthorized },
+      ...(startAuthorized
+        ? {}
+        : {
+            availability: {
+              available: false,
+              reason: "docker_egress_execution_unavailable",
+            },
+          }),
+    }),
+  });
+  if (preflight.unsupported.length) return failure();
+  let session;
+  let authorityError;
+  try {
+    const { startDockerEgressSession } =
+      await import("./sandbox-docker-egress.js");
+    session = await startDockerEgressSession({
+      brokerSocketPath: options.brokerSocketPath,
+      relayImage: snapshot.relayImage,
+      targetImage: snapshot.image,
+      workspaceRoot: options.cwd || snapshot.cwd,
+      auditContext: options.auditContext,
+    });
+    try {
+      options.onSession?.(session);
+    } catch (error) {
+      authorityError = error;
+      throw error;
+    }
+    const result = await session.run(command, {
+      timeoutMs: options.timeoutMs || options.timeout,
+      auditContext: options.auditContext,
+      env: options.env,
+      async beforeStart() {
+        try {
+          if (egressBinding(sandbox) !== egressBinding(snapshot))
+            throw Object.assign(
+              new Error("Sandbox policy changed during Docker startup"),
+              { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+            );
+          await options.beforeStart?.();
+          if (egressBinding(sandbox) !== egressBinding(snapshot))
+            throw Object.assign(
+              new Error("Sandbox policy changed during Docker startup"),
+              { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+            );
+          startAuthorized = true;
+        } catch (error) {
+          authorityError = error;
+          throw error;
+        }
+      },
+    });
+    observedResult = result;
+    await session.close();
+    if (
+      !startAuthorized ||
+      !Number.isInteger(result?.exitCode) ||
+      typeof result.stdout !== "string" ||
+      typeof result.stderr !== "string"
+    ) {
+      throw new Error("Docker egress execution proof is incomplete");
+    }
+    const receipt = Object.freeze({ kind: "docker-egress-execution/v1" });
+    dockerEgressReceipts.set(receipt, {
+      binding: egressBinding(snapshot),
+      host: { ...host },
+    });
+    return {
+      ...result,
+      sandboxCapabilities: assessAgentSandboxCapabilities(snapshot, {
+        host,
+        execution: { attempted: true, receipt },
+      }),
+    };
+  } catch (error) {
+    if (session) {
+      try {
+        await session.close();
+      } catch (cleanupError) {
+        error.cleanupError = cleanupError;
+      }
+    }
+    if (authorityError) throw authorityError;
+    return failure();
+  }
 }

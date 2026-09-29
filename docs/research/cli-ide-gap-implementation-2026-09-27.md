@@ -4,6 +4,12 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### NET-01 / NET-02 与发布门更新（2026-09-29）
+
+`9daa8ffa96b983e33afc4bff1f0d53786ff2e022` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36525770660) 全部通过。Linux 真实 Docker 扩展探针 4/4 通过，覆盖 IPv6、redirect、WebSocket CONNECT、子进程、broker/relay 故障及容器清理。这证明底层隔离探针，不代表 `run_shell` 产品入口已通过。随后补上显式 `docker-egress` 引擎、固定 digest 的目标/relay 镜像、产品入口异步接线、启动前权威复核、真实产品路径探针及未知执行结果禁止自动重试的诊断。本地单元和静态检查通过；真实产品路径等待本次准确提交的 Linux Actions 结果。NET-01 暂不标为全部验收。
+
+NET-02 仍缺运行中 shell 策略 revision 订阅与可靠撤销，也缺持续 WebSocket 和 DNS 服务端计数的真实隔离证据。发布继续按子 npm 包 → CLI → VS Code / JetBrains，并以准确发布提交的完整 `CLI CI`、`CLI Strict Sandbox` 三系统矩阵及 IDE 宿主检查为门；本段不构成发布批准回执。
+
 | ID                      | 当前状态         | 实现与有效证据                                                                                                                                                                                       | 剩余条件                                                                                         |
 | ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | MODEL-01                | 本地合同验证通过 | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                                                  | 目标账号真实调用；未更改用户默认模型                                                             |

@@ -11,6 +11,8 @@ import { describe, expect, it } from "vitest";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import { startEgressProxyWorker } from "../../src/lib/sandbox-egress-worker.js";
 import { startDockerEgressSession } from "../../src/lib/sandbox-docker-egress.js";
+import { normalizeAgentSandbox } from "../../src/lib/agent-sandbox.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 
 const LIVE = process.env.CC_DOCKER_EGRESS_LIVE === "1";
 const listen = (server, ...args) =>
@@ -104,6 +106,66 @@ const connect=(authority,payload,nonce)=>new Promise((resolve,reject)=>{const s=
 `;
 
 describe.runIf(LIVE)("Linux Docker egress real boundary", () => {
+  it("enforces the domain policy through the run_shell product path", async () => {
+    const image = process.env.CC_DOCKER_EGRESS_IMAGE;
+    expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-tool-"));
+    const upstream = http.createServer((_req, response) =>
+      response.end("product-path-nonce"),
+    );
+    try {
+      const { port } = await listen(upstream, 0, "127.0.0.1");
+      const script = `const http=require('node:http'),net=require('node:net');
+const viaProxy=url=>new Promise((resolve,reject)=>{const request=http.get({host:'127.0.0.1',port:3128,path:url},response=>{let body='';response.on('data',chunk=>body+=chunk);response.on('end',()=>resolve({status:response.statusCode,body}))});request.on('error',reject)});
+const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0.1');socket.setTimeout(3000,()=>{socket.destroy();resolve('TIMEOUT')});socket.on('connect',()=>{socket.destroy();resolve('CONNECTED')});socket.on('error',error=>resolve(error.code))});
+(async()=>console.log(JSON.stringify({allowed:await viaProxy('http://127.0.0.1:${port}/'),denied:await viaProxy('http://blocked.invalid/'),direct:await direct()})))().catch(error=>{console.error(error);process.exitCode=1});`;
+      fs.writeFileSync(path.join(root, "probe.cjs"), script);
+      const sandbox = normalizeAgentSandbox(true, {
+        cwd: root,
+        network: true,
+        settings: {
+          engine: "docker-egress",
+          image,
+          relayImage: image,
+          network: { allowedDomains: ["127.0.0.1"] },
+        },
+      });
+      const result = await executeTool(
+        "run_shell",
+        { command: "node /workspace/probe.cjs" },
+        {
+          cwd: root,
+          sandbox,
+          approvalGate: {
+            decide: async () => ({
+              decision: "allow",
+              via: "policy",
+              policy: "autopilot",
+            }),
+          },
+        },
+      );
+      expect(result.exitCode, result.error).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        allowed: { status: 200, body: "product-path-nonce" },
+        denied: { status: 403 },
+      });
+      expect(JSON.parse(result.stdout).direct).not.toBe("CONNECTED");
+      expect(result.sandboxCapabilities).toMatchObject({
+        status: "applied",
+        execution: { started: true },
+      });
+      expect(result.sandboxCapabilities.applied).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "network.domain-policy" }),
+        ]),
+      );
+    } finally {
+      await new Promise((resolve) => upstream.close(resolve));
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }, 180_000);
+
   it("allows proxy traffic but rejects direct host traffic and workspace Unix sockets", async () => {
     expect(process.platform).toBe("linux");
     const image = process.env.CC_DOCKER_EGRESS_IMAGE;

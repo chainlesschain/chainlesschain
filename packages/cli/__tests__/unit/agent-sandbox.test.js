@@ -7,6 +7,7 @@ import {
   assertSandboxCapabilities,
   enforceSandboxFailClosed,
   executeSandboxedShell,
+  executeDockerEgressShell,
   isolationLevel,
   normalizeAgentSandbox,
   normalizeAgentSandboxMode,
@@ -17,11 +18,279 @@ import {
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
+const egressMocks = vi.hoisted(() => ({ start: vi.fn() }));
+vi.mock("../../src/lib/sandbox-docker-egress.js", () => ({
+  startDockerEgressSession: (...args) => egressMocks.start(...args),
+}));
+
 const originalSpawnSync = _deps.spawnSync;
 const originalHost = _deps.host;
 afterEach(() => {
   _deps.spawnSync = originalSpawnSync;
   _deps.host = originalHost;
+  egressMocks.start.mockReset();
+});
+
+describe("explicit Docker egress configuration and execution evidence", () => {
+  const host = { platform: "linux", release: "test", arch: "x64" };
+  const image = `node@sha256:${"a".repeat(64)}`;
+  const config = () =>
+    normalizeAgentSandbox(true, {
+      network: true,
+      settings: {
+        engine: "docker-egress",
+        image,
+        relayImage: image,
+        network: { allowedDomains: ["example.test"] },
+      },
+    });
+
+  it("preserves explicit image pins and reports preflight without applied or unrestricted networking", () => {
+    const sandbox = config();
+    expect(sandbox.relayImage).toBe(image);
+    expect(sandbox.policy).toMatchObject({
+      allowUnsandboxedCommands: false,
+      failIfUnavailable: true,
+    });
+    expect(isolationLevel(sandbox)).toBe("container");
+    expect(sandboxSummary(sandbox).relayImage).toBe(image);
+    const report = assessAgentSandboxCapabilities(sandbox, { host });
+    expect(report.status).toBe("ready");
+    expect(report.applied).toEqual([]);
+    expect(report.enforceable.map((entry) => entry.id)).toContain(
+      "network.domain-policy",
+    );
+    expect(report.requested.map((entry) => entry.id)).not.toContain(
+      "network.unrestricted",
+    );
+    expect(
+      assessAgentSandboxCapabilities(sandbox, {
+        host,
+        execution: {
+          started: true,
+          attempted: true,
+          receipt: { kind: "docker-egress-execution/v1" },
+        },
+      }).applied,
+    ).toEqual([]);
+  });
+
+  it.each([
+    [
+      "platform",
+      (s) => s,
+      { ...host, platform: "win32" },
+      "docker_egress_requires_linux",
+    ],
+    [
+      "network",
+      (s) => ({ ...s, network: false }),
+      host,
+      "docker_egress_network_disabled",
+    ],
+    [
+      "strict",
+      (s) => ({ ...s, mode: "strict" }),
+      host,
+      "docker_egress_network_disabled",
+    ],
+    [
+      "domains",
+      (s) => ({ ...s, policy: { ...s.policy, allowedDomains: [] } }),
+      host,
+      "docker_egress_domain_policy_required",
+    ],
+    [
+      "target pin",
+      (s) => ({ ...s, image: "node:22" }),
+      host,
+      "docker_egress_image_digest_required",
+    ],
+    [
+      "relay pin",
+      (s) => ({ ...s, relayImage: null }),
+      host,
+      "docker_egress_image_digest_required",
+    ],
+    [
+      "file rules",
+      (s) => ({ ...s, policy: { ...s.policy, denyRead: ["secret"] } }),
+      host,
+      "docker_fine_grained_filesystem_unsupported",
+    ],
+    [
+      "excluded commands",
+      (s) => ({ ...s, policy: { ...s.policy, excludedCommands: ["curl"] } }),
+      host,
+      "docker_egress_exclusions_prohibited",
+    ],
+  ])(
+    "rejects unsupported %s before any execution",
+    (_name, transform, machine, reason) => {
+      const report = assessAgentSandboxCapabilities(transform(config()), {
+        host: machine,
+        execution: { started: true },
+      });
+      expect(report.status).toBe("unsupported");
+      expect(report.unsupported.map((entry) => entry.reason)).toContain(reason);
+      expect(report.applied).toEqual([]);
+      expect(report.enforceable).toEqual([]);
+    },
+  );
+
+  it("keeps strict mode network off and synchronous execution fail-closed", () => {
+    const strict = normalizeAgentSandboxMode("strict", true, {
+      network: true,
+      settings: { engine: "docker-egress", image, relayImage: image },
+    });
+    expect(strict.network).toBe(false);
+    _deps.host = () => host;
+    _deps.spawnSync = vi.fn();
+    const result = executeSandboxedShell("echo forbidden", config());
+    expect(result.failedToStart).toBe(true);
+    expect(result.sandboxCapabilities.applied).toEqual([]);
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("binds applied evidence to an owned completed asynchronous session and exact configuration", async () => {
+    _deps.host = () => host;
+    const events = [];
+    const session = {
+      close: vi.fn(async () => events.push("close")),
+      run: vi.fn(async (_command, options) => {
+        await options.beforeStart();
+        events.push("run");
+        return { stdout: "result", stderr: "", exitCode: 7 };
+      }),
+    };
+    egressMocks.start.mockResolvedValue(session);
+    const sandbox = config();
+    const result = await executeDockerEgressShell("exit 7", sandbox, {
+      brokerSocketPath: "/private/broker.sock",
+      auditContext: { sessionId: "test" },
+      env: { CC_SESSION_ID: "test" },
+      onSession(value) {
+        expect(value).toBe(session);
+        events.push("session");
+      },
+      beforeStart: async () => events.push("authorize"),
+    });
+    expect(events).toEqual(["session", "authorize", "run", "close"]);
+    expect(result.exitCode).toBe(7);
+    expect(session.run.mock.calls[0][1].env).toEqual({ CC_SESSION_ID: "test" });
+    expect(result.sandboxCapabilities.status).toBe("applied");
+    expect(egressMocks.start.mock.calls[0][0].auditContext).toEqual({
+      sessionId: "test",
+    });
+    expect(result).not.toHaveProperty("sandboxExecutionReceipt");
+    expect(
+      assessAgentSandboxCapabilities(sandbox, {
+        host,
+        execution: {
+          started: true,
+          attempted: true,
+          receipt: result.sandboxCapabilities,
+        },
+      }).applied,
+    ).toEqual([]);
+  });
+
+  it("returns environment failures but preserves authority errors and closes sessions", async () => {
+    _deps.host = () => host;
+    egressMocks.start.mockRejectedValueOnce(
+      new Error("daemon failed: /private/secret-path TOKEN=secret"),
+    );
+    const environmentFailure = await executeDockerEgressShell("true", config());
+    expect(environmentFailure).toMatchObject({
+      failedToStart: true,
+      exitCode: 1,
+    });
+    expect(JSON.stringify(environmentFailure)).not.toContain("secret");
+    const denied = Object.assign(new Error("revoked"), {
+      code: "AUTHORITY_REVOKED",
+    });
+    const session = {
+      close: vi.fn(async () => {}),
+      run: vi.fn(async (_command, options) => options.beforeStart()),
+    };
+    egressMocks.start.mockResolvedValue(session);
+    await expect(
+      executeDockerEgressShell("true", config(), {
+        beforeStart: async () => {
+          throw denied;
+        },
+      }),
+    ).rejects.toBe(denied);
+    expect(session.close).toHaveBeenCalled();
+    const sandbox = config();
+    await expect(
+      executeDockerEgressShell("true", sandbox, {
+        onSession() {
+          sandbox.policy.allowedDomains = ["changed.test"];
+        },
+      }),
+    ).rejects.toMatchObject({ code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" });
+  });
+
+  it("does not attest a session that omitted the final dispatch fence", async () => {
+    _deps.host = () => host;
+    const close = vi.fn(async () => {});
+    egressMocks.start.mockResolvedValue({
+      close,
+      run: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+    });
+    const result = await executeDockerEgressShell("true", config());
+    expect(result.failedToStart).toBe(true);
+    expect(result.sandboxCapabilities.applied).toEqual([]);
+    expect(close).toHaveBeenCalled();
+  });
+
+  it("reports an unknown outcome after the final start fence without a retry-safe claim", async () => {
+    _deps.host = () => host;
+    egressMocks.start.mockResolvedValue({
+      close: vi.fn(async () => {}),
+      run: async (_command, options) => {
+        await options.beforeStart();
+        throw new Error("attach timeout after target execution");
+      },
+    });
+    const result = await executeDockerEgressShell(
+      "write side effect",
+      config(),
+    );
+    expect(result).toMatchObject({
+      executionOutcome: "unknown",
+      retrySafe: false,
+      sandboxCapabilities: { status: "outcome-unknown", applied: [] },
+    });
+    expect(result).not.toHaveProperty("failedToStart");
+    expect(JSON.stringify(result)).not.toContain("attach timeout");
+  });
+
+  it("retains observed output while marking cleanup failure as uncertain", async () => {
+    _deps.host = () => host;
+    egressMocks.start.mockResolvedValue({
+      close: vi.fn(async () => {
+        throw new Error("cleanup failed: /private/recovery-path");
+      }),
+      run: async (_command, options) => {
+        await options.beforeStart();
+        return { stdout: "side effect done", stderr: "", exitCode: 0 };
+      },
+    });
+    const result = await executeDockerEgressShell(
+      "write side effect",
+      config(),
+    );
+    expect(result).toMatchObject({
+      stdout: "side effect done",
+      executionOutcome: "completed-cleanup-unknown",
+      retrySafe: false,
+      sandboxCapabilities: { status: "outcome-unknown", applied: [] },
+    });
+    expect(result).not.toHaveProperty("failedToStart");
+    expect(JSON.stringify(result)).not.toContain("recovery-path");
+  });
 });
 
 describe("agent sandbox", () => {

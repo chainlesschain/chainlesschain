@@ -6637,8 +6637,12 @@ async function executeToolInner(
           );
         }
         await admitShellDispatch();
-        const { executeSandboxedShell, sandboxSummary } =
-          await import("../lib/agent-sandbox.js");
+        const {
+          assessAgentSandboxCapabilities,
+          executeDockerEgressShell,
+          executeSandboxedShell,
+          sandboxSummary,
+        } = await import("../lib/agent-sandbox.js");
         // Keep the proxy on a separate event loop: the legacy sandbox dispatch
         // below is synchronous. The sandbox still refuses domain-restricted
         // execution until a non-bypassable network backend is available.
@@ -6648,21 +6652,40 @@ async function executeToolInner(
           (sboxPolicy.allowedDomains?.length || 0) +
             (sboxPolicy.deniedDomains?.length || 0) >
             0;
+        const dockerEgress = shellSandbox.engine === "docker-egress";
         let egressProxy = null;
         let proxyHandle = null;
+        let privateSocketDir = null;
+        let dockerEgressSession = null;
+        let proxyFailed = false;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
               await import("../lib/sandbox-egress-worker.js");
+            if (dockerEgress) {
+              privateSocketDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), "cc-egress-"),
+              );
+              fs.chmodSync(privateSocketDir, 0o700);
+            }
             proxyHandle = await startEgressProxyWorker(
               {
                 allowedDomains: sboxPolicy.allowedDomains || [],
                 deniedDomains: sboxPolicy.deniedDomains || [],
                 allowPrivate: sboxPolicy.allowPrivate === true,
               },
-              { bindHost: "127.0.0.1" },
+              {
+                bindHost: "127.0.0.1",
+                ...(privateSocketDir
+                  ? { socketPath: path.join(privateSocketDir, "broker.sock") }
+                  : {}),
+                onFailure() {
+                  proxyFailed = true;
+                  void dockerEgressSession?.close().catch(() => {});
+                },
+              },
             );
-            egressProxy = { port: proxyHandle.port };
+            if (proxyHandle.port) egressProxy = { port: proxyHandle.port };
           } catch {
             // If the proxy can't start, leave egressProxy null so the sandbox
             // fails closed (refuses) rather than running without enforcement.
@@ -6685,15 +6708,72 @@ async function executeToolInner(
             error.pluginBinFailClosed = true;
             throw error;
           }
-          result = executeSandboxedShell(args.command, shellSandbox, {
-            cwd: args.cwd || cwd,
-            timeout: _resolveShellTimeout(args.timeout),
-            maxBuffer: 1024 * 1024,
-            egressProxy,
-            env: sandboxChildEnvironment,
-            auditContext: createShellProcessAuditContext(),
-          });
+          if (dockerEgress && !proxyHandle?.socketPath) {
+            result = {
+              stdout: "",
+              stderr: "Docker egress policy broker is unavailable",
+              exitCode: 1,
+              failedToStart: true,
+              sandboxCapabilities: assessAgentSandboxCapabilities(
+                shellSandbox,
+                {
+                  execution: { attempted: true, started: false },
+                  availability: {
+                    available: false,
+                    reason: "egress-broker-unavailable",
+                  },
+                },
+              ),
+            };
+          } else if (dockerEgress) {
+            result = await executeDockerEgressShell(
+              args.command,
+              shellSandbox,
+              {
+                cwd: args.cwd || cwd,
+                timeoutMs: _resolveShellTimeout(args.timeout),
+                brokerSocketPath: proxyHandle.socketPath,
+                env: sandboxChildEnvironment,
+                auditContext: createShellProcessAuditContext(),
+                onSession(session) {
+                  dockerEgressSession = session;
+                  if (proxyFailed) void session.close().catch(() => {});
+                },
+                async beforeStart() {
+                  await shellDispatchPolicyAuthority?.revalidate?.();
+                  refreshPluginExecutionAuthority();
+                  if (
+                    proxyFailed ||
+                    proxyHandle.revision !== 0 ||
+                    pluginBinSandboxPolicy
+                  ) {
+                    const error = new Error(
+                      "Docker egress authority changed before target start",
+                    );
+                    error.code = "CC_DOCKER_EGRESS_AUTHORITY_CHANGED";
+                    throw error;
+                  }
+                },
+              },
+            );
+          } else {
+            result = executeSandboxedShell(args.command, shellSandbox, {
+              cwd: args.cwd || cwd,
+              timeout: _resolveShellTimeout(args.timeout),
+              maxBuffer: 1024 * 1024,
+              egressProxy,
+              env: sandboxChildEnvironment,
+              auditContext: createShellProcessAuditContext(),
+            });
+          }
         } finally {
+          if (dockerEgressSession) {
+            try {
+              await dockerEgressSession.close();
+            } catch {
+              /* execution result retains its cleanup status */
+            }
+          }
           if (proxyHandle) {
             try {
               await proxyHandle.close();
@@ -6701,10 +6781,26 @@ async function executeToolInner(
               /* best-effort teardown */
             }
           }
+          if (privateSocketDir) {
+            try {
+              fs.rmSync(path.join(privateSocketDir, "broker.sock"), {
+                force: true,
+              });
+              fs.rmdirSync(privateSocketDir);
+            } catch {
+              /* a failed broker cleanup remains visible via failed-to-start */
+            }
+          }
         }
         const common = {
           sandbox: sandboxSummary(shellSandbox),
           sandboxCapabilities: result.sandboxCapabilities || null,
+          ...(result.executionOutcome
+            ? {
+                executionOutcome: result.executionOutcome,
+                retrySafe: result.retrySafe,
+              }
+            : {}),
           shellCommandPolicy: shellPolicy,
           approval: approvalOutcome,
           policyTrace: ["shell-policy", "approval", "sandbox"],

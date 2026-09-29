@@ -85,7 +85,7 @@ export function dockerEgressSeccompProfile(arch = process.arch) {
   };
 }
 
-function docker(args, timeout = 30_000, capture = false) {
+function docker(args, timeout = 30_000, capture = false, auditContext = null) {
   return new Promise((resolve, reject) =>
     broker.execFile(
       "docker",
@@ -99,6 +99,7 @@ function docker(args, timeout = 30_000, capture = false) {
         maxBuffer: 4 * 1024 * 1024,
         windowsHide: true,
         requirePersistentAudit: true,
+        auditContext,
         auditRedactArgIndexes:
           args.includes("create") && args.includes("/bin/sh")
             ? [args.length - 1]
@@ -139,17 +140,22 @@ export async function startDockerEgressSession(options, deps = {}) {
   const io = deps.fs || fs;
   const relayImage = checkedImage(options.relayImage);
   const targetImage = checkedImage(options.targetImage || options.relayImage);
-  const endpoint = await runDocker([
-    "context",
-    "inspect",
-    "--format",
-    "{{.Endpoints.docker.Host}}",
-  ]);
+  const endpoint = await runDocker(
+    ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"],
+    undefined,
+    false,
+    options.auditContext || null,
+  );
   // Explicit -H also prevents DOCKER_HOST/DOCKER_CONTEXT from changing authority.
   if (!/^unix:\/\/\//.test(endpoint))
     throw new Error("Docker egress requires a local Unix Docker daemon");
   const command = (args, timeout, capture) =>
-    runDocker(["--host", endpoint, ...args], timeout, capture);
+    runDocker(
+      ["--host", endpoint, ...args],
+      timeout,
+      capture,
+      options.auditContext || null,
+    );
   const info = JSON.parse(await command(["info", "--format", "{{json .}}"]));
   if (info.OSType !== "linux")
     throw new Error("Docker egress requires a Linux daemon");
@@ -384,6 +390,15 @@ export async function startDockerEgressSession(options, deps = {}) {
             "NO_PROXY=",
             "--env",
             "no_proxy=",
+            ...[
+              "CLAUDECODE",
+              "CC_SESSION_ID",
+              "CLAUDE_CODE_SESSION_ID",
+            ].flatMap((key) =>
+              runOptions.env?.[key] == null
+                ? []
+                : ["--env", `${key}=${runOptions.env[key]}`],
+            ),
             "--entrypoint",
             "/bin/sh",
             targetImage,
