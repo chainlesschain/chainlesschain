@@ -414,10 +414,12 @@ describe("CLI release workflow contracts", () => {
       3,
     );
 
-    expect(strict.split(`ref: ${eventSha}`)).toHaveLength(3);
+    expect(strict.split(`ref: ${eventSha}`)).toHaveLength(4);
     expect(strict.match(/name: Verify exact source identity/gu)).toHaveLength(
-      2,
+      3,
     );
+    expect(strict).toContain("runs-on: ubuntu-24.04-arm");
+    expect(strict).toContain('test "$RUNNER_ARCH" = ARM64');
   });
 
   it("gates Core DB and Session Core on all exact-SHA CLI verification platforms", () => {
