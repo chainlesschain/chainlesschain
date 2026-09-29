@@ -81,6 +81,10 @@ const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 // flight on a busy host.
 const WEBVIEW_PROTOCOL_TIMEOUT_MS = 5_000;
 const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
+// A first persisted `cc agent --resume` can bootstrap/migrate its store and
+// run SessionStart hooks before emitting system/init. Keep the draft pending
+// through a cold start; a failed child still rejects its waiter immediately.
+const AGENT_INIT_TIMEOUT_MS = 120_000;
 
 function projectWebviewMessage(message) {
   if (message?.kind !== "approval") return message;
@@ -376,6 +380,7 @@ class ChatViewProvider {
   }
 
   _waitForInputCapability(conv, session) {
+    if (conv.inputInitError) return Promise.reject(conv.inputInitError);
     if (conv.inputReceiptVersion !== undefined)
       return Promise.resolve(conv.inputReceiptVersion);
     return new Promise((resolve, reject) => {
@@ -398,7 +403,7 @@ class ChatViewProvider {
               "Agent initialization timed out; input was not dispatched",
             ),
           ),
-        15000,
+        AGENT_INIT_TIMEOUT_MS,
       );
       if (!session?.running) {
         clearTimeout(timer);
@@ -1029,6 +1034,7 @@ class ChatViewProvider {
     for (const waiter of conv.inputInitWaiters || [])
       waiter.reject(new Error("Agent stopped; input was not dispatched"));
     conv.inputReceiptVersion = undefined;
+    conv.inputInitError = null;
     if (conv.worklogHandoff) {
       clearTimeout(conv.worklogHandoff.timer);
       conv.worklogHandoff = null;
@@ -1162,6 +1168,17 @@ class ChatViewProvider {
       )
         return;
       acceptTranscriptInputReceipt(conv, evt, sessionToken);
+      if (
+        conv.inputReceiptVersion === undefined &&
+        (evt?.type === "session_error" ||
+          (evt?.type === "result" && evt.is_error))
+      ) {
+        conv.inputInitError = new Error(
+          "Agent failed to initialize; input was not dispatched",
+        );
+        for (const waiter of conv.inputInitWaiters || [])
+          waiter.reject(conv.inputInitError);
+      }
       if (evt?.type === "system" && evt.subtype === "init") {
         conv.inputReceiptVersion = evt.input_receipts?.version === 1 ? 1 : 0;
         for (const waiter of conv.inputInitWaiters || [])
@@ -2080,6 +2097,7 @@ class ChatViewProvider {
     const sessionToken = {};
     conv._sessionToken = sessionToken;
     conv.inputReceiptVersion = undefined;
+    conv.inputInitError = null;
     conv.modeRequestId = crypto.randomUUID();
     conv.modeStatus = "pending";
     conv.modeError = "";
@@ -2164,6 +2182,7 @@ class ChatViewProvider {
           for (const waiter of current.inputInitWaiters || [])
             waiter.reject(new Error("Agent exited; input was not dispatched"));
           current.inputReceiptVersion = undefined;
+          current.inputInitError = null;
           current._sessionToken = null;
           current.sessionSlashCommands = null;
           current.unconfirmedSessionSlashCommands = [];

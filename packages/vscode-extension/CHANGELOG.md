@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.121] - Allow slow CLI initialization before chat dispatch (2026-09-29)
+
+- Wait up to two minutes for the CLI's `system/init` handshake when a first
+  persisted session is bootstrapping or running startup hooks. Saved input is
+  sent once after initialization; a timeout still leaves it recoverable.
+- Fail the pending input promptly if the CLI reports an initialization error,
+  including an error that arrives before the input waiter is registered.
+- Continue recommending the publicly available `chainlesschain@0.166.79` CLI.
+
 ## [0.37.120] - Pair with CLI 0.166.79 Docker egress candidate (2026-09-29)
 
 - Recommend `chainlesschain@0.166.79` after its exact-commit release checks and
