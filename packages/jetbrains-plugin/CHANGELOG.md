@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.142] - Pair with CLI 0.166.80 Docker revocation candidate (2026-09-29)
+
+- Recommend `chainlesschain@0.166.80` only after its exact-commit CLI matrix
+  and public npm readback pass. Runtime Docker egress revocation stays in the
+  CLI; the plugin receives only the bounded command outcome.
+
 ## [0.4.141] - Pair with CLI 0.166.79 Docker egress candidate (2026-09-29)
 
 - Recommend `chainlesschain@0.166.79` after its exact-commit release checks and

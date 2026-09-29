@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.122] - Pair with CLI 0.166.80 Docker revocation candidate (2026-09-29)
+
+- Recommend `chainlesschain@0.166.80` after its exact-commit CLI matrix and
+  public npm readback pass. Runtime Docker egress revocation stays in the CLI;
+  the editor receives only the bounded command outcome.
+- Retain the `0.37.121` cold initialization and saved-draft recovery fix.
+
 ## [0.37.121] - Allow slow CLI initialization before chat dispatch (2026-09-29)
 
 - Wait up to two minutes for the CLI's `system/init` handshake when a first
