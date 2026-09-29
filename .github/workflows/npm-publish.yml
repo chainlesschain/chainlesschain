@@ -861,25 +861,29 @@ jobs:
           node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" "$MANIFEST"
           PKG_VER=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
           echo "target: chainlesschain@$PKG_VER"
-          if npm view "chainlesschain@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "chainlesschain@$PKG_VER" version --prefer-online \
+            --registry=https://registry.npmjs.org >/dev/null 2>&1; then
             echo "Exact version already published; verifying registry bytes"
           else
             npm publish "$TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
           mkdir -p registry-verify
           REGISTRY_TARBALL=""
-          for ATTEMPT in {1..30}; do
-            if npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify \
+          # npm can return a cached pre-publish package manifest while the
+          # newly published version is still propagating through the registry.
+          for ATTEMPT in {1..90}; do
+            if npm pack "chainlesschain@$PKG_VER" --prefer-online \
+              --registry=https://registry.npmjs.org --pack-destination registry-verify \
               >/dev/null 2>registry-verify/npm-pack.err; then
               REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
               break
             fi
-            if [ "$ATTEMPT" -eq 30 ]; then
-              echo "Registry did not expose chainlesschain@$PKG_VER after 30 attempts" >&2
+            if [ "$ATTEMPT" -eq 90 ]; then
+              echo "Registry did not expose chainlesschain@$PKG_VER after 90 attempts" >&2
               cat registry-verify/npm-pack.err >&2
               exit 1
             fi
-            echo "::notice::Registry has not exposed chainlesschain@$PKG_VER yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            echo "::notice::Registry has not exposed chainlesschain@$PKG_VER yet (attempt $ATTEMPT/90); retrying in 10 seconds"
             sleep 10
           done
           test -n "$REGISTRY_TARBALL"
@@ -899,7 +903,7 @@ jobs:
             npm init --yes >/dev/null
           )
           VERIFIED=false
-          for ATTEMPT in {1..30}; do
+          for ATTEMPT in {1..90}; do
             INSTALL_ERROR="$AUDIT_ROOT/npm-install.err"
             AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
             AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
@@ -910,12 +914,12 @@ jobs:
                   --registry=https://registry.npmjs.org "chainlesschain@$VERSION" \
                   2> "$INSTALL_ERROR"
               ); then
-                if [ "$ATTEMPT" -eq 30 ]; then
-                  echo "npm did not expose installable chainlesschain@$VERSION after 30 attempts" >&2
+                if [ "$ATTEMPT" -eq 90 ]; then
+                  echo "npm did not expose installable chainlesschain@$VERSION after 90 attempts" >&2
                   cat "$INSTALL_ERROR" >&2 || true
                   exit 1
                 fi
-                echo "::notice::Published chainlesschain@$VERSION is not installable yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+                echo "::notice::Published chainlesschain@$VERSION is not installable yet (attempt $ATTEMPT/90); retrying in 10 seconds"
                 sleep 10
                 continue
               fi
@@ -926,12 +930,12 @@ jobs:
                 > agent-capabilities.json 2> agent-capabilities.err
             ); then
               rm -rf "$AUDIT_ROOT/node_modules" "$AUDIT_ROOT/package-lock.json"
-              if [ "$ATTEMPT" -eq 30 ]; then
+              if [ "$ATTEMPT" -eq 90 ]; then
                 echo "Published chainlesschain@$VERSION cannot start the Agent command" >&2
                 cat "$AUDIT_ROOT/agent-capabilities.err" >&2 || true
                 exit 1
               fi
-              echo "::notice::Published Agent command is not executable yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+              echo "::notice::Published Agent command is not executable yet (attempt $ATTEMPT/90); retrying in 10 seconds"
               sleep 10
               continue
             fi
@@ -952,13 +956,13 @@ jobs:
               VERIFIED=true
               break
             fi
-            if [ "$ATTEMPT" -eq 30 ]; then
-              echo "npm did not expose valid signed provenance for chainlesschain@$VERSION after 30 attempts" >&2
+            if [ "$ATTEMPT" -eq 90 ]; then
+              echo "npm did not expose valid signed provenance for chainlesschain@$VERSION after 90 attempts" >&2
               cat "$INSTALL_ERROR" >&2 || true
               cat "$AUDIT_ERROR" >&2 || true
               exit 1
             fi
-            echo "::notice::Signed npm provenance is not ready for chainlesschain@$VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            echo "::notice::Signed npm provenance is not ready for chainlesschain@$VERSION (attempt $ATTEMPT/90); retrying in 10 seconds"
             sleep 10
           done
           test "$VERIFIED" = true
