@@ -329,10 +329,21 @@ function enumerateLinuxProcesses() {
     .filter(Boolean);
 }
 
-function enumerateWindowsProcesses() {
+function windowsProcessQuery(pid = null) {
+  if (pid !== null && (!Number.isSafeInteger(pid) || pid <= 0)) {
+    throw new TypeError("Windows process observer requires a valid PID");
+  }
+  return (
+    "SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process" +
+    (pid === null ? "" : ` WHERE ProcessId = ${pid}`)
+  );
+}
+
+function enumerateWindowsProcesses(pid = null) {
+  const query = windowsProcessQuery(pid);
   const script = [
     "$ErrorActionPreference = 'Stop'",
-    "$query = 'SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process'",
+    `$query = '${query}'`,
     "$rows = @(Get-CimInstance -Query $query | ForEach-Object {",
     "  [pscustomobject]@{",
     "    platform = 'win32'",
@@ -353,9 +364,17 @@ function enumerateWindowsProcesses() {
       windowsHide: true,
     },
   );
-  if (result.error) throw result.error;
+  const target = pid === null ? "full snapshot" : `PID ${pid}`;
+  if (result.error) {
+    throw new Error(
+      `Windows host process observer ${target} failed: ${result.error.code || "spawn_error"}`,
+      { cause: result.error },
+    );
+  }
   if (result.status !== 0) {
-    throw new Error("Windows host process observer failed");
+    throw new Error(
+      `Windows host process observer ${target} exited ${result.status}`,
+    );
   }
   const parsed = result.stdout.trim() ? JSON.parse(result.stdout) : [];
   return (Array.isArray(parsed) ? parsed : [parsed]).map((row) => ({
@@ -1085,7 +1104,14 @@ async function waitForValue(factory, description, timeoutMs) {
 async function captureHostProcessIdentity(pid) {
   return waitForValue(
     () => {
-      const row = enumerateHostProcesses().find((item) => item.pid === pid);
+      // A full WMI process snapshot can exceed the bounded observer budget on
+      // a busy hosted runner. Query the known sandbox root by its exact PID;
+      // descendant and nonce checks still take complete snapshots below.
+      const rows =
+        process.platform === "win32"
+          ? enumerateWindowsProcesses(pid)
+          : enumerateHostProcesses();
+      const row = rows.find((item) => item.pid === pid);
       return hostProcessIdentity(row);
     },
     "a host process identity",
@@ -1438,12 +1464,16 @@ function materializeProbe({
 }
 
 describe("materialized MCP capsule host observer helpers", () => {
-  it("projects only the Windows process identity fields used by the observer", () => {
-    const source = enumerateWindowsProcesses.toString();
-    expect(source).toContain(
-      "SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process",
+  it("projects the Windows identity fields and limits known-PID queries", () => {
+    const fields =
+      "SELECT ProcessId, ParentProcessId, CreationDate, CommandLine FROM Win32_Process";
+    expect(windowsProcessQuery()).toBe(fields);
+    expect(windowsProcessQuery(123)).toBe(`${fields} WHERE ProcessId = 123`);
+    expect(() => windowsProcessQuery(0)).toThrow("valid PID");
+    expect(() => windowsProcessQuery("123")).toThrow("valid PID");
+    expect(enumerateWindowsProcesses.toString()).not.toContain(
+      "Get-CimInstance Win32_Process",
     );
-    expect(source).not.toContain("Get-CimInstance Win32_Process");
   });
 
   it("re-executes Linux children through the exact Broker-mounted runtime", () => {
