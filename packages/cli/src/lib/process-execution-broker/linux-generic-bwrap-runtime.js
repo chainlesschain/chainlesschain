@@ -21,13 +21,13 @@ import {
   buildLinuxBwrapDescriptorScrubbedLaunch,
   LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
 } from "./linux-bwrap-descriptor-launch.js";
+import { linuxTmpfileFlag } from "./linux-open-flags.js";
 
 const BWRAP_PATH = "/usr/bin/bwrap";
 const MAX_ATTESTED_FILE_BYTES = 256 * 1024 * 1024;
 const MAX_MOUNTINFO_BYTES = 4 * 1024 * 1024;
 const MOUNTINFO_PATH = "/proc/self/mountinfo";
 const MOUNT_TOPOLOGY_VERSION = 1;
-const O_TMPFILE = 0x410000;
 const SYSTEM_DESTINATIONS = [
   "/usr",
   "/bin",
@@ -1085,7 +1085,7 @@ function createTrustedResources(
       const flags =
         Number(constants.O_RDWR) |
         Number(constants.O_EXCL) |
-        Number(constants.O_TMPFILE ?? O_TMPFILE) |
+        linuxTmpfileFlag(constants) |
         Number(constants.O_NOFOLLOW || 0) |
         Number(constants.O_NONBLOCK || 0);
       const fd = track(runtime.fs.openSync("/tmp", flags, 0o400), phase);

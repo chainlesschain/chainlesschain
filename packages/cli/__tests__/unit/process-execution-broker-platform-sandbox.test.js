@@ -681,6 +681,7 @@ function createLinuxStrongHarness({
   linuxPageSize = 4096,
   contractKind = null,
   onPolicyProbeComplete = null,
+  arm64OpenFlags = false,
 } = {}) {
   const nativeStatic = entryRuntime !== "node";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
@@ -846,10 +847,10 @@ function createLinuxStrongHarness({
       O_ACCMODE: 0x3,
       O_CREAT: 0x40,
       O_EXCL: 0x80,
-      O_TMPFILE: 0x410000,
       O_NONBLOCK: 0x800,
-      O_DIRECTORY: 0x10000,
-      O_NOFOLLOW: 0x20000,
+      ...(arm64OpenFlags
+        ? { O_DIRECTORY: 0x4000, O_NOFOLLOW: 0x8000, O_DIRECT: 0x10000 }
+        : { O_TMPFILE: 0x410000, O_DIRECTORY: 0x10000, O_NOFOLLOW: 0x20000 }),
     },
     existsSync: vi.fn((value) => {
       const filePath = resolveFdPath(value);
@@ -960,9 +961,9 @@ function createLinuxStrongHarness({
         requestedPath.match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
       );
       let filePath = resolveFdPath(value);
-      const anonymous =
-        (Number(flags) & fsRuntime.constants.O_TMPFILE) ===
-        fsRuntime.constants.O_TMPFILE;
+      const fallbackFlag = 0x400000 | fsRuntime.constants.O_DIRECTORY;
+      const anonymousFlag = fsRuntime.constants.O_TMPFILE ?? fallbackFlag;
+      const anonymous = (Number(flags) & anonymousFlag) === anonymousFlag;
       if (anonymous) {
         if (
           failNodeSnapshotTmpfileOpen &&
@@ -1596,7 +1597,11 @@ function applyLinuxStrongNativeHarness(
   );
 }
 
-function applyLinuxStrongNodeHarness(harness, args = ["--label", "ready"]) {
+function applyLinuxStrongNodeHarness(
+  harness,
+  args = ["--label", "ready"],
+  arch = "x64",
+) {
   const requiredBoundaries = [
     SANDBOX_BOUNDARIES.FILESYSTEM,
     SANDBOX_BOUNDARIES.NETWORK,
@@ -1614,7 +1619,7 @@ function applyLinuxStrongNodeHarness(harness, args = ["--label", "ready"]) {
     },
     {
       platform: "linux",
-      arch: "x64",
+      arch,
       fs: harness.fsRuntime,
       homedir: () => "/home/tester",
       spawnSync: harness.spawnSync,
@@ -2410,6 +2415,27 @@ afterAll(() => {
 describe("platform sandbox adapter contract", () => {
   beforeEach(() => {
     resetWindowsSandboxAdapterCache();
+  });
+
+  it("opens ARM64 snapshots and seccomp filters with the native anonymous flag", () => {
+    const harness = createLinuxStrongHarness({ arm64OpenFlags: true });
+    const plan = applyLinuxStrongNodeHarness(
+      harness,
+      ["--label", "ready"],
+      "arm64",
+    );
+
+    expect(plan.applied, plan.reason).toBe(true);
+    const anonymousOpens = harness.fsRuntime.openSync.mock.calls.filter(
+      ([source]) => source === "/tmp",
+    );
+    expect(anonymousOpens.length).toBeGreaterThanOrEqual(3);
+    for (const [, flags] of anonymousOpens) {
+      expect(flags & 0x404000).toBe(0x404000);
+      expect(flags & 0x10000).toBe(0);
+    }
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
   });
 
   it("reports the implicit macOS profile unavailable without altering the invocation", () => {

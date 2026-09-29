@@ -657,6 +657,28 @@ jobs:
             echo "kernel=$(uname -srmo)"
             echo "node=$(node --version)"
           } > "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+      - name: Verify native anonymous tmpfile support
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "tmp_fs=$(findmnt -rn -T /tmp -o FSTYPE)" >> "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import { linuxTmpfileFlag } from "./packages/cli/src/lib/process-execution-broker/linux-open-flags.js";
+            const c = fs.constants;
+            const tmpfile = linuxTmpfileFlag(c);
+            const flags = c.O_RDWR | c.O_EXCL | tmpfile | c.O_NOFOLLOW | c.O_NONBLOCK;
+            const fd = fs.openSync("/tmp", flags, 0o400);
+            try {
+              fs.writeSync(fd, Buffer.from("probe"));
+              fs.fsyncSync(fd);
+              const stat = fs.fstatSync(fd);
+              if (stat.nlink !== 0 || stat.size !== 5) throw new Error("anonymous tmpfile unattested");
+              console.log(`tmpfile_flag=${tmpfile.toString(16)} nlink=${stat.nlink} size=${stat.size}`);
+            } finally {
+              fs.closeSync(fd);
+            }
+          ' >> "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
       - uses: ./.github/actions/setup-linux-bwrap
       - name: Record bubblewrap version
         shell: bash

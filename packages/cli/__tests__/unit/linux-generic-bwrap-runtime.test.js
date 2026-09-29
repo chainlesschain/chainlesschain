@@ -6,6 +6,7 @@ import {
   issueLinuxGenericSandboxExecutionContract,
 } from "../../src/lib/process-execution-broker/linux-generic-bwrap.js";
 import { parseLinuxBwrapDescriptorScrubbedLaunch } from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
+import { linuxTmpfileFlag } from "../../src/lib/process-execution-broker/linux-open-flags.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const ROOT = "/work/project";
@@ -38,6 +39,7 @@ function createLinuxRuntime({
   homeIdentityAlias = false,
   omitDescriptorScrubber = false,
   mutateDescriptorScrubberAfterProbe = false,
+  arm64OpenFlags = false,
 } = {}) {
   const bwrapContents = Buffer.from("ELF-bwrap-supervisor");
   const bashContents = Buffer.from("ELF-bash-descriptor-scrubber");
@@ -194,9 +196,12 @@ function createLinuxRuntime({
   };
   const openSync = (source, flags, mode) => {
     let entry;
+    const anonymousFlag = arm64OpenFlags
+      ? 0x404000
+      : Number(fs.constants.O_TMPFILE || 0x410000);
     if (
       source === "/tmp" &&
-      (Number(flags) & Number(fs.constants.O_TMPFILE || 0x410000)) !== 0
+      (Number(flags) & anonymousFlag) === anonymousFlag
     ) {
       entry = {
         stat: typedStat({
@@ -224,7 +229,19 @@ function createLinuxRuntime({
   });
   realpathSync.native = realpathSync;
   const fakeFs = {
-    constants: fs.constants,
+    constants: arm64OpenFlags
+      ? {
+          ...fs.constants,
+          O_DIRECTORY: 0x4000,
+          O_NOFOLLOW: 0x8000,
+          O_DIRECT: 0x10000,
+          O_TMPFILE: undefined,
+        }
+      : {
+          ...fs.constants,
+          O_DIRECTORY: fs.constants.O_DIRECTORY ?? 0x10000,
+          O_TMPFILE: fs.constants.O_TMPFILE ?? 0x410000,
+        },
     realpathSync,
     existsSync(value) {
       return (
@@ -262,7 +279,7 @@ function createLinuxRuntime({
         throw new Error("EACCES");
       }
     },
-    openSync,
+    openSync: vi.fn(openSync),
     fstatSync(fd) {
       return (
         openFiles.get(fd)?.stat ||
@@ -406,7 +423,7 @@ function createLinuxRuntime({
   return {
     runtime: {
       platform: "linux",
-      arch: "x64",
+      arch: arm64OpenFlags ? "arm64" : "x64",
       execPath: "/usr/bin/node",
       fs: fakeFs,
       homedir: () => "/home/alice",
@@ -497,6 +514,35 @@ function applyHarness(harness, admitted, overrides = {}) {
 }
 
 describe("Linux generic production runtime integration", () => {
+  it("derives anonymous tmpfile flags from the native directory bit", () => {
+    expect(linuxTmpfileFlag({ O_DIRECTORY: 0x10000 })).toBe(0x410000);
+    const arm64 = { O_DIRECTORY: 0x4000, O_DIRECT: 0x10000 };
+    expect(linuxTmpfileFlag(arm64)).toBe(0x404000);
+    expect(linuxTmpfileFlag(arm64) & arm64.O_DIRECT).toBe(0);
+    expect(() => linuxTmpfileFlag({ ...arm64, O_TMPFILE: 0x410000 })).toThrow(
+      "linux_o_tmpfile_invalid",
+    );
+    expect(() => linuxTmpfileFlag({})).toThrow("linux_o_directory_unavailable");
+  });
+
+  it("opens the generic ARM64 seccomp filter without O_DIRECT", () => {
+    const harness = createLinuxRuntime({ arm64OpenFlags: true });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan.applied, plan.reason).toBe(true);
+    const anonymousOpens = harness.runtime.fs.openSync.mock.calls.filter(
+      ([source]) => source === "/tmp",
+    );
+    expect(anonymousOpens.length).toBeGreaterThanOrEqual(2);
+    for (const [, flags] of anonymousOpens) {
+      expect(flags & 0x404000).toBe(0x404000);
+      expect(flags & 0x10000).toBe(0);
+    }
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
   it("pins and capability-checks the setsid launcher for a controlling PTY plan", () => {
     const harness = createLinuxRuntime();
     const { admitted } = issueAndAdmit({ pty: true });

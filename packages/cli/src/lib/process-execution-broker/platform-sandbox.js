@@ -33,6 +33,7 @@ import {
   applyLinuxGenericWorkspaceSandbox,
   isLinuxGenericWorkspaceContract,
 } from "./linux-generic-bwrap-runtime.js";
+import { linuxTmpfileFlag } from "./linux-open-flags.js";
 import {
   buildLinuxBwrapDescriptorScrubbedLaunch,
   LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
@@ -288,10 +289,7 @@ const LINUX_ELF_MACHINES = Object.freeze({
   arm64: 183,
   riscv64: 243,
 });
-// Linux asm-generic: __O_TMPFILE (0x400000) | O_DIRECTORY (0x010000).
-// x64, arm64, and riscv64 use this value; unsupported seccomp architectures
-// already fail closed before the anonymous filter is created.
-const LINUX_O_TMPFILE = 0x410000;
+// Anonymous snapshots and seccomp filters require the native O_TMPFILE flag.
 const LINUX_CLONE_NEWNS = 0x00020000;
 const LINUX_CLONE_NEWUSER = 0x10000000;
 const LINUX_NAMESPACE_CLONE_FLAGS = LINUX_CLONE_NEWNS | LINUX_CLONE_NEWUSER;
@@ -2728,9 +2726,7 @@ function sameWindowsFileIdentity(left, right) {
 // the deletion authority.
 function sameWindowsFileObjectIdentity(left, right) {
   return (
-    left.dev === right.dev &&
-    left.ino === right.ino &&
-    left.mode === right.mode
+    left.dev === right.dev && left.ino === right.ino && left.mode === right.mode
   );
 }
 
@@ -5853,7 +5849,7 @@ function createLinuxRegularFileSnapshot(
     const writerFlags =
       Number(constants.O_RDWR) |
       Number(constants.O_EXCL) |
-      Number(constants.O_TMPFILE ?? LINUX_O_TMPFILE) |
+      linuxTmpfileFlag(constants) |
       Number(constants.O_NOFOLLOW || 0) |
       Number(constants.O_NONBLOCK || 0);
     writerFd = runtime.fs.openSync("/tmp", writerFlags, snapshotSourceMode);
@@ -7442,7 +7438,7 @@ function pinLinuxNetworkSeccompFilter(runtime, options = {}) {
     const flags =
       Number(constants.O_RDWR) |
       Number(constants.O_EXCL) |
-      Number(constants.O_TMPFILE ?? LINUX_O_TMPFILE) |
+      linuxTmpfileFlag(constants) |
       Number(constants.O_NOFOLLOW || 0) |
       Number(constants.O_NONBLOCK || 0);
     // An anonymous inode avoids a same-UID process opening the filter by path.
