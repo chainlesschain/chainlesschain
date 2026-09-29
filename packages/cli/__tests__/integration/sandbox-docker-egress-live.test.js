@@ -6,6 +6,8 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import net from "node:net";
+import dgram from "node:dgram";
+import dns from "node:dns";
 import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
@@ -60,6 +62,9 @@ async function liveFixture(policy) {
   const sockets = new Set();
   return {
     workspace,
+    get openSockets() {
+      return sockets.size;
+    },
     track(server) {
       servers.push(server);
       server.on("connection", (socket) => {
@@ -361,6 +366,146 @@ console.log(JSON.stringify({allowed,denied:denied.status,tcp,unix,udp}));})().ca
 });
 
 describe.runIf(LIVE)("Docker egress extended real traffic", () => {
+  it("blocks direct DNS queries while the host DNS service is reachable", async () => {
+    const f = await liveFixture({ allowedDomains: ["127.0.0.1"] });
+    const server = dgram.createSocket("udp4");
+    let queries = 0;
+    server.on("message", (message, peer) => {
+      queries += 1;
+      let end = 12;
+      while (message[end] !== 0) end += message[end] + 1;
+      end += 5; // zero terminator, QTYPE and QCLASS
+      const header = Buffer.alloc(12);
+      message.copy(header, 0, 0, 2);
+      header.writeUInt16BE(0x8180, 2);
+      header.writeUInt16BE(1, 4);
+      header.writeUInt16BE(1, 6);
+      const answer = Buffer.from([
+        0xc0,
+        0x0c, // compression pointer to the question name
+        0,
+        1,
+        0,
+        1, // A / IN
+        0,
+        0,
+        0,
+        0, // TTL
+        0,
+        4,
+        127,
+        0,
+        0,
+        9,
+      ]);
+      server.send(
+        Buffer.concat([header, message.subarray(12, end), answer]),
+        peer.port,
+        peer.address,
+      );
+    });
+    try {
+      const port = await new Promise((resolve, reject) => {
+        server.once("error", reject);
+        server.bind(0, "127.0.0.1", () => resolve(server.address().port));
+      });
+      const hostResolver = new dns.promises.Resolver({
+        timeout: 1_000,
+        tries: 1,
+      });
+      hostResolver.setServers([`127.0.0.1:${port}`]);
+      expect(await hostResolver.resolve4("nonce.policy.test")).toEqual([
+        "127.0.0.9",
+      ]);
+      expect(queries).toBe(1);
+      fs.writeFileSync(
+        path.join(f.workspace, "dns.cjs"),
+        `const dns=require('node:dns');
+const resolver=new dns.promises.Resolver({timeout:1000,tries:1});
+resolver.setServers(['127.0.0.1:${port}']);
+resolver.resolve4('nonce.policy.test').then(addresses=>console.log(JSON.stringify({addresses})),error=>console.log(JSON.stringify({error:error.code})));`,
+      );
+      const { session } = await f.start();
+      const result = await session.run("node /workspace/dns.cjs", {
+        timeoutMs: 10_000,
+      });
+      expect(result.exitCode, result.stderr).toBe(0);
+      const report = JSON.parse(result.stdout);
+      expect(report.addresses).toBeUndefined();
+      expect(report.error).toBeTruthy();
+      expect(queries).toBe(1);
+    } finally {
+      await f.close();
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }, 180_000);
+
+  it("revokes ongoing HTTP and WebSocket streams inside the real Docker cell", async () => {
+    const f = await liveFixture({ allowedDomains: ["127.0.0.1"] });
+    let httpResponse;
+    let webSocket;
+    const upstream = f.track(
+      http.createServer((_request, response) => {
+        httpResponse = response;
+        response.writeHead(200, { "content-type": "text/plain" });
+        response.write("first-http-frame\n");
+      }),
+    );
+    upstream.on("upgrade", (_request, socket) => {
+      webSocket = socket;
+      socket.write(
+        "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\nfirst-ws-frame\n",
+      );
+    });
+    let running;
+    try {
+      const { port } = await listen(upstream, 0, "127.0.0.1");
+      fs.writeFileSync(
+        path.join(f.workspace, "streams.cjs"),
+        `const fs=require('node:fs'),http=require('node:http'),net=require('node:net');
+const seen={http:'',ws:''},closed={http:false,ws:false};
+let ready=false,finished=false;
+const deadline=setTimeout(()=>{console.error('stream teardown timed out');process.exit(5)},20000);
+function finish(){if(finished||!closed.http||!closed.ws)return;finished=true;clearTimeout(deadline);console.log(JSON.stringify({seen,closed}));}
+function markReady(){if(!ready&&seen.http.includes('first-http-frame')&&seen.ws.includes('first-ws-frame')){ready=true;fs.writeFileSync('/workspace/streams-ready','ready')}}
+const req=http.get({host:'127.0.0.1',port:3128,path:'http://127.0.0.1:${port}/stream'},res=>{if(res.statusCode!==200)process.exit(6);res.on('data',chunk=>{seen.http+=chunk;markReady()});res.on('close',()=>{closed.http=true;finish()})});
+req.on('error',()=>{closed.http=true;finish()});
+const ws=net.connect(3128,'127.0.0.1');let tunnel=false;
+ws.on('connect',()=>ws.write('CONNECT 127.0.0.1:${port} HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\n\\r\\n'));
+ws.on('data',chunk=>{seen.ws+=chunk;if(!tunnel&&seen.ws.includes('\\r\\n\\r\\n')){if(!seen.ws.startsWith('HTTP/1.1 200'))process.exit(7);tunnel=true;ws.write('GET /ws HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\nUpgrade: websocket\\r\\nConnection: Upgrade\\r\\n\\r\\n')}markReady()});
+ws.on('error',()=>{});ws.on('close',()=>{closed.ws=true;finish()});`,
+      );
+      const { proxy, session } = await f.start();
+      running = session.run("node /workspace/streams.cjs", {
+        timeoutMs: 30_000,
+      });
+      void running.catch(() => {});
+      await waitForFile(path.join(f.workspace, "streams-ready"));
+      expect(httpResponse).toBeDefined();
+      expect(webSocket).toBeDefined();
+      expect(
+        await proxy.updatePolicy({ allowedDomains: ["elsewhere.test"] }, 0),
+      ).toBe(1);
+      // The upstream tries another frame after the revision acknowledgement.
+      httpResponse.write("after-http-revocation\n");
+      webSocket.write("after-ws-revocation\n");
+      const result = await running;
+      expect(result.exitCode, result.stderr).toBe(0);
+      const report = JSON.parse(result.stdout);
+      expect(report.closed).toEqual({ http: true, ws: true });
+      expect(report.seen.http).toContain("first-http-frame");
+      expect(report.seen.ws).toContain("first-ws-frame");
+      expect(report.seen.http).not.toContain("after-http-revocation");
+      expect(report.seen.ws).not.toContain("after-ws-revocation");
+      const deadline = Date.now() + 5_000;
+      while (f.openSockets && Date.now() < deadline) await delay(25);
+      expect(f.openSockets).toBe(0);
+    } finally {
+      await f.close();
+      await running?.catch(() => {});
+    }
+  }, 180_000);
+
   it("checks IPv6, redirect authorities, WebSocket CONNECT and descendant processes", async () => {
     const f = await liveFixture({ allowedDomains: ["127.0.0.1", "::1"] });
     let ipv6Connections = 0;
