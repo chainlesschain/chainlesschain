@@ -1,6 +1,6 @@
 ﻿# 会话管理 (session)
 
-> Headless 命令。2026-09-28 当前 npm `latest` CLI 为 Agent Platform `0.166.78`。`session` 同时承载传统会话管理、会话级审批策略、耐久跨会话消息与 session group/批量移动；App Server Thread 是产品协议层的独立身份，恢复时不要与 CLI session ID 混用。公开 Open VSX `0.37.119` 与 JetBrains `0.4.140` 配合该 CLI 提供会话历史分页、跨重启恢复与有界草稿处理。
+> Headless 命令。2026-09-29 当前 npm `latest` CLI 为 Agent Platform `0.166.80`。`session` 同时承载传统会话管理、会话级审批策略、耐久跨会话消息与 session group/批量移动；App Server Thread 是产品协议层的独立身份，恢复时不要与 CLI session ID 混用。公开 Open VSX `0.37.121` 与 JetBrains `0.4.141` 的制品清单推荐 CLI `0.166.79`；源码中的下一版插件配对 `0.166.80`，尚不能作为商店版本安装。
 
 IDE 显示的历史来自 CLI 已提交的权威消息记录。Stop 或重启后先重新读取会话状态；尚未提交的流式片段不应当作已完成历史，草稿也不授予新的执行或审批权限。出现记录校验失败时先用 `cc session validate` 检查该会话，再恢复；不要直接编辑 JSONL 或绕过 CLI 审批。
 

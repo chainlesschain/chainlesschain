@@ -506,9 +506,9 @@ const packs = [
 
   <section class="py-12 border-t border-line">
     <div class="container-wide max-w-4xl">
-      <p class="font-mono text-sm text-muted">2026-09-26 · CLI {CLI_VERSION}</p>
-      <h2 class="mt-3 text-3xl font-bold">恢复更可靠，PM 效果证据可复核</h2>
-      <p class="mt-5 text-lg text-muted leading-relaxed">CLI {CLI_VERSION} 加入会话历史分页与恢复、有界草稿处理，并加强 Linux 后台进程清理和 Windows 本地目标启动。PM 对照计划、cohort 槽位与逐槽签名回执对账已包含在发布源码 {SOURCE_HEAD_COMMIT} 中；可信宿主仍需独立证明全部目标启动、回执来源及实际成本。真实 PM/Pilot 收益尚未验收，自动 active Skill 晋升保持 HOLD。</p>
+      <p class="font-mono text-sm text-muted">2026-09-29 · CLI {CLI_VERSION}</p>
+      <h2 class="mt-3 text-3xl font-bold">Linux Docker 域名出站隔离</h2>
+      <p class="mt-5 text-lg text-muted leading-relaxed">CLI {CLI_VERSION} 支持显式选择的 Linux x64/arm64 Docker 出站路径：固定镜像、明确域名规则和受限代理缺一不可；策略变化时终止活动连接与 shell，失败时不退回无沙箱执行。会话历史恢复与逐槽签名 PM 回执对账仍保留；可信宿主仍需证明全部目标启动、回执来源及实际成本。真实 PM/Pilot 收益尚未验收，自动 active Skill 晋升保持 HOLD。</p>
       <a class="btn-ghost mt-4" href="https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html">PM 效果评测指南 ↗</a>
     </div>
   </section>
@@ -518,7 +518,7 @@ const packs = [
       <span class="chip">CLI {CLI_VERSION}</span>
       <h2 class="mt-5 text-4xl md:text-5xl">长任务，接着完成。</h2>
       <p class="mt-5 text-lg text-muted leading-relaxed">交互式流式任务不再因默认 50 次模型调用中断。大文件分页读取，压缩后保留原位置，未变化页直接复用，编辑后重新读取。慢命令运行时，IDE 会话继续响应。</p>
-      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 继承浏览器 action authority、下载耐久 quarantine、PM 有界子进程和恢复控制，并支持三种类型化 Skill 决策提供方。精确 SHA 的 CLI CI/Strict 已通过 Linux、Windows、macOS；npm 发布成功，公共 registry 的 latest 已回读为 {CLI_VERSION}。</p>
+      <p class="mt-4 text-sm text-muted">公开 CLI {CLI_VERSION} 继承浏览器 action authority、下载耐久 quarantine、PM 有界子进程和恢复控制，并支持三种默认关闭的类型化 Skill 决策提供方。Linux Docker 出站隔离需在 settings 中配置固定镜像与域名规则，并显式启用网络；精确 SHA 的 CLI CI/Strict 已通过三平台，npm 公共字节与签名来源已回读。</p>
       <a class="inline-block mt-6 text-ember hover:underline" href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html">查看设置与升级指南 →</a>
     </div>
   </section>

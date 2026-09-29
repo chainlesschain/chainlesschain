@@ -1,22 +1,22 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-09-28 最新发布与代码核对
+## 2026-09-29 最新发布与代码核对
 
-当前 npm `latest` 为 **CLI 0.166.78**，不可变标签 `v-npm-0-166-78` 指向 `3400318446`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803981) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803887)通过配置的 Linux/Windows/macOS 任务；[精确提交 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675)成功，公共 npm registry 的 `latest` 已回读为 `0.166.78`。本版增加跨 CLI/IDE 的会话历史分页与恢复、有界草稿处理，并加强后台进程清理和宿主恢复。可选 Skill 决策仍默认关闭，保持请求/响应各 256 KiB 与未知用量失败闭合的边界。
+当前 npm `latest` 为 **CLI 0.166.80**，不可变标签 `v-npm-0-166-80` 指向 `dd6b131837`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36554790810) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36554998759)通过配置的 Linux/Windows/macOS 任务；[精确提交 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36555954429)在 npm 注册表传播延迟后重跑成功，公共包字节、签名 provenance 和 `latest` 均已回读。`0.166.79–0.166.80` 增加显式选择的 Linux Docker 域名出站隔离，并在策略变化时撤销运行中的连接与 shell；该路径要求固定 SHA-256 镜像、明确域名规则和异步执行，失败时不会退回无沙箱执行。此前的会话恢复、后台进程清理及默认关闭的 Skill 决策边界继续保留。
 
-Open VSX **0.37.119** 已公开并推荐 CLI `0.166.78`。JetBrains Marketplace **0.4.140** 已获批准并公开列出，同样推荐 CLI `0.166.78`。Microsoft Marketplace 未发行。桌面与移动端继续使用独立产品发行 **v5.0.3.138**；iOS ad-hoc IPA 仅限已授权设备。
+Open VSX **0.37.121** 已公开，JetBrains Marketplace **0.4.141** 已批准并公开列出；两者的制品清单均推荐 CLI `0.166.79`。当前源码中的 VS Code `0.37.122` 和 JetBrains `0.4.142` 配对 CLI `0.166.80`，尚不能写成已公开商店版本。Microsoft Marketplace 未发行。桌面与移动端继续使用独立产品发行 **v5.0.3.138**；iOS ad-hoc IPA 仅限已授权设备。
 
-本次按 `main@c2ff6d036e` 核对：PM 效果计划、冻结 cohort 槽位、签名 Eval 证据、逐槽最终回执与保守分母对账均已进入 `0.166.78@3400318446` 的源码身份。主线随后修正 IDE 清单的版本配对。可信宿主仍需单独证明目标环境的全部启动入口、回执来源和实际成本；现有接口只核验提交给它的回执。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，automatic active Skill promotion 保持 HOLD。
+本次按 `main@dd6b131837` 核对：PM 效果计划、冻结 cohort 槽位、签名 Eval 证据、逐槽最终回执与保守分母对账均已进入 `0.166.80` 的源码身份。可信宿主仍需单独证明目标环境的全部启动入口、回执来源和实际成本；现有接口只核验提交给它的回执。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，automatic active Skill promotion 保持 HOLD。
 
 详见[增量设计](docs/design/agent-runtime-update-2026-09-26.md)、[PM 效果评测指南](docs-site/docs/chainlesschain/pm-effect-evaluation.md)与[发布升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。下方带日期的旧版本记录保留其当时状态。
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.78`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.80`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.78 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.80 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
