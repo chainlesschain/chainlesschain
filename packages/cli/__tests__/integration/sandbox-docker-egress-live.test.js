@@ -463,6 +463,9 @@ resolver.resolve4('nonce.policy.test').then(addresses=>console.log(JSON.stringif
       ]);
     upstream.on("upgrade", (request, socket) => {
       webSocket = socket;
+      // Node leaves upgraded sockets half-open after the peer sends FIN.
+      // Model a WebSocket server that closes its writable side on EOF.
+      socket.once("end", () => socket.end());
       const accept = crypto
         .createHash("sha1")
         .update(
