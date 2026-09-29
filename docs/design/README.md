@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-28 当前 npm `latest` 为 Agent Platform `0.166.78@3400318446`；该精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox 与 npm 发布已通过，公共 registry 已回读。配套 Open VSX `0.37.119` 和 JetBrains `0.4.140` 均已公开；Microsoft VS Code Marketplace 与 Desktop/native 保持独立发布身份。详见[本轮增量设计](./agent-runtime-update-2026-09-26.md)。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。2026-09-29 npm `latest` 为 Agent Platform `0.166.80@dd6b131837`；该精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox 与 npm 发布回读已通过。Open VSX `0.37.121` 和 JetBrains `0.4.141` 已公开，但两者的商店制品仍推荐 CLI `0.166.79`；配对 `0.166.80` 的 `0.37.122/0.4.142` 目前仅在源码。Microsoft VS Code Marketplace 与 Desktop/native 保持独立发布身份。详见[本轮增量设计](./agent-runtime-update-2026-09-26.md)。
 
 ## 当前重点
 
@@ -13,14 +13,14 @@
 - 前序精确发布 SHA `2f5b0f263a` 的 Protocol、Python SDK、CLI CI、Strict Sandbox、IDE、Android、iOS、Desktop、E2E、Full/Code Quality 与 1,800 秒 App Server overload/RSS soak 均通过；Protocol `0.1.5`、TS/Python SDK `0.2.4`、CLI `0.166.5` 和 Open VSX `0.37.70` 已完成公网回读。该长期 soak 继续作为前序证据，不归因到 `0.166.7@19834a1845`。
 - Desktop 与 VS Code 已接入默认关闭、仅暴露固定 Thread/Turn 方法的 `AppServerPilotClient`；审批 UI 未接入前保持 canonical decline，Desktop 子进程继续经过 Process Broker。
 - App Server 新增实验 WebSocket：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求显式远程授权与 TLS；连接、payload、请求、输出、buffer 和清理时间全部有界。
-- CLI `0.166.78@3400318446` 是当前 npm `latest`，三平台 CLI CI、Strict Sandbox 与精确提交 npm 发布已通过；Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`、Agent SDK TS/Python `0.2.11/0.2.9` 与 Protocol `0.1.11` 保持各自公开身份。历史 Graph/Context/Memory/安全能力继续保留，但每项证据仍绑定其原始 exact SHA。
+- CLI `0.166.80@dd6b131837` 是当前 npm `latest`，三平台 CLI CI、Strict Sandbox 与精确提交 npm 发布已通过；Linux Docker 域名出站隔离必须显式选择，策略撤销会终止活动连接和 shell，能力不满足时失败闭合。Session Core `0.3.13`、Context/Memory Kernel `0.1.5`、Personal Data Hub `0.4.62`、Agent SDK TS/Python `0.2.11/0.2.9` 与 Protocol `0.1.11` 保持各自公开身份。历史 Graph/Context/Memory/安全能力继续保留，但每项证据仍绑定其原始 exact SHA。
 - Desktop 源码继续提供只读 Graph Run Debugger、外部 Skill Ed25519/摘要/隔离 Worker、内置 Handler 能力目录与网络/文件/环境/进程/凭据 Broker；同一 exact SHA 新增 macOS entitlement/notarization 钩子、签名安装/启动探针与 Desktop Skill qualification producer。这些是 Desktop/native 源码和资格证据，不是 npm CLI 包字节，也不自动证明公共 native 分发完成。
 - 早期 `233e1bdc` source-only 演化快照已由 `0.166.24` 中的持久 composition、Workbench、digest-bound Retrieval、知识 merge authority、向量隔离 worker 与 trust ledger 取代。仓库闭环仍不等于目标环境已部署 KMS/PKI/witness/grader 或允许客户端绕过治理。
 - Record & Replay 真实 Playwright driver 只执行审阅过的 `observe/click/type/select/assert`，拒绝 filesystem、HTTP(S)、WebSocket 与环境漂移，receipt 不保留 selector、输入值、页面正文、URL 或截图本体；Codex App Server adapter 只允许显式验证过的上游 patch，未知版本在 turn admission 前回退稳定 JSONL 路径。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX 当前公开 `0.37.119`；JetBrains Marketplace `0.4.140` 已由公共 API 回读确认批准与上架，两端推荐 CLI `0.166.78`。两端继续保持 CLI-authoritative 投影；决策模型凭据、路由和 Skill 执行 authority 不进入 IDE。微软 VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.121`；JetBrains Marketplace `0.4.141` 已由公共 API 回读确认批准与上架，两端制品推荐 CLI `0.166.79`。两端继续保持 CLI-authoritative 投影；决策模型凭据、路由和 Skill 执行 authority 不进入 IDE。微软 VS Code Marketplace 仍未发布。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。

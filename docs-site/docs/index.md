@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.78 | Open VSX 0.37.119 | 桌面与移动端"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.80 | Open VSX 0.37.121 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.78
-    details: 会话历史分页与恢复、后台进程清理及逐槽签名 PM 回执对账；真实 PM 收益仍待独立验收。
+    title: Agent Platform 0.166.80
+    details: Linux Docker 域名出站隔离需显式选择并在策略撤销时终止活动 shell；会话恢复与 PM 回执对账继续保留，真实 PM 收益仍待验收。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.119 与 JetBrains 0.4.140 均已公开。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: VS Code 0.37.121 与 JetBrains 0.4.141 均已公开，商店制品推荐 CLI 0.166.79。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.119 与 JetBrains 0.4.140 均已公开，均推荐 CLI 0.166.78；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.121 与 JetBrains 0.4.141 均已公开，均推荐 CLI 0.166.79；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -60,10 +60,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.78@3400318446；三平台 CLI/Strict 与精确提交发布成功，公共 registry 已回读。
+    details: npm latest 为 CLI 0.166.80@dd6b131837；三平台 CLI/Strict 与精确提交发布成功，公共字节和签名来源已回读。
 ---
 
-> **2026-09-28 最新核对**：npm CLI `0.166.78@3400318446`、Open VSX `0.37.119` 与 JetBrains Marketplace `0.4.140` 均已公开。CLI 增加分页会话历史与恢复、草稿边界及后台进程清理；逐槽签名 PM 回执对账已进入本版源码。主线 `c2ff6d036e` 随后修正 IDE 清单配对。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
+> **2026-09-29 最新核对**：npm CLI `0.166.80@dd6b131837` 已公开并通过三平台精确提交门禁；Open VSX `0.37.121` 与 JetBrains Marketplace `0.4.141` 已公开，但商店制品均推荐 CLI `0.166.79`。Linux Docker 出站隔离需显式配置，策略变化时终止运行中的连接与 shell。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

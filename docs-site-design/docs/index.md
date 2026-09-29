@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.78 | Open VSX 0.37.119 | JetBrains 0.4.140"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.80 | Open VSX 0.37.121 | JetBrains 0.4.141"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.78
-    details: 会话历史分页与恢复、后台进程清理及逐槽签名 PM 回执对账；浏览器 action authority 和子包先发审计保持原有边界。
+    title: Agent Platform 0.166.80
+    details: Linux Docker 域名出站隔离需显式选择，策略撤销会终止活动连接与 shell；会话恢复及 PM 回执对账保留原有边界。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
     title: IDE 任务记录与新会话交接

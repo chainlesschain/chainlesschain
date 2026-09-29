@@ -1,5 +1,17 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
+## 2026-09-29：CLI 0.166.80 与 Docker 出站边界
+
+按 `main@dd6b131837` 和公开渠道复核：npm `latest` 为 `chainlesschain@0.166.80`，不可变标签 `v-npm-0-166-80` 指向同一提交。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36554790810)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36554998759) 和 [npm 发布及公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36555954429)成功；npm 发布首次运行在成功上传后遇到注册表 `ETARGET` 可见性延迟，重跑完成精确字节与签名 provenance 验证。Open VSX `0.37.121`、JetBrains Marketplace `0.4.141` 已公开，制品均推荐 CLI `0.166.79`；源码 VS Code `0.37.122`、JetBrains `0.4.142` 配对 `0.166.80`，不能视为已公开商店制品。Desktop/native 仍按 `v5.0.3.138` 独立发行。
+
+`0.166.79–0.166.80` 在既有 Agent shell 路径中加入显式选用的 `docker-egress` 后端。它只支持 Linux x64/arm64，要求显式开启 `--sandbox-network`、在 settings 的 `sandbox.network.allowedDomains` 或 `deniedDomains` 中声明域名规则，以及为主容器和 relay 容器配置 SHA-256 固定镜像；`strict` 模式、命令排除规则和细粒度额外文件路径均不支持。容器以无网络模式运行，出站流量经私有 Unix socket、relay 和独立 worker 的策略代理；代理绑定经过校验的 HTTP 目标，DNS/IP 和域名策略由 CLI 宿主执行。代理不可用、能力不满足或策略身份变化时失败闭合，不退回无沙箱 shell。
+
+命令审批发生在 shell 分派前。运行时持续重验有效策略、插件 authority 和代理 revision；策略撤销会关闭活动连接与 shell，无法确认执行结果或清理结果时不自动重试。该机制仍需目标 Linux 主机的 Docker、网络、镜像和长期运行验证；Linux 限定的证据不能外推到 macOS/Windows，也不改变 PM/Pilot 收益和 automatic active Skill promotion 的 `HOLD`。`dd6b131837` 还修复 VS Code Agent 初始化超时后的回收与重新初始化；该修复属于尚未公开的 `0.37.122` 源码版本。
+
+以下 2026-09-28 章节保留当时的发行快照；其中版本号不代表当前 `latest`。
+
+## 2026-09-28 历史快照
+
 2026-09-28 按 `main@c2ff6d036e40cfeb25cfb819fa9cef2d02055445` 核对代码、标签与公开渠道。发布标签仍指向 `3400318446`；后续主线提交 `c2ff6d036e` 修正 IDE 清单的版本配对。`24f0cb6fb1` 已包含在 CLI `0.166.78` 的发布提交中。本文补充系统主设计、模块 110 的发行边界和模块 112 的评测证据设计；历史验收只适用于其记录的提交。
 
 ## 发行与源码身份
