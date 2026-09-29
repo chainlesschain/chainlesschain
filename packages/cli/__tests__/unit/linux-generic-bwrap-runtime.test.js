@@ -229,6 +229,7 @@ function createLinuxRuntime({
   });
   realpathSync.native = realpathSync;
   const fakeFs = {
+    // Use Linux ABI constants even when this contract test runs on macOS or Windows.
     constants: arm64OpenFlags
       ? {
           ...fs.constants,
@@ -239,8 +240,10 @@ function createLinuxRuntime({
         }
       : {
           ...fs.constants,
-          O_DIRECTORY: fs.constants.O_DIRECTORY ?? 0x10000,
-          O_TMPFILE: fs.constants.O_TMPFILE ?? 0x410000,
+          O_DIRECTORY: 0x10000,
+          O_NOFOLLOW: 0x20000,
+          O_DIRECT: 0x4000,
+          O_TMPFILE: 0x410000,
         },
     realpathSync,
     existsSync(value) {
