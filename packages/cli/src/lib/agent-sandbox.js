@@ -1130,6 +1130,14 @@ export async function executeDockerEgressShell(command, sandbox, options = {}) {
     });
     observedResult = result;
     await session.close();
+    try {
+      // The final live-authority fence must run after cleanup and immediately
+      // before the execution receipt is issued.
+      await options.beforeReceipt?.();
+    } catch (error) {
+      authorityError = error;
+      throw error;
+    }
     if (
       !startAuthorized ||
       !Number.isInteger(result?.exitCode) ||
@@ -1158,7 +1166,16 @@ export async function executeDockerEgressShell(command, sandbox, options = {}) {
         error.cleanupError = cleanupError;
       }
     }
-    if (authorityError) throw authorityError;
+    if (authorityError) {
+      if (startAuthorized)
+        return {
+          ...failure(),
+          authorityFailure: {
+            code: authorityError.code || "CC_DOCKER_EGRESS_AUTHORITY_CHANGED",
+          },
+        };
+      throw authorityError;
+    }
     return failure();
   }
 }

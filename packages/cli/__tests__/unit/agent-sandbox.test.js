@@ -19,8 +19,12 @@ import { executeTool } from "../../src/runtime/agent-core.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
 const egressMocks = vi.hoisted(() => ({ start: vi.fn() }));
+const workerMocks = vi.hoisted(() => ({ start: vi.fn() }));
 vi.mock("../../src/lib/sandbox-docker-egress.js", () => ({
   startDockerEgressSession: (...args) => egressMocks.start(...args),
+}));
+vi.mock("../../src/lib/sandbox-egress-worker.js", () => ({
+  startEgressProxyWorker: (...args) => workerMocks.start(...args),
 }));
 
 const originalSpawnSync = _deps.spawnSync;
@@ -29,6 +33,7 @@ afterEach(() => {
   _deps.spawnSync = originalSpawnSync;
   _deps.host = originalHost;
   egressMocks.start.mockReset();
+  workerMocks.start.mockReset();
 });
 
 describe("explicit Docker egress configuration and execution evidence", () => {
@@ -267,6 +272,37 @@ describe("explicit Docker egress configuration and execution evidence", () => {
     expect(JSON.stringify(result)).not.toContain("attach timeout");
   });
 
+  it("never issues applied evidence when authority is revoked after target completion", async () => {
+    _deps.host = () => host;
+    const denied = Object.assign(new Error("policy changed"), {
+      code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+    });
+    egressMocks.start.mockResolvedValue({
+      close: vi.fn(async () => {}),
+      run: async (_command, options) => {
+        await options.beforeStart();
+        return { stdout: "side effect done", stderr: "", exitCode: 0 };
+      },
+    });
+    const result = await executeDockerEgressShell(
+      "write side effect",
+      config(),
+      {
+        beforeReceipt: async () => {
+          throw denied;
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      exitCode: 1,
+      stdout: "side effect done",
+      executionOutcome: "completed-cleanup-unknown",
+      retrySafe: false,
+      authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+      sandboxCapabilities: { status: "outcome-unknown", applied: [] },
+    });
+  });
+
   it("retains observed output while marking cleanup failure as uncertain", async () => {
     _deps.host = () => host;
     egressMocks.start.mockResolvedValue({
@@ -290,6 +326,126 @@ describe("explicit Docker egress configuration and execution evidence", () => {
     });
     expect(result).not.toHaveProperty("failedToStart");
     expect(JSON.stringify(result)).not.toContain("recovery-path");
+  });
+
+  it.each(["permission", "sandbox"])(
+    "revokes a running product shell when live %s authority tightens",
+    async (authority) => {
+      _deps.host = () => host;
+      const abort = vi.fn(async () => {});
+      const proxyClose = vi.fn(async () => {});
+      workerMocks.start.mockResolvedValue({
+        socketPath: "/private/broker.sock",
+        revision: 0,
+        abort,
+        close: proxyClose,
+      });
+      let started;
+      let finishRun;
+      const startedPromise = new Promise((resolve) => {
+        started = resolve;
+      });
+      const session = {
+        close: vi.fn(async () => {}),
+        run: vi.fn(async (_command, options) => {
+          await options.beforeStart();
+          started();
+          return new Promise((resolve) => {
+            finishRun = resolve;
+          });
+        }),
+      };
+      egressMocks.start.mockResolvedValue(session);
+      let denied = false;
+      const permissionRulesProvider = async () => ({
+        rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
+        sources: {},
+        scoped: { rules: [] },
+      });
+      const sandbox = config();
+      const pending = executeTool(
+        "run_shell",
+        { command: "echo side-effect" },
+        {
+          sandbox,
+          permissionRulesProvider,
+          approvalGate: {
+            decide: async () => ({
+              decision: "allow",
+              via: "policy",
+              policy: "autopilot",
+            }),
+          },
+        },
+      );
+      await startedPromise;
+      if (authority === "permission") denied = true;
+      else sandbox.policy.allowedDomains = ["changed.test"];
+      await vi.waitFor(() => expect(abort).toHaveBeenCalledOnce(), {
+        timeout: 3_000,
+      });
+      finishRun({ stdout: "side-effect", stderr: "", exitCode: 0 });
+      const result = await pending;
+      expect(session.close).toHaveBeenCalled();
+      expect(proxyClose).toHaveBeenCalled();
+      expect(result.exitCode).toBe(1);
+      expect(result.executionOutcome).toBe("completed-cleanup-unknown");
+      expect(result.retrySafe).toBe(false);
+      expect(result.sandboxCapabilities.applied).toEqual([]);
+    },
+  );
+
+  it("closes a product session delivered after authority was revoked", async () => {
+    _deps.host = () => host;
+    const abort = vi.fn(async () => {});
+    workerMocks.start.mockResolvedValue({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort,
+      close: vi.fn(async () => {}),
+    });
+    let deliverSession;
+    egressMocks.start.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          deliverSession = resolve;
+        }),
+    );
+    const session = {
+      close: vi.fn(async () => {}),
+      run: vi.fn(async () => ({ stdout: "", stderr: "", exitCode: 0 })),
+    };
+    let denied = false;
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo never-start" },
+      {
+        sandbox: config(),
+        permissionRulesProvider: async () => ({
+          rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
+          sources: {},
+          scoped: { rules: [] },
+        }),
+        approvalGate: {
+          decide: async () => ({
+            decision: "allow",
+            via: "policy",
+            policy: "autopilot",
+          }),
+        },
+      },
+    );
+    await vi.waitFor(() => expect(egressMocks.start).toHaveBeenCalledOnce());
+    denied = true;
+    await vi.waitFor(() => expect(abort).toHaveBeenCalledOnce(), {
+      timeout: 3_000,
+    });
+    deliverSession(session);
+    await expect(pending).rejects.toMatchObject({
+      code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+    });
+    expect(session.close).toHaveBeenCalled();
+    expect(session.run).not.toHaveBeenCalled();
   });
 });
 

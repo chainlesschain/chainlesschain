@@ -3398,8 +3398,23 @@ export async function executeTool(name, args, context = {}) {
         throw error;
       }
       const initialDigest = digestPolicyAuthority(initialProjection);
+      const dockerSandboxDigest =
+        context.sandbox?.engine === "docker-egress"
+          ? digestPolicyAuthority(context.sandbox)
+          : null;
       shellDispatchPolicyAuthority = Object.freeze({
         policyVersion: `cc-shell-policy-authority/v1:${initialDigest}`,
+        revalidateDockerSandbox() {
+          if (
+            !dockerSandboxDigest ||
+            digestPolicyAuthority(liveExecutionContext.sandbox || null) !==
+              dockerSandboxDigest
+          ) {
+            const error = new Error("Docker egress sandbox authority changed");
+            error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+            throw error;
+          }
+        },
         async revalidate() {
           try {
             if (
@@ -6643,9 +6658,8 @@ async function executeToolInner(
           executeSandboxedShell,
           sandboxSummary,
         } = await import("../lib/agent-sandbox.js");
-        // Keep the proxy on a separate event loop: the legacy sandbox dispatch
-        // below is synchronous. The sandbox still refuses domain-restricted
-        // execution until a non-bypassable network backend is available.
+        // Keep the proxy on a separate event loop for legacy synchronous
+        // dispatch. The Docker egress route uses an asynchronous session.
         const sboxPolicy = shellSandbox.policy || {};
         const needsEgress =
           shellSandbox.network === true &&
@@ -6658,6 +6672,7 @@ async function executeToolInner(
         let privateSocketDir = null;
         let dockerEgressSession = null;
         let proxyFailed = false;
+        let authorityMonitor = null;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
@@ -6681,7 +6696,11 @@ async function executeToolInner(
                   : {}),
                 onFailure() {
                   proxyFailed = true;
-                  void dockerEgressSession?.close().catch(() => {});
+                  authorityMonitor?.revoke(
+                    Object.assign(new Error("Docker egress broker failed"), {
+                      code: "CC_DOCKER_EGRESS_BROKER_FAILED",
+                    }),
+                  );
                 },
               },
             );
@@ -6696,10 +6715,39 @@ async function executeToolInner(
         let result;
         try {
           // Proxy startup and dynamic imports are asynchronous. Re-read the
-          // live authority once more after they settle and immediately before
-          // the synchronous sandbox dispatch.
-          await shellDispatchPolicyAuthority?.revalidate?.();
-          refreshPluginExecutionAuthority();
+          // live authority after they settle and before sandbox dispatch.
+          if (dockerEgress && proxyHandle?.socketPath) {
+            const { createDockerEgressAuthorityMonitor } =
+              await import("../lib/sandbox-egress-authority-monitor.js");
+            authorityMonitor = createDockerEgressAuthorityMonitor({
+              async revalidate() {
+                await shellDispatchPolicyAuthority?.revalidate?.();
+                shellDispatchPolicyAuthority?.revalidateDockerSandbox?.();
+                refreshPluginExecutionAuthority();
+                if (pluginBinSandboxPolicy) {
+                  const error = new Error(
+                    "A plugin sandbox authority appeared while Docker egress was running",
+                  );
+                  error.code = "ERR_PLUGIN_BIN_SANDBOX_ROUTE_CONFLICT";
+                  error.pluginBinFailClosed = true;
+                  throw error;
+                }
+                if (proxyFailed || proxyHandle.revision !== 0) {
+                  const error = new Error(
+                    "Docker egress authority changed during execution",
+                  );
+                  error.code = "CC_DOCKER_EGRESS_AUTHORITY_CHANGED";
+                  throw error;
+                }
+              },
+              abortProxy: () => proxyHandle.abort(),
+            });
+            authorityMonitor.start();
+            await authorityMonitor.checkNow();
+          } else {
+            await shellDispatchPolicyAuthority?.revalidate?.();
+            refreshPluginExecutionAuthority();
+          }
           if (pluginBinSandboxPolicy) {
             const error = new Error(
               "A plugin sandbox authority appeared while the legacy shell sandbox was starting",
@@ -6737,23 +6785,13 @@ async function executeToolInner(
                 auditContext: createShellProcessAuditContext(),
                 onSession(session) {
                   dockerEgressSession = session;
-                  if (proxyFailed) void session.close().catch(() => {});
+                  authorityMonitor.attachSession(session);
                 },
                 async beforeStart() {
-                  await shellDispatchPolicyAuthority?.revalidate?.();
-                  refreshPluginExecutionAuthority();
-                  if (
-                    proxyFailed ||
-                    proxyHandle.revision !== 0 ||
-                    pluginBinSandboxPolicy
-                  ) {
-                    const error = new Error(
-                      "Docker egress authority changed before target start",
-                    );
-                    error.code = "CC_DOCKER_EGRESS_AUTHORITY_CHANGED";
-                    throw error;
-                  }
+                  await authorityMonitor.checkNow();
+                  authorityMonitor.assertAuthorized();
                 },
+                beforeReceipt: () => authorityMonitor.finish(),
               },
             );
           } else {
@@ -6767,6 +6805,8 @@ async function executeToolInner(
             });
           }
         } finally {
+          authorityMonitor?.stop();
+          await authorityMonitor?.awaitCleanup();
           if (dockerEgressSession) {
             try {
               await dockerEgressSession.close();
@@ -6792,6 +6832,29 @@ async function executeToolInner(
             }
           }
         }
+        if (dockerEgress && authorityMonitor?.revocationError) {
+          const revoked = authorityMonitor.revocationError;
+          result.authorityFailure = {
+            code: revoked.code || "CC_DOCKER_EGRESS_AUTHORITY_CHANGED",
+            ...(revoked.cleanupError ? { cleanupFailed: true } : {}),
+          };
+          if (result.exitCode === 0) {
+            result = {
+              ...result,
+              exitCode: 1,
+              stderr:
+                "Docker egress authority was revoked; execution outcome must not be retried automatically.",
+              executionOutcome: "completed-cleanup-unknown",
+              retrySafe: false,
+              sandboxCapabilities: assessAgentSandboxCapabilities(
+                shellSandbox,
+                {
+                  execution: { attempted: true, outcomeUnknown: true },
+                },
+              ),
+            };
+          }
+        }
         const common = {
           sandbox: sandboxSummary(shellSandbox),
           sandboxCapabilities: result.sandboxCapabilities || null,
@@ -6800,6 +6863,9 @@ async function executeToolInner(
                 executionOutcome: result.executionOutcome,
                 retrySafe: result.retrySafe,
               }
+            : {}),
+          ...(result.authorityFailure
+            ? { authorityFailure: result.authorityFailure }
             : {}),
           shellCommandPolicy: shellPolicy,
           approval: approvalOutcome,

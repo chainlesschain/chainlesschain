@@ -166,6 +166,103 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     }
   }, 180_000);
 
+  it("cuts an established product tunnel when live shell authority is revoked", async () => {
+    const image = process.env.CC_DOCKER_EGRESS_IMAGE;
+    expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-revoke-"));
+    const sockets = new Set();
+    let receivedBytes = 0;
+    const upstream = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("error", () => {});
+      socket.on("data", (chunk) => {
+        receivedBytes += chunk.length;
+      });
+      socket.once("close", () => sockets.delete(socket));
+    });
+    let denied = false;
+    let pending;
+    try {
+      const before = await docker([
+        "ps",
+        "-a",
+        "--filter",
+        "label=chainless.egress.owner",
+        "--format",
+        "{{.Names}}",
+      ]);
+      const { port } = await listen(upstream, 0, "127.0.0.1");
+      fs.writeFileSync(
+        path.join(root, "tunnel.cjs"),
+        `const fs=require('node:fs'),net=require('node:net');
+const socket=net.connect(3128,'127.0.0.1');let header='';let ready=false;
+socket.on('connect',()=>socket.write('CONNECT 127.0.0.1:${port} HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\n\\r\\n'));
+socket.on('data',chunk=>{if(ready)return;header+=chunk.toString();if(header.includes('\\r\\n\\r\\n')){if(!/^HTTP\\/1\\.[01] 200 /.test(header))process.exit(3);ready=true;fs.writeFileSync('/workspace/tunnel-ready','ready');setInterval(()=>socket.write('ping'),50)}});
+socket.on('error',()=>process.exit(4));`,
+      );
+      const sandbox = normalizeAgentSandbox(true, {
+        cwd: root,
+        network: true,
+        settings: {
+          engine: "docker-egress",
+          image,
+          relayImage: image,
+          network: { allowedDomains: ["127.0.0.1"] },
+        },
+      });
+      pending = executeTool(
+        "run_shell",
+        { command: "node /workspace/tunnel.cjs", timeout: 90_000 },
+        {
+          cwd: root,
+          sandbox,
+          permissionRulesProvider: async () => ({
+            rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
+            sources: {},
+            scoped: { rules: [] },
+          }),
+          approvalGate: {
+            decide: async () => ({
+              decision: "allow",
+              via: "policy",
+              policy: "autopilot",
+            }),
+          },
+        },
+      );
+      await waitForFile(path.join(root, "tunnel-ready"));
+      const trafficDeadline = Date.now() + 5_000;
+      while (!receivedBytes && Date.now() < trafficDeadline) await delay(25);
+      expect(receivedBytes).toBeGreaterThan(0);
+      denied = true;
+      const result = await pending;
+      expect(result.exitCode, result.error).toBe(1);
+      expect(result.retrySafe).toBe(false);
+      expect(result.sandboxCapabilities.applied).toEqual([]);
+      const deadline = Date.now() + 10_000;
+      while (sockets.size && Date.now() < deadline) await delay(25);
+      expect(sockets.size).toBe(0);
+      const bytesAtTeardown = receivedBytes;
+      await delay(250);
+      expect(receivedBytes).toBe(bytesAtTeardown);
+      const after = await docker([
+        "ps",
+        "-a",
+        "--filter",
+        "label=chainless.egress.owner",
+        "--format",
+        "{{.Names}}",
+      ]);
+      expect(after).toBe(before);
+    } finally {
+      denied = true;
+      await pending?.catch(() => {});
+      for (const socket of sockets) socket.destroy();
+      await new Promise((resolve) => upstream.close(resolve));
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }, 180_000);
+
   it("allows proxy traffic but rejects direct host traffic and workspace Unix sockets", async () => {
     expect(process.platform).toBe("linux");
     const image = process.env.CC_DOCKER_EGRESS_IMAGE;
