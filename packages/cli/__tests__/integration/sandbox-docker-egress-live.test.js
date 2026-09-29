@@ -446,10 +446,12 @@ resolver.resolve4('nonce.policy.test').then(addresses=>console.log(JSON.stringif
   it("revokes ongoing HTTP and WebSocket streams inside the real Docker cell", async () => {
     const f = await liveFixture({ allowedDomains: ["127.0.0.1"] });
     let httpResponse;
+    let httpSocket;
     let webSocket;
     const upstream = f.track(
       http.createServer((_request, response) => {
         httpResponse = response;
+        httpSocket = response.socket;
         response.writeHead(200, { "content-type": "text/plain" });
         response.write("first-http-frame\n");
       }),
@@ -515,7 +517,15 @@ ws.on('error',()=>{});ws.on('close',()=>{closed.ws=true;finish()});`,
       expect(report.seen.ws).not.toContain("after-ws-revocation");
       const deadline = Date.now() + 5_000;
       while (f.openSockets && Date.now() < deadline) await delay(25);
-      expect(f.openSockets).toBe(0);
+      expect({
+        httpDestroyed: httpSocket?.destroyed,
+        webSocketDestroyed: webSocket?.destroyed,
+        openSockets: f.openSockets,
+      }).toEqual({
+        httpDestroyed: true,
+        webSocketDestroyed: true,
+        openSockets: 0,
+      });
     } finally {
       await f.close();
       await running?.catch(() => {});
