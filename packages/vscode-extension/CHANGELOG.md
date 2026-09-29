@@ -8,6 +8,8 @@ All notable changes to this extension are documented here.
   public npm readback pass. Runtime Docker egress revocation stays in the CLI;
   the editor receives only the bounded command outcome.
 - Retain the `0.37.121` cold initialization and saved-draft recovery fix.
+- Recycle an agent that remains uninitialized after the two-minute deadline;
+  an explicit resend starts a fresh child instead of waiting on the stalled one.
 
 ## [0.37.121] - Allow slow CLI initialization before chat dispatch (2026-09-29)
 

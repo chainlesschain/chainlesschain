@@ -8,6 +8,7 @@ function makeSubmission() {
   const writes = [];
   const settlements = [];
   const posts = [];
+  const stops = [];
   const provider = new ChatViewProvider(
     {},
     {
@@ -32,7 +33,13 @@ function makeSubmission() {
       writes.push(event);
       return true;
     },
+    stopAndWait: () => {
+      stops.push(session);
+      session.running = false;
+      return Promise.resolve();
+    },
   };
+  provider._convs.setSession(conv.id, session);
   provider._ensureSession = () => session;
   const onEvent = provider._makeOnEvent(conv.id, conv._sessionToken);
   const send = () =>
@@ -40,7 +47,7 @@ function makeSubmission() {
       { text: "Who are you?", clientMessageId: "msg-1" },
       conv,
     );
-  return { conv, onEvent, posts, send, settlements, writes };
+  return { conv, onEvent, posts, provider, send, settlements, stops, writes };
 }
 
 async function waitForInitWaiter(conv) {
@@ -81,7 +88,8 @@ test("an initialization failure before waiter registration rejects saved input i
 
 test("init timeout keeps the draft and a late init never dispatches it", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  const { conv, onEvent, posts, send, settlements, writes } = makeSubmission();
+  const { conv, onEvent, posts, send, settlements, stops, writes } =
+    makeSubmission();
   const submission = send();
   await waitForInitWaiter(conv);
   t.mock.timers.tick(120_000);
@@ -89,10 +97,52 @@ test("init timeout keeps the draft and a late init never dispatches it", async (
   onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
   assert.deepEqual(writes, []);
   assert.deepEqual(settlements, ["rejected"]);
+  assert.equal(stops.length, 1);
+  assert.equal(conv.session, null);
+  assert.equal(conv.stoppingSession, null);
   assert.ok(
     posts.some(
       (message) =>
         message.kind === "submissionFailed" && /timed out/.test(message.text),
     ),
   );
+});
+
+test("a resend after init timeout starts a new child and only sends after its init", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { conv, onEvent, provider, send, stops, writes } = makeSubmission();
+  const first = send();
+  await waitForInitWaiter(conv);
+  t.mock.timers.tick(120_000);
+  assert.equal(await first, false);
+  assert.equal(stops.length, 1);
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+
+  const replacementToken = {};
+  const replacement = {
+    running: true,
+    sendEvent: (event) => {
+      writes.push(event);
+      return true;
+    },
+    stopAndWait: () => Promise.resolve(),
+  };
+  provider._ensureSession = () => {
+    conv._sessionToken = replacementToken;
+    provider._convs.setSession(conv.id, replacement);
+    return replacement;
+  };
+  const second = send();
+  await waitForInitWaiter(conv);
+  assert.deepEqual(writes, []);
+  provider._makeOnEvent(
+    conv.id,
+    replacementToken,
+  )({
+    type: "system",
+    subtype: "init",
+    input_receipts: { version: 1 },
+  });
+  assert.equal(await second, true);
+  assert.equal(writes.length, 1);
 });

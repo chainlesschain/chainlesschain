@@ -28,7 +28,9 @@ CLI option.
   denial, and refuses to report a revoked command as successful. The extension
   continues to receive only the CLI's bounded outcome.
 - **Keep saved input recovery.** The cold-start fix from `0.37.121` remains in
-  the extension.
+  the extension. If initialization exceeds two minutes, the extension stops
+  that child; a deliberate resend starts a fresh one while the saved draft
+  remains available.
 
 ### Changes carried from 0.37.121
 

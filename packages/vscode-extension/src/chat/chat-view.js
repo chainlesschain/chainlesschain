@@ -383,6 +383,7 @@ class ChatViewProvider {
     if (conv.inputInitError) return Promise.reject(conv.inputInitError);
     if (conv.inputReceiptVersion !== undefined)
       return Promise.resolve(conv.inputReceiptVersion);
+    const sessionToken = conv._sessionToken;
     return new Promise((resolve, reject) => {
       const pending = {
         resolve: (version) => {
@@ -396,15 +397,23 @@ class ChatViewProvider {
           reject(error);
         },
       };
-      const timer = setTimeout(
-        () =>
-          pending.reject(
-            new Error(
-              "Agent initialization timed out; input was not dispatched",
-            ),
-          ),
-        AGENT_INIT_TIMEOUT_MS,
-      );
+      const timer = setTimeout(() => {
+        pending.reject(
+          new Error("Agent initialization timed out; input was not dispatched"),
+        );
+        // A timed-out child may stay alive forever. Detach it before the next
+        // explicit send so that a retry cannot wait on the same stalled init.
+        // The session identity check protects a replacement child from a late
+        // timer belonging to the old one. The saved draft is never resent.
+        if (
+          this._convs.get(conv.id) === conv &&
+          conv.session === session &&
+          conv._sessionToken === sessionToken &&
+          session?.running
+        ) {
+          this._stopSession(conv, { requireConfirmation: true });
+        }
+      }, AGENT_INIT_TIMEOUT_MS);
       if (!session?.running) {
         clearTimeout(timer);
         reject(new Error("Agent is not running; input was not dispatched"));
