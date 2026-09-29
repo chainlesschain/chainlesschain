@@ -197,8 +197,10 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
         `const fs=require('node:fs'),net=require('node:net');
 const socket=net.connect(3128,'127.0.0.1');let header='';let ready=false;
 socket.on('connect',()=>socket.write('CONNECT 127.0.0.1:${port} HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\n\\r\\n'));
-socket.on('data',chunk=>{if(ready)return;header+=chunk.toString();if(header.includes('\\r\\n\\r\\n')){if(!/^HTTP\\/1\\.[01] 200 /.test(header))process.exit(3);ready=true;fs.writeFileSync('/workspace/tunnel-ready','ready');setInterval(()=>socket.write('ping'),50)}});
-socket.on('error',()=>process.exit(4));`,
+socket.on('data',chunk=>{if(ready)return;header+=chunk.toString();if(header.includes('\\r\\n\\r\\n')){if(!/^HTTP\\/1\\.[01] 200 /.test(header))process.exit(3);ready=true;fs.writeFileSync('/workspace/tunnel-ready','ready')}});
+socket.on('error',()=>{});socket.on('close',()=>{});
+setInterval(()=>{if(ready&&!socket.destroyed)socket.write('ping')},50);
+setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);`,
       );
       const sandbox = normalizeAgentSandbox(true, {
         cwd: root,
@@ -212,7 +214,7 @@ socket.on('error',()=>process.exit(4));`,
       });
       pending = executeTool(
         "run_shell",
-        { command: "node /workspace/tunnel.cjs", timeout: 90_000 },
+        { command: "node /workspace/tunnel.cjs", timeout: 30_000 },
         {
           cwd: root,
           sandbox,
@@ -235,9 +237,17 @@ socket.on('error',()=>process.exit(4));`,
       while (!receivedBytes && Date.now() < trafficDeadline) await delay(25);
       expect(receivedBytes).toBeGreaterThan(0);
       denied = true;
-      const result = await pending;
+      const result = await Promise.race([
+        pending,
+        delay(10_000).then(() => {
+          throw new Error("Running Docker shell ignored revoked authority");
+        }),
+      ]);
       expect(result.exitCode, result.error).toBe(1);
       expect(result.retrySafe).toBe(false);
+      expect(result.authorityFailure).toMatchObject({
+        code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+      });
       expect(result.sandboxCapabilities.applied).toEqual([]);
       const deadline = Date.now() + 10_000;
       while (sockets.size && Date.now() < deadline) await delay(25);
@@ -254,6 +264,14 @@ socket.on('error',()=>process.exit(4));`,
         "{{.Names}}",
       ]);
       expect(after).toBe(before);
+      const heartbeatAtTeardown = fs.readFileSync(
+        path.join(root, "heartbeat"),
+        "utf8",
+      );
+      await delay(250);
+      expect(fs.readFileSync(path.join(root, "heartbeat"), "utf8")).toBe(
+        heartbeatAtTeardown,
+      );
     } finally {
       denied = true;
       await pending?.catch(() => {});

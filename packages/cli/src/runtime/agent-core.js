@@ -6788,7 +6788,7 @@ async function executeToolInner(
                   authorityMonitor.attachSession(session);
                 },
                 async beforeStart() {
-                  await authorityMonitor.checkNow();
+                  await authorityMonitor.checkFresh();
                   authorityMonitor.assertAuthorized();
                 },
                 beforeReceipt: () => authorityMonitor.finish(),

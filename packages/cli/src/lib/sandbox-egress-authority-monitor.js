@@ -88,6 +88,14 @@ export function createDockerEgressAuthorityMonitor({
     return current;
   }
 
+  async function checkFresh() {
+    // A check already in flight may have sampled authority before a dispatch
+    // or receipt boundary. Drain it, then make a new observation.
+    if (checking) await checking;
+    assertAuthorized();
+    await checkNow();
+  }
+
   function schedule() {
     if (stopped || revoked) return;
     timer = setTimeout(async () => {
@@ -108,13 +116,14 @@ export function createDockerEgressAuthorityMonitor({
     },
     start: schedule,
     checkNow,
+    checkFresh,
     assertAuthorized,
     attachSession,
     revoke,
     async finish() {
       stopped = true;
       clearTimeout(timer);
-      await checkNow();
+      await checkFresh();
       assertAuthorized();
     },
     stop() {

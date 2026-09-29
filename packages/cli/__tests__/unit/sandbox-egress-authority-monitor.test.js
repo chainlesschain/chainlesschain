@@ -66,6 +66,34 @@ describe("Docker egress live authority monitor", () => {
     expect(() => monitor.assertAuthorized()).toThrow("timed out");
   });
 
+  it("forces a new final sample after an older in-flight check succeeds", async () => {
+    let denied = false;
+    let releaseOldCheck;
+    let checks = 0;
+    const abortProxy = vi.fn(async () => {});
+    const monitor = createDockerEgressAuthorityMonitor({
+      revalidate: () => {
+        checks += 1;
+        if (checks === 1)
+          return new Promise((resolve) => {
+            releaseOldCheck = resolve;
+          });
+        if (denied) throw new Error("new policy denies shell");
+      },
+      abortProxy,
+    });
+    const oldCheck = monitor.checkNow();
+    await Promise.resolve();
+    denied = true;
+    const finalCheck = monitor.finish();
+    releaseOldCheck(true);
+    await oldCheck;
+    await expect(finalCheck).rejects.toThrow("new policy denies shell");
+    expect(checks).toBe(2);
+    await monitor.awaitCleanup();
+    expect(abortProxy).toHaveBeenCalledOnce();
+  });
+
   it("does not overlap scheduled checks and keeps a cleanup failure", async () => {
     vi.useFakeTimers();
     let resolveCheck;
