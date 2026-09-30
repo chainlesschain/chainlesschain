@@ -907,22 +907,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-      - name: Record Windows bridge owner before host journey
-        if: runner.os == 'Windows'
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-          $bridge = Join-Path $env:USERPROFILE '.chainlesschain\ide'
-          $probe = Join-Path $env:RUNNER_TEMP ('cc-owner-probe-' + [guid]::NewGuid().ToString('N'))
-          [IO.Directory]::CreateDirectory($probe) | Out-Null
-          $probeOwner = (Get-Acl -LiteralPath $probe).GetOwner([Security.Principal.SecurityIdentifier]).Value
-          Write-Output "currentSid=$sid freshDirectoryOwnerSid=$probeOwner bridgeExisted=$(Test-Path -LiteralPath $bridge)"
-          if (Test-Path -LiteralPath $bridge) {
-            $bridgeOwner = (Get-Acl -LiteralPath $bridge).GetOwner([Security.Principal.SecurityIdentifier]).Value
-            Write-Output "existingBridgeOwnerSid=$bridgeOwner"
-          }
-          [IO.Directory]::Delete($probe)
       - name: Run deterministic chat/control/resume journey (Linux)
         if: runner.os == 'Linux'
         run: >-
@@ -957,19 +941,6 @@ jobs:
           --ide-version ${{ matrix.ide.version }}
           --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/canonical-${{ runner.os }}-${{ matrix.ide.version }}
-      - name: Record Windows bridge owner after host journey
-        if: always() && runner.os == 'Windows'
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-          $homeRoot = 'packages/jetbrains-plugin/build/uiTest-home'
-          $bridges = @(Get-ChildItem -LiteralPath $homeRoot -Directory -Filter ide -Recurse -ErrorAction SilentlyContinue)
-          foreach ($bridge in $bridges) {
-            $owner = (Get-Acl -LiteralPath $bridge.FullName).GetOwner([Security.Principal.SecurityIdentifier]).Value
-            Write-Output "currentSid=$sid isolatedBridgeOwnerSid=$owner bridgePath=$($bridge.FullName)"
-          }
-          Write-Output "isolatedBridgeCount=$($bridges.Count)"
       - name: Upload host journey evidence
         if: always()
         uses: actions/upload-artifact@v6
