@@ -674,7 +674,7 @@ jobs:
               fs.fsyncSync(fd);
               const stat = fs.fstatSync(fd);
               if (stat.nlink !== 0 || stat.size !== 5) throw new Error("anonymous tmpfile unattested");
-              console.log(`tmpfile_flag=${tmpfile.toString(16)} nlink=${stat.nlink} size=${stat.size}`);
+              console.log("tmpfile_flag=" + tmpfile.toString(16) + " nlink=" + stat.nlink + " size=" + stat.size);
             } finally {
               fs.closeSync(fd);
             }
