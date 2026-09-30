@@ -6,3 +6,6 @@ packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-request.
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-notification.schema.json
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-server-request.schema.json
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-approval-response.schema.json
+
+# Preserve downloaded CI report bytes for the evidence receipt's SHA-256.
+docs/research/cli/evidence/*.raw.json
