@@ -1,10 +1,14 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-09-27）：CLI `0.166.77@8d97c58153`、Open VSX `0.37.118@a7d582cd89` 和 JetBrains `0.4.138@f88fb58fc3` 已公开回读。JetBrains `0.4.139@a7d582cd89` 上传成功，尚待公开列表回读；各制品保持独立身份。**
+> **当前渠道状态（2026-09-30）：CLI `0.166.81@a63101f3cc`、Open VSX `0.37.123` 和 JetBrains `0.4.143` 已公开；两个 IDE 的发布源码为 `165093796d`，都推荐 CLI `0.166.81`。CLI 精确 CI/Strict 已通过，npm 发布工作流仍失败；公开安装状态与流程结论分别记录。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.118` 推荐 CLI `0.166.77`；JetBrains 公开 `0.4.138` 的内置推荐仍为 `0.166.76`，可独立升级 npm CLI 至 `0.166.77`。Microsoft Marketplace 尚未发行。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> **发布提示**：从 Open VSX 安装 `0.37.123`，从 JetBrains Marketplace 安装已批准的 `0.4.143`，并升级 CLI 至 `0.166.81`。Microsoft Marketplace 未发行。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+
+## 2026-09-30 升级后行为
+
+公开插件继承会话历史分页、草稿重启恢复、初始化超时回收及可靠 Stop。JetBrains 在写入桥接 token 前验证 Windows 单用户 ACL，并保留活跃 writer 临时锁；VS Code 模式动作通过选择器切换。CLI 的 Plan/ApprovalGate 修订会撤销正在执行的 Docker 出站命令；撤销后不要假定命令没有产生副作用，结果未知时先核对目标环境。发布后的 Auto Mode 修订仍只在源码，不能依靠插件升级获得该修复。
 
 ## 概述
 
@@ -42,7 +46,7 @@ VS Code / VSCodium 扩展 `0.37.118` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.77 # 需要 Node ≥ 22.12.0；当前 npm latest
+npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org # Node ≥ 22.12.0
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -52,7 +56,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.118 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.118/file/chainlesschain.chainlesschain-ide-0.37.118.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.123 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.123/file/chainlesschain.chainlesschain-ide-0.37.123.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -61,10 +65,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.138`；`0.4.139` 已上传待审核。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.143`，已批准并列出，推荐 CLI `0.166.81`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code `0.37.118` 与 JetBrains `0.4.138` 均已从公共渠道回读，Open VSX 内置推荐 CLI `0.166.77`，JetBrains 内置推荐 `0.166.76`。IDE 继续只提交宿主已审阅决定、消费有界投影，不重建 CLI writer；Workbench 的批准/拒绝/回滚、PM readiness 与 Skill Retrieval 的结果必须由 CLI/部署宿主验证。TypeSafe/Laya/System One 决策仅由 CLI 的耐久、单 prompt、headless 入口拥有；IDE 不保存决策模型凭据，也不获得路由或 Skill 执行 authority。微软 VS Code Marketplace 仍不能扩写为已经发行。
+当前 Open VSX `0.37.123` 与 JetBrains `0.4.143` 均已公开，内置推荐 CLI `0.166.81`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
 
 ### 3. 配置大模型（首次）
 
