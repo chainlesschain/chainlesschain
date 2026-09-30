@@ -30,6 +30,8 @@ describe("PlanModeManager — durable session snapshots", () => {
 
   it("keeps unnamed and explicit memoryOnly managers compatible and off disk", () => {
     const unnamed = new PlanModeManager({ stateDir });
+    const revisions = [];
+    unnamed.on("revision-changed", (event) => revisions.push(event));
     expect(unnamed.enterPlanMode({ title: "memory" }).plan).toBeDefined();
     expect(unnamed.addPlanItem({ title: "step" }).item).toBeDefined();
 
@@ -42,6 +44,10 @@ describe("PlanModeManager — durable session snapshots", () => {
 
     expect(unnamed.memoryOnly).toBe(true);
     expect(namedMemory.memoryOnly).toBe(true);
+    expect(revisions).toEqual([
+      { revision: 1, previousRevision: 0, type: "plan-entered" },
+      { revision: 2, previousRevision: 1, type: "plan-item-added" },
+    ]);
     expect(fs.existsSync(stateDir)).toBe(false);
   });
 
@@ -50,7 +56,9 @@ describe("PlanModeManager — durable session snapshots", () => {
     const options = { sessionId, stateDir };
     const first = new PlanModeManager(options);
     const sessionEvents = [];
+    const revisionEvents = [];
     first.on("session-event", (event) => sessionEvents.push(event));
+    first.on("revision-changed", (event) => revisionEvents.push(event));
     first.enterPlanMode({ title: "Durable plan", goal: "survive restart" });
     const prepare = first.addPlanItem({
       id: "prepare",
@@ -107,6 +115,14 @@ describe("PlanModeManager — durable session snapshots", () => {
       schema: PLAN_SESSION_EVENT_SCHEMA,
       version: PLAN_SESSION_EVENT_VERSION,
       revision: first.revision,
+      type: "plan-item-executing",
+    });
+    expect(revisionEvents.map((event) => event.revision)).toEqual(
+      Array.from({ length: first.revision }, (_, index) => index + 1),
+    );
+    expect(revisionEvents.at(-1)).toEqual({
+      revision: first.revision,
+      previousRevision: first.revision - 1,
       type: "plan-item-executing",
     });
 

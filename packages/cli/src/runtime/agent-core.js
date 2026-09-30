@@ -2443,6 +2443,10 @@ function selectedHostToolPolicy(hostAuthority, tool) {
 function snapshotPlanToolAuthority(planManager, tool, args) {
   const active = planManager?.isActive?.() === true;
   return {
+    revision:
+      Number.isSafeInteger(planManager?.revision) && planManager.revision >= 0
+        ? planManager.revision
+        : null,
     active,
     executionLockActive: planManager?.executionLock != null,
     toolAllowed:
@@ -6673,6 +6677,7 @@ async function executeToolInner(
         let dockerEgressSession = null;
         let proxyFailed = false;
         let authorityMonitor = null;
+        let removePlanAuthorityListener = null;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
@@ -6742,6 +6747,23 @@ async function executeToolInner(
               },
               abortProxy: () => proxyHandle.abort(),
             });
+            if (
+              Number.isSafeInteger(planManager?.revision) &&
+              planManager.revision >= 0 &&
+              typeof planManager.on === "function" &&
+              typeof planManager.off === "function"
+            ) {
+              const onPlanMutation = () => {
+                const error = new Error(
+                  "Plan authority changed during Docker egress execution",
+                );
+                error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+                authorityMonitor.revoke(error);
+              };
+              planManager.on("revision-changed", onPlanMutation);
+              removePlanAuthorityListener = () =>
+                planManager.off("revision-changed", onPlanMutation);
+            }
             authorityMonitor.start();
             await authorityMonitor.checkNow();
           } else {
@@ -6805,6 +6827,7 @@ async function executeToolInner(
             });
           }
         } finally {
+          removePlanAuthorityListener?.();
           authorityMonitor?.stop();
           await authorityMonitor?.awaitCleanup();
           if (dockerEgressSession) {

@@ -32,6 +32,7 @@ import {
   listBackgroundShellTasks,
 } from "../../src/runtime/agent-core.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { PlanModeManager } from "../../src/lib/plan-mode.js";
 import { _resetPluginBinSandboxPolicyPins } from "../../src/lib/plugin-runtime/bin.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
@@ -832,6 +833,32 @@ describe("run_shell durable remote authorization dispatch fence", () => {
       context,
     );
 
+    expect(result).toMatchObject({
+      policy: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+    });
+    expect(events).toEqual(["consume"]);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("denies a shell after plan mode enters and exits during approval", async () => {
+    const events = [];
+    const manager = new PlanModeManager({ memoryOnly: true });
+    const gate = durableGate(events, {
+      onConsume: async () => {
+        expect(manager.enterPlanMode()).not.toHaveProperty("error");
+        expect(manager.exitPlanMode()).not.toHaveProperty("error");
+      },
+    });
+    const dispatch = vi.spyOn(executionBroker, "execSync");
+
+    const result = await executeAuthorized(
+      { command: "echo stale-plan-approval" },
+      gate,
+      { planManager: manager },
+    );
+
+    expect(manager.isActive()).toBe(false);
+    expect(manager.revision).toBe(2);
     expect(result).toMatchObject({
       policy: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
     });

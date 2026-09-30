@@ -16,6 +16,7 @@ import {
   sandboxSummary,
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { PlanModeManager } from "../../src/lib/plan-mode.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
 const egressMocks = vi.hoisted(() => ({ start: vi.fn() }));
@@ -394,6 +395,67 @@ describe("explicit Docker egress configuration and execution evidence", () => {
       expect(result.sandboxCapabilities.applied).toEqual([]);
     },
   );
+
+  it("revokes a running Docker shell when plan mode enters and exits between polls", async () => {
+    _deps.host = () => host;
+    const manager = new PlanModeManager({ memoryOnly: true });
+    const abort = vi.fn(async () => {});
+    workerMocks.start.mockResolvedValue({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort,
+      close: vi.fn(async () => {}),
+    });
+    let started;
+    let finishRun;
+    const startedPromise = new Promise((resolve) => {
+      started = resolve;
+    });
+    const session = {
+      close: vi.fn(async () => {}),
+      run: vi.fn(async (_command, options) => {
+        await options.beforeStart();
+        started();
+        return new Promise((resolve) => {
+          finishRun = resolve;
+        });
+      }),
+    };
+    egressMocks.start.mockResolvedValue(session);
+
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo stale-plan-authority" },
+      {
+        sandbox: config(),
+        planManager: manager,
+        approvalGate: {
+          decide: async () => ({
+            decision: "allow",
+            via: "policy",
+            policy: "autopilot",
+          }),
+        },
+      },
+    );
+    await startedPromise;
+    expect(manager.enterPlanMode()).not.toHaveProperty("error");
+    expect(abort).toHaveBeenCalledOnce();
+    expect(manager.exitPlanMode()).not.toHaveProperty("error");
+    finishRun({ stdout: "side-effect", stderr: "", exitCode: 0 });
+
+    const result = await pending;
+    expect(manager.isActive()).toBe(false);
+    expect(manager.revision).toBe(2);
+    expect(session.close).toHaveBeenCalled();
+    expect(manager.listenerCount("revision-changed")).toBe(0);
+    expect(result).toMatchObject({
+      exitCode: 1,
+      retrySafe: false,
+      authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+      sandboxCapabilities: { applied: [] },
+    });
+  });
 
   it("closes a product session delivered after authority was revoked", async () => {
     _deps.host = () => host;

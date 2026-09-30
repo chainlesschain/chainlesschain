@@ -893,8 +893,8 @@ export class PlanModeManager extends EventEmitter {
   }
 
   _commitMutation(transaction, eventType) {
+    const previousRevision = this.revision;
     if (!this._persistence) {
-      const previousRevision = this.revision;
       this.revision += 1;
       this.updatedAt = Date.now();
       this.lastEvent = this.sessionId
@@ -906,6 +906,11 @@ export class PlanModeManager extends EventEmitter {
             timestamp: this.updatedAt,
           })
         : null;
+      this.emit("revision-changed", {
+        revision: this.revision,
+        previousRevision,
+        type: eventType,
+      });
       if (this.lastEvent) this.emit("session-event", { ...this.lastEvent });
       return null;
     }
@@ -920,6 +925,11 @@ export class PlanModeManager extends EventEmitter {
       this.revision = snapshot.revision;
       this.updatedAt = snapshot.updatedAt;
       this.lastEvent = snapshot.event;
+      this.emit("revision-changed", {
+        revision: this.revision,
+        previousRevision,
+        type: eventType,
+      });
       this.emit("session-event", { ...this.lastEvent });
       return null;
     } catch (error) {
