@@ -415,6 +415,137 @@ describe("createAutoModeApprovalGate", () => {
     });
   });
 
+  it("keeps execution and snapshots bound to private immutable rules", async () => {
+    const resolved = resolveAutoModeDecisions({
+      decisions: [
+        { match: { riskLevel: "low" }, decision: "deny" },
+        {
+          match: { tool: "run_shell", commandPattern: "npm *" },
+          decision: "deny",
+        },
+      ],
+    });
+    const callerMatcher = vi.fn(() => true);
+    resolved.rules[0]._test = callerMatcher;
+    const gate = createAutoModeApprovalGate(makeInner(), resolved);
+    const before = gate.getAuthorizationPolicySnapshot("s1");
+    resolved.map.low.decision = "allow";
+    resolved.rules[0].decision = "allow";
+    resolved.rules[0].match.commandPattern = "*";
+    resolved.rules[0]._test = () => true;
+    resolved.rules.push({ decision: "allow", _test: () => true });
+    resolved.rules.splice(0, 1);
+
+    expect(gate.getAuthorizationPolicySnapshot("s1")).toEqual(before);
+    await expect(
+      gate.decide({ tool: "read_file", riskLevel: "low" }),
+    ).resolves.toMatchObject({ decision: "deny" });
+    await expect(
+      gate.decide({
+        tool: "run_shell",
+        riskLevel: "medium",
+        args: { command: "npm install" },
+      }),
+    ).resolves.toMatchObject({ decision: "deny" });
+    await expect(
+      gate.decide({
+        tool: "run_shell",
+        riskLevel: "medium",
+        args: { command: "pnpm install" },
+      }),
+    ).resolves.toMatchObject({ decision: "allow" });
+    expect(callerMatcher).not.toHaveBeenCalled();
+    expect(Object.isFrozen(before.config.rules[0].match)).toBe(true);
+    expect(() => {
+      before.config.map.low.decision = "allow";
+    }).toThrow();
+  });
+
+  it("commits active state before notifying every subscriber and retains ABA revisions", async () => {
+    const inner = new sessionCore.ApprovalGate();
+    const gate = createAutoModeApprovalGate(
+      inner,
+      resolveAutoModeDecisions({ decisions: { medium: "deny" } }),
+      { active: false },
+    );
+    const events = [];
+    const failing = gate.subscribePolicyRevision("s1", () => {
+      throw new Error("observer failed");
+    });
+    const remove = gate.subscribePolicyRevision("s2", (event) => {
+      expect(gate.getAuthorizationPolicySnapshot("s2")).toMatchObject({
+        active: event.active,
+        activeRevision: event.activeRevision,
+      });
+      events.push(event);
+    });
+    expect(() => gate.setActive(true)).toThrow("observer failed");
+    expect(events).toEqual([
+      {
+        sessionId: "s2",
+        source: "auto-mode-active",
+        active: true,
+        activeRevision: 1,
+      },
+    ]);
+    failing();
+    gate.setActive(true);
+    gate.setActive(false);
+    gate.setActive(true);
+    expect(events.map((event) => event.activeRevision)).toEqual([1, 2, 3]);
+    expect(gate.getAuthorizationPolicySnapshot("s2")).toMatchObject({
+      active: true,
+      activeRevision: 3,
+      activeSource: "owned",
+    });
+    await expect(gate.decide({ riskLevel: "medium" })).resolves.toMatchObject({
+      decision: "deny",
+      via: "auto-mode-config",
+    });
+    remove();
+    remove();
+    gate.setActive(false);
+    expect(events).toHaveLength(3);
+    expect(inner._policyRevisionListeners.size).toBe(0);
+    expect(() => gate.setActive("false")).toThrow(/boolean/);
+  });
+
+  it("provides local revision subscriptions with an unobserved inner gate", () => {
+    const gate = createAutoModeApprovalGate(
+      makeInner(),
+      resolveAutoModeDecisions(),
+    );
+    const listener = vi.fn();
+    const remove = gate.subscribePolicyRevision("s1", listener);
+    gate.setActive(false);
+    expect(listener).toHaveBeenCalledOnce();
+    remove();
+    gate.setActive(true);
+    expect(listener).toHaveBeenCalledOnce();
+    expect(() => gate.subscribePolicyRevision(null, listener)).toThrow(
+      /session/,
+    );
+    const legacy = createAutoModeApprovalGate(
+      makeInner(),
+      resolveAutoModeDecisions(),
+      { isActive: () => true },
+    );
+    expect(legacy.getAuthorizationPolicySnapshot("s1")).toMatchObject({
+      activeSource: "sampled-callback",
+    });
+    expect(() => legacy.setActive(false)).toThrow(/Callback-owned/);
+  });
+
+  it("rejects an inner subscription that cannot be removed", () => {
+    const gate = createAutoModeApprovalGate(
+      { ...makeInner(), subscribePolicyRevision: () => undefined },
+      resolveAutoModeDecisions(),
+    );
+    expect(() => gate.subscribePolicyRevision("s1", () => {})).toThrow(
+      /must return a function/,
+    );
+  });
+
   it("treats unknown risk levels as low", async () => {
     const gate = createAutoModeApprovalGate(
       makeInner(),

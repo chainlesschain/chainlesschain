@@ -272,46 +272,119 @@ export function resolveAutoModeDecisions(effectiveSettings = {}) {
  *
  * @param {object} inner session-core ApprovalGate (or compatible)
  * @param {ReturnType<typeof resolveAutoModeDecisions>} resolved
- * @param {{ isActive?: () => boolean }} [opts] `isActive` lets a host that can
- *        switch permission modes mid-session (the REPL) leave the wrapper
- *        installed permanently and toggle it: when it returns false, decide()
- *        delegates untouched to the inner gate. Omitted → always active
- *        (headless runs pick the mode once per process).
+ * @param {{ active?: boolean, isActive?: () => boolean }} [opts] Hosts that
+ *        switch modes use `active` and setActive() so every committed change
+ *        advances the authority revision and synchronously notifies observers.
+ *        Omitted → always active. The legacy isActive callback is sampled only;
+ *        it cannot provide lossless notification of changes between samples.
  */
 export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
-  const map = resolved?.map || defaultDecisionMap();
-  const rules = Array.isArray(resolved?.rules) ? resolved.rules : [];
-  const isActive =
-    typeof opts.isActive === "function" ? opts.isActive : () => true;
+  const inputMap = resolved?.map || defaultDecisionMap();
+  const inputRules = Array.isArray(resolved?.rules) ? resolved.rules : [];
+  if (opts.active !== undefined && typeof opts.active !== "boolean") {
+    throw new TypeError("Auto Mode active state must be boolean");
+  }
+  const legacyIsActive =
+    typeof opts.isActive === "function" ? opts.isActive : null;
+  let active = opts.active ?? true;
+  let activeRevision = 0;
+  const activeListeners = new Set();
+  const isActive = () => (legacyIsActive ? legacyIsActive() === true : active);
   let confirm = null;
   let authorizationConsumerRequired = false;
   const authorityConfig = Object.freeze({
     map: Object.freeze(
       Object.fromEntries(
-        RISK_LEVELS.map((riskLevel) => [
-          riskLevel,
-          Object.freeze({
-            decision: map[riskLevel]?.decision || null,
-            reason: map[riskLevel]?.reason || null,
-            source: map[riskLevel]?.source || null,
-          }),
-        ]),
-      ),
-    ),
-    rules: Object.freeze(
-      rules.map((rule) =>
-        Object.freeze({
-          decision: rule.decision || null,
-          reason: rule.reason || null,
-          source: rule.source || null,
-          match: rule.match ? Object.freeze({ ...rule.match }) : null,
+        RISK_LEVELS.map((riskLevel) => {
+          const entry = inputMap[riskLevel];
+          if (!DECISION_VALUES.includes(entry?.decision)) {
+            throw new TypeError("Invalid resolved Auto Mode decision");
+          }
+          return [
+            riskLevel,
+            Object.freeze({
+              decision: entry.decision,
+              reason: typeof entry.reason === "string" ? entry.reason : null,
+              source: typeof entry.source === "string" ? entry.source : null,
+            }),
+          ];
         }),
       ),
     ),
+    rules: Object.freeze(
+      inputRules.map((rule) => {
+        const match = rule.match;
+        if (
+          !DECISION_VALUES.includes(rule.decision) ||
+          !isPlainObject(match) ||
+          Object.keys(match).some(
+            (key) => !["riskLevel", "tool", "commandPattern"].includes(key),
+          ) ||
+          (match.riskLevel !== undefined &&
+            !RISK_LEVELS.includes(match.riskLevel)) ||
+          (match.tool !== undefined &&
+            (typeof match.tool !== "string" || !match.tool)) ||
+          (match.commandPattern !== undefined &&
+            (typeof match.commandPattern !== "string" ||
+              !match.commandPattern)) ||
+          (!match.tool && !match.commandPattern)
+        ) {
+          throw new TypeError("Invalid resolved Auto Mode rule");
+        }
+        return Object.freeze({
+          decision: rule.decision,
+          reason: typeof rule.reason === "string" ? rule.reason : null,
+          source: "settings",
+          match: Object.freeze({ ...match }),
+        });
+      }),
+    ),
   });
+  // Compile only the immutable authority data. Caller-owned matchers and
+  // resolved objects must never change decisions behind an unchanged snapshot.
+  const map = authorityConfig.map;
+  const rules = authorityConfig.rules.map((rule) => ({
+    rule,
+    regex: rule.match.commandPattern
+      ? compileGlob(rule.match.commandPattern)
+      : null,
+  }));
 
   return {
     isAutoModeGate: true,
+    setActive(nextActive) {
+      if (legacyIsActive) {
+        throw new TypeError(
+          "Callback-owned Auto Mode state cannot use setActive",
+        );
+      }
+      if (typeof nextActive !== "boolean") {
+        throw new TypeError("Auto Mode active state must be boolean");
+      }
+      if (active === nextActive) return;
+      const nextRevision = activeRevision + 1;
+      if (!Number.isSafeInteger(nextRevision)) {
+        throw new Error("Auto Mode active revision exhausted");
+      }
+      active = nextActive;
+      activeRevision = nextRevision;
+      let listenerError = null;
+      for (const subscription of [...activeListeners]) {
+        try {
+          subscription.listener(
+            Object.freeze({
+              sessionId: subscription.sessionId,
+              source: "auto-mode-active",
+              active,
+              activeRevision,
+            }),
+          );
+        } catch (error) {
+          listenerError ||= error;
+        }
+      }
+      if (listenerError) throw listenerError;
+    },
     setSessionPolicy(sessionId, policy) {
       return inner?.setSessionPolicy?.(sessionId, policy);
     },
@@ -345,7 +418,9 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       return Object.freeze({
         schema: "chainlesschain.approval-policy-authority/v1",
         kind: "auto-mode",
-        active: isActive() === true,
+        active: isActive(),
+        activeRevision,
+        activeSource: legacyIsActive ? "sampled-callback" : "owned",
         config: authorityConfig,
         inner:
           inner?.getAuthorizationPolicySnapshot?.(sessionId) ||
@@ -356,11 +431,26 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
           }),
       });
     },
-    subscribePolicyRevision:
-      typeof inner?.subscribePolicyRevision === "function"
-        ? (sessionId, listener) =>
-            inner.subscribePolicyRevision(sessionId, listener)
-        : undefined,
+    subscribePolicyRevision(sessionId, listener) {
+      if (!sessionId || typeof listener !== "function") {
+        throw new TypeError(
+          "Auto Mode policy revision subscription requires a session and listener",
+        );
+      }
+      const removeInner = inner?.subscribePolicyRevision?.(sessionId, listener);
+      if (
+        typeof inner?.subscribePolicyRevision === "function" &&
+        typeof removeInner !== "function"
+      ) {
+        throw new TypeError("Inner policy subscription must return a function");
+      }
+      const subscription = { sessionId: String(sessionId), listener };
+      activeListeners.add(subscription);
+      return () => {
+        activeListeners.delete(subscription);
+        removeInner?.();
+      };
+    },
     consumeAuthorization(authorization, ctx) {
       if (typeof inner?.consumeAuthorization !== "function") {
         throw new Error("Approval authorization consumer is unavailable");
@@ -398,20 +488,14 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       // Fine-grained rules (tool / commandPattern) run in declaration order
       // before the riskLevel map — first full match wins.
       let rule = null;
-      for (const candidate of rules) {
-        let matched = false;
-        try {
-          matched = candidate._test({ ...ctx, riskLevel });
-        } catch {
-          matched = false; // a broken matcher never decides anything
-        }
-        if (matched) {
-          rule = {
-            decision: candidate.decision,
-            reason: candidate.reason,
-            source: "settings",
-            match: candidate.match,
-          };
+      for (const { rule: candidate, regex } of rules) {
+        const match = candidate.match;
+        if (
+          (!match.riskLevel || match.riskLevel === riskLevel) &&
+          (!match.tool || match.tool === ctx.tool) &&
+          (!regex || regex.test(String(ctx.args?.command ?? "")))
+        ) {
+          rule = candidate;
           break;
         }
       }

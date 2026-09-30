@@ -17,6 +17,10 @@ import {
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
+import {
+  createAutoModeApprovalGate,
+  resolveAutoModeDecisions,
+} from "../../src/lib/auto-mode-config.js";
 import approvalCore from "../../../session-core/lib/approval-gate.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
@@ -459,6 +463,149 @@ describe("explicit Docker egress configuration and execution evidence", () => {
       sandboxCapabilities: { applied: [] },
     });
   });
+
+  it.each(["permission-read", "approval", "broker-start"])(
+    "rejects an Auto Mode ABA while waiting for %s",
+    async (phase) => {
+      _deps.host = () => host;
+      const gate = createAutoModeApprovalGate(
+        new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.AUTOPILOT }),
+        resolveAutoModeDecisions({
+          decisions: { medium: phase === "approval" ? "ask" : "allow" },
+        }),
+      );
+      let release;
+      const wait = () =>
+        new Promise((resolve) => {
+          release = resolve;
+        });
+      gate.setConfirmer(phase === "approval" ? wait : async () => true);
+      workerMocks.start.mockImplementation(
+        phase === "broker-start"
+          ? wait
+          : async () => ({
+              socketPath: "/private/broker.sock",
+              revision: 0,
+              abort: vi.fn(async () => {}),
+              close: vi.fn(async () => {}),
+            }),
+      );
+      const pending = executeTool(
+        "run_shell",
+        { command: "echo stale-auto-authority" },
+        {
+          sandbox: config(),
+          sessionId: "auto-s1",
+          approvalGate: gate,
+          ...(phase === "permission-read"
+            ? { permissionRulesProvider: wait }
+            : {}),
+        },
+      );
+      await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+      gate.setActive(false);
+      gate.setActive(true);
+      expect(
+        gate.getAuthorizationPolicySnapshot("auto-s1").activeRevision,
+      ).toBe(2);
+      release(
+        phase === "permission-read"
+          ? { rules: { allow: [], ask: [], deny: [] } }
+          : phase === "approval"
+            ? true
+            : {
+                socketPath: "/private/broker.sock",
+                revision: 0,
+                abort: vi.fn(async () => {}),
+                close: vi.fn(async () => {}),
+              },
+      );
+      if (phase === "permission-read") {
+        expect((await pending).policy).toMatchObject({
+          decision: "blocked",
+          code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+        });
+      } else {
+        await expect(pending).rejects.toMatchObject({
+          code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+        });
+      }
+      expect(egressMocks.start).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["running", "container-create"])(
+    "immediately revokes Auto Mode ABA during %s and never releases a success receipt",
+    async (phase) => {
+      _deps.host = () => host;
+      const inner = new ApprovalGate({
+        defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+      });
+      const gate = createAutoModeApprovalGate(
+        inner,
+        resolveAutoModeDecisions({ decisions: { medium: "allow" } }),
+      );
+      const abort = vi.fn(async () => {});
+      workerMocks.start.mockResolvedValue({
+        socketPath: "/private/broker.sock",
+        revision: 0,
+        abort,
+        close: vi.fn(async () => {}),
+      });
+      let finishRun;
+      let deliverSession;
+      const session = {
+        close: vi.fn(async () => {}),
+        run: vi.fn(async (_command, options) => {
+          await options.beforeStart();
+          return new Promise((resolve) => {
+            finishRun = resolve;
+          });
+        }),
+      };
+      egressMocks.start.mockImplementation(
+        phase === "running"
+          ? async () => session
+          : () =>
+              new Promise((resolve) => {
+                deliverSession = resolve;
+              }),
+      );
+      const pending = executeTool(
+        "run_shell",
+        { command: "echo stale-auto-authority" },
+        { sandbox: config(), sessionId: "auto-s1", approvalGate: gate },
+      );
+      await vi.waitFor(() =>
+        expect(phase === "running" ? finishRun : deliverSession).toBeTypeOf(
+          "function",
+        ),
+      );
+      gate.setActive(false);
+      expect(abort).toHaveBeenCalledOnce();
+      gate.setActive(true);
+      if (phase === "running")
+        finishRun({ stdout: "side-effect", stderr: "", exitCode: 0 });
+      else deliverSession(session);
+      if (phase === "running") {
+        expect(await pending).toMatchObject({
+          exitCode: 1,
+          retrySafe: false,
+          authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+          sandboxCapabilities: { applied: [] },
+        });
+      } else {
+        await expect(pending).rejects.toMatchObject({
+          code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+        });
+        expect(session.run).not.toHaveBeenCalled();
+      }
+      expect(session.close).toHaveBeenCalled();
+      expect(inner._policyRevisionListeners.size).toBe(0);
+      gate.setActive(false);
+      expect(abort).toHaveBeenCalledOnce();
+    },
+  );
 
   it("rejects a brief approval policy change during the first permission read", async () => {
     _deps.host = () => host;

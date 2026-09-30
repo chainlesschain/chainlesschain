@@ -3284,6 +3284,10 @@ async function startAgentReplInWorkspaceOwned(
   // tier but additionally activates the autoMode.decisions classifier wrapper
   // (when settings customize it) — gateTierFor() maps mode → real gate tier.
   let _sessionTier = "strict";
+  const setSessionTier = (mode) => {
+    _sessionTier = mode;
+    _approvalGate?.setActive?.(mode === "auto");
+  };
   // `/goal <condition>`: an optional SESSION completion condition. When set, the
   // condition is evaluated + reported after each turn (interactive — no auto
   // re-drive; that autonomous loop is headless-only). null = no session goal.
@@ -3295,7 +3299,8 @@ async function startAgentReplInWorkspaceOwned(
   const _dontAskActive = () => _sessionTier === "dontAsk";
   // Resolved autoMode.decisions map (loaded once at startup); null until the
   // gate is wired. The wrapper is installed only when settings customize the
-  // map, and only bites while _sessionTier === "auto" (isActive predicate).
+  // map, and only bites while _sessionTier === "auto". All mode commits use
+  // setSessionTier so even auto → trusted → auto has an irreversible revision.
   let _autoModeResolved = null;
   // `/remote-control` (批17/18 REPL 收口): paired-device approvals for this
   // interactive session. Holds { bridge, pairing, close } while active; both
@@ -3592,7 +3597,7 @@ async function startAgentReplInWorkspaceOwned(
         _approvalGate = createAutoModeApprovalGate(
           _approvalGate,
           _autoModeResolved,
-          { isActive: () => _sessionTier === "auto" },
+          { active: _sessionTier === "auto" },
         );
       }
     } catch (_err) {
@@ -4684,7 +4689,7 @@ async function startAgentReplInWorkspaceOwned(
       const applied = parsePermissionTier(
         _bundleResolved.approvalPolicy.default,
       );
-      if (applied) _sessionTier = applied;
+      if (applied) setSessionTier(applied);
     } catch (error) {
       logger.warn(`Bundle approval policy was not persisted: ${error.message}`);
     }
@@ -4701,11 +4706,9 @@ async function startAgentReplInWorkspaceOwned(
       try {
         await _approvalGate.setSessionPolicy(sessionId, parsed.tier);
         await _approvalGate.awaitPersistence?.();
-        _sessionTier = parsed.auto
-          ? "auto"
-          : parsed.dontAsk
-            ? "dontAsk"
-            : parsed.tier;
+        setSessionTier(
+          parsed.auto ? "auto" : parsed.dontAsk ? "dontAsk" : parsed.tier,
+        );
       } catch (error) {
         logger.warn(`Approval policy was not persisted: ${error.message}`);
       }
@@ -5418,7 +5421,7 @@ async function startAgentReplInWorkspaceOwned(
           try {
             await _approvalGate.setSessionPolicy(sessionId, next);
             await _approvalGate.awaitPersistence?.();
-            _sessionTier = next;
+            setSessionTier(next);
             process.stdout.write(
               "\n" +
                 chalk.cyan(`⇥ approval: ${next}`) +
@@ -8850,11 +8853,9 @@ async function startAgentReplInWorkspaceOwned(
           try {
             await _approvalGate.setSessionPolicy(sessionId, parsed.tier);
             await _approvalGate.awaitPersistence?.();
-            _sessionTier = parsed.auto
-              ? "auto"
-              : parsed.dontAsk
-                ? "dontAsk"
-                : parsed.tier;
+            setSessionTier(
+              parsed.auto ? "auto" : parsed.dontAsk ? "dontAsk" : parsed.tier,
+            );
             logger.info(
               `Approval policy → ${chalk.cyan(_sessionTier)} ${chalk.gray(`(${describeTier(_sessionTier)})`)}`,
             );
