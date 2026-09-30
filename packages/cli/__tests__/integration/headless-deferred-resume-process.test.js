@@ -32,7 +32,7 @@ function runProcess({ fixturePath, phase, root, input }) {
       stderr += String(chunk);
     });
     child.once("error", reject);
-    child.once("exit", (code, signal) => {
+    child.once("close", (code, signal) => {
       resolve({ code, signal, stdout, stderr });
     });
     child.stdin.end(input);
@@ -57,6 +57,8 @@ afterEach(() => {
 });
 
 describe("headless deferred questions across OS processes", () => {
+  // Two fresh CLI processes initialize encrypted storage on Windows; a cold
+  // hosted runner can exceed the default 30-second test budget.
   it("restores, resolves, and consumes an answer through the real JSONL store", async () => {
     const root = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-headless-deferred-process-"),
@@ -118,5 +120,5 @@ describe("headless deferred questions across OS processes", () => {
         }),
       ]),
     );
-  }, 30_000);
+  }, 90_000);
 });
