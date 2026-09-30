@@ -6,7 +6,9 @@
   public npm readback pass.
 - Create the Windows bridge directory and empty lockfile with a protected
   owner-only ACL before writing its bearer token. Continue refusing an existing
-  object owned by another identity.
+  bridge directory owned by another identity.
+- Verify the bridge directory before pruning stale files and preserve temporary
+  lockfiles whose writer process is still alive during concurrent IDE startup.
 - Isolate the real-host UI journey's Java home per run so a stale profile bridge
   directory cannot influence the release matrix.
 

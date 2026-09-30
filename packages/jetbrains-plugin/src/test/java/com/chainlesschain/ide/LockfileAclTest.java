@@ -179,6 +179,39 @@ final class LockfileAclTest {
     }
 
     @Test
+    void pruneKeepsLiveWriterTempAndRemovesDeadWriterTemp(@TempDir Path tmp)
+            throws Exception {
+        Path ide = tmp.resolve("ide");
+        LockfileWriter w = new LockfileWriter(ide,
+                pid -> pid == ProcessHandle.current().pid());
+        w.write(4330, "unique-bridge-secret", Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4330/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid());
+        Path liveTemp = ide.resolve("4331.json.tmp-"
+                + ProcessHandle.current().pid() + "-0123456789abcdef");
+        Path deadTemp = ide.resolve("4332.json.tmp-999999999-0123456789abcdef");
+        Files.writeString(liveTemp, "");
+        Files.writeString(deadTemp, "");
+
+        assertEquals(1, w.pruneStale());
+        assertTrue(Files.exists(liveTemp));
+        assertFalse(Files.exists(deadTemp));
+    }
+
+    @Test
+    void pruneSkipsFilesWhenDirectoryOwnerCheckFails(@TempDir Path tmp)
+            throws Exception {
+        Path ide = Files.createDirectory(tmp.resolve("ide"));
+        Path existing = ide.resolve("4333.json");
+        Files.writeString(existing, "external file");
+        LockfileWriter w = new LockfileWriter(ide, pid -> false,
+                (path, permissions) -> { throw new IOException("foreign owner"); },
+                () -> false);
+        assertEquals(0, w.pruneStale());
+        assertEquals("external file", Files.readString(existing));
+    }
+
+    @Test
     void onlyExplicitManagedPolicyMayDowngradePermissionFailure(@TempDir Path tmp)
             throws Exception {
         LockfileWriter w = new LockfileWriter(tmp.resolve("ide"), pid -> false,

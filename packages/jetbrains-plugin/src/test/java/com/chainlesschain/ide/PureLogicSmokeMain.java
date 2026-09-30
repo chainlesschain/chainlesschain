@@ -808,20 +808,29 @@ public final class PureLogicSmokeMain {
         java.nio.file.Path tmp = null;
         try {
             tmp = java.nio.file.Files.createTempDirectory("ide-prune-");
+            java.nio.file.Path ide = tmp.resolve("ide");
             // Only pid 100 is "alive"; 200 is dead.
-            LockfileWriter w = new LockfileWriter(tmp, pid -> pid == 100L);
+            LockfileWriter w = new LockfileWriter(ide, pid -> pid == 100L);
             w.write(1, "t", java.util.Collections.singletonList("/ws"), "http://x", 0L, 100L);
             w.write(2, "t", java.util.Collections.singletonList("/ws"), "http://x", 0L, 200L);
-            java.nio.file.Files.write(tmp.resolve("3.json"),
+            java.nio.file.Files.write(ide.resolve("3.json"),
                     "{ not json".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            java.nio.file.Files.write(tmp.resolve("4.json"),
+            java.nio.file.Files.write(ide.resolve("4.json"),
                     "{\"port\":4}".getBytes(java.nio.charset.StandardCharsets.UTF_8)); // no pid
+            java.nio.file.Files.write(ide.resolve("5.json.tmp-100-0123456789abcdef"),
+                    new byte[0]);
+            java.nio.file.Files.write(ide.resolve("6.json.tmp-200-0123456789abcdef"),
+                    new byte[0]);
 
-            eq(w.pruneStale(), 3, "removes dead + corrupt + pidless");
-            check(java.nio.file.Files.exists(tmp.resolve("1.json")), "alive (pid 100) kept");
-            check(!java.nio.file.Files.exists(tmp.resolve("2.json")), "dead (pid 200) removed");
-            check(!java.nio.file.Files.exists(tmp.resolve("3.json")), "corrupt removed");
-            check(!java.nio.file.Files.exists(tmp.resolve("4.json")), "pidless removed");
+            eq(w.pruneStale(), 4, "removes dead + corrupt + pidless + dead temp");
+            check(java.nio.file.Files.exists(ide.resolve("1.json")), "alive (pid 100) kept");
+            check(!java.nio.file.Files.exists(ide.resolve("2.json")), "dead (pid 200) removed");
+            check(!java.nio.file.Files.exists(ide.resolve("3.json")), "corrupt removed");
+            check(!java.nio.file.Files.exists(ide.resolve("4.json")), "pidless removed");
+            check(java.nio.file.Files.exists(
+                    ide.resolve("5.json.tmp-100-0123456789abcdef")), "live temp kept");
+            check(!java.nio.file.Files.exists(
+                    ide.resolve("6.json.tmp-200-0123456789abcdef")), "dead temp removed");
 
             // Absent dir → 0.
             eq(new LockfileWriter(tmp.resolve("nope"), pid -> true).pruneStale(), 0, "absent dir → 0");

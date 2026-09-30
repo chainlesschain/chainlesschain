@@ -228,7 +228,19 @@ public final class LockfileWriter {
      * sibling IDE's bridge is preserved). Mirrors the VS Code pruneStaleLocks.
      */
     public int pruneStale() {
-        if (!Files.isDirectory(dir)) return 0;
+        if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) return 0;
+        // Startup calls this before write(). Never delete from a directory
+        // whose owner and permissions have not passed the normal bridge check.
+        // Even an explicit managed write downgrade does not authorize cleanup
+        // of someone else's files.
+        try {
+            permissionEnforcer.enforce(dir, EnumSet.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE));
+        } catch (Exception failure) {
+            return 0;
+        }
         List<Path> files;
         try (java.util.stream.Stream<Path> s = Files.list(dir)) {
             files = s.filter(p -> {
@@ -254,14 +266,20 @@ public final class LockfileWriter {
         return removed;
     }
 
-    /** The owning pid — from the JSON for a lockfile, or the trailing pid in a
-     *  `.json.tmp-<pid>` temp name. null (→ stale) when missing/unparseable. */
+    /** The owning pid — from the JSON for a lockfile, or the pid before the
+     *  random suffix in `.json.tmp-<pid>-<hex>`; null when unparseable. */
     private static Long pidFor(Path file) {
         String name = file.getFileName().toString();
         int tmp = name.indexOf(".json.tmp-");
         if (tmp >= 0) {
             try {
-                return Long.parseLong(name.substring(tmp + ".json.tmp-".length()));
+                String suffix = name.substring(tmp + ".json.tmp-".length());
+                int separator = suffix.indexOf('-');
+                if (separator <= 0 || !suffix.substring(separator + 1)
+                        .matches("[0-9a-f]{16}")) {
+                    return null;
+                }
+                return Long.parseLong(suffix.substring(0, separator));
             } catch (NumberFormatException e) {
                 return null; // odd temp name → treat as stale
             }
