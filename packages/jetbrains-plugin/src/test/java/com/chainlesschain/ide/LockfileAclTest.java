@@ -154,11 +154,12 @@ final class LockfileAclTest {
                         checkedEmptyFile.set(true);
                     }
                 }, () -> false);
-        Path file = w.write(4328, "tok", Collections.singletonList(tmp.toString()),
+        Path file = w.write(4328, "unique-bridge-secret",
+                Collections.singletonList(tmp.toString()),
                 "http://127.0.0.1:4328/mcp", System.currentTimeMillis(),
                 ProcessHandle.current().pid());
         assertTrue(checkedEmptyFile.get());
-        assertTrue(Files.readString(file).contains("tok"));
+        assertTrue(Files.readString(file).contains("unique-bridge-secret"));
     }
 
     @Test
