@@ -356,6 +356,11 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
           }),
       });
     },
+    subscribePolicyRevision:
+      typeof inner?.subscribePolicyRevision === "function"
+        ? (sessionId, listener) =>
+            inner.subscribePolicyRevision(sessionId, listener)
+        : undefined,
     consumeAuthorization(authorization, ctx) {
       if (typeof inner?.consumeAuthorization !== "function") {
         throw new Error("Approval authorization consumer is unavailable");

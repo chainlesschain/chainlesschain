@@ -157,6 +157,35 @@ describe("createWsApprovalGate", () => {
     expect(confirmer).not.toHaveBeenCalled();
   });
 
+  it("forwards the singleton policy revision through the WS gate", async () => {
+    const core = await import("@chainlesschain/session-core");
+    const inner = new core.ApprovalGate({
+      defaultPolicy: core.APPROVAL_POLICY.AUTOPILOT,
+    });
+    const { deps } = makeDeps();
+    deps.loadSingletons = async () => ({ getApprovalGate: async () => inner });
+    const gate = await createWsApprovalGate({
+      sessionId: "sess-1",
+      interaction: {},
+      deps,
+    });
+    const events = [];
+    const unsubscribe = gate.subscribePolicyRevision(null, (event) =>
+      events.push(event.revision),
+    );
+    gate.setSessionPolicy(null, core.APPROVAL_POLICY.STRICT);
+    inner.setSessionPolicy("sess-1", core.APPROVAL_POLICY.AUTOPILOT);
+    expect(gate.getAuthorizationPolicySnapshot()).toMatchObject({
+      sessionId: "sess-1",
+      revision: 2,
+      policy: core.APPROVAL_POLICY.AUTOPILOT,
+    });
+    expect(events).toEqual([1, 2]);
+    unsubscribe();
+    inner.setSessionPolicy("sess-1", core.APPROVAL_POLICY.TRUSTED);
+    expect(events).toEqual([1, 2]);
+  });
+
   it("denies fail-closed when the confirmer rejects", async () => {
     const { deps } = makeDeps({ confirmer: async () => false });
     const gate = await createWsApprovalGate({

@@ -261,6 +261,13 @@ export async function createWsApprovalGate({
       getSessionPolicy: (sid) => inner.getSessionPolicy(sid || sessionId),
       setSessionPolicy: (sid, policy) =>
         inner.setSessionPolicy(sid || sessionId, policy),
+      getAuthorizationPolicySnapshot: (sid) =>
+        inner.getAuthorizationPolicySnapshot?.(sid || sessionId) || null,
+      subscribePolicyRevision:
+        typeof inner.subscribePolicyRevision === "function"
+          ? (sid, listener) =>
+              inner.subscribePolicyRevision(sid || sessionId, listener)
+          : undefined,
       beginTurn: (turnId) => ledgerState.ledger.beginTurn(turnId),
       listGrants: () => ledgerState.ledger.listGrants(),
       revokeGrant: (grantId) => {

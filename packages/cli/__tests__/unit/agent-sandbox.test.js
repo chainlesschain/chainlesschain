@@ -17,7 +17,10 @@ import {
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
+import approvalCore from "../../../session-core/lib/approval-gate.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
+
+const { ApprovalGate, POLICY: APPROVAL_POLICY } = approvalCore;
 
 const egressMocks = vi.hoisted(() => ({ start: vi.fn() }));
 const workerMocks = vi.hoisted(() => ({ start: vi.fn() }));
@@ -449,6 +452,180 @@ describe("explicit Docker egress configuration and execution evidence", () => {
     expect(manager.revision).toBe(2);
     expect(session.close).toHaveBeenCalled();
     expect(manager.listenerCount("revision-changed")).toBe(0);
+    expect(result).toMatchObject({
+      exitCode: 1,
+      retrySafe: false,
+      authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+      sandboxCapabilities: { applied: [] },
+    });
+  });
+
+  it("rejects a brief approval policy change during the first permission read", async () => {
+    _deps.host = () => host;
+    const gate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+    });
+    let releasePermissionRead;
+    let permissionReadStarted;
+    const started = new Promise((resolve) => {
+      permissionReadStarted = resolve;
+    });
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo stale-approval-authority" },
+      {
+        sandbox: config(),
+        sessionId: "approval-s1",
+        approvalGate: gate,
+        permissionRulesProvider: () => {
+          permissionReadStarted();
+          return new Promise((resolve) => {
+            releasePermissionRead = resolve;
+          });
+        },
+      },
+    );
+    await started;
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.STRICT);
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.AUTOPILOT);
+    releasePermissionRead({ rules: { allow: [], ask: [], deny: [] } });
+    const result = await pending;
+    expect(result.policy).toMatchObject({
+      decision: "blocked",
+      via: "shell-policy-authority",
+      code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+    });
+    expect(egressMocks.start).not.toHaveBeenCalled();
+  });
+
+  it("rejects a brief plan change during the first permission read", async () => {
+    _deps.host = () => host;
+    const manager = new PlanModeManager({ memoryOnly: true });
+    let releasePermissionRead;
+    let permissionReadStarted;
+    const started = new Promise((resolve) => {
+      permissionReadStarted = resolve;
+    });
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo stale-plan-authority" },
+      {
+        sandbox: config(),
+        planManager: manager,
+        approvalGate: {
+          decide: async () => ({
+            decision: "allow",
+            via: "policy",
+            policy: "autopilot",
+          }),
+        },
+        permissionRulesProvider: () => {
+          permissionReadStarted();
+          return new Promise((resolve) => {
+            releasePermissionRead = resolve;
+          });
+        },
+      },
+    );
+    await started;
+    expect(manager.enterPlanMode()).not.toHaveProperty("error");
+    expect(manager.exitPlanMode()).not.toHaveProperty("error");
+    releasePermissionRead({ rules: { allow: [], ask: [], deny: [] } });
+    const result = await pending;
+    expect(result.policy).toMatchObject({
+      decision: "blocked",
+      via: "shell-policy-authority",
+      code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+    });
+    expect(egressMocks.start).not.toHaveBeenCalled();
+  });
+
+  it("rejects a brief approval policy change while the broker starts", async () => {
+    _deps.host = () => host;
+    const gate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+    });
+    let releaseBroker;
+    workerMocks.start.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseBroker = resolve;
+        }),
+    );
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo stale-broker-authority" },
+      { sandbox: config(), sessionId: "approval-s1", approvalGate: gate },
+    );
+    await vi.waitFor(() => expect(workerMocks.start).toHaveBeenCalledOnce());
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.STRICT);
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.AUTOPILOT);
+    releaseBroker({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    });
+    await expect(pending).rejects.toMatchObject({
+      code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+    });
+    expect(egressMocks.start).not.toHaveBeenCalled();
+  });
+
+  it("immediately revokes a running Docker shell on a brief approval policy change", async () => {
+    _deps.host = () => host;
+    const gate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+    });
+    const abort = vi.fn(async () => {});
+    workerMocks.start.mockResolvedValue({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort,
+      close: vi.fn(async () => {}),
+    });
+    let started;
+    let finishRun;
+    const startedPromise = new Promise((resolve) => {
+      started = resolve;
+    });
+    const session = {
+      close: vi.fn(async () => {}),
+      run: vi.fn(async (_command, options) => {
+        await options.beforeStart();
+        started();
+        return new Promise((resolve) => {
+          finishRun = resolve;
+        });
+      }),
+    };
+    egressMocks.start.mockResolvedValue(session);
+    const pending = executeTool(
+      "run_shell",
+      { command: "echo stale-approval-authority" },
+      { sandbox: config(), sessionId: "approval-s1", approvalGate: gate },
+    );
+    await Promise.race([
+      startedPromise,
+      pending.then((result) => {
+        throw new Error(
+          `Docker shell ended before start: ${JSON.stringify(result)}`,
+        );
+      }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Docker shell did not start")),
+          5_000,
+        ),
+      ),
+    ]);
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.STRICT);
+    expect(abort).toHaveBeenCalledOnce();
+    gate.setSessionPolicy("approval-s1", APPROVAL_POLICY.AUTOPILOT);
+    finishRun({ stdout: "side-effect", stderr: "", exitCode: 0 });
+    const result = await pending;
+    expect(session.close).toHaveBeenCalled();
+    expect(gate._policyRevisionListeners.has("approval-s1")).toBe(false);
     expect(result).toMatchObject({
       exitCode: 1,
       retrySafe: false,

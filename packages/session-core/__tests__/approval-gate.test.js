@@ -305,6 +305,53 @@ describe("ApprovalGate durable authorization", () => {
 });
 
 describe("ApprovalGate session policy overrides", () => {
+  it("keeps a monotonic per-session revision for a brief policy change", () => {
+    const gate = new ApprovalGate({ defaultPolicy: POLICY.AUTOPILOT });
+    const events = [];
+    const unsubscribe = gate.subscribePolicyRevision("s1", (event) =>
+      events.push(event),
+    );
+    gate.setSessionPolicy("s1", POLICY.STRICT);
+    gate.setSessionPolicy("s1", POLICY.AUTOPILOT);
+    gate.setSessionPolicy("s1", POLICY.AUTOPILOT);
+    gate.setSessionPolicy("s2", POLICY.STRICT);
+    expect(gate.getAuthorizationPolicySnapshot("s1")).toMatchObject({
+      policy: POLICY.AUTOPILOT,
+      revision: 2,
+    });
+    expect(events).toEqual([
+      { sessionId: "s1", revision: 1 },
+      { sessionId: "s1", revision: 2 },
+    ]);
+    gate.clearSessionPolicy("s1");
+    expect(gate.getAuthorizationPolicySnapshot("s1").revision).toBe(3);
+    unsubscribe();
+    gate.setSessionPolicy("s1", POLICY.TRUSTED);
+    expect(events).toHaveLength(3);
+    expect(gate.getAuthorizationPolicySnapshot("s2").revision).toBe(1);
+  });
+
+  it("forwards a session scope's snapshot and subscription to the same authority", () => {
+    const gate = new ApprovalGate();
+    const scope = gate.createSessionScope("s1");
+    const events = [];
+    const unsubscribe = scope.subscribePolicyRevision(null, (event) =>
+      events.push(event.revision),
+    );
+    gate.setSessionPolicy("s1", POLICY.TRUSTED);
+    scope.setSessionPolicy(null, POLICY.AUTOPILOT);
+    gate.setSessionPolicy("s2", POLICY.AUTOPILOT);
+    expect(scope.getAuthorizationPolicySnapshot()).toMatchObject({
+      sessionId: "s1",
+      policy: POLICY.AUTOPILOT,
+      revision: 2,
+    });
+    expect(events).toEqual([1, 2]);
+    unsubscribe();
+    scope.clearSessionPolicy();
+    expect(events).toEqual([1, 2]);
+  });
+
   it("setSessionPolicy overrides default", () => {
     const g = new ApprovalGate();
     g.setSessionPolicy("s1", POLICY.TRUSTED);
@@ -434,6 +481,9 @@ describe("ApprovalGate store persistence", () => {
     await g.load();
     expect(g.getSessionPolicy("s1")).toBe(POLICY.TRUSTED);
     expect(g.getSessionPolicy("s2")).toBe(POLICY.AUTOPILOT);
+    expect(g.getAuthorizationPolicySnapshot("s1").revision).toBe(1);
+    await g.load();
+    expect(g.getAuthorizationPolicySnapshot("s1").revision).toBe(1);
   });
 
   it("load() accepts array-of-entries form", async () => {
@@ -459,6 +509,25 @@ describe("ApprovalGate store persistence", () => {
     await new Promise((r) => setImmediate(r));
     expect(store.saves).toBe(1);
     expect(store._read()).toEqual({ s1: POLICY.TRUSTED });
+  });
+
+  it("publishes a policy revision before a slow persistence write finishes", async () => {
+    let finishSave;
+    const store = {
+      save: () =>
+        new Promise((resolve) => {
+          finishSave = resolve;
+        }),
+    };
+    const gate = new ApprovalGate({ store });
+    const events = [];
+    gate.subscribePolicyRevision("s1", (event) => events.push(event.revision));
+    const pending = gate.setSessionPolicy("s1", POLICY.TRUSTED);
+    expect(gate.getAuthorizationPolicySnapshot("s1").revision).toBe(1);
+    expect(events).toEqual([1]);
+    await vi.waitFor(() => expect(finishSave).toBeTypeOf("function"));
+    finishSave();
+    await pending;
   });
 
   it("setSessionPolicy skips persist when policy unchanged", async () => {

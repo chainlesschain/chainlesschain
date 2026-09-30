@@ -92,6 +92,8 @@ class ApprovalGate {
     this._onDecision = onDecision; // (ctx, result) => void
     this._store = store; // { load(), save(policies) } — optional
     this._perSession = new Map(); // sessionId → policy override
+    this._policyRevisions = new Map();
+    this._policyRevisionListeners = new Map();
     this._persistenceTail = Promise.resolve();
     this._persistenceError = null;
   }
@@ -103,8 +105,53 @@ class ApprovalGate {
     // entries: { [sessionId]: policy } or Array<[sessionId, policy]>
     const iter = Array.isArray(entries) ? entries : Object.entries(entries);
     for (const [sid, policy] of iter) {
-      if (sid && VALID_POLICIES.has(policy)) this._perSession.set(sid, policy);
+      if (sid && VALID_POLICIES.has(policy)) {
+        const key = String(sid);
+        if (this._perSession.get(key) !== policy) {
+          this._perSession.set(key, policy);
+          this._advancePolicyRevision(key);
+        }
+      }
     }
+  }
+
+  _advancePolicyRevision(sessionId) {
+    const next = (this._policyRevisions.get(sessionId) || 0) + 1;
+    if (!Number.isSafeInteger(next)) {
+      throw new Error("ApprovalGate: policy revision exhausted");
+    }
+    this._policyRevisions.set(sessionId, next);
+    const event = Object.freeze({ sessionId, revision: next });
+    let listenerError = null;
+    for (const listener of [
+      ...(this._policyRevisionListeners.get(sessionId) || []),
+    ]) {
+      try {
+        listener(event);
+      } catch (error) {
+        listenerError ||= error;
+      }
+    }
+    if (listenerError) throw listenerError;
+  }
+
+  subscribePolicyRevision(sessionId, listener) {
+    if (!sessionId || typeof listener !== "function") {
+      throw new TypeError(
+        "ApprovalGate: policy revision subscription requires a session and listener",
+      );
+    }
+    const key = String(sessionId);
+    let listeners = this._policyRevisionListeners.get(key);
+    if (!listeners) {
+      listeners = new Set();
+      this._policyRevisionListeners.set(key, listeners);
+    }
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this._policyRevisionListeners.delete(key);
+    };
   }
 
   _persist() {
@@ -147,8 +194,12 @@ class ApprovalGate {
     }
     const prev = this._perSession.get(sessionId);
     this._perSession.set(sessionId, policy);
-    if (prev !== policy || this._persistenceError) return this._persist();
-    return this._persistenceTail;
+    const persistence =
+      prev !== policy || this._persistenceError
+        ? this._persist()
+        : this._persistenceTail;
+    if (prev !== policy) this._advancePolicyRevision(String(sessionId));
+    return persistence;
   }
 
   getSessionPolicy(sessionId) {
@@ -158,6 +209,7 @@ class ApprovalGate {
   clearSessionPolicy(sessionId) {
     const existed = this._perSession.delete(sessionId);
     if (existed || this._persistenceError) this._persist();
+    if (existed) this._advancePolicyRevision(String(sessionId));
     return existed;
   }
 
@@ -193,6 +245,9 @@ class ApprovalGate {
       kind: "session-core",
       sessionId: sessionId ? String(sessionId) : null,
       policy: sessionId ? this.getSessionPolicy(sessionId) : this._default,
+      revision: sessionId
+        ? this._policyRevisions.get(String(sessionId)) || 0
+        : 0,
     });
   }
 
@@ -334,6 +389,9 @@ class ApprovalGate {
       },
       getAuthorizationPolicySnapshot(sid) {
         return gate.getAuthorizationPolicySnapshot(sid || scopedSessionId);
+      },
+      subscribePolicyRevision(sid, listener) {
+        return gate.subscribePolicyRevision(sid || scopedSessionId, listener);
       },
       bindAuthorization(authorization) {
         return gate._bindAuthorization(authorization, consumeAuthorization);

@@ -360,6 +360,30 @@ describe("createAutoModeApprovalGate", () => {
     expect(gate.hasConfirmer()).toBe(true);
   });
 
+  it("forwards policy revision subscriptions through the auto-mode wrapper", () => {
+    const inner = new sessionCore.ApprovalGate({
+      defaultPolicy: sessionCore.APPROVAL_POLICY.AUTOPILOT,
+    });
+    const gate = createAutoModeApprovalGate(
+      inner,
+      resolveAutoModeDecisions({ decisions: { high: "deny" } }),
+    );
+    const events = [];
+    const unsubscribe = gate.subscribePolicyRevision("s1", (event) =>
+      events.push(event.revision),
+    );
+    gate.setSessionPolicy("s1", sessionCore.APPROVAL_POLICY.STRICT);
+    inner.setSessionPolicy("s1", sessionCore.APPROVAL_POLICY.AUTOPILOT);
+    expect(gate.getAuthorizationPolicySnapshot("s1").inner).toMatchObject({
+      revision: 2,
+      policy: sessionCore.APPROVAL_POLICY.AUTOPILOT,
+    });
+    expect(events).toEqual([1, 2]);
+    unsubscribe();
+    gate.setSessionPolicy("s1", sessionCore.APPROVAL_POLICY.TRUSTED);
+    expect(events).toEqual([1, 2]);
+  });
+
   it("delegates untouched to the inner gate while isActive() is false", async () => {
     const inner = {
       setConfirmer() {},

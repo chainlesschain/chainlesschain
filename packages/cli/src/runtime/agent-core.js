@@ -2550,6 +2550,10 @@ function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
  */
 export async function executeTool(name, args, context = {}) {
   const liveExecutionContext = context;
+  let admittedApprovalGate = null;
+  let admittedApprovalPolicyDigest = null;
+  let entryPlanManager = null;
+  let entryPlanPolicyDigest = null;
   // run_shell can cross several asynchronous permission/hook boundaries before
   // reaching executeToolInner. Capture its declared tuple and working directory
   // before any of them so an in-process caller cannot swap the approved command
@@ -2599,6 +2603,31 @@ export async function executeTool(name, args, context = {}) {
           decision: "blocked",
           via: "shell-execution-snapshot",
           code: "CC_SHELL_EXECUTION_SNAPSHOT_INVALID",
+        },
+      };
+    }
+  }
+  if (name === "run_shell") {
+    try {
+      admittedApprovalGate = context.approvalGate || null;
+      admittedApprovalPolicyDigest = digestPolicyAuthority(
+        snapshotApprovalPolicyAuthority(
+          admittedApprovalGate,
+          context.sessionId || null,
+        ),
+      );
+      entryPlanManager = context.planManager || getPlanModeManager();
+      entryPlanPolicyDigest = digestPolicyAuthority(
+        snapshotPlanToolAuthority(entryPlanManager, name, args),
+      );
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The initial shell policy authority could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
         },
       };
     }
@@ -3023,9 +3052,20 @@ export async function executeTool(name, args, context = {}) {
   let admittedPlanPolicyDigest = null;
   if (name === "run_shell") {
     try {
-      admittedPlanPolicyDigest = digestPolicyAuthority(
+      const currentPlanPolicyDigest = digestPolicyAuthority(
         snapshotPlanToolAuthority(planManager, name, args),
       );
+      if (
+        planManager !== entryPlanManager ||
+        currentPlanPolicyDigest !== entryPlanPolicyDigest
+      ) {
+        const error = new Error(
+          "Plan authority changed during initial permission resolution",
+        );
+        error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+        throw error;
+      }
+      admittedPlanPolicyDigest = currentPlanPolicyDigest;
     } catch (error) {
       return {
         error:
@@ -3384,6 +3424,9 @@ export async function executeTool(name, args, context = {}) {
         classifyAllShell: context.classifyAllShell === true,
       };
       if (
+        approvalGate !== admittedApprovalGate ||
+        digestPolicyAuthority(initialProjection.approval) !==
+          admittedApprovalPolicyDigest ||
         digestPolicyAuthority(initialProjection.permission) !==
           admittedPermissionPolicyDigest ||
         digestPolicyAuthority(initialProjection.host) !==
@@ -6678,6 +6721,7 @@ async function executeToolInner(
         let proxyFailed = false;
         let authorityMonitor = null;
         let removePlanAuthorityListener = null;
+        let removeApprovalAuthorityListener = null;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
@@ -6764,6 +6808,24 @@ async function executeToolInner(
               removePlanAuthorityListener = () =>
                 planManager.off("revision-changed", onPlanMutation);
             }
+            if (
+              sessionId &&
+              typeof approvalGate?.subscribePolicyRevision === "function"
+            ) {
+              removeApprovalAuthorityListener =
+                approvalGate.subscribePolicyRevision(sessionId, () => {
+                  const error = new Error(
+                    "Approval policy changed during Docker egress execution",
+                  );
+                  error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+                  authorityMonitor.revoke(error);
+                });
+              if (typeof removeApprovalAuthorityListener !== "function") {
+                throw new TypeError(
+                  "approval policy revision subscription must return an unsubscribe function",
+                );
+              }
+            }
             authorityMonitor.start();
             await authorityMonitor.checkNow();
           } else {
@@ -6827,6 +6889,7 @@ async function executeToolInner(
             });
           }
         } finally {
+          removeApprovalAuthorityListener?.();
           removePlanAuthorityListener?.();
           authorityMonitor?.stop();
           await authorityMonitor?.awaitCleanup();
