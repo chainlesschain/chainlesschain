@@ -768,8 +768,20 @@ export function verifyModelConfigurationFixtureLedger(tracePath) {
     before.model !== "deterministic-host-peer" ||
     before.sessionId !== after.sessionId ||
     after.sessionId !== restart.sessionId ||
-    before.processId === after.processId ||
-    after.processId === restart.processId ||
+    // Windows can reuse a PID between the two IDE launches. Each fixture
+    // invocation records a fresh UUID, which identifies the actual process.
+    [before, after, restart].some(
+      (record) =>
+        typeof record.processId !== "number" ||
+        !Number.isSafeInteger(record.processId) ||
+        record.processId <= 0 ||
+        typeof record.processInstanceId !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+          record.processInstanceId,
+        ),
+    ) ||
+    before.processInstanceId === after.processInstanceId ||
+    after.processInstanceId === restart.processInstanceId ||
     [saves[0], after, restart].some(
       (record) =>
         record.model !== "ui-config-model" ||

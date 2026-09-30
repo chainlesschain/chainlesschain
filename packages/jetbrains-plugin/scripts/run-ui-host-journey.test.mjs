@@ -149,6 +149,7 @@ test("requires actual session replacement and restart after one confirmed model 
       probe: "journey:model:initial-before",
       sessionId: "saved-chat",
       processId: 100,
+      processInstanceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       model: "deterministic-host-peer",
     },
     {
@@ -166,6 +167,7 @@ test("requires actual session replacement and restart after one confirmed model 
       probe: "journey:model:initial-after",
       sessionId: "saved-chat",
       processId: 101,
+      processInstanceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       model: "ui-config-model",
       visionModel: "ui-config-vision",
     },
@@ -174,6 +176,7 @@ test("requires actual session replacement and restart after one confirmed model 
       probe: "journey:model:restart",
       sessionId: "saved-chat",
       processId: 102,
+      processInstanceId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       model: "ui-config-model",
       visionModel: "ui-config-vision",
     },
@@ -183,9 +186,33 @@ test("requires actual session replacement and restart after one confirmed model 
     verifyModelConfigurationFixtureLedger(trace).existingSessionReload,
     true,
   );
+  for (const [reusedIndex, originalIndex] of [
+    [6, 0],
+    [7, 6],
+  ]) {
+    const reusedPid = structuredClone(entries);
+    reusedPid[reusedIndex].processId = reusedPid[originalIndex].processId;
+    writeFileSync(
+      trace,
+      reusedPid.map((entry) => JSON.stringify(entry)).join("\n"),
+    );
+    assert.equal(
+      verifyModelConfigurationFixtureLedger(trace).existingSessionReload,
+      true,
+    );
+  }
   for (const mutate of [
     (copy) => {
-      copy[6].processId = 100;
+      copy[6].processInstanceId = copy[0].processInstanceId;
+    },
+    (copy) => {
+      copy[7].processInstanceId = copy[6].processInstanceId;
+    },
+    (copy) => {
+      delete copy[7].processInstanceId;
+    },
+    (copy) => {
+      copy[6].processInstanceId = "";
     },
     (copy) => {
       copy[6].sessionId = "new-chat";

@@ -24,6 +24,7 @@ import { waitForInitGate } from "./init-gate.mjs";
 import { inputReceiptPeer } from "./input-receipt-peer.mjs";
 
 const argv = process.argv.slice(2);
+const processInstanceId = randomUUID();
 const statePath = process.env.CC_UI_FIXTURE_STATE || "";
 const tracePath = process.env.CC_UI_FIXTURE_TRACE || "";
 const timelineFixture = JSON.parse(
@@ -46,7 +47,7 @@ function trace(record) {
   try {
     appendFileSync(
       tracePath,
-      `${JSON.stringify({ at: new Date().toISOString(), ...record })}\n`,
+      `${JSON.stringify({ at: new Date().toISOString(), ...record, processInstanceId })}\n`,
       { encoding: "utf8", mode: 0o600 },
     );
   } catch {
