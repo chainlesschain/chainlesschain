@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.82: recover stalled issue investigations
+
+- Count Issue queries, artifact downloads, and saved-log inspection as
+  investigation, preserving recovery until an actionable tool outcome.
+- Recognize repeated reads of the same Issue across GitHub web, CLI, and API
+  routes while keeping its linked PR and workflow runs distinct.
+- Retain failed-test assertions, source locations, and suite verdicts from
+  colored CI logs through context compaction, restart, and session handoff,
+  including when the log download itself succeeds.
+- Correct GitHub CLI calls sent to the Git tool and preserve established
+  evidence after unrelated command errors. Add regression coverage for mixed
+  investigation, compaction, local edits, and real verification commands.
+
 ### Fixed - cc CLI 0.166.81: latch Plan and approval revisions during Docker egress
 
 - Bind Plan and ApprovalGate snapshots before the first asynchronous shell

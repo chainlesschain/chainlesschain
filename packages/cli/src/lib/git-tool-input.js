@@ -1,6 +1,13 @@
 // The git tool accepts argv text, not a shell program. Diagnose shell syntax
 // before spawning git while preserving literal operators in quoted arguments.
 export function gitToolInputError(command) {
+  if (/^\s*(?:git\s+)?gh(?:\.exe)?(?:\s|$)/i.test(command))
+    return {
+      success: false,
+      code: "CC_GIT_WRONG_TOOL",
+      error: "gh is the GitHub CLI, not a Git subcommand.",
+      hint: "Use run_shell for the original gh command, subject to its normal permissions. Use the git tool only for Git arguments such as status or log. No command was executed.",
+    };
   let quote = null;
   for (let i = 0; i < command.length; i++) {
     const char = command[i];
