@@ -310,43 +310,36 @@ VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxT
 
 **语义**：源码以行数组存储并保留末尾 `\n`；`replace` 一个代码单元会**清空其 outputs 与 execution_count**；`insert` 会**生成新的 cell id**（插在目标之后，或无定位时插到顶部）。完善的错误路径：坏 JSON / 无 `cells[]` / 缺定位符 / 目标不存在 / 缺参数。
 
-## 沙箱网络隔离与出口过滤代理 (Phase 1)
+## Linux Docker 域名出站隔离（CLI 0.166.81）
 
-当 `run_shell` 在**沙箱模式**下执行（Docker 或 bubblewrap 后端）时，其网络出口由一套**策略判定 + 强制过滤**的两层机制守卫——把「agent 跑的 shell 命令能访问哪些域名」从提示词约束升级为**环境强制**。
+普通 Docker/bubblewrap 的代理环境变量不能阻止忽略代理的程序直接联网，因此有域名限制时不能将它们视为强制隔离。需要受限域名出站时，显式选择 Linux x64/ARM64 的 `docker-egress`：主容器保持无网络，出站经私有 Unix socket、relay 和宿主策略代理；不满足能力时拒绝执行。
 
-### 策略判定（`sandbox-network-policy.js`）
+在当前配置作用域的 settings 中配置以下结构，将两个镜像占位值换成目标主机已核验的真实 SHA-256 镜像引用：
 
-纯共享逻辑、独立可测，决定一个目标是否放行：
-
-- **`extractHost`**: 从 URL / `host:port` / IPv6 提取主机，**归一化方括号**（修 `new URL()` 对 `[::1]` 漏括号的 SSRF 坑）。
-- **`matchesDomain`**: 支持 `*`（全放行公网）/ `*.example.com`（含 apex）/ 精确匹配，防后缀欺骗。
-- **`isPrivateHost`**: 识别 loopback / `10.` / `172.16-31` / `192.168` / `169.254` / `::1` / `fc00::` / `fe80::` / 云 metadata / IPv4-mapped。
-- **`evaluateNetworkAccess`**: 优先级 `deny > 具体 allow > 私网守卫 > "*" allow > 默认拒`。裸 `*` 放行公网但**不含**内网/metadata；显式白名单可覆盖私网守卫（供 dev）。
-
-### 出口过滤代理（`sandbox-egress-proxy.js`）
-
-把「判定」变「强制」：一个本地转发代理，对**每个** HTTP 请求 + HTTPS `CONNECT` 隧道调 `evaluateNetworkAccess`，拒绝的 host 直接 403 / 关隧道（**上游零接触**），私网/metadata 即使 `*` allow 也拦（SSRF 防护）。沙箱进程的 `HTTP(S)_PROXY` 指向它，其 `curl` / `npm` / `pip` / `git` / `wget` / `fetch` 出口即被过滤。
-
-- **Docker 后端**: 注入 `--add-host host.docker.internal:host-gateway` + `HTTP(S)_PROXY`。
-- **bubblewrap 后端**: `--share-net` + `HTTP(S)_PROXY` 指向 `127.0.0.1`。
-- **无网络**: 不启用网络时 Docker 加 `--network none`。
-- **fail-closed**: 配了域名限制但代理起不来 → **拒绝**无限制网络访问（绝不静默放行）。
-
-### 配置
-
-```jsonc
+```json
 {
   "sandbox": {
-    "network": true, // 启用网络（false → --network none 完全断网）
-    "network.allowedDomains": ["registry.npmjs.org", "*.github.com"],
-    "network.deniedDomains": ["evil.example.com"],
-  },
+    "enabled": true,
+    "engine": "docker-egress",
+    "image": "your-target-image@sha256:REPLACE_WITH_VERIFIED_DIGEST",
+    "relayImage": "your-relay-image@sha256:REPLACE_WITH_VERIFIED_DIGEST",
+    "network": {
+      "allowedDomains": ["registry.npmjs.org", "github.com"],
+      "deniedDomains": ["evil.example.com"]
+    }
+  }
 }
 ```
 
-配了 `allowedDomains`/`deniedDomains` 且 `network:true` 时，`run_shell` 自动起代理 → 跑命令 → 拆代理。
+启动时显式开启网络：
 
-> **诚实标注（跨平台但非内核级）**: 这是**代理层**控制，Windows 可验、免 root、跨平台。忽略 `HTTP(S)_PROXY` 的工具（或直接 syscall 建连的程序）仍需 OS 级 netns 隔离（Linux bwrap netns / macOS Seatbelt / Windows AppContainer）才能真正封死——那部分属平台相关的内核硬隔离。
+```bash
+cc agent --sandbox --sandbox-network -p "检查项目依赖"
+```
+
+占位镜像不能直接运行。不支持 strict、排除命令或细粒度额外文件规则；macOS/Windows 和其他网络协议不在该限定路径的保证内。CLI 先完成命令审批，再建立受限通道。Plan/ApprovalGate 已提交修订会撤销运行中的代理连接与目标容器；计划快照读取不改变修订。取消或结果未知时先检查实际副作用，不要自动重试。
+
+发布后的 `b0aaa5a81f` 为 Auto Mode 增加同步修订与冻结配置，尚未进入 npm `0.166.81`；外部 settings、宿主策略与 legacy callback 仍需统一修订。完整配置与发行证据见[发布指南](./agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 ## Auto Pip-Install (自动安装 Python 包)
 

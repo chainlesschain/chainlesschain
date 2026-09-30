@@ -1,22 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-09-29 current release and source review
+## 2026-09-30 current release and source review
 
-Install **CLI 0.166.80**, the public npm `latest`, with `npm i -g chainlesschain@0.166.80 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-80` resolves to `dd6b131837`; [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36554790810) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36554998759) passed the configured Linux, Windows, and macOS jobs. [Exact-commit npm publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36555954429) passed on rerun after npm registry propagation, with public bytes, signed provenance, and `latest` read back. Versions `0.166.79–0.166.80` add an explicitly selected Linux Docker domain-egress route and revoke active connections and shells on policy changes. The route requires SHA-256-pinned images, explicit domain rules, and asynchronous execution; it does not fall back to unsandboxed execution. Earlier session recovery and default-off Skill decision limits remain in place.
+Install **CLI 0.166.81**, the public npm `latest`, with `npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-81` resolves to `a63101f3cc`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36704892264) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36704891847) passed all configured jobs; Strict includes Linux x64/ARM64, Windows, and macOS. The public registry reports the version, latest, and integrity, while the [npm publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/36715700885) still reports failure. Public availability does not establish successful completion of release verification. This release captures Plan/ApprovalGate snapshots before asynchronous approval, revokes running Docker egress on committed revisions, and keeps plan reads free of state changes. Session Core `0.3.14` provides monotonic session approval revisions.
 
-Open VSX **0.37.121** is public, and JetBrains Marketplace **0.4.141** is approved and publicly listed; both published manifests recommend CLI `0.166.79`. The current source versions, VS Code `0.37.122` and JetBrains `0.4.142`, pair with CLI `0.166.80` but are not yet publicly listed. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release; the iOS ad-hoc IPA supports provisioned devices only.
+Open VSX **0.37.123** and JetBrains Marketplace **0.4.143** are public, both recommend CLI `0.166.81`, and both use source `165093796d`. JetBrains creates and verifies owner-only Windows bridge permissions before writing its token and preserves temporary lockfiles with live writers. VS Code mode actions use the chooser. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release.
 
-Reviewed against `main@dd6b131837`: frozen PM effect plans, cohort slots, signed Eval evidence, per-slot final receipts, and conservative denominator reconciliation are in the `0.166.80` source identity. A trusted host must still independently prove every target launch path, the complete receipt source, and actual costs; the current interface verifies only receipts submitted to it. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion remains HOLD.
+Reviewed against `main@012cefe7ac`: post-release commit `b0aaa5a81f` adds synchronous Auto Mode revisions, frozen execution rules, and rejection of stale authority after a change is reverted. Its 415 related local regressions passed; it is absent from the public CLI tarball, and new exact-commit CI/Strict verification remains incomplete. External settings, host policy, and legacy callbacks still need a unified revision mechanism. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion stays on HOLD.
 
 See the [design update](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Older dated sections below describe historical states.
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.80` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.81` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.80 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
@@ -2545,7 +2545,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.135-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.138-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -2553,7 +2553,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.9-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.81-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -2568,7 +2568,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Historical Snapshot — v5.0.3.48 Evolution Edition (2026-05-12, snapshot 25 versions ago)
 
-> **Current state: see the [2026-05-20 closing] section at the top of this file** — Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + follow-up v5.0.3.73 Phase 10.2 integration + E2E tests + 1 AIChat registry-contract bug fix. Hub test baseline 47/927 → 50/952 all green. CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
+> **For current versions, see the 2026-09-30 release and source review at the top of this file**. The following is the historical 2026-05-20 closing record: Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + follow-up v5.0.3.73 Phase 10.2 integration + E2E tests + 1 AIChat registry-contract bug fix. Hub test baseline 47/927 → 50/952 all green. CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
 >
 > The banner and "Latest Update" entries below are reverse-chronological release notes (each describes the specific content of that version), not current state.
 

@@ -1,5 +1,7 @@
 # CLI Runtime 当前实现核对（公开 0.166.56 / IDE 0.37.103 + 0.4.124）
 
+> **2026-09-30 当前核对**：源码 `main@012cefe7ac`；公开 CLI `0.166.81@a63101f3cc`、Open VSX `0.37.123`、JetBrains `0.4.143`，两个 IDE 均推荐 CLI `0.166.81`。CLI 精确发布提交的 CI/Strict 配置任务通过，但 npm 发布流程仍为 failure；公共可安装状态与发布流程结论分别记录。公开版绑定 Plan/ApprovalGate 修订并在 Docker 出站运行中撤销旧权限；发布后的 `b0aaa5a81f` 增加 Auto Mode 修订与配置冻结，尚未进入 npm 制品。外部 settings/宿主策略的统一修订仍待补齐。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。参见[运行时增量设计](agent-runtime-update-2026-09-26.md)。
+
 > 更新时间：2026-09-15。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.56`，绑定不可变 tag `v-npm-0-166-56` 的精确 SHA `d55de4810e35f9ef686ec108c71d311c9b3d2b10`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.103`、JetBrains Marketplace 为 `0.4.124`；同一 IDE 提交 `ac0e61b3cd` 的两条发布门成功。
 
 ## 2026-09-15 增量：请求级上下文窗口与用量投影

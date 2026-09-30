@@ -1,5 +1,24 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
+## 2026-09-30：策略修订、公开发行与发布后的 Auto Mode 修复
+
+核对源码 `main@012cefe7acbf54e3d9d4cec7963854a785866ab1` 与 Git 标签：公开 npm `chainlesschain@0.166.81` 的 `v-npm-0-166-81` 固定为 `a63101f3cc32f4cbdc644a6f0d9d1295589fe380`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36704892264) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36704891847)已通过该精确提交的全部配置任务，Strict 包括 Linux x64/ARM64、Windows 和 macOS。npm 公共 registry 已回读 `latest`、版本和 integrity；[npm 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/36715700885)当前结论仍为 failure，不能写成发布流程全绿或精确制品验收闭环。Open VSX `0.37.123` 和 JetBrains `0.4.143` 均已公开并推荐 CLI `0.166.81`，源码为 `165093796d286f45387d54c7d3ac887465192d48`；[VS Code 宿主与发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/36725119550)和[JetBrains 宿主与商店回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36725120159)分别通过。Session Core `0.3.14` 已公开，产品安装包仍按 `v5.0.3.138` 独立发行。
+
+| 提交 / 组件                           | 实现与适用范围                                                                                          | 证据边界                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `e89474dcf4` / Plan                   | 在首个异步 shell 权限读取前捕获计划快照，执行中订阅已提交修订；旧快照不能继续授权                       | 已进入 CLI 0.166.81                                          |
+| `8540d2837f` / ApprovalGate           | Session Core 0.3.14 提供会话级单调修订；变化时撤销 broker、活动连接和目标容器，拒绝成功回执             | 支持的进程内审批更新；不证明外部写入完整覆盖                 |
+| `d52a33546f` / 只读投影               | Plan 快照读取不再触发修订；VS Code 模式动作使用选择器                                                   | CLI/公开 IDE 继承对应修复                                    |
+| `f9081da244`、`3bbfc44275` / IDE 桥接 | Windows 桥接目录与空锁在 token 写入前应用并回读受保护单用户 ACL；验证目录后清理，保留活跃 writer 临时锁 | 已进入公开 IDE；拒绝异主目录                                 |
+| `9ed9dccb0a`、`c7b10fdc9d` / ARM64    | 原生 Linux ARM64 Strict 门与按架构计算的匿名 tmpfile 标志                                               | 精确发布 SHA 的 ARM64 Strict 成功；不代表所有后端/协议已验证 |
+| `b0aaa5a81f` / Auto Mode              | 执行规则深拷贝并冻结；setActive 同步递增修订并通知订阅者，REPL 切换复用同一 authority                   | 发布后的源码；415 项相关本地回归通过，未进入公开 tarball     |
+
+Auto Mode 的新修订机制捕获激活状态变更，即使状态在轮询前恢复原值，已捕获的权限也保持撤销。回归覆盖审批等待、环境准备、目标启动、运行和回执阶段；相同值重复设置不产生新修订。legacy `isActive` callback 仍只是采样，外部 settings/宿主策略写入尚未统一到不可逆 generation，因此不能宣称所有策略变化已无遗漏覆盖。新提交的完整托管门禁必须重新核对，不能沿用 `a63101f3cc` 的成功结果。
+
+Linux `docker-egress` 仍须显式选择、固定主/relay 镜像摘要、声明域名规则并开启网络；拒绝 strict、排除命令和细粒度额外文件规则，能力不足时失败闭合。新增真实 HTTP/WebSocket 活连接撤销与直连 UDP DNS 拒绝探针属于限定产品路径验证；其余 DNS 传输、网络协议、长期运行和目标环境仍待验收。普通 Docker/bubblewrap 代理环境变量不构成强制域名边界。PM 收益、完整启动覆盖、全部成本和自动 active Skill 晋升仍为 HOLD。
+
+以下 2026-09-29 与更早章节为历史快照。
+
 ## 2026-09-29：CLI 0.166.80 与 Docker 出站边界
 
 按 `main@dd6b131837` 和公开渠道复核：npm `latest` 为 `chainlesschain@0.166.80`，不可变标签 `v-npm-0-166-80` 指向同一提交。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36554790810)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36554998759) 和 [npm 发布及公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36555954429)成功；npm 发布首次运行在成功上传后遇到注册表 `ETARGET` 可见性延迟，重跑完成精确字节与签名 provenance 验证。Open VSX `0.37.121`、JetBrains Marketplace `0.4.141` 已公开，制品均推荐 CLI `0.166.79`；源码 VS Code `0.37.122`、JetBrains `0.4.142` 配对 `0.166.80`，不能视为已公开商店制品。Desktop/native 仍按 `v5.0.3.138` 独立发行。
@@ -16,13 +35,13 @@
 
 ## 发行与源码身份
 
-| 组件                    | 2026-09-28 回读状态                            | 精确源码     |
-| ----------------------- | ---------------------------------------------- | ------------ |
-| npm CLI                 | `0.166.78`，`latest`，标签 `v-npm-0-166-78`    | `3400318446` |
-| Open VSX                | `0.37.119` 已公开，推荐 CLI `0.166.78`         | `3400318446` |
-| JetBrains Marketplace   | `0.4.140` 已批准并公开，推荐 CLI `0.166.78`    | `3400318446` |
-| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                      | `eb48ffa311` |
-| 逐槽 PM 对账            | `24f0cb6fb1` 已纳入公开 CLI 的源码身份        | `24f0cb6fb1` |
+| 组件                    | 2026-09-28 回读状态                         | 精确源码     |
+| ----------------------- | ------------------------------------------- | ------------ |
+| npm CLI                 | `0.166.78`，`latest`，标签 `v-npm-0-166-78` | `3400318446` |
+| Open VSX                | `0.37.119` 已公开，推荐 CLI `0.166.78`      | `3400318446` |
+| JetBrains Marketplace   | `0.4.140` 已批准并公开，推荐 CLI `0.166.78` | `3400318446` |
+| Desktop / Android / iOS | 独立产品发行 `v5.0.3.138`                   | `eb48ffa311` |
+| 逐槽 PM 对账            | `24f0cb6fb1` 已纳入公开 CLI 的源码身份      | `24f0cb6fb1` |
 
 CLI 精确提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803981)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803887) 已通过全部配置的 Linux、Windows、macOS 任务；[npm 精确提交发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675)成功，公共 registry `latest` 回读为 `0.166.78`。Open VSX API 回读 `0.37.119`；JetBrains 公共更新列表的 `0.4.140` 返回 `approve=true`、`listed=true`、`hidden=false`。Microsoft Marketplace 仍无公开发行。
 
