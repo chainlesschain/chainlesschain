@@ -490,6 +490,22 @@ describe("owner-only filesystem helpers", () => {
     };
   }
 
+  function withDefaultWindowsAclTimeout(callback) {
+    // Keep default-budget assertions independent of the hosted-runner allowance.
+    const key = "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS";
+    const configured = process.env[key];
+    delete process.env[key];
+    try {
+      return callback();
+    } finally {
+      if (configured === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = configured;
+      }
+    }
+  }
+
   it("detects and repairs POSIX directory modes", () => {
     const fs = fakeFs(0o755, true);
     const options = {
@@ -962,12 +978,14 @@ describe("owner-only filesystem helpers", () => {
     );
 
     expect(
-      ensurePrivateDirectory("C:\\private-existing", {
-        platform: "win32",
-        applyWindowsAcl: true,
-        failIfUnavailable: true,
-        deps: { fs, spawnSync, platform: () => "win32" },
-      }),
+      withDefaultWindowsAclTimeout(() =>
+        ensurePrivateDirectory("C:\\private-existing", {
+          platform: "win32",
+          applyWindowsAcl: true,
+          failIfUnavailable: true,
+          deps: { fs, spawnSync, platform: () => "win32" },
+        }),
+      ),
     ).toBe("C:\\private-existing");
     expect(spawnSync).toHaveBeenCalledOnce();
     const timeouts = spawnSync.mock.calls.map(([, , options]) =>
@@ -1441,11 +1459,13 @@ describe("owner-only filesystem helpers", () => {
     });
 
     expect(
-      ensurePrivateDirectory(target, {
-        platform: "win32",
-        applyWindowsAcl: false,
-        deps: { fs, spawnSync, platform: () => "win32" },
-      }),
+      withDefaultWindowsAclTimeout(() =>
+        ensurePrivateDirectory(target, {
+          platform: "win32",
+          applyWindowsAcl: false,
+          deps: { fs, spawnSync, platform: () => "win32" },
+        }),
+      ),
     ).toBe(target);
     expect(events).toEqual(["preflight", "mkdir"]);
     expect(spawnSync).toHaveBeenCalledOnce();
