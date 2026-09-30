@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.81: latch Plan and approval revisions during Docker egress
+
+- Bind Plan and ApprovalGate snapshots before the first asynchronous shell
+  permission read. During a running Docker egress command, subscribe to their
+  committed revisions and revoke the broker and target when authority changes.
+- Session Core 0.3.14 supplies the monotonic per-session ApprovalGate revision.
+  This covers supported in-process policy updates; settings files, mutable host
+  policy, Auto Mode state, and external writes still need a unified epoch.
+- Pair VS Code 0.37.123 and JetBrains 0.4.143 after the CLI's exact-commit
+  release checks and public npm readback. JetBrains creates its Windows bridge
+  lockfile with owner-only permissions before writing the bearer token.
+
 ### Fixed - cc CLI 0.166.80: revoke active Docker egress shells
 
 - Revalidate live shell and sandbox authority while a Docker egress command is

@@ -4,7 +4,8 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
-Current npm package: `@chainlesschain/session-core@0.3.13`. This release adds
+At candidate preparation, the latest npm package was
+`@chainlesschain/session-core@0.3.13`. That release adds
 the checked-in skill invocation receipt compatibility policy and keeps
 unsupported receipt histories fail closed. The release workflow publishes the
 child package before the CLI and compares the exact local tarball with the

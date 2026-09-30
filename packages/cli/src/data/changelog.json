@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.81",
+      "cliVersions": ["0.166.81"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.81: latch Plan and approval revisions during Docker egress",
+          "body": "- Bind Plan and ApprovalGate snapshots before the first asynchronous shell\n  permission read. During a running Docker egress command, subscribe to their\n  committed revisions and revoke the broker and target when authority changes.\n- Session Core 0.3.14 supplies the monotonic per-session ApprovalGate revision.\n  This covers supported in-process policy updates; settings files, mutable host\n  policy, Auto Mode state, and external writes still need a unified epoch.\n- Pair VS Code 0.37.123 and JetBrains 0.4.143 after the CLI's exact-commit\n  release checks and public npm readback. JetBrains creates its Windows bridge\n  lockfile with owner-only permissions before writing the bearer token."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.80",
       "cliVersions": ["0.166.80"],
       "date": null,

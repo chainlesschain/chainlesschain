@@ -9,14 +9,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
 
-> The `0.166.79` release is from immutable tag `v-npm-0-166-79` at
-> `0fc1b991bc`. The current `0.166.81` source is a candidate and has not been
+> The `0.166.80` release is from immutable tag `v-npm-0-166-80` at
+> `dd6b131837`. The current `0.166.81` source is a candidate and has not been
 > published.
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.80
+npm install -g chainlesschain@0.166.81
 chainlesschain setup
 ```
 
