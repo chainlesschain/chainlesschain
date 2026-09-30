@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   DEFAULT_SANDBOX_IMAGE,
   _deps,
@@ -17,6 +20,7 @@ import {
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { PlanModeManager } from "../../src/lib/plan-mode.js";
+import { WSSessionManager } from "../../src/gateways/ws/ws-session-gateway.js";
 import {
   createAutoModeApprovalGate,
   resolveAutoModeDecisions,
@@ -604,6 +608,176 @@ describe("explicit Docker egress configuration and execution evidence", () => {
       expect(inner._policyRevisionListeners.size).toBe(0);
       gate.setActive(false);
       expect(abort).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["permission-read", "approval", "broker-start"])(
+    "rejects a WS host-policy ABA while waiting for %s",
+    async (phase) => {
+      _deps.host = () => host;
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-ws-shell-policy-"),
+      );
+      const manager = new WSSessionManager({ defaultProjectRoot: root });
+      const allowed = { tools: { run_shell: { allowed: true } } };
+      const { sessionId } = manager.createSession({
+        hostManagedToolPolicy: allowed,
+      });
+      const session = manager.getSession(sessionId);
+      try {
+        let release;
+        const wait = () =>
+          new Promise((resolve) => {
+            release = resolve;
+          });
+        const gate = createAutoModeApprovalGate(
+          new ApprovalGate({ defaultPolicy: APPROVAL_POLICY.AUTOPILOT }),
+          resolveAutoModeDecisions({
+            decisions: { medium: phase === "approval" ? "ask" : "allow" },
+          }),
+        );
+        gate.setConfirmer(phase === "approval" ? wait : async () => true);
+        const proxy = {
+          socketPath: "/private/broker.sock",
+          revision: 0,
+          abort: vi.fn(async () => {}),
+          close: vi.fn(async () => {}),
+        };
+        workerMocks.start.mockImplementation(
+          phase === "broker-start" ? wait : async () => proxy,
+        );
+        const pending = executeTool(
+          "run_shell",
+          { command: "echo stale-host-policy" },
+          {
+            cwd: root,
+            sandbox: config(),
+            sessionId,
+            approvalGate: gate,
+            hostManagedToolPolicy: session.hostManagedToolPolicy,
+            hostManagedToolPolicyAuthority:
+              session.hostManagedToolPolicyAuthority,
+            ...(phase === "permission-read"
+              ? { permissionRulesProvider: wait }
+              : {}),
+          },
+        );
+        await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+        manager.updateSessionPolicy(sessionId, {
+          tools: { run_shell: { allowed: false } },
+        });
+        manager.updateSessionPolicy(sessionId, allowed);
+        release(
+          phase === "permission-read"
+            ? { rules: { allow: [], ask: [], deny: [] } }
+            : phase === "approval"
+              ? true
+              : proxy,
+        );
+        if (phase === "permission-read")
+          expect((await pending).policy.code).toBe(
+            "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          );
+        else
+          await expect(pending).rejects.toMatchObject({
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          });
+        expect(egressMocks.start).not.toHaveBeenCalled();
+      } finally {
+        manager.closeSession(sessionId);
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(["running", "container-create"])(
+    "immediately revokes WS host-policy ABA during %s and removes the subscription",
+    async (phase) => {
+      _deps.host = () => host;
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-ws-shell-live-policy-"),
+      );
+      const manager = new WSSessionManager({ defaultProjectRoot: root });
+      const allowed = { tools: { run_shell: { allowed: true } } };
+      const { sessionId } = manager.createSession({
+        hostManagedToolPolicy: allowed,
+      });
+      const session = manager.getSession(sessionId);
+      try {
+        const abort = vi.fn(async () => {});
+        workerMocks.start.mockResolvedValue({
+          socketPath: "/private/broker.sock",
+          revision: 0,
+          abort,
+          close: vi.fn(async () => {}),
+        });
+        let finishRun;
+        let deliverSession;
+        const dockerSession = {
+          close: vi.fn(async () => {}),
+          run: vi.fn(async (_command, options) => {
+            await options.beforeStart();
+            return new Promise((resolve) => {
+              finishRun = resolve;
+            });
+          }),
+        };
+        egressMocks.start.mockImplementation(
+          phase === "running"
+            ? async () => dockerSession
+            : () =>
+                new Promise((resolve) => {
+                  deliverSession = resolve;
+                }),
+        );
+        const pending = executeTool(
+          "run_shell",
+          { command: "echo stale-host-policy" },
+          {
+            cwd: root,
+            sandbox: config(),
+            sessionId,
+            hostManagedToolPolicy: session.hostManagedToolPolicy,
+            hostManagedToolPolicyAuthority:
+              session.hostManagedToolPolicyAuthority,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        );
+        await vi.waitFor(() =>
+          expect(phase === "running" ? finishRun : deliverSession).toBeTypeOf(
+            "function",
+          ),
+        );
+        manager.updateSessionPolicy(sessionId, {
+          tools: { run_shell: { allowed: false } },
+        });
+        expect(abort).toHaveBeenCalledOnce();
+        manager.updateSessionPolicy(sessionId, allowed);
+        if (phase === "running")
+          finishRun({ stdout: "side-effect", stderr: "", exitCode: 0 });
+        else deliverSession(dockerSession);
+        if (phase === "running")
+          expect(await pending).toMatchObject({
+            exitCode: 1,
+            retrySafe: false,
+            authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+            sandboxCapabilities: { applied: [] },
+          });
+        else {
+          await expect(pending).rejects.toMatchObject({
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          });
+          expect(dockerSession.run).not.toHaveBeenCalled();
+        }
+        expect(dockerSession.close).toHaveBeenCalled();
+        manager.updateSessionPolicy(sessionId, null);
+        expect(abort).toHaveBeenCalledOnce();
+      } finally {
+        manager.closeSession(sessionId);
+        fs.rmSync(root, { recursive: true, force: true });
+      }
     },
   );
 

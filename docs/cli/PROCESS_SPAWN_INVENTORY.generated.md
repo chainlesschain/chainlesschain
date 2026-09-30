@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 624 (runtime: 305, tooling: 284, test: 35).
-Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unreviewed: 0.
+Total matches: 628 (runtime: 306, tooling: 287, test: 35).
+Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unreviewed: 0.
 
 ## Policy
 
@@ -76,10 +76,10 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/harness/mcp-client.js` | 2868 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const proc = _deps.spawn(config.command, config.args \|\| [], {` |
 | `packages/cli/src/lazy-dispatch.js` | 830 | `non-executable` | declaration/comment/type/regex lexical match | `// The broker must patch child_process before a command graph can cache a` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 314 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(command, args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 17 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
-| `packages/cli/src/lib/agent-sandbox.js` | 646 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("docker", args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 728 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("bwrap", args, {` |
-| `packages/cli/src/lib/agent-sandbox.js` | 802 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 20 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/lib/agent-sandbox.js` | 819 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("docker", args, {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 901 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("bwrap", args, {` |
+| `packages/cli/src/lib/agent-sandbox.js` | 975 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
 | `packages/cli/src/lib/agent-team/team-merge-review-transaction.js` | 167 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.execFileSync(executable, hardenedArgs, {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 167 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _processDeps.spawn(command, [], {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 279 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _processDeps.execFileSync("git", args, {` |
@@ -142,10 +142,10 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/execution-location-target.js` | 855 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `(deps.spawnSync ? null : prepareLocalTargetState);` |
 | `packages/cli/src/lib/execution-location-target.js` | 1048 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
 | `packages/cli/src/lib/execution-location-target.js` | 1050 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
-| `packages/cli/src/lib/execution-location-target.js` | 1070 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = spawnSync(invocation.file, invocation.args, {` |
-| `packages/cli/src/lib/execution-location-target.js` | 1257 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
-| `packages/cli/src/lib/execution-location-target.js` | 1259 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
-| `packages/cli/src/lib/execution-location-target.js` | 1262 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = spawnSync(invocation.file, invocation.args, {` |
+| `packages/cli/src/lib/execution-location-target.js` | 1075 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = spawnSync(invocation.file, invocation.args, {` |
+| `packages/cli/src/lib/execution-location-target.js` | 1262 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
+| `packages/cli/src/lib/execution-location-target.js` | 1264 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
+| `packages/cli/src/lib/execution-location-target.js` | 1267 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = spawnSync(invocation.file, invocation.args, {` |
 | `packages/cli/src/lib/git-integration.js` | 10 | `brokered` | call targets ProcessExecutionBroker | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 11 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 88 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = _deps.spawnSync("git", args, {` |
@@ -232,7 +232,7 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 674 | `non-executable` | declaration/comment/type/regex lexical match | `// Continue PATH resolution exactly as child_process would.` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 891 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `return runtime.spawnSync(launch.command, launch.args, {` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 1465 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(` |
-| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 182 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 184 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
 | `packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js` | 104 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `child = native.spawn(helper ? "/proc/self/fd/4" : options.helperPath, [], {` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 3 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 92 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `target = spawn(message.command, message.args, {` |
@@ -250,20 +250,20 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 43 | `non-executable` | declaration/comment/type/regex lexical match | `// Also patch child_process for CommonJS require` |
 | `packages/cli/src/lib/process-execution-broker/patch-child-process.js` | 44 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const cpModule = require.cache[require.resolve("node:child_process")];` |
 | `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 30 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawnSync as nativeSpawnSync } from "node:child_process";` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 800 | `non-executable` | declaration/comment/type/regex lexical match | `* A native `spawn(..., { shell: true })` asks Node to execute one command` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 896 | `non-executable` | declaration/comment/type/regex lexical match | `* synchronous. ProcessExecutionBroker.spawn() is synchronous, so strict mode` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 1135 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(command, args, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3383 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `probeResult = runtime.spawnSync(` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3527 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3864 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = adapter.spawnSync(helperArgs, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 4572 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `probeResult = adapter.spawnSync(` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 4600 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `readinessResult = adapter.spawnSync(readinessArgs, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 7913 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8035 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(LINUX_LDD_PATH, ["/proc/self/fd/3"], {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8632 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `'const { spawnSync } = require("node:child_process");',` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8658 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `` const child = spawnSync("/opt/chainless/runtime/node", ["-e", ${JSON.stringify(` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8715 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
-| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8830 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 798 | `non-executable` | declaration/comment/type/regex lexical match | `* A native `spawn(..., { shell: true })` asks Node to execute one command` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 894 | `non-executable` | declaration/comment/type/regex lexical match | `* synchronous. ProcessExecutionBroker.spawn() is synchronous, so strict mode` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 1133 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(command, args, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3379 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `probeResult = runtime.spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3523 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 3860 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = adapter.spawnSync(helperArgs, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 4568 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `probeResult = adapter.spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 4596 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `readinessResult = adapter.spawnSync(readinessArgs, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 7909 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8031 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(LINUX_LDD_PATH, ["/proc/self/fd/3"], {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8628 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `'const { spawnSync } = require("node:child_process");',` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8654 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `` const child = spawnSync("/opt/chainless/runtime/node", ["-e", ${JSON.stringify(` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8711 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
+| `packages/cli/src/lib/process-execution-broker/platform-sandbox.js` | 8826 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `result = runtime.spawnSync(invocation.command, invocation.args, {` |
 | `packages/cli/src/lib/process-manager.js` | 15 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 16 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/process-manager.js` | 52 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(appPath, args, {` |
@@ -276,6 +276,7 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/repl-bang-memorize.js` | 132 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `? spawnSync(` |
 | `packages/cli/src/lib/repl-bang-memorize.js` | 147 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `: spawnSync("/bin/sh", ["-c", cmd], {` |
 | `packages/cli/src/lib/repl-goal.js` | 130 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `spawnSync: deps.spawnSync \|\| runReplGoalCommand,` |
+| `packages/cli/src/lib/sandbox-docker-egress.js` | 90 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(` |
 | `packages/cli/src/lib/search-command.js` | 5 | `non-executable` | declaration/comment/type/regex lexical match | `* The pattern flows into execSync (a real shell), so a raw interpolation` |
 | `packages/cli/src/lib/secret-store.js` | 50 | `brokered` | call targets ProcessExecutionBroker | `const result = executionBroker.spawnSync(file, args, {` |
 | `packages/cli/src/lib/secure-fs.js` | 3 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawnSync } from "node:child_process";` |
@@ -307,17 +308,17 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/repl/pr-comments.js` | 21 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFile(` |
 | `packages/cli/src/repl/prompt-editor.js` | 104 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/prompt-editor.js` | 151 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = deps.spawnSync(executable, [...editorArgs, filePath], {` |
-| `packages/cli/src/runtime/agent-core.js` | 431 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(file, args, options, (error, stdout, stderr) => {` |
-| `packages/cli/src/runtime/agent-core.js` | 6494 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 6516 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
-| `packages/cli/src/runtime/agent-core.js` | 6532 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 6533 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 6784 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
-| `packages/cli/src/runtime/agent-core.js` | 6817 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 6833 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 6979 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 10405 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 10457 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 435 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(file, args, options, (error, stdout, stderr) => {` |
+| `packages/cli/src/runtime/agent-core.js` | 6632 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 6654 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
+| `packages/cli/src/runtime/agent-core.js` | 6670 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 6671 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7125 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
+| `packages/cli/src/runtime/agent-core.js` | 7158 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7174 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 7320 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 10757 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 10809 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 84 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 90 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -479,8 +480,8 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 208 | `const status = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 1 | `import { execFileSync, fork } from "node:child_process";` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 491 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 577 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 593 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 679 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 208 | `const status = execFileSync(` |
@@ -495,6 +496,9 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 52 | `spawnSync() {` |
 | `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 64 | `const {spawn}=require('node:child_process');` |
 | `packages/cli/scripts/linux-subreaper-package-smoke.mjs` | 68 | `const leaf=spawn(process.execPath,[__filename,'leaf'],{detached:true,stdio:['ignore','ignore','ignore','ipc']});` |
+| `packages/cli/scripts/macos-latest-sandbox-capability.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/macos-latest-sandbox-capability.mjs` | 40 | `const control = spawnSync(command, args, {` |
+| `packages/cli/scripts/macos-latest-sandbox-capability.mjs` | 59 | `result = executionBroker.spawnSync(command, args, {` |
 | `packages/cli/scripts/macos-mcp-launcher-build.mjs` | 7 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/macos-mcp-launcher-build.mjs` | 72 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/macos-mcp-launcher-live-test.mjs` | 8 | `import { spawn, spawnSync } from "node:child_process";` |
@@ -526,8 +530,8 @@ Runtime audit: brokered: 213, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 357 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 360 | `const changes = execFileSync(` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 948 | `const child = spawn(process.execPath, argumentsList, {` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1203 | `// child_process "close" is authoritative for the spawned process. A` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1249 | `const output = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1206 | `// child_process "close" is authoritative for the spawned process. A` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1252 | `const output = execFileSync(` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 125 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 133 | `return execFileSync(` |

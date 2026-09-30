@@ -374,6 +374,8 @@ export class SubAgentContext {
       permissionRules: options.permissionRules || null,
       permissionRulesProvider: options.permissionRulesProvider || null,
       hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+      hostManagedToolPolicyAuthority:
+        options.hostManagedToolPolicyAuthority || null,
       planManager: options.planManager || null,
       sandbox: options.sandbox || null,
       additionalDirectories: Array.isArray(options.additionalDirectories)
@@ -696,6 +698,10 @@ export class SubAgentContext {
     }
     if (authority.hostManagedToolPolicy) {
       options.hostManagedToolPolicy = authority.hostManagedToolPolicy;
+    }
+    if (authority.hostManagedToolPolicyAuthority) {
+      options.hostManagedToolPolicyAuthority =
+        authority.hostManagedToolPolicyAuthority;
     }
     if (authority.planManager) options.planManager = authority.planManager;
     if (authority.sandbox) options.sandbox = authority.sandbox;

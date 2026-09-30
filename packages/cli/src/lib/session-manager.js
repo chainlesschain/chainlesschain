@@ -108,7 +108,7 @@ export function saveMessages(db, sessionId, messages, metadata) {
 /**
  * Get a session by ID
  */
-export function getSession(db, sessionId) {
+export function getSession(db, sessionId, { strictMetadata = false } = {}) {
   ensureSessionsTable(db);
 
   // Try exact match first, then prefix match
@@ -127,16 +127,31 @@ export function getSession(db, sessionId) {
 
   if (!session) return null;
 
+  let metadata;
+  if (strictMetadata) {
+    metadata =
+      typeof session.metadata === "string"
+        ? JSON.parse(session.metadata)
+        : (session.metadata ?? {});
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+      const error = new TypeError("Session authority metadata is invalid");
+      error.code = "CC_SESSION_AUTHORITY_METADATA_INVALID";
+      throw error;
+    }
+  } else {
+    metadata =
+      typeof session.metadata === "string"
+        ? safeJsonParse(session.metadata, {})
+        : session.metadata || {};
+  }
+
   return {
     ...session,
     // A single corrupt (non-JSON, non-empty) column must not make the whole
     // session unloadable — that would block resume of the user's own data.
     // Matches the safeJsonParse fallback listSessions already uses.
     messages: safeJsonParse(session.messages, []),
-    metadata:
-      typeof session.metadata === "string"
-        ? safeJsonParse(session.metadata, {})
-        : session.metadata || {},
+    metadata,
   };
 }
 

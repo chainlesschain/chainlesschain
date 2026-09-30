@@ -56,6 +56,10 @@ const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
+import {
+  captureHostToolPolicyAuthority,
+  hostToolPolicyAuthorityForChild,
+} from "../lib/host-tool-policy-authority.js";
 import sharedSettingsHooks from "../lib/settings-hooks.cjs";
 import sharedHookEvents from "../lib/settings-hook-events.js";
 import {
@@ -2550,6 +2554,49 @@ function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
  */
 export async function executeTool(name, args, context = {}) {
   const liveExecutionContext = context;
+  let hostPolicyAuthority = null;
+  let entryHostPolicySnapshot = null;
+  try {
+    hostPolicyAuthority = captureHostToolPolicyAuthority(
+      context.hostManagedToolPolicyAuthority,
+    );
+    if (hostPolicyAuthority) {
+      // Every call samples the same live owner before the first async boundary.
+      // Decisions and their later revalidation use this immutable policy.
+      entryHostPolicySnapshot = hostPolicyAuthority.getSnapshot();
+      context = {
+        ...context,
+        hostManagedToolPolicy: entryHostPolicySnapshot.policy,
+      };
+    }
+  } catch (error) {
+    return {
+      error:
+        "[Host Policy] Tool policy authority is unavailable; execution was blocked.",
+      policy: {
+        decision: "blocked",
+        via: "host-policy-authority",
+        code: error.code,
+      },
+    };
+  }
+  function assertHostPolicyRevision() {
+    if (!hostPolicyAuthority) return;
+    if (
+      liveExecutionContext.hostManagedToolPolicyAuthority !==
+        hostPolicyAuthority ||
+      hostPolicyAuthority.getSnapshot() !== entryHostPolicySnapshot
+    ) {
+      const error = new Error(
+        "Host tool policy authority changed after admission",
+      );
+      error.code =
+        name === "run_shell"
+          ? "CC_SHELL_POLICY_AUTHORITY_CHANGED"
+          : "CC_HOST_TOOL_POLICY_AUTHORITY_CHANGED";
+      throw error;
+    }
+  }
   let admittedApprovalGate = null;
   let admittedApprovalPolicyDigest = null;
   let entryPlanManager = null;
@@ -3392,6 +3439,7 @@ export async function executeTool(name, args, context = {}) {
       const permissionRulesProvider = context.permissionRulesProvider || null;
       const approvalGate = context.approvalGate || null;
       const initialProjection = {
+        hostAuthority: hostPolicyAuthority?.getSnapshot() || null,
         permission: projectPermissionAuthority({
           authority: permissionAuthority,
           rules: validatePermissionRuleset(effectivePermissionRules),
@@ -3424,6 +3472,7 @@ export async function executeTool(name, args, context = {}) {
         classifyAllShell: context.classifyAllShell === true,
       };
       if (
+        initialProjection.hostAuthority !== entryHostPolicySnapshot ||
         approvalGate !== admittedApprovalGate ||
         digestPolicyAuthority(initialProjection.approval) !==
           admittedApprovalPolicyDigest ||
@@ -3450,6 +3499,12 @@ export async function executeTool(name, args, context = {}) {
           ? digestPolicyAuthority(context.sandbox)
           : null;
       shellDispatchPolicyAuthority = Object.freeze({
+        ...(hostPolicyAuthority
+          ? {
+              subscribeHostPolicyRevision:
+                hostPolicyAuthority.subscribePolicyRevision,
+            }
+          : {}),
         policyVersion: `cc-shell-policy-authority/v1:${initialDigest}`,
         revalidateDockerSandbox() {
           if (
@@ -3464,6 +3519,7 @@ export async function executeTool(name, args, context = {}) {
         },
         async revalidate() {
           try {
+            assertHostPolicyRevision();
             if (
               (liveExecutionContext.permissionRulesProvider || null) !==
                 permissionRulesProvider ||
@@ -3490,6 +3546,7 @@ export async function executeTool(name, args, context = {}) {
                 null;
             }
             const currentProjection = {
+              hostAuthority: hostPolicyAuthority?.getSnapshot() || null,
               permission: projectPermissionAuthority({
                 authority: currentPermissionAuthority,
                 rules: validatePermissionRuleset(currentPermissionRules),
@@ -3498,7 +3555,9 @@ export async function executeTool(name, args, context = {}) {
                 cwd,
               }),
               host: selectedHostToolPolicy(
-                liveExecutionContext.hostManagedToolPolicy || null,
+                hostPolicyAuthority
+                  ? entryHostPolicySnapshot.policy
+                  : liveExecutionContext.hostManagedToolPolicy || null,
                 name,
               ),
               plan: snapshotPlanToolAuthority(planManager, name, args),
@@ -3511,8 +3570,9 @@ export async function executeTool(name, args, context = {}) {
                 tool: name,
                 runtimeDescriptor,
                 localToolDescriptor,
-                hostManagedToolPolicy:
-                  liveExecutionContext.hostManagedToolPolicy,
+                hostManagedToolPolicy: hostPolicyAuthority
+                  ? entryHostPolicySnapshot.policy
+                  : liveExecutionContext.hostManagedToolPolicy,
               }).projection,
               approval: snapshotApprovalPolicyAuthority(
                 approvalGate,
@@ -3656,6 +3716,19 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  try {
+    assertHostPolicyRevision();
+  } catch (error) {
+    return {
+      error:
+        "[Host Policy] Tool policy changed during admission; execution was blocked.",
+      policy: {
+        decision: "blocked",
+        via: "host-policy-authority",
+        code: error.code,
+      },
+    };
+  }
   let sessionBudgetTool = null;
   if (typeof context.sessionBudget?.beginTool === "function") {
     const toolBinding = JSON.stringify({
@@ -3734,6 +3807,7 @@ export async function executeTool(name, args, context = {}) {
       permissionRulesProvider: context.permissionRulesProvider || null,
       effectiveAllowedToolNames: context.effectiveAllowedToolNames ?? null,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
+      hostManagedToolPolicyAuthority: hostPolicyAuthority,
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
@@ -5266,8 +5340,10 @@ async function executeToolInner(
     workflowEffectProtocol = null,
     planManager = null,
     permissionRules = null,
+    permissionRulesProvider = null,
     effectiveAllowedToolNames = null,
     hostManagedToolPolicy,
+    hostManagedToolPolicyAuthority = null,
     externalToolDescriptors,
     externalToolExecutors,
     extraToolDefinitions = null,
@@ -6722,6 +6798,7 @@ async function executeToolInner(
         let authorityMonitor = null;
         let removePlanAuthorityListener = null;
         let removeApprovalAuthorityListener = null;
+        let removeHostAuthorityListener = null;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
@@ -6826,6 +6903,23 @@ async function executeToolInner(
                 );
               }
             }
+            if (
+              typeof shellDispatchPolicyAuthority?.subscribeHostPolicyRevision ===
+              "function"
+            ) {
+              removeHostAuthorityListener =
+                shellDispatchPolicyAuthority.subscribeHostPolicyRevision(() => {
+                  const error = new Error(
+                    "Host tool policy changed during Docker egress execution",
+                  );
+                  error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+                  authorityMonitor.revoke(error);
+                });
+              if (typeof removeHostAuthorityListener !== "function")
+                throw new TypeError(
+                  "host policy subscription must return an unsubscribe function",
+                );
+            }
             authorityMonitor.start();
             await authorityMonitor.checkNow();
           } else {
@@ -6889,6 +6983,7 @@ async function executeToolInner(
             });
           }
         } finally {
+          removeHostAuthorityListener?.();
           removeApprovalAuthorityListener?.();
           removePlanAuthorityListener?.();
           authorityMonitor?.stop();
@@ -7379,8 +7474,10 @@ async function executeToolInner(
           // these boundaries; it never reconstructs a fresh default policy.
           planManager,
           permissionRules,
+          permissionRulesProvider,
           effectiveAllowedToolNames,
           hostManagedToolPolicy,
+          hostManagedToolPolicyAuthority,
           sandbox,
           additionalDirectories,
           approvalGate,
@@ -8687,12 +8784,21 @@ async function executeToolInner(
             ...(sessionBudget ? { sessionBudget } : {}),
             ...(hostResourceBudget ? { hostResourceBudget } : {}),
             ...(permissionRules ? { permissionRules } : {}),
+            ...(permissionRulesProvider ? { permissionRulesProvider } : {}),
             ...(hostManagedToolPolicy
               ? {
                   hostManagedToolPolicy: {
                     ...hostManagedToolPolicy,
                     toolDefinitions: [],
                   },
+                }
+              : {}),
+            ...(hostManagedToolPolicyAuthority
+              ? {
+                  hostManagedToolPolicyAuthority:
+                    hostToolPolicyAuthorityForChild(
+                      hostManagedToolPolicyAuthority,
+                    ),
                 }
               : {}),
             ...(planManager ? { planManager } : {}),
@@ -11059,6 +11165,13 @@ async function _executeSpawnSubAgent(args, ctx) {
     ...(childHostManagedToolPolicy
       ? { hostManagedToolPolicy: childHostManagedToolPolicy }
       : {}),
+    ...(ctx.hostManagedToolPolicyAuthority
+      ? {
+          hostManagedToolPolicyAuthority: hostToolPolicyAuthorityForChild(
+            ctx.hostManagedToolPolicyAuthority,
+          ),
+        }
+      : {}),
     ...(ctx.planManager ? { planManager: ctx.planManager } : {}),
     ...(ctx.sandbox ? { sandbox: ctx.sandbox } : {}),
     ...(Array.isArray(ctx.additionalDirectories)
@@ -11333,6 +11446,16 @@ async function _executeSpawnSubAgent(args, ctx) {
 // ─── LLM chat with tools ─────────────────────────────────────────────────
 
 function getEffectiveToolDefinitions(options = {}) {
+  const hostAuthority = captureHostToolPolicyAuthority(
+    options.hermeticExecution === true
+      ? null
+      : options.hostManagedToolPolicyAuthority,
+  );
+  const hostPolicy = hostAuthority
+    ? hostAuthority.getSnapshot().policy
+    : options.hermeticExecution === true
+      ? null
+      : options.hostManagedToolPolicy;
   const persona =
     options.hermeticExecution === true
       ? null
@@ -11349,7 +11472,7 @@ function getEffectiveToolDefinitions(options = {}) {
     disabledTools: mergedDisabledTools,
     exactToolNames: options.exactToolNames === true,
     extraTools: [
-      ...(options.hostManagedToolPolicy?.toolDefinitions || []),
+      ...(hostPolicy?.toolDefinitions || []),
       ...(options.extraToolDefinitions || []),
     ],
   });
@@ -14323,6 +14446,7 @@ export async function* agentLoop(messages, options) {
     ? {
         ...options,
         hostManagedToolPolicy: null,
+        hostManagedToolPolicyAuthority: null,
         extraToolDefinitions: [],
       }
     : options;
@@ -14388,6 +14512,9 @@ export async function* agentLoop(messages, options) {
     hostManagedToolPolicy: hermeticExecution
       ? null
       : options.hostManagedToolPolicy || null,
+    hostManagedToolPolicyAuthority: hermeticExecution
+      ? null
+      : captureHostToolPolicyAuthority(options.hostManagedToolPolicyAuthority),
     externalToolDescriptors: hermeticExecution
       ? null
       : options.externalToolDescriptors || null,

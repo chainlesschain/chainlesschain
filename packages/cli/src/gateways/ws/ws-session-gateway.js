@@ -36,6 +36,7 @@ import {
   deleteSession as dbDeleteSession,
 } from "../../lib/session-manager.js";
 import { buildSystemPrompt } from "../../runtime/agent-core.js";
+import { createHostToolPolicyAuthority } from "../../lib/host-tool-policy-authority.js";
 import { SubAgentRegistry } from "../../lib/sub-agent-registry.js";
 import {
   createWorktree,
@@ -71,7 +72,39 @@ import {
 } from "../../harness/jsonl-session-store.js";
 
 export const WS_SESSION_ROLLOUT_EVENT = "ws_session_state";
-const WS_SESSION_ROLLOUT_SCHEMA = "chainlesschain.ws-session-rollout/v1";
+const WS_SESSION_ROLLOUT_SCHEMA = "chainlesschain.ws-session-rollout/v2";
+const LEGACY_WS_SESSION_ROLLOUT_SCHEMA = "chainlesschain.ws-session-rollout/v1";
+const WS_HOST_POLICY_SCHEMA = "chainlesschain.ws-host-tool-policy/v1";
+const SESSION_HOST_POLICY_CONTROLLERS = new WeakMap();
+
+function bindSessionHostToolPolicy(session, controller) {
+  SESSION_HOST_POLICY_CONTROLLERS.set(session, controller);
+  Object.defineProperties(session, {
+    hostManagedToolPolicyAuthority: { value: controller.authority },
+    hostManagedToolPolicy: {
+      enumerable: true,
+      get: () => controller.authority.getSnapshot().policy,
+    },
+  });
+}
+
+function canonicalHostToolPolicy(journal, fallback = null) {
+  if (!journal || !Object.hasOwn(journal, "hostToolPolicy")) return fallback;
+  const stored = journal.hostToolPolicy;
+  if (
+    !stored ||
+    stored.schema !== WS_HOST_POLICY_SCHEMA ||
+    !Object.hasOwn(stored, "policy")
+  ) {
+    throw canonicalWsStateError(
+      "CC_WS_CANONICAL_STATE_CORRUPT",
+      "Canonical host policy is invalid",
+    );
+  }
+  // Validate known authority fields before restoring any execution capability.
+  return createHostToolPolicyAuthority(stored.policy).authority.getSnapshot()
+    .policy;
+}
 
 function canonicalWsStateError(code, message) {
   const error = new Error(message);
@@ -475,6 +508,9 @@ export class WSSessionManager {
       throw error;
     }
     const type = options.type || "agent";
+    const hostPolicyController = createHostToolPolicyAuthority(
+      options.hostManagedToolPolicy ?? null,
+    );
     const baseProjectRoot = options.projectRoot || this.defaultProjectRoot;
     const hostAuthorizedBaseRoot =
       normalizeHostWorkspaceRoot(baseProjectRoot) ===
@@ -583,7 +619,6 @@ export class WSSessionManager {
       baseUrl,
       mcpClient: this.mcpClient,
       enabledToolNames,
-      hostManagedToolPolicy: options.hostManagedToolPolicy || null,
       sessionBudgetRoot: options.sessionBudgetRoot || null,
       externalToolDefinitions: externalTools.definitions,
       externalToolDescriptors: externalTools.descriptors,
@@ -605,6 +640,7 @@ export class WSSessionManager {
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
+    bindSessionHostToolPolicy(session, hostPolicyController);
     bindCanonicalHostSystemPrefix(session, messages);
     this._bindSessionStateJournal(session, createWsSessionState());
     bindSessionHooksV2Workspace(
@@ -726,14 +762,28 @@ export class WSSessionManager {
     if (!this.db) return null;
 
     try {
-      const dbSession = dbGetSession(this.db, sessionId);
+      const dbSession = dbGetSession(this.db, sessionId, {
+        strictMetadata: true,
+      });
       if (!dbSession) return null;
 
       const messages =
         typeof dbSession.messages === "string"
           ? JSON.parse(dbSession.messages)
           : dbSession.messages || [];
-      const metadata = this._normalizeSessionMetadata(dbSession.metadata);
+      const metadata = this._normalizeSessionMetadata(dbSession.metadata, {
+        strict: true,
+      });
+      const canonicalSessionState =
+        metadata.canonicalJsonlSession === true
+          ? this._readCanonicalSessionState(dbSession.id, { required: true })
+          : null;
+      const hostPolicyController = createHostToolPolicyAuthority(
+        canonicalHostToolPolicy(
+          canonicalSessionState,
+          metadata.hostManagedToolPolicy ?? null,
+        ),
+      );
       const baseProjectRoot =
         metadata.baseProjectRoot ||
         metadata.projectRoot ||
@@ -744,10 +794,6 @@ export class WSSessionManager {
         metadata,
       );
       const planManager = this._hydratePlanManager(metadata.planSnapshot);
-      const canonicalSessionState =
-        metadata.canonicalJsonlSession === true
-          ? this._readCanonicalSessionState(dbSession.id, { required: true })
-          : null;
       const sessionStateJournal = canonicalSessionState
         ? hydrateCanonicalWsSessionState(canonicalSessionState)
         : hydrateWsSessionState(
@@ -806,7 +852,6 @@ export class WSSessionManager {
         enabledToolNames: this._normalizeEnabledToolNames(
           metadata.enabledToolNames,
         ),
-        hostManagedToolPolicy: metadata.hostManagedToolPolicy || null,
         sessionBudgetRoot: metadata.sessionBudgetRoot || null,
         externalToolDefinitions: externalTools.definitions,
         externalToolDescriptors: externalTools.descriptors,
@@ -830,6 +875,7 @@ export class WSSessionManager {
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
       };
+      bindSessionHostToolPolicy(session, hostPolicyController);
       if (Array.isArray(metadata.canonicalHostSystemPrefix)) {
         bindCanonicalHostSystemPrefix(
           session,
@@ -875,6 +921,10 @@ export class WSSessionManager {
       : { changed: false };
     const created = this.createSession({
       sessionId,
+      hostManagedToolPolicy: canonicalHostToolPolicy(
+        canonicalSessionState,
+        options.hostManagedToolPolicy ?? null,
+      ),
       type: options.type || "agent",
       provider: options.provider,
       model: options.model,
@@ -1049,9 +1099,27 @@ export class WSSessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
 
-    session.hostManagedToolPolicy = hostManagedToolPolicy || null;
+    const controller = SESSION_HOST_POLICY_CONTROLLERS.get(session);
+    if (!controller) {
+      const error = new Error("Session host policy authority is unavailable");
+      error.code = "CC_HOST_TOOL_POLICY_AUTHORITY_UNAVAILABLE";
+      throw error;
+    }
+    controller.commit(hostManagedToolPolicy ?? null);
     session.lastActivity = new Date().toISOString();
-    this._persistSessionState(sessionId);
+    try {
+      this._persistCanonicalSessionState(
+        session,
+        this._ensureSessionStateJournal(session),
+      );
+      this._persistSessionState(sessionId, { throwOnError: true });
+    } catch (error) {
+      // Do not acknowledge a failed save or allow further execution from its
+      // uncertain policy. The committed revision has already revoked monitors.
+      controller.invalidate();
+      error.code ||= "CC_WS_SESSION_POLICY_PERSISTENCE_FAILED";
+      throw error;
+    }
     return session;
   }
 
@@ -1707,7 +1775,7 @@ export class WSSessionManager {
     };
   }
 
-  _persistSessionState(sessionId) {
+  _persistSessionState(sessionId, { throwOnError = false } = {}) {
     const session = this.sessions.get(sessionId);
     if (!session || !this.db) return;
 
@@ -1726,13 +1794,21 @@ export class WSSessionManager {
         );
         persistedMessages = [...hostPrefix, ...conversation];
       }
-      dbSaveMessages(
+      const saved = dbSaveMessages(
         this.db,
         sessionId,
         persistedMessages,
         this._serializeSessionMetadata(session),
       );
-    } catch (_err) {
+      if (throwOnError && saved?.updated !== true) {
+        const error = new Error(
+          "Session policy persistence did not update a record",
+        );
+        error.code = "CC_WS_SESSION_POLICY_PERSISTENCE_FAILED";
+        throw error;
+      }
+    } catch (error) {
+      if (throwOnError) throw error;
       // Non-critical
     }
 
@@ -1817,11 +1893,34 @@ export class WSSessionManager {
       }
       return null;
     }
-    if (event.data?.schema !== WS_SESSION_ROLLOUT_SCHEMA) {
+    if (
+      ![WS_SESSION_ROLLOUT_SCHEMA, LEGACY_WS_SESSION_ROLLOUT_SCHEMA].includes(
+        event.data?.schema,
+      )
+    ) {
       throw canonicalWsStateError(
         "CC_WS_CANONICAL_STATE_CORRUPT",
         `canonical WebSocket session state has an invalid schema: ${sessionId}`,
       );
+    }
+    if (
+      !event.data.journal ||
+      typeof event.data.journal !== "object" ||
+      Array.isArray(event.data.journal)
+    ) {
+      throw canonicalWsStateError(
+        "CC_WS_CANONICAL_STATE_CORRUPT",
+        "Canonical WebSocket journal is missing or invalid",
+      );
+    }
+    if (event.data.schema === WS_SESSION_ROLLOUT_SCHEMA) {
+      if (!Object.hasOwn(event.data.journal, "hostToolPolicy")) {
+        throw canonicalWsStateError(
+          "CC_WS_CANONICAL_STATE_CORRUPT",
+          "Canonical host policy is missing",
+        );
+      }
+      canonicalHostToolPolicy(event.data.journal);
     }
     return event.data.journal;
   }
@@ -1833,7 +1932,13 @@ export class WSSessionManager {
       WS_SESSION_ROLLOUT_EVENT,
       {
         schema: WS_SESSION_ROLLOUT_SCHEMA,
-        journal: serializeWsSessionState(journal),
+        journal: {
+          ...serializeWsSessionState(journal),
+          hostToolPolicy: {
+            schema: WS_HOST_POLICY_SCHEMA,
+            policy: session.hostManagedToolPolicy,
+          },
+        },
       },
     );
   }
@@ -1914,20 +2019,27 @@ export class WSSessionManager {
     };
   }
 
-  _normalizeSessionMetadata(metadata) {
-    if (!metadata) {
+  _normalizeSessionMetadata(metadata, { strict = false } = {}) {
+    if (metadata == null || (!strict && !metadata)) {
       return {};
     }
 
     if (typeof metadata === "string") {
       try {
-        return JSON.parse(metadata);
-      } catch (_err) {
+        const parsed = JSON.parse(metadata);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+          throw new TypeError("Invalid session metadata");
+        return parsed;
+      } catch (error) {
+        if (strict) throw error;
         return {};
       }
     }
 
-    return typeof metadata === "object" ? metadata : {};
+    if (typeof metadata === "object" && !Array.isArray(metadata))
+      return metadata;
+    if (strict) throw new TypeError("Invalid session metadata");
+    return {};
   }
 
   _hydratePlanManager(snapshot) {

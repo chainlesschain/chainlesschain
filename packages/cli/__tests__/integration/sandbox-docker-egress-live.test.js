@@ -15,6 +15,7 @@ import { startEgressProxyWorker } from "../../src/lib/sandbox-egress-worker.js";
 import { startDockerEgressSession } from "../../src/lib/sandbox-docker-egress.js";
 import { normalizeAgentSandbox } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { WSSessionManager } from "../../src/gateways/ws/ws-session-gateway.js";
 import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
 import {
   createAutoModeApprovalGate,
@@ -210,7 +211,12 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     }
   }, 180_000);
 
-  it.each(["permission-rules", "auto-mode-aba"])(
+  it.each([
+    "permission-rules",
+    "auto-mode-aba",
+    "host-policy",
+    "host-policy-aba",
+  ])(
     "cuts an established product tunnel on %s revocation",
     async (source) => {
       const image = process.env.CC_DOCKER_EGRESS_IMAGE;
@@ -237,6 +243,12 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
         resolveAutoModeDecisions({ decisions: { medium: "allow" } }),
       );
       let pending;
+      const manager = new WSSessionManager({ defaultProjectRoot: root });
+      const allowedHostPolicy = { tools: { run_shell: { allowed: true } } };
+      const { sessionId: hostSessionId } = manager.createSession({
+        hostManagedToolPolicy: allowedHostPolicy,
+      });
+      const hostSession = manager.getSession(hostSessionId);
       try {
         const before = await docker([
           "ps",
@@ -274,6 +286,13 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
             cwd: root,
             sandbox,
             sessionId: "live-auto-revoke",
+            ...(source.startsWith("host-policy")
+              ? {
+                  hostManagedToolPolicy: hostSession.hostManagedToolPolicy,
+                  hostManagedToolPolicyAuthority:
+                    hostSession.hostManagedToolPolicyAuthority,
+                }
+              : {}),
             permissionRulesProvider: async () => ({
               rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
               sources: {},
@@ -292,6 +311,15 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
           expect(
             gate.getAuthorizationPolicySnapshot("live-auto-revoke"),
           ).toMatchObject({ active: true, activeRevision: 2 });
+        } else if (source.startsWith("host-policy")) {
+          manager.updateSessionPolicy(hostSessionId, {
+            tools: { run_shell: { allowed: false } },
+          });
+          if (source === "host-policy-aba")
+            manager.updateSessionPolicy(hostSessionId, allowedHostPolicy);
+          expect(
+            hostSession.hostManagedToolPolicyAuthority.getSnapshot().revision,
+          ).toBe(source === "host-policy-aba" ? 2 : 1);
         } else denied = true;
         const result = await Promise.race([
           pending,
@@ -330,7 +358,11 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
         );
       } finally {
         denied = true;
+        manager.updateSessionPolicy(hostSessionId, {
+          tools: { run_shell: { allowed: false } },
+        });
         await pending?.catch(() => {});
+        manager.closeSession(hostSessionId);
         for (const socket of sockets) socket.destroy();
         await new Promise((resolve) => upstream.close(resolve));
         fs.rmSync(root, { recursive: true, force: true });

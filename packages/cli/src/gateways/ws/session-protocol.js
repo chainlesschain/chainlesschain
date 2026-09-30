@@ -1399,12 +1399,26 @@ export function handleSessionPolicyUpdate(server, id, ws, message) {
     return;
   }
 
-  const session = server.sessionManager.updateSessionPolicy
-    ? server.sessionManager.updateSessionPolicy(
+  let session;
+  try {
+    session = server.sessionManager.updateSessionPolicy
+      ? server.sessionManager.updateSessionPolicy(
+          sessionId,
+          hostManagedToolPolicy,
+        )
+      : null;
+  } catch (error) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        error?.code || "SESSION_POLICY_UPDATE_FAILED",
+        "Session policy update could not be committed",
         sessionId,
-        hostManagedToolPolicy,
-      )
-    : null;
+      ),
+    );
+    return;
+  }
 
   if (!session) {
     server._send(

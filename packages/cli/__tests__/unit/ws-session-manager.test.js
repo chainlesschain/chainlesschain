@@ -138,6 +138,7 @@ describe("WSSessionManager", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    dbSaveMessages.mockReturnValue({ updated: true });
     mockDb = {
       prepare: vi.fn(() => ({ run: vi.fn(), get: vi.fn(), all: vi.fn() })),
       exec: vi.fn(),
@@ -793,7 +794,9 @@ describe("WSSessionManager", () => {
         { tool: "write_file" },
       ]);
       expect(session.messages).toEqual([{ role: "system", content: "hello" }]);
-      expect(dbGetSession).toHaveBeenCalledWith(mockDb, "db-session-123");
+      expect(dbGetSession).toHaveBeenCalledWith(mockDb, "db-session-123", {
+        strictMetadata: true,
+      });
     });
 
     it("restores the explicit host prefix without adopting stale durable systems", () => {
@@ -1113,6 +1116,65 @@ describe("WSSessionManager", () => {
   });
 
   describe("updateSessionPolicy", () => {
+    it("keeps one readonly owner and detects allow-deny-allow commits", () => {
+      const initial = { tools: { run_shell: { allowed: true } } };
+      const { sessionId } = manager.createSession({
+        hostManagedToolPolicy: initial,
+      });
+      const session = manager.getSession(sessionId);
+      const owner = session.hostManagedToolPolicyAuthority;
+      initial.tools.run_shell.allowed = false;
+      expect(session.hostManagedToolPolicy.tools.run_shell.allowed).toBe(true);
+      const observer = vi.fn();
+      const unsubscribe = owner.subscribePolicyRevision(observer);
+      manager.updateSessionPolicy(sessionId, {
+        tools: { run_shell: { allowed: false } },
+      });
+      manager.updateSessionPolicy(sessionId, {
+        tools: { run_shell: { allowed: true } },
+      });
+      expect(session.hostManagedToolPolicyAuthority).toBe(owner);
+      expect(owner.getSnapshot().revision).toBe(2);
+      expect(observer).toHaveBeenCalledTimes(2);
+      expect(() => {
+        session.hostManagedToolPolicy = null;
+      }).toThrow();
+      unsubscribe();
+    });
+
+    it("does not acknowledge a failed policy save and blocks further policy reads", () => {
+      const { sessionId } = manager.createSession();
+      const session = manager.getSession(sessionId);
+      dbSaveMessages.mockImplementationOnce(() => {
+        throw new Error("save failed");
+      });
+      expect(() =>
+        manager.updateSessionPolicy(sessionId, {
+          tools: { run_shell: { allowed: false } },
+        }),
+      ).toThrow("save failed");
+      expect(() =>
+        session.hostManagedToolPolicyAuthority.getSnapshot(),
+      ).toThrow();
+      manager.updateSessionPolicy(sessionId, {
+        tools: { run_shell: { allowed: false } },
+      });
+      expect(session.hostManagedToolPolicy.tools.run_shell.allowed).toBe(false);
+    });
+
+    it.each(["{invalid", JSON.stringify({ hostManagedToolPolicy: false })])(
+      "refuses malformed persisted authority instead of recovering an unrestricted session (%#)",
+      (metadata) => {
+        dbGetSession.mockReturnValueOnce({
+          id: "corrupt-policy",
+          messages: [],
+          metadata,
+        });
+        expect(manager.resumeSession("corrupt-policy")).toBeNull();
+        expect(manager.getSession("corrupt-policy")).toBeNull();
+      },
+    );
+
     it("updates host-managed policy for an active session", () => {
       const { sessionId } = manager.createSession();
       const updated = manager.updateSessionPolicy(sessionId, {

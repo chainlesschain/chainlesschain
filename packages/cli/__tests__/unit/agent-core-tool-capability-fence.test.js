@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { agentLoop } from "../helpers/test-model-egress.js";
 import { FORMAL_QUALITY_FILE_TOOLS } from "../../src/lib/formal-quality-eval-runtime.js";
+import { createHostToolPolicyAuthority } from "../../src/lib/host-tool-policy-authority.js";
 
 let tmp;
 
@@ -56,6 +57,39 @@ async function drive(toolCall, options = {}) {
 }
 
 describe("agent-loop execution-time tool capability fence", () => {
+  it("does not inherit host owner definitions in a hermetic loop", async () => {
+    const { authority } = createHostToolPolicyAuthority({
+      toolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "host_only",
+            description: "must not enter hermetic execution",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+    });
+    const events = await drive(
+      {
+        id: "host-only",
+        type: "function",
+        function: { name: "host_only", arguments: "{}" },
+      },
+      {
+        cwd: tmp,
+        enabledToolNames: ["read_file"],
+        exactToolNames: true,
+        hermeticExecution: true,
+        hostManagedToolPolicyAuthority: authority,
+      },
+    );
+    expect(
+      events.find((event) => event.type === "tool-result")?.result.policy,
+    ).toMatchObject({ decision: "blocked", via: "effective-tool-set" });
+    expect(events.some((event) => event.type === "tool-executing")).toBe(false);
+  });
+
   it("blocks a provider-emitted built-in tool omitted from the schema", async () => {
     const target = path.join(tmp, "must-not-exist.txt");
     const events = await drive(

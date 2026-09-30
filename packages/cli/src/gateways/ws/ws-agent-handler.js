@@ -39,6 +39,7 @@ import {
   runWithHostHooksV2Workspace,
 } from "../../lib/hooks-v2-workspace-context.js";
 import { createWsApprovalGate } from "./ws-approval-gate.js";
+import { createPermissionRulesProvider } from "../../lib/permission-authority.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtime.js";
 import { compactConversationWithProvider } from "../../harness/provider-backed-compaction.js";
@@ -1539,6 +1540,11 @@ export class WSAgentHandler {
         hostResourceBudget: this._hostResourceBudget,
         enabledToolNames: session.enabledToolNames || null,
         hostManagedToolPolicy: session.hostManagedToolPolicy || null,
+        hostManagedToolPolicyAuthority:
+          session.hostManagedToolPolicyAuthority || null,
+        permissionRulesProvider: createPermissionRulesProvider({
+          cwd: session.projectRoot,
+        }),
         extraToolDefinitions: session.externalToolDefinitions || [],
         externalToolDescriptors: session.externalToolDescriptors || {},
         externalToolExecutors: session.externalToolExecutors || {},

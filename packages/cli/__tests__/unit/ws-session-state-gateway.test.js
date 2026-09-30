@@ -88,6 +88,105 @@ describe("WSSessionManager recovery state integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    dbSaveMessages.mockReturnValue({ updated: true });
+  });
+
+  it("restores the current canonical host ceiling without its DB cache", () => {
+    const store = memoryCanonicalStore();
+    const manager = new WSSessionManager({ canonicalSessionStore: store });
+    const { sessionId } = manager.createSession();
+    manager.markCanonicalSession(sessionId);
+    manager.updateSessionPolicy(sessionId, {
+      tools: { run_shell: { allowed: false } },
+    });
+    const initialOwner =
+      manager.getSession(sessionId).hostManagedToolPolicyAuthority;
+    manager.closeSession(sessionId);
+    const recovered = new WSSessionManager({
+      canonicalSessionStore: store,
+    }).resumeCanonicalSession(sessionId);
+    expect(recovered.hostManagedToolPolicy).toEqual({
+      tools: { run_shell: { allowed: false } },
+    });
+    expect(
+      recovered.hostManagedToolPolicyAuthority.getSnapshot().ownerId,
+    ).not.toBe(initialOwner.getSnapshot().ownerId);
+  });
+
+  it("retains a legacy v1 DB host ceiling while migrating its canonical record", () => {
+    const store = memoryCanonicalStore();
+    store.events.set("legacy-policy", [
+      {
+        type: "ws_session_state",
+        data: {
+          schema: "chainlesschain.ws-session-rollout/v1",
+          journal: serializeWsSessionState(createWsSessionState()),
+        },
+      },
+    ]);
+    dbGetSession.mockReturnValueOnce({
+      id: "legacy-policy",
+      messages: [],
+      metadata: {
+        canonicalJsonlSession: true,
+        hostManagedToolPolicy: { tools: { run_shell: { allowed: false } } },
+      },
+    });
+    const manager = new WSSessionManager({ db, canonicalSessionStore: store });
+    const session = manager.resumeSession("legacy-policy");
+    expect(session.hostManagedToolPolicy.tools.run_shell.allowed).toBe(false);
+    manager.recordSessionStateEvent(session.id, "run.started", {
+      requestId: "legacy-turn",
+    });
+    expect(store.events.get(session.id).at(-1).data).toMatchObject({
+      schema: "chainlesschain.ws-session-rollout/v2",
+      journal: { hostToolPolicy: { policy: session.hostManagedToolPolicy } },
+    });
+  });
+
+  it.each([
+    "invalid-policy",
+    "missing-policy",
+    "missing-journal",
+    "null-journal",
+  ])(
+    "does not replace %s in a v2 canonical record with a default null policy",
+    (failure) => {
+      const store = memoryCanonicalStore();
+      const writer = new WSSessionManager({ canonicalSessionStore: store });
+      const { sessionId } = writer.createSession();
+      writer.markCanonicalSession(sessionId);
+      const row = store.events.get(sessionId).at(-1);
+      if (failure === "invalid-policy")
+        row.data.journal.hostToolPolicy.policy = { tools: false };
+      else if (failure === "missing-policy")
+        delete row.data.journal.hostToolPolicy;
+      else if (failure === "missing-journal") delete row.data.journal;
+      else row.data.journal = null;
+      const reader = new WSSessionManager({ canonicalSessionStore: store });
+      expect(() => reader.resumeCanonicalSession(sessionId)).toThrow();
+      expect(reader.getSession(sessionId)).toBeNull();
+    },
+  );
+
+  it("refuses a policy update when canonical persistence fails and revokes its owner", () => {
+    const store = memoryCanonicalStore();
+    const manager = new WSSessionManager({ canonicalSessionStore: store });
+    const { sessionId } = manager.createSession();
+    manager.markCanonicalSession(sessionId);
+    store.appendEvent.mockImplementationOnce(() => {
+      throw new Error("canonical persistence failed");
+    });
+    expect(() =>
+      manager.updateSessionPolicy(sessionId, {
+        tools: { run_shell: { allowed: false } },
+      }),
+    ).toThrow("canonical persistence failed");
+    expect(() =>
+      manager
+        .getSession(sessionId)
+        .hostManagedToolPolicyAuthority.getSnapshot(),
+    ).toThrow();
   });
 
   it("serializes state events without changing legacy metadata fields", () => {

@@ -56,6 +56,18 @@ DNS 新增 UDP/IPv6、TCP/IPv4 与 TCP/IPv6，与原 UDP/IPv4 共同形成四个
 
 Windows 本地 `skill-runtime-revalidation.test.js` 全套 10/10 通过，总耗时 182.66 秒；拆分的三个场景分别约 15.90、20.55、15.03 秒。ESLint、Prettier 和 diff 检查通过。`46505a2e4b` 的 Strict Sandbox Windows 作业也已通过，但 macOS latest 与 CLI CI 完整矩阵仍未结束；这些旧 SHA 结果不验证本次测试修改，托管超时修复仍待新提交复验。
 
+### NET-02 / IDE-MODE：WS 宿主策略 owner 与权限读取器接线（2026-10-01）
+
+WS 创建、DB 恢复及 canonical 恢复现在绑定稳定的宿主策略 owner；输入深复制冻结并校验已知安全字段，公开句柄只读。`updateSessionPolicy()` 经原入口同步提交不可回退 revision 并通知全部监听器，执行器在第一次异步读取前绑定该快照。下一次工具调用读取当前策略，宿主 deny 继续优先于 settings allow 和 ApprovalGate；审批等待及 broker 启动期间的 `allow → deny → allow` 会使旧许可失效。运行中 Docker monitor 同步锁存撤销、切断代理并关闭已创建或迟到的容器，退出后清理监听器，不能签发成功回执或自动重试。
+
+WS handler 按 `session.projectRoot` 接入现有 `createPermissionRulesProvider()`，让权限面板保存的设置进入实际 agent loop，并避免会话根目录之间串用规则。补齐 `executeToolInner → spawn_sub_agent / isolated run_skill → SubAgentContext` 的 provider 和 owner 传递：子代理继续读取父宿主的当前限制，但不隐式继承宿主工具定义。hermetic loop 明确忽略宿主 owner 和静态工具定义。真实执行循环使用模型夹具验证规则拒绝与可写正对照，不将它计为真实 provider 验收。
+
+策略保存不再吞掉错误或把 SQLite 零行更新当成成功；失败会撤销该 owner 并返回错误，后续执行拒绝。WS 恢复通过 `getSession(..., { strictMetadata: true })` 读取真实数据库，避免底层 `safeJsonParse(..., {})` 隐藏坏 JSON。canonical rollout 升为 v2，在完整记录中保存当前宿主策略；v2 缺 journal、缺策略或字段损坏都拒绝恢复，只有明确的 v1 分支保留历史兼容。正常 DB/canonical-only 恢复保留限制并生成新 owner 身份；这不是外部写入或跨进程 ABA 的持久 revision journal。
+
+Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台跳过；包含真实 SQLite 损坏记录/零行更新、真实 agent loop 写入正反对照、子代理继承、hermetic 工具集合、审批/创建/运行中修订锁存及 WS 恢复回归。另补 v1 兼容迁移后，相关文件 13/13 通过。ESLint 无错误（47 个既有 unused warning）、Prettier、diff 与进程调用清单一致性通过；Astra 三轮只读复核发现的缺陷均已修复。
+
+新增 `host-policy` 和 `host-policy-aba` 两项 Linux 真容器持续 CONNECT 探针，通过真实 WS manager 更新 API 撤销，并检查零后续流量、heartbeat 停止和容器回收。当前只新增测试源码，须由新 SHA 的托管 x64/ARM64 实际运行验证；本机不具备 Docker daemon。此前 `46505a2e4b` 的 Strict Sandbox 五个作业全部通过，CLI CI 完整矩阵仍未取得最终通过，不转移为本批验收。settings 文件官方写口及外部写入、legacy callback、其他可变策略来源的 generation，以及最终完整发布矩阵仍开放，未升版本或发布。
+
 | ID                      | 当前状态                 | 实现与有效证据                                                                                                                                                               | 剩余条件                                                                                         |
 | ----------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | MODEL-01                | 本地合同验证通过         | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                                             |
@@ -69,7 +81,7 @@ Windows 本地 `skill-runtime-revalidation.test.js` 全套 10/10 通过，总耗
 | IDE-MODE                | 局部实现并验证           | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离                  | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                                |
 | IDE-IMAGE               | 局部实现并验证           | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                       | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                                  |
 | NET-01                  | Linux x64/ARM64 局部验收 | `46505a2e4b` 两架构真实 Docker 步骤通过；ARM64 原始报告 14/14、0 跳过，新增 UDP/TCP × IPv4/IPv6 DNS 相同查询正对照及容器拒绝，既有绕过路径也在同报告通过                     | 精确提交完整 CI；其他传输不从四个 DNS 组合自动推导                                               |
-| NET-02                  | 真实产品撤销局部验收     | 代理 revision CAS、Plan / ApprovalGate / Auto Mode 修订锁存；`46505a2e4b` 原生 ARM64 真容器验证短暂 Auto Mode 收紧撤销、零后续流量及回收，既有 HTTP/WS 撤销同轮通过          | settings、宿主及其他可变策略来源的不可逆 generation；legacy callback；新提交准确 SHA 托管矩阵    |
+| NET-02                  | 真实产品撤销局部验收     | Plan / Gate / Auto 修订及 `46505a2e4b` ARM64 真容器撤销通过；WS owner 同进程修订、完整权限继承及 v2 恢复本地验证，新宿主真容器探针待托管                                     | settings、其他宿主/可变来源的 generation；legacy callback；新提交准确 SHA 托管矩阵               |
 | VERIFY-01               | 待实施/验收              | 保留历史真实模型试点及其范围                                                                                                                                                 | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                       |
 | PLATFORM-01             | 局部补强，待扩展矩阵     | Windows detached 文件 fd 真载荷与正对照；`f016a60ab0` 的 Linux ARM64、x64、Windows、macOS 15/latest Strict Sandbox 作业均通过                                                | 其余 OS/架构/后端/stdio 组合及真实进程验收；后续候选需重新验证                                   |
 | PERF-01                 | 局部实现并验证           | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                                     | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                              |

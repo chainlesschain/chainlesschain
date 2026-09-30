@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+import { createHostToolPolicyAuthority } from "../../src/lib/host-tool-policy-authority.js";
 
 let tmp;
 
@@ -110,6 +112,52 @@ describe("sub-agent parent authority inheritance", () => {
     expect(result.error).toBeUndefined();
     expect(fs.existsSync(target)).toBe(false);
   }, 30000);
+
+  it("inherits the real dynamic settings provider when there is no static ruleset", async () => {
+    const target = path.join(tmp, "provider-denied.txt");
+    fs.mkdirSync(path.join(tmp, ".claude"));
+    fs.writeFileSync(
+      path.join(tmp, ".claude", "settings.json"),
+      JSON.stringify({ permissions: { deny: ["Write"] } }),
+    );
+    const chatFn = childWriter(target);
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "worker", task: "attempt a write" },
+      {
+        cwd: tmp,
+        parentMessages: [],
+        llmOptions: { chatFn, runnableProviderFallback: false },
+        permissionRulesProvider: createPermissionRulesProvider({ cwd: tmp }),
+      },
+    );
+    expect(result.error).toBeUndefined();
+    expect(chatFn).toHaveBeenCalledTimes(2);
+    expect(fs.existsSync(target)).toBe(false);
+  }, 60000);
+
+  it("inherits a host deny committed while the child's model call is pending", async () => {
+    const target = path.join(tmp, "dynamic-host-denied.txt");
+    const controller = createHostToolPolicyAuthority();
+    const writer = childWriter(target);
+    const chatFn = vi.fn(async (...args) => {
+      controller.commit({ tools: { write_file: { allowed: false } } });
+      return writer(...args);
+    });
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "worker", task: "attempt a write" },
+      {
+        cwd: tmp,
+        parentMessages: [],
+        llmOptions: { chatFn, runnableProviderFallback: false },
+        hostManagedToolPolicyAuthority: controller.authority,
+      },
+    );
+    expect(result.error).toBeUndefined();
+    expect(chatFn).toHaveBeenCalledTimes(2);
+    expect(fs.existsSync(target)).toBe(false);
+  }, 60000);
 
   it("intersects the child tool set with the parent effective capability set", async () => {
     const target = path.join(tmp, "capability-denied.txt");

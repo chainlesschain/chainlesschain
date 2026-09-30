@@ -697,6 +697,25 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("returns an error envelope when a policy update cannot be saved", () => {
+    server.sessionManager.updateSessionPolicy.mockImplementationOnce(() => {
+      throw Object.assign(new Error("private storage detail"), {
+        code: "CC_WS_SESSION_POLICY_PERSISTENCE_FAILED",
+      });
+    });
+    handleSessionPolicyUpdate(server, "failed-policy", ws, {
+      sessionId: "sess-1",
+      hostManagedToolPolicy: null,
+    });
+    expect(server._send).toHaveBeenCalledOnce();
+    const response = server._send.mock.calls[0][1];
+    expect(response.payload).toMatchObject({
+      code: "CC_WS_SESSION_POLICY_PERSISTENCE_FAILED",
+    });
+    expect(JSON.stringify(response)).not.toContain("private storage detail");
+    expect(response.payload.success).not.toBe(true);
+  });
+
   it("acknowledges host tool results and resolves the pending interaction", () => {
     handleHostToolResult(server, "req-9", ws, {
       sessionId: "sess-1",
