@@ -25,10 +25,12 @@ const tool = (name, args, id) => ({
 });
 const done = () => ({ message: mockTextMessage("Finished the local change") });
 
-function mockGhInspections() {
+function mockGhInspections(
+  render = (count) =>
+    `Observation ${count}: failed unit check; local checkout unavailable`,
+) {
   let executions = 0;
-  const inspect = () =>
-    `Observation ${++executions}: failed unit check; local checkout unavailable`;
+  const inspect = () => render(++executions);
   const originalExec = broker.execSync;
   const originalSpawn = broker.spawnSync;
   vi.spyOn(broker, "execSync").mockImplementation(function (command, ...args) {
@@ -87,6 +89,120 @@ describe("remote read recovery in the agent runtime", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it("recovers a mixed issue/PR/CI investigation through compaction, edits and runs a real verification", async () => {
+    writeFileSync(
+      join(cwd, "retry-policy.cjs"),
+      "module.exports = (primary, retry) => retry;\n",
+    );
+    const executions = mockGhInspections((count) =>
+      count === 1
+        ? "Error: spawn denied\nPASS deliberate spawn failure test\nUnit tests PASSED\nFAIL retry-policy.test.js > preserves primary result\nAssertionError: expected false, received true\nIntegration tests FAILED"
+        : `Observation ${count}: PR merged; diagnostic retry passed`,
+    );
+    const tracker = new TaskProgressTracker();
+    const inspections = [
+      "gh issue view 390 --repo owner/repo --json number,title,state,body",
+      "gh api repos/owner/repo/issues/390/comments",
+      "gh pr view 389 --repo owner/repo --json number,title,state,mergedAt",
+      "gh run view 123 --repo owner/repo --json jobs",
+      "gh run download 123 --repo owner/repo -D artifacts_123",
+      "gh api repos/owner/repo/issues/390/timeline",
+    ];
+    let calls = 0;
+    const events = await drain(
+      agentLoop(
+        [
+          {
+            role: "user",
+            content:
+              "Fix the primary test failure reported in https://github.com/owner/repo/issues/390",
+          },
+        ],
+        {
+          ...base,
+          taskProgressTracker: tracker,
+          chatFn: async (messages, options) => {
+            expect(++calls).toBeLessThanOrEqual(28);
+            if (calls === 1)
+              return tool(
+                "run_shell",
+                {
+                  command:
+                    "gh run view 123 --job 456 --log-failed --repo owner/repo",
+                },
+                calls,
+              );
+            if (calls === 2)
+              return tool("read_file", { path: "retry-policy.cjs" }, calls);
+            if (calls <= 24)
+              return tool(
+                "run_shell",
+                { command: inspections[(calls - 3) % inspections.length] },
+                calls,
+              );
+            if (calls <= 26) {
+              expect(tracker.intervention.recovery).toBe(true);
+              expect(options.disabledTools).toContain("list_dir");
+              expect(options.disabledTools).not.toContain("edit_file");
+              expect(options.disabledTools).not.toContain("run_shell");
+              const context = JSON.stringify(messages);
+              expect(context).toContain("FAIL retry-policy.test.js");
+              expect(context).toContain("Unit tests PASSED");
+              expect(context).toContain("Integration tests FAILED");
+              if (calls === 25)
+                return tool(
+                  "run_shell",
+                  {
+                    command: "gh issue view 390 --repo owner/repo --json body",
+                  },
+                  calls,
+                );
+              return tool(
+                "edit_file",
+                {
+                  path: "retry-policy.cjs",
+                  old_string: "=> retry;",
+                  new_string: "=> primary;",
+                },
+                calls,
+              );
+            }
+            if (calls === 27) {
+              expect(tracker.intervention).toBeNull();
+              return tool(
+                "run_shell",
+                {
+                  command:
+                    "node -e \"const assert = require('node:assert/strict'); const verdict = require('./retry-policy.cjs'); assert.equal(verdict(false, true), false); assert.equal(verdict(true, false), true); console.log('regression verified');\"",
+                },
+                calls,
+              );
+            }
+            return done();
+          },
+        },
+      ),
+    );
+    expect(executions()).toBe(24);
+    expect(
+      events.filter((event) => event.type === "compaction").length,
+    ).toBeGreaterThan(3);
+    const verification = events
+      .filter(
+        (event) => event.type === "tool-result" && event.tool === "run_shell",
+      )
+      .at(-1);
+    expect(verification.result.error).toBeFalsy();
+    expect(verification.result.stdout).toContain("regression verified");
+    expect(readFileSync(join(cwd, "retry-policy.cjs"), "utf8")).toContain(
+      "=> primary;",
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "run-ended",
+      reason: "complete",
+    });
   });
 
   it.each([false, true])(

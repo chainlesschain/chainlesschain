@@ -2,6 +2,15 @@ import { describe, it, expect } from "vitest";
 import { gitToolInputError } from "../../src/lib/git-tool-input.js";
 
 describe("Git argv diagnostics", () => {
+  it.each(["gh pr view 389", "git gh issue view 390", "gh.exe run view 123"])(
+    "corrects wrong-tool routing without executing: %s",
+    (command) => {
+      expect(gitToolInputError(command)).toMatchObject({
+        code: "CC_GIT_WRONG_TOOL",
+        hint: expect.stringContaining("run_shell"),
+      });
+    },
+  );
   it.each([
     'merge-base --is-ancestor main HEAD && echo "FF-SAFE"',
     "tag --sort=-v:refname | head -8",
@@ -24,6 +33,7 @@ describe("Git argv diagnostics", () => {
     "merge-base --is-ancestor main HEAD",
     "tag --list v-npm-* --sort=-v:refname",
     'log --format="%h %s" -n 5',
+    'log --grep="gh pr view" -n 5',
   ])("preserves valid Git arguments: %s", (command) => {
     expect(gitToolInputError(command)).toBeNull();
   });

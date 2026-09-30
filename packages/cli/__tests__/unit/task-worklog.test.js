@@ -21,6 +21,68 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(cwd, { recursive: true, force: true }));
 
 describe("durable Markdown task worklog", () => {
+  it("retains failed-test evidence from successful log retrieval through churn, restart and handoff", () => {
+    const log = new TaskWorklog({ cwd, sessionId: "ci-source" });
+    log.user("Fix the reported CI failure");
+    log.record({
+      type: "tool_use",
+      id: "ci",
+      tool: "run_shell",
+      args: {
+        command: "gh run view 123 --job 456 --log-failed --repo owner/repo",
+      },
+    });
+    log.record({
+      type: "tool_result",
+      id: "ci",
+      tool: "run_shell",
+      result: {
+        exitCode: 0,
+        stdout:
+          "setup\n".repeat(5000) +
+          "\u001b[31mFAIL browser-download-boundary.integration.test.js\u001b[39m > blocks download\nError: Target page, context or browser has been closed\nUnit tests PASSED\nIntegration tests FAILED\n" +
+          "cleanup\n".repeat(3000),
+      },
+    });
+    for (let i = 0; i < 30; i++) {
+      log.record({
+        type: "tool_use",
+        id: `${i}`,
+        tool: "run_shell",
+        args: { command: `gh run view ${i} --json invalid` },
+      });
+      log.record({
+        type: "tool_result",
+        id: `${i}`,
+        tool: "run_shell",
+        result: { exitCode: 1, error: "Unknown JSON field" },
+      });
+    }
+    log.record({ type: "compaction" });
+    const restored = new TaskWorklog({ cwd, sessionId: "ci-source" });
+    const original = restored.state.failures.find(
+      (entry) => entry.containsTestFailure,
+    );
+    expect(original).toMatchObject({
+      exitCode: 0,
+      status: "observed result, not task completion",
+    });
+    expect(original.result).toContain(
+      "browser-download-boundary.integration.test.js",
+    );
+    expect(restored.context()).toContain("Unit tests PASSED");
+    expect(restored.context()).toContain("Integration tests FAILED");
+    const next = new TaskWorklog({ cwd, sessionId: "ci-next" });
+    next.inherit("ci-source");
+    expect(next.context()).toContain(
+      "Target page, context or browser has been closed",
+    );
+    expect(next.context()).toContain("gh run view 123 --job 456");
+    expect(next.context().length).toBeLessThan(4700);
+    expect(
+      Buffer.byteLength(readTaskWorklog(cwd, "ci-next").markdown),
+    ).toBeLessThanOrEqual(WORKLOG_MAX_BYTES);
+  });
   it("rebuilds a removed Markdown projection from Kernel authority and rejects stale writers", () => {
     const log = new TaskWorklog({ cwd, sessionId: "authority" });
     log.user("Canonical objective");

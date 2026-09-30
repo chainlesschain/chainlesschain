@@ -15,6 +15,20 @@ import { startEgressProxyWorker } from "../../src/lib/sandbox-egress-worker.js";
 import { startDockerEgressSession } from "../../src/lib/sandbox-docker-egress.js";
 import { normalizeAgentSandbox } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
+import {
+  createAutoModeApprovalGate,
+  resolveAutoModeDecisions,
+} from "../../src/lib/auto-mode-config.js";
+import dnsFixture from "../fixtures/dns-egress-fixture.cjs";
+
+const { queryDns, startDnsFixture } = dnsFixture;
+const DNS_TRANSPORTS = [
+  { transport: "udp", family: 4 },
+  { transport: "udp", family: 6 },
+  { transport: "tcp", family: 4 },
+  { transport: "tcp", family: 6 },
+];
 
 const LIVE = process.env.CC_DOCKER_EGRESS_LIVE === "1";
 const listen = (server, ...args) =>
@@ -110,6 +124,31 @@ const request=target=>new Promise((resolve,reject)=>{const q=http.get({host:'127
 const connect=(authority,payload,nonce)=>new Promise((resolve,reject)=>{const s=net.connect(3128,'127.0.0.1');let received='',sent=false;const timer=setTimeout(()=>{s.destroy();reject(new Error('CONNECT timeout'))},7000);s.on('error',e=>{clearTimeout(timer);reject(e)});s.on('connect',()=>s.write('CONNECT '+authority+' HTTP/1.1\\r\\nHost: '+authority+'\\r\\n\\r\\n'));s.on('data',c=>{received+=c.toString();if(!sent&&received.includes('\\r\\n\\r\\n')){sent=true;if(payload)s.write(payload)}if(received.includes(nonce)){clearTimeout(timer);s.destroy();resolve(received)}})});
 `;
 
+describe("real host DNS controls for Docker boundary probes", () => {
+  for (const options of DNS_TRANSPORTS) {
+    // NET-01 promises a Linux boundary. IPv6 is mandatory in that live cell;
+    // other hosts run the IPv4 controls without acquiring a new IPv6 promise.
+    it.runIf(options.family === 4 || process.platform === "linux")(
+      `exchanges an A answer over ${options.transport} / IPv${options.family}`,
+      async () => {
+        const server = await startDnsFixture(options);
+        try {
+          const response = await queryDns({
+            ...options,
+            host: server.host,
+            port: server.port,
+            name: `${crypto.randomUUID()}.policy.test`,
+          });
+          expect([...response.subarray(-4)]).toEqual([127, 0, 0, 9]);
+          expect(server.queries).toBe(1);
+        } finally {
+          await server.close();
+        }
+      },
+    );
+  }
+});
+
 describe.runIf(LIVE)("Linux Docker egress real boundary", () => {
   it("enforces the domain policy through the run_shell product path", async () => {
     const image = process.env.CC_DOCKER_EGRESS_IMAGE;
@@ -171,120 +210,134 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     }
   }, 180_000);
 
-  it("cuts an established product tunnel when live shell authority is revoked", async () => {
-    const image = process.env.CC_DOCKER_EGRESS_IMAGE;
-    expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-revoke-"));
-    const sockets = new Set();
-    let receivedBytes = 0;
-    const upstream = net.createServer((socket) => {
-      sockets.add(socket);
-      socket.on("error", () => {});
-      socket.on("data", (chunk) => {
-        receivedBytes += chunk.length;
+  it.each(["permission-rules", "auto-mode-aba"])(
+    "cuts an established product tunnel on %s revocation",
+    async (source) => {
+      const image = process.env.CC_DOCKER_EGRESS_IMAGE;
+      expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-revoke-"));
+      const sockets = new Set();
+      let receivedBytes = 0;
+      const upstream = net.createServer((socket) => {
+        sockets.add(socket);
+        socket.on("error", () => {});
+        socket.on("data", (chunk) => {
+          receivedBytes += chunk.length;
+        });
+        socket.once("close", () => sockets.delete(socket));
       });
-      socket.once("close", () => sockets.delete(socket));
-    });
-    let denied = false;
-    let pending;
-    try {
-      const before = await docker([
-        "ps",
-        "-a",
-        "--filter",
-        "label=chainless.egress.owner",
-        "--format",
-        "{{.Names}}",
-      ]);
-      const { port } = await listen(upstream, 0, "127.0.0.1");
-      fs.writeFileSync(
-        path.join(root, "tunnel.cjs"),
-        `const fs=require('node:fs'),net=require('node:net');
+      let denied = false;
+      const gate = createAutoModeApprovalGate(
+        new ApprovalGate({
+          defaultPolicy:
+            source === "auto-mode-aba"
+              ? APPROVAL_POLICY.STRICT
+              : APPROVAL_POLICY.AUTOPILOT,
+        }),
+        resolveAutoModeDecisions({ decisions: { medium: "allow" } }),
+      );
+      let pending;
+      try {
+        const before = await docker([
+          "ps",
+          "-a",
+          "--filter",
+          "label=chainless.egress.owner",
+          "--format",
+          "{{.Names}}",
+        ]);
+        const { port } = await listen(upstream, 0, "127.0.0.1");
+        fs.writeFileSync(
+          path.join(root, "tunnel.cjs"),
+          `const fs=require('node:fs'),net=require('node:net');
 const socket=net.connect(3128,'127.0.0.1');let header='';let ready=false;
 socket.on('connect',()=>socket.write('CONNECT 127.0.0.1:${port} HTTP/1.1\\r\\nHost: 127.0.0.1:${port}\\r\\n\\r\\n'));
 socket.on('data',chunk=>{if(ready)return;header+=chunk.toString();if(header.includes('\\r\\n\\r\\n')){if(!/^HTTP\\/1\\.[01] 200 /.test(header))process.exit(3);ready=true;fs.writeFileSync('/workspace/tunnel-ready','ready')}});
 socket.on('error',()=>{});socket.on('close',()=>{});
 setInterval(()=>{if(ready&&!socket.destroyed)socket.write('ping')},50);
 setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);`,
-      );
-      const sandbox = normalizeAgentSandbox(true, {
-        cwd: root,
-        network: true,
-        settings: {
-          engine: "docker-egress",
-          image,
-          relayImage: image,
-          network: { allowedDomains: ["127.0.0.1"] },
-        },
-      });
-      pending = executeTool(
-        "run_shell",
-        { command: "node /workspace/tunnel.cjs", timeout: 30_000 },
-        {
+        );
+        const sandbox = normalizeAgentSandbox(true, {
           cwd: root,
-          sandbox,
-          permissionRulesProvider: async () => ({
-            rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
-            sources: {},
-            scoped: { rules: [] },
-          }),
-          approvalGate: {
-            decide: async () => ({
-              decision: "allow",
-              via: "policy",
-              policy: "autopilot",
-            }),
+          network: true,
+          settings: {
+            engine: "docker-egress",
+            image,
+            relayImage: image,
+            network: { allowedDomains: ["127.0.0.1"] },
           },
-        },
-      );
-      await waitForFile(path.join(root, "tunnel-ready"));
-      const trafficDeadline = Date.now() + 5_000;
-      while (!receivedBytes && Date.now() < trafficDeadline) await delay(25);
-      expect(receivedBytes).toBeGreaterThan(0);
-      denied = true;
-      const result = await Promise.race([
-        pending,
-        delay(10_000).then(() => {
-          throw new Error("Running Docker shell ignored revoked authority");
-        }),
-      ]);
-      expect(result.exitCode, result.error).toBe(1);
-      expect(result.retrySafe).toBe(false);
-      expect(result.authorityFailure).toMatchObject({
-        code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
-      });
-      expect(result.sandboxCapabilities.applied).toEqual([]);
-      const deadline = Date.now() + 10_000;
-      while (sockets.size && Date.now() < deadline) await delay(25);
-      expect(sockets.size).toBe(0);
-      const bytesAtTeardown = receivedBytes;
-      await delay(250);
-      expect(receivedBytes).toBe(bytesAtTeardown);
-      const after = await docker([
-        "ps",
-        "-a",
-        "--filter",
-        "label=chainless.egress.owner",
-        "--format",
-        "{{.Names}}",
-      ]);
-      expect(after).toBe(before);
-      const heartbeatAtTeardown = fs.readFileSync(
-        path.join(root, "heartbeat"),
-        "utf8",
-      );
-      await delay(250);
-      expect(fs.readFileSync(path.join(root, "heartbeat"), "utf8")).toBe(
-        heartbeatAtTeardown,
-      );
-    } finally {
-      denied = true;
-      await pending?.catch(() => {});
-      for (const socket of sockets) socket.destroy();
-      await new Promise((resolve) => upstream.close(resolve));
-      fs.rmSync(root, { recursive: true, force: true });
-    }
-  }, 180_000);
+        });
+        pending = executeTool(
+          "run_shell",
+          { command: "node /workspace/tunnel.cjs", timeout: 30_000 },
+          {
+            cwd: root,
+            sandbox,
+            sessionId: "live-auto-revoke",
+            permissionRulesProvider: async () => ({
+              rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
+              sources: {},
+              scoped: { rules: [] },
+            }),
+            approvalGate: gate,
+          },
+        );
+        await waitForFile(path.join(root, "tunnel-ready"));
+        const trafficDeadline = Date.now() + 5_000;
+        while (!receivedBytes && Date.now() < trafficDeadline) await delay(25);
+        expect(receivedBytes).toBeGreaterThan(0);
+        if (source === "auto-mode-aba") {
+          gate.setActive(false);
+          gate.setActive(true);
+          expect(
+            gate.getAuthorizationPolicySnapshot("live-auto-revoke"),
+          ).toMatchObject({ active: true, activeRevision: 2 });
+        } else denied = true;
+        const result = await Promise.race([
+          pending,
+          delay(10_000).then(() => {
+            throw new Error("Running Docker shell ignored revoked authority");
+          }),
+        ]);
+        expect(result.exitCode, result.error).toBe(1);
+        expect(result.retrySafe).toBe(false);
+        expect(result.authorityFailure).toMatchObject({
+          code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+        });
+        expect(result.sandboxCapabilities.applied).toEqual([]);
+        const deadline = Date.now() + 10_000;
+        while (sockets.size && Date.now() < deadline) await delay(25);
+        expect(sockets.size).toBe(0);
+        const bytesAtTeardown = receivedBytes;
+        await delay(250);
+        expect(receivedBytes).toBe(bytesAtTeardown);
+        const after = await docker([
+          "ps",
+          "-a",
+          "--filter",
+          "label=chainless.egress.owner",
+          "--format",
+          "{{.Names}}",
+        ]);
+        expect(after).toBe(before);
+        const heartbeatAtTeardown = fs.readFileSync(
+          path.join(root, "heartbeat"),
+          "utf8",
+        );
+        await delay(250);
+        expect(fs.readFileSync(path.join(root, "heartbeat"), "utf8")).toBe(
+          heartbeatAtTeardown,
+        );
+      } finally {
+        denied = true;
+        await pending?.catch(() => {});
+        for (const socket of sockets) socket.destroy();
+        await new Promise((resolve) => upstream.close(resolve));
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+    180_000,
+  );
 
   it("allows proxy traffic but rejects direct host traffic and workspace Unix sockets", async () => {
     expect(process.platform).toBe("linux");
@@ -366,6 +419,61 @@ console.log(JSON.stringify({allowed,denied:denied.status,tcp,unix,udp}));})().ca
 });
 
 describe.runIf(LIVE)("Docker egress extended real traffic", () => {
+  it("blocks direct TCP and UDP DNS over both IPv4 and IPv6 with reachable host controls", async () => {
+    const f = await liveFixture({ allowedDomains: ["127.0.0.1", "::1"] });
+    const services = [];
+    try {
+      const probes = [];
+      for (const options of DNS_TRANSPORTS) {
+        const server = await startDnsFixture(options);
+        services.push(server);
+        const probe = {
+          ...options,
+          host: server.host,
+          port: server.port,
+          name: `${crypto.randomUUID()}.policy.test`,
+          queryId: crypto.randomInt(0x10000),
+        };
+        const response = await queryDns(probe);
+        expect([...response.subarray(-4)]).toEqual([127, 0, 0, 9]);
+        expect(server.queries).toBe(1);
+        probes.push(probe);
+      }
+      fs.copyFileSync(
+        new URL("../fixtures/dns-egress-fixture.cjs", import.meta.url),
+        path.join(f.workspace, "dns-egress-fixture.cjs"),
+      );
+      fs.writeFileSync(
+        path.join(f.workspace, "dns-matrix.cjs"),
+        `const {queryDns}=require('./dns-egress-fixture.cjs');
+for(const key of Object.keys(process.env))if(/proxy/i.test(key))delete process.env[key];
+(async()=>{const results=[];for(const probe of ${JSON.stringify(probes)}){
+try{const answer=await queryDns(probe);results.push({transport:probe.transport,family:probe.family,answer:[...answer.subarray(-4)]})}
+catch(error){results.push({transport:probe.transport,family:probe.family,error:error.code||error.message})}}
+console.log(JSON.stringify(results))})().catch(error=>{console.error(error);process.exitCode=1});`,
+      );
+      const { session } = await f.start();
+      const result = await session.run("node /workspace/dns-matrix.cjs", {
+        timeoutMs: 15_000,
+      });
+      expect(result.exitCode, result.stderr).toBe(0);
+      const reports = JSON.parse(result.stdout);
+      expect(reports).toHaveLength(4);
+      for (const [index, report] of reports.entries()) {
+        expect(report).toMatchObject(DNS_TRANSPORTS[index]);
+        expect(report.answer).toBeUndefined();
+        expect(report.error).toBeTruthy();
+        expect(services[index].queries).toBe(1);
+      }
+    } finally {
+      try {
+        await f.close();
+      } finally {
+        await Promise.all(services.map((service) => service.close()));
+      }
+    }
+  }, 180_000);
+
   it("blocks direct UDP DNS queries while the host DNS service is reachable", async () => {
     const f = await liveFixture({ allowedDomains: ["127.0.0.1"] });
     const server = dgram.createSocket("udp4");

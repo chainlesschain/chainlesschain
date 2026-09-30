@@ -18,6 +18,19 @@ function pullRequestTarget(repo, id = "list") {
   return { ...githubTarget(repo, "pulls", id), pullRequest: true };
 }
 
+function issueTarget(repo, id = "list") {
+  return { ...githubTarget(repo, "issues", id), issue: true };
+}
+
+const ISSUE_WORKFLOW_GUIDANCE =
+  "Issue investigation: retain the issue, linked PR and workflow run as separate targets, with verified revisions and observed test outcomes. " +
+  "Use gh issue view for an issue and gh pr view for its linked PR; their numbers need not match. " +
+  "Use gh run view <run-id> for one run; gh run list accepts filters, not a positional run ID. " +
+  "For unknown JSON fields, inspect stderr/help and request supported fields without jq or shell pipelines first. " +
+  "A completed metadata read remains evidence after an unrelated command fails; do not restart the same investigation. " +
+  "Once the failing test and source are known, state a falsifiable hypothesis, run the focused reproduction, then make and validate the authorized fix. " +
+  "A merged PR or a passing diagnostic retry alone does not resolve the reported failure. Perform issue closure only when authorized and supported by the requested resolution evidence. ";
+
 function commandFlag(command, names) {
   return new RegExp(
     `(?:^|\\s)(?:${names})(?:=|\\s+)(?:"([^"]*)"|'([^']*)'|([^\\s;&|]+))`,
@@ -27,13 +40,16 @@ function commandFlag(command, names) {
     .find((value) => value !== undefined);
 }
 
-function pullRequestCommandTarget(command) {
+function discussionCommandTarget(command) {
   const match =
-    /(?:^|[\s;&|])gh(?:\.exe)?\s+pr\s+(list|view|diff)\b([^;&|\r\n]*)/i.exec(
+    /(?:^|[\s;&|])gh(?:\.exe)?\s+(pr|issue)\s+(list|view|diff)\b([^;&|\r\n]*)/i.exec(
       command,
     );
   if (!match) return null;
-  const fields = commandFlag(match[2], "--json")?.split(",");
+  const target =
+    match[1].toLowerCase() === "issue" ? issueTarget : pullRequestTarget;
+  const tail = match[3];
+  const fields = commandFlag(tail, "--json")?.split(",");
   // Lightweight status polling is intentional waiting, not repeated review.
   if (
     fields?.length &&
@@ -44,18 +60,20 @@ function pullRequestCommandTarget(command) {
     )
   )
     return null;
-  const repo = commandFlag(match[2], "--repo|-R") || "current-repo";
-  if (match[1].toLowerCase() === "list") return pullRequestTarget(repo);
+  const repo = commandFlag(tail, "--repo|-R") || "current-repo";
+  if (match[2].toLowerCase() === "list") return target(repo);
   const prUrl =
-    /https:\/\/github\.com\/([^/\s]+\/[^/\s]+)\/pull\/(\d+)\b/i.exec(match[2]);
-  if (prUrl) return pullRequestTarget(prUrl[1], prUrl[2]);
+    /https:\/\/github\.com\/([^/\s]+\/[^/\s]+)\/(?:pull|issues)\/(\d+)\b/i.exec(
+      tail,
+    );
+  if (prUrl) return target(prUrl[1], prUrl[2]);
   // Remove flags that consume values before finding the positional PR number.
-  const positional = match[2].replace(
+  const positional = tail.replace(
     /(?:^|\s)(?:--repo|-R|--json|--jq|-q|--template|-t|--color)(?:=|\s+)(?:"[^"]*"|'[^']*'|[^\s]+)/g,
     " ",
   );
   const number = /(?:^|\s)["']?(\d+)["']?(?=\s|$)/.exec(positional)?.[1];
-  return number ? pullRequestTarget(repo, number) : null;
+  return number ? target(repo, number) : null;
 }
 
 function urlTarget(value) {
@@ -69,6 +87,10 @@ function urlTarget(value) {
     };
   }
   if (url.hostname === "github.com") {
+    const issue = /^\/([^/]+\/[^/]+)\/issues(?:\/(\d+))?\/?$/.exec(
+      url.pathname,
+    );
+    if (issue) return issueTarget(issue[1], issue[2]);
     const pr =
       /^\/([^/]+\/[^/]+)\/(?:pulls\/?|pull\/(\d+)(?:\/(?:files|commits|checks))?\/?|pull\/(\d+)\.(?:diff|patch))$/.exec(
         url.pathname,
@@ -87,6 +109,11 @@ function urlTarget(value) {
       );
   }
   if (url.hostname === "api.github.com") {
+    const issue =
+      /^\/repos\/([^/]+\/[^/]+)\/issues(?:\/(\d+)(?:\/(?:comments|events|timeline))?)?\/?$/.exec(
+        url.pathname,
+      );
+    if (issue) return issueTarget(issue[1], issue[2]);
     const pr =
       /^\/repos\/([^/]+\/[^/]+)\/pulls(?:\/(\d+)(?:\/(?:files|commits|reviews|comments))?)?\/?$/.exec(
         url.pathname,
@@ -144,8 +171,8 @@ export function remoteReadTarget(tool, args = {}) {
   }
   if (tool !== "run_shell") return null;
   const command = typeof args.command === "string" ? args.command : "";
-  const pr = pullRequestCommandTarget(command);
-  if (pr) return pr;
+  const discussion = discussionCommandTarget(command);
+  if (discussion) return discussion;
   const view = /(?:^|[\s;&|])gh(?:\.exe)?\s+run\s+view\s+([^;&|\r\n]+)/i.exec(
     command,
   );
@@ -172,6 +199,11 @@ export function remoteReadTarget(tool, args = {}) {
       /(?:^|\s)(?:(?:--field|--raw-field|--input)(?:=|\s)|-[fF])/.test(command)
     )
       return null;
+    const issueApi =
+      /(?:https:\/\/api\.github\.com\/)?\/?repos\/([\w.-]+\/[\w.-]+)\/issues(?:\/(\d+)(?:\/(?:comments|events|timeline))?)?(?=[?\s"']|$)/.exec(
+        command,
+      );
+    if (issueApi) return issueTarget(issueApi[1], issueApi[2]);
     const prApi =
       /(?:https:\/\/api\.github\.com\/)?\/?repos\/([\w.-]+\/[\w.-]+)\/pulls(?:\/(\d+)(?:\/(?:files|commits|reviews|comments))?)?(?=[?\s"']|$)/.exec(
         command,
@@ -369,6 +401,14 @@ export class RemoteReadLoopGuard {
   get recoveryHint() {
     if (!(this.targets.get(this.activeKey)?.repeats >= RECOVERY_AFTER))
       return null;
+    if (this.targets.get(this.activeKey)?.issue) {
+      return (
+        "Remote-read loop recovery: repeated issue reads returned failures or already-seen evidence. " +
+        "Use the retained observations; identify the exact missing fact before a new focused read. " +
+        ISSUE_WORKFLOW_GUIDANCE +
+        DIAGNOSTIC_WORKFLOW_GUIDANCE
+      );
+    }
     if (this.targets.get(this.activeKey)?.shellPolicy) {
       return (
         "Tool-policy loop recovery: the same execution policy keeps rejecting commands, even when their arguments change. " +
@@ -449,6 +489,8 @@ export class RemoteReadLoopGuard {
   }
 
   get workflowHint() {
+    if (this.targets.get(this.activeKey)?.issue)
+      return ISSUE_WORKFLOW_GUIDANCE + DIAGNOSTIC_WORKFLOW_GUIDANCE;
     const active = this.targets.get(this.activeKey);
     if (active?.github && !active.pullRequest) {
       return (
@@ -505,6 +547,7 @@ export class RemoteReadLoopGuard {
         page,
         localLog,
         pullRequest,
+        issue,
         shellPolicy,
         gitRepository,
       }) => ({
@@ -515,9 +558,11 @@ export class RemoteReadLoopGuard {
             : github
               ? pullRequest
                 ? "GitHub pull requests"
-                : localLog
-                  ? "saved GitHub Actions log"
-                  : "GitHub Actions logs"
+                : issue
+                  ? "GitHub issues"
+                  : localLog
+                    ? "saved GitHub Actions log"
+                    : "GitHub Actions logs"
               : tool === "web_search"
                 ? "web_search"
                 : "web_fetch",

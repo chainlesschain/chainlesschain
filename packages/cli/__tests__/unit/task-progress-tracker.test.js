@@ -10,6 +10,138 @@ const observe = (tracker, count) => {
 };
 
 describe("long-running task progress", () => {
+  it("bounds JSON-escaped failure evidence and does not mutate the retained originals", () => {
+    const tracker = new TaskProgressTracker();
+    for (let i = 0; i < 2; i++)
+      tracker.record(
+        "read_file",
+        {
+          content: `FAIL test-${i}.js\n${"\u0000".repeat(1500)}`,
+        },
+        { path: "\u0000".repeat(400) },
+      );
+    const checkpoint = tracker.checkpointFor();
+    expect(checkpoint.length).toBeLessThan(6200);
+    const evidence = JSON.parse(checkpoint.split("\n")[1]).observedTestFailures;
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].excerptTruncated).toBe(true);
+    expect(
+      tracker.failureEvidence.get("root")[0].excerpt.length,
+    ).toBeGreaterThan(evidence[0].excerpt.length);
+  });
+  it.each([
+    "gh issue view 390 --repo owner/repo --json number,title,state,body",
+    "gh issue list --repo owner/repo --json number,title",
+    "gh api repos/owner/repo/issues/390/comments",
+    "gh api /repos/owner/repo/issues/390/timeline --method GET",
+    "gh api repos/owner/repo/issues?state=open",
+    "gh run download 123 --repo owner/repo -D artifacts_123",
+    "gh release view v1 --repo owner/repo",
+    "gh issue view --help",
+    "gh api repos/owner/repo/actions/runs/123/artifacts",
+    'powershell -NoProfile -Command "Get-ChildItem artifacts_123 -Recurse"',
+    'Get-Content job_456.log | Select-String "FAIL"',
+    'dir /s /b artifacts_123 | findstr /i "report json txt"',
+    'rg -n "failure" job_456.log',
+    "type job_456.log",
+    "cat report.json",
+  ])(
+    "never buys a new progress budget for evidence collection: %s",
+    (command) => {
+      const tracker = new TaskProgressTracker();
+      observe(tracker, 24);
+      for (let i = 0; i < 4; i++)
+        expect(
+          tracker.record(
+            "run_shell",
+            { stdout: `fresh observation ${i}`, exitCode: 0 },
+            { command },
+          ),
+        ).toBe(false);
+      expect(tracker.explorationCalls).toBe(28);
+      expect(tracker.intervention.recovery).toBe(true);
+    },
+  );
+
+  it("keeps issue scripts and downloaded metadata in the same investigation", () => {
+    const tracker = new TaskProgressTracker();
+    observe(tracker, 24);
+    for (const code of [
+      'console.log(execSync("gh issue view 390 --json body"));',
+      'fs.writeFileSync("issue.json", execSync("gh api repos/owner/repo/issues/390"));',
+      'console.log(execSync("type job_456.log"));',
+    ])
+      expect(tracker.record("run_code", { output: code }, { code })).toBe(
+        false,
+      );
+    expect(tracker.explorationCalls).toBe(27);
+  });
+
+  it("retains the original failed-test evidence after metadata churn and isolates owners", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record(
+      "run_shell",
+      {
+        stdout:
+          "FAIL browser-download-boundary.integration.test.js > blocks download\nError: Target page, context or browser has been closed\nUnit tests PASSED\nIntegration tests FAILED",
+        exitCode: 0,
+      },
+      { command: "gh run view 123 --job 456 --log-failed --repo owner/repo" },
+      "parent",
+    );
+    for (let i = 0; i < 30; i++)
+      tracker.record(
+        "run_shell",
+        { stdout: `issue state ${i}`, exitCode: 0 },
+        { command: "gh issue view 390 --json body" },
+        "parent",
+      );
+    const checkpoint = JSON.parse(
+      tracker.checkpointFor("parent").split("\n")[1],
+    );
+    expect(checkpoint.observedTestFailures).toHaveLength(1);
+    expect(checkpoint.observedTestFailures[0]).toMatchObject({
+      source: "gh run view 123 --job 456 --log-failed --repo owner/repo",
+    });
+    expect(checkpoint.observedTestFailures[0].excerpt).toContain(
+      "browser-download-boundary.integration.test.js",
+    );
+    expect(checkpoint.observedTestFailures[0].excerpt).toContain(
+      "Unit tests PASSED",
+    );
+    expect(tracker.checkpointFor("child")).toBeNull();
+    expect(tracker.checkpointFor("parent").length).toBeLessThan(6200);
+    expect(tracker.intervention.recovery).toBe(true);
+  });
+
+  it("bounds retained test failures without promoting error text to a root cause", () => {
+    const tracker = new TaskProgressTracker();
+    tracker.record(
+      "run_shell",
+      { stdout: "Error: spawn denied\nPASS deliberate spawn test" },
+      { command: "npm test" },
+    );
+    expect(
+      JSON.parse(tracker.checkpointFor().split("\n")[1]).observedTestFailures,
+    ).toEqual([]);
+    for (let i = 0; i < 20; i++)
+      tracker.record(
+        "read_file",
+        {
+          content: `FAIL test-${i}.test.js > regression\n${"evidence ".repeat(400)}`,
+        },
+        { path: `job-${i}.log` },
+      );
+    const checkpoint = JSON.parse(tracker.checkpointFor().split("\n")[1]);
+    expect(checkpoint.observedTestFailures).toHaveLength(2);
+    expect(checkpoint.observedTestFailures[0].excerpt).toContain(
+      "test-0.test.js",
+    );
+    expect(checkpoint.observedTestFailures[1].excerpt).toContain(
+      "test-19.test.js",
+    );
+    expect(tracker.checkpointFor().length).toBeLessThan(6200);
+  });
   it.each([
     "fetch github main",
     "branch -a",
@@ -310,6 +442,14 @@ describe("long-running task progress", () => {
 
   it.each([
     "gh run rerun 123 --failed",
+    "gh issue close 390 --repo owner/repo",
+    "gh issue comment 390 --body-file comment.txt",
+    "gh api -X PATCH repos/owner/repo/issues/390 -f state=closed",
+    "npm test | head -40",
+    "node --test type.test.js | head -40",
+    "go test ./... | tail -20",
+    "node type.test.js",
+    "Get-Content source.js | Set-Content fixed.js",
     "gh pr close 123",
     "gh api -X POST repos/owner/repo/actions/runs/123/rerun",
     "gh api -XPOST repos/owner/repo/actions/runs/123/rerun",

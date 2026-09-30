@@ -11,6 +11,63 @@ const command =
   "gh run view 34087984148 --job 101635686798 --log --repo chainlesschain/chainlesschain";
 
 describe("remote read target classification", () => {
+  it("groups issue web/CLI/API reads while keeping the linked PR distinct", () => {
+    const expected = remoteReadTarget("web_fetch", {
+      url: "https://github.com/Owner/Repo/issues/390#discussion",
+    });
+    expect(expected).toMatchObject({
+      issue: true,
+      key: "github:owner/repo:issues:390:latest",
+    });
+    for (const command of [
+      "gh issue view 390 --repo owner/repo --json number,title,state,body",
+      'gh.exe issue view --repo="Owner/Repo" 390 --json=body,comments',
+      "gh issue view https://github.com/owner/repo/issues/390",
+      "gh api repos/owner/repo/issues/390",
+      "gh api --method GET /repos/owner/repo/issues/390/comments?per_page=100",
+      "gh api repos/owner/repo/issues/390/timeline",
+    ])
+      expect(remoteReadTarget("run_shell", { command })).toEqual(expected);
+    expect(
+      remoteReadTarget("web_fetch", {
+        url: "https://api.github.com/repos/owner/repo/issues/390/events",
+      }),
+    ).toEqual(expected);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh pr view 390 --repo owner/repo --json body",
+      }),
+    ).not.toEqual(expected);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh issue view 391 --repo owner/repo --json body",
+      }),
+    ).not.toEqual(expected);
+    expect(
+      remoteReadTarget("run_shell", {
+        command: "gh issue list --repo owner/repo",
+      }),
+    ).toEqual(
+      remoteReadTarget("web_fetch", {
+        url: "https://github.com/owner/repo/issues",
+      }),
+    );
+  });
+
+  it.each([
+    "gh issue view 390 --repo owner/repo --json state,updatedAt",
+    "gh issue close 390 --repo owner/repo",
+    "gh issue comment 390 --body-file comment.txt",
+    "gh api -X PATCH repos/owner/repo/issues/390",
+    "gh api -XDELETE repos/owner/repo/issues/390/comments/1",
+    "gh api repos/owner/repo/issues/390 -f state=closed",
+    "gh api repos/owner/repo/issues/390 --input body.json",
+  ])(
+    "leaves issue monitoring and authorized mutations available: %s",
+    (command) => {
+      expect(remoteReadTarget("run_shell", { command })).toBeNull();
+    },
+  );
   it("groups PR pages, gh pr reads and read-only API requests by repository and PR", () => {
     const expected = remoteReadTarget("web_fetch", {
       url: "https://github.com/Owner/Repo/pull/340#discussion",
@@ -140,6 +197,34 @@ describe("remote read target classification", () => {
 });
 
 describe("remote read loop recovery", () => {
+  it("recovers repeated issue queries across routes without losing earlier successful evidence", () => {
+    const guard = new RemoteReadLoopGuard();
+    const calls = [
+      ["web_fetch", { url: "https://github.com/owner/repo/issues/390" }],
+      [
+        "run_shell",
+        { command: "gh issue view 390 --repo owner/repo --json body" },
+      ],
+      ["run_shell", { command: "gh api repos/owner/repo/issues/390" }],
+    ];
+    guard.record(
+      calls[0][0],
+      { content: "Integration FAILED; Unit PASSED" },
+      calls[0][1],
+    );
+    for (let i = 0; i < 3; i++)
+      guard.record(calls[i][0], { error: `command error ${i}` }, calls[i][1]);
+    expect(guard.recoveryHint).toContain("repeated issue reads");
+    guard.takeRecoveryTurn();
+    for (const [tool, args] of calls)
+      expect(guard.shouldPause(tool, args)).toBe(true);
+    expect(guard.shouldPause("run_shell", { command: "npm test" })).toBe(false);
+    expect(guard.findingsHint).toContain("Integration FAILED; Unit PASSED");
+    expect(guard.findingsHint).toContain("GitHub issues");
+    expect(guard.workflowHint).toContain("not a positional run ID");
+    guard.takeRecoveryTurn();
+    expect(guard.shouldPause(...calls[1])).toBe(false);
+  });
   it.each(["pull-request", "shell-policy"])(
     "keeps %s recovery guidance safe for the real projection without weakening authorization",
     (kind) => {

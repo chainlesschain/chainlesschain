@@ -1,11 +1,93 @@
 import { describe, it, expect } from "vitest";
-import { diagnosticExcerpt } from "../../src/lib/diagnostic-excerpt.js";
+import {
+  diagnosticExcerpt,
+  hasTestFailureVerdict,
+} from "../../src/lib/diagnostic-excerpt.js";
 import {
   shellOutputPage,
   shellOutputPreview,
 } from "../../src/lib/shell-output.js";
 
 describe("diagnostic source preservation", () => {
+  it.each([1200, 1600])(
+    "handles colored gh logs without losing the assertion or suite verdicts at %i chars",
+    (limit) => {
+      const log = [
+        ...Array(200).fill("runner setup"),
+        "# Failed to run Unit tests: Error: spawn denied",
+        "# at ci-gate-integrity.test.mjs:1816:48",
+        "ok 47 - deliberately rejects spawn",
+        "✓ Unit tests PASSED (601.00s)",
+        ...Array(200).fill("successful test"),
+        "\u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m tests/integration/browser-download-boundary.integration.test.js\u001b[2m > \u001b[22mBrowserEngine real Chromium download boundary\u001b[2m > \u001b[22mcancels native downloads and closes page-initiated popups",
+        "\u001b[31m\u001b[1mError\u001b[22m: download.failure: Target page, context or browser has been closed\u001b[39m",
+        " ❯ tests/integration/browser-download-boundary.integration.test.js:\u001b[2m101:8\u001b[22m",
+        "\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[31m1 failed\u001b[39m | 38 passed",
+        "✗ Integration tests FAILED (78.32s)",
+        ...Array(200).fill("diagnostic retry"),
+        "✓ Unit tests PASSED (635.27s)",
+        "✓ Integration tests PASSED (71.44s)",
+        "✓ Database tests PASSED",
+        "✓ UKey tests PASSED",
+        "##[error]The primary comprehensive test run did not pass; a diagnostic retry cannot replace it.",
+        "##[error]Process completed with exit code 1.",
+        ...Array(200).fill("Post job cleanup"),
+      ]
+        .map(
+          (line) =>
+            `Run All Tests (ubuntu-latest)\tUNKNOWN STEP\t2026-09-30T02:37:31.1222018Z ${line}`,
+        )
+        .join("\n");
+      expect(hasTestFailureVerdict(log)).toBe(true);
+      const excerpt = diagnosticExcerpt(log, limit);
+      expect(excerpt.length).toBeLessThanOrEqual(limit);
+      expect(excerpt).toContain(
+        "browser-download-boundary.integration.test.js",
+      );
+      expect(excerpt).toContain(
+        "Target page, context or browser has been closed",
+      );
+      expect(excerpt).toContain("101:8");
+      expect(excerpt).toContain("Unit tests PASSED (601.00s)");
+      expect(excerpt).toContain("Integration tests FAILED (78.32s)");
+      expect(excerpt).toContain("Integration tests PASSED (71.44s)");
+      expect(excerpt).toContain("primary comprehensive test run did not pass");
+      expect(excerpt).not.toContain("\u001b");
+    },
+  );
+  it.each([1200, 1600])(
+    "keeps the middle failed test, passing unit verdict and primary gate at %i chars",
+    (limit) => {
+      const log = [
+        "setup\n".repeat(1000),
+        "Error: spawn denied",
+        "at ci-gate-integrity.test.mjs:1816:48",
+        "PASS deliberate spawn failure test",
+        "Unit tests PASSED",
+        "successful test\n".repeat(1000),
+        "FAIL browser-download-boundary.integration.test.js > blocks downloads",
+        "Error: download.failure: Target page, context or browser has been closed",
+        "at browser-download-boundary.integration.test.js:101:3",
+        "Test Files 1 failed | 17 passed (18)",
+        "Integration tests FAILED",
+        "diagnostic retry\n".repeat(1000),
+        "Integration tests PASSED",
+        "##[error]The primary comprehensive test run did not pass; a diagnostic retry cannot replace it.",
+      ].join("\n");
+      const excerpt = diagnosticExcerpt(log, limit);
+      expect(excerpt.length).toBeLessThanOrEqual(limit);
+      expect(excerpt).toContain(
+        "FAIL browser-download-boundary.integration.test.js",
+      );
+      expect(excerpt).toContain(
+        "Target page, context or browser has been closed",
+      );
+      expect(excerpt).toContain("Unit tests PASSED");
+      expect(excerpt).toContain("Integration tests FAILED");
+      expect(excerpt).toContain("Integration tests PASSED");
+      expect(excerpt).toContain("primary comprehensive test run did not pass");
+    },
+  );
   it.each([
     [
       "Python",
