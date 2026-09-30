@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.143] - Pair with CLI 0.166.81 and secure Windows bridge creation (2026-09-30)
+
+- Recommend `chainlesschain@0.166.81` after its exact-commit CLI matrix and
+  public npm readback pass.
+- Create the Windows bridge directory and empty lockfile with a protected
+  owner-only ACL before writing its bearer token. Continue refusing an existing
+  object owned by another identity.
+- Isolate the real-host UI journey's Java home per run so a stale profile bridge
+  directory cannot influence the release matrix.
+
 ## [0.4.142] - Pair with CLI 0.166.80 Docker revocation candidate (2026-09-29)
 
 - Recommend `chainlesschain@0.166.80` only after its exact-commit CLI matrix

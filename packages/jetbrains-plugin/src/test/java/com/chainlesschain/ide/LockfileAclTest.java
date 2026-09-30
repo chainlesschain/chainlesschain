@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -139,6 +140,41 @@ final class LockfileAclTest {
                 "http://127.0.0.1:4324/mcp", System.currentTimeMillis(),
                 ProcessHandle.current().pid()));
         assertFalse(Files.exists(tmp.resolve("ide").resolve("4324.json")));
+    }
+
+    @Test
+    void tokenIsWrittenOnlyAfterEmptyTempFileIsChecked(@TempDir Path tmp)
+            throws Exception {
+        AtomicBoolean checkedEmptyFile = new AtomicBoolean(false);
+        LockfileWriter w = new LockfileWriter(tmp.resolve("ide"), pid -> false,
+                (path, permissions) -> {
+                    if (path.getFileName().toString().contains(".json.tmp-")
+                            && !checkedEmptyFile.get()) {
+                        assertEquals(0, Files.size(path));
+                        checkedEmptyFile.set(true);
+                    }
+                }, () -> false);
+        Path file = w.write(4328, "tok", Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4328/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid());
+        assertTrue(checkedEmptyFile.get());
+        assertTrue(Files.readString(file).contains("tok"));
+    }
+
+    @Test
+    void failedDirectoryCheckPreservesExistingLockfile(@TempDir Path tmp)
+            throws Exception {
+        Path ide = Files.createDirectory(tmp.resolve("ide"));
+        Path existing = ide.resolve("4329.json");
+        Files.writeString(existing, "existing bridge");
+        LockfileWriter w = new LockfileWriter(ide, pid -> false,
+                (path, permissions) -> { throw new IOException("denied"); },
+                () -> false);
+        assertThrows(IOException.class, () -> w.write(4329, "tok",
+                Collections.singletonList(tmp.toString()),
+                "http://127.0.0.1:4329/mcp", System.currentTimeMillis(),
+                ProcessHandle.current().pid()));
+        assertEquals("existing bridge", Files.readString(existing));
     }
 
     @Test

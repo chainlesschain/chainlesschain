@@ -112,13 +112,23 @@ public final class LockfileWriter {
         Path file = dir.resolve(port + ".json");
         Path tmp = dir.resolve(port + ".json.tmp-" + ProcessHandle.current().pid()
                 + "-" + randomSuffix());
-        boolean dirExisted = Files.exists(dir, LinkOption.NOFOLLOW_LINKS);
         boolean allowInsecure = securityPolicy.allowInsecurePermissions();
+        boolean tmpCreated = false;
+        boolean filePublished = false;
         try {
             if (Files.isSymbolicLink(dir)) {
                 throw new IOException("IDE lock directory must not be a symbolic link: " + dir);
             }
-            Files.createDirectories(dir);
+            if (isWindows()) {
+                try {
+                    WindowsOwnerOnlyAcl.createDirectory(dir);
+                } catch (IOException failure) {
+                    if (!allowInsecure) throw failure;
+                    Files.createDirectories(dir);
+                }
+            } else {
+                Files.createDirectories(dir);
+            }
             enforceOwnerOnly(dir, dirPermissions, allowInsecure);
 
             Map<String, Object> lock = new LinkedHashMap<>();
@@ -133,25 +143,33 @@ public final class LockfileWriter {
             lock.put("started_at", startedAt);
             byte[] body = MiniJson.stringify(lock).getBytes(StandardCharsets.UTF_8);
 
-            // The directory is already owner-only. CREATE_NEW avoids following
-            // or truncating a planted temp path; permission verification occurs
-            // before the atomic rename makes the token discoverable.
-            Files.write(tmp, body, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            // Create an empty file with an owner-only ACL first. In particular,
+            // an elevated Windows token may otherwise give a new file the
+            // Administrators group as its owner. The token is written only
+            // after the empty file's permissions have been verified.
+            if (isWindows()) {
+                try {
+                    WindowsOwnerOnlyAcl.createEmptyFile(tmp);
+                } catch (IOException failure) {
+                    if (!allowInsecure) throw failure;
+                    Files.createFile(tmp);
+                }
+            } else {
+                Files.createFile(tmp);
+            }
+            tmpCreated = true;
             enforceOwnerOnly(tmp, filePermissions, allowInsecure);
+            Files.write(tmp, body, StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING, LinkOption.NOFOLLOW_LINKS);
             Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING);
+            tmpCreated = false;
+            filePublished = true;
             enforceOwnerOnly(file, filePermissions, allowInsecure);
             return file;
         } catch (Exception failure) {
-            deleteQuietly(tmp);
-            deleteQuietly(file);
-            if (!dirExisted) {
-                try {
-                    Files.deleteIfExists(dir);
-                } catch (IOException ignore) {
-                    // Preserve a directory another bridge populated concurrently.
-                }
-            }
+            if (tmpCreated) deleteQuietly(tmp);
+            if (filePublished) deleteQuietly(file);
             if (failure instanceof IOException) throw (IOException) failure;
             throw new IOException("failed to publish secure IDE bridge lockfile", failure);
         }

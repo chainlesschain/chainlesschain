@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.142"
+version = "0.4.143"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 val hostIdeLocalPath = providers.gradleProperty("hostIdeLocalPath")
@@ -315,6 +315,8 @@ tasks.register<Test>("uiSmokeTest") {
 runCatching {
     val uiTestProjectDir = layout.buildDirectory.dir(if (uiJourneyRunId.isPresent)
         "uiTest-project/${uiJourneyRunId.get()}" else "uiTest-project")
+    val uiTestHomeDir = layout.buildDirectory.dir(if (uiJourneyRunId.isPresent)
+        "uiTest-home/${uiJourneyRunId.get()}" else "uiTest-home")
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
         // Compile/package once against the minimum supported 2024.2 API, then
         // launch that exact artifact in each declared real-host version. Newer
@@ -338,12 +340,14 @@ runCatching {
                     // Skip the project-trust modal for the sandbox project the
                     // smoke test drives (throwaway dir generated below).
                     "-Didea.trust.all.projects=true",
+                    "-Duser.home=${uiTestHomeDir.get().asFile.absolutePath}",
                 )
             }
             doFirst {
                 val dir = uiTestProjectDir.get().asFile
                 dir.mkdirs()
                 dir.resolve("hello.txt").writeText("ChainlessChain UI journey sandbox\n")
+                uiTestHomeDir.get().asFile.mkdirs()
             }
             args(uiTestProjectDir.get().asFile.absolutePath)
         }

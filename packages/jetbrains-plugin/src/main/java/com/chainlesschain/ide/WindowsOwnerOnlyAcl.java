@@ -43,6 +43,9 @@ final class WindowsOwnerOnlyAcl {
             "  throw \"ACL target does not exist: $path\"",
             "}",
             "$item = Get-Item -LiteralPath $target -Force",
+            "if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {",
+            "  throw \"refusing reparse-point ACL target: $target\"",
+            "}",
             "$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()",
             "$currentSid = $identity.User",
             "$currentAcl = Read-OwnerAccessAcl $target",
@@ -103,6 +106,46 @@ final class WindowsOwnerOnlyAcl {
                     "aceCount=$($rules.Count))\"",
             "}");
 
+    // Create with the final ACL, rather than relying on the token's default
+    // owner. Elevated Windows tokens can create new objects owned by the
+    // Administrators group even though the current user is a different SID.
+    private static final String CREATE_DIRECTORY_SCRIPT = String.join("\n",
+            "param([string]$target)",
+            "$ErrorActionPreference = 'Stop'",
+            "$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User",
+            "$security = [System.Security.AccessControl.DirectorySecurity]::new()",
+            "$security.SetOwner($sid)",
+            "$security.SetAccessRuleProtection($true, $false)",
+            "$inheritance =",
+            "  [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor",
+            "  [System.Security.AccessControl.InheritanceFlags]::ObjectInherit",
+            "$rule = [System.Security.AccessControl.FileSystemAccessRule]::new(",
+            "  $sid, [System.Security.AccessControl.FileSystemRights]::FullControl,",
+            "  $inheritance, [System.Security.AccessControl.PropagationFlags]::None,",
+            "  [System.Security.AccessControl.AccessControlType]::Allow)",
+            "$security.AddAccessRule($rule) | Out-Null",
+            "[System.IO.Directory]::CreateDirectory($target, $security) | Out-Null");
+
+    private static final String CREATE_EMPTY_FILE_SCRIPT = String.join("\n",
+            "param([string]$target)",
+            "$ErrorActionPreference = 'Stop'",
+            "$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User",
+            "$security = [System.Security.AccessControl.FileSecurity]::new()",
+            "$security.SetOwner($sid)",
+            "$security.SetAccessRuleProtection($true, $false)",
+            "$rule = [System.Security.AccessControl.FileSystemAccessRule]::new(",
+            "  $sid, [System.Security.AccessControl.FileSystemRights]::FullControl,",
+            "  [System.Security.AccessControl.InheritanceFlags]::None,",
+            "  [System.Security.AccessControl.PropagationFlags]::None,",
+            "  [System.Security.AccessControl.AccessControlType]::Allow)",
+            "$security.AddAccessRule($rule) | Out-Null",
+            "$stream = [System.IO.FileStream]::new(",
+            "  $target, [System.IO.FileMode]::CreateNew,",
+            "  [System.Security.AccessControl.FileSystemRights]::Write,",
+            "  [System.IO.FileShare]::None, 4096,",
+            "  [System.IO.FileOptions]::None, $security)",
+            "$stream.Dispose()");
+
     @FunctionalInterface
     interface Runner {
         Result run(List<String> command, long timeoutSeconds) throws IOException;
@@ -126,11 +169,32 @@ final class WindowsOwnerOnlyAcl {
 
     /** Test seam: executes the real command plan through an injected runner. */
     static void enforce(Path target, Runner runner) throws IOException {
+        invoke(target, APPLY_AND_VERIFY_SCRIPT, runner);
+    }
+
+    static void createDirectory(Path target) throws IOException {
+        createDirectory(target, WindowsOwnerOnlyAcl::runProcess);
+    }
+
+    static void createDirectory(Path target, Runner runner) throws IOException {
+        invoke(target, CREATE_DIRECTORY_SCRIPT, runner);
+    }
+
+    static void createEmptyFile(Path target) throws IOException {
+        createEmptyFile(target, WindowsOwnerOnlyAcl::runProcess);
+    }
+
+    static void createEmptyFile(Path target, Runner runner) throws IOException {
+        invoke(target, CREATE_EMPTY_FILE_SCRIPT, runner);
+    }
+
+    private static void invoke(Path target, String script, Runner runner)
+            throws IOException {
         String targetLiteral = "'" + target.toAbsolutePath()
                 .toString()
                 .replace("'", "''") + "'";
         String encodedCommand = Base64.getEncoder().encodeToString(
-                ("& { " + APPLY_AND_VERIFY_SCRIPT + " } " + targetLiteral)
+                ("& { " + script + " } " + targetLiteral)
                         .getBytes(StandardCharsets.UTF_16LE));
         List<String> command = Arrays.asList(
                 "powershell.exe",

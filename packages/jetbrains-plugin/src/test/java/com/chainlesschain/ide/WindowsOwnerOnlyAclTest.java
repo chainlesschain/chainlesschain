@@ -47,8 +47,41 @@ final class WindowsOwnerOnlyAclTest {
         assertTrue(script.contains("$rules.Count -eq 1"));
         assertTrue(script.contains("$actual.IsInherited"));
         assertTrue(script.contains("FileSystemRights]::FullControl"));
+        assertTrue(script.contains("FileAttributes]::ReparsePoint"));
         assertTrue(script.endsWith(" '" + target.toAbsolutePath()
                 .toString().replace("'", "''") + "'"));
+    }
+
+    @Test
+    void creationCommandsSetOwnerAndDaclBeforeCreatingEmptyObjects(@TempDir Path tmp)
+            throws Exception {
+        AtomicReference<String> directoryScript = new AtomicReference<>();
+        AtomicReference<String> fileScript = new AtomicReference<>();
+        WindowsOwnerOnlyAcl.createDirectory(tmp.resolve("ide"),
+                (command, timeoutSeconds) -> {
+                    directoryScript.set(decode(command));
+                    return new WindowsOwnerOnlyAcl.Result(0, "");
+                });
+        WindowsOwnerOnlyAcl.createEmptyFile(tmp.resolve("bridge.json"),
+                (command, timeoutSeconds) -> {
+                    fileScript.set(decode(command));
+                    return new WindowsOwnerOnlyAcl.Result(0, "");
+                });
+
+        assertTrue(directoryScript.get().contains("$security.SetOwner($sid)"));
+        assertTrue(directoryScript.get().contains("SetAccessRuleProtection($true, $false)"));
+        assertTrue(directoryScript.get().contains("CreateDirectory($target, $security)"));
+        assertTrue(fileScript.get().contains("$security.SetOwner($sid)"));
+        assertTrue(fileScript.get().contains("SetAccessRuleProtection($true, $false)"));
+        assertTrue(fileScript.get().contains("[System.IO.FileMode]::CreateNew"));
+        assertTrue(fileScript.get().contains("[System.IO.FileShare]::None"));
+        assertFalse(fileScript.get().contains("probe-token"));
+    }
+
+    private static String decode(List<String> command) {
+        return new String(Base64.getDecoder().decode(
+                command.get(command.indexOf("-EncodedCommand") + 1)),
+                StandardCharsets.UTF_16LE);
     }
 
     @Test
