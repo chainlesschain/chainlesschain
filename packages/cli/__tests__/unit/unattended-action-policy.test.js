@@ -12,9 +12,107 @@ import {
   unattendedDisallowedTools,
   classifyShellAction,
   evaluateUnattendedShellAction,
+  evaluateUnattendedGitAction,
+  captureUnattendedActionPolicy,
 } from "../../src/lib/unattended-action-policy.js";
 
 describe("shell action classification", () => {
+  it.each([
+    "proprietary-sync --prod && git status",
+    "npm publish && proprietary-sync && git status",
+    "git status & npm publish",
+    "echo $(npm publish) > result",
+    "echo <(npm publish) > result",
+    "echo local > >(npm publish)",
+    "echo `npm publish` > result",
+    "find . -exec npm publish ;",
+    "rg --pre proprietary-sync .",
+    "git status-publish",
+    "git log-publish",
+    "git commit-publish",
+    "git fetch --upload-pack='npm publish' .",
+    "git fetch '--upload-pack=npm publish' .",
+    'git fetch "--upload-pack=npm publish" .',
+    'git fetch --u""pload-pack=executor .',
+    "git fetch 'ext::executor' feature",
+    "find . '-exec' executor ';'",
+    'rg "--pre" executor .',
+    "git fetch --up=executor .",
+    "git push --receive-pack=executor origin feature",
+    "git push --exec=executor origin feature",
+    "git fetch ext::executor feature",
+    "git merge --strategy=executor feature",
+    "npm test-publish",
+    "npm run build-publish",
+    "ls-publish",
+  ])("does not hide unauthorized effects in %s", (command) => {
+    expect(evaluateUnattendedShellAction(command).allow).toBe(false);
+  });
+
+  it("requires each compound action class, regardless of risk ordering", () => {
+    expect(
+      evaluateUnattendedShellAction("npm publish && terraform apply", {
+        allowlist: ["infra_mutation"],
+      }),
+    ).toMatchObject({ allow: false, actionClass: "publish" });
+    expect(
+      evaluateUnattendedShellAction("npm publish && terraform apply", {
+        allowlist: ["publish", "infra_mutation"],
+      }),
+    ).toMatchObject({ allow: true });
+    expect(classifyShellAction("proprietary-sync && git status")).toBeNull();
+  });
+
+  it.each([
+    ["origin", "main"],
+    ["origin", "HEAD:main"],
+    ["origin", "refs/heads/main"],
+    ["origin", ":main"],
+    ["origin", "feature", "HEAD:production"],
+    ["--mirror", "origin"],
+    ["--all", "origin"],
+    ["origin"],
+    [],
+    ["origin", "HEAD"],
+  ])("requires merge authorization for push argv %j", (...args) => {
+    // it.each spreads each row into the test function.
+    const argv = ["push", ...args];
+    expect(evaluateUnattendedGitAction(argv)).toMatchObject({ allow: false });
+    expect(
+      evaluateUnattendedGitAction(argv, { allowlist: ["merge"] }).allow,
+    ).toBe(true);
+    expect(evaluateUnattendedShellAction(`git ${argv.join(" ")}`).allow).toBe(
+      false,
+    );
+  });
+
+  it("preserves explicit feature pushes and local git operations", () => {
+    for (const argv of [
+      ["push", "origin", "HEAD:feature/task"],
+      ["push", "-u", "origin", "feature/task"],
+      ["status", "--short"],
+      ["add", "file.txt"],
+      ["commit", "-m", "local change"],
+    ])
+      expect(evaluateUnattendedGitAction(argv).allow).toBe(true);
+  });
+
+  it.each([
+    ["fetch", "--upload-pack=npm publish", "."],
+    ["fetch", "--upload-pack", "npm publish", "."],
+    ["fetch", "--up=executor", "."],
+    ["push", "--receive-pack=executor", "origin", "feature"],
+    ["push", "--exec=executor", "origin", "feature"],
+    ["fetch", "ext::executor", "feature"],
+    ["merge", "--strategy=executor", "feature"],
+    ["rebase", "--exec=executor", "feature"],
+  ])("does not authorize an explicit Git executor in %j", (...argv) => {
+    expect(
+      evaluateUnattendedGitAction(argv, {
+        allowlist: Object.values(ACTION_CLASS),
+      }),
+    ).toMatchObject({ allow: false, reason: "unknown-action-unattended" });
+  });
   it("classifies high-risk shell commands and compound commands", () => {
     expect(classifyShellAction("git push origin feature")).toBe(
       ACTION_CLASS.PUSH,
@@ -39,6 +137,40 @@ describe("shell action classification", () => {
         unattended: true,
       }),
     ).toMatchObject({ allow: false, reason: "requires-attendance" });
+  });
+});
+
+describe("startup policy snapshot", () => {
+  it("copies and deeply freezes allowlist and trigger", () => {
+    const input = {
+      unattended: true,
+      allowlist: [],
+      trigger: { trusted: false },
+    };
+    const policy = captureUnattendedActionPolicy(input);
+    input.allowlist.push("publish");
+    input.trigger.trusted = true;
+    input.unattended = false;
+    expect(policy).toEqual({
+      unattended: true,
+      allowlist: [],
+      trigger: { trusted: false },
+    });
+    expect(Object.isFrozen(policy)).toBe(true);
+    expect(Object.isFrozen(policy.allowlist)).toBe(true);
+    expect(Object.isFrozen(policy.trigger)).toBe(true);
+  });
+
+  it.each([
+    { unattended: "true" },
+    { unattended: true, allowlist: "publish" },
+    { unattended: true, allowlist: [null] },
+    { unattended: true, trigger: { trusted: "true" } },
+    { unattended: true, trigger: null },
+  ])("rejects malformed authority %j", (policy) => {
+    expect(() => captureUnattendedActionPolicy(policy)).toThrow(
+      "policy is invalid",
+    );
   });
 });
 

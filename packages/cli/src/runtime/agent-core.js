@@ -152,7 +152,12 @@ import {
   admitTool,
   buildToolAttribution,
 } from "../lib/agent-tool-admission.js";
-import { evaluateUnattendedShellAction } from "../lib/unattended-action-policy.js";
+import {
+  captureUnattendedActionPolicy,
+  evaluateUnattendedToolAction,
+  evaluateUnattendedGitAction,
+  evaluateUnattendedShellAction,
+} from "../lib/unattended-action-policy.js";
 import {
   formatProviderHttpError,
   formatProviderResponseError,
@@ -2554,6 +2559,29 @@ function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
  */
 export async function executeTool(name, args, context = {}) {
   const liveExecutionContext = context;
+  try {
+    context = {
+      ...context,
+      unattendedActionPolicy: captureUnattendedActionPolicy(
+        context.unattendedActionPolicy,
+      ),
+    };
+    if (
+      context.unattendedActionPolicy?.unattended === true &&
+      ["schedule", "git", "spawn_sub_agent"].includes(name)
+    ) {
+      args = snapshotMcpJsonRpcInput(args || {});
+    }
+  } catch (error) {
+    return {
+      error: "[Unattended Action] Invalid policy; tool execution was blocked.",
+      policy: {
+        decision: "deny",
+        via: "unattended-action-policy",
+        code: error.code,
+      },
+    };
+  }
   let hostPolicyAuthority = null;
   let entryHostPolicySnapshot = null;
   try {
@@ -2783,6 +2811,22 @@ export async function executeTool(name, args, context = {}) {
   }
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
+  if (context.unattendedActionPolicy?.unattended === true) {
+    const verdict = evaluateUnattendedToolAction(
+      name,
+      args,
+      context.unattendedActionPolicy,
+      {
+        external: Boolean(localToolExecutor),
+      },
+    );
+    if (!verdict.allow)
+      return {
+        error: `[Unattended Action] ${verdict.reason}; tool was not run.`,
+        unattendedAction: verdict,
+        policy: { decision: "deny", via: "unattended-action-policy" },
+      };
+  }
   let admittedToolAdmissionDigest = null;
   let toolAdmissionEvaluation;
   try {
@@ -7323,6 +7367,18 @@ async function executeToolInner(
       // command-execution bypass for a prompt-injected agent. Quoted args (a
       // commit message) keep their content via the quote-aware tokenizer.
       const gitArgs = tokenizeShellWords(normalizedCommand);
+      if (unattendedActionPolicy?.unattended === true) {
+        const verdict = evaluateUnattendedGitAction(gitArgs, {
+          ...unattendedActionPolicy,
+          attended: false,
+        });
+        if (!verdict.allow)
+          return attachDescriptor({
+            error: `[Unattended Action] ${verdict.reason}; git command was not run.`,
+            unattendedAction: verdict,
+            policy: { decision: "deny", via: "unattended-action-policy" },
+          });
+      }
       const res = _gitProcessDeps.run("git", gitArgs, {
         cwd: args.cwd || cwd,
         encoding: "utf8",
@@ -14389,6 +14445,13 @@ function permissionDecision(callId, tool, result) {
 }
 
 export async function* agentLoop(messages, options) {
+  options = {
+    ...options,
+    unattendedActionPolicy:
+      options.hermeticExecution === true
+        ? null
+        : captureUnattendedActionPolicy(options.unattendedActionPolicy),
+  };
   const configuredChatFn = options.chatFn;
   const evolutionIngress =
     options.evolutionIngress == null

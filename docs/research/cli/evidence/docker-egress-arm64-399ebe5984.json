@@ -1,0 +1,182 @@
+{
+  "schema": "chainlesschain.cli-gap-network-evidence/v1",
+  "verifiedAt": "2026-09-30T18:42:51.459Z",
+  "sourceSha": "399ebe598479e115e43672e01fe952fabac381d3",
+  "workflowRun": {
+    "id": 36756401226,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/36756401226"
+  },
+  "job": {
+    "id": 110027635897,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/36756401226/job/110027635897"
+  },
+  "artifact": {
+    "id": 11117725065,
+    "name": "strict-sandbox-result-ubuntu-24.04-arm"
+  },
+  "environment": {
+    "source_sha": "399ebe598479e115e43672e01fe952fabac381d3",
+    "runner_arch": "ARM64",
+    "kernel": "Linux 6.17.0-1022-azure aarch64 GNU/Linux",
+    "node": "v22.12.0",
+    "tmp_fs": "ext4",
+    "tmpfile_flag": "404000 nlink=0 size=5",
+    "docker_image": "node@sha256:a0ddbc73510e98f5e824fd64266ffe1c2c343ba9cf260d95ca2985ad632a3f3e",
+    "docker_image_arch": "arm64"
+  },
+  "environmentSha256": "fc39cf42fa1db6e1241e65acbd4710d135c5691372f42fd6b67b503f8b775eea",
+  "verifiedArtifacts": [
+    {
+      "file": "arm64-bwrap-result.json",
+      "sha256": "bdddd431982ad023d56767fadc5a5b966b73bdd16437f7916456e1ef9aca6c5a",
+      "bytes": 2416
+    },
+    {
+      "file": "arm64-docker-egress-result.json",
+      "sha256": "252afc26b2b1ee8fae274427458bdfd682ce751a6759ab807f149d3076bfbcfe",
+      "bytes": 6104
+    },
+    {
+      "file": "arm64-native-sandbox-result.json",
+      "sha256": "7cd0de362c7deb5ef8be75d8cad79dc9ff1e67d771d61a493e81f04c58699754",
+      "bytes": 15008
+    }
+  ],
+  "sources": [
+    {
+      "file": "packages/cli/__tests__/fixtures/dns-egress-fixture.cjs",
+      "canonicalSha256": "3bb9561ffd83e0525525d28f1270296b5395bec633e4d8a4686bc0118288f0fd"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/sandbox-docker-egress-live.test.js",
+      "canonicalSha256": "de5c6183badce1cd410f01a10d95f4bac89c70527dc2f67b7052d061553d2d79"
+    },
+    {
+      "file": "packages/cli/src/lib/host-tool-policy-authority.js",
+      "canonicalSha256": "5f9c3b58eac4a8c5111e99684c902eb849b6b19855dcab388860a1fd8cc8ba00"
+    },
+    {
+      "file": "packages/cli/src/gateways/ws/ws-session-gateway.js",
+      "canonicalSha256": "80f25bd47f356f119e581cccd6937ebb26822483ad1c20c08158a383e73fc3cb"
+    },
+    {
+      "file": "packages/cli/src/lib/auto-mode-config.js",
+      "canonicalSha256": "a8737616ace24d7b743b86da93152b81609f15cbe078cc1cf5667d0f5878a741"
+    },
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "canonicalSha256": "789ce5cfedb104cf5d672229201d192d737b9d861808d57af6a61ea836d0c0f8"
+    },
+    {
+      "file": "packages/cli/src/lib/sandbox-docker-egress.js",
+      "canonicalSha256": "61fd75f6fdda605acd6466161a8c7f9f46782e2ece21e2accb56a0718c231670"
+    },
+    {
+      "file": ".github/workflows/cli-strict-sandbox.yml",
+      "canonicalSha256": "f7da10d2b4079036d85308ab62e8b90c75981389910c00c53c31a08db5f7defa"
+    }
+  ],
+  "rawReport": {
+    "file": "docker-egress-arm64-399ebe5984.raw.json",
+    "sha256": "252afc26b2b1ee8fae274427458bdfd682ce751a6759ab807f149d3076bfbcfe",
+    "bytes": 6104
+  },
+  "tests": {
+    "total": 16,
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "assertions": [
+      {
+        "fullName": "real host DNS controls for Docker boundary probes exchanges an A answer over udp / IPv4",
+        "status": "passed",
+        "durationMs": 6.2089499999997315
+      },
+      {
+        "fullName": "real host DNS controls for Docker boundary probes exchanges an A answer over udp / IPv6",
+        "status": "passed",
+        "durationMs": 4.721219999999903
+      },
+      {
+        "fullName": "real host DNS controls for Docker boundary probes exchanges an A answer over tcp / IPv4",
+        "status": "passed",
+        "durationMs": 4.521558999999797
+      },
+      {
+        "fullName": "real host DNS controls for Docker boundary probes exchanges an A answer over tcp / IPv6",
+        "status": "passed",
+        "durationMs": 1.7767470000003414
+      },
+      {
+        "fullName": "Linux Docker egress real boundary enforces the domain policy through the run_shell product path",
+        "status": "passed",
+        "durationMs": 907.4107300000001
+      },
+      {
+        "fullName": "Linux Docker egress real boundary cuts an established product tunnel on permission-rules revocation",
+        "status": "passed",
+        "durationMs": 4008.2696199999996
+      },
+      {
+        "fullName": "Linux Docker egress real boundary cuts an established product tunnel on auto-mode-aba revocation",
+        "status": "passed",
+        "durationMs": 1132.0270030000001
+      },
+      {
+        "fullName": "Linux Docker egress real boundary cuts an established product tunnel on host-policy revocation",
+        "status": "passed",
+        "durationMs": 1150.3930949999994
+      },
+      {
+        "fullName": "Linux Docker egress real boundary cuts an established product tunnel on host-policy-aba revocation",
+        "status": "passed",
+        "durationMs": 1122.3928460000006
+      },
+      {
+        "fullName": "Linux Docker egress real boundary allows proxy traffic but rejects direct host traffic and workspace Unix sockets",
+        "status": "passed",
+        "durationMs": 556.4871469999998
+      },
+      {
+        "fullName": "Docker egress extended real traffic blocks direct TCP and UDP DNS over both IPv4 and IPv6 with reachable host controls",
+        "status": "passed",
+        "durationMs": 532.0412689999994
+      },
+      {
+        "fullName": "Docker egress extended real traffic blocks direct UDP DNS queries while the host DNS service is reachable",
+        "status": "passed",
+        "durationMs": 511.9347259999995
+      },
+      {
+        "fullName": "Docker egress extended real traffic revokes ongoing HTTP and WebSocket streams inside the real Docker cell",
+        "status": "passed",
+        "durationMs": 545.293744999999
+      },
+      {
+        "fullName": "Docker egress extended real traffic checks IPv6, redirect authorities, WebSocket CONNECT and descendant processes",
+        "status": "passed",
+        "durationMs": 627.2806440000004
+      },
+      {
+        "fullName": "Docker egress extended real traffic closes existing tunnels after broker failure and removes owned containers",
+        "status": "passed",
+        "durationMs": 581.6120429999992
+      },
+      {
+        "fullName": "Docker egress extended real traffic closes existing tunnels after relay failure and removes owned containers",
+        "status": "passed",
+        "durationMs": 561.8396080000002
+      }
+    ]
+  },
+  "scope": {
+    "hostPolicy": "Real WS manager update API revokes active CONNECT traffic; tightening and allow-to-deny-to-allow revisions stop subsequent proxy bytes/heartbeat and remove owned containers.",
+    "directDns": "UDP and TCP over IPv4 and IPv6; matching host controls and denied enclosed queries.",
+    "priorBoundaryScenarios": "Proxy allow/deny, direct host traffic, descendant processes, Auto Mode revocation, broker/relay failure and owned container cleanup."
+  },
+  "limitations": [
+    "This report belongs to Ubuntu ARM64 at this exact commit and pinned Docker image.",
+    "The complete Strict Sandbox workflow passed; CLI CI was still queued at the verification time.",
+    "This is not evidence for the subsequent unattended-policy candidate, settings external-writer revision completeness, model/account trials, accessibility or production observations."
+  ]
+}

@@ -24,6 +24,7 @@ import {
 } from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import {
   assertSandboxCapabilities,
   normalizeAgentSandboxMode,
@@ -771,6 +772,18 @@ export function registerAgentCommand(program, dependencies = {}) {
         console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
         return;
       }
+      const unattendedActionPolicy = captureUnattendedActionPolicy(
+        options.unattended
+          ? {
+              unattended: true,
+              allowlist: String(options.unattendedAllow || "")
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean),
+              trigger: { trusted: true },
+            }
+          : null,
+      );
       let toolAdmission = null;
       if (process.env.CC_TOOL_ADMISSION) {
         try {
@@ -1248,16 +1261,6 @@ export function registerAgentCommand(program, dependencies = {}) {
           await import("../lib/settings-loader.cjs");
         const sc = loadSettingsConfig({
           cwd: process.cwd(),
-          unattendedActionPolicy: options.unattended
-            ? {
-                unattended: true,
-                allowlist: String(options.unattendedAllow || "")
-                  .split(",")
-                  .map((value) => value.trim())
-                  .filter(Boolean),
-                trigger: { trusted: true },
-              }
-            : null,
           settingsFile: options.settings || null,
         });
         for (const [k, v] of Object.entries(sc.env || {})) {
@@ -1615,6 +1618,8 @@ export function registerAgentCommand(program, dependencies = {}) {
               },
             );
           outcome = await runAgentHeadlessStream({
+            unattendedActionPolicy,
+            toolAdmission,
             model: options.model,
             thinking,
             thinkingBudget,
@@ -1920,6 +1925,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           apiKey: visionLlm.apiKey || options.apiKey,
           sessionId: options.session,
           toolAdmission,
+          unattendedActionPolicy,
           // A resolved --session/--continue/--resume id means "replay this
           // conversation and persist the new turns"; the runner loads prior
           // history when the id already exists and creates it otherwise.
@@ -2177,6 +2183,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         apiKey: options.apiKey,
         sessionId: options.session,
         agentId: options.agentId,
+        unattendedActionPolicy,
         // --permission-mode also applies interactively: manual → strict,
         // acceptEdits → trusted, bypassPermissions → autopilot, auto → trusted
         // + autoMode.decisions classifier; dontAsk denies instead of asking

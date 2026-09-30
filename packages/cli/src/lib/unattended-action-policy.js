@@ -18,6 +18,42 @@
  * PURE: no fs / clock / RNG / process.
  */
 
+import { snapshotMcpJsonRpcInput } from "./mcp-call-ledger.js";
+
+/** Bind startup-only authority without retaining caller-owned mutable data. */
+export function captureUnattendedActionPolicy(policy) {
+  if (policy == null) return null;
+  try {
+    const snapshot = snapshotMcpJsonRpcInput(policy);
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+      throw new TypeError();
+    for (const flag of ["unattended", "protectedBranch", "budgetExhausted"]) {
+      if (snapshot[flag] !== undefined && typeof snapshot[flag] !== "boolean")
+        throw new TypeError();
+    }
+    if (
+      snapshot.allowlist !== undefined &&
+      (!Array.isArray(snapshot.allowlist) ||
+        snapshot.allowlist.some((value) => typeof value !== "string"))
+    )
+      throw new TypeError();
+    if (
+      snapshot.trigger !== undefined &&
+      (!snapshot.trigger ||
+        typeof snapshot.trigger !== "object" ||
+        Array.isArray(snapshot.trigger) ||
+        (snapshot.trigger.trusted !== undefined &&
+          typeof snapshot.trigger.trusted !== "boolean"))
+    )
+      throw new TypeError();
+    return snapshot;
+  } catch {
+    const error = new TypeError("Unattended action policy is invalid");
+    error.code = "CC_UNATTENDED_POLICY_INVALID";
+    throw error;
+  }
+}
+
 /** Canonical action classes, ordered low → high consequence. */
 export const ACTION_CLASS = Object.freeze({
   READ: "read",
@@ -86,6 +122,54 @@ export const TOOL_ACTION_CLASS = Object.freeze({
   notify: ACTION_CLASS.EXTERNAL_MESSAGE,
 });
 
+// Fixed built-ins with local effects. Peer annotations and generic runtime
+// descriptors cannot add to this list. Shell/Git have their own command
+// ceilings; opaque executors and persistent/delegated runs remain unknown.
+const LOCAL_TOOL_ACTION_CLASS = Object.freeze({
+  read_file: ACTION_CLASS.READ,
+  search_files: ACTION_CLASS.READ,
+  list_dir: ACTION_CLASS.READ,
+  list_skills: ACTION_CLASS.READ,
+  search_sessions: ACTION_CLASS.READ,
+  ask_user_question: ACTION_CLASS.READ,
+  write_file: ACTION_CLASS.LOCAL_WRITE,
+  edit_file: ACTION_CLASS.LOCAL_WRITE,
+  edit_file_hashed: ACTION_CLASS.LOCAL_WRITE,
+  delete_file: ACTION_CLASS.LOCAL_WRITE,
+  move_file: ACTION_CLASS.LOCAL_WRITE,
+  notebook_edit: ACTION_CLASS.LOCAL_WRITE,
+  todo_write: ACTION_CLASS.LOCAL_WRITE,
+  check_shell: ACTION_CLASS.LOCAL_WRITE,
+});
+
+/** Execution guard for built-ins; an opaque host/MCP executor stays unknown. */
+export function evaluateUnattendedToolAction(
+  name,
+  args,
+  policy,
+  { external = false } = {},
+) {
+  let actionClass = null;
+  if (!external) {
+    actionClass = Object.hasOwn(TOOL_ACTION_CLASS, name)
+      ? TOOL_ACTION_CLASS[name]
+      : Object.hasOwn(LOCAL_TOOL_ACTION_CLASS, name)
+        ? LOCAL_TOOL_ACTION_CLASS[name]
+        : null;
+    if (["run_shell", "git"].includes(name)) actionClass = ACTION_CLASS.READ;
+    // Persistent child runs do not yet carry a durable parent effect ceiling.
+    if (
+      name === "schedule" &&
+      ["list", "cancel"].includes(String(args?.action || "").toLowerCase())
+    )
+      actionClass = ACTION_CLASS.LOCAL_WRITE;
+  }
+  return {
+    actionClass,
+    ...evaluateUnattendedAction({ ...policy, actionClass, attended: false }),
+  };
+}
+
 /**
  * The agent tools an UNATTENDED run must be denied — the enforcement projection
  * of `evaluateUnattendedAction` onto the tool layer (P1-8). A scheduled
@@ -127,10 +211,10 @@ export function classifyActionRisk(actionClass) {
  * the highest-risk segment and unknown commands remain unknown so an
  * unattended caller can fail closed.
  */
-export function classifyShellAction(command) {
-  if (typeof command !== "string" || !command.trim()) return null;
+function classifyShellSegments(command) {
+  if (typeof command !== "string" || !command.trim()) return [];
   const segments = command
-    .split(/&&|\|\||[;\n]|\|/)
+    .split(/&&|\|\||[;&\n]|\|/)
     .map((part) =>
       part
         .trim()
@@ -139,15 +223,29 @@ export function classifyShellAction(command) {
     )
     .filter(Boolean);
   const classifySegment = (segment) => {
-    if (/^git\s+push\b/.test(segment)) return ACTION_CLASS.PUSH;
-    if (/^git\s+(?:merge|rebase|cherry-pick)\b/.test(segment)) {
+    // Substitution and executable search/filter options can hide effects
+    // inside a nominally read-only command. Unsupported syntax is unknown.
+    if (
+      /[$`'"\\^(){}]/.test(segment) ||
+      /(?:^|\s)(?:-exec(?:dir)?|-ok(?:dir)?|--pre)(?:\s|=|$)/.test(segment)
+    )
+      return null;
+    if (
+      /^git(?:\s|$)/.test(segment) &&
+      !hasKnownGitOptions(segment.split(/\s+/).slice(1))
+    )
+      return null;
+    if (/^git\s+push(?:\s|$)/.test(segment)) return ACTION_CLASS.PUSH;
+    if (/^git\s+(?:add|commit|fetch)(?:\s|$)/.test(segment))
+      return ACTION_CLASS.LOCAL_WRITE;
+    if (/^git\s+(?:merge|rebase|cherry-pick)(?:\s|$)/.test(segment)) {
       return ACTION_CLASS.MERGE;
     }
-    if (/^(?:npm|pnpm|yarn|bun)\s+publish\b/.test(segment)) {
+    if (/^(?:npm|pnpm|yarn|bun)(?:\.cmd)?\s+publish(?:\s|$)/.test(segment)) {
       return ACTION_CLASS.PUBLISH;
     }
     if (
-      /^(?:terraform\s+(?:apply|destroy)|pulumi\s+up|kubectl\s+(?:apply|delete|rollout)|helm\s+(?:install|upgrade)|docker\s+push)\b/.test(
+      /^(?:terraform\s+(?:apply|destroy)|pulumi\s+up|kubectl\s+(?:apply|delete|rollout)|helm\s+(?:install|upgrade)|docker\s+push)(?:\s|$)/.test(
         segment,
       )
     ) {
@@ -155,53 +253,373 @@ export function classifyShellAction(command) {
         ? ACTION_CLASS.DEPLOY
         : ACTION_CLASS.INFRA_MUTATION;
     }
-    if (/\b(?:deploy|rollout)\b/.test(segment)) return ACTION_CLASS.DEPLOY;
-    if (/^(?:git\s+(?:status|diff|log|show|branch)|ls\b|dir\b|pwd\b|cat\b|type\b|rg\b|grep\b|find\b|where\b)/.test(segment)) {
+    if (
+      /^(?:npm|pnpm|yarn|bun)(?:\.cmd)?\s+run\s+(?:deploy|rollout)(?:\s|$)/.test(
+        segment,
+      )
+    )
+      return ACTION_CLASS.DEPLOY;
+    if (
+      /^(?:git\s+(?:status|diff|log|show)(?:\s|$)|git\s+branch\s*$|(?:ls|dir|pwd|cat|type|rg|grep|find|where)(?:\s|$))/.test(
+        segment,
+      )
+    ) {
       return ACTION_CLASS.READ;
     }
-    if (/^(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+(?:test|lint|build)|install\b)/.test(segment) || /^(?:pytest|vitest|jest|cargo\s+test|go\s+test)\b/.test(segment)) {
+    if (
+      /^(?:npm|pnpm|yarn|bun)(?:\.cmd)?\s+(?:test|run\s+(?:test|lint|build)|install)(?:\s|$)/.test(
+        segment,
+      ) ||
+      /^(?:pytest|vitest|jest|cargo\s+test|go\s+test)(?:\s|$)/.test(segment)
+    ) {
       return ACTION_CLASS.LOCAL_WRITE;
     }
-    if (/^echo\b/.test(segment) && />/.test(segment)) {
+    if (/^echo(?:\s|$)/.test(segment) && />/.test(segment)) {
       return ACTION_CLASS.LOCAL_WRITE;
     }
     return null;
   };
-  const rank = [
-    ACTION_CLASS.READ,
-    ACTION_CLASS.LOCAL_WRITE,
-    ACTION_CLASS.COMMIT,
-    ACTION_CLASS.PUSH,
-    ACTION_CLASS.PUBLISH,
-    ACTION_CLASS.MERGE,
-    ACTION_CLASS.DEPLOY,
-    ACTION_CLASS.INFRA_MUTATION,
-    ACTION_CLASS.EXTERNAL_MESSAGE,
-  ];
-  const classified = segments.map(classifySegment);
-  return classified.reduce((highest, current) => {
-    if (!current) return null;
-    if (!highest) return current;
-    return rank.indexOf(current) > rank.indexOf(highest) ? current : highest;
-  }, null);
+  return segments.map((segment) => ({
+    command: segment,
+    actionClass: classifySegment(segment),
+  }));
+}
+
+const ACTION_RANK = [
+  ACTION_CLASS.READ,
+  ACTION_CLASS.LOCAL_WRITE,
+  ACTION_CLASS.COMMIT,
+  ACTION_CLASS.PUSH,
+  ACTION_CLASS.PUBLISH,
+  ACTION_CLASS.MERGE,
+  ACTION_CLASS.DEPLOY,
+  ACTION_CLASS.INFRA_MUTATION,
+  ACTION_CLASS.EXTERNAL_MESSAGE,
+];
+
+// Unknown Git options may select executable helpers (upload-pack,
+// receive-pack, rebase --exec, custom merge strategies, external diff, ...).
+// Accept complete known options only; Git's long-option abbreviations do not
+// inherit authority. These are command-specific because -s means different
+// things for status, commit and merge.
+const SAFE_GIT_OPTIONS = Object.freeze({
+  status: [
+    "--short",
+    "-s",
+    "--branch",
+    "-b",
+    "--porcelain",
+    "--porcelain=v1",
+    "--porcelain=v2",
+    "--untracked-files",
+    "--untracked-files=all",
+    "--untracked-files=no",
+    "--ignored",
+  ],
+  diff: [
+    "--stat",
+    "--name-only",
+    "--name-status",
+    "--numstat",
+    "--shortstat",
+    "--patch",
+    "-p",
+    "--no-patch",
+    "-s",
+    "--cached",
+    "--staged",
+    "--no-ext-diff",
+    "--no-textconv",
+    "--no-renames",
+    "--no-color",
+  ],
+  log: [
+    "--oneline",
+    "--stat",
+    "--name-only",
+    "--name-status",
+    "--patch",
+    "-p",
+    "--no-patch",
+    "--all",
+    "--graph",
+    "--decorate",
+    "--no-color",
+    "-n",
+  ],
+  show: [
+    "--oneline",
+    "--stat",
+    "--name-only",
+    "--name-status",
+    "--patch",
+    "-p",
+    "--no-patch",
+    "--no-ext-diff",
+    "--no-textconv",
+    "--no-color",
+  ],
+  "rev-parse": [
+    "--show-toplevel",
+    "--git-dir",
+    "--is-inside-work-tree",
+    "--verify",
+    "--short",
+  ],
+  "ls-files": [
+    "--cached",
+    "--others",
+    "--modified",
+    "--deleted",
+    "--exclude-standard",
+    "--stage",
+    "--error-unmatch",
+  ],
+  branch: [],
+  remote: ["-v"],
+  add: [
+    "--all",
+    "-A",
+    "--force",
+    "-f",
+    "--update",
+    "-u",
+    "--intent-to-add",
+    "-N",
+    "--dry-run",
+    "-n",
+    "--verbose",
+    "-v",
+  ],
+  commit: [
+    "-m",
+    "--message",
+    "-a",
+    "--all",
+    "--amend",
+    "--no-verify",
+    "--allow-empty",
+    "--allow-empty-message",
+    "--signoff",
+    "-s",
+    "--no-gpg-sign",
+    "--quiet",
+    "-q",
+    "--dry-run",
+  ],
+  fetch: [
+    "--all",
+    "--prune",
+    "-p",
+    "--tags",
+    "-t",
+    "--no-tags",
+    "--quiet",
+    "-q",
+    "--verbose",
+    "-v",
+    "--dry-run",
+    "--no-recurse-submodules",
+    "--unshallow",
+  ],
+  push: [
+    "-u",
+    "--set-upstream",
+    "--force",
+    "-f",
+    "--force-with-lease",
+    "--no-verify",
+    "--dry-run",
+    "-n",
+    "--all",
+    "--mirror",
+    "--tags",
+    "--delete",
+    "-d",
+  ],
+  merge: [
+    "--ff-only",
+    "--no-ff",
+    "--squash",
+    "--abort",
+    "--continue",
+    "--quit",
+    "--no-edit",
+    "--no-verify",
+    "--no-gpg-sign",
+  ],
+  rebase: [
+    "--abort",
+    "--continue",
+    "--skip",
+    "--quit",
+    "--autostash",
+    "--no-autostash",
+    "--no-gpg-sign",
+  ],
+  "cherry-pick": [
+    "--abort",
+    "--continue",
+    "--skip",
+    "--quit",
+    "--no-commit",
+    "-n",
+    "--no-gpg-sign",
+  ],
+});
+
+function hasKnownGitOptions(argv) {
+  const [subcommand, ...args] = argv;
+  const known = SAFE_GIT_OPTIONS[subcommand];
+  if (!Array.isArray(known)) return false;
+  let pathOperands = false;
+  let valueOperand = false;
+  return args.every((value) => {
+    if (valueOperand) {
+      valueOperand = false;
+      return true;
+    }
+    if (/^[a-z][a-z0-9+.-]*::/i.test(value)) return false;
+    if (pathOperands) return true;
+    if (value === "--") {
+      pathOperands = true;
+      return true;
+    }
+    if (!value.startsWith("-")) return true;
+    if (
+      ["log", "show"].includes(subcommand) &&
+      /^--(?:format|pretty)=/.test(value)
+    )
+      return true;
+    if (subcommand === "log" && /^(?:-\d+|--max-count=\d+)$/.test(value))
+      return true;
+    if (subcommand === "fetch" && /^--depth=\d+$/.test(value)) return true;
+    if (subcommand === "commit" && /^--message=/.test(value)) return true;
+    if (!known.includes(value)) return false;
+    if (
+      (subcommand === "commit" && ["-m", "--message"].includes(value)) ||
+      (subcommand === "log" && value === "-n")
+    )
+      valueOperand = true;
+    return true;
+  });
+}
+
+export function classifyShellAction(command) {
+  const segments = classifyShellSegments(command);
+  if (!segments.length || segments.some((segment) => !segment.actionClass))
+    return null;
+  return segments.reduce(
+    (highest, { actionClass }) =>
+      ACTION_RANK.indexOf(actionClass) > ACTION_RANK.indexOf(highest)
+        ? actionClass
+        : highest,
+    null,
+  );
+}
+
+function pushNeedsMergeAuthorization(argv) {
+  const positional = [];
+  for (const value of argv) {
+    if (
+      [
+        "-u",
+        "--set-upstream",
+        "--force",
+        "-f",
+        "--force-with-lease",
+        "--no-verify",
+        "--dry-run",
+        "-n",
+      ].includes(value)
+    )
+      continue;
+    if (value.startsWith("-")) return true;
+    positional.push(value);
+  }
+  // Require an explicit remote AND every destination ref. Git configuration
+  // controls omitted refspecs and may include protected branches.
+  if (positional.length < 2) return true;
+  return positional.slice(1).some((refspec) => {
+    const destination = refspec.replace(/^\+/, "").split(":").at(-1);
+    if (
+      !destination ||
+      !/^[a-z0-9._/-]+$/i.test(destination) ||
+      destination.toUpperCase() === "HEAD"
+    )
+      return true;
+    const branch = destination.replace(/^refs\/heads\//, "");
+    return (
+      /^(?:main|master|develop|production)$/i.test(branch) ||
+      (/^refs\//.test(destination) && !destination.startsWith("refs/heads/"))
+    );
+  });
+}
+
+/** Classify the exact argv used by the git tool, never a shell string. */
+export function evaluateUnattendedGitAction(argv, params = {}) {
+  const validArgv =
+    Array.isArray(argv) && argv.every((value) => typeof value === "string");
+  const subcommand = validArgv ? argv[0] : null;
+  const actionClass =
+    !validArgv || !hasKnownGitOptions(argv)
+      ? null
+      : subcommand === "push"
+        ? ACTION_CLASS.PUSH
+        : ["merge", "rebase", "cherry-pick"].includes(subcommand)
+          ? ACTION_CLASS.MERGE
+          : ["add", "commit", "fetch"].includes(subcommand)
+            ? ACTION_CLASS.LOCAL_WRITE
+            : [
+                  "status",
+                  "diff",
+                  "log",
+                  "show",
+                  "rev-parse",
+                  "ls-files",
+                ].includes(subcommand) ||
+                (subcommand === "branch" && argv.length === 1) ||
+                (subcommand === "remote" &&
+                  argv.slice(1).every((value) => value === "-v"))
+              ? ACTION_CLASS.READ
+              : null;
+  return {
+    actionClass,
+    ...evaluateUnattendedAction({
+      ...params,
+      actionClass,
+      protectedBranch:
+        params.protectedBranch === true ||
+        (subcommand === "push" && pushNeedsMergeAuthorization(argv.slice(1))),
+    }),
+  };
 }
 
 /** Apply the unattended policy to a shell command, including protected push targets. */
 export function evaluateUnattendedShellAction(command, params = {}) {
-  const actionClass = classifyShellAction(command);
-  const protectedBranch =
-    params.protectedBranch === true ||
-    /\bgit\s+push\b[^\n]*(?:^|\s)(?:main|master|develop|production)(?:\s|$)/i.test(
-      command || "",
-    );
-  return {
-    actionClass,
-    ...evaluateUnattendedAction({
-    ...params,
-    actionClass,
-    protectedBranch,
+  const segments = classifyShellSegments(command);
+  const verdicts = (segments.length ? segments : [{ actionClass: null }]).map(
+    (segment) => ({
+      actionClass: segment.actionClass,
+      ...evaluateUnattendedAction({
+        ...params,
+        actionClass: segment.actionClass,
+        protectedBranch:
+          params.protectedBranch === true ||
+          (segment.actionClass === ACTION_CLASS.PUSH &&
+            pushNeedsMergeAuthorization(segment.command.split(/\s+/).slice(2))),
+      }),
     }),
-  };
+  );
+  // An allowlist grants individual classes, never all lower-ranked actions.
+  const denied = verdicts.find((verdict) => !verdict.allow);
+  if (denied) return denied;
+  return verdicts.reduce((highest, current) =>
+    ACTION_RANK.indexOf(current.actionClass) >
+    ACTION_RANK.indexOf(highest.actionClass)
+      ? current
+      : highest,
+  );
 }
 
 /**

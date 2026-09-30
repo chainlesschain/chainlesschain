@@ -18,6 +18,7 @@
  */
 
 import readline from "readline";
+import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import chalk from "chalk";
 import fs from "fs";
 import os from "os";
@@ -486,6 +487,7 @@ let _respondToBash;
 // ApprovalGate confirm) instead of fast-pathing it. false = unset → off.
 let _classifyAllShell = false;
 let _sandbox = null;
+let _unattendedActionPolicy = null;
 // Bounded log of tool calls the agent was BLOCKED from running this session
 // (shell-policy / ApprovalGate / settings rule / hook). Surfaced by
 // `/permissions denials` and mirrored to `cc permissions recent`.
@@ -600,6 +602,7 @@ async function executeTool(name, args, context = {}) {
     settingsHooks: _settingsHooks,
     classifyAllShell: _classifyAllShell,
     sandbox: _sandbox,
+    unattendedActionPolicy: _unattendedActionPolicy,
     sessionId: context.sessionId || null,
     sessionBudget: context.sessionBudget || null,
     signal: context.signal || null,
@@ -2931,6 +2934,12 @@ export function resolveReplPermanentMemoryStorage(
 
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
+  options = {
+    ...options,
+    unattendedActionPolicy: captureUnattendedActionPolicy(
+      options.unattendedActionPolicy,
+    ),
+  };
   const evolutionIngress =
     options.evolutionIngress == null
       ? null
@@ -3370,6 +3379,7 @@ async function startAgentReplInWorkspaceOwned(
     ? options.additionalDirectories
     : [];
   _sandbox = options.sandbox || null;
+  _unattendedActionPolicy = options.unattendedActionPolicy;
   // Snapshot the work tree before each mutating tool (git engine) so the user
   // can `cc checkpoint restore` to just before any tool call.
   const autoCheckpoint = options.autoCheckpoint === true;
@@ -9690,6 +9700,7 @@ async function startAgentReplInWorkspaceOwned(
         cwd: process.cwd(),
         additionalDirectories,
         sandbox: _sandbox,
+        unattendedActionPolicy: _unattendedActionPolicy,
         autoCheckpoint,
         checkpointSession: sessionId,
         managedCheckpoint,

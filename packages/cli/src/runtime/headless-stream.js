@@ -17,6 +17,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
 import { isProxy } from "node:util/types";
 import {
@@ -1468,6 +1469,12 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
 }
 
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
+  options = {
+    ...options,
+    unattendedActionPolicy: captureUnattendedActionPolicy(
+      options.unattendedActionPolicy,
+    ),
+  };
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const input = deps.input || process.stdin;
   const pipeState = { closed: false };
@@ -3624,6 +3631,7 @@ async function runAgentHeadlessStreamInWorkspace(
     permissionRulesProvider,
     settingsHooks,
     toolAdmission: options.toolAdmission || null,
+    unattendedActionPolicy: options.unattendedActionPolicy,
     classifyAllShell,
     enabledToolNames,
     disabledTools,

@@ -1,3 +1,5 @@
+import { captureUnattendedActionPolicy } from "../../lib/unattended-action-policy.js";
+
 export function resolveAgentPolicy({
   config = null,
   overrides = {},
@@ -32,6 +34,9 @@ export function resolveAgentPolicy({
       ? overrides.additionalDirectories
       : [],
     sandbox: overrides.sandbox || null,
+    unattendedActionPolicy: captureUnattendedActionPolicy(
+      overrides.unattendedActionPolicy,
+    ),
     autoCheckpoint: overrides.autoCheckpoint === true,
     // Managed workspace checkpoints are consumed by both headless runners and
     // the interactive REPL. Keep these explicit because this policy is an

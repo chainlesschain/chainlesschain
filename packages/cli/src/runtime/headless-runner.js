@@ -23,6 +23,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import { bootstrap } from "./bootstrap.js";
 import {
   buildSystemPrompt,
@@ -626,6 +627,13 @@ async function withHeadlessSessionHostLease(options, deps, task) {
 }
 
 export async function runAgentHeadless(options = {}, deps = {}) {
+  options = {
+    ...options,
+    unattendedActionPolicy:
+      options.hermeticExecution === true
+        ? null
+        : captureUnattendedActionPolicy(options.unattendedActionPolicy),
+  };
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const pipeState = { closed: false };
   const stdout = deps.stdout || process.stdout;
@@ -2653,6 +2661,9 @@ async function runAgentHeadlessInWorkspace(
     hermeticExecution,
     iterationBudget: budget,
     toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
+    unattendedActionPolicy: hermeticExecution
+      ? null
+      : options.unattendedActionPolicy,
     ...(Object.keys(headlessInteraction).length > 0
       ? { interaction: headlessInteraction }
       : {}),

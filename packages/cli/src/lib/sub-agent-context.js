@@ -9,6 +9,7 @@
  */
 
 import crypto from "crypto";
+import { captureUnattendedActionPolicy } from "./unattended-action-policy.js";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import {
   agentLoop,
@@ -383,7 +384,9 @@ export class SubAgentContext {
         : null,
       shellPolicyOverrides: options.shellPolicyOverrides || null,
       classifyAllShell: options.classifyAllShell === true,
-      unattendedActionPolicy: options.unattendedActionPolicy || null,
+      unattendedActionPolicy: captureUnattendedActionPolicy(
+        options.unattendedActionPolicy,
+      ),
     });
 
     // Build isolated system prompt
