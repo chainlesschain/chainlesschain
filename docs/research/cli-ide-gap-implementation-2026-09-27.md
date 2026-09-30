@@ -50,6 +50,12 @@ DNS 新增 UDP/IPv6、TCP/IPv4 与 TCP/IPv6，与原 UDP/IPv4 共同形成四个
 
 旧 `b0aaa5a81f` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36733704057) 仍为失败：下载 Windows unit 1/16 的 JUnit artifact `11110692125`，确认唯一断言条目为 `skill-runtime-revalidation.test.js` 的复合持久化测试触发 60 秒超时（报告实际耗时约 105 秒）；PM 汇总随后失败。当前 Windows 将该原测试独立复跑通过，耗时约 18 秒，仅证明本地可完成，尚未证明托管问题解决。新 `46505a2e4b` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36749864965) 和完整 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36749864719) 仍须收集最终状态，不由 Linux 两作业通过推定完整发布门通过。
 
+### Windows CI：持久 Skill 失效场景分拆（2026-10-01）
+
+将上述 60 秒超时的复合测试分成 missing runtime、corrupt filesystem 和 revoked evaluator 三个独立持久存储场景，每项保留原 60 秒上限和全部安全检查。三个场景都验证失效期间及恢复后拒绝旧 receipt，只有重新评估产生的新 receipt 才能恢复 eligible；损坏文件仍拒绝重新评估。Astra 静态复核确认没有放宽断言、替换真实存储或新增跳过条件。
+
+Windows 本地 `skill-runtime-revalidation.test.js` 全套 10/10 通过，总耗时 182.66 秒；拆分的三个场景分别约 15.90、20.55、15.03 秒。ESLint、Prettier 和 diff 检查通过。`46505a2e4b` 的 Strict Sandbox Windows 作业也已通过，但 macOS latest 与 CLI CI 完整矩阵仍未结束；这些旧 SHA 结果不验证本次测试修改，托管超时修复仍待新提交复验。
+
 | ID                      | 当前状态                 | 实现与有效证据                                                                                                                                                               | 剩余条件                                                                                         |
 | ----------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | MODEL-01                | 本地合同验证通过         | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                          | 目标账号真实调用；未更改用户默认模型                                                             |

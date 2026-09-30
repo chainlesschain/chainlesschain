@@ -338,43 +338,53 @@ describe("durable Skill runtime revalidation", () => {
     }
   }, 240000);
 
-  it("marks missing runtime, corrupt filesystem and revoked evaluator stale and forbids reusing old receipts", async () => {
-    const f = await fixture();
-    const oldReceipt = f.receipt();
-    f.authority.revalidate({
-      skill: f.skill,
-      context: f.context,
-      receipt: oldReceipt,
-    });
-    const runtime = f.getRuntime();
-    f.setRuntime(null);
-    expect(
-      f.authority.inspect({ skill: f.skill, context: f.context }),
-    ).toMatchObject({ status: SKILL_RUNTIME_STALE, binding: null });
-    f.setRuntime(runtime);
-    expect(() =>
+  // Each invalidation has its own durable store and the original 60-second
+  // bound. Keep restored-state receipt rejection independent of earlier cases.
+  it.each(["missing runtime", "corrupt filesystem", "revoked evaluator"])(
+    "marks %s stale and forbids reusing old receipts after restoration",
+    async (failure) => {
+      const f = await fixture();
+      const oldReceipt = f.receipt();
       f.authority.revalidate({
         skill: f.skill,
         context: f.context,
         receipt: oldReceipt,
-      }),
-    ).toThrow();
-    f.revalidate();
-    f.setVerifier(() => false);
-    expect(
-      f.authority.inspect({ skill: f.skill, context: f.context }).status,
-    ).toBe(SKILL_RUNTIME_STALE);
-    f.setVerifier((receipt) => f.approved.has(receipt.receiptDigest));
-    f.revalidate();
-    fs.writeFileSync(
-      path.join(f.skill.skillDir, "SKILL.md"),
-      "replaced contents",
-    );
-    expect(
-      f.authority.inspect({ skill: f.skill, context: f.context }),
-    ).toMatchObject({ status: SKILL_RUNTIME_STALE, binding: null });
-    expect(() => f.revalidate()).toThrow();
-  }, 60000);
+      });
+      const runtime = f.getRuntime();
+      const skillFile = path.join(f.skill.skillDir, "SKILL.md");
+      const content = fs.readFileSync(skillFile, "utf8");
+      if (failure === "missing runtime") f.setRuntime(null);
+      else if (failure === "revoked evaluator") f.setVerifier(() => false);
+      else fs.writeFileSync(skillFile, "replaced contents");
+
+      const stale = f.authority.inspect({ skill: f.skill, context: f.context });
+      expect(stale.status).toBe(SKILL_RUNTIME_STALE);
+      if (failure !== "revoked evaluator") expect(stale.binding).toBeNull();
+      expect(() =>
+        f.authority.revalidate({
+          skill: f.skill,
+          context: f.context,
+          receipt: oldReceipt,
+        }),
+      ).toThrow();
+      if (failure === "corrupt filesystem")
+        expect(() => f.revalidate()).toThrow();
+
+      f.setRuntime(runtime);
+      f.setVerifier((receipt) => f.approved.has(receipt.receiptDigest));
+      if (failure === "corrupt filesystem")
+        fs.writeFileSync(skillFile, content);
+      expect(() =>
+        f.authority.revalidate({
+          skill: f.skill,
+          context: f.context,
+          receipt: oldReceipt,
+        }),
+      ).toThrow();
+      expect(f.revalidate().status).toBe("eligible");
+    },
+    60000,
+  );
 
   it("rejects old active release CAS after a real rollback and requires evaluation of the replacement", async () => {
     const f = await fixture();
