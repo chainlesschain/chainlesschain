@@ -9,7 +9,10 @@
  */
 
 import crypto from "crypto";
-import { captureUnattendedActionPolicy } from "./unattended-action-policy.js";
+import {
+  captureAgentExecutionPolicy,
+  resolveAgentToolSelection,
+} from "./agent-execution-policy.js";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import {
   agentLoop,
@@ -207,7 +210,12 @@ export class SubAgentContext {
     this.taskProgressTracker = options.taskProgressTracker || null;
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
-    this.allowedTools = options.allowedTools ?? null; // null = all; [] = none
+    const executionPolicy = captureAgentExecutionPolicy(options);
+    const toolSelection = resolveAgentToolSelection(executionPolicy);
+    Object.defineProperty(this, "allowedTools", {
+      value: toolSelection.enabledToolNames, // null = all; [] = none
+      enumerable: true,
+    });
     this.depth = options.depth || 1; // nesting level (parent main loop = 0)
     // Shared run-wide TOTAL-sub-agent counter (one object across the whole tree)
     // so this sub-agent's own spawns draw from the same breadth pool.
@@ -219,7 +227,10 @@ export class SubAgentContext {
     // Optional session-level Extension Tier admission policy. Keep it as an
     // explicit inherited capability so child loops cannot silently bypass the
     // parent's admission decision.
-    this.toolAdmission = options.toolAdmission || null;
+    Object.defineProperty(this, "toolAdmission", {
+      value: executionPolicy.toolAdmission,
+      enumerable: true,
+    });
     // Skill capability INTERSECT: null = unrestricted; a list (possibly empty)
     // restricts run_skill/list_skills in this context's loop to those skills.
     this.skillAllowlist =
@@ -378,15 +389,8 @@ export class SubAgentContext {
       hostManagedToolPolicyAuthority:
         options.hostManagedToolPolicyAuthority || null,
       planManager: options.planManager || null,
-      sandbox: options.sandbox || null,
-      additionalDirectories: Array.isArray(options.additionalDirectories)
-        ? Object.freeze([...options.additionalDirectories])
-        : null,
-      shellPolicyOverrides: options.shellPolicyOverrides || null,
-      classifyAllShell: options.classifyAllShell === true,
-      unattendedActionPolicy: captureUnattendedActionPolicy(
-        options.unattendedActionPolicy,
-      ),
+      ...executionPolicy,
+      disabledTools: toolSelection.disabledTools,
     });
 
     // Build isolated system prompt
@@ -414,6 +418,8 @@ export class SubAgentContext {
    * @returns {Promise<{ summary: string, artifacts: Array, tokenCount: number, toolsUsed: string[], iterationCount: number }>}
    */
   async run(userPrompt, loopOptions = {}) {
+    const executionPolicy = captureAgentExecutionPolicy(loopOptions);
+    loopOptions = { ...loopOptions, ...executionPolicy };
     if (this.status !== "active") {
       throw new Error(
         `SubAgentContext ${this.id} is not active (status: ${this.status})`,
@@ -668,10 +674,14 @@ export class SubAgentContext {
     // Re-apply tighten-only capability fields after loopOptions. In particular,
     // [] must survive as deny-all and cannot be replaced by a worktree/direct
     // runner override.
-    if (Array.isArray(this.allowedTools)) {
-      options.enabledToolNames = [...this.allowedTools];
+    const selectionPolicy = captureAgentExecutionPolicy(options);
+    const toolSelection = resolveAgentToolSelection(
+      selectionPolicy,
+      this.allowedTools,
+    );
+    options.enabledToolNames = toolSelection.enabledToolNames;
+    if (Array.isArray(toolSelection.enabledToolNames))
       options.exactToolNames = true;
-    }
     options.subAgentContract = this.subAgentContract;
     options.sessionBudget = this.sessionBudget;
     options.hostResourceBudget = this.hostResourceBudget;
@@ -708,12 +718,11 @@ export class SubAgentContext {
     }
     if (authority.planManager) options.planManager = authority.planManager;
     if (authority.sandbox) options.sandbox = authority.sandbox;
-    if (authority.additionalDirectories) {
-      options.additionalDirectories = [...authority.additionalDirectories];
-    }
-    if (authority.shellPolicyOverrides) {
-      options.shellPolicyOverrides = authority.shellPolicyOverrides;
-    }
+    options.additionalDirectories = authority.additionalDirectories || [];
+    options.shellPolicyOverrides = authority.shellPolicyOverrides;
+    options.disabledTools = Object.freeze([
+      ...new Set([...authority.disabledTools, ...toolSelection.disabledTools]),
+    ]);
     if (authority.classifyAllShell) options.classifyAllShell = true;
     if (authority.unattendedActionPolicy) {
       options.unattendedActionPolicy = authority.unattendedActionPolicy;

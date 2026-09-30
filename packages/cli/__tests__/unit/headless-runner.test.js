@@ -152,6 +152,10 @@ describe("headless-runner — pure helpers", () => {
 
   it("resolveEnabledTools intersects with read-only set under plan", () => {
     expect(resolveEnabledTools({})).toBeNull();
+    expect(resolveEnabledTools({ allowedTools: [] })).toEqual([]);
+    expect(resolveEnabledTools({ allowedTools: [], readOnly: true })).toEqual(
+      [],
+    );
     expect(resolveEnabledTools({ allowedTools: ["read_file"] })).toEqual([
       "read_file",
     ]);

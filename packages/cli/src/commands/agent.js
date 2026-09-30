@@ -2168,6 +2168,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         process.exitCode = 1;
         return;
       }
+      const { parseToolList } = await import("../runtime/headless-runner.js");
       const runtime = createAgentRuntimeFactory({
         ...runtimeAdmissionDependencies,
         evolutionComposition,
@@ -2184,6 +2185,9 @@ export function registerAgentCommand(program, dependencies = {}) {
         sessionId: options.session,
         agentId: options.agentId,
         unattendedActionPolicy,
+        toolAdmission,
+        allowedTools: parseToolList(options.allowedTools),
+        disallowedTools: parseToolList(options.disallowedTools),
         // --permission-mode also applies interactively: manual → strict,
         // acceptEdits → trusted, bypassPermissions → autopilot, auto → trusted
         // + autoMode.decisions classifier; dontAsk denies instead of asking

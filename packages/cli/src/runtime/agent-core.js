@@ -152,8 +152,8 @@ import {
   admitTool,
   buildToolAttribution,
 } from "../lib/agent-tool-admission.js";
+import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import {
-  captureUnattendedActionPolicy,
   evaluateUnattendedToolAction,
   evaluateUnattendedGitAction,
   evaluateUnattendedShellAction,
@@ -2560,11 +2560,10 @@ function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
 export async function executeTool(name, args, context = {}) {
   const liveExecutionContext = context;
   try {
+    const executionPolicy = captureAgentExecutionPolicy(context);
     context = {
       ...context,
-      unattendedActionPolicy: captureUnattendedActionPolicy(
-        context.unattendedActionPolicy,
-      ),
+      ...executionPolicy,
     };
     if (
       context.unattendedActionPolicy?.unattended === true &&
@@ -2574,10 +2573,16 @@ export async function executeTool(name, args, context = {}) {
     }
   } catch (error) {
     return {
-      error: "[Unattended Action] Invalid policy; tool execution was blocked.",
+      error:
+        error.code === "CC_UNATTENDED_POLICY_INVALID"
+          ? "[Unattended Action] Invalid policy; tool execution was blocked."
+          : "[Execution Policy] Invalid startup policy; tool execution was blocked.",
       policy: {
         decision: "deny",
-        via: "unattended-action-policy",
+        via:
+          error.code === "CC_UNATTENDED_POLICY_INVALID"
+            ? "unattended-action-policy"
+            : "agent-execution-policy",
         code: error.code,
       },
     };
@@ -14445,12 +14450,12 @@ function permissionDecision(callId, tool, result) {
 }
 
 export async function* agentLoop(messages, options) {
+  const executionPolicy = captureAgentExecutionPolicy(options, {
+    hermetic: true,
+  });
   options = {
     ...options,
-    unattendedActionPolicy:
-      options.hermeticExecution === true
-        ? null
-        : captureUnattendedActionPolicy(options.unattendedActionPolicy),
+    ...executionPolicy,
   };
   const configuredChatFn = options.chatFn;
   const evolutionIngress =

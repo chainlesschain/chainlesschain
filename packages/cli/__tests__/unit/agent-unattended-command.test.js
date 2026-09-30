@@ -118,4 +118,32 @@ describe("cc agent unattended command dispatch", () => {
     await invoke(["-p", "inspect"]);
     expect(entry.headless.mock.calls[0][0].unattendedActionPolicy).toBeNull();
   });
+
+  it("passes the IDE admission envelope to the interactive entry", async () => {
+    vi.stubEnv(
+      "CC_TOOL_ADMISSION",
+      JSON.stringify({
+        enforce: true,
+        policyAllowed: false,
+        budgetOk: true,
+      }),
+    );
+    await invoke([]);
+    expect(entry.interactive.mock.calls[0][0].toolAdmission).toMatchObject({
+      enforce: true,
+      policyAllowed: false,
+    });
+  });
+  it("passes tool restrictions to the interactive entry", async () => {
+    await invoke([
+      "--allowed-tools",
+      "read_file, list_dir",
+      "--disallowed-tools",
+      "run_shell",
+    ]);
+    expect(entry.interactive.mock.calls[0][0]).toMatchObject({
+      allowedTools: ["read_file", "list_dir"],
+      disallowedTools: ["run_shell"],
+    });
+  });
 });

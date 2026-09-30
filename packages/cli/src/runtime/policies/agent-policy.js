@@ -1,4 +1,4 @@
-import { captureUnattendedActionPolicy } from "../../lib/unattended-action-policy.js";
+import { captureAgentExecutionPolicy } from "../../lib/agent-execution-policy.js";
 
 export function resolveAgentPolicy({
   config = null,
@@ -6,6 +6,7 @@ export function resolveAgentPolicy({
   defaults = {},
 } = {}) {
   const llm = config?.llm || {};
+  const executionPolicy = captureAgentExecutionPolicy(overrides);
 
   return {
     model: overrides.model || llm.model || defaults.model || "qwen2:7b",
@@ -30,13 +31,8 @@ export function resolveAgentPolicy({
     bundlePath: overrides.bundlePath || null,
     remoteSessionRelayUrl: overrides.remoteSessionRelayUrl || null,
     remoteSessionPeerId: overrides.remoteSessionPeerId || null,
-    additionalDirectories: Array.isArray(overrides.additionalDirectories)
-      ? overrides.additionalDirectories
-      : [],
-    sandbox: overrides.sandbox || null,
-    unattendedActionPolicy: captureUnattendedActionPolicy(
-      overrides.unattendedActionPolicy,
-    ),
+    ...executionPolicy,
+    additionalDirectories: executionPolicy.additionalDirectories || [],
     autoCheckpoint: overrides.autoCheckpoint === true,
     // Managed workspace checkpoints are consumed by both headless runners and
     // the interactive REPL. Keep these explicit because this policy is an

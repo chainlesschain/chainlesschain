@@ -23,7 +23,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
+import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { bootstrap } from "./bootstrap.js";
 import {
   buildSystemPrompt,
@@ -349,10 +349,7 @@ export function resolvePermissionMode(mode = "default") {
  * @returns {string[]|null} null = all tools (subject to disabledTools)
  */
 export function resolveEnabledTools({ allowedTools, readOnly } = {}) {
-  let names =
-    Array.isArray(allowedTools) && allowedTools.length > 0
-      ? [...allowedTools]
-      : null;
+  let names = Array.isArray(allowedTools) ? [...allowedTools] : null;
   if (readOnly) {
     names = names
       ? names.filter((n) => READ_ONLY_TOOLS.includes(n))
@@ -627,12 +624,12 @@ async function withHeadlessSessionHostLease(options, deps, task) {
 }
 
 export async function runAgentHeadless(options = {}, deps = {}) {
+  const executionPolicy = captureAgentExecutionPolicy(options, {
+    hermetic: true,
+  });
   options = {
     ...options,
-    unattendedActionPolicy:
-      options.hermeticExecution === true
-        ? null
-        : captureUnattendedActionPolicy(options.unattendedActionPolicy),
+    ...executionPolicy,
   };
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const pipeState = { closed: false };
@@ -2625,6 +2622,7 @@ async function runAgentHeadlessInWorkspace(
       : { skillRetrievalRevocationReader }),
     additionalDirectories,
     sandbox: options.sandbox || null,
+    shellPolicyOverrides: options.shellPolicyOverrides,
     sessionId,
     sessionBudget: options.sessionBudget || null,
     hostResourceBudget,

@@ -17,7 +17,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
+import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
 import { isProxy } from "node:util/types";
 import {
@@ -1469,11 +1469,10 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
 }
 
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
+  const executionPolicy = captureAgentExecutionPolicy(options);
   options = {
     ...options,
-    unattendedActionPolicy: captureUnattendedActionPolicy(
-      options.unattendedActionPolicy,
-    ),
+    ...executionPolicy,
   };
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const input = deps.input || process.stdin;
@@ -3604,6 +3603,8 @@ async function runAgentHeadlessStreamInWorkspace(
     apiKey,
     cwd,
     additionalDirectories,
+    sandbox: options.sandbox,
+    shellPolicyOverrides: options.shellPolicyOverrides,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),
     ...captureSkillRuntimeDependencies(options, evolutionIngress?.tenantId),
     ...(skillVectorAuthority === null ? {} : { skillVectorAuthority }),

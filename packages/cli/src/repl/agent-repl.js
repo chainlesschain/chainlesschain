@@ -18,7 +18,11 @@
  */
 
 import readline from "readline";
-import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
+import {
+  captureAgentExecutionPolicy,
+  resolveAgentToolSelection,
+} from "../lib/agent-execution-policy.js";
+import { createReplToolExecutor } from "./repl-tool-executor.js";
 import chalk from "chalk";
 import fs from "fs";
 import os from "os";
@@ -152,7 +156,6 @@ import {
   AGENT_TOOLS,
   buildSystemPrompt,
   chatWithTools,
-  executeTool as coreExecuteTool,
   agentLoop as coreAgentLoop,
   formatToolArgs,
   killAllBackgroundShellTasks,
@@ -487,6 +490,9 @@ let _respondToBash;
 // ApprovalGate confirm) instead of fast-pathing it. false = unset → off.
 let _classifyAllShell = false;
 let _sandbox = null;
+let _toolAdmission = null;
+let _shellPolicyOverrides = null;
+let _directToolExecutor = null;
 let _unattendedActionPolicy = null;
 // Bounded log of tool calls the agent was BLOCKED from running this session
 // (shell-policy / ApprovalGate / settings rule / hook). Surfaced by
@@ -592,21 +598,9 @@ async function _persistAlwaysAllow(tool, args) {
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
  */
 async function executeTool(name, args, context = {}) {
-  return coreExecuteTool(name, args, {
-    hookDb: _hookDb,
-    cwd: process.cwd(),
-    approvalGate: _approvalGate,
-    permissionRules: _permissionRules,
-    permissionRulesProvider: _permissionRulesProvider,
-    permissionConfirm: _permissionConfirm,
-    settingsHooks: _settingsHooks,
-    classifyAllShell: _classifyAllShell,
-    sandbox: _sandbox,
-    unattendedActionPolicy: _unattendedActionPolicy,
-    sessionId: context.sessionId || null,
-    sessionBudget: context.sessionBudget || null,
-    signal: context.signal || null,
-  });
+  if (!_directToolExecutor)
+    throw new Error("REPL tool executor is unavailable");
+  return _directToolExecutor(name, args, context);
 }
 
 /**
@@ -616,6 +610,12 @@ async function executeTool(name, args, context = {}) {
  * unit-testable via the `options._coreLoop` injection seam.
  */
 export async function agentLoop(messages, options) {
+  const executionPolicy = captureAgentExecutionPolicy(options);
+  options = {
+    ...options,
+    ...executionPolicy,
+    ...resolveAgentToolSelection(executionPolicy),
+  };
   const evolutionIngress =
     options.evolutionIngress == null
       ? null
@@ -2934,11 +2934,10 @@ export function resolveReplPermanentMemoryStorage(
 
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
+  const executionPolicy = captureAgentExecutionPolicy(options);
   options = {
     ...options,
-    unattendedActionPolicy: captureUnattendedActionPolicy(
-      options.unattendedActionPolicy,
-    ),
+    ...executionPolicy,
   };
   const evolutionIngress =
     options.evolutionIngress == null
@@ -3379,6 +3378,20 @@ async function startAgentReplInWorkspaceOwned(
     ? options.additionalDirectories
     : [];
   _sandbox = options.sandbox || null;
+  _toolAdmission = options.toolAdmission;
+  _shellPolicyOverrides = options.shellPolicyOverrides;
+  _classifyAllShell = options.classifyAllShell === true;
+  const toolSelection = resolveAgentToolSelection(options);
+  _directToolExecutor = createReplToolExecutor(options, () => ({
+    hookDb: _hookDb,
+    cwd: process.cwd(),
+    approvalGate: _approvalGate,
+    permissionRules: _permissionRules,
+    permissionRulesProvider: _permissionRulesProvider,
+    permissionConfirm: _permissionConfirm,
+    settingsHooks: _settingsHooks,
+    classifyAllShell: _classifyAllShell,
+  }));
   _unattendedActionPolicy = options.unattendedActionPolicy;
   // Snapshot the work tree before each mutating tool (git engine) so the user
   // can `cc checkpoint restore` to just before any tool call.
@@ -3738,6 +3751,7 @@ async function startAgentReplInWorkspaceOwned(
     });
     // Claude-Code 2.1.193 autoMode.classifyAllShell (default OFF when unset).
     _classifyAllShell =
+      _classifyAllShell ||
       readBooleanSetting("autoMode.classifyAllShell", {
         cwd: process.cwd(),
       }) === true;
@@ -9699,7 +9713,10 @@ async function startAgentReplInWorkspaceOwned(
         skillOutcomeIndex: options.skillOutcomeIndex,
         cwd: process.cwd(),
         additionalDirectories,
+        ...toolSelection,
         sandbox: _sandbox,
+        toolAdmission: _toolAdmission,
+        shellPolicyOverrides: _shellPolicyOverrides,
         unattendedActionPolicy: _unattendedActionPolicy,
         autoCheckpoint,
         checkpointSession: sessionId,

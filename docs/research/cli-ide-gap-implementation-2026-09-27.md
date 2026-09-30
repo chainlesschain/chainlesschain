@@ -66,7 +66,19 @@ Shell 复合命令逐段授权，unknown 及任一未授权动作不能被末尾
 
 本地 12 文件 374 项回归通过；随后补齐 Git 显式执行参数及引号语法封口，相关 4 文件 115 项最终定向复验全部通过，Astra 只读复核通过。验证使用实际 Commander 命令、真实 runner / stream / REPL / child 循环及本地 shell 文件正对照；仅模型返回值和 Git 最终进程派发使用注入边界，未执行真实远程 push / 发布 / 通知。ESLint 无错误，保留既有 unused warning；进程调用清单只同步行号，不扩大豁免。
 
-这仍是动作分类与入口授权的局部修复。`npm test/install` 等项目脚本、Git 仓库配置与 helper 的间接效果不由命令名称证明已隔离；持久任务的父动作权威和未知执行器的可信动作合同仍待实现。sandbox、tool-admission、shell override 等其他静态来源以及 settings 官方写口 / 外部写入的不可回退 generation 仍未闭合，NET-02 与全部 20 组任务继续保持未完成；当前候选尚无准确 SHA 的完整托管矩阵，也未升版本或发布。
+这仍是动作分类与入口授权的局部修复。`npm test/install` 等项目脚本、Git 仓库配置与 helper 的间接效果不由命令名称证明已隔离；持久任务的父动作权威和未知执行器的可信动作合同仍待实现。该批已提交为 `1283f39fd76f66cd3bb6b05372d7d90ca308080a` 并推送到 `main`；[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36762002607) 五个作业全部成功，包含 Linux x64 / ARM64、Windows、macOS 15 / latest。[IDE Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36762002452) 与 [CLI Session Host Consistency](https://github.com/chainlesschain/chainlesschain/actions/runs/36762002582) 也已通过，[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36762002933) 仍在排队，不能视为完整发布门通过；这些结果不转移为后续候选验收。未升版本或发布。
+
+### NET-02：静态执行配置与交互工具上限（2026-10-01）
+
+新增 `captureAgentExecutionPolicy()`，在 runner / stream、核心循环与公共工具执行、REPL startup / turn wrapper、交互 runtime 启动和子上下文的首次异步边界前，复制并深冻结 sandbox、tool admission、shell overrides、无人值守策略、工具列表和额外目录。拒绝 getter / Proxy / toJSON、稀疏列表和错误类型的安全布尔字段，不通过 JSON 隐式转换获取权限。仅真实布尔 hermetic 选择可清除其明确隔离的入口策略；运行中的 permission provider、宿主 owner、Plan / ApprovalGate 与实际资源预算对象仍保持活跃。
+
+补齐 stream-input 到核心循环的 sandbox / shell override 接线，以及交互命令、runtime、REPL 主循环和直接 `/auto` / `/plan` 工具路径的准入与工具列表。直接执行器使用相同冻结策略和工具上限，每次调用重新读取 live 权限；显式 classifier 与设置的收紧结果按 OR 合并，显式 false 不能关闭设置启用的分类。交互启动在 ingress await 和 runtime event 前绑定 launch policy，事件不能替换本轮配置，保持可选字段省略的公开合同。
+
+子上下文固定父级启动工具集合；父子 allow 取交集，deny 累加，运行时额外限制继续生效。父级未提供额外目录或 shell 豁免也有明确上限，`child.run()` 不能追加权限。宿主传入的空工具列表 `[]` 在 runner、stream、REPL 和 child 都是 deny-all；下一轮可捕获新显式列表，上一轮不因调用方原数组变更而扩大工具表面或执行范围。
+
+Windows 本地 16 文件 572 项回归通过；随后补齐 headless 空工具列表语义，受影响的 4 文件 230 项最终复验通过（两轮有重叠，不合计）。负例经实际核心 / runner / stream / REPL / child 循环，验证拒绝文件确实未创建、shell 未派发；直接 REPL 执行器包含真实允许读取和权限更新后拒绝写入的正反对照。保留审批等待、宿主 owner ABA、Plan / Auto Mode 与运行中 Docker monitor 的原重验断言；此处 Docker 仍为注入路径，不替代真容器矩阵。ESLint 无错误，Prettier / diff 与进程清单一致性检查通过；Astra 多轮只读复核提出的继承与 deny 覆盖缺陷均已修复，最终复核通过。
+
+这闭合本批明确列出的静态配置输入，不实现任意运行时可变对象的持续授权协议。settings 官方写口 / 外部进程写入的不可回退 generation、legacy sampled callback、其他宿主动态来源，以及 opaque executor / 持久 agenda 的父动作权威仍开放。NET-02 与全部 20 组任务继续保持未完成；当前候选尚无准确 SHA 的完整 CLI CI / Strict Sandbox / IDE 托管矩阵，未升版本或发布。
 
 ### NET-02 / IDE-MODE：WS 宿主策略 owner 与权限读取器接线（2026-10-01）
 

@@ -41,9 +41,9 @@ describe("REPL compact persistence fencing", () => {
     expect(() => latch.assertOpen()).toThrow(terminal);
     expect(latch.trip(new Error("unrelated"))).toBe(terminal);
     expect(onTrip).toHaveBeenCalledOnce();
-  // Loading the full REPL host can exceed the default bound on saturated
-  // hosted Windows runners; keep the failure-path assertions intact while
-  // allowing the same budget used by other process-backed REPL tests.
+    // Loading the full REPL host can exceed the default bound on saturated
+    // hosted Windows runners; keep the failure-path assertions intact while
+    // allowing the same budget used by other process-backed REPL tests.
   }, 60000);
 
   it("brackets a direct REPL tool with one secret-free started/settlement pair", async () => {
@@ -1369,7 +1369,13 @@ describe("agent-core TOOLS includes run_code (used by agent-repl)", () => {
     expect(content).toContain('from "../runtime/agent-core.js"');
     expect(content).toContain("AGENT_TOOLS");
     expect(content).toContain("formatToolArgs");
-    expect(content).toContain("coreExecuteTool");
+    const toolExecutor = readFileSync(
+      join(dirname(agentReplPath), "repl-tool-executor.js"),
+      "utf8",
+    );
+    expect(content).toContain("createReplToolExecutor");
+    expect(toolExecutor).toContain("coreExecuteTool");
+    expect(toolExecutor).toContain('from "../runtime/agent-core.js"');
     expect(content).toContain("coreAgentLoop");
   });
 });
@@ -1465,13 +1471,20 @@ describe("agent-repl thin wrapper contracts", () => {
 
   it("executeTool wrapper passes host and budget authority to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
+    const toolExecutor = readFileSync(
+      join(dirname(agentReplPath), "repl-tool-executor.js"),
+      "utf8",
+    );
     // Direct REPL tools must reach the same host and budget context as tools
     // selected inside agentLoop.
-    expect(content).toContain("coreExecuteTool(name, args, {");
+    expect(content).toContain("createReplToolExecutor(options, () => ({");
+    expect(toolExecutor).toContain("coreExecuteTool(name, args, {");
     expect(content).toContain("hookDb: _hookDb");
     expect(content).toContain("cwd: process.cwd()");
-    expect(content).toContain("sessionBudget: context.sessionBudget || null");
-    expect(content).toContain("signal: context.signal || null");
+    expect(toolExecutor).toContain(
+      "sessionBudget: context.sessionBudget || null",
+    );
+    expect(toolExecutor).toContain("signal: context.signal || null");
   });
 
   it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {

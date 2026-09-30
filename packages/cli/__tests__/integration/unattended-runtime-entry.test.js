@@ -10,6 +10,7 @@ import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js"
 import { _gitProcessDeps } from "../../src/runtime/agent-core.js";
 import { AgentScheduleStore } from "../../src/lib/agent-schedule-store.js";
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
@@ -80,7 +81,14 @@ async function runEntry(kind, name, args, overrides = {}, beforeCall) {
     chatFn: toolModel(name, args, beforeCall),
     ...overrides,
   });
-  if (kind === "repl") {
+  if (kind === "core") {
+    for await (const event of loop(
+      [{ role: "user", content: "exercise policy" }],
+      options,
+    )) {
+      void event;
+    }
+  } else if (kind === "repl") {
     await replAgentLoop([{ role: "user", content: "exercise policy" }], {
       ...options,
       approvalGate: gate,
@@ -376,5 +384,299 @@ describe("unattended policy through real runtime entries", () => {
     const passed = startAgentRepl.mock.calls[0][0].unattendedActionPolicy;
     expect(passed.allowlist).toEqual(["merge"]);
     expect(Object.isFrozen(passed.allowlist)).toBe(true);
+  });
+});
+
+describe("startup execution policy through actual runtime loops", () => {
+  it.each(["json", "stream-input", "repl"])(
+    "%s preserves an explicitly empty tool list as deny-all",
+    async (kind) => {
+      const result = await runEntry(
+        kind,
+        "write_file",
+        {
+          path: "empty-tool-list.txt",
+          content: "must not be written",
+        },
+        { allowedTools: [], unattendedActionPolicy: null },
+      );
+      expect(result?.policy?.via).toBe("effective-tool-set");
+      expect(fs.existsSync(path.join(cwd, "empty-tool-list.txt"))).toBe(false);
+    },
+  );
+  it.each(["core", "json", "stream-input", "repl"])(
+    "%s refuses added shell exceptions after startup",
+    async (kind) => {
+      const shellPolicyOverrides = [];
+      const dispatch = vi.spyOn(executionBroker, "execSync");
+      const pending = runEntry(
+        kind,
+        "run_shell",
+        { command: "curl https://example.invalid" },
+        {
+          unattendedActionPolicy: null,
+          shellPolicyOverrides,
+        },
+      );
+      shellPolicyOverrides.push("network-download");
+      const result = await pending;
+      expect(result?.error).toBeTruthy();
+      expect(result.shellCommandPolicy?.ruleId).toBe("network-download");
+      expect(dispatch).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["core", "text", "json", "stream-json", "stream-input", "repl"])(
+    "%s retains sandbox filesystem denial when caller data changes",
+    async (kind) => {
+      const sandbox = { engine: "docker", policy: { denyWrite: [cwd] } };
+      const result = await runEntry(
+        kind,
+        "write_file",
+        {
+          path: "startup-sandbox-marker.txt",
+          content: "must not be written",
+        },
+        { sandbox, unattendedActionPolicy: null },
+        () => {
+          sandbox.policy.denyWrite.length = 0;
+        },
+      );
+      expect(result?.error).toContain("sandbox");
+      expect(fs.existsSync(path.join(cwd, "startup-sandbox-marker.txt"))).toBe(
+        false,
+      );
+    },
+  );
+
+  it.each(["core", "json", "stream-input", "repl"])(
+    "%s cannot drop or relax the tool admission envelope after startup",
+    async (kind) => {
+      const toolAdmission = {
+        enforce: true,
+        policyAllowed: true,
+        budgetOk: true,
+        tools: { write_file: { policyAllowed: false } },
+      };
+      const pending = runEntry(
+        kind,
+        "write_file",
+        {
+          path: "startup-admission-marker.txt",
+          content: "must not be written",
+        },
+        { toolAdmission, unattendedActionPolicy: null },
+      );
+      // Mutate immediately, before bootstrap/ingress/import promises settle.
+      toolAdmission.enforce = false;
+      toolAdmission.tools.write_file.policyAllowed = true;
+      const result = await pending;
+      expect(result?.error).toContain("Tool Admission");
+      expect(
+        fs.existsSync(path.join(cwd, "startup-admission-marker.txt")),
+      ).toBe(false);
+    },
+  );
+
+  it.each(["json", "stream-input", "repl"])(
+    "%s binds caller tool lists before startup awaits",
+    async (kind) => {
+      const allowedTools = ["read_file"];
+      const pending = runEntry(
+        kind,
+        "write_file",
+        {
+          path: "startup-tool-list-marker.txt",
+          content: "must not be written",
+        },
+        { allowedTools, unattendedActionPolicy: null },
+      );
+      allowedTools.push("write_file");
+      const result = await pending;
+      expect(result?.error).toBeTruthy();
+      expect(
+        fs.existsSync(path.join(cwd, "startup-tool-list-marker.txt")),
+      ).toBe(false);
+    },
+  );
+
+  it("a new turn accepts a new explicit list while the previous turn keeps its ceiling", async () => {
+    const enabledToolNames = ["read_file"];
+    const pending = runEntry(
+      "core",
+      "write_file",
+      {
+        path: "turn-ceiling.txt",
+        content: "next-turn-write",
+      },
+      { enabledToolNames, unattendedActionPolicy: null },
+    );
+    enabledToolNames.push("write_file");
+    expect((await pending)?.error).toBeTruthy();
+    expect(fs.existsSync(path.join(cwd, "turn-ceiling.txt"))).toBe(false);
+    const result = await runEntry(
+      "core",
+      "write_file",
+      {
+        path: "turn-ceiling.txt",
+        content: "next-turn-write",
+      },
+      { enabledToolNames, unattendedActionPolicy: null },
+    );
+    expect(result?.error).toBeUndefined();
+    expect(fs.readFileSync(path.join(cwd, "turn-ceiling.txt"), "utf8")).toBe(
+      "next-turn-write",
+    );
+  });
+
+  it("child startup restrictions survive mutable inputs and loop overrides", async () => {
+    const toolAdmission = {
+      enforce: true,
+      policyAllowed: true,
+      budgetOk: true,
+      tools: { write_file: { policyAllowed: false } },
+    };
+    const allowedTools = ["write_file"];
+    const child = new SubAgentContext({
+      cwd,
+      allowedTools,
+      toolAdmission,
+      llmOptions: withTestEvolutionIngress({
+        chatFn: toolModel("write_file", {
+          path: "child-ceiling.txt",
+          content: "denied",
+        }),
+      }),
+    });
+    toolAdmission.tools.write_file.policyAllowed = true;
+    toolAdmission.enforce = false;
+    allowedTools.push("run_shell");
+    expect(() => {
+      child.toolAdmission = null;
+    }).toThrow();
+    expect(child.allowedTools).toEqual(["write_file"]);
+    await child.run("write", {
+      toolAdmission: null,
+      allowedTools: ["write_file", "run_shell"],
+    });
+    expect(
+      child.messages.find((message) => message.role === "tool")?.content,
+    ).toContain("Tool Admission");
+    expect(fs.existsSync(path.join(cwd, "child-ceiling.txt"))).toBe(false);
+  });
+
+  it("an unset parent shell exception list cannot be expanded through child.run", async () => {
+    const dispatch = vi.spyOn(executionBroker, "execSync");
+    const child = new SubAgentContext({
+      cwd,
+      allowedTools: ["run_shell"],
+      llmOptions: withTestEvolutionIngress({
+        chatFn: toolModel("run_shell", {
+          command: "curl https://example.invalid",
+        }),
+      }),
+    });
+    await child.run("fetch", { shellPolicyOverrides: ["network-download"] });
+    expect(
+      child.messages.find((message) => message.role === "tool")?.content,
+    ).toContain("Network download");
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("an unset parent directory list cannot be expanded through child.run", async () => {
+    const root = path.join(cwd, "root");
+    const extra = path.join(cwd, "extra");
+    fs.mkdirSync(root);
+    fs.mkdirSync(extra);
+    const target = path.join(extra, "outside.txt");
+    const child = new SubAgentContext({
+      cwd: root,
+      allowedTools: ["write_file"],
+      llmOptions: withTestEvolutionIngress({
+        chatFn: toolModel("write_file", {
+          path: target,
+          content: "must not be written",
+        }),
+      }),
+    });
+    await child.run("write outside", { additionalDirectories: [extra] });
+    expect(
+      child.messages.find((message) => message.role === "tool")?.content,
+    ).toContain("outside");
+    expect(fs.existsSync(target)).toBe(false);
+  });
+
+  it("child disabled tool aliases survive loop options and original array mutation", async () => {
+    const disallowedTools = ["write_file"];
+    const child = new SubAgentContext({
+      cwd,
+      enabledToolNames: ["read_file", "write_file"],
+      disallowedTools,
+      llmOptions: withTestEvolutionIngress({
+        chatFn: toolModel("write_file", {
+          path: "child-deny.txt",
+          content: "must not be written",
+        }),
+      }),
+    });
+    disallowedTools.length = 0;
+    await child.run("write", { disabledTools: [], disallowedTools: [] });
+    expect(
+      child.messages.find((message) => message.role === "tool")?.content,
+    ).toContain("Tool Capability");
+    expect(fs.existsSync(path.join(cwd, "child-deny.txt"))).toBe(false);
+  });
+
+  it.each([
+    { disabledTools: ["write_file"] },
+    { disallowedTools: ["write_file"] },
+    { enabledToolNames: [] },
+    { allowedTools: [] },
+  ])("retains additional child.run restrictions %j", async (loopOptions) => {
+    const child = new SubAgentContext({
+      cwd,
+      allowedTools: ["read_file", "write_file"],
+      llmOptions: withTestEvolutionIngress({
+        chatFn: toolModel("write_file", {
+          path: "child-extra-deny.txt",
+          content: "must not be written",
+        }),
+      }),
+    });
+    await child.run("write", loopOptions);
+    expect(
+      child.messages.find((message) => message.role === "tool")?.content,
+    ).toContain("Tool Capability");
+    expect(fs.existsSync(path.join(cwd, "child-extra-deny.txt"))).toBe(false);
+  });
+
+  it("interactive runtime passes immutable admission, sandbox and shell config", async () => {
+    const startAgentRepl = vi.fn(async () => "started");
+    const input = {
+      sandbox: { policy: { denyWrite: [cwd] } },
+      toolAdmission: {
+        enforce: true,
+        tools: { write_file: { policyAllowed: false } },
+      },
+      shellPolicyOverrides: [],
+      classifyAllShell: true,
+    };
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      deps: { startAgentRepl },
+    }).createAgentRuntime(input);
+    input.sandbox.policy.denyWrite.length = 0;
+    input.toolAdmission.enforce = false;
+    input.shellPolicyOverrides.push("network-download");
+    runtime.events.on("runtime:start", () => {
+      runtime.policy.toolAdmission = null;
+      runtime.policy.sandbox = null;
+      runtime.policy.shellPolicyOverrides = ["network-download"];
+    });
+    await runtime.startAgentSession();
+    const passed = startAgentRepl.mock.calls[0][0];
+    expect(passed.sandbox.policy.denyWrite).toEqual([cwd]);
+    expect(passed.toolAdmission.enforce).toBe(true);
+    expect(passed.shellPolicyOverrides).toEqual([]);
+    expect(passed.classifyAllShell).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { defaultOpenBrowser } from "../lib/mcp-oauth.js";
 import path from "path";
 import {
@@ -335,19 +336,30 @@ export class AgentRuntime {
   }
 
   async startAgentSession() {
+    const executionPolicy = captureAgentExecutionPolicy(this.policy);
+    const launchPolicy = Object.freeze({
+      ...this.policy,
+      // Preserve the public envelope's absent optional fields. Captured null
+      // defaults still apply at the REPL entry, before its first await.
+      ...Object.fromEntries(
+        Object.entries(executionPolicy).filter(([field]) =>
+          Object.hasOwn(this.policy, field),
+        ),
+      ),
+    });
     if (this.evolutionIngress !== null) {
       await this.evolutionIngress.start();
     }
     this.emit(RUNTIME_EVENTS.RUNTIME_START, {
       kind: this.kind,
-      policy: this.policy,
+      policy: launchPolicy,
     });
     this.emit(RUNTIME_EVENTS.SESSION_START, {
       kind: this.kind,
-      sessionId: this.policy.sessionId || null,
+      sessionId: launchPolicy.sessionId || null,
     });
     const result = await this.deps.startAgentRepl({
-      ...this.policy,
+      ...launchPolicy,
       ...this.runtimeAdmissionDependencies,
       ...(this.memoryPolicyReceiptWriter === null
         ? {}
