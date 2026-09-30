@@ -280,6 +280,27 @@ describe("PlanModeManager", () => {
       expect(manager.blockedToolLog[0].timestamp).toBeDefined();
     });
 
+    it("checks an execution lock without changing its revision or denial log", () => {
+      manager.enterPlanMode();
+      manager.addPlanItem({ title: "Write result", tool: "write_file" });
+      manager.approvePlan();
+      const revision = manager.revision;
+      const blockedCount = manager.blockedToolLog.length;
+
+      expect(manager.isToolAllowed("run_shell", { recordBlocked: false })).toBe(
+        false,
+      );
+      expect(manager.isToolAllowed("run_shell", { recordBlocked: false })).toBe(
+        false,
+      );
+      expect(manager.revision).toBe(revision);
+      expect(manager.blockedToolLog).toHaveLength(blockedCount);
+
+      expect(manager.isToolAllowed("run_shell")).toBe(false);
+      expect(manager.revision).toBeGreaterThan(revision);
+      expect(manager.blockedToolLog).toHaveLength(blockedCount + 1);
+    });
+
     it("locks execution to read tools and approved plan tools", () => {
       manager.enterPlanMode();
       manager.addPlanItem({ title: "Step 1", tool: "write_file" });

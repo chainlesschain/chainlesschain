@@ -1379,7 +1379,7 @@ export class PlanModeManager extends EventEmitter {
   /**
    * Check if a tool is allowed in current state
    */
-  isToolAllowed(toolName) {
+  isToolAllowed(toolName, { recordBlocked = true } = {}) {
     if (!this.isActive()) return true;
     if (
       this.state === PlanState.APPROVED ||
@@ -1387,7 +1387,8 @@ export class PlanModeManager extends EventEmitter {
     ) {
       const allowed =
         this.executionLock?.allowedTools.includes(toolName) === true;
-      if (!allowed) this._recordBlockedTool(toolName, "execution-lock");
+      if (!allowed && recordBlocked)
+        this._recordBlockedTool(toolName, "execution-lock");
       return allowed;
     }
 
@@ -1396,7 +1397,7 @@ export class PlanModeManager extends EventEmitter {
 
     // Block write tools and log
     if (WRITE_TOOLS.has(toolName)) {
-      this._recordBlockedTool(toolName, "planning");
+      if (recordBlocked) this._recordBlockedTool(toolName, "planning");
       return false;
     }
 

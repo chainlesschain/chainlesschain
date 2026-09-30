@@ -971,25 +971,24 @@ final class IdeUiSmokeTest {
 
     private static void clickPopupItem(ComponentFixture list, String label, boolean prefix)
             throws InterruptedException {
-        java.awt.Point point = list.callJs(
+        // Use the chooser's own Enter action. A physical click can dismiss a
+        // native popup without invoking its chosen-item callback on ARM64.
+        System.out.println("[ui-smoke] activating popup item " + label);
+        list.runJs(
                 "var model = component.getModel(), index = -1;"
                         + "for (var i = 0; i < model.getSize(); i++) {"
                         + "var item = String(model.getElementAt(i));"
                         + "if (" + (prefix ? "item.indexOf(" + jsString(label) + ") === 0"
                                 : "item === " + jsString(label)) + ") {index = i; break;}}"
                         + "if (index < 0 || !component.isShowing()) throw new Error('Popup item disappeared');"
+                        + "component.setSelectedIndex(index);"
                         + "component.ensureIndexIsVisible(index);"
-                        + "var bounds = component.getCellBounds(index, index).intersection(component.getVisibleRect());"
-                        + "if (bounds.isEmpty()) throw new Error('Popup item is not visible');"
-                        + "new java.awt.Point(bounds.x + Math.floor(bounds.width / 2),"
-                        + "bounds.y + Math.floor(bounds.height / 2));",
+                        + "var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);"
+                        + "var action = component.getActionForKeyStroke(enter);"
+                        + "if (action == null) throw new Error('Popup Enter action unavailable');"
+                        + "action.actionPerformed(new java.awt.event.ActionEvent(component,"
+                        + "java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));",
                 true);
-        // The first chooser advances on one click. On Windows ARM64 the
-        // second chooser can disappear after one click without invoking its
-        // chosen-item callback, so activate that item with a double-click.
-        System.out.println("[ui-smoke] activating popup item " + label);
-        if (prefix) list.click(point);
-        else list.doubleClick(point);
         waitUntilHidden(list, "popup item " + label, FIND_BUDGET);
     }
 

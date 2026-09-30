@@ -2452,7 +2452,7 @@ function snapshotPlanToolAuthority(planManager, tool, args) {
     toolAllowed:
       !active || (tool === "git" && isReadOnlyGitCommand(args?.command))
         ? true
-        : planManager?.isToolAllowed?.(tool) === true,
+        : planManager?.isToolAllowed?.(tool, { recordBlocked: false }) === true,
   };
 }
 

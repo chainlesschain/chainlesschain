@@ -190,7 +190,10 @@ async function waitForFile(path, timeoutMs = 1_500) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      return await readFile(path, "utf8");
+      const value = await readFile(path, "utf8");
+      // A reader can observe the newly created file before writeFile flushes
+      // the PID bytes. Treat that empty snapshot as still in progress.
+      if (value.trim()) return value;
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -270,9 +273,12 @@ describe("Volcengine function process executor", () => {
       "  return { toolResult: { late: true }, auditEvidence: {} };",
       "}",
     ].join("\n");
-    const { root, target, supervisor, store, children } = await fixture(source, {
-      allowWrites: true,
-    });
+    const { root, target, supervisor, store, children } = await fixture(
+      source,
+      {
+        allowWrites: true,
+      },
+    );
     const executor = createVolcengineFunctionProcessExecutor({
       supervisor,
       target,
@@ -313,9 +319,12 @@ describe("Volcengine function process executor", () => {
       "  return { toolResult: { late: true }, auditEvidence: {} };",
       "}",
     ].join("\n");
-    const { root, target, supervisor, store, children } = await fixture(source, {
-      allowWrites: true,
-    });
+    const { root, target, supervisor, store, children } = await fixture(
+      source,
+      {
+        allowWrites: true,
+      },
+    );
     const executor = createVolcengineFunctionProcessExecutor({
       supervisor,
       target,
