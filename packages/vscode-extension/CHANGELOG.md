@@ -4,9 +4,15 @@ All notable changes to this extension are documented here.
 
 ## [0.37.123] - Pair with CLI 0.166.81 policy revisions (2026-09-30)
 
-- Recommend `chainlesschain@0.166.81` after its exact-commit CLI matrix and
-  public npm readback pass. The CLI now latches Plan and approval policy
-  revisions during active Docker egress commands.
+- Recommend the published `chainlesschain@0.166.81` CLI.
+- Capture Plan and approval snapshots before asynchronous shell permission
+  checks. During an active Docker egress command, committed policy revisions
+  revoke the broker and target container instead of allowing stale authority.
+- Use Session Core `0.3.14` for monotonic per-session approval revisions. This
+  covers supported in-process changes; external settings and policy writes
+  still require a unified revision mechanism.
+- Keep Plan snapshot reads free of state changes, so inspecting a plan does
+  not change its revision or invalidate an active command.
 - Keep editor controls, capability floor, and saved-draft recovery behavior.
 
 ## [0.37.122] - Pair with CLI 0.166.80 Docker revocation candidate (2026-09-29)
