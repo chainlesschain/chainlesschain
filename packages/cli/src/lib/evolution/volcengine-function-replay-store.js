@@ -687,37 +687,47 @@ export function captureVolcengineFunctionReplayStore(value) {
       "A branded Volcengine function replay store is required",
     );
   }
+  function readRevocation() {
+    try {
+      const revocation = readRevocationRecord(
+        captured.revocationPath,
+        captured.descriptor,
+      );
+      return Object.freeze({
+        schema: revocation.schema,
+        replayStoreId: revocation.replayStoreId,
+        authorityId: revocation.authorityId,
+        revocationAuthorityId: revocation.revocationAuthorityId,
+        tenantId: revocation.tenantId,
+        handlerArtifactDigest: revocation.handlerArtifactDigest,
+        policyRevision: revocation.policyRevision,
+        revocationId: revocation.revocationId,
+        reasonDigest: revocation.reasonDigest,
+        authorizationRequestDigest: revocation.authorizationRequestDigest,
+        authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
+        auditEventDigest: revocation.auditEventDigest,
+        durabilityReceiptDigest: revocation.durabilityReceiptDigest,
+        evidenceResolverDigest: revocation.evidenceResolverDigest,
+        evidenceReadbackDigest: revocation.evidenceReadbackDigest,
+        revokedAt: revocation.revokedAt,
+        revocationDigest: revocation.revocationDigest,
+      });
+    } catch (error) {
+      if (error?.code === "ENOENT") return null;
+      throw error;
+    }
+  }
   return Object.freeze({
     descriptor: captured.descriptor,
     readRevocation() {
-      try {
-        const revocation = readRevocationRecord(
-          captured.revocationPath,
-          captured.descriptor,
-        );
-        return Object.freeze({
-          schema: revocation.schema,
-          replayStoreId: revocation.replayStoreId,
-          authorityId: revocation.authorityId,
-          revocationAuthorityId: revocation.revocationAuthorityId,
-          tenantId: revocation.tenantId,
-          handlerArtifactDigest: revocation.handlerArtifactDigest,
-          policyRevision: revocation.policyRevision,
-          revocationId: revocation.revocationId,
-          reasonDigest: revocation.reasonDigest,
-          authorizationRequestDigest: revocation.authorizationRequestDigest,
-          authorizationEvidenceDigest: revocation.authorizationEvidenceDigest,
-          auditEventDigest: revocation.auditEventDigest,
-          durabilityReceiptDigest: revocation.durabilityReceiptDigest,
-          evidenceResolverDigest: revocation.evidenceResolverDigest,
-          evidenceReadbackDigest: revocation.evidenceReadbackDigest,
-          revokedAt: revocation.revokedAt,
-          revocationDigest: revocation.revocationDigest,
-        });
-      } catch (error) {
-        if (error?.code === "ENOENT") return null;
-        throw error;
-      }
+      // A revocation is created exclusively at its final path. Serialize
+      // readback with the official writer so a live publication's partial
+      // bytes cannot masquerade as a corrupt crash record. After a failed or
+      // dead writer releases its lock, incomplete records still fail closed.
+      return withFileLock(captured.lockTarget, readRevocation, {
+        failIfUnavailable: true,
+        timeoutMs: 5_000,
+      });
     },
     revoke(value) {
       const revocation = normalizeRevocation(value, captured.descriptor);

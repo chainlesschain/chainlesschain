@@ -4,6 +4,14 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### 准确提交 CI 失败修复（2026-10-01）
+
+`e96062008ffeb1dfff269b3479f848ccaf8c8d92` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36818263238) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36818262980) 已结束但未通过。CLI CI 的失败包括 Ubuntu unit shard 3、macOS unit shards 3/4、Windows unit shard 9；PM 三系统聚合因依赖矩阵失败拒绝验收。Strict Sandbox 的 macOS 作业失败，其余平台成功。该 SHA 的 IDE Extensions、IDE Roadmap Safety Matrix 与 CLI Session Host Consistency 已通过，不能替代两个 CLI 发布门。
+
+日志定位三项具体原因：macOS `process.chdir()` 将临时路径 `/var` 解析为 `/private/var`，测试的逻辑路径断言不匹配；IDE 配对发布合并后 CLI 离线 changelog 产物漏同步；Volcengine 撤销记录直接创建在最终路径，另一进程可能读取官方写端尚未写完的字节并报告 unavailable。候选修复保留逻辑 settings 写入目标断言，只将 cwd 断言与真实路径比较；重新生成离线 changelog；撤销读取与官方写端共用严格跨进程锁。损坏、死写端残留和锁不可用仍拒绝，未改为忽略坏记录或重试恢复权限。
+
+本地 Windows 定向 5 文件 83 项通过，包含真实子进程在只公开一字节时读取撤销的受控测试、部分崩溃记录保留/拒绝对照，以及 function execution authority 和 revocation status floor 回归。ESLint 零错误。macOS 路径修正和完整矩阵须由新提交的托管运行复验，尚无新 SHA 的发布验收；持久 settings generation 仍未实施，NET-02 继续局部完成，未升版本或发布。
+
 ### NET-01 / NET-02 与发布门更新（2026-09-30）
 
 `9daa8ffa96b983e33afc4bff1f0d53786ff2e022` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36525770660) 全部通过。Linux 真实 Docker 扩展探针 4/4 通过，覆盖 IPv6、redirect、WebSocket CONNECT、子进程、broker/relay 故障及容器清理。后续 `0fc1b991bc885cf7d76b5ae70b9d3e50729f6a64` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36528391593) 和 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36528391871) 全部通过，前者包含 `run_shell` 的真实 Linux Docker 产品路径。该后端已在 CLI 0.166.79 发布；NET-01 的剩余验收仍需逐项对照审计中的 DNS 与持续连接证据，不由一次产品正向探针推定全部完成。

@@ -9,6 +9,19 @@
       "title": "",
       "sections": [
         {
+          "heading": "Changed - IDE pairing for CLI 0.166.82",
+          "body": "- Pair VS Code `0.37.124` and JetBrains `0.4.144` with the already published\n  `chainlesschain@0.166.82` CLI, including offline upgrade guidance.\n- Explain investigation budgets, retained CI failure assertions, evidence across\n  compaction/restart/task handoff, and corrected GitHub tool routing in both\n  marketplace changelogs and current-release overviews."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.82",
+      "cliVersions": ["0.166.82"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
           "heading": "Fixed - cc CLI 0.166.82: recover stalled issue investigations",
           "body": "- Count Issue queries, artifact downloads, and saved-log inspection as\n  investigation, preserving recovery until an actionable tool outcome.\n- Recognize repeated reads of the same Issue across GitHub web, CLI, and API\n  routes while keeping its linked PR and workflow runs distinct.\n- Retain failed-test assertions, source locations, and suite verdicts from\n  colored CI logs through context compaction, restart, and session handoff,\n  including when the log download itself succeeds.\n- Correct GitHub CLI calls sent to the Git tool and preserve established\n  evidence after unrelated command errors. Add regression coverage for mixed\n  investigation, compaction, local edits, and real verification commands."
         }

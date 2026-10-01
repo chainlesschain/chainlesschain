@@ -123,7 +123,10 @@ describe("official settings mutations on real files", () => {
         kind: "deny",
         rule: "Bash",
       });
-      expect(process.cwd()).toBe(elsewhere);
+      // macOS exposes its temp tree through /var -> /private/var; chdir()
+      // reports the physical path. Keep the separate logical writer-target
+      // assertion below so alias normalization cannot hide target drift.
+      expect(process.cwd()).toBe(fs.realpathSync(elsewhere));
       expect(result.file).toBe(file);
       expect(
         JSON.parse(fs.readFileSync(file, "utf8")).permissions.deny,

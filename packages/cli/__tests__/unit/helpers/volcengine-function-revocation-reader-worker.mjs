@@ -6,7 +6,8 @@ import {
   createVolcengineFunctionReplayStore,
 } from "../../../src/lib/evolution/volcengine-function-replay-store.js";
 
-const [rootDir, descriptorPath, readyPath, nowValue] = process.argv.slice(2);
+const [rootDir, descriptorPath, readyPath, nowValue, attemptPath] =
+  process.argv.slice(2);
 const descriptor = JSON.parse(readFileSync(descriptorPath, "utf8"));
 const port = captureVolcengineFunctionReplayStore(
   createVolcengineFunctionReplayStore({
@@ -20,6 +21,9 @@ writeFileSync(readyPath, "ready", { encoding: "utf8", flag: "wx" });
 let outcome;
 for (let attempt = 0; attempt < 500; attempt += 1) {
   try {
+    if (attempt === 0 && attemptPath) {
+      writeFileSync(attemptPath, "attempt", { encoding: "utf8", flag: "wx" });
+    }
     const revocation = port.readRevocation();
     if (revocation) {
       outcome = { status: "revoked", revocation };

@@ -449,6 +449,76 @@ describe("Volcengine function replay store", () => {
     });
   });
 
+  it("serializes a separate reader with an in-progress partial revocation publication", async () => {
+    const rootDir = root();
+    const descriptorPath = join(rootDir, "descriptor.json");
+    const readyPath = join(rootDir, "revocation-reader.ready");
+    const attemptPath = join(rootDir, "revocation-reader.attempt");
+    writeFileSync(descriptorPath, JSON.stringify(descriptor()), "utf8");
+    const port = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    const originalWrite = fs.writeSync;
+    let reader;
+    let observedPartial = false;
+    const write = vi
+      .spyOn(fs, "writeSync")
+      .mockImplementation((fd, bytes, offset, length) => {
+        if (observedPartial || !Buffer.isBuffer(bytes)) {
+          return originalWrite(fd, bytes, offset, length);
+        }
+        observedPartial = true;
+        // The official writer now owns the store lock, but its final path
+        // contains only one byte. Start the real reader at that boundary.
+        const written = originalWrite(fd, bytes, offset, 1);
+        reader = runRevocationReader([
+          rootDir,
+          descriptorPath,
+          readyPath,
+          String(NOW),
+          attemptPath,
+        ]);
+        const deadline = Date.now() + 4_000;
+        while (!existsSync(attemptPath) && Date.now() < deadline) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+        }
+        expect(existsSync(attemptPath)).toBe(true);
+        // Give the already-running reader time to enter readRevocation before
+        // completing publication. An unlocked read rejects the one-byte file.
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 150);
+        return written;
+      });
+    const value = revocation();
+    try {
+      expect(port.revoke(value)).toMatchObject({
+        revocationDigest: value.revocationDigest,
+        durable: true,
+        readbackVerified: true,
+      });
+    } finally {
+      write.mockRestore();
+    }
+    expect(observedPartial).toBe(true);
+    await expect(reader).resolves.toMatchObject({
+      status: "revoked",
+      revocation: { revocationDigest: value.revocationDigest },
+    });
+  });
+
+  it("retains and rejects a partial crash revocation after the writer is gone", () => {
+    const rootDir = root();
+    const port = captureVolcengineFunctionReplayStore(
+      store(rootDir, () => NOW),
+    );
+    const file = join(rootDir, "authority-revocation.json");
+    writeFileSync(file, "{", { encoding: "utf8", flag: "wx" });
+    expect(() => port.readRevocation()).toThrow(
+      "Volcengine function revocation record is invalid",
+    );
+    expect(fs.readFileSync(file, "utf8")).toBe("{");
+    expect(existsSync(join(rootDir, "reservations-index.lock"))).toBe(false);
+  });
+
   it("fails closed but retains revocation when directory fsync fails", () => {
     const rootDir = root();
     const port = captureVolcengineFunctionReplayStore(
