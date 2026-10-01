@@ -17,6 +17,10 @@
 import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
+import {
+  isPluginAuthorityEnvironmentKey,
+  isValidEnvironmentKey,
+} from "../authority-launch-environment.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -68,7 +72,11 @@ export function collectPluginSettings(opts = {}) {
       !Array.isArray(parsed.env)
     ) {
       for (const [k, v] of Object.entries(parsed.env)) {
-        if (typeof v === "string") {
+        if (
+          typeof v === "string" &&
+          isValidEnvironmentKey(k) &&
+          !isPluginAuthorityEnvironmentKey(k)
+        ) {
           env[k] = v;
           contributed = true;
         }

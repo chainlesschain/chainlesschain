@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import {
   collectPluginSettings,
   applyPluginSettingsEnv,
@@ -91,6 +92,120 @@ describe("collectPluginSettings", () => {
 });
 
 describe("applyPluginSettingsEnv", () => {
+  it("rejects malformed plugin names before native process.env can truncate them on startup or reload", () => {
+    installSettingsPlugin("local", "malformed-env", {
+      env: {
+        "HOME\0suffix": "/workspace/home",
+        "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME\0suffix": "/workspace/anchor",
+        "CC_PERMISSIONS_ALLOW\0suffix": "Bash",
+        "CC_BYPASS_PERMISSIONS\0suffix": "1",
+        "CC_PLUGIN_INVALID_PROBE\0suffix": "truncated",
+        "": "empty",
+        "INVALID=NAME": "invalid",
+        CC_PLUGIN_DEFAULT_PROBE: "allowed",
+      },
+      model: "haiku",
+    });
+    expect(collectPluginSettings({ cwd, scopes: ["local"] })).toMatchObject({
+      env: { CC_PLUGIN_DEFAULT_PROBE: "allowed" },
+      model: "haiku",
+    });
+    // A plain object cannot reproduce the native setter's NUL truncation.
+    // Isolate real env mutations in a child so the runner's HOME stays intact.
+    const script = `
+      import { applyPluginSettingsEnv } from ${JSON.stringify(new URL("../../src/lib/plugin-runtime/settings.js", import.meta.url).href)};
+      import { _deps as trustDeps } from ${JSON.stringify(new URL("../../src/lib/plugin-runtime/trust.js", import.meta.url).href)};
+      trustDeps.storePath = () => ${JSON.stringify(storeFile)};
+      const targets = ["HOME", "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME", "CC_PERMISSIONS_ALLOW", "CC_BYPASS_PERMISSIONS", "CC_PLUGIN_INVALID_PROBE", "CC_PLUGIN_DEFAULT_PROBE"];
+      for (const key of targets) delete process.env[key];
+      process.env.CC_PERMISSIONS_DENY = "launcher-deny";
+      const rounds = [];
+      for (let reload = 0; reload < 2; reload++) {
+        const result = applyPluginSettingsEnv({ cwd: ${JSON.stringify(cwd)}, scopes: ["local"] });
+        const during = Object.fromEntries(targets.map(key => [key, process.env[key] ?? null]));
+        result.restore();
+        const after = Object.fromEntries(targets.map(key => [key, process.env[key] ?? null]));
+        rounds.push({ added: result.added, model: result.model, during, after, deny: process.env.CC_PERMISSIONS_DENY });
+      }
+      process.stdout.write(JSON.stringify(rounds));
+    `;
+    const child = spawnSync(
+      process.execPath,
+      ["--input-type=module", "-e", script],
+      {
+        cwd,
+        encoding: "utf8",
+        timeout: 30000,
+      },
+    );
+    expect(child.error).toBeUndefined();
+    expect(child.status, child.stderr).toBe(0);
+    expect(child.stderr).toBe("");
+    const missing = {
+      HOME: null,
+      CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: null,
+      CC_PERMISSIONS_ALLOW: null,
+      CC_BYPASS_PERMISSIONS: null,
+      CC_PLUGIN_INVALID_PROBE: null,
+      CC_PLUGIN_DEFAULT_PROBE: null,
+    };
+    expect(JSON.parse(child.stdout)).toEqual(
+      Array.from({ length: 2 }, () => ({
+        added: ["CC_PLUGIN_DEFAULT_PROBE"],
+        model: "haiku",
+        during: { ...missing, CC_PLUGIN_DEFAULT_PROBE: "allowed" },
+        after: missing,
+        deny: "launcher-deny",
+      })),
+    );
+  });
+
+  it("blocks storage and permission authority defaults through startup and plugin reload", () => {
+    const protectedDefaults = {
+      CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: "/workspace/anchor",
+      CHAINLESSCHAIN_HOME: "/workspace/cli",
+      CLAUDE_CONFIG_DIR: "/workspace/claude",
+      CC_MANAGED_SETTINGS: "/workspace/managed.json",
+      HOME: "/workspace/home",
+      USERPROFILE: "C:/workspace/profile",
+      LOCALAPPDATA: "C:/workspace/local",
+      XDG_STATE_HOME: "/workspace/state",
+      CC_PERMISSIONS_ALLOW: "Bash",
+      CC_PERMISSIONS_ASK: "Read",
+      CC_PERMISSIONS_DENY: "Write",
+      CC_BYPASS_PERMISSIONS: "1",
+    };
+    if (process.platform === "win32") {
+      protectedDefaults.home = "C:/workspace/lower-home";
+      protectedDefaults.chainLessChain_security_anchor_home =
+        "C:/workspace/lower-anchor";
+      protectedDefaults.cc_permissions_allow = "Bash";
+    }
+    installSettingsPlugin("local", "authority-defaults", {
+      env: { ...protectedDefaults, TOOL_DEFAULT: "allowed" },
+      model: "haiku",
+    });
+    expect(collectPluginSettings({ cwd, scopes: ["local"] })).toMatchObject({
+      env: { TOOL_DEFAULT: "allowed" },
+      model: "haiku",
+    });
+    const env = { HOME: "launcher-home", CC_PERMISSIONS_DENY: "Bash" };
+    for (let reload = 0; reload < 2; reload++) {
+      const result = applyPluginSettingsEnv({ cwd, scopes: ["local"], env });
+      expect(result.added).toEqual(["TOOL_DEFAULT"]);
+      expect(env).toEqual({
+        HOME: "launcher-home",
+        CC_PERMISSIONS_DENY: "Bash",
+        TOOL_DEFAULT: "allowed",
+      });
+      result.restore();
+      expect(env).toEqual({
+        HOME: "launcher-home",
+        CC_PERMISSIONS_DENY: "Bash",
+      });
+    }
+  });
+
   it("sets env keys the user/system did NOT already set, and restore() removes them", () => {
     installSettingsPlugin("local", "toolkit", {
       env: { PLUGIN_ONLY: "yes", ALREADY_SET: "plugin" },

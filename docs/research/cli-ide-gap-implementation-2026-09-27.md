@@ -4,6 +4,16 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### 启动环境权威与插件名称校验（2026-10-01）
+
+`11b6e928c56c880062764c93d90c10e1a9b79639` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878869)、[IDE Roadmap Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878839) 和 [IDE Roadmap Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878693) 均已完整通过，包含 Context Permission 的 macOS 生产并发 campaign。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36867879566) 仍在运行或排队，旧 macOS unit shard 2 的未知失败尚待完整矩阵复验；独立 campaign 的成功不作为其根因已查明的证据。
+
+统一 launcher storage 环境快照：除已有 CLI/Claude/managed settings 位置外，固定机器安全锚 override、LOCALAPPDATA、XDG_STATE_HOME 及 HOME / USERPROFILE / HOMEDRIVE / HOMEPATH，防止 settings env 改变默认锚根。Windows 大小写别名先归一，不同值的别名拒绝；恢复前校验完整快照，再移除新别名并还原。插件 defaults 在 startup / reload 的共享收集入口过滤这些 storage 键以及 CC_PERMISSIONS_ALLOW / ASK / DENY / CC_BYPASS_PERMISSIONS，普通工具 env 与 model 继续生效。
+
+Astra 实测发现 JSON 可表达带 NUL 后缀的名称，而 native process.env 会截断名称，例如 CC_BYPASS_PERMISSIONS 后接 NUL 再接 suffix，绕过完整字符串比较。收集入口现在先拒绝空名称、NUL 和等号，再做 authority 键检查。真实 Node 子进程从磁盘加载插件、通过默认 process.env 应用两轮 startup / restore / reload，验证截断名称不创建权限或 storage 键；合法工具 defaults 与 model 正对照仍通过。
+
+Windows 当前 Node 22.22.2 与最低 Node 22.12.0 的同一 3 文件回归均为 29/29 通过，两轮不相加；补齐独立工作树中已有 AJV 8.20.0 的依赖链接后 storage 回归正常加载。ESLint 零错误，Prettier / diff 检查通过，Astra 只读复核无新阻塞。storage 快照不恢复权限 flags，保留 agent 显式 CLI bypass 设置；本批不改变 project settings env 的既有权限键行为。持久跨进程 settings generation 仍未实施，NET-02 继续局部完成；未升版本或发布。
+
 ### CI 只读 settings 入口与并发诊断（2026-10-01）
 
 `41df016a9397d43957033535b95040119284f2f6` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36854394168) 已全部通过，复验前轮 macOS 路径修正及同步写口；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36854394552) 仍失败，仅 macOS unit shard 2 的 context/permission 生产并发 campaign 失败，PM 聚合因矩阵不完整拒绝。该 worker 退出 1，旧脱敏日志只有 1850 字节摘要及 not-committed，无法确定具体根因；不能将其归因为成功写入后的锁清理，也未扩大安全重试范围。

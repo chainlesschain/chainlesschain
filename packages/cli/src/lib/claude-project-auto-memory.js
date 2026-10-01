@@ -15,11 +15,12 @@ import {
   realpathSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { resolveClaudeProjectStorageDir } from "./claude-project-storage-layout.js";
 import {
-  CLAUDE_CONFIG_DIR_ENV,
-  resolveClaudeProjectStorageDir,
-} from "./claude-project-storage-layout.js";
+  captureStorageAuthorityEnvironment,
+  restoreStorageAuthorityEnvironment,
+} from "./authority-launch-environment.js";
 import {
   assertSafeConfigDataRoot,
   ensureClaudeProjectStorageTree,
@@ -40,27 +41,10 @@ export const CLAUDE_AUTO_MEMORY_MAX_SETTINGS_BYTES = 256 * 1024;
 export const CLAUDE_AUTO_MEMORY_MAX_BINDING_BYTES = 4096;
 export const CLAUDE_AUTO_MEMORY_MAX_EXISTING_FILES = 512;
 
-const LAUNCH_ENV_KEYS = Object.freeze([
-  "CHAINLESSCHAIN_HOME",
-  CLAUDE_CONFIG_DIR_ENV,
-  "CLAUDE_CODE_PROJECT_DIR_NAME",
-  "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
-  "CC_MANAGED_SETTINGS",
-  // Managed settings default path is derived from these trusted launcher
-  // values on Windows; include them so a project settings env map cannot
-  // redirect that authority after the snapshot.
-  "ProgramData",
-  "PROGRAMDATA",
-]);
-
 function autoMemoryError(code, message) {
   const error = new Error(message);
   error.code = code;
   return error;
-}
-
-function owns(object, key) {
-  return Object.prototype.hasOwnProperty.call(object, key);
 }
 
 function pathContains(parent, candidate) {
@@ -353,11 +337,7 @@ function isAutoMemoryDisabled(env) {
 
 /** Capture storage-affecting environment authority before settings merge. */
 export function captureClaudeStorageLaunchEnvironment(env = process.env) {
-  const snapshot = {};
-  for (const key of LAUNCH_ENV_KEYS) {
-    if (typeof env[key] === "string") snapshot[key] = env[key];
-  }
-  return Object.freeze(snapshot);
+  return captureStorageAuthorityEnvironment(env);
 }
 
 /**
@@ -368,10 +348,7 @@ export function restoreClaudeStorageLaunchEnvironment(
   snapshot,
   env = process.env,
 ) {
-  for (const key of LAUNCH_ENV_KEYS) {
-    if (owns(snapshot || {}, key)) env[key] = snapshot[key];
-    else delete env[key];
-  }
+  restoreStorageAuthorityEnvironment(snapshot, env);
 }
 
 /** Validate configuration/root and project-name authority before side effects. */
