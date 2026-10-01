@@ -26,6 +26,16 @@ async function main() {
     assert.deepEqual(loader.loadSettings({ cwd: root, env: {} }).rules.deny, [
       "Bash",
     ]);
+    const inventory = loader.inspectSettingsSources({
+      cwd: root,
+      env: {},
+      managedSettingsFile: path.join(root, "managed.json"),
+    });
+    assert.equal(inventory.sources.length, 4);
+    const project = inventory.sources.find((source) => source.exists);
+    assert.deepEqual(project.settings.permissions.deny, ["Bash"]);
+    assert.match(project.digest, /^[a-f0-9]{64}$/);
+    assert.ok(Object.isFrozen(project.settings.permissions.deny));
     const { createPermissionRulesProvider } =
       await import("../../src/lib/permission-authority.js");
     const provider = createPermissionRulesProvider({

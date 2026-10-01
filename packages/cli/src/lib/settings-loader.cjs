@@ -29,6 +29,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { randomUUID } = require("node:crypto");
 const { projectRootBase } = require("./project-root.cjs");
+const { observeSettingsSources } = require("./settings-source-observation.cjs");
 // Node >=22.12 supports synchronous require(ESM). Load these write-only
 // helpers on first use: permission readers should not trigger Node 22.12's
 // native require(ESM) warning just by discovering settings. Official writes
@@ -159,6 +160,27 @@ function settingsPaths(cwd, explicitFile) {
   list.push(path.join(cwd, ".claude", "settings.local.json"));
   if (explicitFile) list.push(path.resolve(cwd, explicitFile));
   return list;
+}
+
+/**
+ * Strict, read-only inventory for persistent-authority integration. Includes
+ * every ordered candidate, even absent files and files with no permission
+ * contribution. This does not register an anchor or grant execution authority.
+ */
+function inspectSettingsSources(opts = {}) {
+  const cwd = path.resolve(opts.cwd || process.cwd());
+  const candidates = [
+    ...settingsPaths(cwd, opts.settingsFile),
+    managedSettingsPath(opts),
+  ];
+  return Object.freeze({
+    schema: "chainlesschain.settings-source-observation/v1",
+    cwd,
+    sources: observeSettingsSources(candidates, {
+      fs: _deps.fs,
+      maxBytes: opts.maxBytes,
+    }),
+  });
 }
 
 /** Organization-controlled settings file. This layer is always highest. */
@@ -639,6 +661,7 @@ function readStringArraySetting(key, opts = {}) {
 }
 
 module.exports = {
+  inspectSettingsSources,
   loadSettings,
   loadSettingsConfig,
   readSettingsFile,
