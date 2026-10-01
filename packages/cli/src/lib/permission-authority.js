@@ -1,14 +1,42 @@
 /** Resolve static settings plus CLI-owned workspace-scoped permission rules. */
 
 import settingsLoader from "./settings-loader.cjs";
+import path from "node:path";
 import { ScopedPermissionStore } from "./scoped-permission-store.js";
 
-const { applyManagedPermissionPolicy, loadSettings } = settingsLoader;
+const {
+  applyManagedPermissionPolicy,
+  loadSettings,
+  getSettingsPermissionRevision,
+  subscribeSettingsPermissionRevision,
+} = settingsLoader;
 const KINDS = ["allow", "ask", "deny"];
+const providers = new WeakMap();
+const settingsAuthority = Object.freeze({
+  getSnapshot: getSettingsPermissionRevision,
+  subscribePolicyRevision: subscribeSettingsPermissionRevision,
+});
+
+function freezeSnapshot(value) {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) freezeSnapshot(child);
+    Object.freeze(value);
+  }
+  return value;
+}
 
 function cloneRules(rules) {
   return Object.fromEntries(
-    KINDS.map((kind) => [kind, [...(rules?.[kind] || [])]]),
+    KINDS.map((kind) => {
+      const entries = rules?.[kind] ?? [];
+      if (
+        !Array.isArray(entries) ||
+        entries.some((entry) => typeof entry !== "string")
+      ) {
+        throw new TypeError(`permission ${kind} rules must be a string array`);
+      }
+      return [kind, [...entries]];
+    }),
   );
 }
 
@@ -24,6 +52,7 @@ export function loadPermissionAuthority({
   baseRules = null,
   scopedStore = null,
 } = {}) {
+  const settingsRevision = getSettingsPermissionRevision();
   const loaded = loadSettings({
     cwd,
     settingsFile,
@@ -63,15 +92,48 @@ export function loadPermissionAuthority({
     }
   }
 
-  return {
+  if (getSettingsPermissionRevision() !== settingsRevision) {
+    const error = new Error(
+      "settings changed while permission authority was loading",
+    );
+    error.code = "CC_SETTINGS_PERMISSION_AUTHORITY_CHANGED";
+    throw error;
+  }
+  return freezeSnapshot({
     ...loaded,
     rules,
     sources,
     scoped,
     hasRules: hasRules(rules),
-  };
+    settingsRevision,
+  });
 }
 
 export function createPermissionRulesProvider(options = {}) {
-  return () => loadPermissionAuthority(options);
+  const cwd = path.resolve(options.cwd || process.cwd());
+  const captured = Object.freeze({
+    cwd,
+    settingsFile: options.settingsFile
+      ? path.resolve(cwd, options.settingsFile)
+      : null,
+    managedSettingsFile: options.managedSettingsFile
+      ? path.resolve(options.managedSettingsFile)
+      : null,
+    // Environment kill switches retain live sampling semantics. The source
+    // object cannot be replaced through later changes to the options object.
+    env: options.env || process.env,
+    baseRules: options.baseRules
+      ? freezeSnapshot(cloneRules(options.baseRules))
+      : null,
+    scopedStore: options.scopedStore || null,
+  });
+  const provider = () => loadPermissionAuthority(captured);
+  providers.set(provider, settingsAuthority);
+  return Object.freeze(provider);
+}
+
+// A legacy callback cannot advertise a trusted revision subscription simply
+// by copying properties onto itself. It still receives sampled revalidation.
+export function permissionRulesProviderAuthority(provider) {
+  return providers.get(provider) || null;
 }

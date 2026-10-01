@@ -27,6 +27,8 @@ import {
 } from "../../src/lib/auto-mode-config.js";
 import approvalCore from "../../../session-core/lib/approval-gate.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
+import settingsLoader from "../../src/lib/settings-loader.cjs";
+import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 
 const { ApprovalGate, POLICY: APPROVAL_POLICY } = approvalCore;
 
@@ -780,6 +782,224 @@ describe("explicit Docker egress configuration and execution evidence", () => {
       }
     },
   );
+
+  it.each(["permission-read", "approval", "broker-start"])(
+    "rejects official settings ABA while waiting for %s",
+    async (phase) => {
+      _deps.host = () => host;
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-settings-shell-policy-"),
+      );
+      const settings = path.join(root, ".claude", "settings.json");
+      fs.mkdirSync(path.dirname(settings), { recursive: true });
+      const original = JSON.stringify({
+        permissions: phase === "approval" ? { ask: ["Bash"] } : {},
+      });
+      fs.writeFileSync(settings, original);
+      const provider = createPermissionRulesProvider({
+        cwd: root,
+        env: {},
+        managedSettingsFile: path.join(root, "managed.json"),
+        scopedStore: { list: () => ({ rules: [] }) },
+      });
+      let release;
+      const wait = () =>
+        new Promise((resolve) => {
+          release = resolve;
+        });
+      const proxy = {
+        socketPath: "/private/broker.sock",
+        revision: 0,
+        abort: vi.fn(async () => {}),
+        close: vi.fn(async () => {}),
+      };
+      workerMocks.start.mockImplementation(
+        phase === "broker-start" ? wait : async () => proxy,
+      );
+      try {
+        const pending = executeTool(
+          "run_shell",
+          { command: "echo stale-settings" },
+          {
+            cwd: root,
+            sandbox: config(),
+            sessionId: "settings-aba",
+            permissionRulesProvider: provider,
+            permissionConfirm: phase === "approval" ? wait : async () => true,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        );
+        // Official providers are synchronous: permission-read is the first
+        // await immediately after the rules have been read, before admission.
+        if (phase !== "permission-read")
+          await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+        settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Bash" });
+        fs.writeFileSync(settings, original);
+        if (release) release(phase === "approval" ? true : proxy);
+        if (phase === "broker-start") {
+          await expect(pending).rejects.toMatchObject({
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          });
+        } else {
+          expect((await pending).policy.code).toBe(
+            "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          );
+        }
+        expect(egressMocks.start).not.toHaveBeenCalled();
+        expect(provider().rules.deny).toEqual([]);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(["container-create", "running", "receipt"])(
+    "synchronously revokes official settings ABA during %s",
+    async (phase) => {
+      _deps.host = () => host;
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-settings-shell-live-"),
+      );
+      const settings = path.join(root, ".claude", "settings.json");
+      fs.mkdirSync(path.dirname(settings), { recursive: true });
+      fs.writeFileSync(settings, "{}");
+      const provider = createPermissionRulesProvider({
+        cwd: root,
+        env: {},
+        managedSettingsFile: path.join(root, "managed.json"),
+        scopedStore: { list: () => ({ rules: [] }) },
+      });
+      const abort = vi.fn(async () => {});
+      workerMocks.start.mockResolvedValue({
+        socketPath: "/private/broker.sock",
+        revision: 0,
+        abort,
+        close: vi.fn(async () => {}),
+      });
+      const change = () => {
+        settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Bash" });
+        expect(abort).toHaveBeenCalledOnce(); // No tick/await/poll is needed.
+        fs.writeFileSync(settings, "{}");
+      };
+      let finishRun;
+      let deliverSession;
+      const dockerSession = {
+        close: vi.fn(async () => {}),
+        run: vi.fn(async (_command, options) => {
+          await options.beforeStart();
+          const result = await new Promise((resolve) => {
+            finishRun = resolve;
+          });
+          if (phase === "receipt") change();
+          return result;
+        }),
+      };
+      egressMocks.start.mockImplementation(
+        phase === "container-create"
+          ? () =>
+              new Promise((resolve) => {
+                deliverSession = resolve;
+              })
+          : async () => dockerSession,
+      );
+      try {
+        const pending = executeTool(
+          "run_shell",
+          { command: "echo stale-settings" },
+          {
+            cwd: root,
+            sandbox: config(),
+            sessionId: "settings-live-aba",
+            permissionRulesProvider: provider,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        );
+        await vi.waitFor(() =>
+          expect(
+            phase === "container-create" ? deliverSession : finishRun,
+          ).toBeTypeOf("function"),
+        );
+        if (phase !== "receipt") change();
+        if (phase === "container-create") deliverSession(dockerSession);
+        else finishRun({ stdout: "late success", stderr: "", exitCode: 0 });
+        if (phase === "container-create") {
+          await expect(pending).rejects.toMatchObject({
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          });
+          expect(dockerSession.run).not.toHaveBeenCalled();
+        } else {
+          expect(await pending).toMatchObject({
+            exitCode: 1,
+            retrySafe: false,
+            authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+            sandboxCapabilities: { applied: [] },
+          });
+        }
+        expect(dockerSession.close).toHaveBeenCalled();
+        settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Write" });
+        expect(abort).toHaveBeenCalledOnce(); // The old revocation stays latched.
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("removes the settings subscription after an authorized successful session", async () => {
+    _deps.host = () => host;
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-settings-shell-cleanup-"),
+    );
+    const provider = createPermissionRulesProvider({
+      cwd: root,
+      env: {},
+      managedSettingsFile: path.join(root, "managed.json"),
+      scopedStore: { list: () => ({ rules: [] }) },
+    });
+    const abort = vi.fn(async () => {});
+    const close = vi.fn(async () => {});
+    workerMocks.start.mockResolvedValue({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort,
+      close,
+    });
+    const session = {
+      close: vi.fn(async () => {}),
+      run: vi.fn(async (_command, options) => {
+        await options.beforeStart();
+        return { stdout: "authorized", stderr: "", exitCode: 0 };
+      }),
+    };
+    egressMocks.start.mockResolvedValue(session);
+    try {
+      const result = await executeTool(
+        "run_shell",
+        { command: "echo authorized" },
+        {
+          cwd: root,
+          sandbox: config(),
+          sessionId: "settings-success",
+          permissionRulesProvider: provider,
+          approvalGate: new ApprovalGate({
+            defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+          }),
+        },
+      );
+      expect(result).toMatchObject({ stdout: "authorized", exitCode: 0 });
+      expect(result.sandboxCapabilities.status).toBe("applied");
+      expect(session.close).toHaveBeenCalled();
+      expect(close).toHaveBeenCalled();
+      expect(abort).not.toHaveBeenCalled();
+      settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Bash" });
+      expect(abort).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 
   it("rejects a brief approval policy change during the first permission read", async () => {
     _deps.host = () => host;

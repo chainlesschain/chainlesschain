@@ -446,6 +446,9 @@ jobs:
           node packages/cli/scripts/run-claude-security-map-tests.mjs
           --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
 
+      - name: Verify synchronous settings authority at supported Node floor
+        run: node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
+
       - name: Verify Windows helper source contract
         if: runner.os == 'Windows'
         shell: powershell
@@ -539,6 +542,9 @@ jobs:
           __tests__/unit/background-task-command-runner.test.js
           __tests__/unit/agent-core-run-shell-background-sandbox.test.js
           __tests__/unit/agent-sandbox.test.js
+          __tests__/unit/settings-loader.test.js
+          __tests__/unit/settings-mutation-authority.test.js
+          __tests__/unit/permissions-command.test.js
           __tests__/unit/sandbox-network-policy.test.js
           __tests__/integration/sandbox-egress-proxy.test.js
           __tests__/integration/sandbox-egress-worker.test.js
@@ -657,6 +663,8 @@ jobs:
             echo "kernel=$(uname -srmo)"
             echo "node=$(node --version)"
           } > "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
+      - name: Verify synchronous settings authority on native ARM64
+        run: node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
       - name: Verify native anonymous tmpfile support
         shell: bash
         run: |

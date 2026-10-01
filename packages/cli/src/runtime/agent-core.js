@@ -56,6 +56,7 @@ const { startSkillInvocation, settleSkillInvocation } = skillInvocationReceipt;
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
+import { permissionRulesProviderAuthority } from "../lib/permission-authority.js";
 import {
   captureHostToolPolicyAuthority,
   hostToolPolicyAuthorityForChild,
@@ -2425,6 +2426,7 @@ function projectPermissionAuthority({ authority, rules, tool, args, cwd }) {
     scoped: authority?.scoped || null,
     version: authority?.version || authority?.policyVersion || null,
     revision: authority?.revision ?? null,
+    settingsRevision: authority?.settingsRevision || null,
     headHash: authority?.headHash || null,
     verdict: {
       decision: verdict.decision || null,
@@ -2627,6 +2629,43 @@ export async function executeTool(name, args, context = {}) {
         name === "run_shell"
           ? "CC_SHELL_POLICY_AUTHORITY_CHANGED"
           : "CC_HOST_TOOL_POLICY_AUTHORITY_CHANGED";
+      throw error;
+    }
+  }
+  let settingsPermissionAuthority = null;
+  let entrySettingsPermissionRevision = null;
+  try {
+    if (name === "run_shell") {
+      settingsPermissionAuthority = permissionRulesProviderAuthority(
+        context.permissionRulesProvider,
+      );
+      entrySettingsPermissionRevision =
+        settingsPermissionAuthority?.getSnapshot() || null;
+    }
+  } catch (error) {
+    return {
+      error:
+        "[Permission Authority] Settings authority is unavailable; execution was blocked.",
+      policy: {
+        decision: "blocked",
+        via: "permission-authority-load",
+        code: error.code,
+      },
+    };
+  }
+  function assertSettingsPermissionRevision() {
+    if (!settingsPermissionAuthority) return;
+    if (
+      permissionRulesProviderAuthority(
+        liveExecutionContext.permissionRulesProvider,
+      ) !== settingsPermissionAuthority ||
+      settingsPermissionAuthority.getSnapshot() !==
+        entrySettingsPermissionRevision
+    ) {
+      const error = new Error(
+        "Settings permission authority changed after admission",
+      );
+      error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
       throw error;
     }
   }
@@ -2980,11 +3019,13 @@ export async function executeTool(name, args, context = {}) {
   let effectivePermissionRules = context.permissionRules || null;
   if (typeof context.permissionRulesProvider === "function") {
     try {
+      assertSettingsPermissionRevision();
       permissionAuthority = await context.permissionRulesProvider({
         cwd,
         tool: name,
         args,
       });
+      assertSettingsPermissionRevision();
       effectivePermissionRules =
         permissionAuthority?.rules || permissionAuthority || null;
       if (
@@ -3485,6 +3526,7 @@ export async function executeTool(name, args, context = {}) {
   let shellDispatchPolicyAuthority = null;
   if (name === "run_shell") {
     try {
+      assertSettingsPermissionRevision();
       const permissionRulesProvider = context.permissionRulesProvider || null;
       const approvalGate = context.approvalGate || null;
       const initialProjection = {
@@ -3548,6 +3590,12 @@ export async function executeTool(name, args, context = {}) {
           ? digestPolicyAuthority(context.sandbox)
           : null;
       shellDispatchPolicyAuthority = Object.freeze({
+        ...(settingsPermissionAuthority
+          ? {
+              subscribeSettingsPermissionRevision:
+                settingsPermissionAuthority.subscribePolicyRevision,
+            }
+          : {}),
         ...(hostPolicyAuthority
           ? {
               subscribeHostPolicyRevision:
@@ -3569,6 +3617,7 @@ export async function executeTool(name, args, context = {}) {
         async revalidate() {
           try {
             assertHostPolicyRevision();
+            assertSettingsPermissionRevision();
             if (
               (liveExecutionContext.permissionRulesProvider || null) !==
                 permissionRulesProvider ||
@@ -3594,6 +3643,7 @@ export async function executeTool(name, args, context = {}) {
                 currentPermissionAuthority ||
                 null;
             }
+            assertSettingsPermissionRevision();
             const currentProjection = {
               hostAuthority: hostPolicyAuthority?.getSnapshot() || null,
               permission: projectPermissionAuthority({
@@ -6848,6 +6898,7 @@ async function executeToolInner(
         let removePlanAuthorityListener = null;
         let removeApprovalAuthorityListener = null;
         let removeHostAuthorityListener = null;
+        let removeSettingsAuthorityListener = null;
         if (needsEgress) {
           try {
             const { startEgressProxyWorker } =
@@ -6969,6 +7020,26 @@ async function executeToolInner(
                   "host policy subscription must return an unsubscribe function",
                 );
             }
+            if (
+              typeof shellDispatchPolicyAuthority?.subscribeSettingsPermissionRevision ===
+              "function"
+            ) {
+              removeSettingsAuthorityListener =
+                shellDispatchPolicyAuthority.subscribeSettingsPermissionRevision(
+                  () => {
+                    const error = new Error(
+                      "Settings permission policy changed during Docker egress execution",
+                    );
+                    error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+                    authorityMonitor.revoke(error);
+                  },
+                );
+              if (typeof removeSettingsAuthorityListener !== "function") {
+                throw new TypeError(
+                  "settings revision subscription must return an unsubscribe function",
+                );
+              }
+            }
             authorityMonitor.start();
             await authorityMonitor.checkNow();
           } else {
@@ -7032,6 +7103,7 @@ async function executeToolInner(
             });
           }
         } finally {
+          removeSettingsAuthorityListener?.();
           removeHostAuthorityListener?.();
           removeApprovalAuthorityListener?.();
           removePlanAuthorityListener?.();

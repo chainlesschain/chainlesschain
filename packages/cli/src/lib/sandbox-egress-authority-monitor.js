@@ -1,7 +1,8 @@
 /**
  * Recheck the live shell authority while a Docker egress session exists. This
- * is a bounded poll, not a lossless revision subscription: changes that are
- * reverted between checks cannot be observed.
+ * uses bounded polling as a fallback. Trusted policy owners also call revoke()
+ * synchronously on official revisions; unobserved external changes reverted
+ * between polls remain outside that event guarantee.
  */
 export function createDockerEgressAuthorityMonitor({
   revalidate,

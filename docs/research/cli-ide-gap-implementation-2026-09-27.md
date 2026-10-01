@@ -80,6 +80,22 @@ Windows 本地 16 文件 572 项回归通过；随后补齐 headless 空工具�
 
 这闭合本批明确列出的静态配置输入，不实现任意运行时可变对象的持续授权协议。settings 官方写口 / 外部进程写入的不可回退 generation、legacy sampled callback、其他宿主动态来源，以及 opaque executor / 持久 agenda 的父动作权威仍开放。NET-02 与全部 20 组任务继续保持未完成；当前候选尚无准确 SHA 的完整 CLI CI / Strict Sandbox / IDE 托管矩阵，未升版本或发布。
 
+### NET-02：官方 settings 写口修订与同步撤销（2026-10-01）
+
+`a519ee94045a87898906d929bf57682ac018a3be` 已与远端 `main` 对齐，其 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36795878003) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36795877797) 均为 cancelled，取消原因尚未确定；不能以并发配置或旧提交通过推定这轮验收成功。
+
+本轮为 `settings-loader.cjs` 的官方 `addRule()` 写口增加私有进程级 owner 与单调 revision。严格锁内读取、验证和判重后，先进入 mutating 状态、推进修订并同步通知，再复用现有安全存储的 fsync / 原子替换；全部同步返回合同保持。监听器异常逐个隔离，重入读取或写入在获取锁前拒绝；重复规则、损坏输入和锁不可用不推进修订。确定未提交的写失败保留新修订并保守撤销旧许可；已提交但锁清理失败报告 committed，不假称成功；rename 后持久化不确定则锁存 invalid，原文件恢复也不能让本进程重新签发 settings 权限。
+
+入口固定绝对目标，避免同步观察器的 `process.chdir()` 把写入与锁指向不同位置。最终 settings 文件符号链接明确拒绝，避免读目标后原子替换链接本身；目录别名保持支持。并发真实 Node 进程的添加使用同一严格文件锁，不丢失规则和无关字段。该存储串行化不等于其他进程收到授权撤销事件。
+
+官方 permission provider 固定来源参数、复制规则输入、冻结加载结果，并在同步读取前后验证同一 ready 修订；品牌保存在私有 WeakMap，普通 callback 复制属性不能伪造订阅。shell 在首次 await 前绑定 owner / revision，审批、broker 启动、容器创建、运行中和回执前都保留重验。Docker monitor 直接同步锁存官方修订的撤销并启动代理/容器清理，不先 await 重载规则；文件内容立即恢复也不能复用旧许可。同步保证是锁存并发起清理，不声称容器在 `addRule()` 返回前已经退出。
+
+Windows 本地 17 文件 440 项通过、16 项 Linux 真容器测试跳过；补充正常成功后的退订正对照后，受影响 `agent-sandbox` 70/70 通过，两轮重叠不合计。包含真实 settings 文件、并发进程、目录 junction / 大小写别名、相对路径及实际 chdir、读写重入和不确定状态隔离进程；Windows 最终文件 symlink 的 lstat 边界使用注入，Linux 测试用真实文件 symlink。Docker 生命周期仍用注入 session/proxy；新增 `settings-api` / `settings-api-aba` 真实持续 CONNECT、零后续流量、heartbeat 停止和容器回收探针须在托管 Linux x64 / ARM64 执行。
+
+真实 Node 22.12.0 加载 smoke 通过，验证 CJS / ESM 共享 owner 及同步返回（该 Node 版本原生 require(ESM) warning 保留）。ESLint 0 errors、22 个核心既有 unused warnings；actionlint、ESM 审计与进程清单一致性通过。发布/安全映射契约 2 文件 30/30 通过；修正上一提交新增空工具列表断言后遗漏的 headless-runner producer 摘要，仅更新这一摘要，保留全部原规则、断言和原 JSON 格式。映射运行器要求的 29 项全部通过，其余 922 项因名称筛选未运行，不计作全套通过。Astra 最终只读实现复核通过，另建议的正常结束退订用例已补齐并通过。
+
+此 owner 仅覆盖同一执行环境、同一模块实例内经官方 `addRule()` 开始的修改；它保守撤销该进程全部 settings provider 的 shell，包括无关项目。跨进程 / worker 通知、外部编辑、其他写入 API、ScopedPermissionStore 的同步撤销、持久不可回退 generation 和 legacy sampled sources 仍开放，NET-02 仍为局部完成。完整准确提交 CLI CI / Strict Sandbox / IDE 门仍待验证，未升版本或发布。
+
 ### NET-02 / IDE-MODE：WS 宿主策略 owner 与权限读取器接线（2026-10-01）
 
 WS 创建、DB 恢复及 canonical 恢复现在绑定稳定的宿主策略 owner；输入深复制冻结并校验已知安全字段，公开句柄只读。`updateSessionPolicy()` 经原入口同步提交不可回退 revision 并通知全部监听器，执行器在第一次异步读取前绑定该快照。下一次工具调用读取当前策略，宿主 deny 继续优先于 settings allow 和 ApprovalGate；审批等待及 broker 启动期间的 `allow → deny → allow` 会使旧许可失效。运行中 Docker monitor 同步锁存撤销、切断代理并关闭已创建或迟到的容器，退出后清理监听器，不能签发成功回执或自动重试。

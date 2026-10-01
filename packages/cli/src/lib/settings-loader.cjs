@@ -27,9 +27,77 @@
 const fsDefault = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { randomUUID } = require("node:crypto");
 const { projectRootBase } = require("./project-root.cjs");
+// Node >=22.12 supports synchronous require(ESM). These helpers have no
+// asynchronous initialization; official settings writes keep their sync API.
+const {
+  readSecurityStore,
+  writeSecurityStore,
+} = require("./durable-security-store.js");
+const { withFileLock } = require("./with-file-lock.js");
 
-const _deps = { fs: fsDefault, homedir: () => os.homedir() };
+const _deps = {
+  fs: fsDefault,
+  homedir: () => os.homedir(),
+  readSecurityStore,
+  writeSecurityStore,
+  withFileLock,
+};
+
+// A process-wide owner deliberately revokes unrelated projects too. Matching
+// only contributing paths misses absent files, parent discovery and aliases.
+// Only this module can advance it; raw edits and other processes are not events.
+const settingsOwnerId = randomUUID();
+let settingsRevision = Object.freeze({
+  ownerId: settingsOwnerId,
+  revision: 0,
+  state: "ready",
+});
+const settingsListeners = new Set();
+
+function getSettingsPermissionRevision() {
+  if (settingsRevision.state !== "ready") {
+    const error = new Error("settings permission authority is unavailable");
+    error.code = "CC_SETTINGS_PERMISSION_AUTHORITY_UNAVAILABLE";
+    throw error;
+  }
+  return settingsRevision;
+}
+
+function subscribeSettingsPermissionRevision(listener) {
+  if (typeof listener !== "function") {
+    throw new TypeError("settings revision listener must be a function");
+  }
+  settingsListeners.add(listener);
+  return () => settingsListeners.delete(listener);
+}
+
+function beginSettingsMutation() {
+  getSettingsPermissionRevision();
+  const next = settingsRevision.revision + 1;
+  settingsRevision = Object.freeze({
+    ownerId: settingsOwnerId,
+    revision: next,
+    state: Number.isSafeInteger(next) ? "mutating" : "invalid",
+  });
+  // Latch before calling observers. Reentrant writers/readers cannot acquire
+  // the lock or obtain authority while an official write is in progress.
+  for (const listener of [...settingsListeners]) {
+    try {
+      listener(settingsRevision);
+    } catch {
+      // An observer cannot prevent another running shell from being revoked.
+    }
+  }
+  if (settingsRevision.state === "invalid") {
+    getSettingsPermissionRevision();
+  }
+}
+
+function finishSettingsMutation(state) {
+  settingsRevision = Object.freeze({ ...settingsRevision, state });
+}
 
 const KINDS = Object.freeze(["allow", "ask", "deny"]);
 
@@ -260,30 +328,88 @@ function scopeFile(cwd, scope) {
  * @throws if the target file exists but is malformed JSON (refuse to clobber).
  */
 function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
+  const entryCwd = process.cwd();
+  const absoluteCwd = path.resolve(entryCwd, cwd);
+  // Check before lock acquisition: notification callbacks may reenter here.
+  getSettingsPermissionRevision();
   if (!KINDS.includes(kind)) {
     throw new Error(`kind must be allow | ask | deny (got "${kind}")`);
   }
-  const file = scopeFile(cwd, scope);
-  let data = {};
-  if (_deps.fs.existsSync(file)) {
-    const text = _deps.fs.readFileSync(file, "utf-8");
-    try {
-      data = JSON.parse(text) || {};
-    } catch (err) {
-      throw new Error(
-        `refusing to overwrite malformed ${file} (${err.message})`,
+  if (typeof rule !== "string" || !rule.trim()) {
+    throw new TypeError("permission rule must be a non-empty string");
+  }
+  if (!["project", "local", "user"].includes(scope)) {
+    throw new TypeError("scope must be project | local | user");
+  }
+  const file = path.resolve(entryCwd, scopeFile(absoluteCwd, scope));
+  _deps.fs.mkdirSync(path.dirname(file), { recursive: true });
+  let began = false;
+  let committed = false;
+  try {
+    const result = _deps.withFileLock(
+      file,
+      () => {
+        // Atomic replacement would otherwise replace the link itself after
+        // reading its target. Separate file links also have separate locks.
+        // Directory aliases continue to address the same file and lock.
+        if (
+          _deps.fs.lstatSync(file, { throwIfNoEntry: false })?.isSymbolicLink()
+        ) {
+          throw new TypeError(
+            `refusing to replace a settings file symbolic link: ${file}`,
+          );
+        }
+        const data = _deps.readSecurityStore(file, "settings");
+        if (
+          Object.hasOwn(data, "permissions") &&
+          (!data.permissions ||
+            typeof data.permissions !== "object" ||
+            Array.isArray(data.permissions))
+        ) {
+          throw new TypeError(
+            `refusing to overwrite malformed permissions: ${file}`,
+          );
+        }
+        data.permissions ??= {};
+        // Refuse to hide a damaged rule list, including a different decision.
+        for (const decision of KINDS) {
+          if (
+            Object.hasOwn(data.permissions, decision) &&
+            (!Array.isArray(data.permissions[decision]) ||
+              data.permissions[decision].some(
+                (entry) => typeof entry !== "string",
+              ))
+          ) {
+            throw new TypeError(
+              `refusing to overwrite malformed permission rules: ${file}`,
+            );
+          }
+        }
+        data.permissions[kind] ??= [];
+        if (data.permissions[kind].includes(rule))
+          return { file, added: false };
+        data.permissions[kind].push(rule);
+        beginSettingsMutation();
+        began = true;
+        _deps.writeSecurityStore(file, "settings", data);
+        committed = true;
+        return { file, added: true };
+      },
+      { failIfUnavailable: true },
+    );
+    if (began) finishSettingsMutation("ready");
+    return result;
+  } catch (error) {
+    if (!error.commitState) {
+      error.commitState = committed ? "committed" : "not-committed";
+    }
+    if (began) {
+      finishSettingsMutation(
+        error.commitState === "unknown" ? "invalid" : "ready",
       );
     }
+    throw error;
   }
-  if (!data.permissions || typeof data.permissions !== "object") {
-    data.permissions = {};
-  }
-  if (!Array.isArray(data.permissions[kind])) data.permissions[kind] = [];
-  if (data.permissions[kind].includes(rule)) return { file, added: false };
-  data.permissions[kind].push(rule);
-  _deps.fs.mkdirSync(path.dirname(file), { recursive: true });
-  _deps.fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  return { file, added: true };
 }
 
 /**
@@ -523,6 +649,8 @@ module.exports = {
   mergeSandboxSettings,
   ruleSource,
   addRule,
+  getSettingsPermissionRevision,
+  subscribeSettingsPermissionRevision,
   scopeFile,
   KINDS,
   _deps,

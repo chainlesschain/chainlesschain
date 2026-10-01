@@ -22,6 +22,8 @@ import {
   resolveAutoModeDecisions,
 } from "../../src/lib/auto-mode-config.js";
 import dnsFixture from "../fixtures/dns-egress-fixture.cjs";
+import settingsLoader from "../../src/lib/settings-loader.cjs";
+import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 
 const { queryDns, startDnsFixture } = dnsFixture;
 const DNS_TRANSPORTS = [
@@ -216,6 +218,8 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     "auto-mode-aba",
     "host-policy",
     "host-policy-aba",
+    "settings-api",
+    "settings-api-aba",
   ])(
     "cuts an established product tunnel on %s revocation",
     async (source) => {
@@ -293,11 +297,17 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
                     hostSession.hostManagedToolPolicyAuthority,
                 }
               : {}),
-            permissionRulesProvider: async () => ({
-              rules: { allow: [], ask: [], deny: denied ? ["run_shell"] : [] },
-              sources: {},
-              scoped: { rules: [] },
-            }),
+            permissionRulesProvider: source.startsWith("settings-api")
+              ? createPermissionRulesProvider({ cwd: root, env: {} })
+              : async () => ({
+                  rules: {
+                    allow: [],
+                    ask: [],
+                    deny: denied ? ["run_shell"] : [],
+                  },
+                  sources: {},
+                  scoped: { rules: [] },
+                }),
             approvalGate: gate,
           },
         );
@@ -320,6 +330,18 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
           expect(
             hostSession.hostManagedToolPolicyAuthority.getSnapshot().revision,
           ).toBe(source === "host-policy-aba" ? 2 : 1);
+        } else if (source.startsWith("settings-api")) {
+          const settings = path.join(root, ".claude", "settings.json");
+          const existed = fs.existsSync(settings);
+          const original = existed ? fs.readFileSync(settings, "utf8") : "{}";
+          const revision =
+            settingsLoader.getSettingsPermissionRevision().revision;
+          settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Bash" });
+          if (source === "settings-api-aba")
+            fs.writeFileSync(settings, original);
+          expect(settingsLoader.getSettingsPermissionRevision().revision).toBe(
+            revision + 1,
+          );
         } else denied = true;
         const result = await Promise.race([
           pending,
