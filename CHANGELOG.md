@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - IDE pairing for CLI 0.166.82
+
+- Pair VS Code `0.37.124` and JetBrains `0.4.144` with the already published
+  `chainlesschain@0.166.82` CLI, including offline upgrade guidance.
+- Explain investigation budgets, retained CI failure assertions, evidence across
+  compaction/restart/task handoff, and corrected GitHub tool routing in both
+  marketplace changelogs and current-release overviews.
+
 ### Fixed - cc CLI 0.166.82: recover stalled issue investigations
 
 - Count Issue queries, artifact downloads, and saved-log inspection as
