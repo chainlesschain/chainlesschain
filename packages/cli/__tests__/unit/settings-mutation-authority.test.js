@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -358,6 +358,21 @@ assert.throws(()=>loader.addRule({cwd:root,kind:'allow',rule:'Bash'}),/unavailab
 });
 
 describe("settings permission providers", () => {
+  it("keeps real Node read-only discovery and provider loading free of write bridge diagnostics", () => {
+    const fixture = fileURLToPath(
+      new URL("../fixtures/settings-read-smoke.cjs", import.meta.url),
+    );
+    const result = spawnSync(process.execPath, [fixture], {
+      encoding: "utf8",
+      timeout: 10_000,
+      windowsHide: true,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+  });
+
   it("revokes absent and unrelated project sources and directory aliases through one owner", () => {
     const provider = providerFor();
     const authority = permissionRulesProviderAuthority(provider);

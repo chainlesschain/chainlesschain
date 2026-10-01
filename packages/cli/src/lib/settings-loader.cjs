@@ -29,20 +29,25 @@ const path = require("node:path");
 const os = require("node:os");
 const { randomUUID } = require("node:crypto");
 const { projectRootBase } = require("./project-root.cjs");
-// Node >=22.12 supports synchronous require(ESM). These helpers have no
-// asynchronous initialization; official settings writes keep their sync API.
-const {
-  readSecurityStore,
-  writeSecurityStore,
-} = require("./durable-security-store.js");
-const { withFileLock } = require("./with-file-lock.js");
+// Node >=22.12 supports synchronous require(ESM). Load these write-only
+// helpers on first use: permission readers should not trigger Node 22.12's
+// native require(ESM) warning just by discovering settings. Official writes
+// remain synchronous and keep the runtime's warning when applicable.
+let securityStoreHelpers;
+let fileLockHelper;
+function securityStore() {
+  return (securityStoreHelpers ??= require("./durable-security-store.js"));
+}
+function lockHelper() {
+  return (fileLockHelper ??= require("./with-file-lock.js").withFileLock);
+}
 
 const _deps = {
   fs: fsDefault,
   homedir: () => os.homedir(),
-  readSecurityStore,
-  writeSecurityStore,
-  withFileLock,
+  readSecurityStore: (...args) => securityStore().readSecurityStore(...args),
+  writeSecurityStore: (...args) => securityStore().writeSecurityStore(...args),
+  withFileLock: (...args) => lockHelper()(...args),
 };
 
 // A process-wide owner deliberately revokes unrelated projects too. Matching

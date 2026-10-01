@@ -4,6 +4,16 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### CI 只读 settings 入口与并发诊断（2026-10-01）
+
+`41df016a9397d43957033535b95040119284f2f6` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36854394168) 已全部通过，复验前轮 macOS 路径修正及同步写口；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36854394552) 仍失败，仅 macOS unit shard 2 的 context/permission 生产并发 campaign 失败，PM 聚合因矩阵不完整拒绝。该 worker 退出 1，旧脱敏日志只有 1850 字节摘要及 not-committed，无法确定具体根因；不能将其归因为成功写入后的锁清理，也未扩大安全重试范围。
+
+另复核 `e96062008f` 的 [IDE Roadmap Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36818262941)，三系统 campaign 均失败。Node 22.12.0 只读加载 settings-loader 就触发写入助手 require(ESM) 原生警告，违反 campaign 的 worker 零输出检查。候选改为只在官方写入首次使用时同步加载 durable store / lock 助手；纯 CJS settings 读取及 ESM permission provider 都不实例化该写桥。写口同步返回、原生运行时警告和进程内 owner 保持。
+
+为查明仍未识别的 macOS worker 错误，失败子进程仅输出受限 JSON 分类：允许的错误名、root/cause 错误码、提交状态、首个允许函数名。不输出消息、路径或原始堆栈；父进程复核每个字段。未知 root 不以已知 cause 或旁边的旧文本填补。安全重试仍仅限 STATE_LOCK_UNAVAILABLE 且确定 not-committed，已提交、未知状态及其他错误继续失败。
+
+Windows 本地 5 文件 78 项通过，包含真实 20 worker、200 次权限变更和七入口共 700 次投影；真实 Node 22.12.0 同一 campaign 9 项通过。最低版本只读 smoke stdout/stderr 均零，同步写入 smoke 通过并保留原生 warning。ESLint 零错误、actionlint 通过。新增只读 smoke 已接入 Strict Sandbox 三系统及 ARM64；完整新 SHA 托管矩阵和未识别 macOS 失败仍须复验。未实施持久 settings generation，未升版本或发布。
+
 ### 准确提交 CI 失败修复（2026-10-01）
 
 `e96062008ffeb1dfff269b3479f848ccaf8c8d92` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36818263238) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36818262980) 已结束但未通过。CLI CI 的失败包括 Ubuntu unit shard 3、macOS unit shards 3/4、Windows unit shard 9；PM 三系统聚合因依赖矩阵失败拒绝验收。Strict Sandbox 的 macOS 作业失败，其余平台成功。该 SHA 的 IDE Extensions、IDE Roadmap Safety Matrix 与 CLI Session Host Consistency 已通过，不能替代两个 CLI 发布门。

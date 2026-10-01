@@ -40,6 +40,86 @@ const REQUIRED_FILES = Object.freeze([
 // restricted to mutations proven not to have committed.
 const SAFE_CONTENTION_RETRIES_PER_WORKER = 20;
 const MAX_DIAGNOSTIC_BYTES = 16 * 1024;
+const WORKER_FAILURE_SCHEMA =
+  "chainlesschain.context-permission-worker-failure.v1";
+const SAFE_ERROR_CODES = Object.freeze([
+  "STATE_LOCK_UNAVAILABLE",
+  "STATE_LOCK_OWNERSHIP_LOST",
+  "STATE_LOCK_OWNER_CORRUPT",
+  "DURABLE_SECURITY_STORE_PREPARE_FAILED",
+  "DURABLE_SECURITY_STORE_READ_FAILED",
+  "DURABLE_SECURITY_STORE_CORRUPT_FAILED",
+  "DURABLE_SECURITY_STORE_WRITE_FAILED",
+  "CC_SCOPED_PERMISSION_INVALID",
+  "CC_SCOPED_PERMISSION_CONFLICT",
+  "CC_SCOPED_PERMISSION_NOT_FOUND",
+  "CC_SCOPED_PERMISSION_CORRUPT",
+  "ERR_REQUIRE_ESM",
+  "ERR_REQUIRE_ASYNC_MODULE",
+  "ERR_MODULE_NOT_FOUND",
+  "ERR_INVALID_ARG_TYPE",
+  "ERR_INVALID_ARG_VALUE",
+  "ENOENT",
+  "EEXIST",
+  "ENOTEMPTY",
+  "EACCES",
+  "EPERM",
+  "EBUSY",
+  "EIO",
+  "ENOSPC",
+  "EMFILE",
+  "ENFILE",
+]);
+const SAFE_ERROR_NAMES = Object.freeze([
+  "Error",
+  "TypeError",
+  "ReferenceError",
+  "RangeError",
+  "SyntaxError",
+  "AssertionError",
+  "DurableSecurityStoreError",
+]);
+const SAFE_FAILURE_SOURCES = Object.freeze([
+  "acquireOwnedDirectory",
+  "reclaimOwnedDirectory",
+  "completePublishedRelease",
+  "releaseOwnedDirectory",
+  "withFileLock",
+  "readSecurityStore",
+  "writeSecurityStore",
+  "mutateSecurityStore",
+  "validateState",
+  "workerAdd",
+  "workerRevoke",
+]);
+const SAFE_COMMIT_STATES = Object.freeze([
+  "not-committed",
+  "committed",
+  "unknown",
+]);
+
+function safeWorkerFailure(error) {
+  const stack = String(error?.stack || "");
+  const source =
+    SAFE_FAILURE_SOURCES.map((name) => ({
+      name,
+      offset: stack.indexOf(`at ${name} (`),
+    }))
+      .filter((frame) => frame.offset >= 0)
+      .sort((left, right) => left.offset - right.offset)[0]?.name || null;
+  return {
+    schema: WORKER_FAILURE_SCHEMA,
+    errorName: SAFE_ERROR_NAMES.includes(error?.name) ? error.name : null,
+    errorCode: SAFE_ERROR_CODES.includes(error?.code) ? error.code : null,
+    causeCode: SAFE_ERROR_CODES.includes(error?.cause?.code)
+      ? error.cause.code
+      : null,
+    commitState: SAFE_COMMIT_STATES.includes(error?.commitState)
+      ? error.commitState
+      : null,
+    source,
+  };
+}
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -80,24 +160,42 @@ async function runSafeContentionMutation(
 }
 
 function summarizeWorkerDiagnostics(text, outputBytes, diagnosticDigest) {
-  const errorCode = [
-    "STATE_LOCK_UNAVAILABLE",
-    "DURABLE_SECURITY_STORE_PREPARE_FAILED",
-    "DURABLE_SECURITY_STORE_READ_FAILED",
-    "DURABLE_SECURITY_STORE_CORRUPT_FAILED",
-    "DURABLE_SECURITY_STORE_WRITE_FAILED",
-    "CC_SCOPED_PERMISSION_INVALID",
-    "CC_SCOPED_PERMISSION_CONFLICT",
-    "CC_SCOPED_PERMISSION_NOT_FOUND",
-    "CC_SCOPED_PERMISSION_CORRUPT",
-  ].find((candidate) => text.includes(candidate));
-  const commitState = text.match(
-    /commitState:\s*['"](not-committed|committed|unknown)['"]/u,
-  )?.[1];
+  let structured = null;
+  for (const line of text.split(/\r?\n/u)) {
+    try {
+      const value = JSON.parse(line);
+      if (value?.schema !== WORKER_FAILURE_SCHEMA) continue;
+      // Recheck each classifier even if the child claims our schema. Nothing
+      // from messages, paths, arbitrary codes or stack text reaches artifacts.
+      structured = safeWorkerFailure({
+        name: value.errorName,
+        code: value.errorCode,
+        cause: { code: value.causeCode },
+        commitState: value.commitState,
+      });
+      structured.source = SAFE_FAILURE_SOURCES.includes(value.source)
+        ? value.source
+        : null;
+      break;
+    } catch {
+      // Legacy stderr is retained only as a digest and known classifiers.
+    }
+  }
+  const errorCode = structured
+    ? structured.errorCode
+    : SAFE_ERROR_CODES.find((candidate) => text.includes(candidate));
+  const commitState = structured
+    ? structured.commitState
+    : text.match(
+        /commitState:\s*['"](not-committed|committed|unknown)['"]/u,
+      )?.[1];
   return [
     `diagnosticBytes=${outputBytes}`,
     `diagnosticDigest=${diagnosticDigest}`,
     errorCode ? `errorCode=${errorCode}` : null,
+    structured?.errorName ? `errorName=${structured.errorName}` : null,
+    structured?.causeCode ? `causeCode=${structured.causeCode}` : null,
+    structured?.source ? `source=${structured.source}` : null,
     commitState ? `commitState=${commitState}` : null,
     outputBytes > MAX_DIAGNOSTIC_BYTES ? "diagnosticCapture=truncated" : null,
   ]
@@ -656,8 +754,17 @@ function writeFailure(options, error) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  if (options.mode === "worker-add") return workerAdd(options);
-  if (options.mode === "worker-revoke") return workerRevoke(options);
+  if (["worker-add", "worker-revoke"].includes(options.mode)) {
+    try {
+      return await (options.mode === "worker-add"
+        ? workerAdd(options)
+        : workerRevoke(options));
+    } catch (error) {
+      process.stderr.write(`${JSON.stringify(safeWorkerFailure(error))}\n`);
+      process.exitCode = 1;
+      return;
+    }
+  }
   if (options.mode === "sleeper") return sleeper(options);
   assert.equal(options.mode, "campaign");
   try {
@@ -677,5 +784,6 @@ export {
   digest,
   mainCampaign,
   runSafeContentionMutation,
+  safeWorkerFailure,
   summarizeWorkerDiagnostics,
 };

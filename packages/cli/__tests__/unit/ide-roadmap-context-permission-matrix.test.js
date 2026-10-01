@@ -8,6 +8,7 @@ import {
   REQUIRED_FILES,
   mainCampaign,
   runSafeContentionMutation,
+  safeWorkerFailure,
   summarizeWorkerDiagnostics,
 } from "../../scripts/ide-roadmap-context-permission-matrix.mjs";
 import { verifyCell } from "../../scripts/verify-ide-roadmap-context-permission.mjs";
@@ -114,30 +115,37 @@ afterEach(() => {
 });
 
 describe("context/permission Actions matrix", () => {
-  it("runs the production concurrency and cross-entry campaign locally", async () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-cp-live-"));
-    roots.push(directory);
-    const artifactDir = path.join(directory, "evidence");
-    await mainCampaign(
-      {
-        releaseCommit: COMMIT,
-        artifactDir,
-        artifactName: "local-context-permission",
-        stateDir: path.join(directory, "state"),
-      },
-      { assertExactCheckout() {} },
-    );
-    const host = JSON.parse(
-      fs.readFileSync(path.join(artifactDir, "host-environment.json"), "utf8"),
-    );
-    expect(
-      verifyCell(artifactDir, {
-        operatingSystem: process.platform,
-        releaseCommit: COMMIT,
-        provenance: host.provenance,
-      }),
-    ).toMatchObject({ operatingSystem: process.platform });
-  }, process.platform === "win32" ? 240_000 : 180_000);
+  it(
+    "runs the production concurrency and cross-entry campaign locally",
+    async () => {
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-cp-live-"));
+      roots.push(directory);
+      const artifactDir = path.join(directory, "evidence");
+      await mainCampaign(
+        {
+          releaseCommit: COMMIT,
+          artifactDir,
+          artifactName: "local-context-permission",
+          stateDir: path.join(directory, "state"),
+        },
+        { assertExactCheckout() {} },
+      );
+      const host = JSON.parse(
+        fs.readFileSync(
+          path.join(artifactDir, "host-environment.json"),
+          "utf8",
+        ),
+      );
+      expect(
+        verifyCell(artifactDir, {
+          operatingSystem: process.platform,
+          releaseCommit: COMMIT,
+          provenance: host.provenance,
+        }),
+      ).toMatchObject({ operatingSystem: process.platform });
+    },
+    process.platform === "win32" ? 240_000 : 180_000,
+  );
 
   it("retries only lock contention proven not to have committed", async () => {
     const waits = [];
@@ -226,6 +234,90 @@ describe("context/permission Actions matrix", () => {
     expect(summary).toContain("diagnosticCapture=truncated");
     expect(summary).not.toContain("must-not-render");
     expect(summary).not.toContain("private");
+  });
+
+  it("classifies native worker failures without emitting messages, paths or stacks", () => {
+    const secret = "credential-must-not-render";
+    const error = Object.assign(new Error(`rename C:/private/${secret}`), {
+      code: "ENOTEMPTY",
+      cause: { code: "EACCES", message: secret },
+      commitState: "not-committed",
+      stack: `Error: ${secret}\n    at acquireOwnedDirectory (C:/private/${secret}:1:1)`,
+    });
+    const record = safeWorkerFailure(error);
+    expect(record).toEqual({
+      schema: "chainlesschain.context-permission-worker-failure.v1",
+      errorName: "Error",
+      errorCode: "ENOTEMPTY",
+      causeCode: "EACCES",
+      commitState: "not-committed",
+      source: "acquireOwnedDirectory",
+    });
+    const serialized = JSON.stringify(record);
+    expect(serialized).not.toContain(secret);
+    expect(serialized).not.toContain("private");
+    const summary = summarizeWorkerDiagnostics(
+      serialized,
+      serialized.length,
+      DIGEST,
+    );
+    expect(summary).toContain("errorCode=ENOTEMPTY");
+    expect(summary).toContain("causeCode=EACCES");
+    expect(summary).toContain("errorName=Error");
+    expect(summary).toContain("source=acquireOwnedDirectory");
+    expect(summary).toContain("commitState=not-committed");
+  });
+
+  it("rejects arbitrary worker classifier content even with a recognized schema", () => {
+    const secret = "credential-must-not-render";
+    const text = JSON.stringify({
+      schema: "chainlesschain.context-permission-worker-failure.v1",
+      errorName: secret,
+      errorCode: secret,
+      causeCode: secret,
+      commitState: secret,
+      source: secret,
+      message: secret,
+      stack: secret,
+    });
+    const summary = summarizeWorkerDiagnostics(text, text.length, DIGEST);
+    expect(summary).not.toContain(secret);
+    expect(summary).not.toContain("errorCode=");
+    expect(summary).not.toContain("commitState=");
+    expect(
+      safeWorkerFailure({
+        name: secret,
+        code: secret,
+        cause: { code: secret },
+      }),
+    ).toMatchObject({
+      errorName: null,
+      errorCode: null,
+      causeCode: null,
+      source: null,
+    });
+  });
+
+  it("keeps an unknown root error distinct from a known cause and surrounding legacy text", () => {
+    const record = safeWorkerFailure({
+      name: "Error",
+      code: "UNRECOGNIZED",
+      cause: { code: "EACCES" },
+      stack:
+        "Error\n    at writeSecurityStore (private-path:1:1)\n    at withFileLock (private-path:2:1)",
+    });
+    expect(record).toMatchObject({
+      errorCode: null,
+      causeCode: "EACCES",
+      commitState: null,
+      source: "writeSecurityStore",
+    });
+    const text = `legacy STATE_LOCK_UNAVAILABLE commitState: 'committed'\n${JSON.stringify(record)}`;
+    const summary = summarizeWorkerDiagnostics(text, text.length, DIGEST);
+    expect(summary).toContain("causeCode=EACCES");
+    expect(summary).toContain("source=writeSecurityStore");
+    expect(summary).not.toContain("errorCode=");
+    expect(summary).not.toContain("commitState=");
   });
 
   it("binds all seven product entrypoints to 100 runs", () => {

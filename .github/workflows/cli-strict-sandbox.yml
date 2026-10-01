@@ -447,7 +447,9 @@ jobs:
           --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
 
       - name: Verify synchronous settings authority at supported Node floor
-        run: node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
+        run: |
+          node packages/cli/__tests__/fixtures/settings-read-smoke.cjs
+          node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
 
       - name: Verify Windows helper source contract
         if: runner.os == 'Windows'
@@ -664,7 +666,9 @@ jobs:
             echo "node=$(node --version)"
           } > "${RUNNER_TEMP}/strict-linux-arm64-environment.txt"
       - name: Verify synchronous settings authority on native ARM64
-        run: node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
+        run: |
+          node packages/cli/__tests__/fixtures/settings-read-smoke.cjs
+          node packages/cli/__tests__/fixtures/settings-write-smoke.cjs
       - name: Verify native anonymous tmpfile support
         shell: bash
         run: |
