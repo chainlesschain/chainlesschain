@@ -22,9 +22,18 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Candidate release `0.4.143` pairs with CLI `0.166.81`. The paired CLI latches
-Plan and approval policy revisions during active Docker egress commands. The
-plugin creates its Windows bridge directory and empty lockfile with protected
+Candidate release `0.4.144` pairs with the published CLI `0.166.82`. Upgrade
+the CLI to receive the investigation recovery fixes in IDE chat. Issue queries,
+artifact downloads, and saved-log inspection count toward its investigation
+budget; equivalent GitHub Issue reads across web, CLI, and API share one loop
+target. Failed-test assertions, source locations, and suite verdicts survive
+colored log extraction, context compaction, process restart, and task-note
+handoff. A successful log download retains the failed test inside it. The CLI
+also corrects GitHub commands sent to the Git tool and preserves the original
+evidence after unrelated command errors.
+
+The paired CLI retains Plan and approval policy revision handling during active
+Docker egress commands. The plugin creates its Windows bridge directory and empty lockfile with protected
 owner-only ACLs before writing the bearer token, including when an elevated
 token would otherwise assign Administrators as the default owner. It retains
 the previous release's recovery of configuration reads after Stop and resume,
@@ -59,7 +68,7 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.81` for older installations, including when the
+- Recommend `chainlesschain@0.166.82` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -79,7 +88,7 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.81` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.82` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -97,7 +106,7 @@ after this exact IDE commit passes its gates.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.143** is the current release candidate that re-certifies the read-only
+Plugin **0.4.144** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -116,10 +125,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.81`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.82`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.143` accepts only the exact
+permission/budget enforcement. Version `0.4.144` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -128,7 +137,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.143` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.144` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -137,7 +146,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.143`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.144`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph

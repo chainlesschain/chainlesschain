@@ -1,5 +1,21 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.144] - Pair with CLI 0.166.82 investigation recovery (2026-10-01)
+
+- Recommend the published `chainlesschain@0.166.82` CLI, including when npm
+  lookup is unavailable or returns an older version.
+- Count Issue queries, artifact downloads, and saved-log inspection as
+  investigation. Repeated reads of the same GitHub Issue across web, CLI, and
+  API routes share a recovery budget while linked PRs remain distinct.
+- Preserve failed-test assertions, source locations, and suite verdicts from
+  colored CI logs, including when downloading the failed log succeeds.
+- Retain the original failure evidence through context compaction, restart,
+  and task-note handoff into a fresh conversation.
+- Correct GitHub CLI commands routed to the Git tool and keep established
+  evidence after unrelated command errors. CLI regression coverage exercises
+  mixed investigation, repeated compaction, edits, and real verification.
+- Upgrade the paired CLI to receive these runtime recovery fixes in IDE chat.
+
 ## [0.4.143] - Pair with CLI 0.166.81 and secure Windows bridge creation (2026-09-30)
 
 - Recommend the published `chainlesschain@0.166.81` CLI.
