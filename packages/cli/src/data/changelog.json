@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.83",
+      "cliVersions": ["0.166.83"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.83: bind settings and launcher execution authority",
+          "body": "- Deliver the unattended action policy to text, JSON, JSONL, streaming, and\n  interactive runtimes; freeze launch inputs and inherited tool limits before\n  asynchronous permission checks.\n- Revoke active shell authority when official settings rule writes begin in\n  the same runtime. Cross-process settings generations and arbitrary external\n  edits remain outside this synchronous notification guarantee.\n- Bind WebSocket host policy revisions and reject stale execution receipts.\n- Preserve launcher storage roots across settings environment application;\n  reject malformed plugin environment names and filter reserved defaults.\n- Keep read-only settings loading free of the Node 22.12 ESM write-bridge\n  warning, serialize revocation readback, and budget native Windows ACL tests\n  for all required operations while verifying each protected directory.\n- Pair VS Code `0.37.125` and JetBrains `0.4.145` with CLI `0.166.83` after\n  the exact release commit passes its complete CLI and IDE workflow gates."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.82",
       "cliVersions": ["0.166.82"],
       "date": null,

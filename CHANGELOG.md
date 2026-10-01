@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.83: bind settings and launcher execution authority
+
+- Deliver the unattended action policy to text, JSON, JSONL, streaming, and
+  interactive runtimes; freeze launch inputs and inherited tool limits before
+  asynchronous permission checks.
+- Revoke active shell authority when official settings rule writes begin in
+  the same runtime. Cross-process settings generations and arbitrary external
+  edits remain outside this synchronous notification guarantee.
+- Bind WebSocket host policy revisions and reject stale execution receipts.
+- Preserve launcher storage roots across settings environment application;
+  reject malformed plugin environment names and filter reserved defaults.
+- Keep read-only settings loading free of the Node 22.12 ESM write-bridge
+  warning, serialize revocation readback, and budget native Windows ACL tests
+  for all required operations while verifying each protected directory.
+- Pair VS Code `0.37.125` and JetBrains `0.4.145` with CLI `0.166.83` after
+  the exact release commit passes its complete CLI and IDE workflow gates.
+
 ### Changed - IDE pairing for CLI 0.166.82
 
 - Pair VS Code `0.37.124` and JetBrains `0.4.144` with the already published

@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.145] - Pair with CLI 0.166.83 execution authority fixes (2026-10-01)
+
+- Recommend `chainlesschain@0.166.83`, including when npm lookup is unavailable
+  or stale; publish this plugin only after that CLI is publicly available.
+- Carry the CLI's unattended policy wiring, frozen execution inputs, WebSocket
+  policy revisions, and same-runtime official settings-write revocation into
+  IDE chat. Cross-process settings generations remain under development.
+- Preserve CLI storage roots when applying settings environments and reject
+  malformed or reserved plugin defaults without blocking ordinary tool values.
+- Retain investigation recovery, saved failure evidence, and draft recovery
+  from the previous pairing.
+
 ## [0.4.144] - Pair with CLI 0.166.82 investigation recovery (2026-10-01)
 
 - Recommend the published `chainlesschain@0.166.82` CLI, including when npm
