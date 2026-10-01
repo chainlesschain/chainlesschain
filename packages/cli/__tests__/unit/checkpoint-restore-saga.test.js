@@ -2846,19 +2846,50 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(path.basename(store.stateRoot)).toMatch(/^workspace-[a-f0-9]{64}$/);
   });
 
-  it("establishes a real owner-private state root with the production helper", () => {
-    const testFixture = fixture({
-      secureDirectory: undefined,
-      secureAuthorityPaths: undefined,
-    });
-    const state = fs.lstatSync(testFixture.stateDir);
+  it(
+    "establishes a real owner-private state root with the production helper",
+    // The constructor performs three bounded native ACL commands. Hosted
+    // Windows allows 60s for each command; the global 90s test budget can expire
+    // before they finish. Include the independent inspection below and retain
+    // every production timeout, privacy check and fail-closed result.
+    { timeout: process.platform === "win32" ? 300_000 : 90_000 },
+    () => {
+      const testFixture = fixture({
+        secureDirectory: undefined,
+        secureAuthorityPaths: undefined,
+      });
+      const state = fs.lstatSync(testFixture.stateDir);
 
-    expect(state.isSymbolicLink()).toBe(false);
-    expect(state.isDirectory()).toBe(true);
-    if (process.platform !== "win32") {
-      expect(state.mode & 0o077).toBe(0);
-    }
-  });
+      expect(state.isSymbolicLink()).toBe(false);
+      expect(state.isDirectory()).toBe(true);
+      if (process.platform !== "win32") {
+        expect(state.mode & 0o077).toBe(0);
+      } else {
+        const { store } = testFixture;
+        const targets = [
+          store.baseStateRoot,
+          store.stateRoot,
+          store.lockRoot,
+          store.archiveRoot,
+          store.purgeRoot,
+          store.purgeReceiptRoot,
+        ];
+        const inspection = inspectPrivatePaths(targets, { platform: "win32" });
+        expect(inspection).toHaveLength(targets.length);
+        expect(inspection.map((result) => result.target).sort()).toEqual(
+          [...targets].sort(),
+        );
+        for (const result of inspection) {
+          expect(result.ok).toBe(true);
+          expect(result.exists).toBe(true);
+          expect(result.details?.isDirectory).toBe(true);
+          expect(result.details?.protected).toBe(true);
+          expect(result.details?.ownerSid).toBeTruthy();
+          expect(result.details?.ownerSid).toBe(result.details?.currentSid);
+        }
+      }
+    },
+  );
 
   it.runIf(process.platform === "win32")(
     "repairs an existing broadly writable Windows base state DACL",

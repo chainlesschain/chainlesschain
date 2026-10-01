@@ -4,6 +4,16 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### Windows 状态目录真实 ACL 测试预算（2026-10-01）
+
+`7e9b92ed943278d5254e0c0eec4f14a0a98d8a89` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178969) 已结束，Windows unit shard 13/16 的[作业](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178969/job/110396211242)失败，PM 汇总连带拒绝。下载原始 JUnit artifact 后核对：1947 个测试记录、1 个 failure、0 个 errors；唯一失败为 checkpoint-restore-saga 的真实 production helper 目录测试，耗时 97.7443864 秒，触发 90 秒测试上限。前轮未识别的 macOS unit shard 2 本轮已成功，但没有新错误分类可用，不将一次成功写成其旧触发根因已查明。
+
+Astra 复核构造器正常串行调用三次真实 PowerShell ACL 操作：基础目录、工作区 shard roots、四个控制目录；CI 每次允许 60 秒，整体测试仍只有 90 秒。未发现无界重复调用。原报告后续 broad-DACL 修复 9.396817 秒、fresh-process child-authorities 27.608994 秒均通过；日志没有逐调用耗时，不能判断具体哪一次宿主操作变慢。
+
+候选只为该 Windows production helper 测试设置 300 秒专项预算，包含三次修复、一次独立检查与余量，POSIX 保留 90 秒。补充批量 inspectPrivatePaths，逐一核对 base、shard 和四个控制目录的完整返回、存在、真实目录、受保护 DACL、当前用户 SID 与所有者 SID 一致。全局测试超时、生产 ACL 单次预算、安全检查和失败重试范围保持。完整新提交的托管 CLI CI / Strict Sandbox 矩阵仍需复验，未升版本或发布。
+
+Windows 本地三个真实 ACL 用例全部通过，共 53.82 秒，覆盖新增六目录隐私断言、宽权限修复和 fresh-process 子目录 / 原子文件权限；104 项未被名称筛选运行，不计为整文件通过。ESLint、Prettier 与 diff 检查通过。该旧提交的 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178448)、[Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36870504253)、[Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178467) 均完整通过；其余已触发工作流也成功，不能代替失败的 CLI CI 门。
+
 ### 启动环境权威与插件名称校验（2026-10-01）
 
 `11b6e928c56c880062764c93d90c10e1a9b79639` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878869)、[IDE Roadmap Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878839) 和 [IDE Roadmap Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878693) 均已完整通过，包含 Context Permission 的 macOS 生产并发 campaign。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36867879566) 仍在运行或排队，旧 macOS unit shard 2 的未知失败尚待完整矩阵复验；独立 campaign 的成功不作为其根因已查明的证据。
