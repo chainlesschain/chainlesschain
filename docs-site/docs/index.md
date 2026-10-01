@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.81 | Open VSX 0.37.123 | 桌面与移动端"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.82 | Open VSX 0.37.124 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.81
-    details: Linux Docker 域名出站隔离需显式选择并在策略撤销时终止活动 shell；会话恢复与 PM 回执对账继续保留，真实 PM 收益仍待验收。
+    title: Agent Platform 0.166.82
+    details: 恢复 Issue/CI 调查，在压缩、重启和任务交接中保留失败断言、源码位置与测试结论；Linux Docker 域名出站仍需显式配置。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.123 与 JetBrains 0.4.143 均已公开，商店制品推荐 CLI 0.166.81。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: VS Code 0.37.124 与 JetBrains 0.4.144 均已公开，商店制品推荐 CLI 0.166.82。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.123 与 JetBrains 0.4.143 均已公开，均推荐 CLI 0.166.81；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.124 与 JetBrains 0.4.144 均已公开，均推荐 CLI 0.166.82；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -60,10 +60,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.81@a63101f3cc；精确 CI/Strict（含 Linux ARM64）成功，公共版本已回读；npm 发布流程仍失败。
+    details: npm latest 为 CLI 0.166.82@1954ba867d；精确 CI/Strict（含 Linux ARM64）和 npm 发布成功；最新主线 CI/Strict 失败。
 ---
 
-> **2026-09-30 当前核对**：源码 `main@012cefe7ac`；公开 CLI `0.166.81@a63101f3cc`、Open VSX `0.37.123`、JetBrains `0.4.143`，两个 IDE 均推荐 CLI `0.166.81`。CLI 精确发布提交的 CI/Strict 配置任务通过，但 npm 发布流程仍为 failure；公共可安装状态与发布流程结论分别记录。公开版绑定 Plan/ApprovalGate 修订并在 Docker 出站运行中撤销旧权限；发布后的 `b0aaa5a81f` 增加 Auto Mode 修订与配置冻结，尚未进入 npm 制品。外部 settings/宿主策略的统一修订仍待补齐。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
+> **2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

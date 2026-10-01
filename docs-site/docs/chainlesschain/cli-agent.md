@@ -310,7 +310,13 @@ VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxT
 
 **语义**：源码以行数组存储并保留末尾 `\n`；`replace` 一个代码单元会**清空其 outputs 与 execution_count**；`insert` 会**生成新的 cell id**（插在目标之后，或无定位时插到顶部）。完善的错误路径：坏 JSON / 无 `cells[]` / 缺定位符 / 目标不存在 / 缺参数。
 
-## Linux Docker 域名出站隔离（CLI 0.166.81）
+## Issue/CI 调查恢复与失败证据（CLI 0.166.82）
+
+Issue 查询、artifact 下载和保存日志解析共用调查预算；同一 Issue 的网页、CLI/API 读取按同一目标识别，关联 PR 和 workflow run 保持独立。失败断言、源码位置和 suite verdict 会在上下文压缩、重启和任务交接中保留。下载日志成功不会把失败测试改记为通过，无关命令错误也不会清空此前证据。
+
+先升级 `npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org`，检查 `cc --version`，再重启 IDE 聊天宿主。调查停滞时保留 Issue、关联 PR、run ID 和原始失败断言，围绕断言提出可证伪假设，运行定向复现与验证。重复读取仍受恢复预算限制；PR 合并或诊断命令重试成功不能替代原问题验收。
+
+## Linux Docker 域名出站隔离（CLI 0.166.82）
 
 普通 Docker/bubblewrap 的代理环境变量不能阻止忽略代理的程序直接联网，因此有域名限制时不能将它们视为强制隔离。需要受限域名出站时，显式选择 Linux x64/ARM64 的 `docker-egress`：主容器保持无网络，出站经私有 Unix socket、relay 和宿主策略代理；不满足能力时拒绝执行。
 
@@ -339,7 +345,7 @@ cc agent --sandbox --sandbox-network -p "检查项目依赖"
 
 占位镜像不能直接运行。不支持 strict、排除命令或细粒度额外文件规则；macOS/Windows 和其他网络协议不在该限定路径的保证内。CLI 先完成命令审批，再建立受限通道。Plan/ApprovalGate 已提交修订会撤销运行中的代理连接与目标容器；计划快照读取不改变修订。取消或结果未知时先检查实际副作用，不要自动重试。
 
-发布后的 `b0aaa5a81f` 为 Auto Mode 增加同步修订与冻结配置，尚未进入 npm `0.166.81`；外部 settings、宿主策略与 legacy callback 仍需统一修订。完整配置与发行证据见[发布指南](./agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
+公开 `0.166.82` 已继承 Auto Mode 同步修订与冻结规则；发布后 WS 宿主策略、无人值守、工具上限与官方 settings 写口修复仍为源码，外部编辑、跨进程与 legacy callback 尚未闭合。完整配置与发行证据见[发布指南](./agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 ## Auto Pip-Install (自动安装 Python 包)
 

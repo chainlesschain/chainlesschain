@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是两个文档站的共享设计源。**2026-09-30 当前核对**：源码 `main@012cefe7ac`；公开 CLI `0.166.81@a63101f3cc`、Open VSX `0.37.123`、JetBrains `0.4.143`，两个 IDE 均推荐 CLI `0.166.81`。CLI 精确发布提交的 CI/Strict 配置任务通过，但 npm 发布流程仍为 failure；公共可安装状态与发布流程结论分别记录。公开版绑定 Plan/ApprovalGate 修订并在 Docker 出站运行中撤销旧权限；发布后的 `b0aaa5a81f` 增加 Auto Mode 修订与配置冻结，尚未进入 npm 制品。外部 settings/宿主策略的统一修订仍待补齐。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[本轮增量设计](./agent-runtime-update-2026-09-26.md)。
+> 本目录是 ChainlessChain 的研发设计入口，也是两个文档站的共享设计源。**2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[本轮增量设计](./agent-runtime-update-2026-09-26.md)。
 
 ## 当前重点
 
@@ -13,14 +13,14 @@
 - 前序精确发布 SHA `2f5b0f263a` 的 Protocol、Python SDK、CLI CI、Strict Sandbox、IDE、Android、iOS、Desktop、E2E、Full/Code Quality 与 1,800 秒 App Server overload/RSS soak 均通过；Protocol `0.1.5`、TS/Python SDK `0.2.4`、CLI `0.166.5` 和 Open VSX `0.37.70` 已完成公网回读。该长期 soak 继续作为前序证据，不归因到 `0.166.7@19834a1845`。
 - Desktop 与 VS Code 已接入默认关闭、仅暴露固定 Thread/Turn 方法的 `AppServerPilotClient`；审批 UI 未接入前保持 canonical decline，Desktop 子进程继续经过 Process Broker。
 - App Server 新增实验 WebSocket：固定 `/app-server` 与 `chainlesschain.app-server.experimental.v1` 子协议，所有绑定要求至少 32 字节 token，非 loopback 还要求显式远程授权与 TLS；连接、payload、请求、输出、buffer 和清理时间全部有界。
-- CLI `0.166.81@a63101f3cc` 为公开 npm latest；精确提交 CI/Strict（含 Linux ARM64）通过，npm 发布工作流仍失败。Plan/ApprovalGate 修订已进入公开包，Auto Mode 修订是发布后的源码。Session Core `0.3.14`、Context/Memory Kernel `0.1.5`、PDH `0.4.62`、SDK TS/Python `0.2.11/0.2.9` 与 Protocol `0.1.11` 保持独立版本与原始证据。
+- CLI `0.166.82@1954ba867d` 为公开 npm latest；精确提交 CI/Strict（含 Linux ARM64）及 npm OIDC 发布成功。调查与测试失败证据恢复已公开；WS、无人值守、冻结工具上限及官方 settings 写口修复为发布后源码。Session Core `0.3.14`、Context/Memory Kernel `0.1.5`、PDH `0.4.62`、SDK TS/Python `0.2.11/0.2.9` 与 Protocol `0.1.11` 保持独立版本。
 - Desktop 源码继续提供只读 Graph Run Debugger、外部 Skill Ed25519/摘要/隔离 Worker、内置 Handler 能力目录与网络/文件/环境/进程/凭据 Broker；同一 exact SHA 新增 macOS entitlement/notarization 钩子、签名安装/启动探针与 Desktop Skill qualification producer。这些是 Desktop/native 源码和资格证据，不是 npm CLI 包字节，也不自动证明公共 native 分发完成。
 - 早期 `233e1bdc` source-only 演化快照已由 `0.166.24` 中的持久 composition、Workbench、digest-bound Retrieval、知识 merge authority、向量隔离 worker 与 trust ledger 取代。仓库闭环仍不等于目标环境已部署 KMS/PKI/witness/grader 或允许客户端绕过治理。
 - Record & Replay 真实 Playwright driver 只执行审阅过的 `observe/click/type/select/assert`，拒绝 filesystem、HTTP(S)、WebSocket 与环境漂移，receipt 不保留 selector、输入值、页面正文、URL 或截图本体；Codex App Server adapter 只允许显式验证过的上游 patch，未知版本在 turn admission 前回退稳定 JSONL 路径。
 - PDH `0.4.59` 将 `better-sqlite3-multiple-ciphers` 降为可选依赖；无 Python/编译器/原生预构建时 npm 可跳过 native addon，CLI 继续使用内置 `sql.js` WASM。该降级只解决首次安装可移植性，不扩大 native SQLite 能力声明。
 - Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX `0.37.123` 与 JetBrains `0.4.143` 已公开，均推荐 CLI `0.166.81`；Windows 桥接先验证单用户 ACL 再写 token，并保留活跃 writer 临时锁。决策模型凭据、路由及 Skill 执行 authority 继续留在 CLI；Microsoft Marketplace 未发行。
+- Open VSX `0.37.124` 与 JetBrains `0.4.144` 已公开，源码 `fb267f569d`，均推荐 CLI `0.166.82`；决策凭据、路由及 Skill 执行权限继续留在 CLI。Microsoft Marketplace 未发行。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。

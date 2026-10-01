@@ -1,5 +1,7 @@
 # IDE 任务记录与新会话接力
 
+> **CLI 0.166.82（2026-10-01）**：任务进度与工作日志在压缩、重启和新会话交接时保留测试失败断言、源码位置与 suite verdict。日志下载成功不代表测试通过；同一 Issue、关联 PR 与 workflow run 的身份保持独立。升级后重启 IDE 聊天宿主。
+
 > 适用版本：CLI `0.166.59`、Context/Memory Kernel `0.1.4`、VS Code `0.37.105`、JetBrains `0.4.126`。公开制品均来自精确提交 `a148ec7a57`；CLI `0.166.58` 及更早版本不支持本功能。
 
 ## 概述
@@ -68,14 +70,14 @@ IDE 只发起“保存”和“带指定历史开始”请求。CLI/Kernal 持�
 
 ## 配置参考
 
-| 配置或入口 | 默认行为 | 说明 |
-| --- | --- | --- |
-| `CC_TASK_WORKLOG=1` | IDE 自动注入 | 为持久 stream-json 会话启用任务记录；普通用户不需要手工设置。 |
-| `CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE` | 由 IDE 权威配置决定 | 工作记录要求 canonical 模式；shadow 模式只观察、不写检查点。不要在受管环境中自行改写。 |
-| `CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_OPT_IN` | 仅 opt-in canary 使用 | 只在管理员明确采用 `opt_in_canary` 阶段时生效。 |
-| `WORKLOG.md` | 最大 32 KiB | 自动生成；不要把手工编辑当作修改会话状态的接口。 |
-| VS Code `+` / JetBrains `+ New chat` | 新建空白会话 | 用于新任务，不加载旧历史。 |
-| VS Code `↗` / JetBrains `Continue in new chat` | 保存后接力 | 用于继续当前任务；最长等待保存确认 60 秒。 |
+| 配置或入口                                     | 默认行为              | 说明                                                                                   |
+| ---------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------- |
+| `CC_TASK_WORKLOG=1`                            | IDE 自动注入          | 为持久 stream-json 会话启用任务记录；普通用户不需要手工设置。                          |
+| `CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE`      | 由 IDE 权威配置决定   | 工作记录要求 canonical 模式；shadow 模式只观察、不写检查点。不要在受管环境中自行改写。 |
+| `CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_OPT_IN`     | 仅 opt-in canary 使用 | 只在管理员明确采用 `opt_in_canary` 阶段时生效。                                        |
+| `WORKLOG.md`                                   | 最大 32 KiB           | 自动生成；不要把手工编辑当作修改会话状态的接口。                                       |
+| VS Code `+` / JetBrains `+ New chat`           | 新建空白会话          | 用于新任务，不加载旧历史。                                                             |
+| VS Code `↗` / JetBrains `Continue in new chat` | 保存后接力            | 用于继续当前任务；最长等待保存确认 60 秒。                                             |
 
 任务记录目录已在本仓库忽略。其他项目建议加入：
 
@@ -87,15 +89,15 @@ IDE 只发起“保存”和“带指定历史开始”请求。CLI/Kernal 持�
 
 本功能没有承诺固定的 token 节省比例或服务等级。当前实现的可验证边界如下：
 
-| 指标 | 边界 |
-| --- | --- |
-| Markdown 投影大小 | 最大 `32 KiB` |
-| 最近用户要求 | 保留最近 4 条 |
-| 继承事件 | 最多最近 16 条 |
-| 继承文件/失败/修改 | 各最多最近 6 条 |
-| 待完成工具记录 | 最多 64 条 |
-| IDE 保存等待 | 60 秒，超时保留旧会话 |
-| 额外模型调用 | 0；记录由运行事件生成 |
+| 指标               | 边界                  |
+| ------------------ | --------------------- |
+| Markdown 投影大小  | 最大 `32 KiB`         |
+| 最近用户要求       | 保留最近 4 条         |
+| 继承事件           | 最多最近 16 条        |
+| 继承文件/失败/修改 | 各最多最近 6 条       |
+| 待完成工具记录     | 最多 64 条            |
+| IDE 保存等待       | 60 秒，超时保留旧会话 |
+| 额外模型调用       | 0；记录由运行事件生成 |
 
 读取工作记录本身仍占用上下文，且尚未完成超长会话持久化 I/O 的生产基准。32 KiB 是安全上限，不是建议把每次记录写满的目标。
 
@@ -122,29 +124,29 @@ IDE 只发起“保存”和“带指定历史开始”请求。CLI/Kernal 持�
 
 ## 故障排除
 
-| 现象 | 原因与处理 |
-| --- | --- |
-| 提示 CLI 不支持任务记录 | 升级到 `0.166.59`，确认插件为 VS Code `0.37.105` 或 JetBrains `0.4.126`，发送一条消息完成 init 后重试。 |
-| 看不到接力按钮 | 当前插件过旧，或尚未打开 ChainlessChain 对话视图。升级并重载 IDE。 |
-| 保存等待超过一分钟 | 当前工具批次或权限卡未结束。处理待确认操作后重试；旧会话不会被关闭。 |
-| 无法写入 `WORKLOG.md` | 检查项目目录权限、磁盘空间、链接目录和 Context/Memory 模式。不要手工创建指向项目外的链接。 |
-| 历史加载失败 | 确认新旧会话使用同一真实 workspace，原 JSONL 会话日志仍存在，且没有传入当前会话自身的 ID。 |
-| Markdown 被删除或修改 | 原检查点存在时会自动重建；若权威日志也已删除，则不能从 Markdown 反向恢复会话。 |
-| 新会话重复读取旧文件 | 记录只提供定位和旧证据；文件已变化时重新核实是预期行为。 |
-| 记录中出现 `outcome not yet known` | 工具已启动但没有可信结果。重新检查外部状态，不要直接重放可能有副作用的操作。 |
+| 现象                               | 原因与处理                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 提示 CLI 不支持任务记录            | 升级到 `0.166.59`，确认插件为 VS Code `0.37.105` 或 JetBrains `0.4.126`，发送一条消息完成 init 后重试。 |
+| 看不到接力按钮                     | 当前插件过旧，或尚未打开 ChainlessChain 对话视图。升级并重载 IDE。                                      |
+| 保存等待超过一分钟                 | 当前工具批次或权限卡未结束。处理待确认操作后重试；旧会话不会被关闭。                                    |
+| 无法写入 `WORKLOG.md`              | 检查项目目录权限、磁盘空间、链接目录和 Context/Memory 模式。不要手工创建指向项目外的链接。              |
+| 历史加载失败                       | 确认新旧会话使用同一真实 workspace，原 JSONL 会话日志仍存在，且没有传入当前会话自身的 ID。              |
+| Markdown 被删除或修改              | 原检查点存在时会自动重建；若权威日志也已删除，则不能从 Markdown 反向恢复会话。                          |
+| 新会话重复读取旧文件               | 记录只提供定位和旧证据；文件已变化时重新核实是预期行为。                                                |
+| 记录中出现 `outcome not yet known` | 工具已启动但没有可信结果。重新检查外部状态，不要直接重放可能有副作用的操作。                            |
 
 ## 关键文件
 
-| 文件 | 作用 |
-| --- | --- |
-| `packages/cli/src/lib/context-memory-kernel/task-worklog-port.js` | 有界状态、投影、遮盖、路径校验、继承和重建。 |
-| `packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js` | 从现有 JSONL 会话权威读取/写入任务检查点。 |
-| `packages/cli/src/runtime/headless-stream.js` | stream-json 生命周期、保存/加载事件与模型执行前失败闭合。 |
-| `packages/context-memory-kernel/lib/task-checkpoint.js` | revision、digest、session scope 与 canonical checkpoint 契约。 |
-| `packages/context-memory-kernel/schema/context-memory-kernel.schema.json` | `TaskCheckpoint` 权威 schema。 |
-| `packages/vscode-extension/src/chat/chat-view.js` | VS Code 接力按钮、超时、标签页和一次性历史引用。 |
-| `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java` | JetBrains stream 事件和历史来源发送。 |
-| `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java` | JetBrains 原生接力入口与会话切换。 |
+| 文件                                                                                            | 作用                                                           |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `packages/cli/src/lib/context-memory-kernel/task-worklog-port.js`                               | 有界状态、投影、遮盖、路径校验、继承和重建。                   |
+| `packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js`                      | 从现有 JSONL 会话权威读取/写入任务检查点。                     |
+| `packages/cli/src/runtime/headless-stream.js`                                                   | stream-json 生命周期、保存/加载事件与模型执行前失败闭合。      |
+| `packages/context-memory-kernel/lib/task-checkpoint.js`                                         | revision、digest、session scope 与 canonical checkpoint 契约。 |
+| `packages/context-memory-kernel/schema/context-memory-kernel.schema.json`                       | `TaskCheckpoint` 权威 schema。                                 |
+| `packages/vscode-extension/src/chat/chat-view.js`                                               | VS Code 接力按钮、超时、标签页和一次性历史引用。               |
+| `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java`          | JetBrains stream 事件和历史来源发送。                          |
+| `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java` | JetBrains 原生接力入口与会话切换。                             |
 
 ## 使用示例
 

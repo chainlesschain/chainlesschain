@@ -1,22 +1,24 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-09-30 current release and source review
+## 2026-10-01 release and source review
 
-Install **CLI 0.166.81**, the public npm `latest`, with `npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-81` resolves to `a63101f3cc`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36704892264) and [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36704891847) passed all configured jobs; Strict includes Linux x64/ARM64, Windows, and macOS. The public registry reports the version, latest, and integrity, while the [npm publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/36715700885) still reports failure. Public availability does not establish successful completion of release verification. This release captures Plan/ApprovalGate snapshots before asynchronous approval, revokes running Docker egress on committed revisions, and keeps plan reads free of state changes. Session Core `0.3.14` provides monotonic session approval revisions.
+Install **CLI 0.166.82**, the public npm `latest`, with `npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-82` resolves to `1954ba867d`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102772), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102363), and [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36798445319) succeeded. The exact release commit passed all configured CI/Strict jobs, including Linux ARM64 Strict. Public latest, version, and integrity were read back.
 
-Open VSX **0.37.123** and JetBrains Marketplace **0.4.143** are public, both recommend CLI `0.166.81`, and both use source `165093796d`. JetBrains creates and verifies owner-only Windows bridge permissions before writing its token and preserves temporary lockfiles with live writers. VS Code mode actions use the chooser. Microsoft Marketplace remains unpublished. Desktop, Android, and iOS retain the independent **v5.0.3.138** release.
+Issue queries, artifact downloads, and saved-log inspection share an investigation budget. Repeated reads of one Issue across web, CLI, and API routes share a target; linked PRs and workflow runs remain distinct. Failed-test assertions, source locations, and verdicts survive compaction, restart, and task handoff even when log download succeeds. GitHub CLI calls routed to the Git tool are corrected.
 
-Reviewed against `main@012cefe7ac`: post-release commit `b0aaa5a81f` adds synchronous Auto Mode revisions, frozen execution rules, and rejection of stale authority after a change is reverted. Its 415 related local regressions passed; it is absent from the public CLI tarball, and new exact-commit CI/Strict verification remains incomplete. External settings, host policy, and legacy callbacks still need a unified revision mechanism. Real PM/Pilot outcomes, complete launch coverage, and total costs remain unverified; automatic active Skill promotion stays on HOLD.
+Open VSX **0.37.124** and JetBrains Marketplace **0.4.144** are public, recommend CLI `0.166.82`, and use source `fb267f569d`. Restart the IDE chat host after upgrading the CLI. Microsoft Marketplace remains unpublished; Desktop, Android, and iOS retain independent **v5.0.3.138** releases.
 
-See the [design update](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Older dated sections below describe historical states.
+Reviewed at `main@e96062008f`: the public CLI includes Plan/ApprovalGate and Auto Mode revisions. Later WS host policy revisions, unattended entry guards, frozen tool ceilings, and official settings mutation revocation are source changes absent from that tarball. Current main CI/Strict report failure. External edits, cross-process revisions, and legacy callbacks remain incomplete. Real PM/Pilot outcomes, complete launch coverage, and total costs are unverified; automatic active Skill promotion stays on HOLD. Linux Docker domain egress still requires explicit selection, pinned images, and domain rules; inspect side effects before retrying an unknown outcome.
+
+See the [incremental design](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical release boundaries.
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.81` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.82` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
@@ -2553,7 +2555,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.81-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.82-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

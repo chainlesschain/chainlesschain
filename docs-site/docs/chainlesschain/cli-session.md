@@ -1,6 +1,6 @@
 ﻿# 会话管理 (session)
 
-> Headless 命令。2026-09-30 npm latest 为 CLI `0.166.81@a63101f3cc`；Open VSX `0.37.123` 与 JetBrains `0.4.143` 均公开并推荐该 CLI。Session Core `0.3.14` 提供会话审批单调修订，公开 CLI 在 Docker 出站执行中订阅 Plan/ApprovalGate 修订并撤销旧权限。主线 Auto Mode 修订尚未进入 npm 包。`session` 与 App Server Thread 是不同身份，恢复时不要混用。详见[发布指南](./agent-platform-release)。
+> Headless 命令。2026-10-01 npm latest 为 CLI `0.166.82@1954ba867d`；Open VSX `0.37.124` 与 JetBrains `0.4.144` 均公开并推荐该 CLI。Session Core `0.3.14` 提供会话审批单调修订，公开 CLI 在 Docker 出站执行中订阅 Plan/ApprovalGate 修订并撤销旧权限。公开版继承 Auto Mode 修订；WS、无人值守、工具上限和官方 settings 写口修复仍为发布后源码。`session` 与 App Server Thread 是不同身份，恢复时不要混用。详见[发布指南](./agent-platform-release)。
 
 IDE 显示的历史来自 CLI 已提交的权威消息记录。Stop 或重启后先重新读取会话状态；尚未提交的流式片段不应当作已完成历史，草稿也不授予新的执行或审批权限。出现记录校验失败时先用 `cc session validate` 检查该会话，再恢复；不要直接编辑 JSONL 或绕过 CLI 审批。
 

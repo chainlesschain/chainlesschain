@@ -76,7 +76,8 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           ['上下文', '请求级 Context Center', `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 显示执行位置、workspace authority、会话、工作流与恢复身份，并配合 CLI ${CLI_VERSION} 使用实际主请求窗口和 input/output/cache 用量；子调用不污染主指示，回退估算明确标记。`],
           ['副作用', 'Side-effect Center', '双端汇总权限活动、作用域 grant 与 revoke 入口；所有变更继续通过 CLI 命令和精确上下文执行，IDE 不绕过权威存储。'],
           ['内联', '选区旁直接问与改', `Open VSX ${VSCODE_VERSION} 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已公开。`],
-          ['同步', 'CLI 版本与渠道状态', `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI/Strict 通过，公共版本已回读；npm 发布流程仍失败。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均已公开；Microsoft Marketplace 尚未发行。`],
+          ['调查', '失败证据跨会话保留', `配套 CLI ${CLI_VERSION} 将 Issue 查询、artifact 下载和日志解析统一纳入调查预算，失败断言、源码位置与测试结论在压缩、重启和任务交接中保留。升级 CLI 后重启聊天宿主；日志下载成功不代表测试通过。`],
+          ['同步', 'CLI 版本与渠道状态', `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI/Strict、npm OIDC 发布与公共回读成功。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均已公开；Microsoft Marketplace 尚未发行。`],
           ['补全', '受治理自动 ghost-text', 'Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

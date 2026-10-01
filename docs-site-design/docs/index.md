@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.81 | Open VSX 0.37.123 | JetBrains 0.4.143"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.82 | Open VSX 0.37.124 | JetBrains 0.4.144"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.81
-    details: Plan/ApprovalGate 修订撤销运行中的 Docker 出站命令；Auto Mode 修订仍为发布后源码，发行与验收按精确提交记录。
+    title: Agent Platform 0.166.82
+    details: 公开版保留调查与失败证据；源码另增加 WS、无人值守、工具上限和官方 settings 同步撤销，发行与验收按精确提交记录。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
     title: IDE 任务记录与新会话交接
@@ -65,7 +65,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-09-30 当前核对**：源码 `main@012cefe7ac`；公开 CLI `0.166.81@a63101f3cc`、Open VSX `0.37.123`、JetBrains `0.4.143`，两个 IDE 均推荐 CLI `0.166.81`。CLI 精确发布提交的 CI/Strict 配置任务通过，但 npm 发布流程仍为 failure；公共可安装状态与发布流程结论分别记录。公开版绑定 Plan/ApprovalGate 修订并在 Docker 出站运行中撤销旧权限；发布后的 `b0aaa5a81f` 增加 Auto Mode 修订与配置冻结，尚未进入 npm 制品。外部 settings/宿主策略的统一修订仍待补齐。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)。
+> **2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)。
 
 > **2026-09-28 历史核对**：npm CLI `0.166.78@3400318446`、Open VSX `0.37.119` 与 JetBrains Marketplace `0.4.140` 均已公开。CLI 增加分页会话历史与恢复、草稿边界及后台进程清理；逐槽签名 PM 回执对账已进入本版源码。主线 `c2ff6d036e` 随后修正 IDE 清单配对。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 

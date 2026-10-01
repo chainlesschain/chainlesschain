@@ -1,22 +1,24 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-09-30 最新发布与代码核对
+## 2026-10-01 最新发布与代码核对
 
-当前 npm `latest` 为 **CLI 0.166.81**，不可变标签 `v-npm-0-166-81` 指向 `a63101f3cc`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36704892264) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36704891847)已通过该精确提交的全部配置任务，Strict 包括 Linux x64/ARM64、Windows 和 macOS。npm 公共 registry 已回读 `latest`、版本和 integrity；[npm 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/36715700885)当前结论仍为 failure，不能写成发布流程全绿或精确制品验收闭环。本版在异步审批前绑定 Plan/ApprovalGate 快照；已提交的修订会撤销运行中的 Docker 出站代理和 shell，读取计划快照本身不改变权限。Session Core `0.3.14` 提供会话审批单调修订。Linux Docker 域名出站路径仍要求固定 SHA-256 镜像、明确域名规则和显式启用网络，失败时关闭执行。
+当前 npm `latest` 为 **CLI 0.166.82**，不可变标签 `v-npm-0-166-82` 指向 `1954ba867d`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102772)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102363)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36798445319)均成功，前两者已通过精确发布提交全部配置任务，Strict 包括 Linux x64/ARM64、Windows 和 macOS。公共 registry 已回读版本、latest 与 integrity。
 
-Open VSX **0.37.123** 与 JetBrains Marketplace **0.4.143** 已公开，后者已批准并列出；两者均推荐 CLI `0.166.81`，发布源码为 `165093796d`。JetBrains 在写入桥接 token 前创建并验证 Windows 单用户 ACL，清理时保留仍有活跃写入进程的临时锁；VS Code 的模式动作通过选择器切换。Microsoft Marketplace 未发行。桌面与移动端继续使用独立产品发行 **v5.0.3.138**。
+本版将 Issue 查询、artifact 下载和保存日志检查纳入调查预算；同一 Issue 的网页、CLI 与 API 读取按同一目标识别，关联 PR 和工作流保持独立。下载日志成功不代表测试通过：断言、源码位置和测试结论会在上下文压缩、重启及任务交接中保留；修复把 GitHub CLI 调用误送到 Git 工具的路由。
 
-本次按 `main@012cefe7ac` 核对：发布后的 `b0aaa5a81f` 将 Auto Mode 活跃状态纳入同步、可撤销修订，冻结执行规则并拒绝“变更后恢复原值”的旧权限；本地相关 415 项回归通过，但尚未进入公开 `0.166.81` 包，新的精确提交 CI/Strict 尚未闭环。外部 settings、宿主策略和 legacy callback 仍需统一修订机制。PM 接口只核验提交给它的回执；真实收益、完整启动覆盖与总成本仍待独立验收，automatic active Skill promotion 保持 HOLD。
+Open VSX **0.37.124** 与 JetBrains Marketplace **0.4.144** 已公开，均推荐 CLI `0.166.82`，发布源码为 `fb267f569d`。升级 CLI 后重启 IDE 聊天宿主以加载新运行时。Microsoft Marketplace 未发行；桌面与移动端继续使用独立产品发行 **v5.0.3.138**。
+
+**2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。 Linux Docker 域名出站仍要求显式选择、固定镜像和域名规则；结果未知时先核对副作用再决定是否重试。
 
 详见[增量设计](docs/design/agent-runtime-update-2026-09-26.md)、[PM 效果评测指南](docs-site/docs/chainlesschain/pm-effect-evaluation.md)与[发布升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。下方带日期的旧版本记录保留其当时状态。
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.81`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.82`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.81 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
@@ -2857,7 +2859,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.81-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.82-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
