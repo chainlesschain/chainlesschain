@@ -14,6 +14,16 @@ Astra 复核构造器正常串行调用三次真实 PowerShell ACL 操作：基�
 
 Windows 本地三个真实 ACL 用例全部通过，共 53.82 秒，覆盖新增六目录隐私断言、宽权限修复和 fresh-process 子目录 / 原子文件权限；104 项未被名称筛选运行，不计为整文件通过。ESLint、Prettier 与 diff 检查通过。该旧提交的 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178448)、[Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36870504253)、[Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36870178467) 均完整通过；其余已触发工作流也成功，不能代替失败的 CLI CI 门。
 
+### Settings 持久 generation 前置：严格来源观察（2026-10-01）
+
+独立 `feature/settings-source-observation` 切片提供纯 Node builtin CJS 读取核心及 settings-loader 的 inspectSettingsSources 入口。它列出有序的全部 user / project root / cwd / local / explicit / managed 候选，包括不存在和未贡献权限的文档。每个现存来源通过同一个描述符有界读取（上限 1 MiB），由同一份 Buffer 严格解码 UTF-8、解析 JSON 对象并计算 SHA-256；结果及解析树冻结，不公开可变字节。
+
+保留逻辑路径、物理目标、最近存在父目录、剩余路径及 parent handle 身份。读取前后比较 file handle，并重新打开物理目标复核；目录别名另检查 canonical parent，两个身份都来自 fstat，避免最低 Node Windows path stat 的零 device 投影。只有 ENOENT 可表示不存在；错误、类型不符、硬链接、最终文件 symlink、损坏及超限都拒绝。缺失路径会复核第一个 missing component，出现新目录或普通重绑定时拒绝这次观察。全部相对候选在第一次文件操作前解析，真实 chdir 不会改指后续来源；失败时关闭全部持有描述符并保留原始读取失败。
+
+Windows 最低 Node 22.12.0 的两个文件回归为 53 通过 / 1 个 POSIX file-symlink 跳过；增强只读 smoke 零输出，未实例化 write-only require(ESM) 桥。WSL1 / Node 22.12.0 的独立 POSIX probe 九个真实文件场景通过，包含实际 read 中 atomic replace、最终 symlink 和硬链接拒绝、目录别名、缺失绑定、ENOTDIR、无效 UTF-8 及完整候选清单。Windows 在打开目标时拒绝 MoveFileEx 的平台分支作为“替换未发生、读取失败”验证，不记为实际替换成功。ESLint / Prettier / diff 与 ESM 审计通过。
+
+这是观察基础，未改变默认 loadSettings / permission provider 的既有行为，未注册外锚或推进 generation，也不提供整个 inventory 原子快照或防 active parent swap-and-restore。合法创建缺失目录会推进 nearestExistingParent，后续官方事务必须显式更新绑定。外锚注册、guard / prepared / ready 顺序、完整 context manifest 与 physical heads、跨进程稳定 token、显式恢复和 Windows 持久化屏障继续开放。该切片在独立分支，当前 Actions 修复提交的准确 SHA 保持；未升版本或发布。
+
 ### 启动环境权威与插件名称校验（2026-10-01）
 
 `11b6e928c56c880062764c93d90c10e1a9b79639` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878869)、[IDE Roadmap Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878839) 和 [IDE Roadmap Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878693) 均已完整通过，包含 Context Permission 的 macOS 生产并发 campaign。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36867879566) 仍在运行或排队，旧 macOS unit shard 2 的未知失败尚待完整矩阵复验；独立 campaign 的成功不作为其根因已查明的证据。
