@@ -4,6 +4,14 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### PERF-02 真实双轮压缩与 CODEX-01 三系统回读（2026-10-03）
+
+后续实施分支为 `feature/cli-ide-gap-completion-2026-10-02`。`142e3560495c33a816d679eca463c80955ae6ea5` 明确了冻结轨迹夹具的归档合同：保留 tagged facts 的原字段、原顺序和原文；已完成 nextSteps 作为历史保留，不能再次执行；不将普通工具事件新增为 tagged facts。生产摘要提示未改变，严格事实 oracle 未放宽。旧夹具未要求保留已完成步骤，却用逐字归档 oracle 检查普通摘要，第二轮失败不能单独证明生产摘要丢失任务状态。安全诊断现在使用固定 invariant 分类，不保存 provider 原文。
+
+该准确提交的独立干净工作树，在 Windows x64 / Node **22.22.2** 上使用现有 **Volcengine / deepseek-v4-flash-ga-260731** 账号完成 1 条真实双轮旅程。[原始无密回执](./cli/evidence/compaction-live-volcengine-windows-142e356049.raw.json)已用严格 verifier 复算 envelope、夹具摘要、结构和逐字段事实摘要；[传输回执](./cli/evidence/compaction-live-volcengine-windows-142e356049.transport.json)核对六次 HTTP 200 及其 input/output usage。两次语义压缩、两个只读工具序列均完成，冻结事实保留率 **100%**、silent loss **0**、usage 全部已知。原始 envelope digest 为 `sha256:2eab8f54062adebb7e9781869bf04c942fec5b9799089d0e79dac3cc671cf3ce`。依赖使用同锁文件共享安装，未证明 registry-only 干净安装；仅 1 条 Windows / 单模型样本，未满足 100 次独立发布矩阵、多 provider 或双 IDE 实际项目验收。
+
+独立回读历史 [Codex App Server Compatibility](https://github.com/chainlesschain/chainlesschain/actions/runs/36395803936)：准确提交 `3400318446dd837790d6b4c28c9a9251875ca6fc` 的完整工作流成功。保存[三系统回执与原始产物索引](./cli/evidence/codex-turn-three-platform-3400318446.json)，分别复核原生 Codex **0.157.1** 二进制身份、四份官方 schema 摘要、Linux **53** / Windows **52** / macOS **52** 条通知和各 1 对审批消息。原始通知及审批字节摘要匹配，各消息再次通过官方 schema 校验，完成/失败/中断、交错线程、审批取消和已接纳断连零 fallback 均符合合同。九个相关 producer/schema 的 Git blob 与 `62f7f2abcb` 一致；这不把历史 Actions 结果转移成新提交的完整发布验收。provider 为 **synthetic-loopback-responses**，`realProviderAcceptance=false`、`productionAdmission=false`；尚未验收真实账号或获准工具执行，未扩大生产白名单。
+
 ### NET-02：作用域权限官方写口同步撤销（2026-10-02）
 
 候选分支为 `feature/scoped-permission-revocation-2026-10-02`，基于 `19335b8d04`。`ScopedPermissionStore.add/revoke` 现在在严格文件锁内校验完成后、持久写入前推进私有进程级修订并同步通知。所有实例的重入读取和写入在进入锁前拒绝；操作在通知前固定路径、工作区副本和依赖，监听器不能改变本次落盘目标或已校验内容。幂等撤销不写文件、不推进修订；验证、CAS、容量及锁准入失败也不发布变更。确定未提交的写失败仍保留新修订，已提交但锁清理失败报告 committed，rename 后持久化不确定则锁存 invalid，恢复原文件也不能重获该进程的权限权威。
@@ -211,7 +219,7 @@ Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台�
 | MODEL-01                | 本地合同验证通过           | GPT-6 Astra/Sol/Luna、Opus 5.5 精确 profile；官方 endpoint 与自定义网关隔离；三个 GPT-6 型号的 Responses stream/tool/reasoning 回归                                    | 目标账号真实调用；未更改用户默认模型                                                                       |
 | MODEL-02                | 本地合同验证通过           | tracker、预算、durable usage、恢复结算和 Eval 统一定价；逐请求长上下文/缓存/服务层级；未知价为 NULL/unpriced。已纳入 45 文件 822 项回归                                | 目标账号与账单对照；旧聚合缺逐请求信息时保持 unpriced                                                      |
 | READY-01                | 当前合同及准确提交 CI 通过 | CLI-only 在 Run/付费分解/通知前拒绝；help/detect/status 区分安装与准入；API 标为 text-only，--cli-tool 选择后端；4c3b9bdbc9 完整 CLI CI 通过                           | 当前就绪合同已闭合；保留外部 CLI 的逐请求治理门，不扩大执行准入                                            |
-| CODEX-01                | 局部实现并验证             | 官方 schema、thread/turn 隔离与有界协议；0.157.1 Windows 真进程交错线程、三终态、审批取消及已接纳断连拒绝重跑通过，52 通知及审批对独立复核；相关 45 项回归通过         | 固定二进制真实 turn/schema 三系统 CI、实际工具执行与 provider 验收；未扩大生产白名单                       |
+| CODEX-01                | 三系统协议旅程已验收       | 3400318446 的固定原生 0.157.1 三系统 CI 通过；独立复核官方 schema、Linux 53 / Windows 52 / macOS 52 通知与审批取消；九个相关 Git blob 未变                             | 真实 provider 和获准工具执行；历史 CI 不替代后续提交门，未扩大生产白名单                                   |
 | BRIDGE-01               | 局部实现并验证             | Broker/bridge 回收；静态 helper/npm 包探针；`71919bc5c1` 托管 x64/ARM64 无编译器单元通过                                                                               | standalone 分发、监督器丢失后恢复、macOS 及最终三系统验收；主路由拒绝未 attested CLI                       |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证             | v2 历史与双 IDE 增量合并、来源/身份检查；Windows 双 IDE 实际包及旧七标签副本读取通过；4c3b9bdbc9 JetBrains 三系统 × 2024.2/2025.2 canonical recovery v2 六单元全部通过 | 原旧 profile 失败唯一根因未定；VS Code 其余原生恢复范围、旧历史边界及真实 canonical rewind/compaction/fork |
 | IDE-DRAFT               | 局部实现并验证             | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；当前 JetBrains 六宿主的 init 等待 Stop、迟到 init、取消草稿重启且不重发均通过         | 附件/问题表单真实宿主及可访问性；其余准备/写入阶段、再次发送后的 Stop 和其对应平台范围待补                 |
@@ -223,13 +231,13 @@ Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台�
 | VERIFY-01               | 待实施/验收                | 保留历史真实模型试点及其范围                                                                                                                                           | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                                 |
 | PLATFORM-01             | 局部补强，待扩展矩阵       | Windows detached 文件 fd 真载荷与正对照；`f016a60ab0` 的 Linux ARM64、x64、Windows、macOS 15/latest Strict Sandbox 作业均通过                                          | 其余 OS/架构/后端/stdio 组合及真实进程验收；后续候选需重新验证                                             |
 | PERF-01                 | 局部实现并验证             | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                               | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                                        |
-| PERF-02                 | 单模型分层试点             | 复用压缩与工具配对保护；Volcengine 四类真实请求各 5 个长度，20 次请求中 15 次低估；修复非流式响应带入 `reasoning_content` 的续接错误；真实压缩旅程仍未通过             | 其他目标 provider 与多轮真实请求；定位压缩阶段失败、冻结误差门限，测压缩后的事实保真和任务成功率           |
+| PERF-02                 | 单模型双轮旅程通过         | 142e356049 的 Windows 真实 Volcengine 双轮压缩及只读工具序列通过；归档合同明确，冻结事实保留 100%、silent loss 0；六次真实 usage 独立核对                              | 100 次独立矩阵、其他目标 provider、冻结误差门限及实际项目任务成功率                                        |
 | MCP-01                  | 本地及准确提交 CI 通过     | 真实 loopback HTTP 覆盖 stateless 404、过期 session、并发单次重建和重建失败；只恢复连接，不重放结果未知的工具调用；当前完整 CLI CI 通过                                | 目标 MCP 服务端互操作仍待验收                                                                              |
 | MAINT-01                | 局部实现并验证             | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                | 其余 runtime 与平台职责抽取、保行为验证                                                                    |
 | DOC-01                  | 当前发布与索引已回填       | 两份报告共享入口已记录准确提交门、不可变标签、公开 npm/Open VSX 和 JetBrains 待审核状态；历史失败按原范围保留                                                          | 后续实现与新验收结果随准确提交更新                                                                         |
 | UX-01                   | 按现有入口改进             | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                     | 复用 doctor/instructions/cost；语音/主题不自动立项                                                         |
 
-真人 NVDA/VoiceOver/Orca 听测及 8h/24h 生产观察尚无本轮新增结果。Volcengine 真实账号仅用于下述 input usage 试点，不构成双 IDE 真实任务验收。真实宿主已有 Windows VS Code 1.132.0 的有限恢复回执，以及当前 JetBrains 三系统 × 2024.2/2025.2 的 canonical recovery / init 等待 Stop 六单元通过结果；这些宿主旅程的模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
+真人 NVDA/VoiceOver/Orca 听测及 8h/24h 生产观察尚无本轮新增结果。Volcengine 真实账号已用于 input usage 试点及上述单条双轮压缩旅程，不构成双 IDE 真实任务验收。真实宿主已有 Windows VS Code 1.132.0 的有限恢复回执，以及当前 JetBrains 三系统 × 2024.2/2025.2 的 canonical recovery / init 等待 Stop 六单元通过结果；这些宿主旅程的模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
 
 ### NET-01 Linux 候选后端与验收边界（2026-09-29 历史切片）
 

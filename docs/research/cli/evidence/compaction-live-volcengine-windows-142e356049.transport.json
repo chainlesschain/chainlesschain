@@ -1,0 +1,189 @@
+{
+  "releaseCommit": "142e3560495c33a816d679eca463c80955ae6ea5",
+  "sourceCleanStart": true,
+  "sourceCleanEnd": true,
+  "dependencyMode": "shared-lockfile-dependencies",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "rawProviderMaterialPersisted": false,
+  "transport": [
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 23705,
+      "elapsedMs": 23721,
+      "finishReason": "stop",
+      "contentChars": 894,
+      "reasoningChars": 9174,
+      "promptTokens": 40656,
+      "completionTokens": 2210,
+      "factComparison": {
+        "objective": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "constraints": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "keyDecisions": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "changedFiles": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "tests": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "unresolvedSideEffects": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "checkpoints": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "blockers": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "nextSteps": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        }
+      }
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 1686,
+      "elapsedMs": 1689,
+      "finishReason": "tool_calls",
+      "contentChars": 0,
+      "reasoningChars": 261,
+      "promptTokens": 1098,
+      "completionTokens": 115
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 1503,
+      "elapsedMs": 1505,
+      "finishReason": "stop",
+      "contentChars": 35,
+      "reasoningChars": 160,
+      "promptTokens": 1742,
+      "completionTokens": 56
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 42500,
+      "elapsedMs": 42503,
+      "finishReason": "stop",
+      "contentChars": 1678,
+      "reasoningChars": 18507,
+      "promptTokens": 38708,
+      "completionTokens": 4656,
+      "factComparison": {
+        "objective": {
+          "required": 1,
+          "observed": 1,
+          "missingExact": 0,
+          "equal": true
+        },
+        "constraints": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "keyDecisions": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "changedFiles": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "tests": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "unresolvedSideEffects": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "checkpoints": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "blockers": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        },
+        "nextSteps": {
+          "required": 2,
+          "observed": 2,
+          "missingExact": 0,
+          "equal": true
+        }
+      }
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 1909,
+      "elapsedMs": 1912,
+      "finishReason": "tool_calls",
+      "contentChars": 0,
+      "reasoningChars": 344,
+      "promptTokens": 1287,
+      "completionTokens": 136
+    },
+    {
+      "outcome": "response",
+      "status": 200,
+      "headersMs": 3066,
+      "elapsedMs": 3069,
+      "finishReason": "stop",
+      "contentChars": 35,
+      "reasoningChars": 0,
+      "promptTokens": 1931,
+      "completionTokens": 16
+    }
+  ]
+}

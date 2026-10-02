@@ -1,0 +1,196 @@
+{
+  "schema": "chainlesschain.codex-turn-independent-readback/v1",
+  "sourceCommit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+  "comparedCommit": "62f7f2abcb8dafa89d482f183f7d80b0b5ff187d",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/36395803936",
+  "upstreamVersion": "0.157.1",
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "verifiedAt": "2026-10-02T18:09:19.357Z",
+  "sourceComparison": [
+    {
+      "file": "packages/cli/src/lib/codex-app-server-adapter.js",
+      "sourceBlob": "2ec317e22e95ea16c6bf25531c1d409688d68402",
+      "currentBlob": "2ec317e22e95ea16c6bf25531c1d409688d68402",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+      "sourceBlob": "fee3a4596f5ea7f30145c72a5f7a7a3a63c2acba",
+      "currentBlob": "fee3a4596f5ea7f30145c72a5f7a7a3a63c2acba",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/scripts/verify-codex-app-server-schema.mjs",
+      "sourceBlob": "944bf3423d09e74037f6fab8a8ff6dbfa6c0f420",
+      "currentBlob": "944bf3423d09e74037f6fab8a8ff6dbfa6c0f420",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/scripts/codex-app-server-compatibility.mjs",
+      "sourceBlob": "64161b09c7bd6b03ec201a23c1cc47b19fa27432",
+      "currentBlob": "64161b09c7bd6b03ec201a23c1cc47b19fa27432",
+      "unchanged": true
+    },
+    {
+      "file": ".github/workflows/codex-app-server-compatibility.yml",
+      "sourceBlob": "62dec1a2424a09a53d08f06b502b06e378008864",
+      "currentBlob": "62dec1a2424a09a53d08f06b502b06e378008864",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-request.schema.json",
+      "sourceBlob": "7a89eeaea798a7b08cb46134f868c3cde574a104",
+      "currentBlob": "7a89eeaea798a7b08cb46134f868c3cde574a104",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-notification.schema.json",
+      "sourceBlob": "dc0cab3d95e7a42322085b6b0e7c3d3d2823919e",
+      "currentBlob": "dc0cab3d95e7a42322085b6b0e7c3d3d2823919e",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-server-request.schema.json",
+      "sourceBlob": "3b849cabaaf2a4addd868afa106ff8ce5c34a99c",
+      "currentBlob": "3b849cabaaf2a4addd868afa106ff8ce5c34a99c",
+      "unchanged": true
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-approval-response.schema.json",
+      "sourceBlob": "0b7986fba92365c35553aa19c5b8dc24926ba02f",
+      "currentBlob": "0b7986fba92365c35553aa19c5b8dc24926ba02f",
+      "unchanged": true
+    }
+  ],
+  "platforms": [
+    {
+      "operatingSystem": "linux",
+      "nativePackage": "@openai/codex-linux-x64",
+      "binarySha256": "3e2584f3f3829a43a0495011a1cecb2facbe64a2403e2b682351fd9c2983f970",
+      "notificationCount": 53,
+      "verified": {
+        "notification:configWarning": 1,
+        "notification:remoteControl/status/changed": 1,
+        "notification:thread/started": 5,
+        "notification:warning": 5,
+        "notification:thread/status/changed": 11,
+        "notification:turn/started": 5,
+        "notification:item/started": 7,
+        "notification:item/completed": 7,
+        "notification:item/agentMessage/delta": 1,
+        "notification:error": 1,
+        "notification:turn/completed": 4,
+        "notification:thread/tokenUsage/updated": 2,
+        "notification:account/rateLimits/updated": 2,
+        "notification:serverRequest/resolved": 1,
+        "server-request:item/commandExecution/requestApproval": 1,
+        "approval-response:command": 1
+      },
+      "artifacts": [
+        {
+          "path": "codex-turn-linux-3400318446.raw.json",
+          "bytes": 4440,
+          "sha256": "28503b02df70a39b8f5b4563081673562563c35abe9943139f9f100eddd67cde"
+        },
+        {
+          "path": "codex-turn-linux-3400318446.notifications.json",
+          "bytes": 19637,
+          "sha256": "610d69b2d102fdb4b1add290fa0500a86a5de8a83af1736a914bd17285a1ad26"
+        },
+        {
+          "path": "codex-turn-linux-3400318446.approvals.json",
+          "bytes": 868,
+          "sha256": "4b336fe6fdce525c0deb427898b013181e625b6759620e24e5abe02ac2862dd7"
+        }
+      ]
+    },
+    {
+      "operatingSystem": "windows",
+      "nativePackage": "@openai/codex-win32-x64",
+      "binarySha256": "8cb0e69e99ff2a158c54815db82d0f2e524d8f301bc30184722cfd1ae5973574",
+      "notificationCount": 52,
+      "verified": {
+        "notification:remoteControl/status/changed": 1,
+        "notification:thread/started": 5,
+        "notification:warning": 5,
+        "notification:thread/status/changed": 11,
+        "notification:turn/started": 5,
+        "notification:item/started": 7,
+        "notification:item/completed": 7,
+        "notification:item/agentMessage/delta": 1,
+        "notification:error": 1,
+        "notification:turn/completed": 4,
+        "notification:thread/tokenUsage/updated": 2,
+        "notification:account/rateLimits/updated": 2,
+        "notification:serverRequest/resolved": 1,
+        "server-request:item/commandExecution/requestApproval": 1,
+        "approval-response:command": 1
+      },
+      "artifacts": [
+        {
+          "path": "codex-turn-windows-3400318446.raw.json",
+          "bytes": 4399,
+          "sha256": "2e66f4f2cf48262fc6a90545b43c9165d5dbd2aeb32ca8ad448b0f5d083828ea"
+        },
+        {
+          "path": "codex-turn-windows-3400318446.notifications.json",
+          "bytes": 20084,
+          "sha256": "988c6f90d3795048c46e5fde60834598985bf05f6857207cfd37b2d7922a7907"
+        },
+        {
+          "path": "codex-turn-windows-3400318446.approvals.json",
+          "bytes": 1073,
+          "sha256": "df000ba363ad905d947b84c24010b83e6d391cf4d91e81e14fe3a93e4d3963e9"
+        }
+      ]
+    },
+    {
+      "operatingSystem": "macos",
+      "nativePackage": "@openai/codex-darwin-arm64",
+      "binarySha256": "27ceb5f9b957b43a519efe4eaa3816a0bffb0a531a2c89af18840c0a3c016a7d",
+      "notificationCount": 52,
+      "verified": {
+        "notification:remoteControl/status/changed": 1,
+        "notification:thread/started": 5,
+        "notification:warning": 5,
+        "notification:thread/status/changed": 11,
+        "notification:turn/started": 5,
+        "notification:item/started": 7,
+        "notification:item/completed": 7,
+        "notification:item/agentMessage/delta": 1,
+        "notification:error": 1,
+        "notification:turn/completed": 4,
+        "notification:thread/tokenUsage/updated": 2,
+        "notification:account/rateLimits/updated": 2,
+        "notification:serverRequest/resolved": 1,
+        "server-request:item/commandExecution/requestApproval": 1,
+        "approval-response:command": 1
+      },
+      "artifacts": [
+        {
+          "path": "codex-turn-macos-3400318446.raw.json",
+          "bytes": 4405,
+          "sha256": "05a42640dc15271f895ec319848b4bbb8f5b373f61424f6c6490cd13f8860bf4"
+        },
+        {
+          "path": "codex-turn-macos-3400318446.notifications.json",
+          "bytes": 20099,
+          "sha256": "a785f91d5fec44bbf37afae1e8c74cb22f61ecffa33ff4e4fca26fcccb409f74"
+        },
+        {
+          "path": "codex-turn-macos-3400318446.approvals.json",
+          "bytes": 912,
+          "sha256": "70642cffae5bfd004b80db0297f198b7f8a4b503677240d8e984b78ce479711e"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "historical exact-commit matrix",
+    "not real-provider acceptance",
+    "approval cancellation does not prove admitted tool execution",
+    "sourceComparison lists differences rather than transferring CI to a newer commit"
+  ]
+}

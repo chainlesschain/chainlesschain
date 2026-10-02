@@ -1,0 +1,391 @@
+{
+  "schema": "chainlesschain.ide-roadmap-runtime-evidence.v1",
+  "schemaVersion": 1,
+  "manifestVersion": "1.9.41",
+  "caseId": "s0-live-provider-trajectory",
+  "releaseCommit": "142e3560495c33a816d679eca463c80955ae6ea5",
+  "generatedAt": "2026-10-02T17:17:07.483Z",
+  "profile": {
+    "schema": "chainlesschain.ide-roadmap-live-provider-trajectory.v1",
+    "schemaVersion": 1,
+    "mode": "live",
+    "fixtureDigest": "sha256:7705f3f6621002b477363912b97c93b03974d5bcf2af0a3083ea231bb60e8ba3",
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "operatingSystem": "windows",
+    "architecture": "x64",
+    "nodeVersion": "22.22.2",
+    "requestedRuns": 1,
+    "completedRuns": 1,
+    "manifestMinimumIndependentRuns": 100,
+    "manifestMatrixEligible": false,
+    "manifestCoverageComplete": false,
+    "transportAudit": {
+      "kind": "external-provider",
+      "locallyControlled": false
+    }
+  },
+  "runs": [
+    {
+      "runId": "s0-live-provider-trajectory-live-windows-40d3273c-a2bc-41c5-a8e0-3cd72107a9fa",
+      "caseId": "s0-live-provider-trajectory",
+      "manifestVersion": "1.9.41",
+      "releaseCommit": "142e3560495c33a816d679eca463c80955ae6ea5",
+      "hostVersion": "agent-loop-v1",
+      "cliVersion": "0.166.84",
+      "host": "cli-agent-loop",
+      "operatingSystem": "windows",
+      "transport": "external-live-provider",
+      "startedAt": "2026-10-02T17:15:05.696Z",
+      "finishedAt": "2026-10-02T17:17:07.483Z",
+      "result": "passed",
+      "observedOutcome": {
+        "semanticCompactionCount": 2,
+        "structuredHandoffSchemaStable": true,
+        "frozenFactRetentionRate": 1,
+        "silentLossCount": 0,
+        "providerUsageKnown": true,
+        "readOnlyToolSequenceCount": 2,
+        "credentialLeakCount": 0
+      },
+      "artifacts": [
+        "exact-commit",
+        "fixture-contract",
+        "structured-handoff-trajectories",
+        "provider-usage",
+        "read-only-tool-sequence",
+        "redacted-event-order",
+        "credential-boundary"
+      ],
+      "artifactDigests": {
+        "exact-commit": "sha256:1a92fa2766a8d8ce7cef33bb42362cac0bb7403e2d3c7a2b182d4029d6293ed1",
+        "fixture-contract": "sha256:7705f3f6621002b477363912b97c93b03974d5bcf2af0a3083ea231bb60e8ba3",
+        "structured-handoff-trajectories": "sha256:377d5fef6376bc5bc333f5c9703fb84933199122cff7a4f846f7eb68b23bab24",
+        "provider-usage": "sha256:03731c14f61d5f1412da5e19c2ec6dc1de1480e84424900d357ad7ee6c4448d1",
+        "read-only-tool-sequence": "sha256:a233589f153e9fba7f60d16b96108db448228f48c5c402bc218471090abcbd44",
+        "redacted-event-order": "sha256:006f3ec935dd536b9151170124a352d44b0026e786bbb50cb64702cd1b25123a",
+        "credential-boundary": "sha256:02075137600d7f8477122c2ecd1cf83cc1451bb750275d17a25da260ded20198"
+      },
+      "trajectory": {
+        "schema": "chainlesschain.ide-roadmap-live-provider-trajectory.v1",
+        "schemaVersion": 1,
+        "mode": "live",
+        "fixtureDigest": "sha256:7705f3f6621002b477363912b97c93b03974d5bcf2af0a3083ea231bb60e8ba3",
+        "cycleCount": 2,
+        "cycles": [
+          {
+            "cycleId": "cycle-1",
+            "eventOrder": [
+              "run-started",
+              "semantic-compaction:model-usage-started",
+              "compaction",
+              "semantic-compaction:token-usage",
+              "model:model-usage-started",
+              "model:token-usage",
+              "tool:read_file:started",
+              "tool:read_file:settled",
+              "model:model-usage-started",
+              "model:token-usage",
+              "response-complete",
+              "run-ended:complete"
+            ],
+            "handoffFields": [
+              "objective",
+              "constraints",
+              "keyDecisions",
+              "changedFiles",
+              "tests",
+              "unresolvedSideEffects",
+              "checkpoints",
+              "blockers",
+              "nextSteps"
+            ],
+            "handoffDigest": "sha256:d980791bae37f8a58bc532804b447795c8ae2a7963e2e745b60e840ab8e0e868",
+            "handoffFieldDigests": {
+              "objective": "sha256:63bf00a28249145b94606b71f7ca280ab88918e37228c25fe47a2113746dfa61",
+              "constraints": "sha256:cf746409518615723ced34252636d17f3a15782a5122744e48698220150aaeff",
+              "keyDecisions": "sha256:070654eef59724b1027f07458c40ced25fa2d1a530efa5efba973c7001a26c79",
+              "changedFiles": "sha256:1f0781f37cbfd0a622fb77ef8703dfe79fd5b5cda796a584f81cccbaaae26888",
+              "tests": "sha256:d84ccc440fc828836783d2a268d9d05f8ddb228898e6307188b79b49f4c4b62c",
+              "unresolvedSideEffects": "sha256:9318a7bcd797b8e877660d3e9711ba230c4fbdeba0db26aa3c89305895f88702",
+              "checkpoints": "sha256:eaa50f0867916ecfeb729a5c03e3705d7a969bdbbf84dc4330980d61ea4dfded",
+              "blockers": "sha256:44f072f7397681124891d0dc3c5ad31d81f274b549ced45c43ed26adb1553147",
+              "nextSteps": "sha256:7f8e07c7f04b7f8bf5bc409174cb11109fb502cfd7b1db2ec564ac3549b77d3e"
+            },
+            "retention": {
+              "expectedFactIdsByField": {
+                "objective": [
+                  "OBJ-001"
+                ],
+                "constraints": [
+                  "CON-001"
+                ],
+                "keyDecisions": [
+                  "DEC-001"
+                ],
+                "changedFiles": [
+                  "FILE-001"
+                ],
+                "tests": [
+                  "TEST-001"
+                ],
+                "unresolvedSideEffects": [
+                  "SIDE-001"
+                ],
+                "checkpoints": [
+                  "CHK-001"
+                ],
+                "blockers": [
+                  "BLK-001"
+                ],
+                "nextSteps": [
+                  "NEXT-001"
+                ]
+              },
+              "retainedFactIdsByField": {
+                "objective": [
+                  "OBJ-001"
+                ],
+                "constraints": [
+                  "CON-001"
+                ],
+                "keyDecisions": [
+                  "DEC-001"
+                ],
+                "changedFiles": [
+                  "FILE-001"
+                ],
+                "tests": [
+                  "TEST-001"
+                ],
+                "unresolvedSideEffects": [
+                  "SIDE-001"
+                ],
+                "checkpoints": [
+                  "CHK-001"
+                ],
+                "blockers": [
+                  "BLK-001"
+                ],
+                "nextSteps": [
+                  "NEXT-001"
+                ]
+              },
+              "missingFactIdsByField": {
+                "objective": [],
+                "constraints": [],
+                "keyDecisions": [],
+                "changedFiles": [],
+                "tests": [],
+                "unresolvedSideEffects": [],
+                "checkpoints": [],
+                "blockers": [],
+                "nextSteps": []
+              },
+              "expectedFactCount": 9,
+              "retainedFactCount": 9,
+              "retentionRate": 1
+            },
+            "usage": [
+              {
+                "phase": "semantic-compaction",
+                "inputTokens": 40656,
+                "outputTokens": 2210,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              },
+              {
+                "phase": "model-before-tool",
+                "inputTokens": 1098,
+                "outputTokens": 115,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              },
+              {
+                "phase": "model-after-tool",
+                "inputTokens": 1742,
+                "outputTokens": 56,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              }
+            ],
+            "tool": {
+              "name": "read_file",
+              "argumentPathDigest": "sha256:c6192fd48a1f85340817b30c62456afbd3bc33693446f26542f75aaf4b70a1d5",
+              "expectedContentDigest": "sha256:4cb3d6305c6d8bfed0bc538fd2e7757656cd0b53e42f328385ee39bbd9865737",
+              "resultDigest": "sha256:40bb2370dd040878e53186f552a543fa459b3ae646fb1186e637fa1ef32865f7",
+              "executingCount": 1,
+              "settledCount": 1,
+              "errorCount": 0
+            },
+            "completionMarkerDigest": "sha256:3c278e0ca366d8c357e747a154a3a1a99bcc883a01648cacaa4b1a7d9db39945"
+          },
+          {
+            "cycleId": "cycle-2",
+            "eventOrder": [
+              "run-started",
+              "semantic-compaction:model-usage-started",
+              "compaction",
+              "semantic-compaction:token-usage",
+              "model:model-usage-started",
+              "model:token-usage",
+              "tool:read_file:started",
+              "tool:read_file:settled",
+              "model:model-usage-started",
+              "model:token-usage",
+              "response-complete",
+              "run-ended:complete"
+            ],
+            "handoffFields": [
+              "objective",
+              "constraints",
+              "keyDecisions",
+              "changedFiles",
+              "tests",
+              "unresolvedSideEffects",
+              "checkpoints",
+              "blockers",
+              "nextSteps"
+            ],
+            "handoffDigest": "sha256:a17d029c50769c65b996e78f5e12ae4125e838d44f4970422e63b0883620c500",
+            "handoffFieldDigests": {
+              "objective": "sha256:63bf00a28249145b94606b71f7ca280ab88918e37228c25fe47a2113746dfa61",
+              "constraints": "sha256:a5487ee17f986d28c8e6a6c002c437ca17d6b0d70faed4c03a3c4fd5e53d5372",
+              "keyDecisions": "sha256:fceeb96c561cc1b46cba592b87e43ddfb3cd220527fefbd174126e68a9e88696",
+              "changedFiles": "sha256:f2be9d017114cfb574b3e5eec0314fdadbe56df7e3bb2260569d435dd40e0661",
+              "tests": "sha256:4f9cd787c6dcd4571414416759d527d0ba368f15576d5e02b7a386fb9255a323",
+              "unresolvedSideEffects": "sha256:c5b6f08efcf21368021f65bd5fa8d093fe9a4dafa50b2276d056712bf98690e0",
+              "checkpoints": "sha256:68021e03c492efb0b564acedc35e890df31f6f07cacb126b5b27fc76bafeae44",
+              "blockers": "sha256:c401bf64f0843bd53722f6f8762fe436a4f9f3f354e26358dcf033f372943de7",
+              "nextSteps": "sha256:8b3606291ffd5c573f410cea25a64412ea52d7f136b7c9d87e4e787ff1a4f0d1"
+            },
+            "retention": {
+              "expectedFactIdsByField": {
+                "objective": [
+                  "OBJ-001"
+                ],
+                "constraints": [
+                  "CON-001",
+                  "CON-002"
+                ],
+                "keyDecisions": [
+                  "DEC-001",
+                  "DEC-002"
+                ],
+                "changedFiles": [
+                  "FILE-001",
+                  "FILE-002"
+                ],
+                "tests": [
+                  "TEST-001",
+                  "TEST-002"
+                ],
+                "unresolvedSideEffects": [
+                  "SIDE-001",
+                  "SIDE-002"
+                ],
+                "checkpoints": [
+                  "CHK-001",
+                  "CHK-002"
+                ],
+                "blockers": [
+                  "BLK-001",
+                  "BLK-002"
+                ],
+                "nextSteps": [
+                  "NEXT-001",
+                  "NEXT-002"
+                ]
+              },
+              "retainedFactIdsByField": {
+                "objective": [
+                  "OBJ-001"
+                ],
+                "constraints": [
+                  "CON-001",
+                  "CON-002"
+                ],
+                "keyDecisions": [
+                  "DEC-001",
+                  "DEC-002"
+                ],
+                "changedFiles": [
+                  "FILE-001",
+                  "FILE-002"
+                ],
+                "tests": [
+                  "TEST-001",
+                  "TEST-002"
+                ],
+                "unresolvedSideEffects": [
+                  "SIDE-001",
+                  "SIDE-002"
+                ],
+                "checkpoints": [
+                  "CHK-001",
+                  "CHK-002"
+                ],
+                "blockers": [
+                  "BLK-001",
+                  "BLK-002"
+                ],
+                "nextSteps": [
+                  "NEXT-001",
+                  "NEXT-002"
+                ]
+              },
+              "missingFactIdsByField": {
+                "objective": [],
+                "constraints": [],
+                "keyDecisions": [],
+                "changedFiles": [],
+                "tests": [],
+                "unresolvedSideEffects": [],
+                "checkpoints": [],
+                "blockers": [],
+                "nextSteps": []
+              },
+              "expectedFactCount": 17,
+              "retainedFactCount": 17,
+              "retentionRate": 1
+            },
+            "usage": [
+              {
+                "phase": "semantic-compaction",
+                "inputTokens": 38708,
+                "outputTokens": 4656,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              },
+              {
+                "phase": "model-before-tool",
+                "inputTokens": 1287,
+                "outputTokens": 136,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              },
+              {
+                "phase": "model-after-tool",
+                "inputTokens": 1931,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "cacheCreationTokens": 0
+              }
+            ],
+            "tool": {
+              "name": "read_file",
+              "argumentPathDigest": "sha256:c6192fd48a1f85340817b30c62456afbd3bc33693446f26542f75aaf4b70a1d5",
+              "expectedContentDigest": "sha256:4cb3d6305c6d8bfed0bc538fd2e7757656cd0b53e42f328385ee39bbd9865737",
+              "resultDigest": "sha256:40bb2370dd040878e53186f552a543fa459b3ae646fb1186e637fa1ef32865f7",
+              "executingCount": 1,
+              "settledCount": 1,
+              "errorCount": 0
+            },
+            "completionMarkerDigest": "sha256:3a972ef0c42618993d5f8e21e80ef6ee875bcb100a74c60ed062d2c254b73e77"
+          }
+        ]
+      }
+    }
+  ],
+  "evidenceDigest": "sha256:2eab8f54062adebb7e9781869bf04c942fec5b9799089d0e79dac3cc671cf3ce"
+}
