@@ -1,0 +1,301 @@
+{
+  "schema": "chainlesschain.static-site-deployment-readback/v1",
+  "server": "47.111.5.128",
+  "deploymentStamp": "20261002-2333-cli016684-docsync",
+  "reviewedSource": "2bfaea2fa9588c4a4017d7e926362b03b4d9ad69",
+  "cliReleaseSource": "d93c9c97664ef910b16a402075b8b920338e1fe2",
+  "checkedAt": "2026-10-02T15:38:23.839Z",
+  "mode": "live",
+  "sites": [
+    {
+      "name": "official",
+      "domain": "www.chainlesschain.com",
+      "htmlCount": 20
+    },
+    {
+      "name": "user",
+      "domain": "docs.chainlesschain.com",
+      "htmlCount": 623
+    },
+    {
+      "name": "design",
+      "domain": "design.chainlesschain.com",
+      "htmlCount": 272
+    }
+  ],
+  "pages": [
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/index.html",
+      "url": "https://www.chainlesschain.com/",
+      "bytes": 59889,
+      "sha256": "2b9fc4c038b1749d4fc85d0dbfd5e4af943adff8e497add481bf0f62d1c58d02",
+      "httpStatus": 200,
+      "liveSha256": "2b9fc4c038b1749d4fc85d0dbfd5e4af943adff8e497add481bf0f62d1c58d02",
+      "byteIdentical": true
+    },
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/cli/index.html",
+      "url": "https://www.chainlesschain.com/cli/",
+      "bytes": 117299,
+      "sha256": "ba0cc54987d987d16eb4b89c7021721f0f82cfd5f61257168510c6acb9425c87",
+      "httpStatus": 200,
+      "liveSha256": "ba0cc54987d987d16eb4b89c7021721f0f82cfd5f61257168510c6acb9425c87",
+      "byteIdentical": true
+    },
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/ide/index.html",
+      "url": "https://www.chainlesschain.com/ide/",
+      "bytes": 39850,
+      "sha256": "f791f808ac18d2f058090f7182e2e65ae021dd26f2d2dd3643a90088e0862dc4",
+      "httpStatus": 200,
+      "liveSha256": "f791f808ac18d2f058090f7182e2e65ae021dd26f2d2dd3643a90088e0862dc4",
+      "byteIdentical": true
+    },
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/en/index.html",
+      "url": "https://www.chainlesschain.com/en/",
+      "bytes": 60430,
+      "sha256": "85662760863cbb80e6bd46c977ab3872112dd42767cc169eac7db507bdbab6c0",
+      "httpStatus": 200,
+      "liveSha256": "85662760863cbb80e6bd46c977ab3872112dd42767cc169eac7db507bdbab6c0",
+      "byteIdentical": true
+    },
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/en/cli/index.html",
+      "url": "https://www.chainlesschain.com/en/cli/",
+      "bytes": 118468,
+      "sha256": "095d4eec223b8f0451446a1fbbe9a08efd2eef7cf42f89ae9404dd99382063d7",
+      "httpStatus": 200,
+      "liveSha256": "095d4eec223b8f0451446a1fbbe9a08efd2eef7cf42f89ae9404dd99382063d7",
+      "byteIdentical": true
+    },
+    {
+      "site": "official",
+      "localPath": "docs-website-v2/dist/en/ide/index.html",
+      "url": "https://www.chainlesschain.com/en/ide/",
+      "bytes": 41241,
+      "sha256": "bf927971d3810ec7d4ea033b84384d15b4a315187ce20dfe5dbac06d30e5262f",
+      "httpStatus": 200,
+      "liveSha256": "bf927971d3810ec7d4ea033b84384d15b4a315187ce20dfe5dbac06d30e5262f",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/index.html",
+      "url": "https://docs.chainlesschain.com/",
+      "bytes": 137292,
+      "sha256": "55ae39460126d3b00b449b3f817e323a870558e14084d8605ed5b2979ad33409",
+      "httpStatus": 200,
+      "liveSha256": "55ae39460126d3b00b449b3f817e323a870558e14084d8605ed5b2979ad33409",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/agent-platform-release.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html",
+      "bytes": 293815,
+      "sha256": "9f18312a84884a7b9c776c93177f359fab2e4a859892cae9c1a0bb7b4c3684f4",
+      "httpStatus": 200,
+      "liveSha256": "9f18312a84884a7b9c776c93177f359fab2e4a859892cae9c1a0bb7b4c3684f4",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/cli-agent.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-agent.html",
+      "bytes": 377810,
+      "sha256": "f16884332a1593051103e7ca3b2e27cf645adde4c9f45b80423a275b703ffbba",
+      "httpStatus": 200,
+      "liveSha256": "f16884332a1593051103e7ca3b2e27cf645adde4c9f45b80423a275b703ffbba",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/cli-runtime-current.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-runtime-current.html",
+      "bytes": 347776,
+      "sha256": "59f073adb98a4ec746889907ecf6b3809046bc4e7d74ea6aa4782b893952fac2",
+      "httpStatus": 200,
+      "liveSha256": "59f073adb98a4ec746889907ecf6b3809046bc4e7d74ea6aa4782b893952fac2",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/cli-session.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-session.html",
+      "bytes": 317189,
+      "sha256": "5a09af6a42e5cd93556c2777cedf553081dc4c7e4dd4445f66c9315d66918be8",
+      "httpStatus": 200,
+      "liveSha256": "5a09af6a42e5cd93556c2777cedf553081dc4c7e4dd4445f66c9315d66918be8",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/ide-plugin.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/ide-plugin.html",
+      "bytes": 312864,
+      "sha256": "33c398f5d7b6d692f85a31cb0d6b9b1142f9aec021d3df723e93ea288262ed8e",
+      "httpStatus": 200,
+      "liveSha256": "33c398f5d7b6d692f85a31cb0d6b9b1142f9aec021d3df723e93ea288262ed8e",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/ide-task-worklog.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/ide-task-worklog.html",
+      "bytes": 258645,
+      "sha256": "0ef455c7ff5b61caf8d5f2a3fbcd13ff8ddfc73d50eb13361bc87c0721c3cff4",
+      "httpStatus": 200,
+      "liveSha256": "0ef455c7ff5b61caf8d5f2a3fbcd13ff8ddfc73d50eb13361bc87c0721c3cff4",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/chainlesschain/pm-effect-evaluation.html",
+      "url": "https://docs.chainlesschain.com/chainlesschain/pm-effect-evaluation.html",
+      "bytes": 254014,
+      "sha256": "fd6257f54b9f0be4821830c7197475054b71edac4e7456b060b3bcb7aacd9b8c",
+      "httpStatus": 200,
+      "liveSha256": "fd6257f54b9f0be4821830c7197475054b71edac4e7456b060b3bcb7aacd9b8c",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/changelog.html",
+      "url": "https://docs.chainlesschain.com/changelog.html",
+      "bytes": 866785,
+      "sha256": "41b47a7b8e43edca5f9847b3aa8306f9f2a0b28e3fd84841117f24943b817c4b",
+      "httpStatus": 200,
+      "liveSha256": "41b47a7b8e43edca5f9847b3aa8306f9f2a0b28e3fd84841117f24943b817c4b",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/index.html",
+      "url": "https://design.chainlesschain.com/",
+      "bytes": 91994,
+      "sha256": "8fb516edac02a0330868ad929694d724401d3c8600d5d99303cc5cc60b60b00d",
+      "httpStatus": 200,
+      "liveSha256": "8fb516edac02a0330868ad929694d724401d3c8600d5d99303cc5cc60b60b00d",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/agent-runtime-update-2026-09-26.html",
+      "url": "https://design.chainlesschain.com/agent-runtime-update-2026-09-26.html",
+      "bytes": 171407,
+      "sha256": "b61d01c7868fadaf80c1cd251ea7521f54682aa38fa42d68eb345f93ff6c5cf0",
+      "httpStatus": 200,
+      "liveSha256": "b61d01c7868fadaf80c1cd251ea7521f54682aa38fa42d68eb345f93ff6c5cf0",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/cli-runtime-current.html",
+      "url": "https://design.chainlesschain.com/cli-runtime-current.html",
+      "bytes": 248660,
+      "sha256": "884794eb5e53a0e363e9cc9015c7e2442d17619dc7918a951247664929906a3f",
+      "httpStatus": 200,
+      "liveSha256": "884794eb5e53a0e363e9cc9015c7e2442d17619dc7918a951247664929906a3f",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/system-design-main.html",
+      "url": "https://design.chainlesschain.com/system-design-main.html",
+      "bytes": 311443,
+      "sha256": "b69d77ca927806979156107970aac618bf369a1e7d9c7c0e583af8fbefabbee3",
+      "httpStatus": 200,
+      "liveSha256": "b69d77ca927806979156107970aac618bf369a1e7d9c7c0e583af8fbefabbee3",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/modules/110-agent-platform-release-boundaries.html",
+      "url": "https://design.chainlesschain.com/modules/110-agent-platform-release-boundaries.html",
+      "bytes": 171999,
+      "sha256": "f7276df3b2056eb2fbbe5e7db5fe4131c4952ad2f536f3dbc19fbffecb429bd7",
+      "httpStatus": 200,
+      "liveSha256": "f7276df3b2056eb2fbbe5e7db5fe4131c4952ad2f536f3dbc19fbffecb429bd7",
+      "byteIdentical": true
+    },
+    {
+      "site": "design",
+      "localPath": "docs-site-design/docs/.vitepress/dist/modules/114-jev-decision-layer-design.html",
+      "url": "https://design.chainlesschain.com/modules/114-jev-decision-layer-design.html",
+      "bytes": 181669,
+      "sha256": "82445ad912a9a1c6263251aff636a41bd7defd7e465bcda886cfeb3cd14689b9",
+      "httpStatus": 200,
+      "liveSha256": "82445ad912a9a1c6263251aff636a41bd7defd7e465bcda886cfeb3cd14689b9",
+      "byteIdentical": true
+    }
+  ],
+  "assets": [
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/chainlesschain_agent-platform-release.md.CNkkG-Ju.js",
+      "url": "https://docs.chainlesschain.com/assets/chainlesschain_agent-platform-release.md.CNkkG-Ju.js",
+      "bytes": 55998,
+      "sha256": "075b20f937bf525fc11916e4d09f48026df28903468ce64d20154067251cd2b2",
+      "httpStatus": 200,
+      "liveSha256": "075b20f937bf525fc11916e4d09f48026df28903468ce64d20154067251cd2b2",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/chainlesschain_agent-platform-release.md.CNkkG-Ju.lean.js",
+      "url": "https://docs.chainlesschain.com/assets/chainlesschain_agent-platform-release.md.CNkkG-Ju.lean.js",
+      "bytes": 537,
+      "sha256": "49c639c92484663c3ca4037bb623eb8a8ba5c17dd9d1279227acc278df8c785a",
+      "httpStatus": 200,
+      "liveSha256": "49c639c92484663c3ca4037bb623eb8a8ba5c17dd9d1279227acc278df8c785a",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/chainlesschain_ide-plugin.md.W3LF55zX.js",
+      "url": "https://docs.chainlesschain.com/assets/chainlesschain_ide-plugin.md.W3LF55zX.js",
+      "bytes": 74817,
+      "sha256": "91880f603d8b7d8d7eafb41515c80d465491949f31c272f01f79c8f35bffa778",
+      "httpStatus": 200,
+      "liveSha256": "91880f603d8b7d8d7eafb41515c80d465491949f31c272f01f79c8f35bffa778",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/chainlesschain_ide-plugin.md.W3LF55zX.lean.js",
+      "url": "https://docs.chainlesschain.com/assets/chainlesschain_ide-plugin.md.W3LF55zX.lean.js",
+      "bytes": 503,
+      "sha256": "8adf05e4c05eeb697dfff270d8f36f98f031359a0f6944a9a1874baa12e2bec6",
+      "httpStatus": 200,
+      "liveSha256": "8adf05e4c05eeb697dfff270d8f36f98f031359a0f6944a9a1874baa12e2bec6",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/index.md.Bgt4HM5t.js",
+      "url": "https://docs.chainlesschain.com/assets/index.md.Bgt4HM5t.js",
+      "bytes": 34484,
+      "sha256": "100837f75ed7466a5e4049f4fc38239b676ea49d66670e5b5230f93dc8aa0291",
+      "httpStatus": 200,
+      "liveSha256": "100837f75ed7466a5e4049f4fc38239b676ea49d66670e5b5230f93dc8aa0291",
+      "byteIdentical": true
+    },
+    {
+      "site": "user",
+      "localPath": "docs-site/docs/.vitepress/dist/assets/index.md.Bgt4HM5t.lean.js",
+      "url": "https://docs.chainlesschain.com/assets/index.md.Bgt4HM5t.lean.js",
+      "bytes": 3603,
+      "sha256": "367e235e954cda96ca8b057aa0d4f4575ec528aae4d7d4ebf409795d02ed7e14",
+      "httpStatus": 200,
+      "liveSha256": "367e235e954cda96ca8b057aa0d4f4575ec528aae4d7d4ebf409795d02ed7e14",
+      "byteIdentical": true
+    }
+  ],
+  "completedAt": "2026-10-02T15:38:26.282Z"
+}

@@ -1,8 +1,8 @@
 # IDE 任务记录与新会话接力
 
-> **CLI 0.166.82（2026-10-01）**：任务进度与工作日志在压缩、重启和新会话交接时保留测试失败断言、源码位置与 suite verdict。日志下载成功不代表测试通过；同一 Issue、关联 PR 与 workflow run 的身份保持独立。升级后重启 IDE 聊天宿主。
+> **CLI 0.166.84（2026-10-02）**：任务进度与工作日志在压缩、重启和新会话交接时保留测试失败断言、源码位置与 suite verdict。日志下载成功不代表测试通过；同一 Issue、关联 PR 与 workflow run 的身份保持独立。升级后重启 IDE 聊天宿主。
 
-> 适用版本：CLI `0.166.59`、Context/Memory Kernel `0.1.4`、VS Code `0.37.105`、JetBrains `0.4.126`。公开制品均来自精确提交 `a148ec7a57`；CLI `0.166.58` 及更早版本不支持本功能。
+> 首次支持版本：CLI `0.166.59`、Context/Memory Kernel `0.1.4`、VS Code `0.37.105`、JetBrains `0.4.126`。公开制品均来自精确提交 `a148ec7a57`；CLI `0.166.58` 及更早版本不支持本功能。
 
 ## 概述
 
@@ -17,13 +17,13 @@ VS Code 的 `↗` / **Continue in New Conversation with Task Notes** 和 JetBrai
 ### 安装配套版本
 
 ```bash
-npm install --global chainlesschain@0.166.59 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.84 --registry https://registry.npmjs.org
 cc --version
 ```
 
-- VSCodium、Cursor 等 Open VSX 客户端安装 `0.37.105`。
-- 官方 VS Code 从 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 下载 `0.37.105` VSIX，再运行 **Extensions: Install from VSIX...**。
-- JetBrains 2024.2+ 在 Marketplace 安装 `0.4.126`。
+- VSCodium、Cursor 等 Open VSX 客户端安装 `0.37.126`。
+- 官方 VS Code 从 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 下载 `0.37.126` VSIX，再运行 **Extensions: Install from VSIX...**。
+- JetBrains 2024.2+ 在 Marketplace 安装 `0.4.146`。
 
 CLI 与插件应成对升级。旧插件没有接力按钮；旧 CLI 会被插件明确识别为不支持，不会静默创建一个没有历史的新会话。
 

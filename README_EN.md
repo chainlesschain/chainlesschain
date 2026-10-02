@@ -1,24 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-10-01 release and source review
+## 2026-10-02 release and source review
 
-Install **CLI 0.166.82**, the public npm `latest`, with `npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-82` resolves to `1954ba867d`. [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102772), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102363), and [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/36798445319) succeeded. The exact release commit passed all configured CI/Strict jobs, including Linux ARM64 Strict. Public latest, version, and integrity were read back.
+Install **CLI 0.166.84**, the public npm `latest`, with `npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-84` resolves to `d93c9c9766`. The exact release commit passed all 68 [CLI CI jobs](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721) and five [Strict Sandbox jobs](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555), covering Linux x64/ARM64, Windows, and macOS. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162) and [public tarball readback](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322) succeeded with matching artifact bytes and signed provenance.
 
-Issue queries, artifact downloads, and saved-log inspection share an investigation budget. Repeated reads of one Issue across web, CLI, and API routes share a target; linked PRs and workflow runs remain distinct. Failed-test assertions, source locations, and verdicts survive compaction, restart, and task handoff even when log download succeeds. GitHub CLI calls routed to the Git tool are corrected.
+Official workspace-scoped permission additions and revocations synchronously invalidate active shell permits before durable writes in the same runtime. Restoring effective rules cannot revive a stale permit. Settings and scoped revisions are checked while awaiting approval, launching, running, and accepting results; uncertain persistence keeps authority unavailable. The release includes 0.166.83 WS host revisions, unattended entry guards, frozen launch inputs/tool ceilings, launcher storage protection, and retained Issue/CI failure evidence.
 
-Open VSX **0.37.124** and JetBrains Marketplace **0.4.144** are public, recommend CLI `0.166.82`, and use source `fb267f569d`. Restart the IDE chat host after upgrading the CLI. Microsoft Marketplace remains unpublished; Desktop, Android, and iOS retain independent **v5.0.3.138** releases.
+Open VSX **0.37.126** and JetBrains Marketplace **0.4.146** are public and recommend CLI `0.166.84`; both use source `d93c9c9766`. Their exact-commit host gates and publication workflows passed. The 2026-10-02 independent marketplace readback confirms JetBrains approved/listed and Open VSX latest. Restart the IDE chat host after upgrading the CLI. Microsoft Marketplace remains unpublished; Desktop, Android, and iOS retain independent **v5.0.3.138** releases.
 
-Reviewed at `main@e96062008f`: the public CLI includes Plan/ApprovalGate and Auto Mode revisions. Later WS host policy revisions, unattended entry guards, frozen tool ceilings, and official settings mutation revocation are source changes absent from that tarball. Current main CI/Strict report failure. External edits, cross-process revisions, and legacy callbacks remain incomplete. Real PM/Pilot outcomes, complete launch coverage, and total costs are unverified; automatic active Skill promotion stays on HOLD. Linux Docker domain egress still requires explicit selection, pinned images, and domain rules; inspect side effects before retrying an unknown outcome.
-
-See the [incremental design](docs/design/agent-runtime-update-2026-09-26.md), [PM evaluation guide](docs-site/docs/chainlesschain/pm-effect-evaluation.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical release boundaries.
+Reviewed at `main@2bfaea2fa9`: strict read-only settings observations and explicit Linux settings-authority transaction foundations are present, but the transaction API is not wired into default permission admission or the official settings writer. Cross-process/Worker immediate notifications, arbitrary external edits, and legacy callbacks remain incomplete. Real PM/Pilot outcomes, complete launch coverage, and total costs are unverified; automatic active Skill promotion stays on HOLD. Linux Docker domain egress requires explicit selection, pinned images, and domain rules. Inspect side effects before retrying an unknown outcome. See the [runtime design](docs/design/agent-runtime-update-2026-09-26.md) and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical release identities.
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.82` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.84` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
@@ -2555,7 +2553,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.82-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.84-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+#### Released — CLI 0.166.84 / Open VSX 0.37.126 / JetBrains 0.4.146（2026-10-02）
+
+- **作用域权限同步撤销**：同一进程/模块实例内，官方 workspace-scoped 权限添加或撤销在落盘前使旧 Shell 许可失效；恢复原规则不能复活旧许可。审批、启动、运行和回执阶段组合核验 settings/scoped 修订，持久化未知保持拒绝授权。
+- **继承 0.166.83**：WS 宿主策略修订、无人值守入口、冻结配置与工具上限、官方 settings 写口撤销、launcher 存储根保护及 Windows ACL 验证预算修复已公开；Issue/CI 调查与失败证据恢复继续保留。
+- **设置事务基础**：完整来源只读观察与显式 Linux 外锚、guard/prepared/ready 事务及按 transactionId 恢复已在代码中；事务 API 尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑及 legacy callback 仍待闭合。
+- **发布证据**：`v-npm-0-166-84@d93c9c9766` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721) 68/68 作业、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555) 五个配置作业及 IDE 宿主矩阵通过；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162)和[独立公共包字节回读](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322)成功。
+- **IDE 与产品**：Open VSX `0.37.126`、JetBrains `0.4.146` 均已公开并推荐 CLI `0.166.84`。Microsoft Marketplace 未发行；桌面与移动端仍为独立产品 `v5.0.3.138`，PM 收益与 automatic active Skill 晋升资格仍未完成。
+- **文档**：更新[发布升级指南](/chainlesschain/agent-platform-release)、[IDE 指南](/chainlesschain/ide-plugin)与[运行时增量设计](/design/agent-runtime-update-2026-09-26)。下方记录保留各自历史时点。
+
 #### Released — CLI 0.166.70 / Open VSX 0.37.112 / JetBrains 0.4.133 待审核（2026-09-22）
 
 - **Jev 类型化 Skill 决策试点**：在既有 allow-list、兼容性、撤销与检索之后，对最多五个已准入候选执行有界判断；当前仅支持耐久、单 prompt、headless Agent。

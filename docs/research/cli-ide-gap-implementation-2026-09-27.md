@@ -86,6 +86,8 @@ CLI 公开回读成功后，才推送同一提交上的 `ide-vscode-v0.37.126` �
 
 JetBrains **0.4.146** 的 [Marketplace 发布流程](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013151)全部成功：三系统 × 2024.2/2025.2 六个真实宿主的基础和 canonical recovery / Stop 旅程、JUnit/smoke、构建/结构/兼容性、[公共 CLI 安装](./cli/evidence/jetbrains-cli-prerequisite-d93c9c9766.json)和 Marketplace 上传通过。[回读记录](./cli/evidence/jetbrains-marketplace-readback-d93c9c9766.json)区分**上传成功**与**待市场审核/公开上架**：托管 12 次尝试及独立一次查询均返回 `version-not-visible`。独立下载 artifact `11230206668`，核对 ZIP 内 plugin ID/version 及配套 CLI；ZIP SHA-256 为 `1701b987f5843b03742de9db2f566fa189eb1d111ea39d584db2779b2a377682`。公开版本尚不可见，不能声称完成公共 ZIP 内容比对；作者签名按既有无签名配置路径跳过。
 
+**2026-10-02 后续公共回读**：JetBrains `0.4.146` 已通过审核并公开，update `1185952` 为 `approve/listed=true`、`hidden=false`。独立下载公开 ZIP，并与上述工作流 artifact 逐文件比对，包含必要时递归比较 JAR entry，全部文件内容一致；商店重新封装后的 archive SHA-256 为 `a1b94e6e672ecd83711affcf78c7b14e62f526e892da5005a143e01aa526a10c`，不把压缩包字节差异写成字节一致。保存[后续回执](./cli/evidence/jetbrains-marketplace-public-readback-2026-10-02.json)，原 pending 回执保留其首次查询时点。
+
 按用户要求先发布再合并，[PR #396](https://github.com/chainlesschain/chainlesschain/pull/396)在三条发布流程成功后于 `2026-10-02T13:59:22Z` 合入 `main`，merge commit 为 `129a17b55e1eb75726ce401c7bde892790b90416`。发布证据通过单独文档 PR 回填，保留已测试发布提交和三个不可变 tag。两份审计的全部任务不因本切片全部关闭；跨进程/Worker/外部编辑的即时通知仍开放。
 
 ### 前一批准确提交验收与公开发布（2026-10-02）
