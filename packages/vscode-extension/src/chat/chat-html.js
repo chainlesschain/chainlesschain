@@ -345,11 +345,16 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   log.addEventListener("scroll", () => {
     followBottom = log.scrollHeight - log.clientHeight - log.scrollTop <= 48;
   });
-  function followTranscript() {
+  let transcriptSelectionActive = false;
+  document.addEventListener("selectionchange", () => {
     const selection = document.getSelection();
-    const selecting = selection && !selection.isCollapsed &&
+    transcriptSelectionActive = selection && !selection.isCollapsed &&
       (log.contains(selection.anchorNode) || log.contains(selection.focusNode));
-    if (followBottom && !selecting) log.scrollTop = log.scrollHeight;
+  });
+  function followTranscript() {
+    // Read selection on its own event, before streaming DOM mutations. Asking
+    // Chromium for it after every append forces layout of the growing reply.
+    if (followBottom && !transcriptSelectionActive) log.scrollTop = log.scrollHeight;
   }
   ${createStreamingTranscript.toString()}
   ${measureStreamingProfile.toString()}

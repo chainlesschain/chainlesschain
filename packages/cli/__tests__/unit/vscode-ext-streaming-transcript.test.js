@@ -93,6 +93,10 @@ describe("streaming transcript", () => {
       expect(parse).not.toHaveBeenCalled();
       expect(element.firstChild).toBe(first);
       expect(element.textContent).toBe(text);
+      expect(element.childNodes.length).toBe(Math.ceil(size / 4096));
+      expect([...element.childNodes].every((node) => node.length <= 4096)).toBe(
+        true,
+      );
       renderer.finish(element, text);
       renderer.update(element, text);
       renderer.finish(element, text);
@@ -129,6 +133,37 @@ describe("streaming transcript", () => {
     document.getSelection().removeAllRanges();
     document.dispatchEvent(new window.Event("selectionchange"));
     expect(parse).toHaveBeenCalledTimes(1);
+    renderer.dispose();
+    window.happyDOM.abort();
+  });
+
+  it("keeps adjacent Unicode text exact across bounded nodes and subsequent truncation", () => {
+    const window = new Window();
+    const document = window.document;
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    const renderer = createStreamingTranscript({
+      document,
+      renderMarkdown: (t) => t,
+      decorate: vi.fn(),
+      follow: vi.fn(),
+    });
+    const text = "a".repeat(4095) + "😀中文".repeat(3000);
+    renderer.update(element, text);
+    expect(element.textContent).toBe(text);
+    for (const node of element.childNodes) {
+      expect(node.length).toBeLessThanOrEqual(4096);
+      expect(node.data).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/u);
+    }
+    const first = element.firstChild;
+    renderer.update(element, "bounded replacement", true);
+    expect(element.firstChild).toBe(first);
+    expect(element.childNodes.length).toBe(1);
+    expect(element.textContent).toBe("bounded replacement");
+    renderer.update(element, "a".repeat(4095) + "\uD83D");
+    renderer.update(element, "a".repeat(4095) + "😀");
+    expect(element.textContent).toBe("a".repeat(4095) + "😀");
+    expect(element.lastChild.data).toBe("😀");
     renderer.dispose();
     window.happyDOM.abort();
   });

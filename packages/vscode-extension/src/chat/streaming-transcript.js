@@ -25,15 +25,53 @@ function createStreamingTranscript({
       const node = document.createTextNode("");
       element.textContent = "";
       element.appendChild(node);
-      state = { node, length: 0, formatted: false, truncated: false };
+      state = {
+        node,
+        first: node,
+        length: 0,
+        formatted: false,
+        truncated: false,
+      };
       states.set(element, state);
     }
     if (truncated || state.truncated || text.length < state.length) {
       // Once a block reaches its cap the omission marker and tail can change.
       // It remains bounded; ordinary streams only append their new suffix.
-      state.node.data = text;
+      state.first.data = text;
+      while (element.lastChild !== state.first)
+        element.removeChild(element.lastChild);
+      state.node = state.first;
     } else if (text.length > state.length) {
-      state.node.appendData(text.slice(state.length));
+      // Mutating a single 200K text node invalidates its complete inline layout
+      // on every frame, including the user's selected prefix. Keep finished
+      // nodes stable and limit each mutable tail to 4K. Adjacent text nodes do
+      // not insert whitespace or change the raw text/copy/selection contract.
+      let offset = state.length;
+      while (offset < text.length) {
+        if (state.node.length >= 4096) {
+          let pending = "";
+          if (
+            /[\uD800-\uDBFF]/u.test(state.node.data.slice(-1)) &&
+            /[\uDC00-\uDFFF]/u.test(text[offset])
+          ) {
+            pending = state.node.data.slice(-1);
+            state.node.deleteData(state.node.length - 1, 1);
+          }
+          state.node = document.createTextNode(pending);
+          element.appendChild(state.node);
+        }
+        let end = Math.min(text.length, offset + 4096 - state.node.length);
+        // Keep UTF-16 surrogate pairs in the same layout run. A pending high
+        // surrogate can still arrive on its own and is completed in that tail.
+        if (end < text.length && /[\uD800-\uDBFF]/u.test(text[end - 1])) end--;
+        if (end === offset) {
+          state.node = document.createTextNode("");
+          element.appendChild(state.node);
+          continue;
+        }
+        state.node.appendData(text.slice(offset, end));
+        offset = end;
+      }
     }
     state.length = text.length;
     state.truncated = truncated;
