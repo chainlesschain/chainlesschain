@@ -222,6 +222,13 @@ export function generatePkgConfig(ctx) {
     updatePublicKey = null,
   } = ctx;
 
+  // pkg silently turns an empty target list into a host build. Require an
+  // explicit target so asset admission and the emitted build cannot diverge.
+  if (!Array.isArray(targets) || targets.length === 0)
+    throw new Error(
+      "Standalone builds require at least one explicit pkg target",
+    );
+
   const bakedTokenMode =
     typeof runtime.token === "string" ? runtime.token : "auto";
   const bakedHost =

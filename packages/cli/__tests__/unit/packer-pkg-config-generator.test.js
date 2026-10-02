@@ -223,6 +223,12 @@ describe("generatePkgConfig", () => {
     );
   });
 
+  it("refuses an empty target list instead of pkg's implicit host fallback", () => {
+    expect(() => callGenerator({ targets: [] })).toThrow(
+      /require at least one explicit pkg target/,
+    );
+  });
+
   it("creates pkg-config dir, package.json, and pack-entry.js", () => {
     const r = callGenerator();
     expect(fs.existsSync(r.pkgConfigDir)).toBe(true);
