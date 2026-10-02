@@ -4,6 +4,18 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### NET-02：作用域权限官方写口同步撤销（2026-10-02）
+
+候选分支为 `feature/scoped-permission-revocation-2026-10-02`，基于 `19335b8d04`。`ScopedPermissionStore.add/revoke` 现在在严格文件锁内校验完成后、持久写入前推进私有进程级修订并同步通知。所有实例的重入读取和写入在进入锁前拒绝；操作在通知前固定路径、工作区副本和依赖，监听器不能改变本次落盘目标或已校验内容。幂等撤销不写文件、不推进修订；验证、CAS、容量及锁准入失败也不发布变更。确定未提交的写失败仍保留新修订，已提交但锁清理失败报告 committed，rename 后持久化不确定则锁存 invalid，恢复原文件也不能重获该进程的权限权威。
+
+官方 permission provider 组合 settings 与 scoped 两个 owner 的稳定快照，读取前后分别核对修订；显式 baseRules 保留替换 scoped 规则的原语义。复用现有 shell 首次 await 前的绑定及运行期订阅，审批等待、broker 启动、容器创建、运行中和回执前的变更都会使旧许可失效。已建立的 Docker 代理同步锁存撤销并开始关闭；迟到容器不执行，旧输出不能签发成功回执或自动重试；正常结束退订两层监听器。
+
+Windows Node 22.22.2 的最新 12 文件定向回归 **239 passed / 19 skipped**：18 个 Linux 真 Docker 场景和 1 个已有 POSIX symlink 用例按平台跳过。包括四个真实 Node 进程并发添加/撤销，验证严格锁保留全部 8 次 generation 更新；六个生命周期阶段分别覆盖撤销 grant 后重新授予、添加 deny 后撤销两种恢复有效规则的操作。VS Code 全部单元测试 **221/221**；发布合同/发布门/离线 changelog 3 文件 **33/33**，安全映射单测 **7/7**。这些集合有重叠，不相加为全套数量。Linux WSL1、最低 Node **22.12.0** 的独立真实文件探针复现 rename 后目录 fsync 失败、unknown 提交及原文件删除后持续拒绝；Windows 对同一 unknown 状态使用注入锁对照。
+
+Strict Sandbox 增加两个 scoped 存储文件的必跑回归，现有 x64/ARM64 真 Docker 旅程新增 `scoped-revoke` 和 `scoped-deny-aba`，检查持续 CONNECT 关闭、零后续流量、heartbeat 停止与容器回收。同步保证仅为同一进程/模块实例经官方 API 开始的修改，保守撤销全部项目；独立终端 `cc permissions revoke`、Worker、外部编辑与未知 callbacks 仍由原采样及各自边界约束。既有完整 scoped generation 投影仍保留，不能将原延迟撤销描述成正常 API 永久 ABA 漏检。
+
+候选版本为 CLI **0.166.84**、VS Code **0.37.126**、JetBrains **0.4.146**，没有子 npm 包改动。当前尚未发布；JetBrains 本地 Java 21 构建验证及准确候选提交的完整 CLI CI / Strict Sandbox / IDE 宿主矩阵仍待完成，发布顺序继续为子包核验 → CLI OIDC → 公开回读 → IDE。两份审计的全部任务不因本切片全部关闭。
+
 ### 当前准确提交验收与公开发布（2026-10-02）
 
 发布提交为 `4c3b9bdbc94da3ce737d24527cd841d048cfad3c`，包含严格来源观察 `4569eb98dc` 和版本准备 `f45e2f4acd`。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36890979144) 完整通过：67 个成功作业，唯一跳过项为非发布分支预期不执行的 dry-run publish；没有跳过测试矩阵。其 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36890978636) 的 Linux x64/ARM64、Windows、macOS 15 与 latest 五个作业均通过。当前提交的 IDE Extensions、IDE ARM64 Host Validation、Session Host Consistency、Roadmap Safety / Live Provider Trajectory 等其余已触发工作流也全部成功；真实 provider 工作流的具体 provider 和场景范围仍按其证据判断。

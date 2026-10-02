@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.84",
+      "cliVersions": ["0.166.84"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.84: revoke scoped permissions before durable writes",
+          "body": "- Begin synchronous shell revocation before official workspace-scoped permission\n  additions or revocations are persisted in the same runtime. Restoring the\n  effective rules does not restore an earlier execution permit.\n- Reject reentrant reads and writes during notification, retain fixed storage\n  targets, and keep uncertain persistence outcomes unavailable. Duplicate\n  revocations preserve the existing bytes and authority revision.\n- Combine settings and scoped permission revisions through the existing shell\n  lifecycle; reject stale approvals and late success receipts, close running\n  proxies and containers, and remove both subscriptions after completion.\n- Pair VS Code `0.37.126` and JetBrains `0.4.146` with CLI `0.166.84` after\n  complete exact-commit CLI and IDE validation. Cross-process notifications and\n  arbitrary external edits remain outside this in-process guarantee."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.83",
       "cliVersions": ["0.166.83"],
       "date": null,

@@ -2,7 +2,11 @@
 
 import settingsLoader from "./settings-loader.cjs";
 import path from "node:path";
-import { ScopedPermissionStore } from "./scoped-permission-store.js";
+import {
+  ScopedPermissionStore,
+  getScopedPermissionRevision,
+  subscribeScopedPermissionRevision,
+} from "./scoped-permission-store.js";
 
 const {
   applyManagedPermissionPolicy,
@@ -15,6 +19,31 @@ const providers = new WeakMap();
 const settingsAuthority = Object.freeze({
   getSnapshot: getSettingsPermissionRevision,
   subscribePolicyRevision: subscribeSettingsPermissionRevision,
+});
+let combinedSnapshot = null;
+function getCombinedSnapshot() {
+  const settings = getSettingsPermissionRevision();
+  const scoped = getScopedPermissionRevision();
+  if (
+    combinedSnapshot?.settings !== settings ||
+    combinedSnapshot?.scoped !== scoped
+  ) {
+    combinedSnapshot = Object.freeze({ settings, scoped });
+  }
+  return combinedSnapshot;
+}
+const combinedAuthority = Object.freeze({
+  getSnapshot: getCombinedSnapshot,
+  subscribePolicyRevision(listener) {
+    if (typeof listener !== "function")
+      throw new TypeError("permission revision listener must be a function");
+    const removeSettings = subscribeSettingsPermissionRevision(listener);
+    const removeScoped = subscribeScopedPermissionRevision(listener);
+    return () => {
+      removeSettings();
+      removeScoped();
+    };
+  },
 });
 
 function freezeSnapshot(value) {
@@ -53,6 +82,7 @@ export function loadPermissionAuthority({
   scopedStore = null,
 } = {}) {
   const settingsRevision = getSettingsPermissionRevision();
+  const scopedRevision = baseRules ? null : getScopedPermissionRevision();
   const loaded = loadSettings({
     cwd,
     settingsFile,
@@ -99,6 +129,13 @@ export function loadPermissionAuthority({
     error.code = "CC_SETTINGS_PERMISSION_AUTHORITY_CHANGED";
     throw error;
   }
+  if (!baseRules && getScopedPermissionRevision() !== scopedRevision) {
+    const error = new Error(
+      "scoped permissions changed while permission authority was loading",
+    );
+    error.code = "CC_SCOPED_PERMISSION_AUTHORITY_CHANGED";
+    throw error;
+  }
   return freezeSnapshot({
     ...loaded,
     rules,
@@ -106,6 +143,7 @@ export function loadPermissionAuthority({
     scoped,
     hasRules: hasRules(rules),
     settingsRevision,
+    ...(scopedRevision ? { scopedRevision } : {}),
   });
 }
 
@@ -128,7 +166,10 @@ export function createPermissionRulesProvider(options = {}) {
     scopedStore: options.scopedStore || null,
   });
   const provider = () => loadPermissionAuthority(captured);
-  providers.set(provider, settingsAuthority);
+  providers.set(
+    provider,
+    captured.baseRules ? settingsAuthority : combinedAuthority,
+  );
   return Object.freeze(provider);
 }
 

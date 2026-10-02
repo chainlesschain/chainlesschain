@@ -24,6 +24,10 @@ import {
 import dnsFixture from "../fixtures/dns-egress-fixture.cjs";
 import settingsLoader from "../../src/lib/settings-loader.cjs";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+import {
+  ScopedPermissionStore,
+  getScopedPermissionRevision,
+} from "../../src/lib/scoped-permission-store.js";
 
 const { queryDns, startDnsFixture } = dnsFixture;
 const DNS_TRANSPORTS = [
@@ -220,12 +224,29 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     "host-policy-aba",
     "settings-api",
     "settings-api-aba",
+    "scoped-revoke",
+    "scoped-deny-aba",
   ])(
     "cuts an established product tunnel on %s revocation",
     async (source) => {
       const image = process.env.CC_DOCKER_EGRESS_IMAGE;
       expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
       const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-egress-revoke-"));
+      const scopedRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-egress-scoped-"),
+      );
+      const scopedPath = path.join(scopedRoot, "rules.json");
+      const scopedStore = new ScopedPermissionStore({
+        cwd: root,
+        filePath: scopedPath,
+      });
+      const scopedGrant = source.startsWith("scoped-")
+        ? scopedStore.add({
+            decision: "allow",
+            rule: "Bash",
+            expiresAt: Date.now() + 300_000,
+          })
+        : null;
       const sockets = new Set();
       let receivedBytes = 0;
       const upstream = net.createServer((socket) => {
@@ -297,17 +318,22 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
                     hostSession.hostManagedToolPolicyAuthority,
                 }
               : {}),
-            permissionRulesProvider: source.startsWith("settings-api")
-              ? createPermissionRulesProvider({ cwd: root, env: {} })
-              : async () => ({
-                  rules: {
-                    allow: [],
-                    ask: [],
-                    deny: denied ? ["run_shell"] : [],
-                  },
-                  sources: {},
-                  scoped: { rules: [] },
-                }),
+            permissionRulesProvider:
+              source.startsWith("settings-api") || source.startsWith("scoped-")
+                ? createPermissionRulesProvider({
+                    cwd: root,
+                    env: {},
+                    ...(source.startsWith("scoped-") ? { scopedStore } : {}),
+                  })
+                : async () => ({
+                    rules: {
+                      allow: [],
+                      ask: [],
+                      deny: denied ? ["run_shell"] : [],
+                    },
+                    sources: {},
+                    scoped: { rules: [] },
+                  }),
             approvalGate: gate,
           },
         );
@@ -341,6 +367,24 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
             fs.writeFileSync(settings, original);
           expect(settingsLoader.getSettingsPermissionRevision().revision).toBe(
             revision + 1,
+          );
+        } else if (source.startsWith("scoped-")) {
+          const writer = new ScopedPermissionStore({
+            cwd: root,
+            filePath: scopedPath,
+          });
+          const revision = getScopedPermissionRevision().revision;
+          if (source === "scoped-revoke") writer.revoke({ id: scopedGrant.id });
+          else {
+            const deny = writer.add({
+              decision: "deny",
+              rule: "Bash",
+              expiresAt: Date.now() + 300_000,
+            });
+            writer.revoke({ id: deny.id });
+          }
+          expect(getScopedPermissionRevision().revision).toBe(
+            revision + (source === "scoped-revoke" ? 1 : 2),
           );
         } else denied = true;
         const result = await Promise.race([
@@ -388,6 +432,7 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
         for (const socket of sockets) socket.destroy();
         await new Promise((resolve) => upstream.close(resolve));
         fs.rmSync(root, { recursive: true, force: true });
+        fs.rmSync(scopedRoot, { recursive: true, force: true });
       }
     },
     180_000,

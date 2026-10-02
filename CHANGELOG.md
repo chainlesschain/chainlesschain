@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.84: revoke scoped permissions before durable writes
+
+- Begin synchronous shell revocation before official workspace-scoped permission
+  additions or revocations are persisted in the same runtime. Restoring the
+  effective rules does not restore an earlier execution permit.
+- Reject reentrant reads and writes during notification, retain fixed storage
+  targets, and keep uncertain persistence outcomes unavailable. Duplicate
+  revocations preserve the existing bytes and authority revision.
+- Combine settings and scoped permission revisions through the existing shell
+  lifecycle; reject stale approvals and late success receipts, close running
+  proxies and containers, and remove both subscriptions after completion.
+- Pair VS Code `0.37.126` and JetBrains `0.4.146` with CLI `0.166.84` after
+  complete exact-commit CLI and IDE validation. Cross-process notifications and
+  arbitrary external edits remain outside this in-process guarantee.
+
 ### Fixed - cc CLI 0.166.83: bind settings and launcher execution authority
 
 - Deliver the unattended action policy to text, JSON, JSONL, streaming, and
