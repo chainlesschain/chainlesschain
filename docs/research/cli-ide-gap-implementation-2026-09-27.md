@@ -18,6 +18,12 @@
 
 所有档位流式阶段解析 **0** 次、完成时解析 **1** 次，parseChars 与完整文字一致；选区稳定，选中时延迟格式化，重复结束幂等。long-task observer 只报告超过浏览器阈值的任务，所以 10K 的 0 不表示完全没有工作。此为单机、夹具输出的一组前后测量，未冻结目标硬件或 SLO；200K 帧间隔和结束格式化仍有明显开销，`performanceGate=false`，不能据此关闭全部 IDE-STREAM 验收。VS Code **0.37.127** 已准备为候选，继续推荐已公开的 CLI **0.166.84**；当前尚未推发布 tag。
 
+随后 `5f12a2af19056293d4b2b2617bc911738272dff0` 将测量合同升级为 **v2**，给首次完成的 Markdown、code controls、follow 分别计时；剩余项包含 DOM、选区和测量开销，不标为纯 DOM 时间。当前 VS Code 单元测试 **223/223** 通过。实际 **0.37.127 VSIX** 在同一 Windows / VS Code 1.132.0 的完整安装旅程再次通过，[v2 原始样本与独立回执](./ide/evidence/vscode-stream-stages-windows-5f12a2af19.json)复核 30 个产物及四段之和。200K 的 **667.5 ms** 为 Markdown **23.8 ms**、decorate **33.7 ms**、follow **548.2 ms**、剩余 **61.8 ms**；完整保留 **5,714** 个代码按钮、稳定选区及一次解析。follow 的 scrollHeight 会结算全文布局，不能把这段耗时全部归因于 Markdown 或工具栏；旧 v1 样本保持原样，使用其原提交 verifier 回读。
+
+JetBrains 原生 Swing 测量已在 `9e3c3b4e166e0f0652e145c4a9167691094f79d1` 接入现有 canonical recovery 的 initial 阶段，仅由 test-only 反射 probe 在真实可见宿主 EDT 调用生产 transcript；没有加入插件 ZIP。每档记录 64 次追加、EDT 间隔/延迟、可见区域 paint 请求、选区/上滚/恢复跟随及完成状态，不冒称 Chromium FPS、全 JVM 长任务或精确 Markdown 解析次数。原开发旅程 initial/restart 通过，但 10K 被异步初始化提示污染了 115 个字符，严格聚合正确失败。候选补入真实初始化/草稿/历史/运行状态的连续 EDT 就绪观察和并发修改检测；Java UI-test 编译、Node 三文件 **59/59** 和 actionlint 通过，新的真实宿主复测仍待结果。
+
+IDE 发布候选冻结于 `release/ide-vscode-0.37.127` 的 **9e3c3b4e16**，不包含后续未提交的 CLI settings 切片。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37049626043)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37049632669) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37049638778) 已对该准确提交启动，当前尚未取得全部通过或市场发布回读。用户已授权 IDE 发布；后续实现分支继续通过 [PR #399](https://github.com/chainlesschain/chainlesschain/pull/399) 审查。另启动 [三系统 formal 容量测量](https://github.com/chainlesschain/chainlesschain/actions/runs/37048939653)，其 `commit_sha` 输入为 **828c0c0f61c377528f8dcb0eac7e38982bdd91c7**；工作流本身从 main 调度，不能用调度 ref 的 SHA 替代实际 checkout 的测量对象。结果、目标硬件与 SLO 仍待核验。
+
 ### PERF-02 真实双轮压缩与 CODEX-01 三系统回读（2026-10-03）
 
 后续实施分支为 `feature/cli-ide-gap-completion-2026-10-02`。`142e3560495c33a816d679eca463c80955ae6ea5` 明确了冻结轨迹夹具的归档合同：保留 tagged facts 的原字段、原顺序和原文；已完成 nextSteps 作为历史保留，不能再次执行；不将普通工具事件新增为 tagged facts。生产摘要提示未改变，严格事实 oracle 未放宽。旧夹具未要求保留已完成步骤，却用逐字归档 oracle 检查普通摘要，第二轮失败不能单独证明生产摘要丢失任务状态。安全诊断现在使用固定 invariant 分类，不保存 provider 原文。

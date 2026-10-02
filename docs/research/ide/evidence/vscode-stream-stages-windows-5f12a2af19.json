@@ -1,0 +1,89 @@
+{
+  "schema": "chainlesschain.vscode-stream-stages-readback/v1",
+  "verifiedAt": "2026-10-02T18:44:32.508Z",
+  "releaseCommit": "5f12a2af19056293d4b2b2617bc911738272dff0",
+  "host": {
+    "name": "vscode",
+    "version": "1.132.0",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "extensionVersion": "0.37.127",
+  "cliVersion": "0.166.84",
+  "allArtifactsVerified": true,
+  "artifactCount": 30,
+  "evidenceDigest": "sha256:c1809276b9219395126254b4cf2e64620341fb2b21f8e307bf47c945cd583575",
+  "vsix": {
+    "bytes": 691734,
+    "sha256": "sha256:b7fb333e291461329bf10d468a36ab3f72a26f3343b05082e22906962e0a5cb2"
+  },
+  "savedArtifacts": [
+    {
+      "path": "vscode-stream-stages-windows-5f12a2af19.raw.json",
+      "bytes": 12641,
+      "sha256": "sha256:e03feddd524a2d5f088ca6fcbe70f5cf602b553531bd59b09530d2e61fe0f03d"
+    },
+    {
+      "path": "vscode-stream-stages-windows-5f12a2af19.host.json",
+      "sha256": "sha256:94b9db03c3747ac56a113dadcbb4050ee423a18ed6afaaa0e733d405f5509202"
+    }
+  ],
+  "performanceGate": false,
+  "cases": [
+    {
+      "chars": 10000,
+      "frameP95Ms": 16.800000000017462,
+      "updateP95Ms": 4.5,
+      "longestTaskMs": 59,
+      "finalizationMs": 46,
+      "finalizationStagesMs": {
+        "markdown": 1.9000000357627869,
+        "decorate": 3.199999988079071,
+        "follow": 38.60000002384186,
+        "residualIncludingDomAndOverhead": 2.299999952316284
+      },
+      "codeControls": 284,
+      "selectionStable": true,
+      "parseCalls": 1
+    },
+    {
+      "chars": 100000,
+      "frameP95Ms": 50,
+      "updateP95Ms": 15.699999988079071,
+      "longestTaskMs": 602,
+      "finalizationMs": 463.89999997615814,
+      "finalizationStagesMs": {
+        "markdown": 18.900000035762787,
+        "decorate": 33.5,
+        "follow": 385.60000002384186,
+        "residualIncludingDomAndOverhead": 25.899999916553497
+      },
+      "codeControls": 2856,
+      "selectionStable": true,
+      "parseCalls": 1
+    },
+    {
+      "chars": 200000,
+      "frameP95Ms": 66.70000000001164,
+      "updateP95Ms": 20,
+      "longestTaskMs": 866,
+      "finalizationMs": 667.5,
+      "finalizationStagesMs": {
+        "markdown": 23.80000001192093,
+        "decorate": 33.69999998807907,
+        "follow": 548.1999999880791,
+        "residualIncludingDomAndOverhead": 61.80000001192093
+      },
+      "codeControls": 5714,
+      "selectionStable": true,
+      "parseCalls": 1
+    }
+  ],
+  "limitations": [
+    "one Windows x64 / VS Code 1.132.0 sample",
+    "fixture output",
+    "stage residual includes DOM, selection and measurement overhead",
+    "no frozen hardware or SLO pass"
+  ]
+}
