@@ -1,9 +1,14 @@
 # chainlesschain CLI
 
-> Release candidate `chainlesschain@0.166.81` pairs with Session Core `0.3.14`
-> for approval-policy revision revocation. The publicly available npm `latest`
-> was `0.166.80` when this candidate was prepared. Publish only after the exact
-> release commit passes the required matrices and child-package readback.
+> Public npm `latest` is `chainlesschain@0.166.84` (2026-10-02), released from
+> `d93c9c9766` after 68/68 CLI CI jobs, five Strict Sandbox jobs, OIDC publication,
+> and public tarball byte readback passed. Open VSX `0.37.126` and JetBrains
+> `0.4.146` are public and recommend this CLI. Official settings/scoped permission
+> writes revoke stale shell permits before persistence in the same process/module
+> instance; restoring rules cannot revive them. Cross-process/Worker immediate
+> notifications and arbitrary external edits remain incomplete. Explicit Linux
+> settings-authority transaction APIs are not wired into default admission or
+> the official settings writer. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
 > **0.166.77 发布说明**：决策模型 HTTP 请求和响应各限制为 256 KiB；模型用量未知时不会生成 Skill 建议，同一耐久会话的后续决策调用也会被阻断。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [决策层设计](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/114-jev-decision-layer-design.md)。决策模式仍默认关闭，不授予 Skill 执行权限；自动 active Skill 晋升保持 HOLD。
 

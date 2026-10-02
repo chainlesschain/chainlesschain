@@ -1,8 +1,36 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
-## 2026-10-01：调查恢复与执行策略源码边界
+## 2026-10-02：作用域撤销与 settings 事务基础
 
-**2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。
+**2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。
+
+[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162)成功。CLI CI 的 68 个作业全部通过，Strict 的 Linux x64/ARM64、Windows、macOS 15/latest 五个作业全部通过；[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322)确认 tarball 与工作流产物字节一致。 [IDE 精确提交宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293161)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013953)和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013151)成功。2026-10-02 独立商店回读确认 Open VSX `latest=0.37.126`，JetBrains `0.4.146` 为 `approve/listed=true`、`hidden=false`；两个 IDE 均推荐 CLI `0.166.84`，源码同为 `d93c9c9766`。
+
+### 同步撤销接线
+
+`d93c9c9766` 将 `ScopedPermissionStore.add/revoke` 的写入放在严格文件锁内；验证、CAS、容量和锁准入完成后，持久写入前推进私有进程级 revision 并同步通知。通知前固定文件目标、workspace 副本与依赖；回调重入的读取/写入直接拒绝。内容未变化的重复撤销不写文件、不推进 revision。确定未提交的失败仍保留新 revision；已提交但锁清理失败明确报告 committed；rename 后持久化未知锁存 invalid，恢复旧文件也不能恢复权限。
+
+`permission-authority.js` 组合 settings/scoped 两个 owner 的稳定快照，在读取前后核对各自修订；显式 baseRules 保留替换 scoped 规则的语义。现有 Shell 生命周期在首次 await 前绑定许可，并覆盖审批、Broker 启动、容器创建、运行及回执。已建立代理同步锁存撤销并开始关闭，迟到容器不执行，旧结果不能签发成功回执；结束后移除两层订阅。通知保守覆盖同一模块实例的全部项目，不承诺独立终端、Worker、未知 callback 或外部编辑的即时通知。
+
+### 来源观察与显式事务 API
+
+`4569eb98dc` 的 `inspectSettingsSources()` 返回有序候选的只读 inventory，包含缺失、重复、未贡献权限的来源及物理文件/最近存在父目录的身份和摘要；`19335b8d04` 补齐最终 fstat 的冻结 fileIdentity。观察不注册外锚、不推进 generation、不授予权限，也不证明整个 inventory 的原子快照。默认 loadSettings 行为保持既有接线。
+
+`settings-authority-record.cjs` 是纯记录协议，校验完整 context manifest、inverse physical heads、别名、epoch/generation 与 guard 证明，不做 I/O 或权限准入。`settings-authority-domain.cjs` 是显式、协作型 Linux 持久化 API，要求预先持久化的私有外部目录与完整 rollbackable config/admitted writable roots；固定目录 FD 与 namespace witness，严格按 authority → settings source 顺序加锁。没有默认目录或隐式 enrollment。
+
+写入顺序为同步 local revoke → durable guard → prepared ledger → settings replace → ready ledger → guard unlink + directory fsync。fresh reader 重读 ledger A/B、完整来源、guard/namespace，并 bracket 本地 revision；显式恢复绑定原 transactionId 与完整 before/after 内容。恢复旧内容也消耗保留的 generation，ready 清理必须反算完整 digest，缺失、损坏和 neither 状态失败闭合。settings commitState 与 authority readiness 分别报告。
+
+这两个事务模块已随源码包含，但尚未接入默认权限准入或官方 settings writer；Windows/macOS 无等价持久屏障时拒绝该 API。合作进程、Worker 的描述符传递能力不等于现有运行时已使用它。敌对同 UID 删除/回滚整个外锚、原始 settings 在观察间的 ABA 与 parent swap-and-restore 仍不在证明内。
+
+### 验收与制品身份
+
+发布精确 SHA 的 CLI CI 为 68/68 作业成功，Strict 为五个配置作业成功。独立 ARM64 原始 Docker 报告为 20/20、0 跳过，新增 scoped-revoke/scoped-deny-aba 两条真实持续隧道撤销轨迹；x64 对应步骤成功，但未独立回读专项 JSON，不能扩展为所有原始报告零跳过。npm 公共 tarball SHA-256 为 `16b153ddae4738a17e7ade4e86a256ffff8acaf3382b5b559c2be67c9552ff12`，签名来源绑定同一提交/tag/run。子包复用先完成公共字节审计与 registry-only 安装，再发布 CLI，之后发布 IDE。
+
+JetBrains 首次回执仅证明上传成功、尚不可见；2026-10-02 后续独立商店查询确认 0.4.146 已批准并上架，保留原回执时点。上述 CLI/IDE 门禁不转移为独立 v5.0.3.138 安装包或未完成的生产 PM/Skill 晋升资格。
+
+## 2026-10-01 历史核对：调查恢复与执行策略源码边界
+
+**2026-10-01 历史核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。
 
 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102772)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102363)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36798445319)均成功，前两者已通过精确发布提交全部配置任务，Strict 包括 Linux x64/ARM64、Windows 和 macOS。公共 registry 已回读版本、latest 与 integrity。 IDE 发布源码为 `fb267f569d6235307a495cd0438977bbda4e1ef6`：[VS Code 宿主与发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36807095974)和 [JetBrains 宿主与商店回读](https://github.com/chainlesschain/chainlesschain/actions/runs/36807095586)成功。JetBrains 公共 API 为 `approve/listed=true`、`hidden=false`；Microsoft Marketplace 未发行。
 

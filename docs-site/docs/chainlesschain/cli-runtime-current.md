@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.166.82）
+# CLI Runtime 当前实现（0.166.84）
 
-> **2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
+> **2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 

@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.ide-marketplace-release-readback.v1",
+  "verifiedAt": "2026-10-02T15:09:32.610Z",
+  "sourceSha": "d93c9c97664ef910b16a402075b8b920338e1fe2",
+  "tag": "ide-jetbrains-v0.4.146",
+  "workflowRunId": 37013013151,
+  "workflowConclusion": "success",
+  "manifestArtifactId": 11230206668,
+  "verification": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "ready",
+    "version": "0.4.146",
+    "updateId": 1185952,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "downloadable": true,
+    "downloadUrl": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1185952",
+    "registryArchiveSha256": "a1b94e6e672ecd83711affcf78c7b14e62f526e892da5005a143e01aa526a10c",
+    "localArchiveSha256": "1701b987f5843b03742de9db2f566fa189eb1d111ea39d584db2779b2a377682",
+    "registryBytes": 1509601,
+    "localBytes": 1503941,
+    "allFileContentsMatch": true,
+    "comparison": "Compare every local and public non-directory ZIP entry, recursively comparing JAR entries when the JAR container bytes differ; no missing, added, or changed files."
+  },
+  "limits": [
+    "Archive bytes differ after marketplace repackaging; matching file content is recorded separately.",
+    "This readback supersedes the pending public-visibility state at the earlier verification time, preserving the original receipt.",
+    "Author signing and cryptographic marketplace signature validation were not added by this documentation task."
+  ]
+}

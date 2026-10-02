@@ -1,24 +1,24 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-01 最新发布与代码核对
+## 2026-10-02 最新发布与代码核对
 
-当前 npm `latest` 为 **CLI 0.166.82**，不可变标签 `v-npm-0-166-82` 指向 `1954ba867d`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102772)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36746102363)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/36798445319)均成功，前两者已通过精确发布提交全部配置任务，Strict 包括 Linux x64/ARM64、Windows 和 macOS。公共 registry 已回读版本、latest 与 integrity。
+当前 npm `latest` 为 **CLI 0.166.84**，不可变标签 `v-npm-0-166-84` 指向 `d93c9c9766`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162)成功。CLI CI 的 68 个作业全部通过，Strict 的 Linux x64/ARM64、Windows、macOS 15/latest 五个作业全部通过；[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322)确认 tarball 与工作流产物字节一致。
 
-本版将 Issue 查询、artifact 下载和保存日志检查纳入调查预算；同一 Issue 的网页、CLI 与 API 读取按同一目标识别，关联 PR 和工作流保持独立。下载日志成功不代表测试通过：断言、源码位置和测试结论会在上下文压缩、重启及任务交接中保留；修复把 GitHub CLI 调用误送到 Git 工具的路由。
+本版在同一运行时内、官方 workspace-scoped 权限添加或撤销落盘前，同步撤销活动 Shell 许可；恢复原规则也不会恢复旧许可。审批等待、启动、运行和回执阶段均重验 settings/scoped 修订，不确定落盘继续拒绝授权。继承 0.166.83 的 WS 宿主策略、无人值守入口、冻结执行配置与工具上限、launcher 存储根保护，并保留 Issue/CI 调查与测试失败证据恢复。
 
-Open VSX **0.37.124** 与 JetBrains Marketplace **0.4.144** 已公开，均推荐 CLI `0.166.82`，发布源码为 `fb267f569d`。升级 CLI 后重启 IDE 聊天宿主以加载新运行时。Microsoft Marketplace 未发行；桌面与移动端继续使用独立产品发行 **v5.0.3.138**。
+Open VSX **0.37.126** 与 JetBrains Marketplace **0.4.146** 已公开。[IDE 精确提交宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293161)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013953)和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013151)成功。2026-10-02 独立商店回读确认 Open VSX `latest=0.37.126`，JetBrains `0.4.146` 为 `approve/listed=true`、`hidden=false`；两个 IDE 均推荐 CLI `0.166.84`，源码同为 `d93c9c9766`。 升级 CLI 后重启 IDE 聊天宿主。Microsoft Marketplace 未发行；桌面与移动端继续使用独立产品发行 **v5.0.3.138**。
 
-**2026-10-01 当前核对**：源码 `main@e96062008f`；公开 CLI `0.166.82@1954ba867d`、Open VSX `0.37.124`、JetBrains `0.4.144`，两个 IDE 均推荐 CLI `0.166.82`。CLI 精确提交的 CI、Strict Sandbox（含 Linux ARM64）和 npm 发布流程均成功。公开版恢复 Issue/CI 调查并在压缩、重启和任务交接中保留测试失败证据；继承 Plan/ApprovalGate 与 Auto Mode 修订。发布后的 WS 宿主策略、无人值守入口、冻结工具上限和官方 settings 写口撤销属于源码增量，尚未进入该 npm 制品；当前主线 CI/Strict 为 failure。外部编辑、跨进程修订与 legacy callback 仍未闭合。真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。 Linux Docker 域名出站仍要求显式选择、固定镜像和域名规则；结果未知时先核对副作用再决定是否重试。
+**2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。
 
 详见[增量设计](docs/design/agent-runtime-update-2026-09-26.md)、[PM 效果评测指南](docs-site/docs/chainlesschain/pm-effect-evaluation.md)与[发布升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)。下方带日期的旧版本记录保留其当时状态。
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.82`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.84`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
@@ -2859,7 +2859,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.82-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.84-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
