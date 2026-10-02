@@ -404,6 +404,7 @@ async function runDomRelayJourney({
   extensionPath,
   workspaceDir,
   workspaceFolders,
+  env = process.env,
 }) {
   assert.match(
     token || "",
@@ -451,7 +452,7 @@ async function runDomRelayJourney({
       readyAt: new Date().toISOString(),
     });
     await drivePhase(commands, token, phase, traceFile, artifactDir);
-    if (process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
+    if (env.CC_UI_CONVERSATION_RECOVERY === "1") {
       await require("./conversation-recovery.cjs").runConversationRecovery({
         commands,
         token,
@@ -460,7 +461,7 @@ async function runDomRelayJourney({
         waitForSnapshot,
       });
     }
-    if (phase === "initial" && process.env.CC_UI_STREAM_PROFILE === "1") {
+    if (phase === "initial" && env.CC_UI_STREAM_PROFILE === "1") {
       await require("./streaming-profile.cjs").runStreamingProfiles({
         commands,
         token,

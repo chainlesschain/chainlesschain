@@ -156,7 +156,7 @@ test("host DOM relay is token-gated and only accepts fixed semantic actions", ()
       /at most 512/,
     );
   }
-  for (const id of [null, "", "x".repeat(129), 'conv-1\"]', "conv-1\n"]) {
+  for (const id of [null, "", "x".repeat(129), 'conv-1"]', "conv-1\n"]) {
     assert.throws(
       () => validateHostDomRequest({ action: "switchTab", id }),
       /tab ID/,
@@ -1101,6 +1101,9 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
       extensionPath: root,
       workspaceDir: workspaceFolders[0],
       workspaceFolders,
+      // This mock covers the base journey. Optional installed-host journeys
+      // have their own tests and must not be enabled by the CI launch flags.
+      env: {},
     });
   }
 
