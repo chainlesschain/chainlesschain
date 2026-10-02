@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.126] - Pair with CLI 0.166.84 scoped permission revocation (2026-10-02)
+
+- Recommend CLI `0.166.84`, including when npm lookup is unavailable or stale.
+- In the paired CLI, official scoped permission mutations synchronously revoke
+  active shell permits before durable writes in the same runtime. Restoring the
+  rules cannot revive a stale permit; late results cannot report success.
+- Preserve storage targets during callbacks, reject reentrant authority reads
+  and writes, and retain fail-closed persistence outcomes.
+- Cross-process notification and external file edits remain under development.
+- Retain the existing editor controls, compatibility floor, and draft recovery.
+
 ## [0.37.125] - Pair with CLI 0.166.83 execution authority fixes (2026-10-01)
 
 - Recommend `chainlesschain@0.166.83`, including when npm lookup is unavailable

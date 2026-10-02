@@ -29,6 +29,7 @@ import approvalCore from "../../../session-core/lib/approval-gate.js";
 import { containsApiKeyArgument } from "../../src/commands/agent.js";
 import settingsLoader from "../../src/lib/settings-loader.cjs";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+import { ScopedPermissionStore } from "../../src/lib/scoped-permission-store.js";
 
 const { ApprovalGate, POLICY: APPROVAL_POLICY } = approvalCore;
 
@@ -468,6 +469,229 @@ describe("explicit Docker egress configuration and execution evidence", () => {
       authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
       sandboxCapabilities: { applied: [] },
     });
+  });
+
+  it.each(
+    [
+      "permission-read",
+      "approval",
+      "broker-start",
+      "container-create",
+      "running",
+      "receipt",
+    ].flatMap((phase) =>
+      ["revoke-grant", "deny-then-revoke"].map((operation) => [
+        phase,
+        operation,
+      ]),
+    ),
+  )(
+    "revokes scoped %s authority synchronously for %s",
+    async (phase, operation) => {
+      _deps.host = () => host;
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-scoped-shell-"));
+      const cwd = path.join(root, "workspace");
+      fs.mkdirSync(cwd);
+      const settings = path.join(cwd, ".claude", "settings.json");
+      fs.mkdirSync(path.dirname(settings));
+      fs.writeFileSync(
+        settings,
+        JSON.stringify({
+          permissions: phase === "approval" ? { ask: ["Bash"] } : {},
+        }),
+      );
+      const filePath = path.join(root, "rules.json");
+      const scopedStore = new ScopedPermissionStore({ cwd, filePath });
+      const grant = scopedStore.add({
+        decision: "allow",
+        rule: "Bash",
+        expiresAt: Date.now() + 60_000,
+      });
+      const provider = createPermissionRulesProvider({
+        cwd,
+        env: {},
+        managedSettingsFile: path.join(root, "managed.json"),
+        scopedStore,
+      });
+      let release;
+      let finishRun;
+      let deliverSession;
+      const wait = () =>
+        new Promise((resolve) => {
+          release = resolve;
+        });
+      const abort = vi.fn(async () => {});
+      const proxy = {
+        socketPath: "/private/broker.sock",
+        revision: 0,
+        abort,
+        close: vi.fn(async () => {}),
+      };
+      workerMocks.start.mockImplementation(
+        phase === "broker-start" ? wait : async () => proxy,
+      );
+      const running = ["container-create", "running", "receipt"].includes(
+        phase,
+      );
+      const change = () => {
+        const writer = new ScopedPermissionStore({ cwd, filePath });
+        if (operation === "revoke-grant") {
+          writer.revoke({ id: grant.id });
+          if (running) expect(abort).toHaveBeenCalledOnce();
+          writer.add({
+            decision: "allow",
+            rule: "Bash",
+            expiresAt: Date.now() + 60_000,
+          });
+        } else {
+          const deny = writer.add({
+            decision: "deny",
+            rule: "Bash",
+            expiresAt: Date.now() + 60_000,
+          });
+          if (running) expect(abort).toHaveBeenCalledOnce();
+          writer.revoke({ id: deny.id });
+        }
+        expect(provider().rules.deny).toEqual([]);
+        expect(provider().rules.allow).toContain("Bash");
+      };
+      const dockerSession = {
+        close: vi.fn(async () => {}),
+        run: vi.fn(async (_command, options) => {
+          await options.beforeStart();
+          const result = await new Promise((resolve) => {
+            finishRun = resolve;
+          });
+          if (phase === "receipt") change();
+          return result;
+        }),
+      };
+      egressMocks.start.mockImplementation(
+        phase === "container-create"
+          ? () =>
+              new Promise((resolve) => {
+                deliverSession = resolve;
+              })
+          : async () => dockerSession,
+      );
+      try {
+        const pending = executeTool(
+          "run_shell",
+          { command: "echo scoped-authority" },
+          {
+            cwd,
+            sandbox: config(),
+            sessionId: "scoped-authority",
+            permissionRulesProvider: provider,
+            permissionConfirm: phase === "approval" ? wait : async () => true,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        );
+        if (phase !== "permission-read")
+          await vi.waitFor(() =>
+            expect(
+              running
+                ? phase === "container-create"
+                  ? deliverSession
+                  : finishRun
+                : release,
+            ).toBeTypeOf("function"),
+          );
+        if (phase !== "receipt") change();
+        if (running) {
+          if (phase === "container-create") deliverSession(dockerSession);
+          else finishRun({ stdout: "late success", stderr: "", exitCode: 0 });
+        } else if (release) release(phase === "approval" ? true : proxy);
+        if (["broker-start", "container-create"].includes(phase))
+          await expect(pending).rejects.toMatchObject({
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          });
+        else if (running)
+          expect(await pending).toMatchObject({
+            exitCode: 1,
+            retrySafe: false,
+            authorityFailure: { code: "CC_SHELL_POLICY_AUTHORITY_CHANGED" },
+            sandboxCapabilities: { applied: [] },
+          });
+        else
+          expect((await pending).policy.code).toBe(
+            "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+          );
+        if (running) {
+          expect(dockerSession.close).toHaveBeenCalled();
+          if (phase === "container-create")
+            expect(dockerSession.run).not.toHaveBeenCalled();
+          scopedStore.add({
+            decision: "deny",
+            rule: "Read",
+            expiresAt: Date.now() + 60_000,
+          });
+          expect(abort).toHaveBeenCalledOnce();
+        } else expect(egressMocks.start).not.toHaveBeenCalled();
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("unsubscribes both permission owners after successful Docker execution", async () => {
+    _deps.host = () => host;
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-scoped-shell-success-"),
+    );
+    const cwd = path.join(root, "workspace");
+    fs.mkdirSync(cwd);
+    const scopedStore = new ScopedPermissionStore({
+      cwd,
+      filePath: path.join(root, "rules.json"),
+    });
+    const provider = createPermissionRulesProvider({
+      cwd,
+      env: {},
+      scopedStore,
+      managedSettingsFile: path.join(root, "missing.json"),
+    });
+    const abort = vi.fn(async () => {});
+    workerMocks.start.mockResolvedValue({
+      socketPath: "/private/broker.sock",
+      revision: 0,
+      abort,
+      close: vi.fn(async () => {}),
+    });
+    egressMocks.start.mockResolvedValue({
+      close: vi.fn(async () => {}),
+      run: async (_command, options) => {
+        await options.beforeStart();
+        return { stdout: "authorized", stderr: "", exitCode: 0 };
+      },
+    });
+    try {
+      expect(
+        await executeTool(
+          "run_shell",
+          { command: "echo authorized" },
+          {
+            cwd,
+            sandbox: config(),
+            permissionRulesProvider: provider,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        ),
+      ).toMatchObject({ stdout: "authorized", exitCode: 0 });
+      scopedStore.add({
+        decision: "deny",
+        rule: "Bash",
+        expiresAt: Date.now() + 60_000,
+      });
+      settingsLoader.addRule({ cwd, kind: "deny", rule: "Bash" });
+      expect(abort).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it.each(["permission-read", "approval", "broker-start"])(
