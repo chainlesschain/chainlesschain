@@ -83,6 +83,7 @@ final class IdeUiSmokeTest {
                 ensureChatInputVisible(robot);
                 String phase = System.getProperty("ui.journey.phase", "initial");
                 new ConversationRecoveryJourney(robot, frame, Paths.get(recoveryRoot)).run(phase);
+                if ("initial".equals(phase)) NativeTranscriptJourney.run(robot, frame, Paths.get(recoveryRoot));
                 if ("initial".equals(phase)) saveProjectBeforeRestart(frame);
                 return;
             }

@@ -14,6 +14,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { verifyConversationRecovery } from "./conversation-recovery-evidence.mjs";
+import { verifyNativeTranscriptEvidence } from "./native-transcript-evidence.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -943,9 +944,26 @@ export async function runJourney(options) {
     const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
     if (fixtureEnvironment.CC_UI_CANONICAL_ROOT) {
       const recovery = verifyConversationRecovery(logRoot, fixtureTracePath);
+      const recoveryInitial = JSON.parse(
+        readFileSync(
+          path.join(logRoot, "conversation-recovery-initial.json"),
+          "utf8",
+        ),
+      );
+      const nativeTranscript = verifyNativeTranscriptEvidence(
+        path.join(logRoot, "native-transcript-metrics.json"),
+        {
+          processId: recoveryInitial.a.processId,
+          ideVersion: options.ideVersion,
+        },
+      );
       writeFileSync(
         path.join(logRoot, "conversation-recovery-host-phases.json"),
-        JSON.stringify({ phases: hostPhases, recovery }, null, 2) + "\n",
+        JSON.stringify(
+          { phases: hostPhases, recovery, nativeTranscript },
+          null,
+          2,
+        ) + "\n",
         { encoding: "utf8", mode: 0o600, flag: "wx" },
       );
     } else {

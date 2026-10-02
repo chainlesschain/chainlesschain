@@ -899,6 +899,7 @@ jobs:
         run: >-
           node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
           packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs
+          packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs
       - name: Make gradlew executable
         if: runner.os != 'Windows'
         working-directory: packages/jetbrains-plugin
