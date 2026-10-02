@@ -1,10 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本：Design Module 98（机制篇，更新 2026-09-09）| 公开版：VS Code `0.37.92` Open VSX / JetBrains `0.4.119` Marketplace**
+> **版本：Design Module 98（机制篇，更新 2026-10-03）| 公开版：VS Code `0.37.126` Open VSX / JetBrains `0.4.146` Marketplace**
 >
-> Open VSX `0.37.92` 已公开、累计下载已突破 **3.9 万**；JetBrains Marketplace `0.4.119` 已完成公共回读。两端均推荐 CLI `0.166.38`，提供经脱敏 readback 确认的模型配置；IDE 投影继续由 CLI/部署宿主裁决。微软 VS Code Marketplace 仍未发布。
+> CLI `0.166.84`、Open VSX `0.37.126` 与 JetBrains Marketplace `0.4.146` 均已公开，发布提交均为 `d93c9c9766`。两端均推荐 CLI `0.166.84`；IDE 投影继续由 CLI/部署宿主裁决。微软 VS Code Marketplace 仍未发布。
 >
-> CLI `0.166.38@de8ec4e5c8`、Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 保持独立制品身份。后续源码不能继承已发布授权。Agent Platform 的消息、handoff、Skill mutation 与 knowledge merge authority 仍留在 CLI-owned bridge/部署宿主，IDE 只提交宿主已审阅的决定并消费有界投影。
+> VS Code `0.37.127@96cbf6ba56` 仍是未打发布 tag 的候选：Strict Sandbox **5/5** 已成功，完整 CLI CI 与 IDE 发布门仍待结果。候选包含长回复流式选择与滚动保持，以及结束后再格式化的显示改进；当前渠道版本不因候选测试通过而改变。npm/VSIX/ZIP 保持独立制品身份。Agent Platform 的消息、handoff、Skill mutation 与 knowledge merge authority 仍留在 CLI-owned bridge/部署宿主，IDE 只提交宿主已审阅的决定并消费有界投影。
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -132,8 +132,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 **1. 安装/升级 `cc` CLI**(实时感知/diff 审批需 ≥ 0.162.39):
 
 ```bash
-npm i -g chainlesschain@0.166.38
-cc --version          # 生产推荐 0.166.38；该桥接路径最低 0.162.39
+npm i -g chainlesschain@0.166.84
+cc --version          # 生产推荐 0.166.84；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -143,7 +143,7 @@ cc ide --help         # 确认有 ide 子命令
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。在用 Open VSX 的编辑器里,扩展面板搜 **ChainlessChain IDE** 一键装。
   > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
-- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.92 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.92/file/chainlesschain.chainlesschain-ide-0.37.92.vsix)，再运行 **Extensions: Install from VSIX...**。
+- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.126 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.126/file/chainlesschain.chainlesschain-ide-0.37.126.vsix)，再运行 **Extensions: Install from VSIX...**。
 - _（源码 / 离线）_ 从源码打本地 `.vsix` 安装：
   ```bash
   cd packages/vscode-extension
@@ -153,7 +153,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.119）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.146）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

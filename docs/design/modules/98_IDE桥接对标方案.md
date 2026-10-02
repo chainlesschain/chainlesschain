@@ -1,15 +1,23 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> ## 当前发布状态（2026-09-07）
+> ## 当前发布状态（2026-10-03）
 >
-> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.87** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载，累计下载超过 **3.8 万**；该状态不表示 Microsoft VS Code Marketplace 已发布，后者仍未完成公共回读。
-> - **JetBrains**：`com.chainlesschain.ide` **0.4.113** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开并回读。
-> - **当前发布能力**：两端消费 Agent Protocol `0.1.8` 的 canonical Schema；VS Code 公开页面化 Workbench、分页只读 Skill Library 与自定义模型连接，JetBrains 延续长任务恢复与 CLI-authoritative 投影。UI 只提交有界意图，不能成为 authority writer。
+> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.126** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载；Microsoft VS Code Marketplace 仍未发布。
+> - **JetBrains**：`com.chainlesschain.ide` **0.4.146** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开并回读。
+> - **当前配套 CLI**：公开 CLI 为 **0.166.84**，两端均推荐该版本；CLI、VSIX 和 ZIP 的发布提交均为 `d93c9c9766`，保持各自独立制品身份。两端延续 Workbench、会话恢复及 CLI-authoritative 投影，UI 只提交有界意图，不能成为 authority writer。
 > - **App Server 边界**：固定能力客户端只暴露允许的 Thread/Turn 与 lifecycle 方法，不提供任意 request；审批 UI 不可用时 canonical decline，IDE 不得绕过 CLI-owned policy、sandbox、audit 或 durable state。
-> - **源码与市场边界**：VS Code `ide-vscode-v0.37.87` 指向 `87ddf8b12625086e9666fedb054f0d67a7b8038d`；JetBrains `ide-jetbrains-v0.4.113` 指向 `2fbd76072254`。JetBrains 公共插件内置推荐为 CLI `0.166.29`，生产 npm `latest` 为 `0.166.30`。npm/VSIX/ZIP/Desktop 保持独立身份。
+> - **源码与市场边界**：VS Code **0.37.127** 冻结候选为 `96cbf6ba56`，尚未打发布 tag，继续推荐 CLI **0.166.84**。该提交 Strict Sandbox **5/5** 已通过；完整 CLI CI 与 IDE 发布门仍待结果，不能标为已发布。本轮未准备新的 JetBrains 生产版本。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。
+
+### 2026-10-03 增量设计：长回复显示与真实宿主测量
+
+VS Code `0.37.127` 候选按有界文本节点追加流式正文，并保留用户选区及上滚后的阅读位置；回到末尾后可恢复跟随。生成期间不重复解析 Markdown，回复结束后才格式化并添加代码操作按钮；有选区时延后格式化。此处记录候选行为，不作为公开渠道已升级的证明。
+
+Windows 实际 VS Code **1.132.0** 的安装旅程已测量 10K / 100K / 200K 文本、选区和滚动行为，并分别记录完成时的 Markdown、代码按钮与跟随布局耗时。JetBrains 的 `8460b786a8` 实际 ZIP 在 Windows / IntelliJ **2024.2** 中完成原生 transcript 测量、canonical recovery 和重启；该批新增探针仅用于测试，没有进入插件包或改变 JetBrains 发布版本。
+
+原始样本、准确提交及独立回读见 [CLI / IDE 差距实施记录](../../research/cli-ide-gap-implementation-2026-09-27.md) 的 IDE-STREAM 与 JetBrains 原生 transcript 段落。VS Code 测量保留 `performanceGate=false`，JetBrains 为 `sloStatus=not-evaluated`；目标硬件、其余宿主及结束长任务仍待验收。JetBrains EDT Timer / 可见区域 paint 与 Chromium 帧间隔不是同一指标，不能直接排名或据此承诺固定性能。
 
 ### 2026-08-26 增量设计：宿主信任的授权决定与内容隔离投影
 

@@ -1,12 +1,18 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-10-01）：CLI `0.166.82@1954ba867d`、Open VSX `0.37.124` 和 JetBrains `0.4.144` 已公开；两个 IDE 的发布源码为 `fb267f569d`，都推荐 CLI `0.166.82`。CLI 精确 CI/Strict 和 npm OIDC 发布均成功；发布后的源码门禁单独记录。**
+> **当前渠道状态（2026-10-03）：CLI `0.166.84`、Open VSX `0.37.126` 和 JetBrains Marketplace `0.4.146` 均已公开，发布提交均为 `d93c9c9766`；两个 IDE 都推荐 CLI `0.166.84`。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：从 Open VSX 安装 `0.37.124`，从 JetBrains Marketplace 安装已批准的 `0.4.144`，并升级 CLI 至 `0.166.82`。Microsoft Marketplace 未发行。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> **发布提示**：从 Open VSX 安装 `0.37.126`，从 JetBrains Marketplace 安装 `0.4.146`，并升级 CLI 至 `0.166.84`。Microsoft Marketplace 未发行。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
-## 2026-10-01 升级后行为
+## 0.37.127 候选：长回复显示
+
+VS Code **0.37.127** 的候选提交为 `96cbf6ba56`，继续推荐已公开的 CLI **0.166.84**，尚未创建发布 tag。该提交的 Strict Sandbox 五个作业已通过；完整 CLI CI 与 IDE 发布门仍待结果，因此当前安装渠道仍提供上方公开版本。
+
+候选改进长回复的流式追加：选中文字或向上滚动阅读时保持选区和阅读位置，回到末尾后可恢复跟随。回复生成期间先显示逐步追加的纯文本，结束后再统一格式化 Markdown 和代码操作按钮；若结束时仍有选区，则延后格式化，避免打断复制。实际 Windows 宿主已验证这些交互行为，但长回复结束时仍可能出现可见的格式化与布局等待；这里不承诺固定帧率或响应时间。
+
+## 2026-10-01 升级后行为（历史发布说明）
 
 公开插件继承会话历史分页、草稿重启恢复、初始化超时回收及可靠 Stop。JetBrains 在写入桥接 token 前验证 Windows 单用户 ACL，并保留活跃 writer 临时锁；VS Code 模式动作通过选择器切换。CLI 的 Plan/ApprovalGate 修订会撤销正在执行的 Docker 出站命令；撤销后不要假定命令没有产生副作用，结果未知时先核对目标环境。本版继承 Auto Mode 修订，并将测试失败证据保留到压缩、重启和任务交接；后续 WS、无人值守、工具上限及官方 settings 写口修复仍为源码，升级插件不能取得尚未发行的 CLI 修复。
 
@@ -46,7 +52,7 @@ VS Code / VSCodium 扩展 `0.37.118` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.82 --registry https://registry.npmjs.org # Node ≥ 22.12.0
+npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org # Node ≥ 22.12.0
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -56,7 +62,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.124 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.124/file/chainlesschain.chainlesschain-ide-0.37.124.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.126 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.126/file/chainlesschain.chainlesschain-ide-0.37.126.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -65,10 +71,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.144`，已批准并列出，推荐 CLI `0.166.82`。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.146`，已批准并列出，推荐 CLI `0.166.84`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 Open VSX `0.37.124` 与 JetBrains `0.4.144` 均已公开，内置推荐 CLI `0.166.82`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
+当前 Open VSX `0.37.126` 与 JetBrains `0.4.146` 均已公开，内置推荐 CLI `0.166.84`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
 
 ### 3. 配置大模型（首次）
 
