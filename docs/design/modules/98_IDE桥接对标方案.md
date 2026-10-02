@@ -6,7 +6,7 @@
 > - **JetBrains**：`com.chainlesschain.ide` **0.4.146** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开并回读。
 > - **当前配套 CLI**：公开 CLI 为 **0.166.84**，两端均推荐该版本；CLI、VSIX 和 ZIP 的发布提交均为 `d93c9c9766`，保持各自独立制品身份。两端延续 Workbench、会话恢复及 CLI-authoritative 投影，UI 只提交有界意图，不能成为 authority writer。
 > - **App Server 边界**：固定能力客户端只暴露允许的 Thread/Turn 与 lifecycle 方法，不提供任意 request；审批 UI 不可用时 canonical decline，IDE 不得绕过 CLI-owned policy、sandbox、audit 或 durable state。
-> - **源码与市场边界**：VS Code **0.37.127** 冻结候选为 `96cbf6ba56`，尚未打发布 tag，继续推荐 CLI **0.166.84**。该提交 Strict Sandbox **5/5**、IDE Extensions **18 成功 / 1 正常跳过**已通过；CLI CI 首轮 Windows worker 失败后按同提交重跑，完整门尚未完成，不能标为已发布。本轮未准备新的 JetBrains 生产版本。
+> - **源码与市场边界**：VS Code **0.37.127** 冻结候选为 `96cbf6ba56`，尚未打发布 tag，继续推荐 CLI **0.166.84**。该提交 Strict Sandbox **5/5**、IDE Extensions **18 成功 / 1 正常跳过**已通过；CLI CI 的 Windows worker 在同提交重跑后再次失败，完整门尚未完成，不能标为已发布。本轮未准备新的 JetBrains 生产版本。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。

@@ -6,9 +6,19 @@
 > 状态：**Phase 0 / 1 / 2 / 3 + 4a + 5a + 5b + 5c 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5d（delta）未启动
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
 
+> **2026-10-03 实施补充**：当前公开 CLI 为 **0.166.84**；`b776be5fc8` 的 standalone Linux 修复属于后续开发提交，尚未公开发布。以下原阶段记录保留历史范围，当前验收见 [CLI / IDE 共享状态](../research/cli-ide-gap-implementation-2026-09-27.md)。
+
 ---
 
 ## 变更日志
+
+### 2026-10-03 —— 固定监督器的 pkg 分发
+
+Linux/alpine x64、ARM64 的 pkg 配置必须嵌入对应预编译监督器、manifest 及固定源码；构建前校验 canonical source digest、image digest 和静态 ELF。目标解析使用锁定的 pkg 6.21.0 `parseTargets`，简写按真实平台/架构展开，不支持架构或空数组拒绝。scripts/assets 使用相对 pkg 配置目录的 POSIX globs，Windows 跨盘配置明确拒绝；native workflow 将 TEMP/TMP 设置为 checkout 同盘的 runner.temp，并在匹配宿主构建 helper。
+
+运行时将 pkg snapshot 视为虚拟 payload，不能当作内核目录 fd。来源仅由模块位置与默认入口推导，检查 realpath、最终 symlink、虚拟 fd `/dev/null` 以及 synthetic stat；真实挂载文件不能冒充内嵌资产。固定路径读取 payload，避开压缩 fd 的外部解压 cache。验证后复制到 owner-only 真实目录，以持有 fd 校验 image，再 unlink 文件名，执行 `/proc/self/fd/4`；缺失/损坏资产不调用运行时编译器。
+
+这部分仅闭合资产打包和读取路径。准确提交的六平台 unsigned 验证、完整产物宿主回收、updater readiness、监督器丢失恢复及签名发行各自保留门禁，不能由单个 helper 入口或 dirty probe 推定通过。
 
 ### v0.4（2026-04-24）—— 项目模式（`--project`）全链路落地
 
