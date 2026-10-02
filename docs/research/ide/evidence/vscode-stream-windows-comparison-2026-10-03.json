@@ -1,0 +1,159 @@
+{
+  "schema": "chainlesschain.vscode-stream-independent-readback/v1",
+  "verifiedAt": "2026-10-02T18:27:36.786Z",
+  "comparedCommit": "b5377a6592306d424b9f5b136df39b711e9003fb",
+  "reports": [
+    {
+      "role": "baseline",
+      "releaseCommit": "142e3560495c33a816d679eca463c80955ae6ea5",
+      "host": {
+        "name": "vscode",
+        "version": "1.132.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "cliVersion": "0.166.84",
+      "extensionVersion": "0.37.126",
+      "fixtureOutput": true,
+      "artifactCount": 30,
+      "allArtifactsVerified": true,
+      "evidenceDigest": "sha256:e545a27114966e25832ac60afac868049f7ad13bfbd9ac9e6c543f4575fd2c19",
+      "profileArtifact": {
+        "kind": "host-diagnostic",
+        "path": "diagnostics/008-streaming-profile.json",
+        "sha256": "sha256:55991088b57a689eab7c8dc218105dac2e155f5626db2cf5ed1c58b3bca98113",
+        "bytes": 12014,
+        "truncated": false,
+        "redacted": true,
+        "sensitivity": "redacted-text"
+      },
+      "vsix": {
+        "bytes": 690394,
+        "sha256": "sha256:2639f3fefe53befd20c7134d2ccd032c62b3a7666561f8b2de7cb28fbc3e0777"
+      },
+      "savedArtifacts": [
+        {
+          "path": "vscode-stream-windows-142e356049.raw.json",
+          "sha256": "sha256:55991088b57a689eab7c8dc218105dac2e155f5626db2cf5ed1c58b3bca98113"
+        },
+        {
+          "path": "vscode-stream-windows-142e356049.host.json",
+          "sha256": "sha256:df275331bc71aa7480e875c8c4d1ab67c866a704a7567a6b2d82fa3b8ede9eb0"
+        }
+      ],
+      "cases": [
+        {
+          "chars": 10000,
+          "frameP95Ms": 16.800000000017462,
+          "updateP95Ms": 12.400000035762787,
+          "longestTaskMs": 55,
+          "finalizationMs": 34.09999996423721,
+          "parseCalls": 1,
+          "parseChars": 10000,
+          "selectionStable": true
+        },
+        {
+          "chars": 100000,
+          "frameP95Ms": 100.10000000000582,
+          "updateP95Ms": 85.70000004768372,
+          "longestTaskMs": 474,
+          "finalizationMs": 346.4000000357628,
+          "parseCalls": 1,
+          "parseChars": 100000,
+          "selectionStable": true
+        },
+        {
+          "chars": 200000,
+          "frameP95Ms": 200,
+          "updateP95Ms": 169.29999995231628,
+          "longestTaskMs": 917,
+          "finalizationMs": 661.3000000119209,
+          "parseCalls": 1,
+          "parseChars": 200000,
+          "selectionStable": true
+        }
+      ]
+    },
+    {
+      "role": "optimized",
+      "releaseCommit": "62f7f2abcb8dafa89d482f183f7d80b0b5ff187d",
+      "host": {
+        "name": "vscode",
+        "version": "1.132.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "cliVersion": "0.166.84",
+      "extensionVersion": "0.37.126",
+      "fixtureOutput": true,
+      "artifactCount": 30,
+      "allArtifactsVerified": true,
+      "evidenceDigest": "sha256:e0d1e86ae36efc53b3f5f182c66606fbe92e74fcf6824b3fa96d314af34f15bd",
+      "profileArtifact": {
+        "kind": "host-diagnostic",
+        "path": "diagnostics/008-streaming-profile.json",
+        "sha256": "sha256:1709d2dc60d6a73de9a08e855a5dfeff863d2a14434662dfdd0cec6c79c2d4fd",
+        "bytes": 12277,
+        "truncated": false,
+        "redacted": true,
+        "sensitivity": "redacted-text"
+      },
+      "vsix": {
+        "bytes": 691001,
+        "sha256": "sha256:bc37da1319ee7baddbc4805a8c2257b40a34affc5790c79b05fa9d86038a11dc"
+      },
+      "savedArtifacts": [
+        {
+          "path": "vscode-stream-windows-62f7f2abcb.raw.json",
+          "sha256": "sha256:1709d2dc60d6a73de9a08e855a5dfeff863d2a14434662dfdd0cec6c79c2d4fd"
+        },
+        {
+          "path": "vscode-stream-windows-62f7f2abcb.host.json",
+          "sha256": "sha256:79ea4df9cac8a72617a41ea8f0ea6d7dddee9415d6ee134ce69086295fa448a2"
+        }
+      ],
+      "cases": [
+        {
+          "chars": 10000,
+          "frameP95Ms": 16.70000000001164,
+          "updateP95Ms": 3,
+          "longestTaskMs": 0,
+          "finalizationMs": 20.30000001192093,
+          "parseCalls": 1,
+          "parseChars": 10000,
+          "selectionStable": true
+        },
+        {
+          "chars": 100000,
+          "frameP95Ms": 33.39999999999418,
+          "updateP95Ms": 10.400000035762787,
+          "longestTaskMs": 374,
+          "finalizationMs": 314.60000002384186,
+          "parseCalls": 1,
+          "parseChars": 100000,
+          "selectionStable": true
+        },
+        {
+          "chars": 200000,
+          "frameP95Ms": 83.29999999998836,
+          "updateP95Ms": 21.5,
+          "longestTaskMs": 794,
+          "finalizationMs": 629.0999999642372,
+          "parseCalls": 1,
+          "parseChars": 200000,
+          "selectionStable": true
+        }
+      ]
+    }
+  ],
+  "performanceGate": false,
+  "limitations": [
+    "one local Windows x64 / VS Code 1.132.0 pair",
+    "fixture output, not live provider tasks",
+    "not frozen hardware or SLO acceptance",
+    "raw timing recomputed; whole journey artifacts verified locally, only profile and host manifest saved here",
+    "initial optimized activation failed before measurement; original retry passed without a code change"
+  ]
+}

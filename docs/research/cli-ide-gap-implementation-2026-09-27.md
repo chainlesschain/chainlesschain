@@ -4,6 +4,20 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### IDE-STREAM 实际 VS Code 基准与优化（2026-10-03）
+
+`142e3560495c33a816d679eca463c80955ae6ea5` 为 token-gated 实际 Webview relay 增加生产 renderer、Markdown 与代码操作按钮的测量入口。随后 `62f7f2abcb8dafa89d482f183f7d80b0b5ff187d` 把持续增长的单个 text node 改为相邻的 4K 有界 text nodes，保持原文本、Unicode surrogate pair 和选区；follow 状态由 selectionchange 更新，避免在每次 append 后重新读取 selection 触发布局。7 项定向回归通过；候选分支 VS Code 全部单元测试 **222/222**、ESLint 和 Prettier 通过。
+
+两次实际 VSIX 安装旅程均在 Windows x64 / VS Code **1.132.0** 中使用全新 profile，完成 multi-root、多窗口、控制、Workbench 和 restart。每档 10K / 100K / 200K 文本有 **64** 次实际 RAF 更新，另有 1 档排除的 warmup。[独立回读与比较回执](./ide/evidence/vscode-stream-windows-comparison-2026-10-03.json)分别复算原始帧间隔和更新耗时，核对每次旅程的 **30** 个产物长度与 SHA-256、宿主 envelope、VSIX 身份及 profile 的产物绑定；保存[基线原始样本](./ide/evidence/vscode-stream-windows-142e356049.raw.json)与[优化原始样本](./ide/evidence/vscode-stream-windows-62f7f2abcb.raw.json)。优化版首次运行在激活阶段失败、未进入测量；未改代码的重跑通过，首次失败唯一根因尚未确定。
+
+| 文本字符 | 帧间隔 p95：基线 → 优化 | 更新 p95：基线 → 优化 | 最长 task：基线 → 优化 | 结束格式化：基线 → 优化 |
+| -------- | ----------------------- | --------------------- | ---------------------- | ----------------------- |
+| 10K      | 16.8 → 16.7 ms          | 12.4 → 3.0 ms         | 55 → 0 ms              | 34.1 → 20.3 ms          |
+| 100K     | 100.1 → 33.4 ms         | 85.7 → 10.4 ms        | 474 → 374 ms           | 346.4 → 314.6 ms        |
+| 200K     | 200.0 → 83.3 ms         | 169.3 → 21.5 ms       | 917 → 794 ms           | 661.3 → 629.1 ms        |
+
+所有档位流式阶段解析 **0** 次、完成时解析 **1** 次，parseChars 与完整文字一致；选区稳定，选中时延迟格式化，重复结束幂等。long-task observer 只报告超过浏览器阈值的任务，所以 10K 的 0 不表示完全没有工作。此为单机、夹具输出的一组前后测量，未冻结目标硬件或 SLO；200K 帧间隔和结束格式化仍有明显开销，`performanceGate=false`，不能据此关闭全部 IDE-STREAM 验收。VS Code **0.37.127** 已准备为候选，继续推荐已公开的 CLI **0.166.84**；当前尚未推发布 tag。
+
 ### PERF-02 真实双轮压缩与 CODEX-01 三系统回读（2026-10-03）
 
 后续实施分支为 `feature/cli-ide-gap-completion-2026-10-02`。`142e3560495c33a816d679eca463c80955ae6ea5` 明确了冻结轨迹夹具的归档合同：保留 tagged facts 的原字段、原顺序和原文；已完成 nextSteps 作为历史保留，不能再次执行；不将普通工具事件新增为 tagged facts。生产摘要提示未改变，严格事实 oracle 未放宽。旧夹具未要求保留已完成步骤，却用逐字归档 oracle 检查普通摘要，第二轮失败不能单独证明生产摘要丢失任务状态。安全诊断现在使用固定 invariant 分类，不保存 provider 原文。
@@ -223,7 +237,7 @@ Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台�
 | BRIDGE-01               | 局部实现并验证             | Broker/bridge 回收；静态 helper/npm 包探针；`71919bc5c1` 托管 x64/ARM64 无编译器单元通过                                                                               | standalone 分发、监督器丢失后恢复、macOS 及最终三系统验收；主路由拒绝未 attested CLI                       |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证             | v2 历史与双 IDE 增量合并、来源/身份检查；Windows 双 IDE 实际包及旧七标签副本读取通过；4c3b9bdbc9 JetBrains 三系统 × 2024.2/2025.2 canonical recovery v2 六单元全部通过 | 原旧 profile 失败唯一根因未定；VS Code 其余原生恢复范围、旧历史边界及真实 canonical rewind/compaction/fork |
 | IDE-DRAFT               | 局部实现并验证             | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；当前 JetBrains 六宿主的 init 等待 Stop、迟到 init、取消草稿重启且不重发均通过         | 附件/问题表单真实宿主及可访问性；其余准备/写入阶段、再次发送后的 Stop 和其对应平台范围待补                 |
-| IDE-STREAM              | 本地验证通过               | 稳定文本节点增量 append，结束解析一次；选择区延迟格式化；follow-bottom；10K/100K/200K 与生成 Webview 滚动测试                                                          | 真实宿主 frame p95/最长 task 基准与验收                                                                    |
+| IDE-STREAM              | Windows 实际宿主测量通过   | 142e356049 → 62f7f2abcb 实际 VSIX 的 10K/100K/200K 原始样本独立复算；200K update p95 169.3 → 21.5 ms，选区稳定、结束解析一次                                           | 其余宿主与 JetBrains 原生测量；目标硬件/SLO、200K 帧间隔和结束长任务仍开放                                 |
 | IDE-MODE                | 局部实现并验证             | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离            | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                                          |
 | IDE-IMAGE               | 局部实现并验证             | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                 | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                                            |
 | NET-01                  | Linux x64/ARM64 验收并发布 | d93c9c9766 完整 CLI CI / Strict Sandbox 通过；两架构真 Docker 步骤成功，ARM64 原始报告独立核验 20/20、0 跳过；直接连接、DNS、IPv6、redirect、WS、子进程路径通过        | 审计所列 Linux 强制出口场景已验收；其他平台/协议不从已测传输自动推导                                       |

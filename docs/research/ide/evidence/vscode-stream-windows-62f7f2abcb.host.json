@@ -1,0 +1,299 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+  "required": true,
+  "releaseCommit": "62f7f2abcb8dafa89d482f183f7d80b0b5ff187d",
+  "host": {
+    "name": "vscode",
+    "version": "1.132.0",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "workspace": {
+    "layout": "multi-root",
+    "rootCount": 2,
+    "orderedRootsDigest": "sha256:60c410d70f4a58aa577ea7c254f6dc8efd2fe49a1cc84df30fa839084c69c0c0"
+  },
+  "cliVersion": "0.166.84",
+  "extensionVersion": "0.37.126",
+  "startedAt": "2026-10-02T18:21:37.535Z",
+  "finishedAt": "2026-10-02T18:26:11.027Z",
+  "result": "passed",
+  "evidenceComplete": true,
+  "artifactBundleDigest": "sha256:e6759ca0c3b5f745d80e59696bc8066ce15cb47c2e363c1cf9b17366d25599e7",
+  "artifacts": [
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/001-cdp-journey.jsonl",
+      "sha256": "sha256:705272138aae22e927d8376cb9c9a7e442b8a5338ec5e74353e13f028e32c15c",
+      "bytes": 19559,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/002-initial-dom.txt",
+      "sha256": "sha256:9db39e2fc534010a44b9af728ffb4d9d6ecb40357e7325b47275361e7ce8c0ca",
+      "bytes": 1028,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/003-initial-interrupt-dom.txt",
+      "sha256": "sha256:e41814c011234d56e349b2f3c6adca55c7cb6e5b0d0b76746723bdf2b852f311",
+      "bytes": 1072,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/004-initial-permission-dom.txt",
+      "sha256": "sha256:57b8a58837ee7aaebefddb38cfd17885da7cc0d12b98e69b0efd51d9d4d5658f",
+      "bytes": 1023,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/005-initial-workbench-dom.txt",
+      "sha256": "sha256:991823431fb58743b54fb73e252755707ec4efa189f3ac922b98c2d1bc320317",
+      "bytes": 1558,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/006-restart-dom.txt",
+      "sha256": "sha256:9ff698ddc350c8bb819784aac03d0b421948f1a6b9677779da5232963549c46b",
+      "bytes": 632,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/007-restart-workbench-dom.txt",
+      "sha256": "sha256:991823431fb58743b54fb73e252755707ec4efa189f3ac922b98c2d1bc320317",
+      "bytes": 1558,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/008-streaming-profile.json",
+      "sha256": "sha256:1709d2dc60d6a73de9a08e855a5dfeff863d2a14434662dfdd0cec6c79c2d4fd",
+      "bytes": 12277,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/009-initial-cdp-result.json",
+      "sha256": "sha256:f9cc17545f5fcfd463a0ed683afa43587bfdc088e09b4bf49d6d6357778a6231",
+      "bytes": 90,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/010-initial-host-ready.json",
+      "sha256": "sha256:9d3e85742435f9312bf3bdf73e3d97dae8d45952131da444a5cc23b025a3befc",
+      "bytes": 640,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/011-multi-window-evidence.json",
+      "sha256": "sha256:7c092a45b29fb09c69f2684c5dcbaaaa92635fad27973f8c6611e33233e5577f",
+      "bytes": 402,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/012-multi-window-gate_host-api-trace.jsonl",
+      "sha256": "sha256:b07e56f7dd256342ebe0aef42a2a12ff2bc8823617b33dd285b55ec7f5089c09",
+      "bytes": 775,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/013-multi-window-gate_initial-cdp-result.json",
+      "sha256": "sha256:46c21c0caad2404066507b69e442db0bfd71c6b46824bd4941f906d8af4b73ef",
+      "bytes": 89,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/014-multi-window-gate_initial-host-ready.json",
+      "sha256": "sha256:bbde9b576ee4f58ef77b71542a8c51bd00c392397d7637c506374db9e7eff6f1",
+      "bytes": 639,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/015-restart-cdp-result.json",
+      "sha256": "sha256:12b2bd707866b716fcfd2b085c7a812c78e6b9f5f749768d10786cb076979302",
+      "bytes": 90,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/016-restart-host-ready.json",
+      "sha256": "sha256:2632d20652462dbfb39e35d5378057b50167d09f093d19b66b59fbd1dceb403c",
+      "bytes": 640,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/017-fixture-cli-protocol.jsonl",
+      "sha256": "sha256:98b9d452a5ea340af4ba38f29155db0573152a5b8ef28a0c916da20efc6235a5",
+      "bytes": 247380,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/018-exthost.log",
+      "sha256": "sha256:7a1d9fd66284889f260091972fc337ad80dd9f5348dee003f13eb205a9bfba67",
+      "bytes": 262196,
+      "truncated": true,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/019-1-ChainlessChain_IDE.log",
+      "sha256": "sha256:f4c3ee1beeb49d9bcc43384d9535d4a16bddcb053393b70f9a210c3d729d8469",
+      "bytes": 684,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/020-renderer.log",
+      "sha256": "sha256:2be300d6c215b09232a3b41a2ea40b12ca098d0feae2f56333d200d2d98936d4",
+      "bytes": 262209,
+      "truncated": true,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/021-exthost.log",
+      "sha256": "sha256:fc500d1df24188e3e090e6e62348291fdf1d58953808b809ab6458e4e2a3b35f",
+      "bytes": 2178,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/022-1-ChainlessChain_IDE.log",
+      "sha256": "sha256:1a170b9c718bc6f17b1648dbdc5de8bac0cfecf33dd938e4049b443f98b609a4",
+      "bytes": 420,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/023-renderer.log",
+      "sha256": "sha256:a400e8deb14bf7c749b0f12b15998b03977ba215932bae1dd1caa8aab6947277",
+      "bytes": 6529,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/024-exthost.log",
+      "sha256": "sha256:ba031e452af715a59ece3319b69776e3497e95537c6ef3cec5bbef1ae081b562",
+      "bytes": 2176,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/025-1-ChainlessChain_IDE.log",
+      "sha256": "sha256:6a354f58f9d652129ebbccf3a31dfbe8b4cc45a31d0c1e4c6359c8f037b841c7",
+      "bytes": 420,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/026-renderer.log",
+      "sha256": "sha256:ddaa0557867e9d64098469877f9248030709a310a03d0e7755ebdb3ab762dcc7",
+      "bytes": 2146,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/027-exthost.log",
+      "sha256": "sha256:cbe355f4999df7612d3e6f3136587ae618cca6fb242bae18ef218f26a39f393d",
+      "bytes": 262196,
+      "truncated": true,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/028-1-ChainlessChain_IDE.log",
+      "sha256": "sha256:60add4ea340781c08c583bdc007d1220d63153c6e8627d5ccc4df4488faa434a",
+      "bytes": 742,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/029-renderer.log",
+      "sha256": "sha256:cace4f4daf3de45f9cc1ad69b279b9f9e40bc6f906fcc38db12d3f2ffde46257",
+      "bytes": 262209,
+      "truncated": true,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "release-artifact",
+      "name": "stream-profile-62f7f2a.vsix",
+      "path": "release-artifacts/001-stream-profile-62f7f2a.vsix",
+      "sha256": "sha256:bc37da1319ee7baddbc4805a8c2257b40a34affc5790c79b05fa9d86038a11dc",
+      "bytes": 691001
+    }
+  ],
+  "incidents": [],
+  "evidenceDigest": "sha256:e0d1e86ae36efc53b3f5f182c66606fbe92e74fcf6824b3fa96d314af34f15bd"
+}

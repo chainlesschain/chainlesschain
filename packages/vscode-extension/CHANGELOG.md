@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.127] - Bound streaming layout work (2026-10-03)
+
+- Append streaming text to adjacent nodes capped at 4096 UTF-16 characters,
+  retaining the selected prefix and preserving text without added whitespace.
+- Keep surrogate pairs together, including pairs completed in a later chunk.
+- Cache selection state on selectionchange to reduce layout work while following
+  a growing reply; completed replies still render Markdown once.
+- Add token-gated measurements using the installed Webview and production
+  renderer for 10K, 100K and 200K replies, with raw timing and selection checks.
+- Recommend the published CLI 0.166.84; no new CLI dependency is required.
+
 ## [0.37.126] - Pair with CLI 0.166.84 scoped permission revocation (2026-10-02)
 
 - Recommend CLI `0.166.84`, including when npm lookup is unavailable or stale.
