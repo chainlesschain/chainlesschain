@@ -7,7 +7,7 @@ const p95 = (values) =>
   [...values].sort((a, b) => a - b)[Math.ceil(values.length * 0.95) - 1];
 
 function verifyStreamingProfile(value) {
-  assert.equal(value.schema, "cc-ide-streaming-profile/v1");
+  assert.equal(value.schema, "cc-ide-streaming-profile/v2");
   assert.ok(SIZES.includes(value.chars));
   assert.equal(value.samples, 64);
   assert.equal(value.frameSamples, 63);
@@ -23,6 +23,28 @@ function verifyStreamingProfile(value) {
   assert.equal(value.frameP95Ms, p95(value.frameIntervalsMs));
   assert.equal(value.updateP95Ms, p95(value.updateDurationsMs));
   assert.equal(value.longestUpdateMs, Math.max(...value.updateDurationsMs));
+  const stages = value.finalizationStagesMs;
+  assert.ok(
+    stages && typeof stages === "object",
+    "finalization stages missing",
+  );
+  const stageNames = [
+    "markdown",
+    "decorate",
+    "follow",
+    "residualIncludingDomAndOverhead",
+  ];
+  assert.deepEqual(Object.keys(stages).sort(), [...stageNames].sort());
+  for (const name of stageNames)
+    assert.ok(
+      Number.isFinite(stages[name]) && stages[name] >= 0,
+      "invalid finalization stage: " + name,
+    );
+  const stageTotal = stageNames.reduce((sum, name) => sum + stages[name], 0);
+  assert.ok(
+    Math.abs(stageTotal - value.finalizationMs) <= 0.000001,
+    "finalization stages do not match total",
+  );
   assert.equal(
     value.longTasksSupported,
     true,
@@ -54,7 +76,7 @@ async function runStreamingProfiles({ commands, token, artifactDir }) {
     cases.push(result);
   }
   const evidence = {
-    schema: "cc-ide-host-streaming-profile/v1",
+    schema: "cc-ide-host-streaming-profile/v2",
     renderer: "installed-vsix-production-streaming-transcript",
     fixtureOutput: true,
     hostPlatform: process.platform,
@@ -76,7 +98,7 @@ function assertStreamingProfileArtifact(artifactDir) {
   const value = JSON.parse(
     fs.readFileSync(path.join(artifactDir, "streaming-profile.json"), "utf8"),
   );
-  assert.equal(value.schema, "cc-ide-host-streaming-profile/v1");
+  assert.equal(value.schema, "cc-ide-host-streaming-profile/v2");
   assert.equal(
     value.renderer,
     "installed-vsix-production-streaming-transcript",

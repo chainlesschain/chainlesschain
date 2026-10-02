@@ -21,6 +21,21 @@ async function measureStreamingProfile({
   const frames = [];
   let parseCalls = 0;
   let parseChars = 0;
+  let finalizing = false;
+  const finalizationStagesMs = {
+    markdown: 0,
+    decorate: 0,
+    follow: 0,
+    residualIncludingDomAndOverhead: 0,
+  };
+  function measureFinalizationStage(stage, callback) {
+    const before = performance.now();
+    try {
+      return callback();
+    } finally {
+      finalizationStagesMs[stage] += performance.now() - before;
+    }
+  }
   let childMutations = 0;
   let textMutations = 0;
   let longestTaskMs = 0;
@@ -56,10 +71,20 @@ async function measureStreamingProfile({
     renderMarkdown(text) {
       parseCalls++;
       parseChars += text.length;
-      return renderMarkdown(text);
+      return finalizing
+        ? measureFinalizationStage("markdown", () => renderMarkdown(text))
+        : renderMarkdown(text);
     },
-    decorate,
-    follow,
+    decorate(element) {
+      return finalizing
+        ? measureFinalizationStage("decorate", () => decorate(element))
+        : decorate(element);
+    },
+    follow() {
+      return finalizing
+        ? measureFinalizationStage("follow", () => follow())
+        : follow();
+    },
   });
   const seed =
     "Plain text 中文😀 with a stable selection.\n\n```js\nconst value = 42;\n```\n";
@@ -96,6 +121,7 @@ async function measureStreamingProfile({
     }
     streamingParseCalls = parseCalls;
     const beforeFinish = performance.now();
+    finalizing = true;
     renderer.finish(element, text);
     const deferredWhileSelected =
       parseCalls === 0 && element.firstChild === selectedNode;
@@ -103,6 +129,15 @@ async function measureStreamingProfile({
     // Exercise the same selection-change callback used by ordinary replies.
     document.dispatchEvent(new Event("selectionchange"));
     const finalizationMs = performance.now() - beforeFinish;
+    finalizing = false;
+    // This residual includes innerHTML assignment, selection checks/clearing,
+    // event dispatch and instrumentation overhead; it is NOT pure DOM time.
+    // follow can include forced style/layout from the production scroll hook.
+    finalizationStagesMs.residualIncludingDomAndOverhead =
+      finalizationMs -
+      finalizationStagesMs.markdown -
+      finalizationStagesMs.decorate -
+      finalizationStagesMs.follow;
     const controls = element.querySelectorAll(".codebar button").length;
     const beforeRepeat = parseCalls;
     renderer.finish(element, text);
@@ -115,7 +150,7 @@ async function measureStreamingProfile({
     const percentile = (values, p) =>
       [...values].sort((a, b) => a - b)[Math.ceil(values.length * p) - 1];
     return {
-      schema: "cc-ide-streaming-profile/v1",
+      schema: "cc-ide-streaming-profile/v2",
       chars,
       samples: durations.length,
       frameSamples: frames.length,
@@ -125,6 +160,7 @@ async function measureStreamingProfile({
       updateP95Ms: percentile(durations, 0.95),
       longestUpdateMs: Math.max(...durations),
       finalizationMs,
+      finalizationStagesMs,
       longTasksSupported,
       longestTaskMs: longTasksSupported ? longestTaskMs : null,
       streamingParseCalls,

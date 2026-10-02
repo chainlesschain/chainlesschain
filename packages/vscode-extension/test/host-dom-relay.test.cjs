@@ -169,7 +169,7 @@ test("streaming evidence rejects forged timing summaries and missing selection/p
     verifyStreamingProfile,
   } = require("./extension-host/driver/streaming-profile.cjs");
   const value = {
-    schema: "cc-ide-streaming-profile/v1",
+    schema: "cc-ide-streaming-profile/v2",
     chars: 100_000,
     samples: 64,
     frameSamples: 63,
@@ -179,6 +179,12 @@ test("streaming evidence rejects forged timing summaries and missing selection/p
     updateP95Ms: 1,
     longestUpdateMs: 1,
     finalizationMs: 10,
+    finalizationStagesMs: {
+      markdown: 1,
+      decorate: 2,
+      follow: 3,
+      residualIncludingDomAndOverhead: 4,
+    },
     elapsedMs: 1_100,
     longTasksSupported: true,
     longestTaskMs: 0,
@@ -194,6 +200,7 @@ test("streaming evidence rejects forged timing summaries and missing selection/p
   };
   assert.doesNotThrow(() => verifyStreamingProfile(value));
   for (const patch of [
+    { schema: "cc-ide-streaming-profile/v1" },
     { frameP95Ms: 1 },
     { updateDurationsMs: [] },
     { longestTaskMs: null },
@@ -202,8 +209,119 @@ test("streaming evidence rejects forged timing summaries and missing selection/p
     { selectionStable: false },
     { performanceGate: true },
     { updateDurationsMs: Array(64).fill(Infinity) },
+    { finalizationStagesMs: undefined },
+    { finalizationStagesMs: {} },
+    { finalizationStagesMs: { ...value.finalizationStagesMs, markdown: -1 } },
+    { finalizationStagesMs: { ...value.finalizationStagesMs, decorate: NaN } },
+    {
+      finalizationStagesMs: { ...value.finalizationStagesMs, follow: Infinity },
+    },
+    { finalizationStagesMs: { ...value.finalizationStagesMs, markdown: 9 } },
+    {
+      finalizationStagesMs: {
+        ...value.finalizationStagesMs,
+        residualIncludingDomAndOverhead: null,
+      },
+    },
+    { finalizationStagesMs: { ...value.finalizationStagesMs, pureDom: 0 } },
   ])
     assert.throws(() => verifyStreamingProfile({ ...value, ...patch }));
+});
+
+test("streaming stage timings exclude stream frames and retain DOM/selection overhead", async () => {
+  const { measureStreamingProfile } = require("../src/chat/streaming-profile");
+  let now = 0;
+  let finishPending;
+  let followCalls = 0;
+  const selection = {
+    isCollapsed: true,
+    addRange() {
+      this.isCollapsed = false;
+    },
+    removeAllRanges() {
+      this.isCollapsed = true;
+      now += 2;
+    },
+    toString: () => "selected",
+  };
+  const element = {
+    firstChild: {},
+    querySelectorAll: () => [1, 2],
+    remove() {},
+  };
+  // A virtual clock verifies attribution, not browser performance. The real
+  // host journey remains responsible for layout/long-task measurements.
+  const measure = vm.runInNewContext(
+    "(" + measureStreamingProfile.toString() + ")",
+    {
+      performance: { now: () => now },
+      requestAnimationFrame(callback) {
+        now += 16;
+        callback(now);
+      },
+      MutationObserver: class {
+        observe() {}
+        disconnect() {}
+      },
+      Event: class {},
+    },
+  );
+  const result = await measure({
+    document: {
+      createElement: () => element,
+      getSelection: () => selection,
+      createRange: () => ({ setStart() {}, setEnd() {} }),
+      dispatchEvent: () => finishPending(),
+    },
+    log: { appendChild() {} },
+    chars: 10_000,
+    createRenderer({ renderMarkdown, decorate, follow }) {
+      let formatted = false;
+      const renderer = {
+        update() {
+          follow();
+        },
+        finish(target, text) {
+          if (formatted) return;
+          if (!selection.isCollapsed) {
+            finishPending = () => renderer.finish(target, text);
+            return;
+          }
+          renderMarkdown(text);
+          now += 11; // DOM assignment and renderer bookkeeping.
+          decorate(target);
+          formatted = true;
+          follow();
+        },
+        dispose() {},
+      };
+      return renderer;
+    },
+    renderMarkdown() {
+      now += 3;
+      return "rendered";
+    },
+    decorate() {
+      now += 5;
+    },
+    follow() {
+      followCalls++;
+      now += 7;
+    },
+  });
+  assert.equal(result.schema, "cc-ide-streaming-profile/v2");
+  assert.equal(result.finalizationMs, 28);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.finalizationStagesMs)), {
+    markdown: 3,
+    decorate: 5,
+    follow: 7,
+    residualIncludingDomAndOverhead: 13,
+  });
+  assert.equal(followCalls, 65);
+  assert.equal(result.streamingParseCalls, 0);
+  assert.equal(result.parseCalls, 1);
+  assert.equal(result.deferredWhileSelected, true);
+  assert.equal(result.finalizationIdempotent, true);
 });
 
 test("chat HTML keeps the relay inert without a valid launch token", () => {
