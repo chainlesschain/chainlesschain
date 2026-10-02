@@ -1,0 +1,44 @@
+{
+  "schema": "chainlesschain.ide-marketplace-release-readback.v1",
+  "verifiedAt": "2026-10-02T13:58:24Z",
+  "sourceSha": "d93c9c97664ef910b16a402075b8b920338e1fe2",
+  "tag": "ide-jetbrains-v0.4.146",
+  "workflowRunId": 37013013151,
+  "workflowConclusion": "success",
+  "uploadJobId": 110865292749,
+  "uploadStepConclusion": "success",
+  "marketplaceVerificationJobId": 110867651829,
+  "marketplaceVerificationJobConclusion": "success",
+  "artifact": {
+    "id": 11230206668,
+    "name": "chainlesschain-ide-bridge-0.4.146.zip",
+    "bytes": 1503941,
+    "sha256": "1701b987f5843b03742de9db2f566fa189eb1d111ea39d584db2779b2a377682",
+    "descriptors": [
+      {
+        "entry": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.146.jar",
+        "id": "com.chainlesschain.ide",
+        "version": "0.4.146",
+        "pairedCli": true
+      }
+    ]
+  },
+  "verifier": "scripts/verify-ide-marketplace.mjs",
+  "verification": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "pending",
+    "version": "0.4.146",
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "reason": "version-not-visible",
+    "hostedAttempts": 12,
+    "independentAttempts": 1
+  },
+  "limits": [
+    "Successful upload is not proof of public approval or listing.",
+    "Public ZIP bytes cannot be compared while the version is not exposed.",
+    "Author signing was skipped under the existing no-signing-secret release path."
+  ]
+}

@@ -3,14 +3,16 @@
 Maintenance + publish runbook for the two editor extensions that pair with the
 CLI IDE bridge (design `docs/design/modules/98_IDE桥接对标方案.md`, Phase 4):
 
-- **VS Code** — `packages/vscode-extension/` → Open VSX (`ovsx`) and the
-  official VS Code Marketplace (`vsce`); both are required release channels
+- **VS Code** — `packages/vscode-extension/` → Open VSX (`ovsx`) as the primary
+  release channel; the official VS Code Marketplace (`vsce`) is an optional
+  exact-tag backfill
 - **JetBrains** — `packages/jetbrains-plugin/` → JetBrains Marketplace (`gradlew publishPlugin`)
 
 CI: `.github/workflows/ide-extensions.yml`. A normal push to `main` that touches
 either package **builds + uploads the artifact** (`.vsix` / plugin `.zip`).
-Publishing happens **only** on a dedicated tag. Missing credentials for any
-required release channel fail the tagged release.
+Publishing happens **only** on a dedicated tag. Missing Open VSX or JetBrains
+credentials fail their respective tagged release. Microsoft credentials are
+required only when its optional backfill is explicitly dispatched.
 
 ## Version governance
 
@@ -79,10 +81,12 @@ Release:
 The Open VSX publish uses `--skip-duplicate`, so rerunning the same immutable
 tag after an interrupted run does not fail merely because that exact version
 already reached the registry. Authentication, network, package-validation, and
-other publish failures still fail the job. Post-publish verification waits for
-registry listing/download metadata for roughly ten minutes before failing,
-which avoids treating normal indexing delay as a release failure. It also
-downloads the registry VSIX, validates its published raw SHA-256, and compares a
+other publish failures still fail the job. Post-publish verification first
+allows up to 45 minutes for exact-version activation, then starts a separate
+75-minute window for the cached latest/listing projection to converge. These
+limits match the tagged workflow; upload acceptance alone does not satisfy the
+public readback gate. Verification also downloads the registry VSIX, validates
+its published raw SHA-256, and compares a
 canonical digest of every ZIP entry name and uncompressed byte with the VSIX
 built by the tagged run. ZIP timestamps/compression may differ across a rerun,
 but an unrelated pre-existing copy of the same version cannot satisfy the gate.

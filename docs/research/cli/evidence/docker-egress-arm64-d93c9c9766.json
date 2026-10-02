@@ -1,0 +1,163 @@
+{
+  "schema": "chainlesschain.scoped-permission-docker-evidence.v1",
+  "sourceSha": "d93c9c97664ef910b16a402075b8b920338e1fe2",
+  "workflowRunId": 36996293555,
+  "artifactId": 11222306260,
+  "verifiedAt": "2026-10-02T12:34:52.604Z",
+  "environment": "source_sha=d93c9c97664ef910b16a402075b8b920338e1fe2\nrunner_arch=ARM64\nkernel=Linux 6.17.0-1022-azure aarch64 GNU/Linux\nnode=v22.12.0\ntmp_fs=ext4\ntmpfile_flag=404000 nlink=0 size=5\nbubblewrap 0.11.2\ndocker_image=node@sha256:a0ddbc73510e98f5e824fd64266ffe1c2c343ba9cf260d95ca2985ad632a3f3e\ndocker_image_arch=arm64\n",
+  "reports": [
+    {
+      "file": "arm64-bwrap-result.json",
+      "sha256": "de163fbd03fcf6d46c74e56e9f5d5832171ca2c1e581936c9f6e14c6efc31f76",
+      "passed": 4,
+      "skipped": 1
+    },
+    {
+      "file": "arm64-docker-egress-result.json",
+      "sha256": "8a8902dedfc47a6538fe42ed660e7fbff583fc7e6f12f0def5bcb74338296b01",
+      "passed": 20,
+      "skipped": 0
+    },
+    {
+      "file": "arm64-native-sandbox-result.json",
+      "sha256": "9b8db741221221a6ca3d4131a399980c6b862b43964020e5ca444d273ed482e8",
+      "passed": 29,
+      "skipped": 9
+    }
+  ],
+  "sourceDigests": [
+    {
+      "file": ".github/workflows/cli-strict-sandbox.yml",
+      "sha256": "b66783aaaa01b5289e4453c4aed88bcffb110ccef353e766786075d3316b073f"
+    },
+    {
+      "file": "packages/cli/src/lib/scoped-permission-store.js",
+      "sha256": "24023bbb3b9e0f2cb06a599f50fdbcf88517d5495cac242bfcca4c9d0ff9a2bd"
+    },
+    {
+      "file": "packages/cli/src/lib/permission-authority.js",
+      "sha256": "306a4312092f5714f6852e962431745a8a2fcff6ffbb8ead322f95b9788c2dbc"
+    },
+    {
+      "file": "packages/cli/src/lib/agent-sandbox.js",
+      "sha256": "bf3cb654b4c2602d865ddd8a65408253a7737cdd0cf17132c5f6852e920c9c9a"
+    },
+    {
+      "file": "packages/cli/src/lib/sandbox-egress-authority-monitor.js",
+      "sha256": "5f152294b34a4c9a5e6fe2df4a6a6625c63419f970a5e7609e56c7314c598a0b"
+    },
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "87f0223ec2fd3372f0e91b0bc8c060119583c1f85c4a626d585ba8553c1f3a35"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/scoped-permission-store.test.js",
+      "sha256": "6645b4201f6a6fa178d2b838662a1e6bcbbd2cff46b4969402cdae3b51fa8396"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/scoped-permission-mutation-authority.test.js",
+      "sha256": "10b5fe630cca7a923b6c0cd2ce2cb02542cd6cda02cf8dfb13a9093f9d26c7d1"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/scoped-write-uncertain.mjs",
+      "sha256": "02d9b970ecdf5e8ae050ec71cd75f77787ef36bcd75a160b6b9e5f869c60a349"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/sandbox-docker-egress-live.test.js",
+      "sha256": "fb1f54f718f007af804fd291ab8112df1bb97ad7c4c830d926a58c48e8406259"
+    }
+  ],
+  "docker": {
+    "passed": 20,
+    "skipped": 0,
+    "failed": 0,
+    "rawSha256": "8a8902dedfc47a6538fe42ed660e7fbff583fc7e6f12f0def5bcb74338296b01",
+    "tests": [
+      {
+        "name": "real host DNS controls for Docker boundary probes exchanges an A answer over udp / IPv4",
+        "status": "passed"
+      },
+      {
+        "name": "real host DNS controls for Docker boundary probes exchanges an A answer over udp / IPv6",
+        "status": "passed"
+      },
+      {
+        "name": "real host DNS controls for Docker boundary probes exchanges an A answer over tcp / IPv4",
+        "status": "passed"
+      },
+      {
+        "name": "real host DNS controls for Docker boundary probes exchanges an A answer over tcp / IPv6",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary enforces the domain policy through the run_shell product path",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on permission-rules revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on auto-mode-aba revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on host-policy revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on host-policy-aba revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on settings-api revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on settings-api-aba revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on scoped-revoke revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary cuts an established product tunnel on scoped-deny-aba revocation",
+        "status": "passed"
+      },
+      {
+        "name": "Linux Docker egress real boundary allows proxy traffic but rejects direct host traffic and workspace Unix sockets",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic blocks direct TCP and UDP DNS over both IPv4 and IPv6 with reachable host controls",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic blocks direct UDP DNS queries while the host DNS service is reachable",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic revokes ongoing HTTP and WebSocket streams inside the real Docker cell",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic checks IPv6, redirect authorities, WebSocket CONNECT and descendant processes",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic closes existing tunnels after broker failure and removes owned containers",
+        "status": "passed"
+      },
+      {
+        "name": "Docker egress extended real traffic closes existing tunnels after relay failure and removes owned containers",
+        "status": "passed"
+      }
+    ]
+  },
+  "limits": [
+    "Linux ARM64 hosted cell only; x64 workflow step passed but its Docker-specific JSON was not independently read",
+    "Official scoped mutations notify only the same process/module instance",
+    "Cross-process/Worker notification and external edits remain open"
+  ]
+}

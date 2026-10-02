@@ -1,0 +1,23 @@
+{
+  "schema": "chainlesschain.ide-marketplace-release-readback.v1",
+  "verifiedAt": "2026-10-02T13:53:17Z",
+  "sourceSha": "d93c9c97664ef910b16a402075b8b920338e1fe2",
+  "tag": "ide-vscode-v0.37.126",
+  "workflowRunId": 37013013953,
+  "workflowConclusion": "success",
+  "manifestArtifactId": 11228801612,
+  "verifier": "scripts/verify-ide-marketplace.mjs",
+  "verification": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.126",
+    "latest": "0.37.126",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "4889750df09513150849d882503064cc8e0d20a6caf0395abaef5307680337cc",
+    "localArchiveSha256": "4889750df09513150849d882503064cc8e0d20a6caf0395abaef5307680337cc",
+    "contentSha256": "0ef23156bfde1cd0dfc86a979b36aad36ce4385fcf6f18828074d0e9b4297eb8"
+  },
+  "limits": ["Microsoft Marketplace optional backfill was not dispatched."]
+}
