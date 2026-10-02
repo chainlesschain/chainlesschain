@@ -1,0 +1,171 @@
+{
+  "schema": "chainlesschain.jetbrains-native-transcript-readback/v1",
+  "verifiedAt": "2026-10-02T19:14:00.705Z",
+  "releaseCommit": "8460b786a8e80f70d51170e967306b174d57990a",
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "extensionVersion": "0.4.146",
+  "cliVersion": "0.166.84",
+  "result": "passed",
+  "allArtifactsVerified": true,
+  "artifactCount": 34,
+  "evidenceDigest": "sha256:4546a1524b3db1f5af8d70d9419368bd44fa7b4432ab72a89db172e53c3fc0d7",
+  "artifactBundleDigest": "sha256:0ff96acbb60d7cff66e44027d2f2e992f92b132fb2ad4dc019d67948645ac37b",
+  "installedZipFilesVerified": true,
+  "testProbeExcludedFromPluginZip": true,
+  "sourceFiles": [
+    {
+      "phase": "start",
+      "bytes": 300,
+      "sha256": "sha256:eb222b069c33469cc63466c79b292c35b10527c0315a1e15d7c11241f31579a9"
+    },
+    {
+      "phase": "end",
+      "bytes": 397,
+      "sha256": "sha256:79f72743cdb46c0ce237be6ecd50de8d661866ee0f5eba5191c39cc2c23de579"
+    }
+  ],
+  "initialPid": "18072",
+  "restartPid": "23028",
+  "readiness": {
+    "initialProbesStarted": true,
+    "fixtureVersionObserved": true,
+    "onboardingObserved": true,
+    "draftReady": true,
+    "inputEditable": true,
+    "historyIdle": true,
+    "turnIdle": true,
+    "sessionAbsent": true,
+    "paneShowing": true,
+    "ready": true,
+    "conversationId": "4371bc54-d86d-4147-877e-f584acb6c293",
+    "documentChars": 115
+  },
+  "summary": {
+    "schema": "cc-jetbrains-native-transcript/v1",
+    "processId": "18072",
+    "ideVersion": "2024.2",
+    "ideBuild": "IC-242.20224.300",
+    "profile": "installed-plugin-native-swing",
+    "paintMode": "visible-region-paintImmediately",
+    "longTaskScope": "sampled-probe-edt-tasks",
+    "sloStatus": "not-evaluated",
+    "cases": [
+      {
+        "requestedChars": 10000,
+        "streamedChars": 10000,
+        "retainedChars": 10000,
+        "capApplied": false,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 1.2936,
+        "paintP95Ms": 5.1964,
+        "timerIntervalP95Ms": 32.0084,
+        "queueDelayP95Ms": 16.0084,
+        "sampledLongTaskCount": 1,
+        "longestSampledTaskMs": 184.1644,
+        "finalizeUpdateMs": 95.2646,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      },
+      {
+        "requestedChars": 100000,
+        "streamedChars": 100000,
+        "retainedChars": 100000,
+        "capApplied": false,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 1.7731,
+        "paintP95Ms": 6.0275,
+        "timerIntervalP95Ms": 38.4964,
+        "queueDelayP95Ms": 22.4964,
+        "sampledLongTaskCount": 1,
+        "longestSampledTaskMs": 1460.8676,
+        "finalizeUpdateMs": 601.6897,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      },
+      {
+        "requestedChars": 200000,
+        "streamedChars": 200000,
+        "retainedChars": 199973,
+        "capApplied": true,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 1.47,
+        "paintP95Ms": 6.2295,
+        "timerIntervalP95Ms": 62.2627,
+        "queueDelayP95Ms": 46.2627,
+        "sampledLongTaskCount": 2,
+        "longestSampledTaskMs": 2853.0807,
+        "finalizeUpdateMs": 1167.3525,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      }
+    ]
+  },
+  "savedArtifacts": [
+    {
+      "path": "jetbrains-native-transcript-windows-8460b786a8.raw.json",
+      "bytes": 32298,
+      "sha256": "sha256:07df17bde3661ce536110de24b3960b2117c1e1adec433b55e0c0b3af77ddd3a"
+    },
+    {
+      "path": "jetbrains-native-transcript-windows-8460b786a8.host.json",
+      "bytes": 11255,
+      "sha256": "sha256:52b8f48f028e92832762079dbcb6e19a6c071e474e22f3367160a32e16a3933d"
+    },
+    {
+      "path": "jetbrains-native-transcript-windows-8460b786a8.source-start.json",
+      "bytes": 252,
+      "sha256": "sha256:19ff2c08f0da6f94b1b92f2da0944dfc055b0d76dd8b56d234618e3066b30753"
+    },
+    {
+      "path": "jetbrains-native-transcript-windows-8460b786a8.source-end.json",
+      "bytes": 337,
+      "sha256": "sha256:8e96c49e819ea00318cd539a8336a4c9203b1f4bad8ada12643325d33533a3f9"
+    }
+  ],
+  "rawToBundleDifference": {
+    "onlyField": "runToken",
+    "reason": "standard artifact scrubber redacts test nonce"
+  },
+  "qualification": {
+    "performanceGate": false,
+    "productionQualified": false,
+    "sloStatus": "not-evaluated"
+  },
+  "limitations": [
+    "one Windows x64 / IntelliJ 2024.2 sample with deterministic fixture",
+    "visible-region paint requests and sampled probe EDT tasks; not Chromium FPS or all JVM long tasks",
+    "Markdown parse calls not instrumented",
+    "200k streaming cap retained 199973 of 200000 fixture characters under existing transcript policy",
+    "target hardware and SLO remain unfrozen"
+  ],
+  "savedSourceNormalization": {
+    "encoding": "UTF-8 without BOM",
+    "newlines": "LF",
+    "serialization": "JSON.stringify(value, null, 2) plus final LF",
+    "originalBytesRetained": "local .work source-start/end; original byte hashes are in sourceFiles"
+  }
+}

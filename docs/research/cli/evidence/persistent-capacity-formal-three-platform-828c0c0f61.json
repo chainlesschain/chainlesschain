@@ -1,0 +1,898 @@
+{
+  "schema": "chainlesschain.persistent-capacity-three-platform-readback/v1",
+  "verifiedAt": "2026-10-02T19:11:42.174Z",
+  "candidateSha": "828c0c0f61c377528f8dcb0eac7e38982bdd91c7",
+  "schedulingRefSha": "2bfaea2fa9588c4a4017d7e926362b03b4d9ad69",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/37048939653",
+  "workflowConclusion": "success",
+  "jobs": [
+    {
+      "id": 110977220406,
+      "name": "validate-input",
+      "conclusion": "success"
+    },
+    {
+      "id": 110980009901,
+      "name": "measure (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110980009912,
+      "name": "measure (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110980010201,
+      "name": "measure (windows-latest)",
+      "conclusion": "success"
+    }
+  ],
+  "sourceBlobs": [
+    {
+      "path": "packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "blob": "05eae6ad3b185beb1c0b6b33f4f041dfec54e8fa"
+    },
+    {
+      "path": "packages/cli/scripts/background-capacity-comparison.mjs",
+      "blob": "fd2665421a485e6f4384fe061b3a51d3d4e7995b"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "blob": "bdd59c0a31e1563cddfa1ace83cd8329cdb2a8a8"
+    },
+    {
+      "path": "packages/cli/src/lib/background-agent-supervisor.js",
+      "blob": "cc2b8d028a564c850f08659feabc5c27e77f0e82"
+    },
+    {
+      "path": "packages/cli/src/lib/background-agent-list-index.js",
+      "blob": "daf6f820874d1e539479284be41b1babaa0eef6f"
+    },
+    {
+      "path": "packages/cli/src/lib/with-file-lock.js",
+      "blob": "888c0c57b096b0661eed6f69313bcc9f72a8700c"
+    },
+    {
+      "path": "package-lock.json",
+      "blob": "0bebb092a8ef245f8508b41984a78f96d5f3ee01"
+    }
+  ],
+  "rawReportEnvelopesVerified": true,
+  "profile": {
+    "name": "formal",
+    "samples": 11,
+    "concurrency": 8
+  },
+  "reports": [
+    {
+      "platform": {
+        "platform": "linux",
+        "release": "6.17.0-1022-azure",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2"
+      },
+      "artifact": {
+        "id": 11246039379,
+        "name": "cli-persistent-capacity-ubuntu-latest-828c0c0f61c377528f8dcb0eac7e38982bdd91c7-1",
+        "apiArchiveBytes": 3804,
+        "apiArchiveDigest": "sha256:2b18039de2def180988ba8f64cacbc5e8a4d04212607dae19b046ef0ee06f244",
+        "archiveBytesIndependentlyVerified": false
+      },
+      "saved": {
+        "path": "persistent-capacity-formal-ubuntu-828c0c0f61.raw.json",
+        "bytes": 21280,
+        "sha256": "sha256:e6695ec5ef0571a9d317c7fc0b0b06e6ecb65ecebcbbfc29fb0a933f0ce2aff7"
+      },
+      "reportDigest": "sha256:a72d150f646a9a204facc511b3e8a8b80d8cfd73ae68974de600ff13d0a5e233",
+      "memory": [
+        {
+          "recordCount": 1000,
+          "fixtureBytes": 1156484,
+          "reachable": true,
+          "queryP95Ms": 57.614,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 486.504,
+              "p50Ms": 744.15,
+              "p95Ms": 1058.333,
+              "p99Ms": 1058.333,
+              "maxMs": 1058.333
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 142.603,
+              "p50Ms": 267.586,
+              "p95Ms": 499.636,
+              "p99Ms": 499.636,
+              "maxMs": 499.636
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 0,
+              "p50Ms": 208,
+              "p95Ms": 439,
+              "p99Ms": 439,
+              "maxMs": 439
+            },
+            "failures": [],
+            "peakRssBytes": 118444032
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 616.855,
+              "p50Ms": 963.416,
+              "p95Ms": 1477.906,
+              "p99Ms": 1477.906,
+              "maxMs": 1477.906
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 248.768,
+              "p50Ms": 550.584,
+              "p95Ms": 1004.555,
+              "p99Ms": 1004.555,
+              "maxMs": 1004.555
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 0,
+              "p50Ms": 1,
+              "p95Ms": 894,
+              "p99Ms": 894,
+              "maxMs": 894
+            },
+            "failures": [],
+            "peakRssBytes": 147705856
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 693.359,
+              "p50Ms": 1381.889,
+              "p95Ms": 2014.567,
+              "p99Ms": 2014.567,
+              "maxMs": 2014.567
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 311.65,
+              "p50Ms": 927.692,
+              "p95Ms": 1539.478,
+              "p99Ms": 1539.478,
+              "maxMs": 1539.478
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 0,
+              "p50Ms": 1,
+              "p95Ms": 899,
+              "p99Ms": 1170,
+              "maxMs": 1170
+            },
+            "failures": [],
+            "peakRssBytes": 151998464
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 10000,
+          "fixtureBytes": 11582873,
+          "reachable": true,
+          "queryP95Ms": 404.381,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 877.507,
+              "p50Ms": 2251.792,
+              "p95Ms": 4147.283,
+              "p99Ms": 4147.283,
+              "maxMs": 4147.283
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 608.142,
+              "p50Ms": 1877.617,
+              "p95Ms": 3634.655,
+              "p99Ms": 3634.655,
+              "maxMs": 3634.655
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 0,
+              "p50Ms": 1418,
+              "p95Ms": 3211,
+              "p99Ms": 3211,
+              "maxMs": 3211
+            },
+            "failures": [],
+            "peakRssBytes": 224608256
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1812.503,
+              "p50Ms": 4382.177,
+              "p95Ms": 9164.331,
+              "p99Ms": 9164.331,
+              "maxMs": 9164.331
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 1436.751,
+              "p50Ms": 3942.621,
+              "p95Ms": 8763.185,
+              "p99Ms": 8763.185,
+              "maxMs": 8763.185
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 0,
+              "p50Ms": 332,
+              "p95Ms": 7828,
+              "p99Ms": 7828,
+              "maxMs": 7828
+            },
+            "failures": [],
+            "peakRssBytes": 391008256
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 2381.992,
+              "p50Ms": 7195.073,
+              "p95Ms": 13436.979,
+              "p99Ms": 13436.979,
+              "maxMs": 13436.979
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 1906.586,
+              "p50Ms": 6666.903,
+              "p95Ms": 12888.735,
+              "p99Ms": 12888.735,
+              "maxMs": 12888.735
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 0,
+              "p50Ms": 0,
+              "p95Ms": 10091,
+              "p99Ms": 10164,
+              "maxMs": 10164
+            },
+            "failures": [],
+            "peakRssBytes": 387387392
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 100000,
+          "fixtureBytes": 116026754,
+          "reachable": false,
+          "queryP95Ms": null,
+          "concurrentReads": null,
+          "concurrentUpdates": null,
+          "concurrentDeletes": null,
+          "readFailure": {
+            "code": "CONTEXT_MEMORY_STORE_CORRUPT",
+            "message": "Context/Memory store is invalid: store exceeds its configured byte limit"
+          }
+        }
+      ],
+      "backgroundAgents": [
+        {
+          "recordCount": 1000,
+          "fullScanP95Ms": 17.72,
+          "coldBuildMs": 36.878,
+          "coldCachedMs": 12.859,
+          "warmFirstP95Ms": 9.791,
+          "warmNextP95Ms": 8.934,
+          "rebuildP95Ms": 25.77,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 1000,
+            "pages": 20,
+            "parityChecks": 54,
+            "exact": true
+          },
+          "datasetDigest": "sha256:d430cb70de5fb1cf8a0a7869f8cfc0ee9e8ea96a0e1725281c9834503aa563a3"
+        },
+        {
+          "recordCount": 10000,
+          "fullScanP95Ms": 146.603,
+          "coldBuildMs": 284.922,
+          "coldCachedMs": 82.101,
+          "warmFirstP95Ms": 65.972,
+          "warmNextP95Ms": 66.872,
+          "rebuildP95Ms": 596.758,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 10000,
+            "pages": 200,
+            "parityChecks": 234,
+            "exact": true
+          },
+          "datasetDigest": "sha256:4b9a23df9ca0a596c5eaa2e09f442bd8108f42aebf7a1cc2451d89fb6ed40812"
+        }
+      ]
+    },
+    {
+      "platform": {
+        "platform": "win32",
+        "release": "10.0.26100",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2"
+      },
+      "artifact": {
+        "id": 11245924672,
+        "name": "cli-persistent-capacity-windows-latest-828c0c0f61c377528f8dcb0eac7e38982bdd91c7-1",
+        "apiArchiveBytes": 3839,
+        "apiArchiveDigest": "sha256:6c94f41da351462fb3e04c9cf0a9394eaf272aa71e330cce3d95607708cda68c",
+        "archiveBytesIndependentlyVerified": false
+      },
+      "saved": {
+        "path": "persistent-capacity-formal-windows-828c0c0f61.raw.json",
+        "bytes": 21366,
+        "sha256": "sha256:5e16a87aaa371b03b374fa56d83a9e2de13afad6c9d9502b7233152f293b3340"
+      },
+      "reportDigest": "sha256:10599c1640eb665244ba079cc71a9869e024c6d73db9e949be0ea1fe19efe41b",
+      "memory": [
+        {
+          "recordCount": 1000,
+          "fixtureBytes": 1156484,
+          "reachable": true,
+          "queryP95Ms": 116.069,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1465.89,
+              "p50Ms": 1913.542,
+              "p95Ms": 2529.509,
+              "p99Ms": 2529.509,
+              "maxMs": 2529.509
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 419.721,
+              "p50Ms": 754.121,
+              "p95Ms": 1182.276,
+              "p99Ms": 1182.276,
+              "maxMs": 1182.276
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 2,
+              "p50Ms": 600,
+              "p95Ms": 1039,
+              "p99Ms": 1039,
+              "maxMs": 1039
+            },
+            "failures": [],
+            "peakRssBytes": 92790784
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1684.332,
+              "p50Ms": 2959.171,
+              "p95Ms": 4017.511,
+              "p99Ms": 4017.511,
+              "maxMs": 4017.511
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 798.002,
+              "p50Ms": 1487.615,
+              "p95Ms": 2777.644,
+              "p99Ms": 2777.644,
+              "maxMs": 2777.644
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 1,
+              "p50Ms": 500,
+              "p95Ms": 2519,
+              "p99Ms": 2519,
+              "maxMs": 2519
+            },
+            "failures": [],
+            "peakRssBytes": 116129792
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1888.513,
+              "p50Ms": 3749.087,
+              "p95Ms": 5307.306,
+              "p99Ms": 5307.306,
+              "maxMs": 5307.306
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 774.45,
+              "p50Ms": 2634.489,
+              "p95Ms": 3902.453,
+              "p99Ms": 3902.453,
+              "maxMs": 3902.453
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 1,
+              "p50Ms": 211,
+              "p95Ms": 2244,
+              "p99Ms": 2714,
+              "maxMs": 2714
+            },
+            "failures": [],
+            "peakRssBytes": 122384384
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 10000,
+          "fixtureBytes": 11582873,
+          "reachable": true,
+          "queryP95Ms": 933.665,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 2456.601,
+              "p50Ms": 5567.513,
+              "p95Ms": 9544.581,
+              "p99Ms": 9544.581,
+              "maxMs": 9544.581
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 1602.427,
+              "p50Ms": 4456.123,
+              "p95Ms": 8424.539,
+              "p99Ms": 8424.539,
+              "maxMs": 8424.539
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 14,
+              "p50Ms": 3452,
+              "p95Ms": 7428,
+              "p99Ms": 7428,
+              "maxMs": 7428
+            },
+            "failures": [],
+            "peakRssBytes": 182636544
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 5500.216,
+              "p50Ms": 11422.566,
+              "p95Ms": 18857.908,
+              "p99Ms": 18857.908,
+              "maxMs": 18857.908
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 4309.633,
+              "p50Ms": 10490.299,
+              "p95Ms": 17363.321,
+              "p99Ms": 17363.321,
+              "maxMs": 17363.321
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 1,
+              "p50Ms": 1924,
+              "p95Ms": 14460,
+              "p99Ms": 14460,
+              "maxMs": 14460
+            },
+            "failures": [],
+            "peakRssBytes": 321671168
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 10730.914,
+              "p50Ms": 18627.984,
+              "p95Ms": 30276.018,
+              "p99Ms": 30276.018,
+              "maxMs": 30276.018
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 9386.651,
+              "p50Ms": 17413.363,
+              "p95Ms": 29127.451,
+              "p99Ms": 29127.451,
+              "maxMs": 29127.451
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 1,
+              "p50Ms": 2,
+              "p95Ms": 21197,
+              "p99Ms": 25802,
+              "maxMs": 25802
+            },
+            "failures": [],
+            "peakRssBytes": 283009024
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 100000,
+          "fixtureBytes": 116026754,
+          "reachable": false,
+          "queryP95Ms": null,
+          "concurrentReads": null,
+          "concurrentUpdates": null,
+          "concurrentDeletes": null,
+          "readFailure": {
+            "code": "CONTEXT_MEMORY_STORE_CORRUPT",
+            "message": "Context/Memory store is invalid: store exceeds its configured byte limit"
+          }
+        }
+      ],
+      "backgroundAgents": [
+        {
+          "recordCount": 1000,
+          "fullScanP95Ms": 153.154,
+          "coldBuildMs": 262.953,
+          "coldCachedMs": 66.794,
+          "warmFirstP95Ms": 51.469,
+          "warmNextP95Ms": 50.236,
+          "rebuildP95Ms": 230.306,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 1000,
+            "pages": 20,
+            "parityChecks": 54,
+            "exact": true
+          },
+          "datasetDigest": "sha256:d430cb70de5fb1cf8a0a7869f8cfc0ee9e8ea96a0e1725281c9834503aa563a3"
+        },
+        {
+          "recordCount": 10000,
+          "fullScanP95Ms": 1563.476,
+          "coldBuildMs": 2271.772,
+          "coldCachedMs": 395.441,
+          "warmFirstP95Ms": 346.397,
+          "warmNextP95Ms": 345.265,
+          "rebuildP95Ms": 2222.563,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 10000,
+            "pages": 200,
+            "parityChecks": 234,
+            "exact": true
+          },
+          "datasetDigest": "sha256:4b9a23df9ca0a596c5eaa2e09f442bd8108f42aebf7a1cc2451d89fb6ed40812"
+        }
+      ]
+    },
+    {
+      "platform": {
+        "platform": "darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "nodeVersion": "v22.22.2"
+      },
+      "artifact": {
+        "id": 11246337604,
+        "name": "cli-persistent-capacity-macos-latest-828c0c0f61c377528f8dcb0eac7e38982bdd91c7-1",
+        "apiArchiveBytes": 3825,
+        "apiArchiveDigest": "sha256:d1d730d61714e6854490870ed5a94fd11b8bd11838f53930afe916b659876f78",
+        "archiveBytesIndependentlyVerified": false
+      },
+      "saved": {
+        "path": "persistent-capacity-formal-macos-828c0c0f61.raw.json",
+        "bytes": 21360,
+        "sha256": "sha256:b11949f0c7d3351359590adfb8ed682f89c958775ee0430d8afb935be1ac5582"
+      },
+      "reportDigest": "sha256:f2dbab0af5f6684af78a86595eaf9e7cd2551b3de0bffaf31db9d7199b025719",
+      "memory": [
+        {
+          "recordCount": 1000,
+          "fixtureBytes": 1156484,
+          "reachable": true,
+          "queryP95Ms": 272.469,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1620.616,
+              "p50Ms": 1742.702,
+              "p95Ms": 2502.893,
+              "p99Ms": 2502.893,
+              "maxMs": 2502.893
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 218.966,
+              "p50Ms": 481.905,
+              "p95Ms": 1187.423,
+              "p99Ms": 1187.423,
+              "maxMs": 1187.423
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 1,
+              "p50Ms": 408,
+              "p95Ms": 1039,
+              "p99Ms": 1039,
+              "maxMs": 1039
+            },
+            "failures": [],
+            "peakRssBytes": 112345088
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1476.332,
+              "p50Ms": 2461.147,
+              "p95Ms": 3757.743,
+              "p99Ms": 3757.743,
+              "maxMs": 3757.743
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 512.441,
+              "p50Ms": 1358.897,
+              "p95Ms": 2692.823,
+              "p99Ms": 2692.823,
+              "maxMs": 2692.823
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 0,
+              "p50Ms": 19,
+              "p95Ms": 2435,
+              "p99Ms": 2435,
+              "maxMs": 2435
+            },
+            "failures": [],
+            "peakRssBytes": 142147584
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1358.396,
+              "p50Ms": 2437.642,
+              "p95Ms": 4145.734,
+              "p99Ms": 4145.734,
+              "maxMs": 4145.734
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 488.311,
+              "p50Ms": 1466.326,
+              "p95Ms": 3154.066,
+              "p99Ms": 3154.066,
+              "maxMs": 3154.066
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 0,
+              "p50Ms": 1,
+              "p95Ms": 2279,
+              "p99Ms": 2698,
+              "maxMs": 2698
+            },
+            "failures": [],
+            "peakRssBytes": 144424960
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 10000,
+          "fixtureBytes": 11582873,
+          "reachable": true,
+          "queryP95Ms": 1062.347,
+          "concurrentReads": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 1911.755,
+              "p50Ms": 3948.24,
+              "p95Ms": 8016.997,
+              "p99Ms": 8016.997,
+              "maxMs": 8016.997
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 940.245,
+              "p50Ms": 2829.927,
+              "p95Ms": 6930.467,
+              "p99Ms": 6930.467,
+              "maxMs": 6930.467
+            },
+            "lockWait": {
+              "samples": 8,
+              "minMs": 1,
+              "p50Ms": 2232,
+              "p95Ms": 6118,
+              "p99Ms": 6118,
+              "maxMs": 6118
+            },
+            "failures": [],
+            "peakRssBytes": 247431168
+          },
+          "concurrentUpdates": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 2842.73,
+              "p50Ms": 7061.925,
+              "p95Ms": 14098.323,
+              "p99Ms": 14098.323,
+              "maxMs": 14098.323
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 2020.793,
+              "p50Ms": 6204.585,
+              "p95Ms": 13219.616,
+              "p99Ms": 13219.616,
+              "maxMs": 13219.616
+            },
+            "lockWait": {
+              "samples": 16,
+              "minMs": 0,
+              "p50Ms": 1,
+              "p95Ms": 11062,
+              "p99Ms": 11062,
+              "maxMs": 11062
+            },
+            "failures": [],
+            "peakRssBytes": 380534784
+          },
+          "concurrentDeletes": {
+            "requested": 8,
+            "succeeded": 8,
+            "failed": 0,
+            "wall": {
+              "samples": 8,
+              "minMs": 2842.279,
+              "p50Ms": 9095.266,
+              "p95Ms": 19510.337,
+              "p99Ms": 19510.337,
+              "maxMs": 19510.337
+            },
+            "operation": {
+              "samples": 8,
+              "minMs": 1895.936,
+              "p50Ms": 8080.883,
+              "p95Ms": 18438.797,
+              "p99Ms": 18438.797,
+              "maxMs": 18438.797
+            },
+            "lockWait": {
+              "samples": 24,
+              "minMs": 0,
+              "p50Ms": 1,
+              "p95Ms": 12833,
+              "p99Ms": 15230,
+              "maxMs": 15230
+            },
+            "failures": [],
+            "peakRssBytes": 384581632
+          },
+          "readFailure": null
+        },
+        {
+          "recordCount": 100000,
+          "fixtureBytes": 116026754,
+          "reachable": false,
+          "queryP95Ms": null,
+          "concurrentReads": null,
+          "concurrentUpdates": null,
+          "concurrentDeletes": null,
+          "readFailure": {
+            "code": "CONTEXT_MEMORY_STORE_CORRUPT",
+            "message": "Context/Memory store is invalid: store exceeds its configured byte limit"
+          }
+        }
+      ],
+      "backgroundAgents": [
+        {
+          "recordCount": 1000,
+          "fullScanP95Ms": 123.142,
+          "coldBuildMs": 147.666,
+          "coldCachedMs": 35.658,
+          "warmFirstP95Ms": 34.8,
+          "warmNextP95Ms": 32.686,
+          "rebuildP95Ms": 152.401,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 1000,
+            "pages": 20,
+            "parityChecks": 54,
+            "exact": true
+          },
+          "datasetDigest": "sha256:d430cb70de5fb1cf8a0a7869f8cfc0ee9e8ea96a0e1725281c9834503aa563a3"
+        },
+        {
+          "recordCount": 10000,
+          "fullScanP95Ms": 1400.615,
+          "coldBuildMs": 1072.878,
+          "coldCachedMs": 212.758,
+          "warmFirstP95Ms": 181.75,
+          "warmNextP95Ms": 191.334,
+          "rebuildP95Ms": 1626.207,
+          "pathsVerified": true,
+          "traversal": {
+            "records": 10000,
+            "pages": 200,
+            "parityChecks": 234,
+            "exact": true
+          },
+          "datasetDigest": "sha256:4b9a23df9ca0a596c5eaa2e09f442bd8108f42aebf7a1cc2451d89fb6ed40812"
+        }
+      ]
+    }
+  ],
+  "qualification": {
+    "performanceGate": false,
+    "productionQualified": false,
+    "reason": "measurement-only-no-approved-slo"
+  },
+  "limitations": [
+    "generated disk fixtures; not 30-50 real project tasks",
+    "reports preserve aggregate timings; per-call raw durations were not emitted",
+    "100k Memory fixture exceeds the production 64 MiB store limit on all three hosts",
+    "hosted runner measurements; target hardware and SLO remain unfrozen",
+    "cold means a new process; OS filesystem cache was not flushed",
+    "original archive digest is API metadata; direct ZIP access returned HTTP 401, only extracted report bytes and envelopes were independently verified"
+  ],
+  "digest": "sha256:34ff5c34c381c71d8f13a2bd21809be40b452f9230dbb8d26cebd42be56d5d3b"
+}

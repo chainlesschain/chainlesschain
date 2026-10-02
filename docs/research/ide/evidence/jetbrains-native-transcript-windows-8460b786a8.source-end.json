@@ -1,0 +1,11 @@
+{
+  "releaseCommit": "8460b786a8e80f70d51170e967306b174d57990a",
+  "recordedAt": "2026-10-02T19:07:44.1552756Z",
+  "worktree": "C:\\code\\chainlesschain\\.work\\gap-candidate-62f7f2a",
+  "phase": "end",
+  "nativeMetricsProduced": true,
+  "sloStatus": "not-evaluated",
+  "status": [],
+  "trackedSourceClean": true,
+  "result": "passed"
+}

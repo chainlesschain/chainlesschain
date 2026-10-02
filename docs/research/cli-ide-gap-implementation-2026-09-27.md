@@ -22,7 +22,31 @@
 
 JetBrains 原生 Swing 测量已在 `9e3c3b4e166e0f0652e145c4a9167691094f79d1` 接入现有 canonical recovery 的 initial 阶段，仅由 test-only 反射 probe 在真实可见宿主 EDT 调用生产 transcript；没有加入插件 ZIP。每档记录 64 次追加、EDT 间隔/延迟、可见区域 paint 请求、选区/上滚/恢复跟随及完成状态，不冒称 Chromium FPS、全 JVM 长任务或精确 Markdown 解析次数。原开发旅程 initial/restart 通过，但 10K 被异步初始化提示污染了 115 个字符，严格聚合正确失败。候选补入真实初始化/草稿/历史/运行状态的连续 EDT 就绪观察和并发修改检测；Java UI-test 编译、Node 三文件 **59/59** 和 actionlint 通过，新的真实宿主复测仍待结果。
 
-IDE 发布候选冻结于 `release/ide-vscode-0.37.127` 的 **9e3c3b4e16**，不包含后续未提交的 CLI settings 切片。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37049626043)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37049632669) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37049638778) 已对该准确提交启动，当前尚未取得全部通过或市场发布回读。用户已授权 IDE 发布；后续实现分支继续通过 [PR #399](https://github.com/chainlesschain/chainlesschain/pull/399) 审查。另启动 [三系统 formal 容量测量](https://github.com/chainlesschain/chainlesschain/actions/runs/37048939653)，其 `commit_sha` 输入为 **828c0c0f61c377528f8dcb0eac7e38982bdd91c7**；工作流本身从 main 调度，不能用调度 ref 的 SHA 替代实际 checkout 的测量对象。结果、目标硬件与 SLO 仍待核验。
+**9e3c3b4e16** 的独立干净树实际复跑完成 initial 会话恢复，但 native readiness 首读因 RemoteRobot 泛型与 `String.valueOf(char[])` 重载推断抛异常，未开始原生采样；27 项失败产物及起止干净来源状态均保留于本地。`8460b786a8e80f70d51170e967306b174d57990a` 用显式 Object 中间值修复测试驱动，离线编译和实际字节码确认调用 Object 重载。旧发布候选检查已取消，候选分支 `release/ide-vscode-0.37.127` 更新至该准确提交，不包含后续 CLI settings 或 standalone 切片。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37051306070)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37051317514) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37051328884) 已启动；Strict Sandbox **5/5 作业成功**，其余完整门及市场回读仍待结果。用户已授权 IDE 发布；后续实现分支继续通过 [PR #399](https://github.com/chainlesschain/chainlesschain/pull/399) 审查。
+
+### JetBrains 原生 transcript 准确提交验收（2026-10-03）
+
+上述 **8460b786a8** 的独立干净树，在 Windows x64 / IntelliJ **2024.2** 完成实际 ZIP 安装、canonical recovery、原生测量及 restart，起止 tracked source 均洁净。[独立核验回执](./ide/evidence/jetbrains-native-transcript-windows-8460b786a8.json)重新核对 **34** 项产物长度/hash、envelope、安装 ZIP 的两个 JAR 字节及 probe 未进入插件包；原生采样 PID **18072** 与实际初始宿主快照绑定，重启后为 **23028**。保留[原始 64 次采样](./ide/evidence/jetbrains-native-transcript-windows-8460b786a8.raw.json)，标准 bundle 仅将随机 test nonce 的 runToken 脱敏，两份内容除此字段完全相同。十项真实 readiness 条件均满足，清空前 onboarding 为 115 字符，10K 已完整保留 10,000 字符。
+
+| 文本字符 | append p95 | visible-region paint p95 | EDT Timer 间隔 p95 | 完成更新    | 最长采样 EDT task |
+| -------- | ---------- | ------------------------ | ------------------ | ----------- | ----------------- |
+| 10K      | 1.29 ms    | 5.20 ms                  | 32.01 ms           | 95.26 ms    | 184.16 ms         |
+| 100K     | 1.77 ms    | 6.03 ms                  | 38.50 ms           | 601.69 ms   | 1,460.87 ms       |
+| 200K     | 1.47 ms    | 6.23 ms                  | 62.26 ms           | 1,167.35 ms | 2,853.08 ms       |
+
+三档选区、选区 viewport、用户上滚、恢复跟随及 plain → styled 合同均通过。200K 按现有 transcript 上限保留 **199,973 / 200,000** 个夹具字符，不能称全量无截断。测量是可见区域 paint 请求和 probe 所采样的 EDT tasks，Markdown 解析次数未插桩；不等同 Chromium FPS、全部 JVM long tasks，也不能与 VS Code 耗时直接作同指标排名。`sloStatus=not-evaluated`，目标硬件、结束长任务及其余宿主仍开放。本轮仅添加 test-only 测量，不准备新的 JetBrains 生产版本。
+
+### PERF-01 三系统 formal 容量测量（2026-10-03）
+
+[CLI Persistent Capacity](https://github.com/chainlesschain/chainlesschain/actions/runs/37048939653) **4/4 作业成功**。其 `commit_sha` 输入及实际 checkout 对象为 **828c0c0f61c377528f8dcb0eac7e38982bdd91c7**；调度 ref 为 main 的 `2bfaea2fa9`，不能替代测量对象。Linux x64、Windows x64、macOS ARM64 均为 Node **22.22.2**、11 samples、concurrency **8**。[三系统回读](./cli/evidence/persistent-capacity-formal-three-platform-828c0c0f61.json)保存未改写报告，复算 envelope、核对准确干净来源、配置、逐页/重建校验与摘要顺序；原 ZIP digest 仅为 GitHub API 元数据，直接 ZIP API 返回 HTTP 401，未声称原 archive 字节独立比对。报告没有逐次原始耗时，不能再次重算 p95。
+
+| 宿主        | 10K Memory query p95 | 10K 后台全扫 p95 | 已有索引热首页 p95 | 下一页 p95 | 失效重建 p95 |
+| ----------- | -------------------- | ---------------- | ------------------ | ---------- | ------------ |
+| Linux x64   | 404.38 ms            | 146.60 ms        | 65.97 ms           | 66.87 ms   | 596.76 ms    |
+| Windows x64 | 933.67 ms            | 1,563.48 ms      | 346.40 ms          | 345.27 ms  | 2,222.56 ms  |
+| macOS ARM64 | 1,062.35 ms          | 1,400.62 ms      | 181.75 ms          | 191.33 ms  | 1,626.21 ms  |
+
+三系统 1K/10K Memory 的并发读取、更新、删除各 **8/8** 成功；1K/10K 后台遍历、内容对照、索引命中及失效重建均通过。**100K Memory** 夹具为 **116,026,754 bytes**，超过生产 **64 MiB** 限制，三系统均拒绝读取且未执行该档并发阶段；因此 workflow 的测量成功不等于该容量可用。Memory 仍走原全文件端口；fixture 直接生成，cold 仅指新进程，OS 缓存未清空，目标硬件/SLO 仍未冻结，`performanceGate=false`。
 
 ### PERF-02 真实双轮压缩与 CODEX-01 三系统回读（2026-10-03）
 
@@ -243,14 +267,14 @@ Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台�
 | BRIDGE-01               | 局部实现并验证             | Broker/bridge 回收；静态 helper/npm 包探针；`71919bc5c1` 托管 x64/ARM64 无编译器单元通过                                                                               | standalone 分发、监督器丢失后恢复、macOS 及最终三系统验收；主路由拒绝未 attested CLI                       |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证             | v2 历史与双 IDE 增量合并、来源/身份检查；Windows 双 IDE 实际包及旧七标签副本读取通过；4c3b9bdbc9 JetBrains 三系统 × 2024.2/2025.2 canonical recovery v2 六单元全部通过 | 原旧 profile 失败唯一根因未定；VS Code 其余原生恢复范围、旧历史边界及真实 canonical rewind/compaction/fork |
 | IDE-DRAFT               | 局部实现并验证             | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；当前 JetBrains 六宿主的 init 等待 Stop、迟到 init、取消草稿重启且不重发均通过         | 附件/问题表单真实宿主及可访问性；其余准备/写入阶段、再次发送后的 Stop 和其对应平台范围待补                 |
-| IDE-STREAM              | Windows 实际宿主测量通过   | 142e356049 → 62f7f2abcb 实际 VSIX 的 10K/100K/200K 原始样本独立复算；200K update p95 169.3 → 21.5 ms，选区稳定、结束解析一次                                           | 其余宿主与 JetBrains 原生测量；目标硬件/SLO、200K 帧间隔和结束长任务仍开放                                 |
+| IDE-STREAM              | Windows 双 IDE 实际测量通过 | VS Code v1 对照及 v2 分段回读；8460b786a8 JetBrains 实际干净树 native/restart 通过，34 产物及原始采样核验；选区/滚动合同通过                                            | 其余宿主、目标硬件/SLO 和结束长任务；JetBrains 原生 Timer/paint 不是 Chromium 帧指标                         |
 | IDE-MODE                | 局部实现并验证             | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离            | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                                          |
 | IDE-IMAGE               | 局部实现并验证             | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                 | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                                            |
 | NET-01                  | Linux x64/ARM64 验收并发布 | d93c9c9766 完整 CLI CI / Strict Sandbox 通过；两架构真 Docker 步骤成功，ARM64 原始报告独立核验 20/20、0 跳过；直接连接、DNS、IPv6、redirect、WS、子进程路径通过        | 审计所列 Linux 强制出口场景已验收；其他平台/协议不从已测传输自动推导                                       |
 | NET-02                  | 真实产品撤销局部验收       | d93c9c9766 准确提交完整门和 ARM64 20/20 通过，新增同进程 scoped API 普通/ABA 撤销；CLI 0.166.84 OIDC 发布及独立公开回读成功                                            | 持久跨进程 settings/scoped generation、Worker/外部编辑通知、其他可变来源/legacy callback 的权威协议仍开放  |
 | VERIFY-01               | 待实施/验收                | 保留历史真实模型试点及其范围                                                                                                                                           | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                                 |
 | PLATFORM-01             | 局部补强，待扩展矩阵       | Windows detached 文件 fd 真载荷与正对照；`f016a60ab0` 的 Linux ARM64、x64、Windows、macOS 15/latest Strict Sandbox 作业均通过                                          | 其余 OS/架构/后端/stdio 组合及真实进程验收；后续候选需重新验证                                             |
-| PERF-01                 | 局部实现并验证             | 同磁盘夹具全扫/首进程建索引/已有索引新进程/热首页与下一页/失效重建对照；逐页全量内容校验；路径观测失败不报告完整索引验证                                               | 精确 SHA 三系统 formal、目标硬件与冻结 SLO；Memory 仍为原全文件端口                                        |
+| PERF-01                 | 三系统 formal 已测量       | 828c0c0f61 的 Linux/Windows/macOS formal 11 samples、concurrency 8 回读；后台全遍历/索引/重建及 1K/10K Memory 并发阶段通过                                               | 100K Memory 超过 64 MiB 未可用；原全文件端口、目标硬件与冻结 SLO 仍开放                                    |
 | PERF-02                 | 单模型双轮旅程通过         | 142e356049 的 Windows 真实 Volcengine 双轮压缩及只读工具序列通过；归档合同明确，冻结事实保留 100%、silent loss 0；六次真实 usage 独立核对                              | 100 次独立矩阵、其他目标 provider、冻结误差门限及实际项目任务成功率                                        |
 | MCP-01                  | 本地及准确提交 CI 通过     | 真实 loopback HTTP 覆盖 stateless 404、过期 session、并发单次重建和重建失败；只恢复连接，不重放结果未知的工具调用；当前完整 CLI CI 通过                                | 目标 MCP 服务端互操作仍待验收                                                                              |
 | MAINT-01                | 局部实现并验证             | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                | 其余 runtime 与平台职责抽取、保行为验证                                                                    |
