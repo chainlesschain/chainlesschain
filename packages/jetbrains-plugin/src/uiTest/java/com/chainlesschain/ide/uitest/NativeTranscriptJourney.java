@@ -41,14 +41,17 @@ final class NativeTranscriptJourney {
         String previous = null;
         boolean ready = false;
         while (System.nanoTime() < readyDeadline) {
-            String observed = String.valueOf(frame.callJs(locate + """
+            // callJs is generic: passing it directly to String.valueOf selects
+            // the char[] overload and inserts a failing runtime cast for strings.
+            Object observation = frame.callJs(locate + """
                 var readyTypes = java.lang.reflect.Array.newInstance(java.lang.Class, 1);
                 readyTypes[0] = java.lang.Object;
                 var readyArgs = java.lang.reflect.Array.newInstance(java.lang.Object, 1);
                 readyArgs[0] = view;
                 var result = String(probe.getMethod('readiness', readyTypes).invoke(null, readyArgs));
                 loader.close(); result;
-                """, true));
+                """, true);
+            String observed = String.valueOf(observation);
             var state = JsonParser.parseString(observed).getAsJsonObject();
             if (state.get("ready").getAsBoolean() && observed.equals(previous)) { ready = true; break; }
             previous = observed;
