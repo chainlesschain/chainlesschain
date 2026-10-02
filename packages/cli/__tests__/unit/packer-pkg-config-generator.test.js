@@ -8,11 +8,19 @@
  * are filesystem-readable.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { generatePkgConfig } from "../../src/lib/packer/pkg-config-generator.js";
+import { artifactFixture } from "./linux-subreaper-artifact-fixture.js";
+
+const subreaperSource = fs.readFileSync(
+  new URL(
+    "../../src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+    import.meta.url,
+  ),
+);
 
 describe("generatePkgConfig", () => {
   let cliRoot;
@@ -86,6 +94,135 @@ describe("generatePkgConfig", () => {
     });
   }
 
+  function assetPaths(result, config) {
+    return config.pkg.assets.map((asset) =>
+      path.resolve(result.pkgConfigDir, asset).replace(/\\/g, "/"),
+    );
+  }
+
+  it("emits relative scripts/assets compatible with pkg's path.join walker", () => {
+    const result = callGenerator();
+    const config = JSON.parse(fs.readFileSync(result.pkgConfigFile, "utf8"));
+    for (const pattern of [...config.pkg.scripts, ...config.pkg.assets]) {
+      expect(path.isAbsolute(pattern)).toBe(false);
+      expect(path.win32.isAbsolute(pattern)).toBe(false);
+      expect(path.join(result.pkgConfigDir, pattern)).toBe(
+        path.resolve(result.pkgConfigDir, pattern),
+      );
+    }
+  });
+
+  it("rejects an asset that cannot be expressed relative to the config drive", () => {
+    const relative = vi
+      .spyOn(path, "relative")
+      .mockReturnValueOnce("D:\\other-drive\\asset");
+    try {
+      expect(() => callGenerator()).toThrow(/same filesystem drive/);
+    } finally {
+      relative.mockRestore();
+    }
+  });
+
+  function stageLinuxHelper(arch = "x64") {
+    const broker = path.join(cliRoot, "src/lib/process-execution-broker");
+    fs.mkdirSync(broker, { recursive: true });
+    fs.writeFileSync(
+      path.join(broker, "linux-subreaper-supervisor.c"),
+      subreaperSource,
+    );
+    const directory = path.join(
+      cliRoot,
+      `src/assets/linux-subreaper/linux-${arch}`,
+    );
+    fs.mkdirSync(directory, { recursive: true });
+    const fixture = artifactFixture(arch);
+    fs.writeFileSync(
+      path.join(directory, "manifest.json"),
+      JSON.stringify(fixture.manifest),
+    );
+    fs.writeFileSync(path.join(directory, "supervisor"), fixture.image);
+    return directory;
+  }
+
+  it("embeds validated source and only the requested Linux helper architectures", () => {
+    stageLinuxHelper("x64");
+    stageLinuxHelper("arm64");
+    const result = callGenerator({
+      targets: ["node22-linux-x64", "node22-linux-arm64", "node22-alpine-x64"],
+    });
+    const config = JSON.parse(fs.readFileSync(result.pkgConfigFile, "utf8"));
+    const helpers = config.pkg.assets.filter((asset) =>
+      /linux-subreaper/.test(asset),
+    );
+    expect(helpers).toHaveLength(5);
+    expect(
+      helpers.some((asset) => asset.endsWith("linux-subreaper-supervisor.c")),
+    ).toBe(true);
+    for (const arch of ["x64", "arm64"])
+      for (const name of ["supervisor", "manifest.json"])
+        expect(
+          helpers.some((asset) => asset.endsWith(`linux-${arch}/${name}`)),
+        ).toBe(true);
+  });
+
+  it.each(["missing", "missing-arch", "image", "manifest", "source"])(
+    "refuses a Linux standalone build with %s helper input",
+    (kind) => {
+      const directory = stageLinuxHelper();
+      if (kind === "missing") fs.unlinkSync(path.join(directory, "supervisor"));
+      if (kind === "image")
+        fs.appendFileSync(path.join(directory, "supervisor"), "changed");
+      if (kind === "manifest")
+        fs.writeFileSync(path.join(directory, "manifest.json"), "{}");
+      if (kind === "source")
+        fs.appendFileSync(
+          path.join(
+            cliRoot,
+            "src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          ),
+          "changed",
+        );
+      const targets = [
+        kind === "missing-arch" ? "node22-linux-arm64" : "node22-linux-x64",
+      ];
+      expect(() => callGenerator({ targets })).toThrow(
+        /require valid precompiled process supervision assets/,
+      );
+    },
+  );
+
+  it.each(["linux-x64", "alpine-x64", "linux", "node22-linux", "host"])(
+    "requires helper assets for pkg target alias %s on its resolved host",
+    (target) => {
+      const linuxTarget = target !== "host" || process.platform === "linux";
+      if (linuxTarget) {
+        expect(() => callGenerator({ targets: [target] })).toThrow(
+          /require valid precompiled process supervision assets/,
+        );
+      }
+      stageLinuxHelper("x64");
+      stageLinuxHelper("arm64");
+      const result = callGenerator({ targets: [target] });
+      const config = JSON.parse(fs.readFileSync(result.pkgConfigFile, "utf8"));
+      const helpers = config.pkg.assets.filter((asset) =>
+        /linux-subreaper/.test(asset),
+      );
+      expect(helpers).toHaveLength(linuxTarget ? 3 : 0);
+      if (linuxTarget) {
+        const arch = target.endsWith("-x64") ? "x64" : process.arch;
+        expect(
+          helpers.some((asset) => asset.endsWith(`linux-${arch}/supervisor`)),
+        ).toBe(true);
+      }
+    },
+  );
+
+  it("refuses unsupported Linux architectures instead of omitting supervision", () => {
+    expect(() => callGenerator({ targets: ["node22-linux-armv7"] })).toThrow(
+      /Unsupported standalone Linux process supervision architecture: armv7/,
+    );
+  });
+
   it("creates pkg-config dir, package.json, and pack-entry.js", () => {
     const r = callGenerator();
     expect(fs.existsSync(r.pkgConfigDir)).toBe(true);
@@ -120,7 +257,7 @@ describe("generatePkgConfig", () => {
   it("assets always include distDir + templatesDir", () => {
     const r = callGenerator();
     const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
-    const assetStr = synth.pkg.assets.join("|");
+    const assetStr = assetPaths(r, synth).join("|");
     expect(assetStr).toContain(distDir.replace(/\\/g, "/"));
     expect(assetStr).toContain(templatesDir.replace(/\\/g, "/"));
   });
@@ -134,7 +271,7 @@ describe("generatePkgConfig", () => {
     const recoveryInstaller = path
       .join(cliRoot, "install", "install.ps1")
       .replace(/\\/g, "/");
-    expect(synth.pkg.assets).toEqual(
+    expect(assetPaths(r, synth)).toEqual(
       expect.arrayContaining([
         `${brokerRoot}/windows-sandbox-helper.dll`,
         `${brokerRoot}/windows-sandbox-helper.exe`,
@@ -143,7 +280,7 @@ describe("generatePkgConfig", () => {
       ]),
     );
     expect(
-      synth.pkg.assets.filter((asset) => /\.ps1(?:$|[*])/i.test(asset)),
+      assetPaths(r, synth).filter((asset) => /\.ps1(?:$|[*])/i.test(asset)),
     ).toEqual([recoveryInstaller]);
   });
 
@@ -153,7 +290,7 @@ describe("generatePkgConfig", () => {
     const brokerRoot = path
       .join(cliRoot, "src", "lib", "process-execution-broker")
       .replace(/\\/g, "/");
-    expect(synth.pkg.assets).toEqual(
+    expect(assetPaths(r, synth)).toEqual(
       expect.arrayContaining([
         `${brokerRoot}/macos-mcp-launcher.c`,
         `${brokerRoot}/macos-mcp-launcher-protocol.json`,
@@ -197,7 +334,7 @@ describe("generatePkgConfig", () => {
           "mcp-stdio-immutable-vfs-resolver.cjs",
         ),
       ].map((asset) => asset.replace(/\\/g, "/"));
-      expect(synth.pkg.assets).toEqual(expect.arrayContaining(expected));
+      expect(assetPaths(r, synth)).toEqual(expect.arrayContaining(expected));
     } finally {
       try {
         fs.unlinkSync(lexicalCliRoot);
@@ -213,7 +350,7 @@ describe("generatePkgConfig", () => {
     fs.mkdirSync(prebuildsDir);
     const r = callGenerator({ prebuildsDir });
     const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
-    const assetStr = synth.pkg.assets.join("|");
+    const assetStr = assetPaths(r, synth).join("|");
     expect(assetStr).toContain(prebuildsDir.replace(/\\/g, "/"));
   });
 
@@ -428,7 +565,7 @@ describe("generatePkgConfig", () => {
     it("assets include project dir glob", () => {
       const r = callProjectGenerator();
       const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
-      const assetStr = synth.pkg.assets.join("|");
+      const assetStr = assetPaths(r, synth).join("|");
       expect(assetStr).toContain(projectDir.replace(/\\/g, "/"));
     });
 

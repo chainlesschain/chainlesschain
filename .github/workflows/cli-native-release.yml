@@ -228,10 +228,20 @@ jobs:
             --platform "${{ matrix.pkg_platform }}" \
             --arch "${{ matrix.expected_arch }}" \
             --force-fetch
+      - name: Build fixed Linux process supervision asset
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          node packages/cli/scripts/build-linux-subreaper.mjs \
+            --out packages/cli/src/assets/linux-subreaper \
+            --commit "${{ github.sha }}"
+
       - name: Build standalone CLI with trusted update key
         shell: bash
         env:
           PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: |
           set -euo pipefail
           node packages/cli/bin/chainlesschain.js pack \

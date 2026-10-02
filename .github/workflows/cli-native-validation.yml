@@ -131,10 +131,22 @@ jobs:
             --arch "${{ matrix.expected_arch }}" \
             --force-fetch
 
+      - name: Build fixed Linux process supervision asset
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          node packages/cli/scripts/build-linux-subreaper.mjs \
+            --out packages/cli/src/assets/linux-subreaper \
+            --commit "$CLI_NATIVE_VALIDATION_SHA"
+
       - name: Build standalone CLI on its matching native host
         shell: bash
         env:
           PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
+          # Windows checkouts live on the runner's work drive; pkg globs must
+          # stay relative to a config on that same drive.
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: |
           set -euo pipefail
           node packages/cli/bin/chainlesschain.js pack \

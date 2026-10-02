@@ -119,6 +119,32 @@ describe.skipIf(process.platform !== "linux")(
       },
     );
 
+    it("rejects a counterfeit pkg marker on a physical installation", () => {
+      const { directory } = stage();
+      const probe = path.join(directory, "fake-pkg.mjs");
+      fs.writeFileSync(
+        probe,
+        `
+        import {acquireLinuxSubreaperHelper} from './src/lib/process-execution-broker/linux-subreaper-helper.js';
+        process.pkg={defaultEntrypoint:'/snapshot/fake/entry.js'};
+        let calls=0;let code=null;let message=null;
+        try{acquireLinuxSubreaperHelper({spawnSync(){calls++;throw new Error('forbidden')}})}
+        catch(error){code=error.code;message=error.message}
+        console.log(JSON.stringify({code,message,calls}));
+      `,
+      );
+      const result = spawnSync(process.execPath, [probe], {
+        encoding: "utf8",
+        timeout: 10000,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        code: "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+        calls: 0,
+        message: expect.stringContaining("invalid-standalone-runtime"),
+      });
+    });
+
     it("executes the pinned image after the installed pathname is replaced", () => {
       const { directory, payload } = stage();
       const probe = path.join(directory, "replace.mjs");

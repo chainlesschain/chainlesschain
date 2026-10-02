@@ -20,6 +20,120 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import {
+  LINUX_SUBREAPER_SOURCE_DIGEST,
+  MAX_SUBREAPER_IMAGE_BYTES,
+  MAX_SUBREAPER_MANIFEST_BYTES,
+  subreaperDigest,
+  validateLinuxSubreaperArtifact,
+} from "../process-execution-broker/linux-subreaper-artifact.js";
+
+function linuxSubreaperAssets(cliRoot, targets) {
+  // Use pkg's own target resolution so aliases such as linux-x64, linux and
+  // host receive the same mandatory assets as their canonical equivalents.
+  const { parseTargets } = createRequire(import.meta.url)(
+    "@yao-pkg/pkg/lib-es5/config.js",
+  );
+  const architectures = [
+    ...new Set(
+      parseTargets(targets).flatMap(({ platform, arch }) => {
+        if (platform !== "linux" && platform !== "alpine") return [];
+        if (arch !== "x64" && arch !== "arm64") {
+          throw new Error(
+            `Unsupported standalone Linux process supervision architecture: ${arch}`,
+          );
+        }
+        return [arch];
+      }),
+    ),
+  ];
+  if (!architectures.length) return [];
+  const root = fs.realpathSync(cliRoot);
+  const assets = [];
+  function read(relative, maximum) {
+    const file = path.join(root, relative);
+    let directory = path.dirname(file);
+    while (directory !== root) {
+      const stat = fs.lstatSync(directory);
+      if (stat.isSymbolicLink() || !stat.isDirectory())
+        throw new Error("Invalid standalone Linux helper directory");
+      directory = path.dirname(directory);
+    }
+    const before = fs.lstatSync(file, { bigint: true });
+    if (
+      !before.isFile() ||
+      before.isSymbolicLink() ||
+      before.nlink !== 1n ||
+      before.size < 1n ||
+      before.size > BigInt(maximum)
+    )
+      throw new Error("Invalid standalone Linux helper asset");
+    const fd = fs.openSync(
+      file,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+    );
+    try {
+      const opened = fs.fstatSync(fd, { bigint: true });
+      if (
+        opened.dev !== before.dev ||
+        opened.ino !== before.ino ||
+        opened.size !== before.size
+      )
+        throw new Error("Standalone Linux helper asset changed");
+      const bytes = Buffer.alloc(Number(opened.size));
+      let offset = 0;
+      while (offset < bytes.length) {
+        const count = fs.readSync(
+          fd,
+          bytes,
+          offset,
+          bytes.length - offset,
+          offset,
+        );
+        if (count <= 0) throw new Error("Short standalone Linux helper asset");
+        offset += count;
+      }
+      const after = fs.fstatSync(fd, { bigint: true });
+      if (
+        after.size !== before.size ||
+        after.mtimeNs !== before.mtimeNs ||
+        after.ctimeNs !== before.ctimeNs ||
+        after.nlink !== 1n
+      )
+        throw new Error("Standalone Linux helper asset changed");
+      assets.push(file);
+      return bytes;
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+  try {
+    const source = read(
+      "src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+      128 * 1024,
+    );
+    if (
+      subreaperDigest(
+        Buffer.from(source.toString("utf8").replace(/\r\n/g, "\n")),
+      ) !== LINUX_SUBREAPER_SOURCE_DIGEST
+    )
+      throw new Error("Standalone Linux helper source digest mismatch");
+    for (const arch of architectures) {
+      const directory = `src/assets/linux-subreaper/linux-${arch}`;
+      validateLinuxSubreaperArtifact(
+        read(`${directory}/manifest.json`, MAX_SUBREAPER_MANIFEST_BYTES),
+        read(`${directory}/supervisor`, MAX_SUBREAPER_IMAGE_BYTES),
+        { arch },
+      );
+    }
+    return assets.map(posixify);
+  } catch (cause) {
+    throw new Error(
+      "Standalone Linux targets require valid precompiled process supervision assets for every target architecture",
+      { cause },
+    );
+  }
+}
 
 function capsuleBuilderAssets(cliRoot) {
   const requireFromCli = createRequire(path.join(cliRoot, "package.json"));
@@ -432,6 +546,7 @@ export function generatePkgConfig(ctx) {
     `${posixify(cliRoot)}/src/lib/process-execution-broker/macos-mcp-launcher-protocol.json`,
     `${posixify(cliRoot)}/install/install.ps1`,
     ...capsuleBuilderAssets(cliRoot).map(posixify),
+    ...linuxSubreaperAssets(cliRoot, targets),
   ];
   if (prebuildsDir) assets.push(`${posixify(prebuildsDir)}/**/*`);
   // Project mode: bundle the collected .chainlesschain/ snapshot as an asset.
@@ -450,8 +565,8 @@ export function generatePkgConfig(ctx) {
         `${posixify(cliRoot)}/src/**/*.js`,
         `${posixify(cliRoot)}/src/**/*.cjs`,
         `${posixify(cliRoot)}/bin/**/*.js`,
-      ],
-      assets,
+      ].map((pattern) => pkgRelativePath(pkgConfigDir, pattern)),
+      assets: assets.map((pattern) => pkgRelativePath(pkgConfigDir, pattern)),
       targets,
       outputPath: path.dirname(outputPath),
       compress: compress ? "GZip" : "None",
@@ -475,4 +590,15 @@ export function generatePkgConfig(ctx) {
 
 function posixify(p) {
   return p.replace(/\\/g, "/");
+}
+
+function pkgRelativePath(directory, pattern) {
+  // pkg's walker joins every pattern to its config directory, even when the
+  // pattern is absolute. Emit relative globs so assets are actually embedded.
+  const relative = path.relative(directory, pattern);
+  if (path.isAbsolute(relative) || path.win32.isAbsolute(relative))
+    throw new Error(
+      "Standalone build assets and temporary config must be on the same filesystem drive",
+    );
+  return posixify(relative);
 }

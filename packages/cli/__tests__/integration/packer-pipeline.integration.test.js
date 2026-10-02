@@ -29,31 +29,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-// `cc pack` always resolves the web-panel dist from the REAL packages/cli
-// (precheck derives cliRoot via import.meta.url, ignoring our temp cliRoot), and
-// the packer rejects a dist with < 2 files. Only the placeholder index.html is
-// committed; the built assets come from `npm run build:web-panel` and are not in
-// git — so on a clean checkout (CI integration shard) this suite cannot pack a
-// real panel. Skip when the panel isn't built; it runs in full wherever it is.
-function countFilesRecursive(dir) {
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return 0;
-  }
-  let count = 0;
-  for (const e of entries) {
-    count += e.isDirectory() ? countFilesRecursive(path.join(dir, e.name)) : 1;
-  }
-  return count;
-}
-const REAL_WEB_PANEL_DIST = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/assets/web-panel",
-);
-const WEB_PANEL_BUILT = countFilesRecursive(REAL_WEB_PANEL_DIST) >= 2;
+import { artifactFixture } from "../unit/linux-subreaper-artifact-fixture.js";
 
 // pkg-runner is swapped before the orchestrator imports it.
 vi.mock("../../src/lib/packer/pkg-runner.js", () => ({
@@ -72,13 +48,25 @@ vi.mock("../../src/lib/packer/pkg-runner.js", () => ({
   }),
 }));
 
+// Keep the real precheck, but bind the packaging phases to the installed CLI
+// fixture instead of borrowing generated assets from the developer checkout.
+vi.mock("../../src/lib/packer/precheck.js", async (importOriginal) => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    precheck(ctx) {
+      return { ...original.precheck(ctx), cliRoot: ctx.projectRoot };
+    },
+  };
+});
+
 // web-panel-builder does not strictly need to touch the real Vue source.
 // The precheck/ensureWebPanel phases work against a temp cliRoot we
 // author below, and we fill in src/assets/web-panel/ ourselves.
 import { runPack } from "../../src/lib/packer/index.js";
 import { PackError, EXIT } from "../../src/lib/packer/errors.js";
 
-describe.skipIf(!WEB_PANEL_BUILT)("cc pack — full pipeline integration", () => {
+describe("cc pack — full pipeline integration", () => {
   let projectRoot;
   let cliRoot;
   let outputDir;
@@ -136,10 +124,33 @@ describe.skipIf(!WEB_PANEL_BUILT)("cc pack — full pipeline integration", () =>
       path.join(esbuildWasmRoot, "esbuild.wasm"),
       Buffer.from([0, 97, 115, 109]),
     );
+    const supervisorRoot = path.join(capsuleLib, "process-execution-broker");
+    fs.mkdirSync(supervisorRoot);
+    fs.copyFileSync(
+      fileURLToPath(
+        new URL(
+          "../../src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          import.meta.url,
+        ),
+      ),
+      path.join(supervisorRoot, "linux-subreaper-supervisor.c"),
+    );
+    const helperRoot = path.join(
+      cliRoot,
+      "src/assets/linux-subreaper/linux-x64",
+    );
+    fs.mkdirSync(helperRoot, { recursive: true });
+    const helper = artifactFixture();
+    fs.writeFileSync(
+      path.join(helperRoot, "manifest.json"),
+      JSON.stringify(helper.manifest),
+    );
+    fs.writeFileSync(path.join(helperRoot, "supervisor"), helper.image);
     // Pre-built web-panel dist so ensureWebPanel doesn't try to rebuild.
     const distDir = path.join(cliRoot, "src", "assets", "web-panel");
     fs.mkdirSync(distDir, { recursive: true });
     fs.writeFileSync(path.join(distDir, "index.html"), "<!doctype html>");
+    fs.writeFileSync(path.join(distDir, "app.js"), "// fixture web panel");
 
     outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pack-out-"));
     quietLogger = {

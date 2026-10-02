@@ -67,10 +67,77 @@ function compilerPath() {
   return compiler;
 }
 
+function isPkgRuntime() {
+  if (!process.pkg) return false;
+  // The location is derived only from this module and pkg's bootstrap, never
+  // from cwd, executable siblings, environment variables or caller paths.
+  if (
+    typeof process.pkg.defaultEntrypoint !== "string" ||
+    !process.pkg.defaultEntrypoint.startsWith("/snapshot/") ||
+    !fileURLToPath(import.meta.url).startsWith("/snapshot/")
+  )
+    throw failure("invalid-standalone-runtime");
+  return true;
+}
+
+function readPkgAsset(file, maximum) {
+  // pkg's snapshot descriptors refer to /dev/null in the kernel and are read
+  // through its immutable payload reader. They are NOT native directory FDs.
+  // Reject real files mounted under a snapshot-looking pathname as well as
+  // symlink aliases; a pathname prefix alone never establishes this identity.
+  if (fs.realpathSync(file) !== file || fs.lstatSync(file).isSymbolicLink())
+    throw failure("invalid-standalone-asset");
+  const fd = fs.openSync(file, fs.constants.O_RDONLY);
+  try {
+    if (fs.readlinkSync(`/proc/self/fd/${fd}`) !== "/dev/null")
+      throw failure("standalone-asset-not-embedded");
+    const stat = fs.fstatSync(fd);
+    if (
+      !stat.isFile() ||
+      stat.size < 1 ||
+      stat.size > maximum ||
+      stat.nlink !== 0 ||
+      stat.ino !== 0 ||
+      stat.dev !== 0
+    )
+      throw failure("invalid-standalone-asset");
+    // readFileSync(path) reads the embedded payload directly. pkg readSync(fd)
+    // can instead read a decompressed external cache when compression is on.
+    // Never trust those cache bytes as supervision executable content.
+    const bytes = fs.readFileSync(file);
+    if (
+      !Buffer.isBuffer(bytes) ||
+      bytes.length !== stat.size ||
+      bytes.length > maximum
+    )
+      throw failure("invalid-standalone-asset");
+    return bytes;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function packagedImage() {
   const root = fileURLToPath(
     new URL("../../assets/linux-subreaper/", import.meta.url),
   );
+  if (isPkgRuntime()) {
+    const directory = path.join(root, `linux-${process.arch}`);
+    const manifest = readPkgAsset(
+      path.join(directory, "manifest.json"),
+      MAX_SUBREAPER_MANIFEST_BYTES,
+    );
+    const bytes = readPkgAsset(
+      path.join(directory, "supervisor"),
+      MAX_IMAGE_BYTES,
+    );
+    return {
+      bytes,
+      identity: validateLinuxSubreaperArtifact(manifest, bytes, {
+        arch: process.arch,
+      }),
+    };
+  }
   // Only source checkouts with no packaged directory may use the development
   // compiler path. A partial/corrupt installed payload must never fall back.
   try {
@@ -135,23 +202,28 @@ function compileImage(spawnSync) {
     const source = fileURLToPath(
       new URL("./linux-subreaper-supervisor.c", import.meta.url),
     );
-    sourceFd = fs.openSync(
-      source,
-      fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
-    );
-    const snapshot = readDescriptor(sourceFd, MAX_SOURCE_BYTES);
+    const packed = isPkgRuntime();
+    let sourceSnapshot;
+    if (packed) {
+      sourceSnapshot = readPkgAsset(source, MAX_SOURCE_BYTES);
+    } else {
+      sourceFd = fs.openSync(
+        source,
+        fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW,
+      );
+      const snapshot = readDescriptor(sourceFd, MAX_SOURCE_BYTES);
+      if (snapshot.stat.nlink !== 1n) throw failure("source-digest-mismatch");
+      sourceSnapshot = snapshot.bytes;
+      fs.closeSync(sourceFd);
+      sourceFd = null;
+    }
     // npm/git may transport text with CRLF. Compile the exact canonical bytes
     // that the source digest commits to, passed on stdin rather than reopened.
     const sourceBytes = Buffer.from(
-      snapshot.bytes.toString("utf8").replace(/\r\n/g, "\n"),
+      sourceSnapshot.toString("utf8").replace(/\r\n/g, "\n"),
     );
-    if (
-      snapshot.stat.nlink !== 1n ||
-      sha(sourceBytes) !== LINUX_SUBREAPER_SOURCE_DIGEST
-    )
+    if (sha(sourceBytes) !== LINUX_SUBREAPER_SOURCE_DIGEST)
       throw failure("source-digest-mismatch");
-    fs.closeSync(sourceFd);
-    sourceFd = null;
     const packaged = packagedImage();
     const compiler = packaged ? null : compilerPath();
     temporaryRoot = fs.mkdtempSync(
@@ -253,7 +325,9 @@ function compileImage(spawnSync) {
     // Do not expose compiler stdout/stderr, paths, environment, or native argv.
     throw failure(
       error.code === "ENOENT"
-        ? "system-compiler-or-source-missing"
+        ? process.pkg
+          ? "standalone-asset-missing"
+          : "system-compiler-or-source-missing"
         : "native-build-setup-failed",
     );
   } finally {

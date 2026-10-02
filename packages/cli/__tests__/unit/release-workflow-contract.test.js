@@ -818,6 +818,12 @@ describe("CLI release workflow contracts", () => {
 
   it("requires all six signed native targets before publishing", () => {
     const text = workflow("cli-native-release.yml");
+    expect(text).toMatch(
+      /Build standalone CLI with trusted update key\s+shell: bash\s+env:\s+PKG_CACHE_PATH: \$\{\{ runner\.temp \}\}\/pkg-cache\s+TEMP: \$\{\{ runner\.temp \}\}\s+TMP: \$\{\{ runner\.temp \}\}/u,
+    );
+    expect(text).toMatch(
+      /Build fixed Linux process supervision asset\s+if: runner\.os == 'Linux'[\s\S]*?build-linux-subreaper\.mjs[\s\S]*?--out packages\/cli\/src\/assets\/linux-subreaper[\s\S]*?--commit "\$\{\{ github\.sha \}\}"[\s\S]*?Build standalone CLI with trusted update key/u,
+    );
     const signedInstallGate = fs.readFileSync(
       path.join(
         repositoryRoot,
@@ -1250,6 +1256,12 @@ describe("CLI release workflow contracts", () => {
 
   it("collects six-target native host evidence without granting release authority", () => {
     const text = workflow("cli-native-validation.yml");
+    expect(text).toMatch(
+      /Build standalone CLI on its matching native host\s+shell: bash\s+env:\s+PKG_CACHE_PATH: \$\{\{ runner\.temp \}\}\/pkg-cache\s+(?:#[^\n]*\n\s*)*TEMP: \$\{\{ runner\.temp \}\}\s+TMP: \$\{\{ runner\.temp \}\}/u,
+    );
+    expect(text).toMatch(
+      /Build fixed Linux process supervision asset\s+if: runner\.os == 'Linux'[\s\S]*?build-linux-subreaper\.mjs[\s\S]*?--out packages\/cli\/src\/assets\/linux-subreaper[\s\S]*?--commit "\$CLI_NATIVE_VALIDATION_SHA"[\s\S]*?Build standalone CLI on its matching native host/u,
+    );
     const setupAction = fs.readFileSync(
       path.join(
         repositoryRoot,
