@@ -1,0 +1,112 @@
+{
+  "schema": "cc-ide96-archive-receipt/v1",
+  "releaseCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+  "workflowRun": "37054226885",
+  "status": "verified",
+  "hostArtifacts": 9,
+  "journeys": 18,
+  "boundArtifactRecords": 628,
+  "originalDownloadedFileCount": 1060,
+  "originalDownloadedInventorySha256": "sha256:dec7bf83bf5afe3e7f2d1dd17bae3b39bd0d529aeedf1deaec62b4a120c255cc",
+  "sampleCoverage": {
+    "vscode": {
+      "hostProfiles": 6,
+      "sizes": [
+        10000,
+        100000,
+        200000
+      ],
+      "updateSamplesPerSize": 64,
+      "totalUpdateSamples": 1152,
+      "frameIntervalsPerSize": 63,
+      "totalFrameIntervals": 1134,
+      "finalizations": 18,
+      "measurementPhase": "initial",
+      "needsInputJourneys": 6,
+      "needsInputSamplesPerJourney": 100,
+      "totalNeedsInputSamples": 600,
+      "warmupPerJourney": 1
+    },
+    "jetbrains": {
+      "hostProfiles": 6,
+      "sizes": [
+        10000,
+        100000,
+        200000
+      ],
+      "updateSamplesPerSize": 64,
+      "totalUpdateSamples": 1152,
+      "finalizations": 18,
+      "totalSampledEdtTasksIncludingFinalize": 1170,
+      "measurementPhase": "canonical initial",
+      "needsInputJourneys": 6,
+      "needsInputSamplesPerJourney": 100,
+      "totalNeedsInputSamples": 600,
+      "observedReadinessSamplesPerJourney": 40
+    }
+  },
+  "limitations": [
+    "Local host envelopes bind commit labels and artifact hashes but contain no trusted CI provenance; producer workflow run identity is supplied separately.",
+    "Offline readback cannot re-observe the original live filesystem installation or processes.",
+    "Streaming samples cover the initial process only; restart checks cover recovery behavior, not a second streaming performance measurement.",
+    "VS performanceGate=false and JB sloStatus=not-evaluated: timings are measurements, not streaming SLO passes.",
+    "JB paintImmediately covers the visible region and long tasks cover sampled probe EDT tasks only; Markdown parse calls are uninstrumented.",
+    "Deterministic fixture content does not prove real-provider latency or fidelity.",
+    "Nine downloaded host artifacts exclude Remote-SSH evidence; this receipt does not verify that separate gate.",
+    "IDE host verification does not satisfy CLI CI or CLI Strict Sandbox release gates."
+  ],
+  "archivalNotes": [
+    "No release binaries, screenshots, or full host logs are archived here.",
+    "All original envelope JSON bytes are retained and can be rehashed.",
+    "VS stream profiles and JB Workbench metrics retain their original captured UTF-8 bytes.",
+    "JB native raw metric text is exporter-redacted: sourceSha256 hashes the unredacted original, archivedSha256 hashes the retained text, normalizedDataSha256 hashes its parsed canonical object. Its runToken is a measurement UUID, redacted consistently with the original exporter.",
+    "VS needs_input records are filtered from the original CDP ledger. sourceSha256 binds the complete original ledger; archivedSha256 and normalizedDataSha256 bind the retained projection.",
+    "Offline replay checks retained measurements, schema projections, envelope digests, and artifact-record links. It does not rehash omitted image/log/binary bytes; use 96-matrix-verify-downloaded.mjs with the complete download for that.",
+    "Run node docs/research/ide/evidence/96-matrix-replay.mjs for compact replay. Redacted native run-token syntax and identity are excluded; all other native fields are checked by the original strict verifier."
+  ],
+  "files": [
+    {
+      "path": "96-matrix-envelopes.json",
+      "bytes": 237895,
+      "sha256": "sha256:d0a56df47250ac8744b4cc7758207788538f88de14f1eec1621df786714368c2"
+    },
+    {
+      "path": "96-matrix-metrics.json",
+      "bytes": 615036,
+      "sha256": "sha256:442f1d067219b5e369bff82e95c4e723d4a2a359dbf634f283e909e999311862"
+    },
+    {
+      "path": "96-matrix-hosts.json",
+      "bytes": 86667,
+      "sha256": "sha256:a1f8a5d48414d029ea065d1758bc7f06a39fddb489d8d4c893aca2b80969e51d"
+    },
+    {
+      "path": "96-matrix-verify-downloaded.mjs",
+      "bytes": 16910,
+      "sha256": "sha256:47c6c0869b6de3016bd32e70242ca6137326ddbb888f452728c76d0c5086bbcb"
+    },
+    {
+      "path": "96-matrix-replay.mjs",
+      "bytes": 10941,
+      "sha256": "sha256:a747bfa5ac08ff41e986eb8230f729aff43b9221b0593cdac4c5d052e62f4987"
+    }
+  ],
+  "validation": {
+    "compactReplay": {
+      "command": "node docs/research/ide/evidence/96-matrix-replay.mjs",
+      "exitCode": 0,
+      "status": "verified",
+      "envelopes": 18,
+      "archivedMetricRecords": 24
+    },
+    "fullDownloadReadback": {
+      "command": "node docs/research/ide/evidence/96-matrix-verify-downloaded.mjs .work/gap-validation/candidate96-hosts",
+      "exitCode": 0,
+      "status": "verified",
+      "journeys": 18,
+      "boundArtifactRecords": 628,
+      "issues": [],
+      "inventorySha256": "sha256:dec7bf83bf5afe3e7f2d1dd17bae3b39bd0d529aeedf1deaec62b4a120c255cc"
+    }
+  }
+}

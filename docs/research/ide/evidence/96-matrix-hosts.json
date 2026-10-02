@@ -1,0 +1,2343 @@
+{
+  "schema": "cc-ide96-host-summary/v1",
+  "releaseCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+  "workflowRun": "37054226885",
+  "status": "verified",
+  "candidateManifest": {
+    "schema": 1,
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 691734,
+    "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+    "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.127",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.127"
+    },
+    "commit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/37054226885",
+    "createdAt": "2026-10-02T19:31:15.193Z"
+  },
+  "verifierSources": [
+    {
+      "path": "scripts/ide-journey-evidence.mjs",
+      "sha256": "sha256:13375001f149a364c3bfad6ac4f0a363a3dd0839e1197cf1f6593af75b6402d1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      "sha256": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/conversation-recovery-evidence.mjs",
+      "sha256": "sha256:1c45061fcd5670ca4261af2f9f630db152e382847625e5d15adaf65ebb4e5f72"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/native-transcript-evidence.mjs",
+      "sha256": "sha256:fbd8804d53daa20725f239d1d4c70b3f758351bded874dd7b5247fa572e3ec4b"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/vsix-release-artifact.mjs",
+      "sha256": "sha256:316ee2de71f1f601281f600d42bcebb9ed4cd3f0284ea5744e695dc43295baf5"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/verify-vsix.mjs",
+      "sha256": "sha256:3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/run.cjs",
+      "sha256": "sha256:980c68d2f051c88cfd6899ea05872b1833507f08c220cc7d054dea0f13dc5d41"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "sha256": "sha256:3a7ff69542d9b6843fe2efd7befad674a86f8c8f4bd5568072b24f653cbc5bea"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs",
+      "sha256": "sha256:94ee1ca21ceb6ac95e22c340624f238c451010b124dd79f897d50563dafe5833"
+    }
+  ],
+  "sampleCoverage": {
+    "vscode": {
+      "hostProfiles": 6,
+      "sizes": [
+        10000,
+        100000,
+        200000
+      ],
+      "updateSamplesPerSize": 64,
+      "totalUpdateSamples": 1152,
+      "frameIntervalsPerSize": 63,
+      "totalFrameIntervals": 1134,
+      "finalizations": 18,
+      "measurementPhase": "initial",
+      "needsInputJourneys": 6,
+      "needsInputSamplesPerJourney": 100,
+      "totalNeedsInputSamples": 600,
+      "warmupPerJourney": 1
+    },
+    "jetbrains": {
+      "hostProfiles": 6,
+      "sizes": [
+        10000,
+        100000,
+        200000
+      ],
+      "updateSamplesPerSize": 64,
+      "totalUpdateSamples": 1152,
+      "finalizations": 18,
+      "totalSampledEdtTasksIncludingFinalize": 1170,
+      "measurementPhase": "canonical initial",
+      "needsInputJourneys": 6,
+      "needsInputSamplesPerJourney": 100,
+      "totalNeedsInputSamples": 600,
+      "observedReadinessSamplesPerJourney": 40
+    }
+  },
+  "hosts": [
+    {
+      "envelope": "jetbrains-Linux-2024.2-host-evidence-1/ide-journey/canonical-Linux-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:c311c3dc7efbea7285be76c24129f516f20834c6b26908d0226d9124d580faf8",
+      "artifactBundleDigest": "sha256:04b0abea84837eb555edffa5563cf440447b9abf32c6f6520fbbe6970af67c42",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:a7301126a9160ce96b2406c7b1324864d64e5011f68cb62ad5f433f577277464",
+        "bytes": 1503941
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "17136",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.675148,
+            "paintP95Ms": 1.815021,
+            "timerIntervalP95Ms": 17.909909,
+            "queueDelayP95Ms": 1.909908999999999,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 62.383064,
+            "finalizeUpdateMs": 38.12102,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.560795,
+            "paintP95Ms": 0.589295,
+            "timerIntervalP95Ms": 18.857906,
+            "queueDelayP95Ms": 2.857906,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 341.290445,
+            "finalizeUpdateMs": 137.927894,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.466559,
+            "paintP95Ms": 0.48534,
+            "timerIntervalP95Ms": 17.101173,
+            "queueDelayP95Ms": 1.1011729999999993,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 555.391921,
+            "finalizeUpdateMs": 216.517514,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-Linux-2024.2-host-evidence-1/ui-host-driver/2024.2-1790970203254/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 16909,
+          "startedAt": "2026-10-02T19:43:37.703Z",
+          "completedAt": "2026-10-02T19:44:58.968Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 18014,
+          "startedAt": "2026-10-02T19:44:59.472Z",
+          "completedAt": "2026-10-02T19:45:34.614Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "17136",
+        "restart": "18158"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:32c746d890601ca9f25a9391c0f895cdc8e1fff84ad0d41672337ea6740cae9d",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:54c3d19bf41952a5574dcedfb670a644af0dfd8dfd4ec6b28aa5c28ca38afb7d"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Linux-2024.2-host-evidence-1/ide-journey/Linux-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:3ff1e75a22d735e8f2fd540b79c6fcc03afd57f16388cf95da99d58fd4ee2e85",
+      "artifactBundleDigest": "sha256:4ffa630c1bf43573c89057370febccbe1e17a47da6be561acb62dfd88a619e2b",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:a7301126a9160ce96b2406c7b1324864d64e5011f68cb62ad5f433f577277464",
+        "bytes": 1503941
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 346,
+        "maxLatencyMs": 410,
+        "p95LatencyMs": 363,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373110",
+        "runnerOS": "Linux",
+        "runnerArch": "X64",
+        "runnerImageOS": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1",
+        "measurementStartedAt": "2026-10-02T19:38:13.769Z",
+        "measurementCompletedAt": "2026-10-02T19:42:40.741Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1802,
+        "recoveredProjection": 1804,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 7,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 3311,
+          "startedAt": "2026-10-02T19:38:13.769Z",
+          "completedAt": "2026-10-02T19:42:40.741Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 15931,
+          "startedAt": "2026-10-02T19:42:41.245Z",
+          "completedAt": "2026-10-02T19:43:22.598Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Linux-2025.2-host-evidence-1/ide-journey/canonical-Linux-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:e1c256d9252e22263400bd9c731225722647bdaf3bb9a588aa3f303d2764119b",
+      "artifactBundleDigest": "sha256:9a2c2ca2251488c22ec61b38d0001869291dabd0fb933bf82451f2985994afe9",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:7042df224996d93e4fb32a52fb5ef968ebe4b802ac21e0b15c40c8c7c5273bb4",
+        "bytes": 1503758
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "17304",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.39782,
+            "paintP95Ms": 0.595622,
+            "timerIntervalP95Ms": 16.182143,
+            "queueDelayP95Ms": 0.18214299999999994,
+            "sampledLongTaskCount": 0,
+            "longestSampledTaskMs": 36.916762,
+            "finalizeUpdateMs": 18.871338,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.636574,
+            "paintP95Ms": 0.460823,
+            "timerIntervalP95Ms": 16.374548,
+            "queueDelayP95Ms": 0.37454800000000077,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 297.547978,
+            "finalizeUpdateMs": 90.344354,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.722421,
+            "paintP95Ms": 0.480463,
+            "timerIntervalP95Ms": 16.211696,
+            "queueDelayP95Ms": 0.21169599999999988,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 469.8204,
+            "finalizeUpdateMs": 153.250099,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-Linux-2025.2-host-evidence-1/ui-host-driver/2025.2-1790970139735/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 17070,
+          "startedAt": "2026-10-02T19:42:33.596Z",
+          "completedAt": "2026-10-02T19:43:52.185Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 18215,
+          "startedAt": "2026-10-02T19:43:52.689Z",
+          "completedAt": "2026-10-02T19:44:28.634Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "17304",
+        "restart": "18357"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:b0fe40360e17fd110457b38a2943b8edaf2c67e9a3856d4404afbb7e89fd1a89",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:96838a6ec2946781fd9e4201292bb796cf63b09f6e8d4e7720f1337f62bc18f2"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Linux-2025.2-host-evidence-1/ide-journey/Linux-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:10990525c9956abb079e82c972a1a11f3b5f0710e4c27aa149eefa0cd8bb5b4f",
+      "artifactBundleDigest": "sha256:7caa85ede00d8f2ee8e8be29074f18b6679b474ad4aa322b415ea3d186b418cb",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:7042df224996d93e4fb32a52fb5ef968ebe4b802ac21e0b15c40c8c7c5273bb4",
+        "bytes": 1503758
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 351,
+        "maxLatencyMs": 413,
+        "p95LatencyMs": 375,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373108",
+        "runnerOS": "Linux",
+        "runnerArch": "X64",
+        "runnerImageOS": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1",
+        "measurementStartedAt": "2026-10-02T19:36:25.561Z",
+        "measurementCompletedAt": "2026-10-02T19:41:26.486Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1802,
+        "recoveredProjection": 1804,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 7,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 3256,
+          "startedAt": "2026-10-02T19:36:25.561Z",
+          "completedAt": "2026-10-02T19:41:26.486Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 15988,
+          "startedAt": "2026-10-02T19:41:26.989Z",
+          "completedAt": "2026-10-02T19:42:19.079Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-macOS-2024.2-host-evidence-1/ide-journey/canonical-macOS-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "darwin",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:e9e80ab2d698f936d7b5cc5d1c845e6e3df0be9ff045bc7e0e042c0d1b9a1700",
+      "artifactBundleDigest": "sha256:c1c475e7cf5e562c88e088c753ce6cf922172ae86aef2ffd4d9d5887717541fd",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:8ff95f2a9afac455c2e3a4b6119d799013c1e632f81316a2d1edb1714939debb",
+        "bytes": 1503721
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "26830",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.657375,
+            "paintP95Ms": 7.118708,
+            "timerIntervalP95Ms": 139.394042,
+            "queueDelayP95Ms": 123.39404200000001,
+            "sampledLongTaskCount": 0,
+            "longestSampledTaskMs": 38.90475,
+            "finalizeUpdateMs": 17.154625,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.975917,
+            "paintP95Ms": 6.16675,
+            "timerIntervalP95Ms": 140.005208,
+            "queueDelayP95Ms": 124.00520800000001,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 318.482458,
+            "finalizeUpdateMs": 103.902125,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.94675,
+            "paintP95Ms": 15.615625,
+            "timerIntervalP95Ms": 143.445167,
+            "queueDelayP95Ms": 127.445167,
+            "sampledLongTaskCount": 3,
+            "longestSampledTaskMs": 502.992625,
+            "finalizeUpdateMs": 136.933125,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-macOS-2024.2-host-evidence-1/ui-host-driver/2024.2-1790970304677/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 26380,
+          "startedAt": "2026-10-02T19:45:23.231Z",
+          "completedAt": "2026-10-02T19:47:02.945Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 29403,
+          "startedAt": "2026-10-02T19:47:04.967Z",
+          "completedAt": "2026-10-02T19:47:39.113Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "26830",
+        "restart": "29711"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:10fc710adc57aa4671d9d7430242f9b3a34aa54eb2c5800195e2e01266252c7f",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:cfa80ed4e54a51e0aa58a8f8e79e4bac9f3d70e0dd3a96efa023ac074a5c9a8a"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-macOS-2024.2-host-evidence-1/ide-journey/macOS-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "darwin",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:3c5422dd56d3555d5e27cb32122cd376a2e9588911f1ca2fad79f2b579073e9e",
+      "artifactBundleDigest": "sha256:8fa5babd37aafa195b60896820cfe857decbb019f4a691e328386bd7507eff36",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:8ff95f2a9afac455c2e3a4b6119d799013c1e632f81316a2d1edb1714939debb",
+        "bytes": 1503721
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 488,
+        "maxLatencyMs": 1181,
+        "p95LatencyMs": 993,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373103",
+        "runnerOS": "macOS",
+        "runnerArch": "ARM64",
+        "runnerImageOS": "macos26",
+        "runnerImageVersion": "20260907.0351.1",
+        "measurementStartedAt": "2026-10-02T19:36:15.641Z",
+        "measurementCompletedAt": "2026-10-02T19:44:03.203Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1816,
+        "recoveredProjection": 1818,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 6,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 9321,
+          "startedAt": "2026-10-02T19:36:15.641Z",
+          "completedAt": "2026-10-02T19:44:03.203Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 24012,
+          "startedAt": "2026-10-02T19:44:05.226Z",
+          "completedAt": "2026-10-02T19:45:01.299Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-macOS-2025.2-host-evidence-1/ide-journey/canonical-macOS-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "darwin",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:680b269a393fe026d2c8ba4d5cb58bdadb53f7869665e27258f9b63356a058df",
+      "artifactBundleDigest": "sha256:d3e257e225a5a717eaf57e2023ff17a7e1faefbbb4702f4a4eba6fb072a3c6b3",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:0901a93697244726330e878a28e5a4c57dc12e0543f96d351cd4b1f513086ad9",
+        "bytes": 1503925
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "29476",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.058625,
+            "paintP95Ms": 9.809,
+            "timerIntervalP95Ms": 141.84525,
+            "queueDelayP95Ms": 125.84525,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 93.03425,
+            "finalizeUpdateMs": 24.139875,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.235042,
+            "paintP95Ms": 9.845042,
+            "timerIntervalP95Ms": 141.65675,
+            "queueDelayP95Ms": 125.65674999999999,
+            "sampledLongTaskCount": 4,
+            "longestSampledTaskMs": 394.554959,
+            "finalizeUpdateMs": 118.827292,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.990834,
+            "paintP95Ms": 4.94125,
+            "timerIntervalP95Ms": 140.975917,
+            "queueDelayP95Ms": 124.97591700000001,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 497.535375,
+            "finalizeUpdateMs": 193.898167,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-macOS-2025.2-host-evidence-1/ui-host-driver/2025.2-1790970631011/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 29140,
+          "startedAt": "2026-10-02T19:50:46.424Z",
+          "completedAt": "2026-10-02T19:52:22.195Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 32099,
+          "startedAt": "2026-10-02T19:52:24.219Z",
+          "completedAt": "2026-10-02T19:53:04.682Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "29476",
+        "restart": "32417"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:236be1a3f145b5d91e37d678efdd0ab0918f9b36849d17085246f009dc5164a2",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:8d2ae774a4137f70b0a718b31f1eca6e6ce22199361b686ffccc0093b7f58fb4"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-macOS-2025.2-host-evidence-1/ide-journey/macOS-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "darwin",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:913b93d964e9f76217ea6627510392a018642397db8b150fc7d5debd2759c6b3",
+      "artifactBundleDigest": "sha256:d9d4535e462ea6578b5c2b4db87d1b3b8c74fe50cdbe6c8a543ad4cdd2fdf9eb",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:0901a93697244726330e878a28e5a4c57dc12e0543f96d351cd4b1f513086ad9",
+        "bytes": 1503925
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 462,
+        "maxLatencyMs": 1057,
+        "p95LatencyMs": 985,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373112",
+        "runnerOS": "macOS",
+        "runnerArch": "ARM64",
+        "runnerImageOS": "macos26",
+        "runnerImageVersion": "20260907.0351.1",
+        "measurementStartedAt": "2026-10-02T19:39:39.190Z",
+        "measurementCompletedAt": "2026-10-02T19:49:00.483Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1810,
+        "recoveredProjection": 1812,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 6,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 8252,
+          "startedAt": "2026-10-02T19:39:39.190Z",
+          "completedAt": "2026-10-02T19:49:00.483Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 26088,
+          "startedAt": "2026-10-02T19:49:02.526Z",
+          "completedAt": "2026-10-02T19:50:28.363Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Windows-2024.2-host-evidence-1/ide-journey/canonical-Windows-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:a96d567a16e015b2719c3811f0f88e9345e55a77d8698033bacbdf74a5c30d8e",
+      "artifactBundleDigest": "sha256:2abe950852619f0ab856b7a27a0c3f38bae5ecae296d214a2d474dfb69f1278e",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:7eaeb3e1bbddbe4316943ba4c0d50095eb09d01177013ab46f1a53290a50ea49",
+        "bytes": 1503817
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "1932",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.7258,
+            "paintP95Ms": 0.6049,
+            "timerIntervalP95Ms": 31.9534,
+            "queueDelayP95Ms": 15.953399999999998,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 58.7522,
+            "finalizeUpdateMs": 39.7164,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.6779,
+            "paintP95Ms": 0.5206,
+            "timerIntervalP95Ms": 31.841,
+            "queueDelayP95Ms": 15.841000000000001,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 335.0154,
+            "finalizeUpdateMs": 141.6984,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 1.1401,
+            "paintP95Ms": 0.6474,
+            "timerIntervalP95Ms": 36.4704,
+            "queueDelayP95Ms": 20.470399999999998,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 831.9579,
+            "finalizeUpdateMs": 427.0591,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-Windows-2024.2-host-evidence-1/ui-host-driver/2024.2-1790970287324/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 612,
+          "startedAt": "2026-10-02T19:45:11.789Z",
+          "completedAt": "2026-10-02T19:47:12.345Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 9720,
+          "startedAt": "2026-10-02T19:47:13.038Z",
+          "completedAt": "2026-10-02T19:48:03.054Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "1932",
+        "restart": "1420"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:7e8f5f361fcf58fafbafdfb492ea3487e5045a6343277771cdbeeb9c688a7af0",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:c20e9586c0d517c745471a8e729392788b29fd7e4c1742fca5536182e5d68b97"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Windows-2024.2-host-evidence-1/ide-journey/Windows-2024.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2024.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:f159622d036c51dfb669773dab2205b8527bec8278040570d722c9c6e3042a27",
+      "artifactBundleDigest": "sha256:54dd79d2837339594cd993b8a3edd664db7e7718a990157340a2b7b388f66fe1",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:7eaeb3e1bbddbe4316943ba4c0d50095eb09d01177013ab46f1a53290a50ea49",
+        "bytes": 1503817
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 366,
+        "maxLatencyMs": 948,
+        "p95LatencyMs": 695,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373106",
+        "runnerOS": "Windows",
+        "runnerArch": "X64",
+        "runnerImageOS": "win25-vs2026",
+        "runnerImageVersion": "20260925.250.1",
+        "measurementStartedAt": "2026-10-02T19:37:33.147Z",
+        "measurementCompletedAt": "2026-10-02T19:43:50.333Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1806,
+        "recoveredProjection": 1808,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 6,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 6340,
+          "startedAt": "2026-10-02T19:37:33.147Z",
+          "completedAt": "2026-10-02T19:43:50.333Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 4072,
+          "startedAt": "2026-10-02T19:43:51.003Z",
+          "completedAt": "2026-10-02T19:44:46.120Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Windows-2025.2-host-evidence-1/ide-journey/canonical-Windows-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "artifactCount": 35,
+      "evidenceDigest": "sha256:54e87e800274d3e5abf869558cd0ea25778045ab2fe9e46c2cfb455516c621c9",
+      "artifactBundleDigest": "sha256:60a5353054de9d07059b48cf448560bf4c0032d40814a1469bd8f045e45505a8",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:ed68c021123bf244024e97f34c29f97d8d7675b86b481d4fd3b20f335ca85771",
+        "bytes": 1503826
+      },
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "streaming": {
+        "schema": "cc-jetbrains-native-transcript/v1",
+        "processId": "7876",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "paintMode": "visible-region-paintImmediately",
+        "longTaskScope": "sampled-probe-edt-tasks",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.8973,
+            "paintP95Ms": 0.8826,
+            "timerIntervalP95Ms": 22.056,
+            "queueDelayP95Ms": 6.056000000000001,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 92.1208,
+            "finalizeUpdateMs": 56.4436,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000,
+            "capApplied": false,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.9673,
+            "paintP95Ms": 0.7569,
+            "timerIntervalP95Ms": 18.8398,
+            "queueDelayP95Ms": 2.8398000000000003,
+            "sampledLongTaskCount": 1,
+            "longestSampledTaskMs": 578.4291,
+            "finalizeUpdateMs": 279.1783,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973,
+            "capApplied": true,
+            "sampledEdtTasks": 65,
+            "visibleRegionPaintRequests": 65,
+            "updateP95Ms": 0.9929,
+            "paintP95Ms": 0.7447,
+            "timerIntervalP95Ms": 18.1383,
+            "queueDelayP95Ms": 2.138300000000001,
+            "sampledLongTaskCount": 2,
+            "longestSampledTaskMs": 842.7368,
+            "finalizeUpdateMs": 408.2808,
+            "selectionPreserved": true,
+            "selectionViewportPreserved": true,
+            "userScrollPreserved": true,
+            "followedBeforeSelection": true,
+            "followedAfterResume": true,
+            "streamedPlainThenStyled": true,
+            "markdownParseCalls": null
+          }
+        ]
+      },
+      "rawMetrics": "jetbrains-Windows-2025.2-host-evidence-1/ui-host-driver/2025.2-1790970664965/native-transcript-metrics.json",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 8048,
+          "startedAt": "2026-10-02T19:51:32.499Z",
+          "completedAt": "2026-10-02T19:53:44.611Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 8108,
+          "startedAt": "2026-10-02T19:53:45.416Z",
+          "completedAt": "2026-10-02T19:54:48.087Z"
+        }
+      ],
+      "jvmProcessIds": {
+        "initial": "7876",
+        "restart": "5068"
+      },
+      "installedZipFiles": {
+        "lib/chainlesschain-ide-bridge-0.4.146.jar": "sha256:c5973651724bf57f784c9b6fecde24fb4c1a2c247dccd86e6abee4e594da5fdd",
+        "lib/chainlesschain-ide-bridge-0.4.146-searchableOptions.jar": "sha256:369f456b1df586f52318c220442221cfa626ccb2e5ca86c7429d5b965c6e6cda"
+      },
+      "status": "verified"
+    },
+    {
+      "envelope": "jetbrains-Windows-2025.2-host-evidence-1/ide-journey/Windows-2025.2/journey-evidence.json",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "artifactCount": 39,
+      "evidenceDigest": "sha256:9e7a436e0c6ec0e13f848edb20c3c49ff210ba8efb5ec90bd11cfa7532a83cad",
+      "artifactBundleDigest": "sha256:87e3400f6d4eff6631527d2e2bf776d7218dad319cd4700ac2cf63ad802b6af3",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-bridge-0.4.146.zip",
+        "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.146.zip",
+        "sha256": "sha256:ed68c021123bf244024e97f34c29f97d8d7675b86b481d4fd3b20f335ca85771",
+        "bytes": 1503826
+      },
+      "needsInput": {
+        "samples": 100,
+        "minLatencyMs": 622,
+        "maxLatencyMs": 912,
+        "p95LatencyMs": 687,
+        "thresholdMs": 2000,
+        "readinessSamples": 40,
+        "readinessMinimumSamples": 40,
+        "readinessMaximumSamples": 75,
+        "readinessConsecutiveSamples": 10,
+        "quiescenceStableProbes": 4,
+        "warmupSamples": 40,
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-plugin-remote-robot-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373104",
+        "runnerOS": "Windows",
+        "runnerArch": "X64",
+        "runnerImageOS": "win25-vs2026",
+        "runnerImageVersion": "20260925.250.1",
+        "measurementStartedAt": "2026-10-02T19:37:43.280Z",
+        "measurementCompletedAt": "2026-10-02T19:46:29.222Z"
+      },
+      "workbench": {
+        "samples": 100,
+        "readinessSamples": 40,
+        "warmupSamples": 40,
+        "finalReply": 1806,
+        "recoveredProjection": 1808,
+        "coverage": "canonical-workbench-restart"
+      },
+      "rewind": {
+        "timelineReads": 6,
+        "actions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "coverage": "partial"
+      },
+      "modelConfiguration": {
+        "saves": 1,
+        "savedReads": 6,
+        "tests": 1,
+        "existingSessionReload": true,
+        "ideRestart": true,
+        "unsavedChangesDiscarded": true,
+        "providerEvidence": "deterministic keyless fixture"
+      },
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 2332,
+          "startedAt": "2026-10-02T19:37:43.280Z",
+          "completedAt": "2026-10-02T19:46:29.222Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 4540,
+          "startedAt": "2026-10-02T19:46:29.909Z",
+          "completedAt": "2026-10-02T19:51:02.736Z"
+        }
+      ],
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-linux-host-evidence-1/linux-minimum/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.85.2",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 31,
+      "evidenceDigest": "sha256:fbea34b6e88a7103e040e4cca757a15f72d113b2e8b4ed2f8da2b0bfb5e86ece",
+      "artifactBundleDigest": "sha256:4812a445132f9b64678ac5847906dcbc8707d2f8f742f20c617afc0e825a50dd",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 16.666000000001077,
+            "updateP95Ms": 5.100000000005821,
+            "finalizationMs": 22.29999999998836,
+            "finalizationStagesMs": {
+              "markdown": 0.39999999999417923,
+              "decorate": 0.7999999999883585,
+              "follow": 19.60000000000582,
+              "residualIncludingDomAndOverhead": 1.5
+            },
+            "longestTaskMs": 0,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 16.666000000001077,
+            "updateP95Ms": 8.89999999999418,
+            "finalizationMs": 249.20000000001164,
+            "finalizationStagesMs": {
+              "markdown": 5.899999999994179,
+              "decorate": 8.299999999988358,
+              "follow": 227.80000000001746,
+              "residualIncludingDomAndOverhead": 7.2000000000116415
+            },
+            "longestTaskMs": 287,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 49.99799999999959,
+            "updateP95Ms": 13.799999999988358,
+            "finalizationMs": 466.79999999998836,
+            "finalizationStagesMs": {
+              "markdown": 7.100000000005821,
+              "decorate": 14.5,
+              "follow": 437.6000000000058,
+              "residualIncludingDomAndOverhead": 7.599999999976717
+            },
+            "longestTaskMs": 551,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:49:17.855Z",
+        "primary": {
+          "port": 41557,
+          "pid": 10649,
+          "workspaceDigest": "76a9c415c5ed0c8eb301161d6e19d59de5f9e5ae0980cf68994ff6cc2e1ad88b",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 40661,
+          "pid": 10847,
+          "workspaceDigest": "8d1daacd0c4246178a26bd2c5df00bff31c3462952687c412a490877c43da6ce",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:49:49.455Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 108,
+        "maxLatencyMs": 218,
+        "p95LatencyMs": 215,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:49:25.033Z",
+        "measurementCompletedAt": "2026-10-02T19:49:49.455Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373139",
+        "runnerOS": "Linux",
+        "runnerArch": "X64",
+        "runnerImageOS": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1"
+      },
+      "fixtureLedgerRecords": 1260,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-linux-host-evidence-1/linux-stable/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.140.0",
+        "operatingSystem": "linux",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 31,
+      "evidenceDigest": "sha256:e8d0870b987bba324eda6c2ff0574f930d58415e6e9b814d437dd2759cf4282c",
+      "artifactBundleDigest": "sha256:74fa43c2cd129c8b4f78518675cc9b6670247ddfbda60fa79b768738766a09dd",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 16.799999999999272,
+            "updateP95Ms": 4.600000000005821,
+            "finalizationMs": 1.3999999999941792,
+            "finalizationStagesMs": {
+              "markdown": 0.3000000000029104,
+              "decorate": 0.5999999999912689,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 0.5
+            },
+            "longestTaskMs": 0,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 16.799999999999272,
+            "updateP95Ms": 6.400000000008731,
+            "finalizationMs": 10.39999999999418,
+            "finalizationStagesMs": {
+              "markdown": 3.6999999999970896,
+              "decorate": 4,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 2.6999999999970896
+            },
+            "longestTaskMs": 202,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 33.29999999999927,
+            "updateP95Ms": 8.700000000011642,
+            "finalizationMs": 19.39999999999418,
+            "finalizationStagesMs": {
+              "markdown": 5.7999999999883585,
+              "decorate": 8.69999999999709,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 4.900000000008731
+            },
+            "longestTaskMs": 411,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:48:23.906Z",
+        "primary": {
+          "port": 39409,
+          "pid": 2721,
+          "workspaceDigest": "39ca238b6ee26f2fe4176043dc2b2ef5ac5cbdd4208e852e98e024a25e1b5693",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 33607,
+          "pid": 2961,
+          "workspaceDigest": "bbc5ed477c0a46eeef6bf9d6d8e2897dc08ccada65f2e6011025bea7b095cfe1",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:48:55.577Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 105,
+        "maxLatencyMs": 222,
+        "p95LatencyMs": 209,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:48:32.256Z",
+        "measurementCompletedAt": "2026-10-02T19:48:55.577Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373139",
+        "runnerOS": "Linux",
+        "runnerArch": "X64",
+        "runnerImageOS": "ubuntu24",
+        "runnerImageVersion": "20260927.320.1"
+      },
+      "fixtureLedgerRecords": 1260,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-macos-host-evidence-1/macos-minimum/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.85.2",
+        "operatingSystem": "darwin",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 31,
+      "evidenceDigest": "sha256:b1730dce685d61fe532617046d41eeb13eb218ab00de5275afddd5d0060b060f",
+      "artifactBundleDigest": "sha256:890395f2ae5dfda0e472317e0601ed76a38ad4a63b2bf880ffa0ec8d4d237b05",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 165.3850000000093,
+            "updateP95Ms": 17.5,
+            "finalizationMs": 55.800000000046566,
+            "finalizationStagesMs": {
+              "markdown": 1,
+              "decorate": 1.8000000000465661,
+              "follow": 51.699999999953434,
+              "residualIncludingDomAndOverhead": 1.3000000000465661
+            },
+            "longestTaskMs": 71,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 132.30799999999,
+            "updateP95Ms": 20.100000000093132,
+            "finalizationMs": 563,
+            "finalizationStagesMs": {
+              "markdown": 13.599999999860302,
+              "decorate": 25.200000000186265,
+              "follow": 513.2999999998137,
+              "residualIncludingDomAndOverhead": 10.900000000139698
+            },
+            "longestTaskMs": 656,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 132.3080000000191,
+            "updateP95Ms": 30.800000000046566,
+            "finalizationMs": 897.8999999999069,
+            "finalizationStagesMs": {
+              "markdown": 18.699999999953434,
+              "decorate": 38.89999999990687,
+              "follow": 812.8000000000466,
+              "residualIncludingDomAndOverhead": 27.5
+            },
+            "longestTaskMs": 1040,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:44:04.695Z",
+        "primary": {
+          "port": 49229,
+          "pid": 16700,
+          "workspaceDigest": "47f2e86c9fdcc4fd0beaa403fccf69217f8f68259c14b56fa8f208ffa69af8df",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 49234,
+          "pid": 16789,
+          "workspaceDigest": "1998cace703a0a80c23d57f6b250edd215a516243e72489df18a33d344a2d3a0",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:46:52.080Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 488,
+        "maxLatencyMs": 1602,
+        "p95LatencyMs": 1153,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:44:22.469Z",
+        "measurementCompletedAt": "2026-10-02T19:46:52.080Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373117",
+        "runnerOS": "macOS",
+        "runnerArch": "X64",
+        "runnerImageOS": "macos15",
+        "runnerImageVersion": "20260824.0482.1"
+      },
+      "fixtureLedgerRecords": 1278,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-macos-host-evidence-1/macos-stable/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.140.0",
+        "operatingSystem": "darwin",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 31,
+      "evidenceDigest": "sha256:ed7cad9a4498e6130f6b019812c30a11a66de00afeee6e1bb9dba197a2aa75ad",
+      "artifactBundleDigest": "sha256:33b921aeca2f5a5ba939533fc8f4db6a8c8c865ec465a6bd46f8f98aeaa0ca86",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 34.79999999998836,
+            "updateP95Ms": 5.699999999953434,
+            "finalizationMs": 4.699999999953434,
+            "finalizationStagesMs": {
+              "markdown": 1.3000000000465661,
+              "decorate": 1.900000000023283,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 1.4999999998835847
+            },
+            "longestTaskMs": 0,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 34.70000000001164,
+            "updateP95Ms": 12.5,
+            "finalizationMs": 51.5,
+            "finalizationStagesMs": {
+              "markdown": 17.599999999976717,
+              "decorate": 21.099999999976717,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 12.800000000046566
+            },
+            "longestTaskMs": 505,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 68.89999999999418,
+            "updateP95Ms": 19,
+            "finalizationMs": 124.59999999997672,
+            "finalizationStagesMs": {
+              "markdown": 32.90000000002328,
+              "decorate": 61.5,
+              "follow": 0,
+              "residualIncludingDomAndOverhead": 30.199999999953434
+            },
+            "longestTaskMs": 1697,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:39:35.228Z",
+        "primary": {
+          "port": 49195,
+          "pid": 8797,
+          "workspaceDigest": "13e5448223063942d51969c3d6935e61e2243b16d8de764cd8a619e259614f73",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 49202,
+          "pid": 9304,
+          "workspaceDigest": "40fc4a0d51082bfdd29bf955e6345a48263e3c0c0eeedb54e8f8b33edb21e5ef",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:42:49.834Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 525,
+        "maxLatencyMs": 2969,
+        "p95LatencyMs": 1189,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:40:06.212Z",
+        "measurementCompletedAt": "2026-10-02T19:42:49.834Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373117",
+        "runnerOS": "macOS",
+        "runnerArch": "X64",
+        "runnerImageOS": "macos15",
+        "runnerImageVersion": "20260824.0482.1"
+      },
+      "fixtureLedgerRecords": 1280,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-windows-host-evidence-1/windows-minimum/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.85.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 30,
+      "evidenceDigest": "sha256:4aad51a1536057f77ebf40c064d91f268bb02adfc51708dd0bdd2d93adb88ee6",
+      "artifactBundleDigest": "sha256:a591d96364ff3ee124d00e72e2cbe8b0253d5897452e1e276df7203ac0877ca6",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 15.625,
+            "updateP95Ms": 2,
+            "finalizationMs": 22.20000000001164,
+            "finalizationStagesMs": {
+              "markdown": 0.7000000000116415,
+              "decorate": 1.5,
+              "follow": 18.79999999998836,
+              "residualIncludingDomAndOverhead": 1.2000000000116415
+            },
+            "longestTaskMs": 0,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 15.625,
+            "updateP95Ms": 7.600000000034925,
+            "finalizationMs": 241.09999999997672,
+            "finalizationStagesMs": {
+              "markdown": 8.399999999965075,
+              "decorate": 14.099999999976717,
+              "follow": 206,
+              "residualIncludingDomAndOverhead": 12.600000000034925
+            },
+            "longestTaskMs": 300,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 62.5,
+            "updateP95Ms": 16,
+            "finalizationMs": 428.1000000000349,
+            "finalizationStagesMs": {
+              "markdown": 12.200000000011642,
+              "decorate": 27.600000000034925,
+              "follow": 374.5999999999767,
+              "residualIncludingDomAndOverhead": 13.700000000011642
+            },
+            "longestTaskMs": 554,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:36:13.440Z",
+        "primary": {
+          "port": 57336,
+          "pid": 3032,
+          "workspaceDigest": "3f9d750c9cede8b1c49c166283922c63a9b8cf7ab950fae26ea7f5b038eb4b53",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 57340,
+          "pid": 1820,
+          "workspaceDigest": "6a17558a194c18b77bff43f7602f92a1e0e4b8170ef6935c38a03af964dfd955",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:37:30.588Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 311,
+        "maxLatencyMs": 443,
+        "p95LatencyMs": 346,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:36:25.468Z",
+        "measurementCompletedAt": "2026-10-02T19:37:30.587Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373109",
+        "runnerOS": "Windows",
+        "runnerArch": "X64",
+        "runnerImageOS": "win25-vs2026",
+        "runnerImageVersion": "20260925.250.1"
+      },
+      "fixtureLedgerRecords": 1266,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    },
+    {
+      "envelope": "vscode-windows-host-evidence-1/windows-stable/journey-evidence.json",
+      "host": {
+        "name": "vscode",
+        "version": "1.140.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+      "artifactCount": 30,
+      "evidenceDigest": "sha256:71fa0ae101b9647d16e61840914c97eab08575ceb2c5b21e9cfbee4fa77150f6",
+      "artifactBundleDigest": "sha256:7ee4e93f7c71f28f8e29605856a7d24b2c0427b3efee4a174465cd61242fd204",
+      "issues": [],
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide.vsix",
+        "sha256": "sha256:3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "bytes": 691734
+      },
+      "vsixIdentity": {
+        "artifact": "001-chainlesschain-ide.vsix",
+        "bytes": 691734,
+        "sha256": "3e9004b381c192cc54b55ec90833083008d238614d48aee5c4408f46a94f67e0",
+        "sha512": "491580f9cb0671d3e3e0e00918106eb6f505e417c1854dc2ec1d0060e4255cd193988e89cf14b3da84120a2c4898b48565b8425a7aab9e015614c9e06835fdf6",
+        "package": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.127",
+        "vsixmanifestIdentity": {
+          "id": "chainlesschain-ide",
+          "publisher": "chainlesschain",
+          "version": "0.37.127"
+        }
+      },
+      "streaming": {
+        "schema": "cc-ide-host-streaming-profile/v2",
+        "warmupCases": 1,
+        "performanceGate": false,
+        "cases": [
+          {
+            "chars": 10000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 15.700000000011642,
+            "updateP95Ms": 1.400000000023283,
+            "finalizationMs": 17.599999999976717,
+            "finalizationStagesMs": {
+              "markdown": 0.7000000000116415,
+              "decorate": 1.2000000000116415,
+              "follow": 14.900000000023283,
+              "residualIncludingDomAndOverhead": 0.7999999999301508
+            },
+            "longestTaskMs": 0,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 100000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 15.69999999999709,
+            "updateP95Ms": 3.5,
+            "finalizationMs": 129.29999999998836,
+            "finalizationStagesMs": {
+              "markdown": 8.899999999965075,
+              "decorate": 12.099999999976717,
+              "follow": 98.80000000004657,
+              "residualIncludingDomAndOverhead": 9.5
+            },
+            "longestTaskMs": 161,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          },
+          {
+            "chars": 200000,
+            "samples": 64,
+            "frameSamples": 63,
+            "frameP95Ms": 31.30000000000291,
+            "updateP95Ms": 6.7999999999883585,
+            "finalizationMs": 249,
+            "finalizationStagesMs": {
+              "markdown": 9.599999999976717,
+              "decorate": 14.899999999965075,
+              "follow": 213.60000000003492,
+              "residualIncludingDomAndOverhead": 10.900000000023283
+            },
+            "longestTaskMs": 314,
+            "streamingParseCalls": 0,
+            "parseCalls": 1,
+            "selectionStable": true,
+            "finalizationIdempotent": true
+          }
+        ]
+      },
+      "multiWindow": {
+        "version": 1,
+        "result": "passed",
+        "observedAt": "2026-10-02T19:34:21.153Z",
+        "primary": {
+          "port": 61194,
+          "pid": 5240,
+          "workspaceDigest": "d0ceb440183b2134057e05887cbc12b98f65e8e076d16f82b9e4abd4879427f2",
+          "rootCount": 2
+        },
+        "companion": {
+          "port": 61203,
+          "pid": 6684,
+          "workspaceDigest": "2becd2a01bbed870c5332dcfe4b9b5cef7a0b82742bb3dcb37004963ff730ced",
+          "rootCount": 1
+        },
+        "simultaneousListening": true,
+        "distinctBridgeTokens": true
+      },
+      "needsInput": {
+        "at": "2026-10-02T19:35:41.096Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 314,
+        "maxLatencyMs": 756,
+        "p95LatencyMs": 430,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-02T19:34:34.135Z",
+        "measurementCompletedAt": "2026-10-02T19:35:41.096Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "github-hosted",
+        "runnerName": "GitHub Actions 1000373109",
+        "runnerOS": "Windows",
+        "runnerArch": "X64",
+        "runnerImageOS": "win25-vs2026",
+        "runnerImageVersion": "20260925.250.1"
+      },
+      "fixtureLedgerRecords": 1266,
+      "orderedWorkbenchCycles": 101,
+      "status": "verified"
+    }
+  ],
+  "limitations": [
+    "Local host envelopes bind commit labels and artifact hashes but contain no trusted CI provenance; producer workflow run identity is supplied separately.",
+    "Offline readback cannot re-observe the original live filesystem installation or processes.",
+    "Streaming samples cover the initial process only; restart checks cover recovery behavior, not a second streaming performance measurement.",
+    "VS performanceGate=false and JB sloStatus=not-evaluated: timings are measurements, not streaming SLO passes.",
+    "JB paintImmediately covers the visible region and long tasks cover sampled probe EDT tasks only; Markdown parse calls are uninstrumented.",
+    "Deterministic fixture content does not prove real-provider latency or fidelity.",
+    "Nine downloaded host artifacts exclude Remote-SSH evidence; this receipt does not verify that separate gate.",
+    "IDE host verification does not satisfy CLI CI or CLI Strict Sandbox release gates."
+  ]
+}

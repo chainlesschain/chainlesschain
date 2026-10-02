@@ -232,7 +232,7 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 674 | `non-executable` | declaration/comment/type/regex lexical match | `// Continue PATH resolution exactly as child_process would.` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 891 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `return runtime.spawnSync(launch.command, launch.args, {` |
 | `packages/cli/src/lib/process-execution-broker/linux-generic-bwrap-runtime.js` | 1465 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const result = runtime.spawnSync(` |
-| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 184 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
+| `packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js` | 256 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `const built = spawnSync(` |
 | `packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js` | 104 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `child = native.spawn(helper ? "/proc/self/fd/4" : options.helperPath, [], {` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 3 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/process-execution-broker/owned-posix-process-group-worker.mjs` | 92 | `audited-exemption` | broker-native-boundary: The broker core is the sole trusted native child_process boundary; recursive self-routing is impossible. | `target = spawn(message.command, message.args, {` |
@@ -480,8 +480,8 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 208 | `const status = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 1 | `import { execFileSync, fork } from "node:child_process";` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 593 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 679 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 619 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 705 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 208 | `const status = execFileSync(` |

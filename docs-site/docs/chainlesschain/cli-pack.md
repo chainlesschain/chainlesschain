@@ -1,6 +1,6 @@
 # 项目打包 (pack)
 
-> **版本: v0.2 Phase 0-3 (CLI 0.156.6, 2026-04-24) | 状态: ✅ 稳定 (pkg 真产出 exe, smoke-test 自动化, Phase 4 跨平台/签名待补) | 8 阶段流水线 | 152+ 单元/集成/E2E 测试**
+> **当前公开 CLI：0.166.84；文档更新：2026-10-03。** `pack` 自 0.156.6 提供；下方 2026-04 的性能与测试数据保留为历史测量。六平台构建、签名与公开分发按独立发布门验收。
 >
 > `cc pack` 把当前项目环境打包成单文件可执行程序，内嵌 WebSocket 服务、完整 Vue Web UI 与 SQLite 运行时，收件人**双击即用**，无需安装 Node.js、npm 或后端服务。
 
@@ -70,7 +70,7 @@
 | 参数                   | 默认值                                  | 说明                                            |
 | ---------------------- | --------------------------------------- | ----------------------------------------------- |
 | `-o, --output <path>`  | `dist/chainlesschain-portable-<target>` | 产物路径（不含扩展名，Windows 自动追加 `.exe`） |
-| `-t, --targets <list>` | `node20-win-x64`                        | 逗号分隔的 pkg 目标平台列表                     |
+| `-t, --targets <list>` | `node22-win-x64`                        | 逗号分隔的 pkg 目标平台列表                     |
 | `--cwd <dir>`          | `process.cwd()`                         | 覆盖项目根目录                                  |
 
 **运行时默认值（烘焙进产物）**:
@@ -105,6 +105,20 @@
 | `--dry-run`                                | `false` | 只跑 Phase 1–5，输出构建计划                               |
 | `--skip-web-panel-build`                   | `false` | 复用已有 `web-panel/dist`，跳过 Phase 2 的 `npm run build` |
 | `--allow-dirty`                            | `false` | 允许在工作树有未提交修改时打包                             |
+
+### 开发候选：Linux 监督器与 Windows 临时目录
+
+源码 `b776be5fc8` 包含 Linux standalone 打包修复，尚未随公开 CLI **0.166.84** 发布。构建 Linux/alpine x64 或 ARM64 目标前，须准备对应架构的固定预编译监督器；缺失、损坏或不支持的架构会拒绝构建。`linux-x64`、`linux`、`host` 等简写按 pkg 的实际目标解析，空目标列表也会拒绝。
+
+源码构建可在匹配的 Linux 宿主执行：
+
+```bash
+node packages/cli/scripts/build-linux-subreaper.mjs \
+  --out packages/cli/src/assets/linux-subreaper \
+  --commit "$(git rev-parse HEAD)"
+```
+
+运行产物使用内嵌并校验的监督器，资产损坏时拒绝启动该监督路径，不在收件人的机器临时调用编译器。Windows 构建要求 CLI 资产与临时配置目录位于同一盘；若源码在 D 盘、TEMP/TMP 在 C 盘，先将两个变量指向 D 盘已存在的临时目录。仓库 native workflow 已自动设置为同盘的 `runner.temp`。这些构建要求不代表六平台签名发行已经验收完成。
 
 ## 性能指标
 
