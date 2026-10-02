@@ -40,6 +40,18 @@ Windows 最低 Node 22.12.0 的两个文件回归为 53 通过 / 1 个 POSIX fil
 
 这是观察基础，未改变默认 loadSettings / permission provider 的既有行为，未注册外锚或推进 generation，也不提供整个 inventory 原子快照或防 active parent swap-and-restore。合法创建缺失目录会推进 nearestExistingParent，后续官方事务必须显式更新绑定。外锚注册、guard / prepared / ready 顺序、完整 context manifest 与 physical heads、跨进程稳定 token、显式恢复和 Windows 持久化屏障继续开放。该切片在独立分支，当前 Actions 修复提交的准确 SHA 保持；未升版本或发布。
 
+### NET-02：持久记录与 Linux 外锚事务基础（2026-10-02）
+
+新增默认未启用的纯 builtin CJS record core 和显式 Linux domain API；严格来源观察现在返回读取句柄最终 `fstat` 的完整冻结 `fileIdentity`。完整有序 context manifest 保留不存在、重复和未贡献权限的候选；反算 inverse physical heads，拒绝逻辑重绑定、别名旧字节注册、损坏/额外字段、getter/Proxy、超限及回退。可信宿主必须稳定分配 contextId，并在观察时重新计算完整发现路线；不能按当前可变候选清单生成新 ID 后自动注册来遗漏旧限制来源。
+
+domain 要求预先持久化的私有外部目录及完整的 rollbackable config / admitted writable roots，拒绝重叠与普通目录替换；固定目录句柄，通过 `/proc/self/fd` 操作子项。namespace witness、epoch、物理身份和根绑定可作为冻结 launch descriptor 传入新进程或 Worker，不从后续 cwd / 环境重新选择域。已有 witness 时 ledger 缺失不重新初始化。所有事务与恢复采用 authority → settings file 的严格锁顺序，未注册来源在创建 source lock 前拒绝；真实内容 no-op 不撤销或消耗 generation。
+
+写入顺序为同步 local revoke → durable guard（包含有界 prepared 原记录的完整证明）→ prepared ledger → settings replace → ready ledger → guard unlink + directory fsync。fresh reader 检查 guard 缺失、ledger A、完整严格观察、相同 ledger B、guard 与 namespace，并 bracket 本地 revision；intern snapshot 同时保留持久 tuple 和本地 token 身份。显式恢复必须绑定原 transactionId，核对精确 before/after 内容和全部上下文；verified-old 恢复也消耗已保留的 generation。ready 已持久化但清理失败时，用 guard 的原记录反算完整 ready digest 后才删除；neither、错误事务、损坏与缺失均拒绝。settings commitState 与 authority readiness 分别报告，不把“设置未提交”推定为权限已恢复。
+
+Windows 五文件定向回归 **106 passed / 1 个既有 POSIX symlink skip**；Linux WSL1、Node **22.12.0** 的[原始探针回执](./cli/evidence/settings-authority-domain-wsl-node2212.raw.json)为 **58/58 场景通过**，包含 child/Worker、跨进程 allow→deny→allow、并发写入、别名注册、来源删除、损坏/不可读、初始化及 guard/prepared/ready 的 open/write/file-fsync/rename/directory-fsync 故障、unlink 故障、四个 SIGKILL 阶段和显式恢复。回执保留五个源码/探针文件 SHA-256；fresh child 只读 CJS 零 stderr，只有显式 writer 的最低 Node 原生 require(ESM) 提示。Astra 独立复验当时的 40 场景并复核修订，三项初审边界均已修正；后续 58 场景由主 agent 验证。ESLint、Prettier 与 diff 检查通过。
+
+这是独立协议基础，**未接入生产 permission provider、官方 addRule 或网络 broker**，未完成 NET-02。Windows/macOS 明确拒绝 durable API；新父目录 materialization、动态 writable-root 扩展、启动时域传递、默认注册/恢复入口、实际 shell/HTTP/WS 跨进程撤销与准确候选的托管矩阵继续开放。replace/revokeLocal/localRevision/observeContexts 是可信同步宿主合同，尚无远端 stop ACK；仅承诺协议使用者在下次检查时发现官方 ABA，不声称即时跨进程停止。raw uncooperative ABA、主动同 UID 整体外锚删除/回滚、active parent swap-and-restore 不在保证内；故障注入与 SIGKILL 也不等同于实际硬件断电测试。没有升版本、重新发布或移动此前三个不可变 tag。
+
 ### 启动环境权威与插件名称校验（2026-10-01）
 
 `11b6e928c56c880062764c93d90c10e1a9b79639` 的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878869)、[IDE Roadmap Context Permission](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878839) 和 [IDE Roadmap Safety Matrix](https://github.com/chainlesschain/chainlesschain/actions/runs/36867878693) 均已完整通过，包含 Context Permission 的 macOS 生产并发 campaign。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36867879566) 仍在运行或排队，旧 macOS unit shard 2 的未知失败尚待完整矩阵复验；独立 campaign 的成功不作为其根因已查明的证据。

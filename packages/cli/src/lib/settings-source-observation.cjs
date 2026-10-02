@@ -146,6 +146,7 @@ function inspect(file, fs, maxBytes) {
         exists: false,
         byteLength: 0,
         digest: null,
+        fileIdentity: null,
         settings: null,
       });
     }
@@ -201,6 +202,13 @@ function inspect(file, fs, maxBytes) {
       exists: true,
       byteLength: length,
       digest: createHash("sha256").update(bytes).digest("hex"),
+      // Preserve identity from the final fstat on the descriptor whose bytes
+      // were parsed and hashed, never a separate path-based stat projection.
+      fileIdentity: Object.freeze(
+        Object.fromEntries(
+          FILE_FIELDS.map((field) => [field, String(after[field])]),
+        ),
+      ),
       settings: freezeJson(settings),
     });
   }

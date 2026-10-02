@@ -55,15 +55,23 @@ describe("strict settings source observations", () => {
     const bytes = '{\n "permissions": {"deny":["Bash"]}, "model":"haiku"\n}\n';
     const file = write(".claude/settings.json", bytes);
     let nonemptyReads = 0;
+    let finalReadIdentity;
+    let readDescriptor;
     const runtimeFs = {
       ...fs,
       readFileSync() {
         throw new Error("must not reread by path");
       },
       readSync(...args) {
+        readDescriptor = args[0];
         const count = fs.readSync(...args);
         if (count) nonemptyReads++;
         return count;
+      },
+      fstatSync(...args) {
+        const stat = fs.fstatSync(...args);
+        if (args[0] === readDescriptor) finalReadIdentity = stat;
+        return stat;
       },
     };
     const result = observeSettingsSource(file, { fs: runtimeFs });
@@ -76,6 +84,14 @@ describe("strict settings source observations", () => {
       settings: { permissions: { deny: ["Bash"] }, model: "haiku" },
     });
     expect(nonemptyReads).toBe(1);
+    expect(result.fileIdentity).toEqual(
+      Object.fromEntries(
+        ["dev", "ino", "mode", "nlink", "size", "mtimeNs", "ctimeNs"].map(
+          (field) => [field, String(finalReadIdentity[field])],
+        ),
+      ),
+    );
+    expect(Object.isFrozen(result.fileIdentity)).toBe(true);
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.settings.permissions.deny)).toBe(true);
     expect(() => result.settings.permissions.deny.push("Write")).toThrow();
@@ -95,6 +111,7 @@ describe("strict settings source observations", () => {
         "settings.json",
       ),
       digest: null,
+      fileIdentity: null,
       settings: null,
     });
     write("missing/.claude/settings.json", { env: { TOOL: "yes" } });
