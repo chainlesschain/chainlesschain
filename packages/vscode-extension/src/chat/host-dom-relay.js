@@ -11,6 +11,7 @@ const HOST_DOM_ACTIONS = new Set([
   "click",
   "editDraft",
   "switchTab",
+  "streamProfile",
 ]);
 const HOST_DOM_CLICK_TARGETS = new Set([
   "planApprove",
@@ -54,6 +55,11 @@ function validateHostDomRequest(value) {
     )
       throw new TypeError("Invalid host DOM tab ID");
     return { action: "switchTab", id: value.id };
+  }
+  if (value.action === "streamProfile") {
+    if (![10_000, 100_000, 200_000].includes(value.chars))
+      throw new TypeError("Unsupported streaming profile size");
+    return { action: value.action, chars: value.chars };
   }
   if (value.action === "click") {
     if (!HOST_DOM_CLICK_TARGETS.has(value.target)) {

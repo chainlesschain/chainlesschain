@@ -1733,6 +1733,10 @@ async function main() {
         workspaceFolders,
         conversationRecovery: Boolean(fixture.canonicalRoot),
       });
+      if (process.env.CC_UI_STREAM_PROFILE === "1")
+        require("./driver/streaming-profile.cjs").assertStreamingProfileArtifact(
+          journeyArtifactDir,
+        );
     }
     assertMultiWindowEvidence(multiWindowEvidenceFile);
     recordHostProgress(progressPath, "assertions_completed");

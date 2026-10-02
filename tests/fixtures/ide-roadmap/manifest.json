@@ -235,7 +235,7 @@
       "evidenceStatus": "external-evidence-required",
       "evidenceNotes": "Loopback runs exercise the production agentLoop, compactor, provider transport, and read_file path but never count as real-provider evidence. Scheduled/manual live artifacts remain structurally asserted external evidence, and one live run does not satisfy this 100-run manifest cell or wider host/soak gates.",
       "fixture": "tests/fixtures/ide-roadmap/s0-live-provider-trajectory.json",
-      "fixtureDigest": "sha256:1a519442a8976d306581a8278feac60ab4b36e9bda7ae1ded14571c0d3c80678",
+      "fixtureDigest": "sha256:7705f3f6621002b477363912b97c93b03974d5bcf2af0a3083ea231bb60e8ba3",
       "seed": 2026080109,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -253,7 +253,8 @@
         "credentialLeakCount": 0
       },
       "testFiles": [
-        "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js"
+        "packages/cli/__tests__/unit/ide-roadmap-live-provider-trajectory.test.js",
+        "packages/cli/__tests__/unit/ide-roadmap-archival-handoff.test.js"
       ],
       "requiredArtifacts": [
         "exact-commit",

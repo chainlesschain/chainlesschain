@@ -111,6 +111,13 @@ test("host DOM relay is token-gated and only accepts fixed semantic actions", ()
   assert.equal(normalizeHostDomToken("short"), null);
   assert.equal(hostDomTokensEqual(TOKEN, TOKEN), true);
   assert.equal(hostDomTokensEqual(TOKEN, "cd".repeat(32)), false);
+  assert.deepEqual(
+    validateHostDomRequest({ action: "streamProfile", chars: 100_000 }),
+    { action: "streamProfile", chars: 100_000 },
+  );
+  assert.throws(() =>
+    validateHostDomRequest({ action: "streamProfile", chars: 200_001 }),
+  );
   assert.deepEqual(validateHostDomRequest({ action: "snapshot" }), {
     action: "snapshot",
   });
@@ -155,6 +162,48 @@ test("host DOM relay is token-gated and only accepts fixed semantic actions", ()
       /tab ID/,
     );
   }
+});
+
+test("streaming evidence rejects forged timing summaries and missing selection/parse proof", () => {
+  const {
+    verifyStreamingProfile,
+  } = require("./extension-host/driver/streaming-profile.cjs");
+  const value = {
+    schema: "cc-ide-streaming-profile/v1",
+    chars: 100_000,
+    samples: 64,
+    frameSamples: 63,
+    frameIntervalsMs: Array(63).fill(16),
+    updateDurationsMs: Array(64).fill(1),
+    frameP95Ms: 16,
+    updateP95Ms: 1,
+    longestUpdateMs: 1,
+    finalizationMs: 10,
+    elapsedMs: 1_100,
+    longTasksSupported: true,
+    longestTaskMs: 0,
+    streamingParseCalls: 0,
+    parseCalls: 1,
+    parseChars: 100_000,
+    selectionStable: true,
+    deferredWhileSelected: true,
+    finalizationIdempotent: true,
+    textMutations: 64,
+    codeControls: 2,
+    performanceGate: false,
+  };
+  assert.doesNotThrow(() => verifyStreamingProfile(value));
+  for (const patch of [
+    { frameP95Ms: 1 },
+    { updateDurationsMs: [] },
+    { longestTaskMs: null },
+    { streamingParseCalls: 2 },
+    { parseChars: 1 },
+    { selectionStable: false },
+    { performanceGate: true },
+    { updateDurationsMs: Array(64).fill(Infinity) },
+  ])
+    assert.throws(() => verifyStreamingProfile({ ...value, ...patch }));
 });
 
 test("chat HTML keeps the relay inert without a valid launch token", () => {

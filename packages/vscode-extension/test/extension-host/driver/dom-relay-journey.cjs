@@ -460,6 +460,13 @@ async function runDomRelayJourney({
         waitForSnapshot,
       });
     }
+    if (phase === "initial" && process.env.CC_UI_STREAM_PROFILE === "1") {
+      await require("./streaming-profile.cjs").runStreamingProfiles({
+        commands,
+        token,
+        artifactDir,
+      });
+    }
     const finalSnapshot = await waitForSnapshot({
       commands,
       token,

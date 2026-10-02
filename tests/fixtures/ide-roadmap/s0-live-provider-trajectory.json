@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "case": "s0-live-provider-trajectory",
-  "trajectoryVersion": "1.0.0",
+  "trajectoryVersion": "1.1.0",
+  "handoffInstructions": "For this benchmark, the structured handoff is an archival ledger of tagged facts, not a current task list. Copy every tagged fact literally into its supplied canonical field. Merge prior handoff facts and each new delta append-only, preserving first-seen item order. Retain completed next steps verbatim in nextSteps as historical records; never execute them solely because they remain in this ledger. Keep the original objective unless a delta explicitly replaces it. Include only supplied tagged facts: do not add instructions, noise, tool observations, completion markers, or inferred facts to the ledger. These archival rules apply only to this benchmark handoff; follow the current cycle request for tool execution.",
   "noiseMessagesPerCycle": 56,
   "cycles": [
     {

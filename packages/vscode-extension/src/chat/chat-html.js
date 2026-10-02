@@ -11,6 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const { createStreamingTranscript } = require("./streaming-transcript");
+const { measureStreamingProfile } = require("./streaming-profile");
 const { createTranscriptReconciler } = require("./transcript-reconciler");
 const { createQuestionForms } = require("./question-form-drafts");
 const MD_LITE_SOURCE = fs.readFileSync(
@@ -351,6 +352,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (followBottom && !selecting) log.scrollTop = log.scrollHeight;
   }
   ${createStreamingTranscript.toString()}
+  ${measureStreamingProfile.toString()}
   const streamRenderer = createStreamingTranscript({
     document, renderMarkdown: mdLite, decorate: decorateCodeBlocks, follow: followTranscript,
   });
@@ -1262,6 +1264,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       });
       try {
         const command = m.command || {};
+        if (command.action === "streamProfile") {
+          measureStreamingProfile({ document, log, chars: command.chars,
+            createRenderer: createStreamingTranscript, renderMarkdown: mdLite,
+            decorate: decorateCodeBlocks, follow: followTranscript,
+          }).then(value => respond(true, value), error => respond(false, error.message));
+          return;
+        }
         if (command.action === "snapshot") {
           const plan = document.getElementById("plan");
           const approvalCards = [...document.querySelectorAll('.approval[id^="appr-"]')];

@@ -129,6 +129,14 @@ const SAFE_COMPACTION_USAGE_STATUSES = new Set([
   "pending",
   "not-started",
 ]);
+const SAFE_TRAJECTORY_INVARIANTS = new Set([
+  "event-order",
+  "handoff-shape",
+  "handoff-facts",
+  "tool-sequence",
+  "completion-marker",
+  "usage-count",
+]);
 const FAILURE_CODES = new Set([
   "invalid_arguments",
   "invalid_release_commit",
@@ -169,8 +177,11 @@ export class LiveProviderTrajectoryError extends Error {
   }
 }
 
-function fail(code, message) {
-  throw new LiveProviderTrajectoryError(code, message);
+function fail(code, message, invariant = null) {
+  const error = new LiveProviderTrajectoryError(code, message);
+  if (SAFE_TRAJECTORY_INVARIANTS.has(invariant))
+    error.trajectoryInvariant = invariant;
+  throw error;
 }
 
 const SAFE_PROVIDER_ERROR_NAMES = new Set([
@@ -372,6 +383,7 @@ function loadFixture(repoRoot) {
       "schemaVersion",
       "case",
       "trajectoryVersion",
+      "handoffInstructions",
       "noiseMessagesPerCycle",
       "cycles",
       "expected",
@@ -381,7 +393,7 @@ function loadFixture(repoRoot) {
   if (
     fixture?.schemaVersion !== 1 ||
     fixture?.case !== LIVE_PROVIDER_TRAJECTORY_CASE ||
-    fixture?.trajectoryVersion !== "1.0.0" ||
+    fixture?.trajectoryVersion !== "1.1.0" ||
     fixture.noiseMessagesPerCycle !== 56 ||
     !Array.isArray(fixture.cycles) ||
     fixture.cycles.length !== 2 ||
@@ -393,6 +405,11 @@ function loadFixture(repoRoot) {
     );
   }
   const seenFactIds = new Set();
+  boundedFixtureString(
+    fixture.handoffInstructions,
+    "fixture.handoffInstructions",
+    900,
+  );
   for (const [index, cycle] of fixture.cycles.entries()) {
     fixtureKeys(cycle, ["id", "factDelta", "tool"], `fixture.cycles[${index}]`);
     fixtureKeys(
@@ -527,14 +544,23 @@ function factId(value, label) {
   return match[1];
 }
 
-function factIdsByField(handoff) {
+function factIdsByField(handoff, { providerOutput = false } = {}) {
+  const readId = (value, label) => {
+    if (providerOutput && !FACT_ID_PATTERN.test(String(value)))
+      fail(
+        "trajectory_invariant_failed",
+        "structured handoff has an untagged fact",
+        "handoff-facts",
+      );
+    return factId(value, label);
+  };
   return Object.fromEntries(
     STRUCTURED_HANDOFF_FIELDS.map((field) => [
       field,
       field === "objective"
-        ? [factId(handoff[field], field)]
+        ? [readId(handoff[field], field)]
         : handoff[field].map((value, index) =>
-            factId(value, `${field}[${index}]`),
+            readId(value, `${field}[${index}]`),
           ),
     ]),
   );
@@ -560,13 +586,13 @@ function noiseContent(cycleIndex, messageIndex) {
     .repeat(5);
 }
 
-function appendCycleMessages(messages, fixture, cycleIndex) {
+export function appendCycleMessages(messages, fixture, cycleIndex) {
   const cycle = fixture.cycles[cycleIndex];
   messages.push({
     role: "user",
     content:
-      `Trajectory fact delta for ${cycle.id}. Preserve every tagged fact in its ` +
-      `matching canonical structured-handoff field:\n${JSON.stringify(cycle.factDelta)}`,
+      `${fixture.handoffInstructions}\n` +
+      `Trajectory fact delta for ${cycle.id}:\n${JSON.stringify(cycle.factDelta)}`,
   });
   for (let index = 0; index < fixture.noiseMessagesPerCycle; index += 1) {
     messages.push({
@@ -793,7 +819,11 @@ export function safeTrajectoryFailureKind(events) {
   return null;
 }
 
-export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
+export function safeTrajectoryFailureDiagnostic(
+  events,
+  eventOrder,
+  invariant = null,
+) {
   const degraded = events.find(
     (event) => event?.type === "compaction-degraded",
   );
@@ -815,6 +845,7 @@ export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
     ].every((count) => Number.isSafeInteger(count) && count >= 0);
   }).length;
   return {
+    ...(SAFE_TRAJECTORY_INVARIANTS.has(invariant) ? { invariant } : {}),
     eventCount: events.length,
     eventOrder: eventOrder
       .slice(0, 32)
@@ -852,7 +883,11 @@ export function safeTrajectoryFailureDiagnostic(events, eventOrder) {
 function validatedTrajectoryFailureDiagnostic(value) {
   if (
     !isRecord(value) ||
-    canonicalJson(Object.keys(value).sort()) !==
+    canonicalJson(
+      Object.keys(value)
+        .filter((key) => key !== "invariant")
+        .sort(),
+    ) !==
       canonicalJson(
         [
           "eventCount",
@@ -866,6 +901,8 @@ function validatedTrajectoryFailureDiagnostic(value) {
         ].sort(),
       ) ||
     !Number.isSafeInteger(value.eventCount) ||
+    (Object.hasOwn(value, "invariant") &&
+      !SAFE_TRAJECTORY_INVARIANTS.has(value.invariant)) ||
     value.eventCount < 0 ||
     !Array.isArray(value.eventOrder) ||
     value.eventOrder.length > 32 ||
@@ -937,11 +974,20 @@ function latestStructuredHandoff(messages) {
     fail(
       "trajectory_invariant_failed",
       "semantic compaction did not persist a handoff",
+      "handoff-shape",
     );
   }
-  return parseStructuredHandoff(
-    summary.content.slice("[Conversation Summary]\n".length),
-  );
+  try {
+    return parseStructuredHandoff(
+      summary.content.slice("[Conversation Summary]\n".length),
+    );
+  } catch {
+    fail(
+      "trajectory_invariant_failed",
+      "persisted handoff is invalid",
+      "handoff-shape",
+    );
+  }
 }
 
 function ensureCycleOutcome({
@@ -960,6 +1006,7 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       `production event order did not match the trajectory contract (${safeTrajectoryEventOrderMismatch(eventOrder)})`,
+      "event-order",
     );
   }
   const compactions = events.filter((event) => event?.type === "compaction");
@@ -971,13 +1018,14 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       "semantic compaction was not a structured provider handoff",
+      "handoff-shape",
     );
   }
 
   const expectedHandoff = cumulativeHandoff(fixture, cycleIndex);
   const actualHandoff = latestStructuredHandoff(messages);
   const expectedIds = factIdsByField(expectedHandoff);
-  const actualIds = factIdsByField(actualHandoff);
+  const actualIds = factIdsByField(actualHandoff, { providerOutput: true });
   const missingByField = Object.fromEntries(
     STRUCTURED_HANDOFF_FIELDS.map((field) => [
       field,
@@ -993,6 +1041,7 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       "structured handoff lost or moved a tagged fact",
+      "handoff-facts",
     );
   }
 
@@ -1012,6 +1061,7 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       "read-only tool sequence did not match the fixture",
+      "tool-sequence",
     );
   }
   const completions = events.filter(
@@ -1024,6 +1074,7 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       "provider completion marker did not match the fixture",
+      "completion-marker",
     );
   }
 
@@ -1032,6 +1083,7 @@ function ensureCycleOutcome({
     fail(
       "trajectory_invariant_failed",
       "cycle did not settle all three provider calls",
+      "usage-count",
     );
   }
   const usage = usageEvents.map((event, index) =>
@@ -1200,6 +1252,7 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
           error.safeDiagnostic = safeTrajectoryFailureDiagnostic(
             events,
             eventOrder,
+            error.trajectoryInvariant,
           );
         }
         throw error;

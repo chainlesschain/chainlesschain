@@ -126,6 +126,7 @@ permissions:
   contents: read
 
 env:
+  CC_UI_STREAM_PROFILE: "1"
   IDE_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   CC_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 

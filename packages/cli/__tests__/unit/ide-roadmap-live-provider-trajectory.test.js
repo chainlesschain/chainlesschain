@@ -59,6 +59,28 @@ it("reports only bounded event order labels on a live mismatch", () => {
   ).toBe("index=8, observed=other, count=8");
 });
 
+it("retains a fixed invariant category without persisting provider output", () => {
+  const diagnostic = safeTrajectoryFailureDiagnostic([], [], "handoff-facts");
+  const receipt = createLiveProviderTrajectoryFailureEvidence({
+    mode: "live",
+    releaseCommit: "f".repeat(40),
+    code: "trajectory_invariant_failed",
+    diagnostic,
+  });
+  expect(receipt.diagnostic.invariant).toBe("handoff-facts");
+  expect(
+    safeTrajectoryFailureDiagnostic([], [], "PRIVATE_PROVIDER_SECRET"),
+  ).not.toHaveProperty("invariant");
+  expect(
+    createLiveProviderTrajectoryFailureEvidence({
+      mode: "live",
+      releaseCommit: "f".repeat(40),
+      code: "trajectory_invariant_failed",
+      diagnostic: { ...diagnostic, invariant: "PRIVATE_PROVIDER_SECRET" },
+    }),
+  ).not.toHaveProperty("diagnostic");
+});
+
 it("retains only fixed failure categories in a failed trajectory receipt", () => {
   const events = [
     { type: "run-started" },
