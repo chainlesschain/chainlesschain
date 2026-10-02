@@ -10,7 +10,8 @@ import {
 
 const {
   applyManagedPermissionPolicy,
-  loadSettings,
+  inspectSettingsSources,
+  projectSettingsObservation,
   getSettingsPermissionRevision,
   subscribeSettingsPermissionRevision,
 } = settingsLoader;
@@ -47,9 +48,14 @@ const combinedAuthority = Object.freeze({
 });
 
 function freezeSnapshot(value) {
-  if (value && typeof value === "object") {
-    for (const child of Object.values(value)) freezeSnapshot(child);
-    Object.freeze(value);
+  const pending = [value];
+  const seen = new WeakSet();
+  while (pending.length) {
+    const current = pending.pop();
+    if (!current || typeof current !== "object" || seen.has(current)) continue;
+    seen.add(current);
+    for (const child of Object.values(current)) pending.push(child);
+    Object.freeze(current);
   }
   return value;
 }
@@ -83,12 +89,13 @@ export function loadPermissionAuthority({
 } = {}) {
   const settingsRevision = getSettingsPermissionRevision();
   const scopedRevision = baseRules ? null : getScopedPermissionRevision();
-  const loaded = loadSettings({
+  const settingsObservation = inspectSettingsSources({
     cwd,
     settingsFile,
     managedSettingsFile,
     env,
   });
+  const loaded = projectSettingsObservation(settingsObservation, { env });
   const sources = baseRules ? {} : { ...loaded.sources };
   let rules = baseRules
     ? applyManagedPermissionPolicy(baseRules, loaded.managed, sources)
@@ -143,6 +150,7 @@ export function loadPermissionAuthority({
     scoped,
     hasRules: hasRules(rules),
     settingsRevision,
+    settingsObservation,
     ...(scopedRevision ? { scopedRevision } : {}),
   });
 }

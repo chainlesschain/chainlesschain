@@ -430,19 +430,29 @@ describe("settings permission providers", () => {
     seed({});
     const provider = providerFor();
     const originalRead = _deps.fs;
+    const physicalFile = fs.realpathSync(file);
+    const sourceDescriptors = new Set();
     let fired = false;
     _deps.fs = {
       ...fs,
-      readFileSync(target, ...args) {
-        const contents = fs.readFileSync(target, ...args);
-        if (target === file && !fired) {
+      openSync(target, ...args) {
+        const descriptor = fs.openSync(target, ...args);
+        if (target === physicalFile) sourceDescriptors.add(descriptor);
+        return descriptor;
+      },
+      closeSync(descriptor) {
+        fs.closeSync(descriptor);
+        const sourceClosed = sourceDescriptors.delete(descriptor);
+        // The strict reader has parsed the old bytes. Close its file handles
+        // before replacing on Windows, but mutate before provider admission.
+        if (sourceClosed && sourceDescriptors.size === 0 && !fired) {
           fired = true;
           addRule({ cwd: root, kind: "deny", rule: "Bash" });
         }
-        return contents;
       },
     };
     expect(() => provider()).toThrow(/settings changed/);
+    expect(fired).toBe(true);
     _deps.fs = originalRead;
     expect(provider().settingsRevision).toBe(getSettingsPermissionRevision());
   });

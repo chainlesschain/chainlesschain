@@ -166,12 +166,59 @@ describe("cc permissions list", () => {
   it("emits the merged ruleset as JSON", async () => {
     writeProjectSettings({
       permissions: { deny: ["Bash(rm:*)"], allow: ["Read"] },
+      custom: { privateValue: "non-permission-setting-secret" },
     });
     const out = await run("list", "--json");
     const parsed = JSON.parse(out);
     expect(parsed.rules.deny).toContain("Bash(rm:*)");
     expect(parsed.rules.allow).toContain("Read");
+    expect(parsed).not.toHaveProperty("settingsObservation");
+    expect(out).not.toContain("non-permission-setting-secret");
   });
+});
+
+describe("cc permissions strict source diagnostics", () => {
+  it.each([
+    ["invalid", "CC_SETTINGS_SOURCE_INVALID"],
+    ["oversized", "CC_SETTINGS_SOURCE_TOO_LARGE"],
+    ["hardlink", "CC_SETTINGS_SOURCE_UNSAFE"],
+  ])(
+    "reports %s source failures for list and test without source bytes",
+    async (kind, code) => {
+      writeProjectSettings({ custom: "private-source-marker" });
+      const file = path.join(tmp, ".claude", "settings.json");
+      if (kind === "invalid")
+        fs.writeFileSync(file, '{"private-source-marker":');
+      if (kind === "oversized") {
+        fs.writeFileSync(
+          file,
+          `{"custom":"private-source-marker${"x".repeat(1024 * 1024)}"}`,
+        );
+      }
+      if (kind === "hardlink") fs.linkSync(file, path.join(tmp, "alias.json"));
+      const previousExitCode = process.exitCode;
+      try {
+        for (const args of [
+          ["list", "--json"],
+          ["test", "Bash", "git status", "--json"],
+        ]) {
+          const out = await run(...args);
+          const errors = errSpy.mock.calls
+            .map((call) => call.map(String).join(" "))
+            .join("\n");
+          expect(process.exitCode).toBe(1);
+          expect(out).toBe("");
+          expect(errors).toContain(
+            `[${code}] Settings source observation is unavailable`,
+          );
+          expect(errors).not.toContain("private-source-marker");
+          expect(errors).not.toContain(file);
+        }
+      } finally {
+        process.exitCode = previousExitCode;
+      }
+    },
+  );
 });
 
 describe("cc permissions activity", () => {

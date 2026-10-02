@@ -1000,8 +1000,11 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 
 ### 文件层级与合并
 
-按优先级**并集**合并(高层只增规则,`deny` 永不被稀释);坏 JSON **fail-open**(告警跳过,
-绝不让 agent 卡死):
+按优先级**并集**合并(高层只增规则,`deny` 永不被稀释)。本轮开发候选的 Agent 和
+`cc permissions list/test` 权限入口严格检查全部候选文件，再用同一次读取的内容合并规则。
+存在的文件损坏、不可读、超过 1 MiB，或文件本身是符号链接/硬链接时，权限加载失败；
+没有贡献权限规则的文件也接受检查。缺失的候选文件保留为缺失来源，不影响正常启动。
+已发布 CLI `0.166.84` 对非 managed 坏 JSON 仍使用旧的告警跳过行为；严格读取变化尚未发布。
 
 ```
 ~/.claude/settings.json            # user(所有项目)
@@ -1010,6 +1013,12 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 --settings <file>                  # cc agent 显式传入
 CC_PERMISSIONS_ALLOW / _ASK / _DENY      # env kill-switch(逗号分隔)
 ```
+
+遇到 `CC_SETTINGS_SOURCE_INVALID`，检查以上文件及 managed 文件的 UTF-8 编码和 JSON
+对象格式；`CC_SETTINGS_SOURCE_UNAVAILABLE` 表示读取或路径检查未完成，需检查文件访问权限；
+`CC_SETTINGS_SOURCE_TOO_LARGE` 需缩减文件到 1 MiB 内；`CC_SETTINGS_SOURCE_UNSAFE` 需将
+来源文件恢复为普通单链接文件；`CC_SETTINGS_SOURCE_CHANGED` 表示检查期间来源发生变化，
+停止并发编辑后重试。这一批读取绑定规则与来源摘要，不提供跨进程即时撤销保证。
 
 ### 判定顺序(most-restrictive-wins,denies 先于任何 prompt)
 

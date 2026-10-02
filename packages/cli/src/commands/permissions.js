@@ -29,6 +29,23 @@ const KIND_COLOR = {
 const RUNTIME_ADVISORY =
   "permission rules are enforced by Agent Core; scoped rules are refreshed before every tool call, while managed host policy and ApprovalGate still apply.";
 
+const SETTINGS_SOURCE_ERROR_CODES = new Set([
+  "CC_SETTINGS_SOURCE_INVALID",
+  "CC_SETTINGS_SOURCE_UNAVAILABLE",
+  "CC_SETTINGS_SOURCE_TOO_LARGE",
+  "CC_SETTINGS_SOURCE_UNSAFE",
+  "CC_SETTINGS_SOURCE_CHANGED",
+]);
+
+function formatAuthorityReadError(error) {
+  if (SETTINGS_SOURCE_ERROR_CODES.has(error?.code)) {
+    // Source failures can retain parser or filesystem details in their cause.
+    // Expose only the stable category and the reader's generic diagnosis.
+    return `[${error.code}] Settings source observation is unavailable`;
+  }
+  return error.message;
+}
+
 const DURATION_UNITS = Object.freeze({
   s: 1000,
   m: 60 * 1000,
@@ -244,7 +261,11 @@ export function registerPermissionsCommand(program) {
           logger.log(chalk.dim(`  authority: ${scoped.file}`));
         }
       } catch (err) {
-        logger.error(chalk.red(`permissions list failed: ${err.message}`));
+        logger.error(
+          chalk.red(
+            `permissions list failed: ${formatAuthorityReadError(err)}`,
+          ),
+        );
         process.exitCode = 1;
       }
     });
@@ -446,7 +467,11 @@ export function registerPermissionsCommand(program) {
           );
         }
       } catch (err) {
-        logger.error(chalk.red(`permissions test failed: ${err.message}`));
+        logger.error(
+          chalk.red(
+            `permissions test failed: ${formatAuthorityReadError(err)}`,
+          ),
+        );
         process.exitCode = 1;
       }
     });

@@ -50,6 +50,7 @@ const _deps = {
   writeSecurityStore: (...args) => securityStore().writeSecurityStore(...args),
   withFileLock: (...args) => lockHelper()(...args),
 };
+const settingsObservations = new WeakSet();
 
 // A process-wide owner deliberately revokes unrelated projects too. Matching
 // only contributing paths misses absent files, parent discovery and aliases.
@@ -173,7 +174,7 @@ function inspectSettingsSources(opts = {}) {
     ...settingsPaths(cwd, opts.settingsFile),
     managedSettingsPath(opts),
   ];
-  return Object.freeze({
+  const observation = Object.freeze({
     schema: "chainlesschain.settings-source-observation/v1",
     cwd,
     sources: observeSettingsSources(candidates, {
@@ -181,6 +182,8 @@ function inspectSettingsSources(opts = {}) {
       maxBytes: opts.maxBytes,
     }),
   });
+  settingsObservations.add(observation);
+  return observation;
 }
 
 /** Organization-controlled settings file. This layer is always highest. */
@@ -273,13 +276,50 @@ function loadSettings(opts = {}) {
   const cwd = opts.cwd || process.cwd();
   const env = opts.env || process.env;
   const onWarn = opts.onWarn;
+  function* layers() {
+    for (const file of settingsPaths(cwd, opts.settingsFile)) {
+      yield { file, settings: readSettingsFile(file, { onWarn }) };
+    }
+  }
+  return mergePermissionSettings(layers(), env, () =>
+    loadManagedSettings({
+      env,
+      managedSettingsFile: opts.managedSettingsFile,
+      onWarn,
+    }),
+  );
+}
 
+/**
+ * Project the exact JSON trees read and hashed by inspectSettingsSources.
+ * No path discovery or filesystem read occurs here. The final source has the
+ * managed role even when an earlier explicit/user/project source has the same
+ * path; retaining both positions preserves precedence and provenance.
+ *
+ * This is a byte-bound projection, not a fresh authority check or an atomic
+ * inventory snapshot. Environment inputs retain their existing sampling rules.
+ */
+function projectSettingsObservation(observation, { env = {} } = {}) {
+  if (!settingsObservations.has(observation)) {
+    throw new TypeError("A strict settings source observation is required");
+  }
+  const managed = observation.sources[observation.sources.length - 1];
+  return mergePermissionSettings(
+    observation.sources.slice(0, -1).map((source) => ({
+      file: source.logicalPath,
+      settings: source.settings,
+    })),
+    env,
+    () => ({ file: managed.logicalPath, settings: managed.settings }),
+  );
+}
+
+function mergePermissionSettings(layers, env, readManaged) {
   let rules = emptyRules();
   const sources = {};
   const files = [];
 
-  for (const file of settingsPaths(cwd, opts.settingsFile)) {
-    const data = readSettingsFile(file, { onWarn });
+  for (const { file, settings: data } of layers) {
     if (!data) continue;
     const perms =
       data.permissions && typeof data.permissions === "object"
@@ -308,11 +348,7 @@ function loadSettings(opts = {}) {
   }
   if (envContributed) files.push("<env>");
 
-  const managedLoaded = loadManagedSettings({
-    env,
-    managedSettingsFile: opts.managedSettingsFile,
-    onWarn,
-  });
+  const managedLoaded = readManaged();
   if (managedLoaded.settings) {
     rules = applyManagedPermissionPolicy(
       rules,
@@ -662,6 +698,7 @@ function readStringArraySetting(key, opts = {}) {
 
 module.exports = {
   inspectSettingsSources,
+  projectSettingsObservation,
   loadSettings,
   loadSettingsConfig,
   readSettingsFile,
