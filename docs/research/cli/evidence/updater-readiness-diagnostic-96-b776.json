@@ -1,0 +1,285 @@
+{
+  "schema": "chainlesschain.updater-readiness-diagnostic/v1",
+  "status": "timeout-open",
+  "releaseGateEligible": false,
+  "test": "packages/cli/__tests__/unit/packer-pack-update-applier.test.js",
+  "testName": "transfers the real lock only after a sidecar readiness handshake",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "22.22.2",
+    "vitest": "4.1.10",
+    "sandbox": "All listed tests ran outside the tool sandbox."
+  },
+  "controls": {
+    "dependencies": "Independent worktrees used junctions to the same root and CLI node_modules.",
+    "temp": "Same canonical OS TEMP/TMP root; separate randomly named fixture directories.",
+    "source": "Child imports were confirmed to resolve into each requested worktree.",
+    "permissions": "Shared/current/baseline CLI directory ACL SDDL strings matched.",
+    "applierSha256": "a9841431b0fe08c26980c5817ef4280b82496be5c466c08c3859e0f21e2e00a6",
+    "unchangedSourceFiles": [
+      "src/lib/packer/pack-update-applier.js",
+      "src/lib/packer/native-update-state.js",
+      "src/lib/packer/file-identity.js"
+    ],
+    "schedulerTimeoutMs": 60000,
+    "resultWaitMs": 60000,
+    "testTimeoutMs": 90000
+  },
+  "diagnosticChanges": "Diagnostic copies recorded file/journal timestamps and scheduler stdout/stderr, retained fixtures instead of deleting them, and rethrew original assertions. Production source, assertions and deadlines were unchanged.",
+  "runs": [
+    {
+      "name": "baseline-unmodified-broad",
+      "sourceCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+      "instrumented": false,
+      "collection": "22 packer/artifact test files, one test selected",
+      "status": "passed",
+      "durationMs": 68194.6421,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 336
+    },
+    {
+      "name": "current-single",
+      "sourceCommit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0",
+      "instrumented": true,
+      "collection": "one test file, one test selected",
+      "status": "passed",
+      "durationMs": 52727.5808,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 68,
+      "timeline": [
+        {
+          "event": "start",
+          "elapsedMs": 0,
+          "phase": "none"
+        },
+        {
+          "event": "scheduler-exit",
+          "elapsedMs": 5218,
+          "phase": "none",
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 19770,
+          "phase": "prepared"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 30133,
+          "phase": "target-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 36345,
+          "phase": "verified"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 39513,
+          "phase": "backup-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 43701,
+          "phase": "lineage-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 47832,
+          "phase": "committed"
+        },
+        {
+          "event": "deadline-or-complete",
+          "elapsedMs": 52693,
+          "phase": "committed",
+          "resultExists": true,
+          "lockExists": false
+        },
+        {
+          "event": "retained-for-diagnostics",
+          "elapsedMs": 52705,
+          "phase": "committed"
+        }
+      ],
+      "observedTransactionResult": {
+        "status": "success",
+        "exitCode": 0,
+        "lockExistsAtFinalInspection": false,
+        "resultFileMtimeAfterStartMs": 51558,
+        "resultFileMtimeAfterSchedulerExitMs": 46340,
+        "measurement": "Result file mtime; lock absence checked at later inspection, not timed exactly."
+      }
+    },
+    {
+      "name": "baseline-single",
+      "sourceCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+      "instrumented": true,
+      "collection": "one test file, one test selected",
+      "status": "passed",
+      "durationMs": 63955.754100000006,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 68,
+      "timeline": [
+        {
+          "event": "start",
+          "elapsedMs": 0,
+          "phase": "none"
+        },
+        {
+          "event": "scheduler-exit",
+          "elapsedMs": 4896,
+          "phase": "none",
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 17349,
+          "phase": "prepared"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 26708,
+          "phase": "target-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 32883,
+          "phase": "verified"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 39082,
+          "phase": "backup-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 45366,
+          "phase": "lineage-committed"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 57054,
+          "phase": "committed"
+        },
+        {
+          "event": "deadline-or-complete",
+          "elapsedMs": 63931,
+          "phase": "committed",
+          "resultExists": true,
+          "lockExists": false
+        },
+        {
+          "event": "retained-for-diagnostics",
+          "elapsedMs": 63938,
+          "phase": "committed"
+        }
+      ],
+      "observedTransactionResult": {
+        "status": "success",
+        "exitCode": 0,
+        "lockExistsAtFinalInspection": false,
+        "resultFileMtimeAfterStartMs": 62660,
+        "resultFileMtimeAfterSchedulerExitMs": 57764,
+        "measurement": "Result file mtime; lock absence checked at later inspection, not timed exactly."
+      }
+    },
+    {
+      "name": "current-broad",
+      "sourceCommit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0",
+      "instrumented": true,
+      "collection": "22 packer/artifact test files, one test selected",
+      "status": "failed",
+      "durationMs": 68255.00839999999,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 351,
+      "timeline": [
+        {
+          "event": "start",
+          "elapsedMs": 0,
+          "phase": "none"
+        },
+        {
+          "event": "scheduler-exit",
+          "elapsedMs": 7938,
+          "phase": "none",
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 35278,
+          "phase": "prepared"
+        },
+        {
+          "event": "poll",
+          "elapsedMs": 58616,
+          "phase": "target-committed"
+        },
+        {
+          "event": "deadline-or-complete",
+          "elapsedMs": 68026,
+          "phase": "target-committed",
+          "resultExists": false,
+          "lockExists": true
+        },
+        {
+          "event": "assertion-error",
+          "elapsedMs": 68159,
+          "phase": "target-committed",
+          "message": "expected false to be true // Object.is equality"
+        },
+        {
+          "event": "retained-for-diagnostics",
+          "elapsedMs": 68162,
+          "phase": "target-committed"
+        }
+      ],
+      "observedTransactionResult": {
+        "status": "success",
+        "exitCode": 0,
+        "lockExistsAtFinalInspection": false,
+        "resultFileMtimeAfterStartMs": 106761,
+        "resultFileMtimeAfterSchedulerExitMs": 98823,
+        "measurement": "Result file mtime; lock absence checked at later inspection, not timed exactly."
+      }
+    }
+  ],
+  "earlierCleanupFailure": {
+    "status": "failed",
+    "durationMs": 67695.2341,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 351,
+    "source": "Shared working tree during native-helper edits; exact revision was not captured for this run.",
+    "failure": "EBUSY in finally while removing an active transaction journal staging file; its retained transaction later produced success/exitCode 0 and released the lock."
+  },
+  "conclusion": [
+    "The reproduced broad-run failure was the unchanged result-exists assertion after its 60-second wait, while the lock remained and the journal was at target-committed.",
+    "Unconditional finally cleanup could interfere with the detached transaction and replace the original failure with EBUSY.",
+    "Single-file diagnostic runs passed on both commits; the current broad run failed and later completed. These observations do not establish a native-helper product regression or a specific host-performance cause.",
+    "Late success does not change a failed test to passed. The timeout remains unresolved."
+  ],
+  "cleanupChange": {
+    "scope": "Only this test cleanup: retain fixture with a diagnostic while its lock exists, preserve original assertion if cleanup also fails, and still fail for cleanup errors after otherwise successful assertions.",
+    "productionChanged": false,
+    "deadlinesChanged": false,
+    "singleCaseVerification": {
+      "status": "passed",
+      "durationMs": 53485.2405,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 68,
+      "source": "Working tree cleanup-only test edit, not a release gate."
+    }
+  }
+}

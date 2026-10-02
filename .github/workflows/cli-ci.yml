@@ -352,6 +352,12 @@ jobs:
           echo '<!doctype html><title>stub</title>' > src/assets/web-panel/index.html
           echo '/* stub */' > src/assets/web-panel/assets/stub.js
 
+      - name: Build fixed Linux process supervision asset for dry-run
+        run: |
+          node packages/cli/scripts/build-linux-subreaper.mjs \
+            --out packages/cli/src/assets/linux-subreaper \
+            --commit "${{ github.event.pull_request.head.sha || github.sha }}"
+
       - name: cc pack --dry-run for linux-x64
         working-directory: packages/cli
         run: |

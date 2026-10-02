@@ -1,0 +1,381 @@
+{
+  "schema": "chainlesschain.standalone-pkg-helper-native-evidence/v1",
+  "releaseCommit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0",
+  "status": "verified",
+  "releaseGateEligible": false,
+  "source": {
+    "method": "git archive of nine exact-commit input files; every byte compared with git show before and after build",
+    "start": {
+      "commit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0",
+      "scope": "nine archived input source files; exact Git blob byte comparison",
+      "sourceClean": true,
+      "archiveSha256": "sha256:c38b6310a352939e001290b6b359dd411e357120499c07ca0b55317eec306ce8",
+      "files": [
+        {
+          "path": "packages/cli/package.json",
+          "bytes": 7327,
+          "sha256": "sha256:64b079e6c9249118f35237bbb436e02af919820f5a909a45454558c5d857f4b8",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/scripts/build-linux-subreaper.mjs",
+          "bytes": 3950,
+          "sha256": "sha256:d06386a2f98f22ed07775970a33d5e7515754768a207c2a2425e806636e0c090",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs",
+          "bytes": 16293,
+          "sha256": "sha256:1386f5ad51ba9e946fbf676d8aba4c8a11b3219916a413ac6fc24578d998ace1",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs",
+          "bytes": 24417,
+          "sha256": "sha256:48e1fc27454e6dcfd3018849912699e6ef8417db1716d1c8eff2cd1072a786d2",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/packer/pkg-config-generator.js",
+          "bytes": 26672,
+          "sha256": "sha256:961857de233611f91abbb931585b847716fdf0f2a1c5447dbbe58d6c8fdb63b9",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+          "bytes": 4032,
+          "sha256": "sha256:da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+          "bytes": 13660,
+          "sha256": "sha256:bbe6511f0657f8802f397984d9afcb22f49a13eaf3e4b131a60fe3a0bf47f797",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "bytes": 10633,
+          "sha256": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "bytes": 13923,
+          "sha256": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+          "matchesCommit": true
+        }
+      ]
+    },
+    "end": {
+      "commit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0",
+      "scope": "nine archived input source files; exact Git blob byte comparison",
+      "sourceClean": true,
+      "archiveSha256": "sha256:c38b6310a352939e001290b6b359dd411e357120499c07ca0b55317eec306ce8",
+      "files": [
+        {
+          "path": "packages/cli/package.json",
+          "bytes": 7327,
+          "sha256": "sha256:64b079e6c9249118f35237bbb436e02af919820f5a909a45454558c5d857f4b8",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/scripts/build-linux-subreaper.mjs",
+          "bytes": 3950,
+          "sha256": "sha256:d06386a2f98f22ed07775970a33d5e7515754768a207c2a2425e806636e0c090",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs",
+          "bytes": 16293,
+          "sha256": "sha256:1386f5ad51ba9e946fbf676d8aba4c8a11b3219916a413ac6fc24578d998ace1",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs",
+          "bytes": 24417,
+          "sha256": "sha256:48e1fc27454e6dcfd3018849912699e6ef8417db1716d1c8eff2cd1072a786d2",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/packer/pkg-config-generator.js",
+          "bytes": 26672,
+          "sha256": "sha256:961857de233611f91abbb931585b847716fdf0f2a1c5447dbbe58d6c8fdb63b9",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+          "bytes": 4032,
+          "sha256": "sha256:da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-helper.js",
+          "bytes": 13660,
+          "sha256": "sha256:bbe6511f0657f8802f397984d9afcb22f49a13eaf3e4b131a60fe3a0bf47f797",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-process.js",
+          "bytes": 10633,
+          "sha256": "sha256:73091b256152e752ad340f56417cfb8a2c8dd70cdbbb44d8bfbf2bc195c2a4d3",
+          "matchesCommit": true
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+          "bytes": 13923,
+          "sha256": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+          "matchesCommit": true
+        }
+      ]
+    },
+    "startReceiptSha256": "sha256:e1a0af531bbddb792ec18cc98444d7eff10edc29c3749d669fd993eed1c5aef6",
+    "endReceiptSha256": "sha256:e1a0af531bbddb792ec18cc98444d7eff10edc29c3749d669fd993eed1c5aef6"
+  },
+  "build": {
+    "host": "WSL Linux x64",
+    "node": "v22.12.0",
+    "pkg": "6.21.0",
+    "esbuildWasm": "0.28.1",
+    "target": "node22-linux-x64",
+    "flags": [
+      "--no-bytecode",
+      "--public",
+      "--public-packages",
+      "*"
+    ],
+    "compression": "GZip",
+    "helperManifest": {
+      "schema": "chainlesschain.linux-subreaper-artifact/v1",
+      "platform": "linux",
+      "arch": "x64",
+      "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "imageDigest": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b",
+      "bytes": 934136,
+      "linkage": "static",
+      "commit": "b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0"
+    },
+    "helperManifestSha256": "sha256:27362198187e8f9ac416de89bf4140ec4ce95e250eddae4e84d18991a0bf5a8e",
+    "helperSha256": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b",
+    "variantFaults": {
+      "valid": "none",
+      "missing": "manifest excluded from pkg assets after configuration validation",
+      "corrupt": "append corrupt bytes to helper image after configuration validation",
+      "source": "append corrupt bytes to embedded C source after configuration validation",
+      "mounted": "process.pkg.mount overlays helper asset directory with a real temporary directory"
+    }
+  },
+  "runtime": {
+    "host": "linux",
+    "arch": "x64",
+    "systemNode": "v22.16.0",
+    "directory": "/tmp/cc-standalone-b776be5fc8-YrgYy5BA",
+    "perVariantTimeoutSeconds": 12,
+    "spawnSyncTimeoutMs": 15000,
+    "positiveInnerTimeoutMs": 8000,
+    "targetFailsafeExitMs": 5000,
+    "graceMs": 100,
+    "temporaryDirectoryEmptyAfterRun": true,
+    "compilerCallsAcrossAllVariants": 0,
+    "remoteDirectoryRemovedAfterReadback": true,
+    "rawResultsSha256": "sha256:ac6916f9946c08dec92af342f6602909f11b5c0cbff93249eecb53e97daf8439"
+  },
+  "results": [
+    {
+      "variant": "valid",
+      "binaryBytes": 78534872,
+      "binarySha256": "sha256:c72198f42112bbbb75b153cdfc6ca1af5ace804500ed2a20f2534e34d3b035ef",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stderr": "",
+      "output": {
+        "schema": "cc-standalone-helper-probe/v1",
+        "pkg": true,
+        "node": "v22.23.1",
+        "compilerCalls": 0,
+        "binding": {
+          "command": "/proc/self/fd/4",
+          "nlink": 0,
+          "mode": 320,
+          "replacementCreated": true
+        },
+        "pids": [
+          2203663,
+          2203670
+        ],
+        "elapsedAfterReadyMs": 126.87174299999998,
+        "receipt": {
+          "targetPid": 2203663,
+          "target": {
+            "code": -1,
+            "signal": 9,
+            "spawnErrno": 0
+          },
+          "supervisor": {
+            "code": 0,
+            "signal": null,
+            "closed": true
+          },
+          "cleanup": {
+            "mode": "linux-subreaper",
+            "confirmed": true,
+            "descendantsReaped": true,
+            "reaped": 2,
+            "protocolError": null,
+            "processTreeContained": false
+          },
+          "helper": {
+            "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+            "imageDigest": "sha256:af72f1689be8bebaa6b8221103169144015dc86002dfec7b11c29f4e8c1ff66b",
+            "binding": "unlinked-inherited-fd",
+            "distribution": "packaged-static"
+          }
+        }
+      }
+    },
+    {
+      "variant": "missing",
+      "binaryBytes": 78534405,
+      "binarySha256": "sha256:6b2f38356c4c2c5f768f68883b38dbe2067571a5b70636d89654878ffb72e7f7",
+      "exitCode": 3,
+      "signal": null,
+      "error": null,
+      "stderr": "",
+      "output": {
+        "rejected": true,
+        "code": "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+        "message": "Linux process supervision helper unavailable: standalone-asset-missing",
+        "compilerCalls": 0,
+        "pkg": true,
+        "failures": [
+          {
+            "name": "lstatSync",
+            "arg": "/snapshot/missing/src/assets/linux-subreaper/linux-x64/manifest.json",
+            "code": "ENOENT"
+          }
+        ],
+        "entry": "/snapshot/missing/probe.cjs",
+        "root": "/snapshot/missing"
+      }
+    },
+    {
+      "variant": "corrupt",
+      "binaryBytes": 78534885,
+      "binarySha256": "sha256:7dc98aea69f0dd7a3ead74c8c4aa3adb96c750175babee8caeac597c8651064e",
+      "exitCode": 3,
+      "signal": null,
+      "error": null,
+      "stderr": "",
+      "output": {
+        "rejected": true,
+        "code": "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+        "message": "Linux process supervision helper unavailable: packaged-identity-mismatch",
+        "compilerCalls": 0,
+        "pkg": true,
+        "failures": [],
+        "entry": "/snapshot/corrupt/probe.cjs",
+        "root": "/snapshot/corrupt"
+      }
+    },
+    {
+      "variant": "source",
+      "binaryBytes": 78534884,
+      "binarySha256": "sha256:9657864a62abe96a85224a120fb8fe863230411eaeec4e295e0373802cb44f1f",
+      "exitCode": 3,
+      "signal": null,
+      "error": null,
+      "stderr": "",
+      "output": {
+        "rejected": true,
+        "code": "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+        "message": "Linux process supervision helper unavailable: source-digest-mismatch",
+        "compilerCalls": 0,
+        "pkg": true,
+        "failures": [],
+        "entry": "/snapshot/source/probe.cjs",
+        "root": "/snapshot/source"
+      }
+    },
+    {
+      "variant": "mounted",
+      "binaryBytes": 78534881,
+      "binarySha256": "sha256:373551d1584eb1c345e53ad0e306757f08d57a90cd4e99ac736ca62c746bf829",
+      "exitCode": 3,
+      "signal": null,
+      "error": null,
+      "stderr": "",
+      "output": {
+        "rejected": true,
+        "code": "EXTERNAL_AGENT_HELPER_UNAVAILABLE",
+        "message": "Linux process supervision helper unavailable: standalone-asset-not-embedded",
+        "compilerCalls": 0,
+        "pkg": true,
+        "failures": [],
+        "entry": "/snapshot/mounted/probe.cjs",
+        "root": "/snapshot/mounted"
+      }
+    }
+  ],
+  "transport": {
+    "method": "one base binary plus four byte-delta reconstructions; SHA256 checked against locally built full binaries before execution",
+    "patchSha256": "sha256:1c123c961ca9539fd85de46dc30c30e5fac3147b930f3edb6844dd4b50047f1a"
+  },
+  "replay": {
+    "harness": [
+      {
+        "name": "setup.mjs",
+        "bytes": 2679,
+        "sha256": "sha256:f882977b1f1bb31fc21a7a08267924a2228c4a6a6f7dbac8fd4b56ecfbbca097",
+        "sourceText": "import fs from 'node:fs';\nimport path from 'node:path';\nimport { fileURLToPath } from 'node:url';\nimport { createRequire } from 'node:module';\nimport { generatePkgConfig } from './source/packages/cli/src/lib/packer/pkg-config-generator.js';\nconst audit=fileURLToPath(new URL('./',import.meta.url));\nconst repo=path.join(audit,'source');\nconst base=path.join(audit,'variants');\nconst variant=process.argv[2]||'valid';\nconst cliRoot=path.join(base,variant);\nfs.mkdirSync(cliRoot,{recursive:true});\nfs.writeFileSync(path.join(cliRoot,'package.json'),JSON.stringify({name:'cc-helper-probe',version:'1.0.0',type:'module',license:'MIT'}));\nfor(const name of ['linux-subreaper-helper.js','linux-subreaper-process.js','linux-subreaper-artifact.js','linux-subreaper-supervisor.c']){\n const rel='src/lib/process-execution-broker/'+name;fs.mkdirSync(path.dirname(path.join(cliRoot,rel)),{recursive:true});fs.copyFileSync(path.join(repo,'packages/cli',rel),path.join(cliRoot,rel));\n}\nfor(const name of ['mcp-stdio-capsule-builder-worker.cjs','mcp-stdio-immutable-vfs-resolver.cjs'])fs.copyFileSync(path.join(repo,'packages/cli/src/lib',name),path.join(cliRoot,'src/lib',name));\nconst require=createRequire(path.join(repo,'packages/cli/package.json'));\nconst esbuild=path.dirname(require.resolve('esbuild-wasm/package.json'));\nfor(const name of ['package.json','lib/browser.js','esbuild.wasm']){\n const dst=path.join(cliRoot,'node_modules/esbuild-wasm',name);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.copyFileSync(path.join(esbuild,name),dst);\n}\nfs.cpSync(path.join(audit,'helper-build'),path.join(cliRoot,'src/assets/linux-subreaper'),{recursive:true});\nconst result=generatePkgConfig({cliRoot,tempDir:path.join(cliRoot,'temp'),distDir:path.join(cliRoot,'web'),templatesDir:path.join(cliRoot,'templates'),targets:['node22-linux-x64'],outputPath:path.join(cliRoot,'probe'),compress:true});\nconst config=JSON.parse(fs.readFileSync(result.pkgConfigFile,'utf8'));\nconfig.bin=path.join(cliRoot,'probe.cjs');\nconfig.pkg.assets=config.pkg.assets.filter(asset=>fs.existsSync(path.resolve(result.pkgConfigDir,asset)));\nif(variant==='missing')config.pkg.assets=config.pkg.assets.filter(asset=>!asset.endsWith('manifest.json'));\nif(variant==='corrupt')fs.appendFileSync(path.join(cliRoot,'src/assets/linux-subreaper/linux-x64/supervisor'),'corrupt');\nif(variant==='source')fs.appendFileSync(path.join(cliRoot,'src/lib/process-execution-broker/linux-subreaper-supervisor.c'),'corrupt');\nfs.copyFileSync(path.join(audit,'probe.cjs'),path.join(cliRoot,'probe.cjs'));\nfs.writeFileSync(result.pkgConfigFile,JSON.stringify(config,null,2));\nconsole.log(JSON.stringify({variant,...result,cliRoot}));\n"
+      },
+      {
+        "name": "probe.cjs",
+        "bytes": 4143,
+        "sha256": "sha256:2657d31aba8179bd338cf73d911aaa88b809500cda54258679b27a1f6e1a1cc0",
+        "sourceText": "const fs = require('node:fs');\nconst path = require('node:path');\nconst os = require('node:os');\nconst assert = require('node:assert/strict');\nconst { spawn } = require('node:child_process');\nconst { acquireLinuxSubreaperHelper } = require('./src/lib/process-execution-broker/linux-subreaper-helper.js');\nconst { spawnLinuxSubreaperChild } = require('./src/lib/process-execution-broker/linux-subreaper-process.js');\nlet compilerCalls = 0;\nconst failures=[];\nfor(const name of ['realpathSync','lstatSync','openSync','fstatSync','readlinkSync']) {\n const original=fs[name];fs[name]=function(...args){try{return original.apply(this,args);}catch(error){failures.push({name,arg:args[0],code:error.code});throw error;}};\n}\n(async () => {\n  let mounted;\n  if(path.basename(__dirname)==='mounted') {\n    const original=path.join(__dirname,'src/assets/linux-subreaper/linux-x64');\n    mounted=fs.mkdtempSync(path.join(os.tmpdir(),'cc-standalone-mounted-'));\n    for(const name of ['manifest.json','supervisor'])fs.writeFileSync(path.join(mounted,name),fs.readFileSync(path.join(original,name)));\n    process.pkg.mount(original,mounted);\n  }\n  let helper;\n  try { helper = acquireLinuxSubreaperHelper({ spawnSync() { compilerCalls++; throw new Error('compiler forbidden'); } }); }\n  catch (error) { console.log(JSON.stringify({ rejected:true, code:error.code, message:error.message, compilerCalls, pkg:!!process.pkg, failures, entry:process.pkg.defaultEntrypoint, root:__dirname }));if(mounted){for(const name of ['manifest.json','supervisor'])fs.unlinkSync(path.join(mounted,name));fs.rmdirSync(mounted);} process.exitCode=3; return; }\n  const root=fs.mkdtempSync(path.join(os.tmpdir(),'cc-native-helper-probe-'));\n  const target=path.join(root,'tree.cjs');\n  fs.writeFileSync(target, `const {spawn}=require('node:child_process');process.on('SIGTERM',()=>{});setTimeout(()=>process.exit(0),5000);if(process.argv[2]==='leaf')process.send({pid:process.pid});else{const leaf=spawn(process.execPath,[__filename,'leaf'],{detached:true,stdio:['ignore','ignore','ignore','ipc']});leaf.once('message',({pid})=>process.stdout.write(JSON.stringify([process.pid,pid])+'\\\\n'));}`);\n  let binding, replacement, child, timer;\n  try {\n    child=spawnLinuxSubreaperChild(process.argv[2],[target],{helper,cwd:root,env:{},graceMs:100},{spawn(command,args,options){\n      const fd=options.stdio[4];const st=fs.fstatSync(fd);const linked=fs.readlinkSync('/proc/self/fd/'+fd);\n      assert.equal(command,'/proc/self/fd/4');assert.equal(st.nlink,0);assert.equal(st.mode&0o777,0o500);\n      replacement=linked.replace(/ \\(deleted\\)$/,'');\n      assert.ok(replacement.startsWith(os.tmpdir()+'/cc-linux-subreaper-build-'));\n      fs.mkdirSync(path.dirname(replacement));fs.writeFileSync(replacement,'#!/bin/sh\\nexit 99\\n',{mode:0o700});\n      binding={command,nlink:st.nlink,mode:st.mode&0o777,replacementCreated:true};\n      return spawn(command,args,options);\n    }});\n    const errors=[];child.on('error',e=>errors.push(e.code));child.stderr.resume();let text='';let pids;let start;\n    child.stdout.on('data',chunk=>{text+=chunk;if(!pids&&text.includes('\\n')){pids=JSON.parse(text.trim());start=performance.now();child.kill('SIGTERM');child.kill('SIGTERM');}});\n    const receipt=await Promise.race([child.ownedProcessTreeClosed,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),8000);})]);\n    assert.deepEqual(errors,[]);assert.equal(pids?.length,2);assert.equal(receipt.cleanup.confirmed,true);assert.equal(receipt.cleanup.reaped,2);assert.equal(receipt.helper.binding,'unlinked-inherited-fd');assert.equal(compilerCalls,0);\n    for(const pid of pids)assert.equal(fs.existsSync('/proc/'+pid),false);\n    console.log(JSON.stringify({schema:'cc-standalone-helper-probe/v1',pkg:!!process.pkg,node:process.version,compilerCalls,binding,pids,elapsedAfterReadyMs:performance.now()-start,receipt}));\n  } finally {clearTimeout(timer);child?.kill('SIGKILL');fs.unlinkSync(target);fs.rmdirSync(root);if(replacement){fs.unlinkSync(replacement);fs.rmdirSync(path.dirname(replacement));}}\n})().catch(error=>{console.error(error.stack);process.exitCode=1;});\n"
+      },
+      {
+        "name": "make-patches.cjs",
+        "bytes": 1126,
+        "sha256": "sha256:1ca3ab6d2e44de025022373085f934c4fa55b5c41dcf5be56fab2279acfea049",
+        "sourceText": "const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');\nconst root=path.join(__dirname,'variants');\nconst sha=b=>crypto.createHash('sha256').update(b).digest('hex');\nconst base=fs.readFileSync(path.join(root,'valid/cc-helper-probe-pack'));\nconst result={baseSha:sha(base),variants:[]};\nfor(const variant of ['missing','corrupt','source','mounted']){\n const bytes=fs.readFileSync(path.join(root,variant,'cc-helper-probe-pack'));const chunks=[];\n for(let i=0;i<bytes.length;){if(i<base.length&&base[i]===bytes[i]){i++;continue;}const begin=i;let last=i;i++;\n while(i<bytes.length){if(i>=base.length||base[i]!==bytes[i])last=i;if(i-last>1024)break;i++;}\n const end=Math.min(bytes.length,last+1);chunks.push({offset:begin,data:bytes.subarray(begin,end).toString('base64')});i=end;}\n result.variants.push({variant,bytes:bytes.length,sha:sha(bytes),chunks});\n}\nfs.writeFileSync(path.join(__dirname,'patches.json'),JSON.stringify(result));console.log(JSON.stringify(result.variants.map(x=>({variant:x.variant,bytes:x.bytes,sha:x.sha,patchBytes:x.chunks.reduce((s,c)=>s+c.data.length,0)}))));\n"
+      },
+      {
+        "name": "run-remote.cjs",
+        "bytes": 3073,
+        "sha256": "sha256:966f76931bea4d7fa49327dffbac9f57511cdf6ad28aacd7ee6b92a37054c3bb",
+        "sourceText": "const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');const assert=require('node:assert/strict');const {spawnSync}=require('node:child_process');\nconst root=fs.realpathSync(__dirname);\nassert.match(root,/^\\/tmp\\/cc-standalone-b776be5fc8-[A-Za-z0-9]{8}$/);\nconst base=path.join(root,'valid');const sha=b=>crypto.createHash('sha256').update(b).digest('hex');\nconst patch=JSON.parse(fs.readFileSync(path.join(root,'patches.json'),'utf8'));\nassert.equal(sha(fs.readFileSync(base)),patch.baseSha);\nconst temporary=path.join(root,'tmp');fs.mkdirSync(temporary,{mode:0o700});\nconst expected={missing:'standalone-asset-missing',corrupt:'packaged-identity-mismatch',source:'source-digest-mismatch',mounted:'standalone-asset-not-embedded'};\nconst results=[];\nfor(const value of [{variant:'valid',sha:patch.baseSha},...patch.variants]){\n assert.ok(value.variant==='valid'||Object.hasOwn(expected,value.variant));\n const file=path.join(root,value.variant);\n if(value.variant!=='valid'){\n  fs.copyFileSync(base,file);const fd=fs.openSync(file,'r+');\n  try{fs.ftruncateSync(fd,value.bytes);for(const chunk of value.chunks){const bytes=Buffer.from(chunk.data,'base64');fs.writeSync(fd,bytes,0,bytes.length,chunk.offset);}}finally{fs.closeSync(fd);}\n }\n assert.equal(sha(fs.readFileSync(file)),value.sha);fs.chmodSync(file,0o700);\n const run=spawnSync('/usr/bin/timeout',['12',file,'/usr/bin/node'],{cwd:root,env:{PATH:'/usr/bin:/bin',TMPDIR:temporary},encoding:'utf8',timeout:15000,maxBuffer:1024*1024});\n const result={variant:value.variant,sha256:'sha256:'+value.sha,bytes:fs.statSync(file).size,status:run.status,signal:run.signal,error:run.error?.code||null,stdout:run.stdout,stderr:run.stderr};results.push(result);\n fs.writeFileSync(path.join(root,'probe-results.json'),JSON.stringify({schema:'cc-exact-sha-standalone-native-results/v1',host:process.platform,arch:process.arch,node:process.version,results},null,2)+'\\n');\n assert.equal(run.signal,null);assert.equal(run.error,undefined);assert.equal(run.stderr,'');\n const output=JSON.parse(run.stdout);assert.equal(output.pkg,true);assert.equal(output.compilerCalls,0);\n if(value.variant==='valid'){\n  assert.equal(run.status,0);assert.equal(output.binding.command,'/proc/self/fd/4');assert.equal(output.binding.nlink,0);assert.equal(output.binding.mode,0o500);assert.equal(output.binding.replacementCreated,true);\n  assert.equal(output.receipt.cleanup.confirmed,true);assert.equal(output.receipt.cleanup.reaped,2);assert.equal(output.receipt.helper.binding,'unlinked-inherited-fd');assert.equal(output.receipt.helper.distribution,'packaged-static');\n }else{\n  assert.equal(run.status,3);assert.equal(output.rejected,true);assert.equal(output.code,'EXTERNAL_AGENT_HELPER_UNAVAILABLE');assert.ok(output.message.endsWith(expected[value.variant]));\n }\n console.log(JSON.stringify({variant:value.variant,status:run.status,verified:true}));\n}\nassert.deepEqual(fs.readdirSync(temporary),[]);\nconsole.log(JSON.stringify({status:'verified',variants:results.length,temporaryDirectoryEmpty:true}));\n"
+      },
+      {
+        "name": "build.sh",
+        "bytes": 562,
+        "sha256": "sha256:03cce8f314d75682b386e1ab69b251879f38c38f5afebe4340afd5a0ab46f731",
+        "sourceText": "#!/usr/bin/env bash\nset -euo pipefail\ncd /mnt/c/code/chainlesschain/.work/gap-validation/standalone-b776be5fc8-20261003\nexport PATH=/tmp/cc-node-22/bin:/usr/bin:/bin\nexport PKG_CACHE_PATH=/mnt/c/Users/longfa/.pkg-cache\nfor variant in valid missing corrupt source mounted; do\n  node setup.mjs \"$variant\" > \"setup-$variant.json\"\n  node /mnt/c/code/chainlesschain/node_modules/@yao-pkg/pkg/lib-es5/bin.js \"variants/$variant/temp/pkg-config/package.json\" --no-bytecode --public --public-packages '*' > \"build-$variant.log\" 2>&1\n  printf '%s built\\n' \"$variant\"\ndone\n"
+      },
+      {
+        "name": "check-source.mjs",
+        "bytes": 1391,
+        "sha256": "sha256:a1886dc74600a498ceb7a144047275e0af571954f1c1b3f24191e98f1614ad23",
+        "sourceText": "import fs from 'node:fs';\nimport path from 'node:path';\nimport crypto from 'node:crypto';\nimport assert from 'node:assert/strict';\nimport { execFileSync } from 'node:child_process';\nimport { fileURLToPath } from 'node:url';\nconst base=fileURLToPath(new URL('./',import.meta.url));\nconst source=path.join(base,'source');\nconst commit='b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0';\nconst hash=b=>'sha256:'+crypto.createHash('sha256').update(b).digest('hex');\nfunction walk(root){return fs.readdirSync(root,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(root,e.name)):[path.join(root,e.name)]);}\nconst files=walk(source).sort().map(file=>{\n const relative=path.relative(source,file).replaceAll('\\\\','/');\n const bytes=fs.readFileSync(file);\n const committed=execFileSync('git',['show',commit+':'+relative],{maxBuffer:4*1024*1024});\n assert.ok(bytes.equals(committed),relative);\n return {path:relative,bytes:bytes.length,sha256:hash(bytes),matchesCommit:true};\n});\nassert.equal(files.length,9);\nconst result={commit,scope:'nine archived input source files; exact Git blob byte comparison',sourceClean:true,archiveSha256:hash(fs.readFileSync(path.join(base,'source.tar'))),files};\nfs.writeFileSync(path.join(base,'source-'+process.argv[2]+'.json'),JSON.stringify(result,null,2)+'\\n');\nconsole.log(JSON.stringify({phase:process.argv[2],commit,sourceClean:true,files:files.length}));\n"
+      }
+    ],
+    "steps": [
+      "Create a fresh audit directory beneath the repository .work/gap-validation. Materialize replay.harness sourceText there, checking recorded SHA256 values.",
+      "git archive --format=tar --output=<audit>/source.tar b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0 <the nine source.start.files paths>; extract into <audit>/source. Run check-source.mjs start from repository root.",
+      "Within WSL, use Node 22 and /usr/bin/cc: node source/packages/cli/scripts/build-linux-subreaper.mjs --out helper-build --commit b776be5fc8bb8fd04d9a6ef2846eaf61bac8f4f0. Set TMPDIR to a directory inside the audit directory.",
+      "Use the captured build.sh as command reference, replacing its audit-directory and dependency-tool locations if necessary; pkg 6.21.0 and esbuild-wasm 0.28.1 must resolve from the repository node_modules. Build all five variants. Run make-patches.cjs and check-source.mjs end.",
+      "On a disposable Linux x64 host with /usr/bin/node, create a unique /tmp/cc-standalone-b776be5fc8-XXXXXXXX directory. Copy the valid variant cc-helper-probe-pack as valid, plus patches.json and run-remote.cjs. Run /usr/bin/node <unique-directory>/run-remote.cjs.",
+      "Read probe-results.json and compare every remote binary hash with the corresponding local full binary. Expect valid exit 0 and all four faults exit 3. Rebuilt binary hashes may differ with build tool/runtime provenance; recheck internally rather than treating recorded hashes as universal reproducibility."
+    ]
+  },
+  "limitations": [
+    "Independent supplementary helper-entry probe, not a packaged full-CLI smoke test or GitHub Actions release gate.",
+    "Only Linux x64 was built and executed; no Linux ARM64, Windows, or macOS native validation is claimed.",
+    "Canonical node22-linux-x64 target exercised here; target aliases and empty-target rejection require the separate unit/CI results.",
+    "Pinned-image execution is observed by replacing the unlinked helper pathname with an exit-99 script before spawn; successful reaping still runs through inherited /proc/self/fd/4.",
+    "Two reaped processes are the direct target and its detached child. processTreeContained=false remains the recorded protocol result; no cgroup or complete containment claim.",
+    "No native package, CLI package or IDE extension was published; no website service or shared dependency was modified.",
+    "Raw executable binaries and patch payload remain temporary and are not committed; this receipt embeds small replay harnesses and hashes."
+  ]
+}

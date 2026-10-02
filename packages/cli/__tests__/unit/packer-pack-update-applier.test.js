@@ -1428,6 +1428,9 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
           `const plan = await scheduleReplace({ newExePath: stagedPath, targetExePath: targetPath, expectedSha256, platform: "win32", verify: false });\n` +
           `fs.writeFileSync(${JSON.stringify(planPath)}, JSON.stringify(plan));\n`,
       );
+      const lockPath = `${targetPath}.update.lock`;
+      let testFailed = false;
+      let cleanupFailure;
       try {
         const scheduled = nodeSpawnSync(process.execPath, [helperPath], {
           encoding: "utf8",
@@ -1435,7 +1438,6 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
         });
         expect(scheduled.status, scheduled.stderr || scheduled.stdout).toBe(0);
         const resultPath = `${targetPath}.update-result.json`;
-        const lockPath = `${targetPath}.update.lock`;
         const waitCell = new Int32Array(new SharedArrayBuffer(4));
         const deadline = Date.now() + 60_000;
         while (
@@ -1455,9 +1457,31 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
           action: "sidecar-cmd",
           targetExePath: targetPath,
         });
+      } catch (error) {
+        testFailed = true;
+        throw error;
       } finally {
-        fs.rmSync(dir, { recursive: true, force: true });
+        try {
+          // A deadline failure does not stop the detached sidecar. Removing
+          // its files can interrupt the transaction and hide the assertion.
+          if (fs.existsSync(lockPath)) {
+            console.warn(
+              `[updater readiness test] Transaction lock remains; retained fixture: ${dir}`,
+            );
+          } else {
+            fs.rmSync(dir, { recursive: true, force: true });
+          }
+        } catch (cleanupError) {
+          if (testFailed) {
+            console.warn(
+              `[updater readiness test] Cleanup failed (${cleanupError.code || cleanupError.name}); preserving the original failure. Inspect fixture: ${dir}`,
+            );
+          } else {
+            cleanupFailure = cleanupError;
+          }
+        }
       }
+      if (cleanupFailure) throw cleanupFailure;
     },
     90_000,
   );

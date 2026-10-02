@@ -55,6 +55,15 @@ function occurrences(text, needle) {
 }
 
 describe("CLI release workflow contracts", () => {
+  it("stages the fixed helper before the actual Linux packaging dry-run", () => {
+    const dryRun = workflow("cli-ci.yml")
+      .split("\n  pack-linux-dryrun:")[1]
+      .split("\n  dry-run-publish:")[0];
+    expect(dryRun).toMatch(
+      /Build fixed Linux process supervision asset for dry-run[\s\S]*?build-linux-subreaper\.mjs[\s\S]*?--out packages\/cli\/src\/assets\/linux-subreaper[\s\S]*?--commit "\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}"[\s\S]*?cc pack --dry-run for linux-x64/u,
+    );
+  });
+
   it("keeps Desktop cache composition fixtures runnable on minimum Node without experimental SQLite", () => {
     const source = fs.readFileSync(
       path.join(
