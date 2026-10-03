@@ -16,7 +16,7 @@
 
 候选 `fedc71423e` 将 Windows updater 私有 ready 等待改为每 25 ms 异步检查，保持 **30 秒**截止与 marker/nonce 校验；真实子进程的 error/exit 可以在等待期间交付。update 和 rescue 两处调用均 await，防止外层 finally 提前释放锁或删除 rescue 暂存文件。握手未确认时继续保留事务归属与现场，不将失败当作已转移。
 
-原有 applier 全文件 **69/69**，新增 readiness/inventory **20/20** 通过。独立原始探针的启动失败/提前退出原先约 **30.2 秒**后才拒绝，修后为 **130.0 / 264.1 ms**；源码、事件及摘要见[可重放回执](../research/cli/evidence/updater-readiness-eventloop-13095-7655.json)。这是独立事件饥饿缺陷；此前握手成功后耗时 **106.76 秒**的广范围事务问题仍开放，原 **60/90 秒**回归期限未改，完整发布门仍须重新通过。
+原有 applier 全文件 **69/69**，新增 readiness/inventory **20/20** 通过。独立原始探针的启动失败/提前退出原先约 **30.2 秒**后才拒绝，修后为 **130.0 / 264.1 ms**；源码、事件及摘要见[可重放回执](https://github.com/chainlesschain/chainlesschain/blob/feature/cli-ide-gap-completion-2026-10-02/docs/research/cli/evidence/updater-readiness-eventloop-13095-7655.json)。这是独立事件饥饿缺陷；此前握手成功后耗时 **106.76 秒**的广范围事务问题仍开放，原 **60/90 秒**回归期限未改，完整发布门仍须重新通过。
 
 ### 2026-10-03 —— 目标检查与构建资源预算修复
 

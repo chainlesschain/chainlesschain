@@ -6,9 +6,11 @@
 
 ### REL-IDE：新候选与未发布状态（2026-10-03）
 
-冻结分支 `release/ide-vscode-0.37.127` 从历史 `96cbf6ba56` 推进到 **13095fd42635a580f4d88eaada5ef01ec0553ce1**，包含后续 settings、standalone 与有限构建预算修复。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338537)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338307)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338408) 使用 PR 的准确 head SHA；[六平台 native](https://github.com/chainlesschain/chainlesschain/actions/runs/37098416042) 另以准确 `commit_sha` 调度。Strict 已失败：安全 map 仍绑定新增覆盖前的测试源码摘要，未执行映射回归；CLI 的对应测试也拒绝同一过期摘要。`88f9dc7d09` 更新唯一漂移 producer，相关两文件 **345/345** 与格式校验通过，映射条件及测试断言保持。
+当前冻结提交为 **1fe7a46c0f97b93fb5110ea3427cc8551d0dab37**，已推实施分支与 `release/ide-vscode-0.37.127`。其准确 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924173)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37101923924) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924139) 已启动，结果尚待完整通过；不把旧 SHA、局部矩阵或诊断成功转移为发布许可。
 
-native 的六个 standalone 构建和版本/status 运行均已通过；五个平台后续回归成功，Windows ARM64 的 installer/updater 回归失败，汇总跳过。其余 CLI/IDE 结果仍在收集，不能以局部作业代替完整门。后续修复整合后必须冻结新的准确提交重新验收；尚未推 `ide-vscode-v0.37.127` tag。Open VSX 公共接口回读仍为可列出、可下载的 **0.37.126**；CLI **0.166.84**、JetBrains **0.4.146** 保持公开版本，不准备新的 JetBrains 生产发行。
+冻结分支此前从历史 `96cbf6ba56` 推进到 **13095fd42635a580f4d88eaada5ef01ec0553ce1**，包含后续 settings、standalone 与有限构建预算修复。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338537)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338307)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338408) 使用 PR 的准确 head SHA；[六平台 native](https://github.com/chainlesschain/chainlesschain/actions/runs/37098416042) 另以准确 `commit_sha` 调度。Strict 已失败：安全 map 仍绑定新增覆盖前的测试源码摘要，未执行映射回归；CLI 的对应测试也拒绝同一过期摘要。`88f9dc7d09` 更新唯一漂移 producer，相关两文件 **345/345** 与格式校验通过，映射条件及测试断言保持。
+
+native 的六个 standalone 构建和版本/status 运行均已通过；五个平台后续回归成功，Windows ARM64 的 installer/updater 回归失败，汇总跳过。首项已完成 READY 握手，后续 60 秒内 result 不存在；其余四项约 60 秒的 `spawnSync` 返回 `status:null`，没有 error.code/signal 记录，不直接认定 ETIMEDOUT。串行 PowerShell/journal/hash 开销尚未插桩，不能归为唯一原因。旧 CLI/IDE run 随后被新提交替代而取消，仍不能用于发布。尚未推 `ide-vscode-v0.37.127` tag；Open VSX 公共接口回读仍为可列出、可下载的 **0.37.126**。CLI **0.166.84**、JetBrains **0.4.146** 保持公开版本，不准备新的 JetBrains 生产发行。
 
 ### PACK-WIN：ready 等待期间交付子进程事件（2026-10-03）
 
