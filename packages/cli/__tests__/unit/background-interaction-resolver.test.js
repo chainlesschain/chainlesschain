@@ -24,6 +24,36 @@ function flush() {
 }
 
 describe("background interaction child client", () => {
+  it.each([undefined, "", "   "])(
+    "leaves the host IPC channel alone when the agent ID is %s",
+    async (backgroundAgentId) => {
+      const processLike = fakeIpcEndpoint();
+      processLike.env = {};
+      const hostListener = vi.fn();
+      processLike.on("message", hostListener);
+      const off = vi.spyOn(processLike, "off");
+      const client = createBackgroundInteractionClient({
+        processLike,
+        backgroundAgentId,
+      });
+
+      expect(client.enabled).toBe(false);
+      await expect(
+        client.request({ question: "Continue?" }),
+      ).rejects.toMatchObject({
+        code: "USER_NOT_REACHABLE",
+      });
+      client.close();
+      client.close();
+
+      expect(processLike.channel.ref).not.toHaveBeenCalled();
+      expect(processLike.channel.unref).not.toHaveBeenCalled();
+      expect(processLike.send).not.toHaveBeenCalled();
+      expect(off).not.toHaveBeenCalled();
+      expect(processLike.listeners("message")).toEqual([hostListener]);
+    },
+  );
+
   it("resolves only a response with the original turn/tool binding", async () => {
     const processLike = fakeIpcEndpoint();
     processLike.pid = 1234;
