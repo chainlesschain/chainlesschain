@@ -1,0 +1,95 @@
+name: CLI Worker Diagnostic
+
+on:
+  push:
+    branches: [feature/cli-worker-diagnostic-2026-10-03]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full source commit to diagnose (not a release gate)"
+        required: true
+        default: "96cbf6ba5631d5ef855e3cdc41801d837142e62b"
+        type: string
+      mode:
+        description: "Windows headless file or the original unit shard"
+        required: true
+        default: "shard"
+        type: choice
+        options: [shard, headless]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-worker:
+    name: "Windows forks diagnostic (${{ inputs.mode || 'shard' }})"
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      CC_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.commit_sha || '96cbf6ba5631d5ef855e3cdc41801d837142e62b' }}
+      CC_DIAGNOSTIC_DRIVER_SHA: ${{ github.workflow_sha }}
+      CC_DIAGNOSTIC_MODE: ${{ inputs.mode || 'shard' }}
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_DIAGNOSTIC_SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Verify exact source and extract separate diagnostic driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CC_DIAGNOSTIC_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$CC_DIAGNOSTIC_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          export CC_VITEST_WORKER_DIAGNOSTIC_DIR="$(cygpath -m "$RUNNER_TEMP")/worker-diagnostics"
+          printf 'CC_VITEST_WORKER_DIAGNOSTIC_DIR=%s\n' "$CC_VITEST_WORKER_DIAGNOSTIC_DIR" >> "$GITHUB_ENV"
+          git fetch --no-tags origin "$CC_DIAGNOSTIC_DRIVER_SHA"
+          git show "$CC_DIAGNOSTIC_DRIVER_SHA:packages/cli/scripts/vitest-worker-diagnostic.cjs" > "$RUNNER_TEMP/vitest-worker-diagnostic.cjs"
+          mkdir -p "$CC_VITEST_WORKER_DIAGNOSTIC_DIR"
+          sha256sum "$RUNNER_TEMP/vitest-worker-diagnostic.cjs" > "$CC_VITEST_WORKER_DIAGNOSTIC_DIR/driver.sha256"
+          printf '%s\n' "$CC_DIAGNOSTIC_SOURCE_SHA" > "$CC_VITEST_WORKER_DIAGNOSTIC_DIR/source.sha"
+          printf '%s\n' "$CC_DIAGNOSTIC_DRIVER_SHA" > "$CC_VITEST_WORKER_DIAGNOSTIC_DIR/driver.sha"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run original assertion and retry policy with worker observations
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          preload_path="$(cygpath -m "$RUNNER_TEMP/vitest-worker-diagnostic.cjs")"
+          export NODE_OPTIONS="--require=\"$preload_path\""
+          args=(run --reporter=default --reporter=junit --outputFile.junit=test-results/worker-diagnostic.xml --silent=passed-only --maxWorkers=1 --no-file-parallelism)
+          case "$CC_DIAGNOSTIC_MODE" in
+            shard) args+=(--shard=14/16 __tests__/unit/) ;;
+            headless) args+=(__tests__/unit/headless-runner.test.js) ;;
+            *) echo "::error::Unknown diagnostic mode"; exit 1 ;;
+          esac
+          node scripts/run-vitest-with-worker-retry.mjs -- "${args[@]}"
+
+      - name: Verify tracked source remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CC_DIAGNOSTIC_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Upload diagnostic evidence and original report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-worker-diagnostic-${{ env.CC_DIAGNOSTIC_MODE }}-${{ env.CC_DIAGNOSTIC_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/worker-diagnostics/
+            packages/cli/test-results/worker-diagnostic.xml
+          if-no-files-found: error
+          retention-days: 30
