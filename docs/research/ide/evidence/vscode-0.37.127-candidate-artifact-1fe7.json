@@ -1,0 +1,114 @@
+{
+  "schema": "chainlesschain.vscode-candidate-preparation/v1",
+  "preparedAt": "2026-10-03T06:59:48.384Z",
+  "commit": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+  "branch": "feature/cli-ide-gap-completion-2026-10-02",
+  "run": 37101924139,
+  "runAttempt": 1,
+  "gateStatus": "not-recorded",
+  "releaseGateEligible": false,
+  "artifact": {
+    "id": 11267725477,
+    "digest": "sha256:3e59683977386b33ad70e6c8abf1710f7d5bc57d79b608eff1d79d042eb1b83b",
+    "bytes": 676101,
+    "createdAt": "2026-10-03T06:50:04Z",
+    "producerJobId": 111146473804
+  },
+  "inspected": {
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 691734,
+    "sha256": "8dca38bb6cac7371ab7530938960346fac4a3ec8ed689bfb80c4c2ca3c2c5ed8",
+    "sha512": "509612278cd5e6eefaa0ec9cdf7e5f7956ce85e56e63c16663e69c5f75f8650ebdc2bbe759a400018dc30557de199cf0dd34ba35e8f7a9646d6cf50936f1b702",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.127",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.127"
+    }
+  },
+  "pairedCliVersion": "0.166.84",
+  "zip": {
+    "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/candidate-immutable.zip",
+    "bytes": 676101,
+    "sha256": "3e59683977386b33ad70e6c8abf1710f7d5bc57d79b608eff1d79d042eb1b83b"
+  },
+  "manifest": {
+    "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/manifest.json",
+    "bytes": 714,
+    "sha256": "3f1d70bb6c6b612b26feaeba2acc759f43f5a99b3613122fa5cec5a689151c4d"
+  },
+  "vsix": {
+    "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/chainlesschain-ide.vsix",
+    "bytes": 691734,
+    "sha256": "8dca38bb6cac7371ab7530938960346fac4a3ec8ed689bfb80c4c2ca3c2c5ed8"
+  },
+  "config": {
+    "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/candidate-gates.config.json",
+    "bytes": 617,
+    "sha256": "3cf879838e260b4e04c1ed969fadd04786757379f7591d9ad4913bf81ecefb41"
+  },
+  "parser": {
+    "source": ".work/gap-validation/record-candidate-gates.mjs",
+    "sourceSha256": "9e801ed9eafffc90cbaa4aff17bb3f1107c2844d395e638c855491d34e0623a5",
+    "derivedParser": {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/verification-tools/candidate-parser.mjs",
+      "bytes": 3993,
+      "sha256": "6edf11b3ab0c3f5ce132257397da5c5a96caafaf3c625d4466d0cfd4c5db8768"
+    }
+  },
+  "sourceProofs": [
+    {
+      "source": "packages/vscode-extension/scripts/vsix-release-artifact.mjs",
+      "commit": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/verification-tools/vsix-release-artifact.mjs",
+      "bytes": 15267,
+      "sha256": "316ee2de71f1f601281f600d42bcebb9ed4cd3f0284ea5744e695dc43295baf5"
+    },
+    {
+      "source": "packages/vscode-extension/scripts/verify-vsix.mjs",
+      "commit": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/verification-tools/verify-vsix.mjs",
+      "bytes": 10476,
+      "sha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1"
+    }
+  ],
+  "apiEvidence": [
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/ide-run-before.json",
+      "bytes": 13769,
+      "sha256": "2360f8c52019ecdb57c8a072b67e5b6c0011517e47fb4acd8e477720273b0c29"
+    },
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/ide-run-after.json",
+      "bytes": 13769,
+      "sha256": "2360f8c52019ecdb57c8a072b67e5b6c0011517e47fb4acd8e477720273b0c29"
+    },
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/ide-producer-attempt-jobs.json",
+      "bytes": 60463,
+      "sha256": "5ade2c307d0b1591616f0d5c8ccdf52601b0c541c4d2a8ded9aadd10b88d168a"
+    },
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/ide-run-artifacts.json",
+      "bytes": 13188,
+      "sha256": "91dbeaebea47157f3ed4e463595da415f25c16ad27b06aa2ec2e391ceb90d597"
+    },
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/candidate-artifact-metadata-before.json",
+      "bytes": 758,
+      "sha256": "80391909c98d499a03cdb7347dc93630c4d7a300cfb4eac0f2051f34f89b2a78"
+    },
+    {
+      "file": ".work/gap-validation/vscode-candidate-1fe7a46c0f/candidate-artifact-metadata-after.json",
+      "bytes": 758,
+      "sha256": "80391909c98d499a03cdb7347dc93630c4d7a300cfb4eac0f2051f34f89b2a78"
+    }
+  ],
+  "limitations": [
+    "Preparation only; no --record, publication or tag push occurred.",
+    "Commit is bound by manifest, artifact workflow metadata, producer and exact-source verification; no separate commit field is assumed inside VSIX package.json.",
+    "CLI, Strict and IDE final gate status must be independently re-read before root records the candidate gates."
+  ]
+}

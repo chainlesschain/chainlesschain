@@ -1,0 +1,949 @@
+{
+  "schema": "chainlesschain.updater-arm64-diagnostic-readback.v1",
+  "sourceSha": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+  "releaseEligible": false,
+  "productionChanges": false,
+  "originalSourceAndTestsUnchanged": true,
+  "originalDeadlinesChanged": false,
+  "baseline": {
+    "runId": 37098416042,
+    "jobId": 111132972428,
+    "sourceSha": "13095fd42635a580f4d88eaada5ef01ec0553ce1",
+    "fiveFailuresRemainRecorded": true,
+    "closed": false
+  },
+  "attempts": [
+    {
+      "runId": 37103017501,
+      "jobId": 111146114421,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37103017501",
+      "artifact": {
+        "id": 11266819486,
+        "zipSha256": "53bd29e5b384402f365328ff34d529524e48ee47e1a108804b46d64f1b9f5bb4",
+        "size": 102575,
+        "apiDigestMatched": true
+      },
+      "identity": {
+        "schema": "chainlesschain.windows-arm64-updater-diagnostic.v1",
+        "sourceSha": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+        "driverSha": "c6c3fdae851c48b94d5ddc560ff1c1570680995e",
+        "platform": "win32",
+        "arch": "arm64",
+        "nodeVersion": "v22.14.0",
+        "nodeExecPath": "C:\\hostedtoolcache\\windows\\node\\22.14.0\\arm64\\node.exe",
+        "nodePeMachine": "0xaa64",
+        "os": {
+          "type": "Windows_NT",
+          "release": "10.0.26200",
+          "machine": "unknown",
+          "cpus": 4
+        },
+        "processorArchitecture": "ARM64",
+        "runnerArch": "ARM64",
+        "sourceCleanBefore": true,
+        "sourceHashesBefore": {
+          "packages/cli/src/lib/packer/pack-update-applier.js": "e4262f4a4c5fada921a4c1778c5325a1340163a07d2e4417e1ba22371f94b827",
+          "packages/cli/src/lib/packer/native-update-state.js": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+          "packages/cli/__tests__/unit/packer-pack-update-applier.test.js": "36041df91639cd5630ddb1d4951abd633c671feb41b0f6c408d87f997466378b"
+        },
+        "driverHashes": {
+          "observer.mjs": "d0a1a84307f87d608348f223a87f35c836c649b97ca86c9ddc9f2f414afe3b0f",
+          "preload.mjs": "95ba7cd3ecf18462adf6304bdb31b2911c2a257cc00aadbedab32b175c1f037e",
+          "run.mjs": "f2571acc0333dfbf451687f0355326d2b46d8d6a801f26f3e36a4453e5134619",
+          "shared.mjs": "88204c0004934b2fd6b477921a8145c03974690c2cdad3c572a5038d8b9dd8cc"
+        },
+        "releaseEligible": false,
+        "boundary": "diagnostic instrumentation only; original tests/production bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead"
+      },
+      "host": {
+        "elapsedMs": 5704,
+        "status": 0,
+        "signal": null,
+        "errorCode": null,
+        "stdout": "{\"PowerShellVersion\":\"5.1.26100.9457\",\"ProcessorArchitecture\":12,\"ProcessArchitecture\":\"ARM64\",\"OSArchitecture\":\"ARM 64-bit Processor\",\"Version\":\"10.0.26200\"}\r\n",
+        "stderr": "",
+        "powershellPeMachine": "0xaa64",
+        "cmdPeMachine": "0xaa64"
+      },
+      "integrity": {
+        "sourceUnchanged": true,
+        "allObserversCompleted": false,
+        "missingObservers": [
+          "3348-1",
+          "6520-1",
+          "6520-2",
+          "6520-3",
+          "6520-4",
+          "6520-5"
+        ],
+        "blobCountVerified": 62,
+        "driverHashesVerified": true
+      },
+      "tests": {
+        "status": 0,
+        "signal": null,
+        "elapsedMs": 30516,
+        "originalTestNames": [
+          "transfers the real lock only after a sidecar readiness handshake",
+          "commits the canonical binary and alias with lineage/result persistence",
+          "rolls the canonical binary and alias back after verification fails",
+          "restores prior backup and lineage generations after verification fails",
+          "commits an independent rescue without consuming its canonical backup"
+        ],
+        "releaseEligible": false,
+        "cases": [
+          {
+            "fullName": "scheduleReplace – Windows branch (sidecar cmd) transfers the real lock only after a sidecar readiness handshake",
+            "status": "passed",
+            "duration": 7982.2159,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) commits the canonical binary and alias with lineage/result persistence",
+            "status": "passed",
+            "duration": 5640.9735,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) rolls the canonical binary and alias back after verification fails",
+            "status": "passed",
+            "duration": 4521.741900000001,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) restores prior backup and lineage generations after verification fails",
+            "status": "passed",
+            "duration": 4766.5180999999975,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) commits an independent rescue without consuming its canonical backup",
+            "status": "passed",
+            "duration": 5398.9891000000025,
+            "failureMessages": []
+          }
+        ]
+      },
+      "transactions": [
+        {
+          "id": "3348-1",
+          "kind": "sidecar",
+          "synchronous": false,
+          "timeoutMs": null,
+          "setupElapsedMs": 139,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-ready-e2e-tdlkuw\\current.exe",
+          "returned": null,
+          "firstObserved": {}
+        },
+        {
+          "id": "6520-1",
+          "kind": "schedule-helper",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 140,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-ready-e2e-tdlkuw\\current.exe",
+          "returned": {
+            "elapsedMs": 1248,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "lockAtReturn": true
+          },
+          "firstObserved": {
+            "prepared": {
+              "elapsedMs": 3978,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 4965,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 5631,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "backup-committed": {
+              "elapsedMs": 6186,
+              "value": "backup-committed",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 6852,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 7295,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 7737,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 7737,
+              "value": "success",
+              "afterOriginalDeadline": false
+            }
+          }
+        },
+        {
+          "id": "6520-2",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 134,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-e2e-vNp0AS\\原生更新\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 5482,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "committed",
+            "resultStatus": "success",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 440,
+              "value": "550860da232ee1c51b6fd27524c0e748a2a4effa459165bd42afd294e1893926",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1770,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2657,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3102,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 3657,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "backup-committed": {
+              "elapsedMs": 4099,
+              "value": "backup-committed",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 4653,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 4984,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 5428,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 5428,
+              "value": "success",
+              "afterOriginalDeadline": false
+            }
+          }
+        },
+        {
+          "id": "6520-3",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 138,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-fail-9tCMu1\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 4367,
+            "status": 1,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "alias-committed",
+            "resultStatus": "verify-failed-rolled-back",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 423,
+              "value": "8f2e173cae5a57decd11f3bfb457a587ff4a18ea825b3a3f1b9ee886147f0c9a",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1754,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2637,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3080,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 4301,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 4301,
+              "value": "verify-failed-rolled-back",
+              "afterOriginalDeadline": false
+            }
+          }
+        },
+        {
+          "id": "6520-4",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 142,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-prior-state-X6Rn2i\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 4606,
+            "status": 1,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "alias-committed",
+            "resultStatus": "verify-failed-rolled-back",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 425,
+              "value": "f2ef7ac3e076f89cb3b867aa70dbbce5caff438dfc3cb2776aa1705af9b395b0",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1972,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2969,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3411,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 4519,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 4609,
+              "value": "verify-failed-rolled-back",
+              "afterOriginalDeadline": null
+            }
+          }
+        },
+        {
+          "id": "6520-5",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 133,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-rescue-6FCQ9j\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 5248,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "committed",
+            "resultStatus": "success",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 432,
+              "value": "fc988e9a57bf94eb172d9930b9efc4378bcd3e908984c7d1943e18d2c78a36fd",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1979,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2976,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3312,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 3865,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 4420,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 4861,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 5194,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 5194,
+              "value": "success",
+              "afterOriginalDeadline": false
+            }
+          }
+        }
+      ],
+      "releaseEligible": false,
+      "caveats": [
+        "100ms non-atomic wall-clock samples; timestamps are first observations, not exact transitions",
+        "Helper result-wait deadline annotation precedes wrapper return by snapshot overhead; original assertions alone determine outcomes",
+        "Original direct-test cleanup may remove failed fixtures; later ENOENT does not prove transaction cleanup",
+        "No per-PowerShell/certutil process timing; stage intervals cannot isolate launch, hash, flush or scheduling costs"
+      ]
+    },
+    {
+      "runId": 37103910028,
+      "jobId": 111148639136,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37103910028",
+      "artifact": {
+        "id": 11268065696,
+        "zipSha256": "c6f55ba55a8005ccc4f4e8345ada3c9a438b9b06c906fca65d6ee666a2f3afd6",
+        "size": 108624,
+        "apiDigestMatched": true
+      },
+      "identity": {
+        "schema": "chainlesschain.windows-arm64-updater-diagnostic.v1",
+        "sourceSha": "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37",
+        "driverSha": "5907ff3ea76f0ea8593fce75d50a573b300fa8e0",
+        "platform": "win32",
+        "arch": "arm64",
+        "nodeVersion": "v22.14.0",
+        "nodeExecPath": "C:\\hostedtoolcache\\windows\\node\\22.14.0\\arm64\\node.exe",
+        "nodePeMachine": "0xaa64",
+        "os": {
+          "type": "Windows_NT",
+          "release": "10.0.26200",
+          "machine": "unknown",
+          "cpus": 4
+        },
+        "processorArchitecture": "ARM64",
+        "runnerArch": "ARM64",
+        "sourceCleanBefore": true,
+        "sourceHashesBefore": {
+          "packages/cli/src/lib/packer/pack-update-applier.js": "e4262f4a4c5fada921a4c1778c5325a1340163a07d2e4417e1ba22371f94b827",
+          "packages/cli/src/lib/packer/native-update-state.js": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+          "packages/cli/__tests__/unit/packer-pack-update-applier.test.js": "36041df91639cd5630ddb1d4951abd633c671feb41b0f6c408d87f997466378b"
+        },
+        "driverHashes": {
+          "coordinator.mjs": "77ffc64f2426769fd4886206c708086fe818d93970ecd20b208d7c83c49106a3",
+          "observer.mjs": "d0a1a84307f87d608348f223a87f35c836c649b97ca86c9ddc9f2f414afe3b0f",
+          "preload.mjs": "8749bb7bf741a3aaa4fd0bbdb12cfda8d8482cbc47750dcf1717e520e56d35f5",
+          "run.mjs": "3b99c5b2430cf9cc66b87e2a6cbef61c243cefaf90d3eec77a4f41d78feabcf7",
+          "shared.mjs": "88204c0004934b2fd6b477921a8145c03974690c2cdad3c572a5038d8b9dd8cc"
+        },
+        "releaseEligible": false,
+        "boundary": "diagnostic instrumentation only; original tests/production bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead"
+      },
+      "host": {
+        "elapsedMs": 7685,
+        "status": 0,
+        "signal": null,
+        "errorCode": null,
+        "stdout": "{\"PowerShellVersion\":\"5.1.26100.9457\",\"ProcessorArchitecture\":12,\"ProcessArchitecture\":\"ARM64\",\"OSArchitecture\":\"ARM 64-bit Processor\",\"Version\":\"10.0.26200\"}\r\n",
+        "stderr": "",
+        "powershellPeMachine": "0xaa64",
+        "cmdPeMachine": "0xaa64"
+      },
+      "integrity": {
+        "sourceUnchanged": true,
+        "allObserversCompleted": true,
+        "missingObservers": [],
+        "blobCountVerified": 63,
+        "driverHashesVerified": true
+      },
+      "tests": {
+        "status": 0,
+        "signal": null,
+        "elapsedMs": 32510,
+        "originalTestNames": [
+          "transfers the real lock only after a sidecar readiness handshake",
+          "commits the canonical binary and alias with lineage/result persistence",
+          "rolls the canonical binary and alias back after verification fails",
+          "restores prior backup and lineage generations after verification fails",
+          "commits an independent rescue without consuming its canonical backup"
+        ],
+        "releaseEligible": false,
+        "cases": [
+          {
+            "fullName": "scheduleReplace – Windows branch (sidecar cmd) transfers the real lock only after a sidecar readiness handshake",
+            "status": "passed",
+            "duration": 8528.1954,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) commits the canonical binary and alias with lineage/result persistence",
+            "status": "passed",
+            "duration": 6090.218699999999,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) rolls the canonical binary and alias back after verification fails",
+            "status": "passed",
+            "duration": 4796.931999999999,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) restores prior backup and lineage generations after verification fails",
+            "status": "passed",
+            "duration": 4971.1473000000005,
+            "failureMessages": []
+          },
+          {
+            "fullName": "writeWindowsSidecar (cmd body) commits an independent rescue without consuming its canonical backup",
+            "status": "passed",
+            "duration": 5672.835999999999,
+            "failureMessages": []
+          }
+        ]
+      },
+      "transactions": [
+        {
+          "id": "2312-1",
+          "kind": "schedule-helper",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 125,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-ready-e2e-5fE1QD\\current.exe",
+          "returned": {
+            "elapsedMs": 1364,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "lockAtReturn": true
+          },
+          "firstObserved": {
+            "plan-after-verified-handshake": {
+              "elapsedMs": 1366,
+              "value": "9c3eb3960072af9aae9a9c8da62bf68d030de04a8e1b11c95af2705ab656825e",
+              "afterOriginalDeadline": null
+            },
+            "prepared": {
+              "elapsedMs": 4199,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 5416,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 5971,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "backup-committed": {
+              "elapsedMs": 6639,
+              "value": "backup-committed",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 7305,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 7748,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 8189,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 8305,
+              "value": "success",
+              "afterOriginalDeadline": false
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 8410,
+              "value": "ENOENT",
+              "afterOriginalDeadline": false
+            }
+          }
+        },
+        {
+          "id": "2312-2",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 132,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-e2e-Ilb8uh\\原生更新\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 5931,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "committed",
+            "resultStatus": "success",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 432,
+              "value": "f5dd64f798615b7b6b5537b39a9c5d004a6761f12a2372050a23bfe609008d9b",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1985,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2871,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3424,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 3981,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "backup-committed": {
+              "elapsedMs": 4422,
+              "value": "backup-committed",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 4974,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 5417,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 5858,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 5934,
+              "value": "ENOENT",
+              "afterOriginalDeadline": null
+            },
+            "result": {
+              "elapsedMs": 5934,
+              "value": "success",
+              "afterOriginalDeadline": null
+            }
+          }
+        },
+        {
+          "id": "2312-3",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 137,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-fail-8r9TYW\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 4640,
+            "status": 1,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "alias-committed",
+            "resultStatus": "verify-failed-rolled-back",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 444,
+              "value": "df6cd2506e488b17719d83a855ea85887888a1bae64194bf7dd4644fed6a1029",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 1885,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 2773,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3217,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 4542,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 4640,
+              "value": "ENOENT",
+              "afterOriginalDeadline": null
+            },
+            "result": {
+              "elapsedMs": 4640,
+              "value": "verify-failed-rolled-back",
+              "afterOriginalDeadline": null
+            }
+          }
+        },
+        {
+          "id": "2312-4",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 120,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-prior-state-LG6jmt\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 4831,
+            "status": 1,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "alias-committed",
+            "resultStatus": "verify-failed-rolled-back",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 447,
+              "value": "03ce4206b762f62575e0d577de46c7ceb83be91d8ca320cc811ddcaa767d1d02",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 2111,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 3117,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3566,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 4784,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 4784,
+              "value": "verify-failed-rolled-back",
+              "afterOriginalDeadline": false
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 4833,
+              "value": "ENOENT",
+              "afterOriginalDeadline": null
+            }
+          }
+        },
+        {
+          "id": "2312-5",
+          "kind": "sidecar",
+          "synchronous": true,
+          "timeoutMs": 60000,
+          "setupElapsedMs": 137,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-sidecar-rescue-BHko1y\\chainlesschain.exe",
+          "returned": {
+            "elapsedMs": 5516,
+            "status": 0,
+            "signal": null,
+            "error": null,
+            "retiredPhase": "committed",
+            "resultStatus": "success",
+            "lockAtReturn": false
+          },
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 446,
+              "value": "62bfb85973e0e5dde8272c490dcf7ca916d183a2b628f55f0fe33a08ed930c86",
+              "afterOriginalDeadline": false
+            },
+            "prepared": {
+              "elapsedMs": 2110,
+              "value": "prepared",
+              "afterOriginalDeadline": false
+            },
+            "target-committed": {
+              "elapsedMs": 3111,
+              "value": "target-committed",
+              "afterOriginalDeadline": false
+            },
+            "alias-committed": {
+              "elapsedMs": 3557,
+              "value": "alias-committed",
+              "afterOriginalDeadline": false
+            },
+            "verified": {
+              "elapsedMs": 4131,
+              "value": "verified",
+              "afterOriginalDeadline": false
+            },
+            "lineage-committed": {
+              "elapsedMs": 4581,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": false
+            },
+            "committed": {
+              "elapsedMs": 5025,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "retired": {
+              "elapsedMs": 5472,
+              "value": "committed",
+              "afterOriginalDeadline": false
+            },
+            "result": {
+              "elapsedMs": 5472,
+              "value": "success",
+              "afterOriginalDeadline": false
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 5518,
+              "value": "ENOENT",
+              "afterOriginalDeadline": null
+            }
+          }
+        },
+        {
+          "id": "7440-1",
+          "kind": "sidecar",
+          "synchronous": false,
+          "timeoutMs": null,
+          "setupElapsedMs": 135,
+          "target": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-ready-e2e-5fE1QD\\current.exe",
+          "returned": null,
+          "firstObserved": {
+            "ready": {
+              "elapsedMs": 894,
+              "value": "fbb6f2f46687df0054b0bb3c3fe31b0ce8b36a5600d5d70e14d804373ddecdb3",
+              "afterOriginalDeadline": null
+            },
+            "prepared": {
+              "elapsedMs": 3768,
+              "value": "prepared",
+              "afterOriginalDeadline": null
+            },
+            "target-committed": {
+              "elapsedMs": 4985,
+              "value": "target-committed",
+              "afterOriginalDeadline": null
+            },
+            "verified": {
+              "elapsedMs": 5540,
+              "value": "verified",
+              "afterOriginalDeadline": null
+            },
+            "backup-committed": {
+              "elapsedMs": 6207,
+              "value": "backup-committed",
+              "afterOriginalDeadline": null
+            },
+            "lineage-committed": {
+              "elapsedMs": 6873,
+              "value": "lineage-committed",
+              "afterOriginalDeadline": null
+            },
+            "committed": {
+              "elapsedMs": 7317,
+              "value": "committed",
+              "afterOriginalDeadline": null
+            },
+            "retired": {
+              "elapsedMs": 7776,
+              "value": "committed",
+              "afterOriginalDeadline": null
+            },
+            "result": {
+              "elapsedMs": 7885,
+              "value": "success",
+              "afterOriginalDeadline": null
+            },
+            "lock-absent-after-present": {
+              "elapsedMs": 7995,
+              "value": "ENOENT",
+              "afterOriginalDeadline": null
+            }
+          }
+        }
+      ],
+      "releaseEligible": false,
+      "caveats": [
+        "100ms non-atomic wall-clock samples; timestamps are first observations, not exact transitions",
+        "Helper result-wait deadline annotation precedes wrapper return by snapshot overhead; original assertions alone determine outcomes",
+        "Original direct-test cleanup may remove failed fixtures; later ENOENT does not prove transaction cleanup",
+        "No per-PowerShell/certutil process timing; stage intervals cannot isolate launch, hash, flush or scheduling costs"
+      ]
+    }
+  ],
+  "conclusion": "Five unchanged assertions passed independently on each instrumented native ARM64 run. The second run has complete observer termination and verified source, driver, ZIP and fixture digests. The earlier ARM64 timeout was not reproduced, its cause is not isolated, and the earlier native validation failure remains open.",
+  "recommendation": "No production change follows from this evidence. Preserve the original failure and both diagnostic attempts separately. On a future authorized failing run, capture per-process PowerShell/certutil timing and host load to distinguish launch, hash, flush and scheduling costs without dropping safety checks or extending assertions.",
+  "localControl": {
+    "platform": "win32",
+    "arch": "x64",
+    "instrumentedDirectCommit": {
+      "elapsedMs": 60077,
+      "status": null,
+      "signal": "SIGTERM",
+      "errorCode": "ETIMEDOUT",
+      "lastJournalPhase": "committed",
+      "resultAtCutoff": false
+    },
+    "uninstrumentedSameCase": {
+      "status": "failed",
+      "durationMs": 60284.9611
+    },
+    "boundary": "Local functional diagnostics, not ARM64 evidence or release proof; observer perturbation is not eliminated."
+  }
+}
