@@ -120,6 +120,10 @@ node packages/cli/scripts/build-linux-subreaper.mjs \
 
 运行产物使用内嵌并校验的监督器，资产损坏时拒绝启动该监督路径，不在收件人的机器临时调用编译器。Windows 构建要求 CLI 资产与临时配置目录位于同一盘；若源码在 D 盘、TEMP/TMP 在 C 盘，先将两个变量指向 D 盘已存在的临时目录。仓库 native workflow 已自动设置为同盘的 `runner.temp`。这些构建要求不代表六平台签名发行已经验收完成。
 
+后续源码 `f7ec90ec9b` 改为无需系统探测的 helper 目标检查，保持 pkg **6.21.0** 的平台/架构别名合同；Linux、Alpine 与 linuxstatic 使用同一类静态监督器。空白目标也会拒绝；ARM32 宿主须显式指定支持的架构，例如 `node22-linux-arm64`。这部分尚未进入公开 CLI **0.166.84**。
+
+该候选还为 Web Panel 与 pkg 编译请求有限构建预算：支持的 Linux/Windows 后端每进程最多 **600 CPU 秒**，每次构建包装进程最多等待 **15 分钟**。默认任务和 Strict 的限额保留；Strict 仍可能拒绝或终止构建。macOS 沿用原有平台行为，不承诺强制 CPU 限额；超时也不代表已经回收全部后代。完整六平台复验仍待通过。
+
 ## 性能指标
 
 | 操作                                             | 目标     | 实测 (v0.2, 2026-04-24 @ Win x64) | 状态 |

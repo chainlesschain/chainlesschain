@@ -86,6 +86,10 @@ Windows 四文件 **90 passed / 8 Linux-only skipped**，WSL 同四文件 **98/9
 
 原生失败日志进一步分成三类：Linux ARM64 在 Phase 5 遇到同一隐式 ldd 策略拒绝；Linux x64 的 Web Panel 编译完成后进程被终止、退出 **137**；Windows x64/ARM64 均在 Phase 6 pkg 构建退出 **0xC0000044（STATUS_QUOTA_EXCEEDED）**。两处真实 build 调用未请求构建资源预算，继承 default **30 CPU 秒**；Linux 映射 prlimit，Windows 映射 JobObject per-process CPU 限额。Windows 状态与该限额对应；Linux 137 仍不能仅凭日志认定宿主 OOM 或唯一资源原因。纯目标解析与仅面向显式构建的有限预算修复继续验证，未关闭守卫或放宽发布门。
 
+`f7ec90ec9b` 已整合两项修复：纯函数只投影 helper 的平台/架构，锁定 pkg **6.21.0** 的实际 parser 作为差分 oracle，拒绝空白/无 token/混合空项；ARM32 隐式架构不通过 uname 推断，要求显式支持架构。真实 guard 回归先确认 ldd 仍被 policy_prompt 拒绝，再验证 Linux 配置生成成功。两处可信 packer 编译使用私有 WeakMap 品牌 policy，绑定 origin/scope、同步/shell:false、非 PTY/detached、有界正整数超时与 SIGKILL；JSON/浅复制、来源移植及异步请求拒绝，deny/prompt 和 Strict 仍优先。Linux/Windows 每进程 build CPU **600 秒**、直接 wrapper **900,000 ms**；default **30**、Strict **10** 和其他资源保持原值。macOS 沿用 default 兼容分支，不新增 Seatbelt 或 CPU 强制保证；Linux 同步超时不声明全后代回收。
+
+Windows 六个定向文件 **454/454** 通过，最后收紧 detached 类型后 policy **18/18** 再通过（重叠结果不相加）；ESLint **0 errors / 9 既有 warnings**、Prettier、diff 与生成 inventory 校验通过。真实 WSL Node 22 的 `bin/chainlesschain.js pack --dry-run --targets node22-linux-x64` 完整五阶段成功，包含实际守卫、本机编译固定 helper 和两文件 Web Panel fixture；Windows worktree gitfile 在 WSL 未解析，因此它仅证明功能入口，不能算准确 Git SHA 或完整 pkg 成品验收。完整门须在整合后的新提交重新运行。
+
 ### JetBrains 原生 transcript 准确提交验收（2026-10-03）
 
 上述 **8460b786a8** 的独立干净树，在 Windows x64 / IntelliJ **2024.2** 完成实际 ZIP 安装、canonical recovery、原生测量及 restart，起止 tracked source 均洁净。[独立核验回执](./ide/evidence/jetbrains-native-transcript-windows-8460b786a8.json)重新核对 **34** 项产物长度/hash、envelope、安装 ZIP 的两个 JAR 字节及 probe 未进入插件包；原生采样 PID **18072** 与实际初始宿主快照绑定，重启后为 **23028**。保留[原始 64 次采样](./ide/evidence/jetbrains-native-transcript-windows-8460b786a8.raw.json)，标准 bundle 仅将随机 test nonce 的 runToken 脱敏，两份内容除此字段完全相同。十项真实 readiness 条件均满足，清空前 onboarding 为 115 字符，10K 已完整保留 10,000 字符。

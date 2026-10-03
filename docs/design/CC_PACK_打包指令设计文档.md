@@ -12,6 +12,12 @@
 
 ## 变更日志
 
+### 2026-10-03 —— 目标检查与构建资源预算修复
+
+真实 CLI bootstrap 会拦截 pkg config 导入 pkg-fetch 时的隐式 ldd/uname 探测。后续候选 `f7ec90ec9b` 仅以纯函数计算 Linux helper 所需架构，并用锁定 pkg **6.21.0** 的实际 parser 做差分回归；Linux/Alpine/linuxstatic 统一到静态 ELF 资产族。空数组、空白或无 token 目标拒绝，ARM32 宿主不执行 uname 推断，须显式指定支持架构。这里对齐的是 helper 资产准入，不替代 pkg 的全部构建解析。
+
+两处可信同步编译入口通过原始品牌对象请求 build 预算，绑定 origin/scope；JSON、浅复制、来源改变、异步/PTY、shell、detached 和无界超时不能取得该预算。正常进程 deny/prompt 和 Strict 仍先裁决。支持的 Linux prlimit / Windows JobObject 将每进程 CPU 限额从 default **30 秒**调整为 build **600 秒**，其余限制保留；直接包装进程设置 **900,000 ms / SIGKILL**。macOS build 沿用 default 的兼容分支，不新增 Seatbelt，也不声明 CPU 强制保证。Linux 同步超时不等于所有后代完成回收，真实原生矩阵仍须按修复提交重新验收。
+
 ### 2026-10-03 —— 固定监督器的 pkg 分发
 
 Linux/alpine x64、ARM64 的 pkg 配置必须嵌入对应预编译监督器、manifest 及固定源码；构建前校验 canonical source digest、image digest 和静态 ELF。目标解析使用锁定的 pkg 6.21.0 `parseTargets`，简写按真实平台/架构展开，不支持架构或空数组拒绝。scripts/assets 使用相对 pkg 配置目录的 POSIX globs，Windows 跨盘配置明确拒绝；native workflow 将 TEMP/TMP 设置为 checkout 同盘的 runner.temp，并在匹配宿主构建 helper。
