@@ -55,3 +55,36 @@ jobs:
           path: ${{ runner.temp }}/updater-arm64-diagnostic
           if-no-files-found: error
           retention-days: 30
+
+  parent-worker-diagnostic:
+    name: "diagnostic only: Windows x64 full unit shard 14/16"
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 1fe7a46c0f97b93fb5110ea3427cc8551d0dab37
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          path: .worker-diagnostic-driver
+          sparse-checkout: packages/cli/scripts
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: Run original retry wrapper and JUnit-only full shard with parent observations
+        run: node .worker-diagnostic-driver/packages/cli/scripts/run-parent-diagnostic.mjs
+      - name: Upload diagnostic evidence (never a release gate)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-worker-parent-1fe7-shard14
+          path: .work/worker-parent-diagnostic
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
