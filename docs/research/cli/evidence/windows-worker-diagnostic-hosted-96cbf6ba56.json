@@ -1,0 +1,1078 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "hosted-windows-vitest-worker-diagnostic",
+  "recordedAt": "2026-10-03T04:30:38.410Z",
+  "releaseGateEligible": false,
+  "rootCause": {
+    "status": "unknown",
+    "conclusion": "The instrumented execution did not reproduce the earlier worker-death/EPIPE failure. Successful stop handshakes do not establish the cause or resolution of that failure."
+  },
+  "source": {
+    "commit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+    "assertedByArtifactFile": "source.sha",
+    "checkedOutSourceMatchesWorkflowInput": true,
+    "trackedSourceUnchangedStepConclusion": "success"
+  },
+  "driver": {
+    "commit": "81dba2aff9e3e27b5a43a90c0b0fba1e15e5d1f6",
+    "path": "packages/cli/scripts/vitest-worker-diagnostic.cjs",
+    "sha256": "27d0e8d446b5b89131e93c9754154c241ff9fb4f085acebc453bf7ab7237b675",
+    "exactGitBlobIndependentlyCompared": true,
+    "workflowPath": ".github/workflows/cli-worker-diagnostic.yml",
+    "workflowSha256": "bbf777fb1c04d3af7c8be849376a9d0c3997a4d6c95b31bc398094c8bc9bd918"
+  },
+  "run": {
+    "id": 37063229369,
+    "name": "CLI Worker Diagnostic",
+    "event": "push",
+    "head_sha": "81dba2aff9e3e27b5a43a90c0b0fba1e15e5d1f6",
+    "head_branch": "feature/cli-worker-diagnostic-2026-10-03",
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-02T20:51:20Z",
+    "updated_at": "2026-10-02T21:16:34Z",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37063229369"
+  },
+  "job": {
+    "id": 111024638611,
+    "run_id": 37063229369,
+    "run_attempt": 1,
+    "head_sha": "81dba2aff9e3e27b5a43a90c0b0fba1e15e5d1f6",
+    "name": "Windows forks diagnostic (shard)",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-02T21:03:26Z",
+    "completed_at": "2026-10-02T21:16:33Z",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37063229369/job/111024638611"
+  },
+  "artifact": {
+    "id": 11252413243,
+    "name": "cli-worker-diagnostic-shard-96cbf6ba5631d5ef855e3cdc41801d837142e62b-37063229369-1",
+    "apiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11252413243",
+    "archiveDownloadUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11252413243/zip",
+    "runId": 37063229369,
+    "driverCommit": "81dba2aff9e3e27b5a43a90c0b0fba1e15e5d1f6",
+    "createdAt": "2026-10-02T21:16:29Z",
+    "expiresAt": "2026-11-01T21:16:28Z",
+    "expiredAtDownload": false,
+    "apiDigest": "sha256:b6b5abb11ef3187134e48a9c40f6b0a6ba7dd32eed94d6ecc05743630bd41b88",
+    "zip": {
+      "bytes": 172403,
+      "sha256": "b6b5abb11ef3187134e48a9c40f6b0a6ba7dd32eed94d6ecc05743630bd41b88",
+      "apiLengthAndDigestIndependentlyVerified": true
+    }
+  },
+  "execution": {
+    "platform": "windows-latest",
+    "nodeVersion": "22.22.2",
+    "vitestVersion": "4.1.10",
+    "pool": "forks",
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "shard": "14/16",
+    "vitestTimeoutAndRetryPolicyChanged": false,
+    "diagnosticWorkflowJobTimeoutMinutes": 40,
+    "instrumentation": "NODE_OPTIONS --require preload; synchronous per-process NDJSON writes; no extra IPC/error listeners",
+    "assertions": {
+      "selectedFiles": 103,
+      "tests": 2510,
+      "failures": 0,
+      "errors": 0,
+      "automaticRetries": 0
+    }
+  },
+  "comparison": {
+    "priorRunId": 37054207987,
+    "priorJobId": 111013605483,
+    "priorRunAttempt": 2,
+    "priorSourceCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+    "exactSelectedFileSetMatched": true,
+    "priorLogIncluded": false,
+    "localDownloadedPriorLogSha256": "b00ca5d9bb2154f6233aa09ceb880111e5aa00f3618d0cfb38d696f9167606ca",
+    "priorLogByteEncoding": "UTF-16LE with BOM from PowerShell download; not asserted as original HTTP response bytes",
+    "normalLocalSingleFileHandshakeMatched": true
+  },
+  "bindingBoundary": {
+    "rawArtifact": "Every original non-directory ZIP member is listed with its uncompressed byte count and SHA-256. The verifier parses the exact digest-bound ZIP without extracting files and recomputes all observations from those bytes.",
+    "rawRetention": "Raw ZIP and files remain in the local diagnostic download and GitHub artifact. This JSON does not embed raw test output, IPC payloads, environment variables, stack traces, or absolute runner/local paths. GitHub retention is finite.",
+    "provenance": "API run/job/artifact metadata identifies the diagnostic driver commit. Source96 is a producer-recorded source.sha assertion supported by successful exact-checkout and tracked-source checks in the separately hash-bound driver workflow; it is not the workflow run head SHA.",
+    "trust": "ZIP digest equality binds the local bytes to GitHub artifact API metadata. It is not an independent attestation of runner integrity, source execution, or every filesystem read performed by the tests.",
+    "limits": [
+      "Synchronous diagnostic logging can alter race timing.",
+      "Recorded memory snapshots and absence of error events in this successful run cannot explain the earlier failed worker.",
+      "Windows can report parent-initiated SIGTERM even after a worker has emitted exit(0); ordering is assessed within each process sequence.",
+      "PID reuse is handled as separate child-created to child-close episodes; NDJSON file count is not the process count.",
+      "This diagnostic does not replace CLI CI, Strict Sandbox, or exact-commit release gates."
+    ]
+  },
+  "verification": {
+    "script": "docs/research/cli/evidence/verify-windows-worker-diagnostic-hosted-96cbf6ba56.cjs",
+    "command": "node docs/research/cli/evidence/verify-windows-worker-diagnostic-hosted-96cbf6ba56.cjs --zip <downloaded-artifact.zip>",
+    "networkRequired": false,
+    "originalZipRequired": true
+  },
+  "observations": {
+    "sourceCommit": "96cbf6ba5631d5ef855e3cdc41801d837142e62b",
+    "driverCommit": "81dba2aff9e3e27b5a43a90c0b0fba1e15e5d1f6",
+    "driverSha256": "27d0e8d446b5b89131e93c9754154c241ff9fb4f085acebc453bf7ab7237b675",
+    "inventory": [
+      {
+        "name": "_temp/worker-diagnostics/driver.sha",
+        "bytes": 41,
+        "sha256": "b74d7deef377f0171dceb48c8e51814d4ef580ede267442fc8346f6a8f606519"
+      },
+      {
+        "name": "_temp/worker-diagnostics/driver.sha256",
+        "bytes": 109,
+        "sha256": "e1792d562560d434337650b6c1a0c122cf56c537ebd48ec62b980797e8a3a09a"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-10068.ndjson",
+        "bytes": 1678,
+        "sha256": "962cda912452577f9bb36717cd52fbc42a4181e935f8f24407950ea0fca849b3"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-10080.ndjson",
+        "bytes": 385084,
+        "sha256": "162b667b66723b9cd69bc57184b4838e08f4ce12c1a9f36fc7851500241f2ecc"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-10088.ndjson",
+        "bytes": 1696,
+        "sha256": "873b1c1bb85b8c902ee2adf3f30ff8648c015764bb975b949927d132695a47f2"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-10120.ndjson",
+        "bytes": 1680,
+        "sha256": "e631880ed48463dc41aaa87445edfc1311acc4c3f92d56969f423aba49bb4d6b"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-10124.ndjson",
+        "bytes": 1667,
+        "sha256": "5bc21339fc755f110384d9d17e27633df9153ad1926662cd0895d192a71a6c44"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1216.ndjson",
+        "bytes": 1671,
+        "sha256": "ed050afcdee88c7b75e096ec701c245ee4f0287eb99003d829e1181b0cf00f17"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1436.ndjson",
+        "bytes": 1680,
+        "sha256": "2872d47d632ead1d9117cceba7743b6c39b0b351547754b902dd5cfc48db113e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1548.ndjson",
+        "bytes": 1684,
+        "sha256": "a203def4c41f415dee2c26a265136e5d70422c52c338e06a8544a4fa9e996264"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1556.ndjson",
+        "bytes": 1687,
+        "sha256": "d47b19bf40dc834b76611ca89644a004b6c8f87e59a873d6392ca4efd65182e2"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1576.ndjson",
+        "bytes": 1681,
+        "sha256": "36de60c3d85e69fb05b88a34948cf75f302bc237b7328be979e75e4bf82d167e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1648.ndjson",
+        "bytes": 1664,
+        "sha256": "8cad76f9519f4d7657cead320e468f4177be41e43a7cd5800b40f8fc61d0bf0e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1816.ndjson",
+        "bytes": 1667,
+        "sha256": "db9def939f60570abc7058ff5453d814e1d2ff211126cb7943c439d498de9de4"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1908.ndjson",
+        "bytes": 1659,
+        "sha256": "54394719ff662df99b694a67f9b344f10ddfe2d243cb81b190d7096d9582b1c9"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1912.ndjson",
+        "bytes": 2117,
+        "sha256": "15d4dc09ff2ed179aa962e27848b2625e7ff412192f10b4fdeafd254b69c5503"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1932.ndjson",
+        "bytes": 1694,
+        "sha256": "7016de9e3eb1f6cf53b595f92fd60b9d8490f72895de38256e858514e2377f99"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-1936.ndjson",
+        "bytes": 1683,
+        "sha256": "a76ed13f35e425a33d01e0b74fac569918f35f241ab3f72a70b20ffa5b0010c7"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2092.ndjson",
+        "bytes": 1662,
+        "sha256": "5304644ca32fd22ae0880e13f5f7e08bbe3a0484e0b581647a8586708afe9e20"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2444.ndjson",
+        "bytes": 1664,
+        "sha256": "5be5531bded21785b86eca571121365e41a18fa2e9c43b413b359284f5b939c0"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2560.ndjson",
+        "bytes": 1691,
+        "sha256": "c40d628de9bf26a55d891533f11f24ab7ca1ae7a59c50bd4968d124ec1b92327"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2756.ndjson",
+        "bytes": 1663,
+        "sha256": "635b36a87583f4ed1b00e718f02b5521d49370c9728eebcb0a4e79aa99de0ff5"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2792.ndjson",
+        "bytes": 1679,
+        "sha256": "39ff79882776a316b825701750451bba2373fae736ba85b6ff36ff45374230c2"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2920.ndjson",
+        "bytes": 1680,
+        "sha256": "41a35526a4c1c8bc4636909578749ec4904468dca05460c9b91bf55beb90bd7e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2948.ndjson",
+        "bytes": 1673,
+        "sha256": "3874a241cfd72603de2dc28a98b395abdb6c2e1b55728481a429f76717ec2050"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-2976.ndjson",
+        "bytes": 1660,
+        "sha256": "aa8c28bdc294e2483f9af7286dc9c74110716b2be009c1f88c466f4ed2d65b16"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3008.ndjson",
+        "bytes": 1658,
+        "sha256": "c8c92ae22ca827c87ce0520e7408883a476e62daa76940ee0f567d738f55f4fb"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3100.ndjson",
+        "bytes": 1661,
+        "sha256": "f2e3f26b78ab64ff50c1cc604946128a84bd16db17274cdb51a2e79ee86d720e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3196.ndjson",
+        "bytes": 1670,
+        "sha256": "951d8a0256ba042561188e4f4b766fffc274e67c6a5505d0f97e071154d97b4b"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3280.ndjson",
+        "bytes": 1669,
+        "sha256": "ea0a018376f30367ca6a8219486f0e8013f82fa96f1dd831e3870fa2119b6e3c"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3432.ndjson",
+        "bytes": 1677,
+        "sha256": "a43905652935c34b10fe8d5cf24e9dca09959bd6c0731cfbf78dc7c56784a564"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3464.ndjson",
+        "bytes": 1665,
+        "sha256": "3a5bc023739ac227b6b51c805f7454ed754a56e2c7f6388d0a1515382ca90980"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-3904.ndjson",
+        "bytes": 1676,
+        "sha256": "7ebdc0946f6bff12c458116a5e5d83108ee45ee891db9c429f72f220a4c864bd"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4032.ndjson",
+        "bytes": 1674,
+        "sha256": "a9dfa053ca151b622fc9022877aac82d392f9d787ffdf7bb689281b95cca3150"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4068.ndjson",
+        "bytes": 1679,
+        "sha256": "bfb3341d4ccac9bcccd0e922418a9c81be5150845ed1dcec5c292f5a2e37d617"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4128.ndjson",
+        "bytes": 1670,
+        "sha256": "95dcba3dc8c26b7a2078e4c8241888193b9776eecac0e0a2c38c32ef24d24cd6"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4360.ndjson",
+        "bytes": 1658,
+        "sha256": "0040c426e12ad41c1a6ba5fe79cc181f228e05440390862c1d9ee201914aa21f"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4408.ndjson",
+        "bytes": 1669,
+        "sha256": "d87efe5028b1881702fcf3f24f32fe7d2f00bbeb5632fb32ad357f5c0abc5cf5"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4592.ndjson",
+        "bytes": 1677,
+        "sha256": "92090e11ee6a00ea1d43180ad4da40e24e09c8434cce88545e94c63f451826ad"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4660.ndjson",
+        "bytes": 1672,
+        "sha256": "58e8902f17bfafe9b8b57bb7c481abdea84b4861bcc3f0b5dd38602895cd6863"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4948.ndjson",
+        "bytes": 1676,
+        "sha256": "4c9e994aebc45b3a4f11abf1ba51a7369bf2312c1fad1a74cfb3dbabb9fc8172"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-4988.ndjson",
+        "bytes": 1671,
+        "sha256": "163c14009c191409cc3c31233065d5ecaec50ab9acb03cf9a9daf85e064cd532"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5004.ndjson",
+        "bytes": 1684,
+        "sha256": "a99ae502c5f388072839214d61e7e863056d9fa9874344bfb0debd1842b38b7c"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5128.ndjson",
+        "bytes": 1662,
+        "sha256": "5b4d0cbf8797cf0f72fa22c5cf60550be3f1498fab787fad7612a46842ef119b"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5308.ndjson",
+        "bytes": 1698,
+        "sha256": "c672411d6c81712b7153acd24849a33da1d21111de564bdbec219c49cb57aa59"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5344.ndjson",
+        "bytes": 1662,
+        "sha256": "543ee38d4d32f6e7944251a51a029012e9e745eada6f99be07e487b6d69de325"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5408.ndjson",
+        "bytes": 1670,
+        "sha256": "858996dd6fd8abf6a72299c9a2f2ae04ee43ba324bdd60cc1aa296723669c4f8"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5460.ndjson",
+        "bytes": 1668,
+        "sha256": "9586da2b9bce79543f52ef7cd2eb03e075dd6b4ec07b29aa92684f5d0fe63bbf"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5508.ndjson",
+        "bytes": 1691,
+        "sha256": "fa31d38def62e68e6df4208219434f32910fbcb7219c71b129f0422445d45d10"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5632.ndjson",
+        "bytes": 1682,
+        "sha256": "c9513764010ea6d2121b6a286c842864737a8ced821d9c4817f096560e84dc3d"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5668.ndjson",
+        "bytes": 1670,
+        "sha256": "3063026097857f04699da7add98e89dca7aec336ad2976ef22e0928a0e0be686"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5788.ndjson",
+        "bytes": 1665,
+        "sha256": "745a9d1da9405b2776b8feda645c87ae42d60e8701956a4863a0d7ec1e9e8093"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-5828.ndjson",
+        "bytes": 1659,
+        "sha256": "af67a2604b2a94ebe37903dc19f170977ce8294d46982020b42d6cd3b2136c06"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6104.ndjson",
+        "bytes": 2100,
+        "sha256": "098a9265cf51186436ca7dc6dd4b31ebc24c294317071e977def98b34d166785"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6252.ndjson",
+        "bytes": 1660,
+        "sha256": "882762cba3e8b9ccb470059f086ee02eb49d4eff0144710b0e0998f2f024b772"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6320.ndjson",
+        "bytes": 1678,
+        "sha256": "a5901b32a118f1edf60e94fa85698c866173f563d7d880d5dfc0414313c74bb1"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6324.ndjson",
+        "bytes": 1684,
+        "sha256": "f5060bbe4cce900c955a9fddaaccbbb144b6e19ae41d62dd57455a9a4eabdd31"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6520.ndjson",
+        "bytes": 1677,
+        "sha256": "4dde33f88998e929830f9860dc27c824bf2be4c011484f7fb857c3c062db1e3e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6564.ndjson",
+        "bytes": 1674,
+        "sha256": "715d34701fe30a2d11bae05b75326d41e43e7de9f4e92d2400ccad049bac8ce7"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6736.ndjson",
+        "bytes": 1666,
+        "sha256": "95bd5a9165d1b53cca27bd5f461c7dd2c3dfb5a895529d0066175bd40895ad0f"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6764.ndjson",
+        "bytes": 1669,
+        "sha256": "ed6a1559b5b5d83e555344eeed5a5d2c3a07c184e045edd12d828e6aa1dbfbb9"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6876.ndjson",
+        "bytes": 3344,
+        "sha256": "80b0d0cc45a182d324b358781cfa4bcaae5459e6969564aadd1235609af1d084"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6944.ndjson",
+        "bytes": 1683,
+        "sha256": "31a1cda8a879fb9d7a08a462666c622e3270e47b95fe9d792a2193e52801a4a7"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6948.ndjson",
+        "bytes": 1661,
+        "sha256": "a51ae7b33d85a74ddb016a90394d15ef70d607b6a589d7e1b7c4aa4efa8d6f5e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-6968.ndjson",
+        "bytes": 1679,
+        "sha256": "9249b283aae0af3d89fbfced9ce22ee55a302254b590d82ba28735e10df2a2f3"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7036.ndjson",
+        "bytes": 1677,
+        "sha256": "ff441b342f08ce7aada6e31ea2142b3b25ed856a2a5c880d71c04ec984f9d2ba"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7124.ndjson",
+        "bytes": 1689,
+        "sha256": "bfe4b9942dab2e088fb08d862663d3e0c62e4b049b9a7a1ab4ef7f4a444e22b8"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7244.ndjson",
+        "bytes": 1668,
+        "sha256": "26450ae466a2c9df5a7d2f7122dcb6fb3919d0a9a585f57bb5df8b590f2d337c"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7268.ndjson",
+        "bytes": 1661,
+        "sha256": "863873e9644926e4f2648538227baf0b872af104540506919da21fd7f2987eb1"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7356.ndjson",
+        "bytes": 1680,
+        "sha256": "60daabb4b0b445e26c29735208b7ba3ab1cfc8dd51db639312e4d863f650d9d7"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7360.ndjson",
+        "bytes": 1665,
+        "sha256": "c836d64435bd425ad83f28a5c42e4d1bef64e7afe462ad3704c4ef326eb9e72e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7400.ndjson",
+        "bytes": 1684,
+        "sha256": "4760866a66f3c75c2dd39163af6e90551ec37e52c0abbcf419e151c510ab2df4"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7432.ndjson",
+        "bytes": 1666,
+        "sha256": "756c867f11660559ebaebb28990b95f62165928d017ac321e30f1cefd2a1f425"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7436.ndjson",
+        "bytes": 1666,
+        "sha256": "9c8df1a310b3b4957b3699ca1be5301165c281667a2b969eb01090364b8419f0"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7472.ndjson",
+        "bytes": 1688,
+        "sha256": "d5402cbe2042a10e1ec90230cb0659414993ea2cfb9c8e3d5c18f32bd6fb7319"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7556.ndjson",
+        "bytes": 3333,
+        "sha256": "2420778eb215ccb976b94e2e7f4890d7a173defa750b408a4615cc7415c522cb"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7764.ndjson",
+        "bytes": 1683,
+        "sha256": "14da8fa7f98f4baeb2fe55ff204f449da82ec1e881b81197659e3ed9697fa6ba"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7876.ndjson",
+        "bytes": 1665,
+        "sha256": "57151e89e5e8606f335bd955e0dbf1ad2fc93338bcab326d94d2ead9b0d64166"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7932.ndjson",
+        "bytes": 1662,
+        "sha256": "2c5756332bfd08ef953f27263300d5c9a48e3a1aa94a586c1b61ef6fe8d705ff"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-7948.ndjson",
+        "bytes": 3393,
+        "sha256": "82e945b5f59d46ee2a37672434815306f4f50a152e29b766a9f33d559a1b6397"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8012.ndjson",
+        "bytes": 1675,
+        "sha256": "584a42013a6f6c5823bfeef6e753857d7c6cdcd86f128c519b292facfc44e35d"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8092.ndjson",
+        "bytes": 1673,
+        "sha256": "f85caece8ab1a88a9d563f4937c4276769a0e16cbbf6668f22213cea1d4435ba"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8188.ndjson",
+        "bytes": 1670,
+        "sha256": "65ccd1b8a84f0ac2f335e017dd8648c9380608b612f70c89a94f0577bb8a6dff"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8276.ndjson",
+        "bytes": 1661,
+        "sha256": "2e132733e8ca00437123a47c5021179f998a0b0c20aa538b76975b48613f0a49"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8524.ndjson",
+        "bytes": 1681,
+        "sha256": "95a31cbaece62e7746c37f3a354fae2c49b2936e6d0b91c6ed40b59d18d596be"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8572.ndjson",
+        "bytes": 1669,
+        "sha256": "a2d35cc4fc9c203fb096c563732e8259f2846c5950127231b068a9f162496244"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8616.ndjson",
+        "bytes": 1679,
+        "sha256": "3e99f7726e894ab4892566b4c93125d7a673d670b9696a8df044226d9e96955e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8764.ndjson",
+        "bytes": 1467,
+        "sha256": "475088a2594e11c6d80270d132e53563df6643aef550399b9c6509655d5a86bc"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-8916.ndjson",
+        "bytes": 1682,
+        "sha256": "1f1b9b4da30b8b390b0141fda5655408e6252298c2fa06ae46b03b03b374c8bc"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-892.ndjson",
+        "bytes": 1674,
+        "sha256": "45df4222e7acdc410db51353e29ec67660e8719723055d14e8b79d2fa3e8e9e1"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9084.ndjson",
+        "bytes": 1682,
+        "sha256": "64176aa0ef40d1d2136ffca0bdb06463403f5d300e3cc661f7ca7708c2ded5e1"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9136.ndjson",
+        "bytes": 1678,
+        "sha256": "8c37f5d0218ae2e1c067e429de1b49cee757866d444c9584f572df88694a5d63"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9144.ndjson",
+        "bytes": 1682,
+        "sha256": "612195a7c504d16cfada6a474fbad9a62c6741c63106ee8da8c61a0f40d4193c"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9324.ndjson",
+        "bytes": 1661,
+        "sha256": "cb2c27fe08ebe1a2d90ef0e42135d5320f360eec8fdf5795f922c78c323301ce"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9508.ndjson",
+        "bytes": 1695,
+        "sha256": "d88d12f39ff4f6d9e04db39e016d541f197395d3a77f940d76dd73f6eac8b167"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9516.ndjson",
+        "bytes": 1656,
+        "sha256": "827814b985bd37de41b78008f1823796d6d15872d587928d407a27377eb20c91"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9572.ndjson",
+        "bytes": 1684,
+        "sha256": "d7403fc8e442847333ea5352e569f7cc156aab670b999f031bc532c8b5719a4f"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9592.ndjson",
+        "bytes": 1672,
+        "sha256": "76cda3b1381385a5011124112b49d0e00bcbedbc94fc7f3be749463778b7c6ca"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9632.ndjson",
+        "bytes": 1682,
+        "sha256": "77f9bf8797a9791e82af882e18b21d93b479ea968dbde108ed5078768fd98b4e"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9804.ndjson",
+        "bytes": 1664,
+        "sha256": "29fdd8908032fbd9609ba0b3730e956e128c3692e3200b956e57087af3887fd4"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9828.ndjson",
+        "bytes": 1675,
+        "sha256": "df01c9ad57655de2c5d069b2aab2e2f271123832d93ca046a8f30ada53b122ac"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9872.ndjson",
+        "bytes": 1659,
+        "sha256": "e34af51c19d70e314c73916db281ac299e4744505e6d0fb2168f460fb4d18fc3"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9908.ndjson",
+        "bytes": 1691,
+        "sha256": "61a08b47f3df64ec332cac46631691ad788b7fd5ddccc593a3d2e4bda02db1ff"
+      },
+      {
+        "name": "_temp/worker-diagnostics/process-9996.ndjson",
+        "bytes": 1669,
+        "sha256": "91f42ea34da9bc2e17063950924c5556087fb685df5bfa4bee1e776d5322e150"
+      },
+      {
+        "name": "_temp/worker-diagnostics/source.sha",
+        "bytes": 41,
+        "sha256": "bbff5e774450c442d477cd730667be4eb8c91042982320ad342614ac2ab98c94"
+      },
+      {
+        "name": "chainlesschain/chainlesschain/packages/cli/test-results/worker-diagnostic.xml",
+        "bytes": 539297,
+        "sha256": "6b893c2a9846dd2ee581908f304059fc1301baed4328dc16dc2ee1c6227a6f6d"
+      }
+    ],
+    "selectedFiles": [
+      "__tests__/unit/agent-background-worktree.test.js",
+      "__tests__/unit/agent-bundle-integration.test.js",
+      "__tests__/unit/agent-core-autocompact.test.js",
+      "__tests__/unit/agent-core-skill-decision.test.js",
+      "__tests__/unit/agent-core-write-verify.test.js",
+      "__tests__/unit/agent-include-partial-messages.test.js",
+      "__tests__/unit/agent-ipc-bus-flow-control.test.js",
+      "__tests__/unit/agent-repl.test.js",
+      "__tests__/unit/auto-checkpoint-default.test.js",
+      "__tests__/unit/browser-download-action-authority.test.js",
+      "__tests__/unit/browser-vision-action-authority.test.js",
+      "__tests__/unit/checkpoint-restore-recovery.test.js",
+      "__tests__/unit/collaboration-run-store.test.js",
+      "__tests__/unit/cowork-agent-group-runner.test.js",
+      "__tests__/unit/cowork-cron.test.js",
+      "__tests__/unit/crypto-manager.test.js",
+      "__tests__/unit/diagnostic-excerpt.test.js",
+      "__tests__/unit/evolution-eval-cohort-enrollment.test.js",
+      "__tests__/unit/evolution-eval-runtime-composition.test.js",
+      "__tests__/unit/evolution-ledger-file-backend.test.js",
+      "__tests__/unit/evolution-release-train-pilot-stage.test.js",
+      "__tests__/unit/evolution-truth-surface.test.js",
+      "__tests__/unit/execution-location-failure-site.test.js",
+      "__tests__/unit/federation-hardening.test.js",
+      "__tests__/unit/fullscreen-tui.test.js",
+      "__tests__/unit/git-tool-input.test.js",
+      "__tests__/unit/gitlab-mr-worktree.test.js",
+      "__tests__/unit/governed-knowledge-rbac-approval-authority.test.js",
+      "__tests__/unit/governed-knowledge-wiki-tombstone.test.js",
+      "__tests__/unit/governed-skill-synthesis-attestor-trust-operations-service.test.js",
+      "__tests__/unit/governed-skill-synthesis-process-grader.test.js",
+      "__tests__/unit/headless-runner-async-hook-recovery.test.js",
+      "__tests__/unit/headless-runner.test.js",
+      "__tests__/unit/headless-skill-decision.test.js",
+      "__tests__/unit/headless-stream-plan.test.js",
+      "__tests__/unit/hierarchical-memory.test.js",
+      "__tests__/unit/hooks-status.test.js",
+      "__tests__/unit/hooks-v2-managed-policy.test.js",
+      "__tests__/unit/ide-roadmap-execution-location-matrix.test.js",
+      "__tests__/unit/ide-roadmap-safety-gate.test.js",
+      "__tests__/unit/init-ai-doc-creator.test.js",
+      "__tests__/unit/interaction-adapter.test.js",
+      "__tests__/unit/interactive-planner.test.js",
+      "__tests__/unit/lib/a2a-protocol-v2-iter28.test.js",
+      "__tests__/unit/lib/code-agent-v2.test.js",
+      "__tests__/unit/lib/compression-telemetry-v2.test.js",
+      "__tests__/unit/lib/cowork-task-templates-v2-iter25.test.js",
+      "__tests__/unit/lib/knowledge-graph-v2.test.js",
+      "__tests__/unit/lib/orchestrator-v2.test.js",
+      "__tests__/unit/lib/process-manager-v2-iter27.test.js",
+      "__tests__/unit/lib/skill-marketplace-v2.test.js",
+      "__tests__/unit/lib/version-checker-v2.test.js",
+      "__tests__/unit/lib/web-ui-server-v2-iter26.test.js",
+      "__tests__/unit/llm-providers.test.js",
+      "__tests__/unit/matrix-bridge.test.js",
+      "__tests__/unit/mcp-client-headers-helper.test.js",
+      "__tests__/unit/mcp-client-inbound-traffic.test.js",
+      "__tests__/unit/mcp-client-process-death.test.js",
+      "__tests__/unit/mcp-serve.test.js",
+      "__tests__/unit/memory-injection.test.js",
+      "__tests__/unit/native-release-manifest.test.js",
+      "__tests__/unit/packer-project-assets-collector.test.js",
+      "__tests__/unit/pdh-dedicated-batch-collectors.test.js",
+      "__tests__/unit/perf-tuning.test.js",
+      "__tests__/unit/personal-data-hub-protocol.test.js",
+      "__tests__/unit/pm-exploration-business-grader.test.js",
+      "__tests__/unit/pm-exploration-recovery-snapshot-store.test.js",
+      "__tests__/unit/pr-link-ledger.test.js",
+      "__tests__/unit/progressive-canary-watchdog-node-pki.test.js",
+      "__tests__/unit/read-file-page.test.js",
+      "__tests__/unit/remote-approval-decision.test.js",
+      "__tests__/unit/remote-read-loop-guard.test.js",
+      "__tests__/unit/repl-goal.test.js",
+      "__tests__/unit/review-comment-anchor.test.js",
+      "__tests__/unit/runnable-provider.test.js",
+      "__tests__/unit/safe-mode.test.js",
+      "__tests__/unit/scheduler-kernel-automation-adapter.test.js",
+      "__tests__/unit/scheduler-kernel-soak-workflow.test.js",
+      "__tests__/unit/session-budget-production-root.test.js",
+      "__tests__/unit/session-host-consistency-gate.test.js",
+      "__tests__/unit/session-search.test.js",
+      "__tests__/unit/setup-deployment-readiness.test.js",
+      "__tests__/unit/skill-release-registry.test.js",
+      "__tests__/unit/skill-writer-inventory.test.js",
+      "__tests__/unit/social-graph-analytics.test.js",
+      "__tests__/unit/social-graph.test.js",
+      "__tests__/unit/status-diagnostics-lite.test.js",
+      "__tests__/unit/sub-agent-profiles.test.js",
+      "__tests__/unit/sub-agent-registry.test.js",
+      "__tests__/unit/task-progress-tracker.test.js",
+      "__tests__/unit/team-mailbox.test.js",
+      "__tests__/unit/team-runner-scope.test.js",
+      "__tests__/unit/telemetry-ids.test.js",
+      "__tests__/unit/token-incentive.test.js",
+      "__tests__/unit/vscode-ext-activate-wiring.test.js",
+      "__tests__/unit/vscode-ext-background-agents.test.js",
+      "__tests__/unit/vscode-ext-chat-events-degrade.test.js",
+      "__tests__/unit/vscode-ext-chat-rewind.test.js",
+      "__tests__/unit/vscode-ext-hardened-env.test.js",
+      "__tests__/unit/vscode-ext-insert-reference.test.js",
+      "__tests__/unit/vscode-ext-remote-doctor.test.js",
+      "__tests__/unit/web-ui-envelope.test.js",
+      "__tests__/unit/ws-policy-authority.test.js"
+    ],
+    "junit": {
+      "tests": 2510,
+      "failures": 0,
+      "errors": 0,
+      "durationSeconds": 444.347574
+    },
+    "lifecycle": {
+      "vitestExecutions": 1,
+      "fileExecutions": 103,
+      "completeHandshakeBeforeKill": 103,
+      "expectedOrder": [
+        "child.message.send:run",
+        "child.message.receive:testfileFinished",
+        "child.message.send:stop",
+        "child.message.receive:stopped",
+        "child.kill.call:",
+        "child.exit:",
+        "child.close:"
+      ],
+      "eventFiles": 102,
+      "processStarts": 105,
+      "pidReuseHandledByCreatedToCloseEpisodes": true,
+      "childErrors": 0,
+      "explicitExitCalls": 0,
+      "uncaughtExceptionMonitorEvents": 0,
+      "childExitSignals": {
+        "SIGTERM": 103
+      }
+    },
+    "headless": {
+      "pid": 1912,
+      "parentPid": 10080,
+      "workerTimeline": [
+        {
+          "time": "2026-10-02T21:08:35.467Z",
+          "elapsedNs": "649600",
+          "sequence": 1,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "loaded",
+          "connected": true,
+          "rss": 45686784,
+          "heapUsed": 4717680,
+          "maxRss": 44668
+        },
+        {
+          "time": "2026-10-02T21:08:35.593Z",
+          "elapsedNs": "125801500",
+          "sequence": 2,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.receive",
+          "type": "start",
+          "hasError": false,
+          "rss": 55357440,
+          "heapUsed": 10627080,
+          "maxRss": 54324
+        },
+        {
+          "time": "2026-10-02T21:08:35.595Z",
+          "elapsedNs": "127314200",
+          "sequence": 3,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.send",
+          "type": "started",
+          "hasError": false,
+          "rss": 55521280,
+          "heapUsed": 10676864,
+          "maxRss": 54324
+        },
+        {
+          "time": "2026-10-02T21:08:35.596Z",
+          "elapsedNs": "128745200",
+          "sequence": 4,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.receive",
+          "type": "run",
+          "hasError": false,
+          "rss": 55586816,
+          "heapUsed": 10705720,
+          "maxRss": 54324
+        },
+        {
+          "time": "2026-10-02T21:08:48.363Z",
+          "elapsedNs": "12895491400",
+          "sequence": 5,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.send",
+          "type": "testfileFinished",
+          "hasError": false,
+          "rss": 366764032,
+          "heapUsed": 269626184,
+          "maxRss": 358168
+        },
+        {
+          "time": "2026-10-02T21:08:48.364Z",
+          "elapsedNs": "12896792200",
+          "sequence": 6,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.receive",
+          "type": "stop",
+          "hasError": false,
+          "rss": 366837760,
+          "heapUsed": 269659824,
+          "maxRss": 358240
+        },
+        {
+          "time": "2026-10-02T21:08:48.365Z",
+          "elapsedNs": "12897571100",
+          "sequence": 7,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.message.send",
+          "type": "stopped",
+          "hasError": false,
+          "rss": 366837760,
+          "heapUsed": 269699216,
+          "maxRss": 358240
+        },
+        {
+          "time": "2026-10-02T21:08:48.365Z",
+          "elapsedNs": "12898001100",
+          "sequence": 8,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.beforeExit",
+          "code": 0,
+          "exitCode": null,
+          "connected": true,
+          "rss": 366837760,
+          "heapUsed": 269707456,
+          "maxRss": 358240
+        },
+        {
+          "time": "2026-10-02T21:08:48.366Z",
+          "elapsedNs": "12898421700",
+          "sequence": 9,
+          "pid": 1912,
+          "ppid": 10080,
+          "event": "process.exit",
+          "code": 0,
+          "exitCode": null,
+          "connected": true,
+          "rss": 366837760,
+          "heapUsed": 269713616,
+          "maxRss": 358240
+        }
+      ],
+      "parentTimeline": [
+        {
+          "time": "2026-10-02T21:08:35.423Z",
+          "elapsedNs": "31691854800",
+          "sequence": 19,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.created",
+          "childPid": 1912,
+          "rss": 415604736,
+          "heapUsed": 303094008,
+          "maxRss": 405864
+        },
+        {
+          "time": "2026-10-02T21:08:35.423Z",
+          "elapsedNs": "31692303200",
+          "sequence": 20,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.send",
+          "type": "start",
+          "childPid": 1912,
+          "exitCode": null,
+          "connected": true,
+          "hasError": false,
+          "rss": 415608832,
+          "heapUsed": 303116880,
+          "maxRss": 405868
+        },
+        {
+          "time": "2026-10-02T21:08:35.595Z",
+          "elapsedNs": "31864073800",
+          "sequence": 26,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.receive",
+          "type": "started",
+          "childPid": 1912,
+          "hasError": false,
+          "rss": 415629312,
+          "heapUsed": 303275472,
+          "maxRss": 405888
+        },
+        {
+          "time": "2026-10-02T21:08:35.595Z",
+          "elapsedNs": "31864432100",
+          "sequence": 27,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.send",
+          "type": "run",
+          "childPid": 1912,
+          "exitCode": null,
+          "connected": true,
+          "hasError": false,
+          "rss": 415629312,
+          "heapUsed": 303279384,
+          "maxRss": 405888
+        },
+        {
+          "time": "2026-10-02T21:08:48.363Z",
+          "elapsedNs": "44632123400",
+          "sequence": 28,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.receive",
+          "type": "testfileFinished",
+          "childPid": 1912,
+          "hasError": false,
+          "rss": 245870592,
+          "heapUsed": 144812464,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.364Z",
+          "elapsedNs": "44632540500",
+          "sequence": 29,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.send",
+          "type": "stop",
+          "childPid": 1912,
+          "exitCode": null,
+          "connected": true,
+          "hasError": false,
+          "rss": 245870592,
+          "heapUsed": 144821624,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.370Z",
+          "elapsedNs": "44638741000",
+          "sequence": 32,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.message.receive",
+          "type": "stopped",
+          "childPid": 1912,
+          "hasError": false,
+          "rss": 245989376,
+          "heapUsed": 145008824,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.370Z",
+          "elapsedNs": "44639343800",
+          "sequence": 33,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.kill.call",
+          "childPid": 1912,
+          "signal": "SIGTERM",
+          "rss": 246067200,
+          "heapUsed": 145084208,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.371Z",
+          "elapsedNs": "44639760200",
+          "sequence": 34,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.disconnect",
+          "childPid": 1912,
+          "code": null,
+          "signal": null,
+          "exitCode": null,
+          "signalCode": null,
+          "connected": false,
+          "rss": 246067200,
+          "heapUsed": 145091648,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.400Z",
+          "elapsedNs": "44668902600",
+          "sequence": 35,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.exit",
+          "childPid": 1912,
+          "code": null,
+          "signal": "SIGTERM",
+          "exitCode": null,
+          "signalCode": "SIGTERM",
+          "connected": false,
+          "rss": 246132736,
+          "heapUsed": 145112360,
+          "maxRss": 441064
+        },
+        {
+          "time": "2026-10-02T21:08:48.400Z",
+          "elapsedNs": "44669138600",
+          "sequence": 36,
+          "pid": 10080,
+          "ppid": 8764,
+          "event": "child.close",
+          "childPid": 1912,
+          "code": null,
+          "signal": "SIGTERM",
+          "exitCode": null,
+          "signalCode": "SIGTERM",
+          "connected": false,
+          "rss": 246132736,
+          "heapUsed": 145115816,
+          "maxRss": 441064
+        }
+      ]
+    }
+  }
+}

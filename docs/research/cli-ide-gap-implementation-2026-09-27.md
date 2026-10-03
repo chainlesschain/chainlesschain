@@ -4,6 +4,12 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### DOC-01：设计、用户文档与官网部署（2026-10-03）
+
+`4e5bc593dacfc8b571e3d7b2255e8e98c99ad0a6` 更新中英文 README、Linux 打包设计与用户说明、IDE 设计与用户说明及中英文官网候选状态。三站最终构建均成功：用户站 **623**、设计站 **272**、官网 **20** 个 HTML；用户文档结构检查覆盖 **305** 文件的全部 **11** 个必需模块。通过既有部署脚本原子替换服务器目录，保留 `.bak-20261003-0508-gap-docsync`。
+
+[部署回执](./cli/evidence/documentation-deployment-2026-10-03.json)绑定准确提交的 **11** 个输入及公网 **20** 个文件：三站首页、改动页面、中英文 IDE 页和对应 VitePress 普通/lean 客户端模块全部 HTTP 200，字节长度与 SHA-256 均等于最终本地构建。公开渠道仍为 CLI **0.166.84**、Open VSX **0.37.126**、JetBrains **0.4.146**；文档部署不构成候选 IDE 或 npm 发布。
+
 ### NET-02 严格来源观察与权限投影（2026-10-03）
 
 官方 `loadPermissionAuthority()` / settings provider 现在先严格观察全部候选来源，再仅从同一次读取并冻结的 JSON 合并规则；`projectSettingsObservation()` 不重新发现路径或读盘，以模块私有 WeakSet 校验观察对象。文件替换、删除或 managed 文件在 env 采样期间变化，都不会混入后一次读取；managed 最后层及同路径双角色、规则去重和来源语义保留。深冻结改为迭代遍历，支持 12,000 层合法无关 JSON。
@@ -35,6 +41,10 @@ JetBrains 原生 Swing 测量已在 `9e3c3b4e166e0f0652e145c4a9167691094f79d1` �
 `96cbf6ba5631d5ef855e3cdc41801d837142e62b` 为 journey 注入可选 `env`（实际宿主默认仍用 `process.env`），base mock 使用空 env，隔离宿主启动 flags。在两个宿主 flags 同时开启时，准确 `test:unit` **223/223**、全 glob 测试 **239/239** 通过，ESLint/Prettier 通过。冻结分支 `release/ide-vscode-0.37.127` 已更新到 **96cbf6ba56**，不包含后续 CLI settings 或 standalone 切片。该准确提交的 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37054217552) **5/5 成功**；[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37054226885) 整体成功，**18 个作业成功 / 1 个正常跳过**（非 JetBrains 发布的市场回读）。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37054207987) 首次失败：Windows unit shard 14/16 的测试 worker 在重试覆盖全部文件后发生 IPC EPIPE，未发现测试超时记录，日志不足以确定退出原因；依赖完整三系统 verify-cli 的 PM aggregate 也未通过。完整 run 结束后已按同一准确 SHA 重跑失败作业。旧提交的成功不转移到新候选；完整门及市场回读尚未完成，尚未推发布 tag。用户已授权 IDE 发布；后续实现分支继续通过 [PR #399](https://github.com/chainlesschain/chainlesschain/pull/399) 审查。
 
 第二次 CLI CI 的 Windows unit shard 14/16 仍失败：首轮 **102/103** 文件、**2,509/2,510** 测试通过后 worker 异常退出；同一作业内自动重试时 headless-runner **86/86** 通过，约 **15 ms** 后 `PoolRunner.stop → ForksPoolWorker.send` 写 IPC 发生 EPIPE。没有 AssertionError、OOM/heap fatal 或 worker exit code/signal 记录，不能把重复失败归为基础设施偶发。该 attempt 已结束为 failure；PM aggregate 在“不完整平台矩阵”步骤拒绝，下载和 verifier 未执行。冻结候选不变，尚未发布。独立 [Windows worker 诊断](https://github.com/chainlesschain/chainlesschain/actions/runs/37063229369) 从 source **96cbf6ba56** 运行，driver 为独立 **81dba2aff9**；opt-in preload 只记录 PID/消息类型/停止顺序/退出码/信号与内存，不添加 error/message listener，不改变断言、退出码或重试策略。此诊断不替代准确提交完整发布门，其同步采样也可能改变竞态时序。
+
+该托管诊断随后一次执行通过 **103 文件 / 2,510 测试**，没有触发自动重试；[原始 ZIP 绑定归档](./cli/evidence/windows-worker-diagnostic-hosted-96cbf6ba56.json)与[独立 verifier](./cli/evidence/verify-windows-worker-diagnostic-hosted-96cbf6ba56.cjs)复核 **106** 个原文件和全部 **103** 个 `run → testfileFinished → stop → stopped → kill → exit → close` 生命周期。headless worker 发送 stopped 后正常 beforeExit/exit0，父进程收到确认后才 kill。另有[本机干净安装诊断](./cli/evidence/windows-worker-diagnostic-local-96cbf6ba56.json)：原分片保留退出码 **1**，**2,473 pass / 37 缺原生 SQLite 绑定失败**；补装锁定 binding 后仅受影响两文件 **43/43** 通过，未将局部补验改写为完整分片通过。两种诊断都未复现原 EPIPE；同步采样、依赖安装差异和原失败原因仍是边界，`releaseGateEligible=false`。
+
+后续实现 **4e5bc593da** 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37065089276) 为 **67 成功 / 1 失败**，所有 Windows 分片及 verify/PM 流程通过；唯一失败为 Linux 实际 pack dry-run 的 Phase 5 `Process spawnSync denied: policy_prompt`。pkg config 导入 pkg-fetch system 时隐式执行 ldd，触发真实 CLI bootstrap 守卫；该确定性问题继续修复。此提交包含后续 CLI 切片，其成功作业不能转移到冻结 **96cbf6ba56**。
 
 ### IDE-STREAM 三系统真实宿主回读（2026-10-03）
 
@@ -72,7 +82,9 @@ Windows 四文件 **90 passed / 8 Linux-only skipped**，WSL 同四文件 **98/9
 
 准确 **b776be5fc8** 的[实际 pkg 回执](./cli/evidence/standalone-pkg-helper-linux-b776be5fc8.json)替代旧 dirty helper 入口探针。九个实际输入从该提交独立 `git archive` 提取，构建起止逐字节匹配 Git blob；WSL 构建 pkg **6.21.0 / GZip**，随后在真实 **Linux x64 / Node 22.23.1** 服务器唯一临时目录执行。正例以 `/proc/self/fd/4`、**nlink=0 / 0500** 绑定镜像，旧路径重建为 exit99 后仍执行原镜像；目标及 detached 后代共 **2** 个回收，ready 后约 **126.87 ms**。缺 manifest、损坏镜像、源码漂移及 pkg mount 真实文件覆盖四个负例均以退出码 **3** 拒绝，五次 `compilerCalls=0`。回执保留六份小型复现脚本及 SHA-256，远端唯一临时目录已清理；本地收据再核对九个原始 Git 输入、五结果合同和脚本摘要通过。
 
-此为 **Linux x64 helper 入口**，不是完整 CLI/多架构干净安装证明。六平台 [CLI Native Validation](https://github.com/chainlesschain/chainlesschain/actions/runs/37061258812) 已使用准确 **3b6de88c08350e31903ab1c4b6348a0648c69e3b** 调度，包含同一实现及文档清单更新；当前 macOS x64 成功，Linux x64/ARM64 与 Windows x64/ARM64 失败，macOS ARM64 尚在队列，失败日志继续定位。较早输入 SHA 错误的调度已取消，不计通过。`c309f3f51e` 另补实际 Linux `pack --dry-run` 入口的固定 helper 构建；全仓只读核对未发现其他未覆盖的真实 Linux 打包 workflow，更新后的合同 **24/24** 通过。签名、公网上架、完整 standalone 宿主与 supervisor-loss 验收不因局部结果关闭。
+此为 **Linux x64 helper 入口**，不是完整 CLI/多架构干净安装证明。六平台 [CLI Native Validation](https://github.com/chainlesschain/chainlesschain/actions/runs/37061258812) 已使用准确 **3b6de88c08350e31903ab1c4b6348a0648c69e3b** 调度，包含同一实现及文档清单更新；最终 macOS x64/ARM64 成功，Linux x64/ARM64 与 Windows x64/ARM64 均在 standalone 构建步骤失败，汇总跳过，失败日志继续定位。两个 Linux helper 构建步骤均已成功。较早输入 SHA 错误的调度已取消，不计通过。`c309f3f51e` 另补实际 Linux `pack --dry-run` 入口的固定 helper 构建；全仓只读核对未发现其他未覆盖的真实 Linux 打包 workflow，更新后的合同 **24/24** 通过。签名、公网上架、完整 standalone 宿主与 supervisor-loss 验收不因局部结果关闭。
+
+原生失败日志进一步分成三类：Linux ARM64 在 Phase 5 遇到同一隐式 ldd 策略拒绝；Linux x64 的 Web Panel 编译完成后进程被终止、退出 **137**；Windows x64/ARM64 均在 Phase 6 pkg 构建退出 **0xC0000044（STATUS_QUOTA_EXCEEDED）**。两处真实 build 调用未请求构建资源预算，继承 default **30 CPU 秒**；Linux 映射 prlimit，Windows 映射 JobObject per-process CPU 限额。Windows 状态与该限额对应；Linux 137 仍不能仅凭日志认定宿主 OOM 或唯一资源原因。纯目标解析与仅面向显式构建的有限预算修复继续验证，未关闭守卫或放宽发布门。
 
 ### JetBrains 原生 transcript 准确提交验收（2026-10-03）
 
