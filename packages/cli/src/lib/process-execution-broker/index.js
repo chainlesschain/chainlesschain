@@ -86,11 +86,13 @@ import {
   mcpStdioCapsuleNativeCodePolicyDigest,
 } from "../mcp-stdio-native-code-policy.js";
 
+import { isPackerBuildPolicy } from "./packer-build-policy.js";
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
   "default",
   "strict",
   "network-only",
+  "build",
 ]);
 // Broker-private admission state. Public runtime-probe fields are audit
 // evidence, not authority to invoke a privileged post-spawn closure.
@@ -1590,6 +1592,15 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     const profile = rawPolicy?.profile ?? null;
+    if (
+      profile === "build" &&
+      !isPackerBuildPolicy(rawPolicy, options, launch)
+    ) {
+      throw this._sandboxBoundaryError(
+        "untrusted_build_sandbox_policy",
+        "The build CPU budget requires an original packer policy for this origin and scope",
+      );
+    }
     if (profile !== null && !SUPPORTED_SANDBOX_PROFILES.has(profile)) {
       throw this._sandboxBoundaryError(
         "invalid_sandbox_profile",

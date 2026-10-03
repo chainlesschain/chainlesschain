@@ -2128,7 +2128,7 @@ export function applyMacSandbox(
   // non-strict mode records the unavailable primitive and executes the
   // original invocation, while strict mode fails closed. Explicit strict or
   // network-only profiles still opt in to the sandbox-exec wrapper below.
-  if ((sandboxOpts.profileName || "default") === "default") {
+  if (["default", "build"].includes(sandboxOpts.profileName || "default")) {
     return createSandboxPlan({
       ...base,
       reason: "macos_default_profile_requires_explicit_policy",
@@ -9969,8 +9969,16 @@ export function applySandbox(
   };
 
   const profile = {
-    ...(profiles[profileName] || profiles.default),
-    profileName: profiles[profileName] ? profileName : "default",
+    ...(profileName === "build"
+      ? {
+          ...profiles.default,
+          limits: { ...profiles.default.limits, cpu: 600 },
+        }
+      : profiles[profileName] || profiles.default),
+    profileName:
+      profileName === "build" || profiles[profileName]
+        ? profileName
+        : "default",
     requiredBoundaries: sandboxRequest.requiredBoundaries,
     sync: sandboxRequest.sync,
     pty: sandboxRequest.pty,

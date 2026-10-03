@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { _deps, runPkg } from "../../src/lib/packer/pkg-runner.js";
+import { isPackerBuildPolicy } from "../../src/lib/process-execution-broker/packer-build-policy.js";
 
 const originalDeps = { ..._deps };
 let tmpDir;
@@ -61,8 +62,14 @@ describe("packer pkg process execution", () => {
         shell: false,
         cwd: path.dirname(fixture.pkgConfigFile),
         stdio: "inherit",
+        timeout: 900_000,
+        killSignal: "SIGKILL",
       }),
     );
+    const options = _deps.spawnSync.mock.calls[0][2];
+    expect(
+      isPackerBuildPolicy(options.sandboxPolicy, options, { sync: true }),
+    ).toBe(true);
     expect(result.outputs).toEqual([
       { path: fixture.outputPath, target: "node18-win-x64" },
     ]);

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { isPackerBuildPolicy } from "../../src/lib/process-execution-broker/packer-build-policy.js";
 import {
   _deps,
   ensureWebPanel,
@@ -45,8 +46,14 @@ describe("packer web panel process execution", () => {
         shell: false,
         cwd: cliRoot,
         stdio: "inherit",
+        timeout: 900_000,
+        killSignal: "SIGKILL",
       }),
     );
+    const options = _deps.spawnSync.mock.calls[0][2];
+    expect(
+      isPackerBuildPolicy(options.sandboxPolicy, options, { sync: true }),
+    ).toBe(true);
   });
 
   it("rebuilds a clean-checkout placeholder before validating assets", () => {

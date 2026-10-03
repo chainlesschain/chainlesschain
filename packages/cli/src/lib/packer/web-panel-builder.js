@@ -12,6 +12,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { PackError, EXIT } from "./errors.js";
 import executionBroker from "../process-execution-broker/index.js";
+import {
+  createPackerBuildPolicy,
+  PACKER_BUILD_TIMEOUT_MS,
+} from "../process-execution-broker/packer-build-policy.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -61,6 +65,9 @@ export function ensureWebPanel(ctx) {
       origin: "packer:web-panel-build",
       scope: "pack",
       policy: "allow",
+      sandboxPolicy: createPackerBuildPolicy("packer:web-panel-build"),
+      timeout: PACKER_BUILD_TIMEOUT_MS,
+      killSignal: "SIGKILL",
       shell: false,
       cwd: cliRoot,
       stdio: "inherit",

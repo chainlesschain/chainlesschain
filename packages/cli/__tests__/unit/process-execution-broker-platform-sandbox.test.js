@@ -6843,6 +6843,65 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
+  it("changes only CPU budget in the Windows build profile", () => {
+    const harness = createWindowsAdapterHarness();
+    const runtime = {
+      platform: "win32",
+      fs: harness.fsRuntime,
+      windowsDir: () => "C:\\Windows",
+      windowsAdapterContent: "param([string]$Payload)",
+      windowsAdapterIdleTtlMs: 60_000,
+      tmpdir: () => "C:\\temp",
+      randomBytes: (size) => Buffer.alloc(size, 7),
+      joinPath: path.win32.join,
+      spawnSync: harness.spawnSync,
+    };
+    const plan = applySandbox(
+      "tool.exe",
+      ["build"],
+      { timeout: 900000, killSignal: "SIGKILL" },
+      "build",
+      runtime,
+    );
+    try {
+      expect(plan.applied).toBe(true);
+      expect(decodeWindowsLaunchSpec(harness, plan)).toMatchObject({
+        cpuSeconds: 600,
+        processMemoryBytes: 0,
+        activeProcessLimit: 64,
+      });
+      expect(plan.options).toMatchObject({
+        timeout: 900000,
+        killSignal: "SIGKILL",
+      });
+      expect(plan.guarantees).toEqual([
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ]);
+    } finally {
+      plan.cleanup?.();
+      resetWindowsSandboxAdapterCache();
+    }
+  });
+
+  it("keeps the build profile on the default macOS compatibility path", () => {
+    const plan = applySandbox(
+      "node",
+      ["build.js"],
+      { cwd: "/workspace" },
+      "build",
+      { platform: "darwin" },
+    );
+    expect(plan).toMatchObject({
+      applied: false,
+      profile: "build",
+      command: "node",
+      reason: "macos_default_profile_requires_explicit_policy",
+      guarantees: [],
+    });
+  });
+
   it("fails closed when the native helper probe payload cannot be removed", () => {
     const harness = createWindowsAdapterHarness();
     const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();

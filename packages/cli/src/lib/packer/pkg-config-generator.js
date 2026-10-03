@@ -20,6 +20,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { linuxSubreaperTargetArchitectures } from "./pkg-targets.js";
 import {
   LINUX_SUBREAPER_SOURCE_DIGEST,
   MAX_SUBREAPER_IMAGE_BYTES,
@@ -29,24 +30,7 @@ import {
 } from "../process-execution-broker/linux-subreaper-artifact.js";
 
 function linuxSubreaperAssets(cliRoot, targets) {
-  // Use pkg's own target resolution so aliases such as linux-x64, linux and
-  // host receive the same mandatory assets as their canonical equivalents.
-  const { parseTargets } = createRequire(import.meta.url)(
-    "@yao-pkg/pkg/lib-es5/config.js",
-  );
-  const architectures = [
-    ...new Set(
-      parseTargets(targets).flatMap(({ platform, arch }) => {
-        if (platform !== "linux" && platform !== "alpine") return [];
-        if (arch !== "x64" && arch !== "arm64") {
-          throw new Error(
-            `Unsupported standalone Linux process supervision architecture: ${arch}`,
-          );
-        }
-        return [arch];
-      }),
-    ),
-  ];
+  const architectures = linuxSubreaperTargetArchitectures(targets);
   if (!architectures.length) return [];
   const root = fs.realpathSync(cliRoot);
   const assets = [];

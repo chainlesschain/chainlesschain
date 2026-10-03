@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { generatePkgConfig } from "../../src/lib/packer/pkg-config-generator.js";
 import { artifactFixture } from "./linux-subreaper-artifact-fixture.js";
 
@@ -216,6 +217,48 @@ describe("generatePkgConfig", () => {
       }
     },
   );
+
+  it("generates Linux assets after the real CLI process guard is installed", () => {
+    stageLinuxHelper("x64");
+    const guard = new URL(
+      "../../src/lib/process-execution-broker/patch-child-process.js",
+      import.meta.url,
+    ).href;
+    const generator = new URL(
+      "../../src/lib/packer/pkg-config-generator.js",
+      import.meta.url,
+    ).href;
+    const ctx = {
+      cliRoot,
+      tempDir,
+      distDir,
+      templatesDir,
+      prebuildsDir: null,
+      targets: ["linux-x64"],
+      outputPath: path.join(tempDir, "out"),
+      compress: true,
+    };
+    const child = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `
+      import assert from 'node:assert/strict';
+      await import(${JSON.stringify(guard)});
+      const childProcess = (await import('node:child_process')).default;
+      assert.throws(() => childProcess.spawnSync('ldd'), /policy_prompt/);
+      // Expose pkg-fetch's Linux-only import probe even on Windows CI. Path
+      // operations retain the real host implementation selected at startup.
+      Object.defineProperty(process, 'platform', {value:'linux'});
+      const {generatePkgConfig} = await import(${JSON.stringify(generator)});
+      generatePkgConfig(${JSON.stringify(ctx)});
+    `,
+      ],
+      { encoding: "utf8", timeout: 30000 },
+    );
+    expect(child.status, child.stderr || child.stdout).toBe(0);
+  });
 
   it("refuses unsupported Linux architectures instead of omitting supervision", () => {
     expect(() => callGenerator({ targets: ["node22-linux-armv7"] })).toThrow(

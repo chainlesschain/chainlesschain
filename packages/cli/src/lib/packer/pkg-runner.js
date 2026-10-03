@@ -16,6 +16,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { PackError, EXIT } from "./errors.js";
 import executionBroker from "../process-execution-broker/index.js";
+import {
+  createPackerBuildPolicy,
+  PACKER_BUILD_TIMEOUT_MS,
+} from "../process-execution-broker/packer-build-policy.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -55,6 +59,9 @@ export function runPkg(ctx) {
     origin: "packer:pkg",
     scope: "pack",
     policy: "allow",
+    sandboxPolicy: createPackerBuildPolicy("packer:pkg"),
+    timeout: PACKER_BUILD_TIMEOUT_MS,
+    killSignal: "SIGKILL",
     shell: false,
     cwd: path.dirname(pkgConfigFile),
     stdio: "inherit",
