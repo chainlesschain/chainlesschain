@@ -12,6 +12,12 @@
 
 ## 变更日志
 
+### 2026-10-03 —— Windows updater 握手让出事件循环
+
+候选 `fedc71423e` 将 Windows updater 私有 ready 等待改为每 25 ms 异步检查，保持 **30 秒**截止与 marker/nonce 校验；真实子进程的 error/exit 可以在等待期间交付。update 和 rescue 两处调用均 await，防止外层 finally 提前释放锁或删除 rescue 暂存文件。握手未确认时继续保留事务归属与现场，不将失败当作已转移。
+
+原有 applier 全文件 **69/69**，新增 readiness/inventory **20/20** 通过。独立原始探针的启动失败/提前退出原先约 **30.2 秒**后才拒绝，修后为 **130.0 / 264.1 ms**；源码、事件及摘要见[可重放回执](../research/cli/evidence/updater-readiness-eventloop-13095-7655.json)。这是独立事件饥饿缺陷；此前握手成功后耗时 **106.76 秒**的广范围事务问题仍开放，原 **60/90 秒**回归期限未改，完整发布门仍须重新通过。
+
 ### 2026-10-03 —— 目标检查与构建资源预算修复
 
 真实 CLI bootstrap 会拦截 pkg config 导入 pkg-fetch 时的隐式 ldd/uname 探测。后续候选 `f7ec90ec9b` 仅以纯函数计算 Linux helper 所需架构，并用锁定 pkg **6.21.0** 的实际 parser 做差分回归；Linux/Alpine/linuxstatic 统一到静态 ELF 资产族。空数组、空白或无 token 目标拒绝，ARM32 宿主不执行 uname 推断，须显式指定支持架构。这里对齐的是 helper 资产准入，不替代 pkg 的全部构建解析。

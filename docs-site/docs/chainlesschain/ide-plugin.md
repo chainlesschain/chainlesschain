@@ -8,7 +8,7 @@
 
 ## 0.37.127 候选：长回复显示
 
-VS Code **0.37.127** 的候选提交为 `96cbf6ba56`，继续推荐已公开的 CLI **0.166.84**，尚未创建发布 tag。该提交的 Strict Sandbox 五个作业和 IDE 宿主矩阵已通过；CLI CI 的 Windows worker 在同提交重跑后再次失败，发布门仍待完整通过，因此当前安装渠道仍提供上方公开版本。
+VS Code **0.37.127** 继续为未发布候选，推荐已公开的 CLI **0.166.84**，尚未创建发布 tag。候选正在整合后续 CLI 修复；最新冻结提交与完整门结果见[共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/feature/cli-ide-gap-completion-2026-10-02/docs/research/cli-ide-gap-implementation-2026-09-27.md)。较早的 `96cbf6ba56` 已通过 Strict Sandbox 和 IDE 宿主矩阵，但 CLI CI 的 Windows worker 在同提交重跑后再次失败；这些历史结果不转移到新的候选提交。当前安装渠道仍提供上方公开版本。
 
 候选改进长回复的流式追加：选中文字或向上滚动阅读时保持选区和阅读位置，回到末尾后可恢复跟随。回复生成期间先显示逐步追加的纯文本，结束后再统一格式化 Markdown 和代码操作按钮；若结束时仍有选区，则延后格式化，避免打断复制。实际 Linux、Windows、macOS 宿主已验证这些交互行为，但长回复结束时仍可能出现可见的格式化与布局等待；这里不承诺固定帧率或响应时间。
 

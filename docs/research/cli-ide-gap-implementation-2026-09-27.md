@@ -4,6 +4,18 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### REL-IDE：新候选与未发布状态（2026-10-03）
+
+冻结分支 `release/ide-vscode-0.37.127` 从历史 `96cbf6ba56` 推进到 **13095fd42635a580f4d88eaada5ef01ec0553ce1**，包含后续 settings、standalone 与有限构建预算修复。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338537)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338307)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338408) 使用 PR 的准确 head SHA；[六平台 native](https://github.com/chainlesschain/chainlesschain/actions/runs/37098416042) 另以准确 `commit_sha` 调度。Strict 已失败：安全 map 仍绑定新增覆盖前的测试源码摘要，未执行映射回归；CLI 的对应测试也拒绝同一过期摘要。`88f9dc7d09` 更新唯一漂移 producer，相关两文件 **345/345** 与格式校验通过，映射条件及测试断言保持。
+
+native 的六个 standalone 构建和版本/status 运行均已通过；五个平台后续回归成功，Windows ARM64 的 installer/updater 回归失败，汇总跳过。其余 CLI/IDE 结果仍在收集，不能以局部作业代替完整门。后续修复整合后必须冻结新的准确提交重新验收；尚未推 `ide-vscode-v0.37.127` tag。Open VSX 公共接口回读仍为可列出、可下载的 **0.37.126**；CLI **0.166.84**、JetBrains **0.4.146** 保持公开版本，不准备新的 JetBrains 生产发行。
+
+### PACK-WIN：ready 等待期间交付子进程事件（2026-10-03）
+
+`fedc71423e` 整合独立修复 `7655abade8ac3fc9feaa6c632e6c40aea472ecbf`：私有 Windows readiness 由同步 `Atomics.wait` 改为 25 ms 异步轮询，保留 **30 秒**截止、marker 类型和 nonce；error/exit 在等待期间可见，已观察的终止不按 ready 成功处理。update/rescue 两处 await 防止 finally 提前释放事务锁或删除 rescue staged；同步或异步注入均保留等待结果语义。
+
+原 applier 全文件 **69/69**（221.34 秒）通过；新增 readiness **15** 与 inventory **5** 共 **20/20**，ESLint、Prettier、diff 和 inventory 检查通过，原 **60/90 秒**断言及期限未改。[独立 before/after 回执](./cli/evidence/updater-readiness-eventloop-13095-7655.json)保存四次真实受控子进程探针：ENOENT 拒绝从 **30,202.9** 降至 **130.0 ms**，提前退出从 **30,220.7** 降至 **264.1 ms**；错误/退出事件先于拒绝交付，目标、暂存字节和失败现场保持。修后运行绑定独立准确提交与前后干净状态；基线脚本摘要为归档时补录，限制明确保留。root 复核两源码 Git blob、四原报告与全部事件通过[校验器](./cli/evidence/verify-updater-readiness-eventloop.mjs)。这是独立事件饥饿缺陷，不解释此前握手完成后的 **106.76 秒**慢事务，`releaseGateEligible=false`，原广范围问题继续开放。
+
 ### DOC-01：设计、用户文档与官网部署（2026-10-03）
 
 `4e5bc593dacfc8b571e3d7b2255e8e98c99ad0a6` 更新中英文 README、Linux 打包设计与用户说明、IDE 设计与用户说明及中英文官网候选状态。三站最终构建均成功：用户站 **623**、设计站 **272**、官网 **20** 个 HTML；用户文档结构检查覆盖 **305** 文件的全部 **11** 个必需模块。通过既有部署脚本原子替换服务器目录，保留 `.bak-20261003-0508-gap-docsync`。
