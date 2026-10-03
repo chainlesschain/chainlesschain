@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 import cp from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
-import { fileURLToPath } from "node:url";
 import { describeCall, event, snapshot, writeJson } from "./shared.mjs";
 
 const originalSpawn = cp.spawn;
@@ -32,19 +31,8 @@ function begin(command, args, options, synchronous) {
     files: snapshot(config),
     timeoutMs: config.timeoutMs,
   });
-  const observer = originalSpawn(
-    process.execPath,
-    [fileURLToPath(new URL("./observer.mjs", import.meta.url)), configPath],
-    {
-      stdio: "ignore",
-      windowsHide: true,
-      env: { ...process.env, NODE_OPTIONS: "" },
-    },
-  );
-  observer.on("error", (error) =>
-    event(config, "observer-error", { code: error.code }),
-  );
-  observer.unref();
+  // The long-lived diagnostic coordinator starts observers from this request.
+  // They must survive scheduling helpers and Vitest worker teardown.
   // Establish an independent observer before a sync call blocks this thread.
   // This setup cost is recorded separately from the native elapsed time.
   const ack = path.join(output, `${id}.observer-ready`);

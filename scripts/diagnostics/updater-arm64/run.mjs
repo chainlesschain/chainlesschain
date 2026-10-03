@@ -4,6 +4,7 @@ import os from "node:os";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { hash, delay, writeJson } from "./shared.mjs";
+import { startCoordinator } from "./coordinator.mjs";
 
 const EXPECTED_SOURCE = "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37";
 const source = path.resolve(process.argv[2]);
@@ -125,6 +126,7 @@ const args = [
   `--outputFile.json=${path.join(output, "vitest.json")}`,
 ];
 const testStart = Date.now();
+const coordinator = startCoordinator(output);
 const stdout = fs.createWriteStream(path.join(output, "vitest.stdout.log"));
 const stderr = fs.createWriteStream(path.join(output, "vitest.stderr.log"));
 const child = spawn(process.execPath, args, {
@@ -162,26 +164,19 @@ writeJson(path.join(output, "test-result.json"), {
 // This is observation after test completion, not an extension of any test deadline.
 const observationDeadline = Date.now() + 185_000;
 while (Date.now() < observationDeadline) {
-  const configs = fs
-    .readdirSync(output)
-    .filter((name) => name.endsWith(".config.json"));
-  if (
-    configs.every((name) =>
-      fs.existsSync(
-        path.join(output, name.replace(".config.json", ".observer-done")),
-      ),
-    )
-  )
-    break;
+  if (coordinator.complete()) break;
   await delay(500);
 }
+const observationComplete = coordinator.complete();
+await coordinator.stop();
 writeJson(path.join(output, "completion.json"), {
   sourceSha: git("rev-parse", "HEAD"),
   sourceCleanAfter: git("status", "--porcelain", "--untracked-files=no") === "",
   sourceHashesAfter: fileHashes(),
+  observationComplete,
   observers: fs
     .readdirSync(output)
     .filter((name) => name.endsWith(".observer-done")),
   releaseEligible: false,
 });
-process.exitCode = testResult.status === 0 ? 0 : 1;
+process.exitCode = testResult.status === 0 && observationComplete ? 0 : 1;
