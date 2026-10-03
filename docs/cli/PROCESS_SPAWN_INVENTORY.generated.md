@@ -183,8 +183,8 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 45 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 65 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `spawnImpl = _deps.spawn,` |
 | `packages/cli/src/lib/packer/pack-update-applier.js` | 67 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `verifyImpl = _deps.spawnSync,` |
-| `packages/cli/src/lib/packer/pack-update-applier.js` | 1871 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `spawnImpl = _deps.spawn,` |
-| `packages/cli/src/lib/packer/pack-update-applier.js` | 1872 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `verifyImpl = _deps.spawnSync,` |
+| `packages/cli/src/lib/packer/pack-update-applier.js` | 1884 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `spawnImpl = _deps.spawn,` |
+| `packages/cli/src/lib/packer/pack-update-applier.js` | 1885 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `verifyImpl = _deps.spawnSync,` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 25 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/packer/pkg-runner.js` | 58 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = _deps.spawnSync(pkgBin.runtime, args, {` |
 | `packages/cli/src/lib/packer/precheck.js` | 13 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |

@@ -207,7 +207,7 @@ export async function scheduleReplace(ctx = {}) {
       : null;
 
     if (platform === "win32") {
-      return scheduleWindowsTransaction({
+      return await scheduleWindowsTransaction({
         operation: "update",
         resolvedNewPath,
         layout,
@@ -681,7 +681,7 @@ function rollbackFailedPosixUpdate(ctx) {
   }
 }
 
-function scheduleWindowsTransaction(ctx) {
+async function scheduleWindowsTransaction(ctx) {
   const {
     operation,
     resolvedNewPath,
@@ -771,26 +771,39 @@ function scheduleWindowsTransaction(ctx) {
 
     let ready = false;
     let childError = null;
+    let childExited = false;
+    const onChildExit = () => {
+      childExited = true;
+    };
+    const hasChildFailed = () =>
+      Boolean(childError) ||
+      childExited ||
+      child.exitCode != null ||
+      child.signalCode != null;
     if (typeof child.once === "function") {
       // Native spawn failures are normally emitted asynchronously. Attach
-      // before the synchronous readiness wait so both the no-ready and the
+      // before yielding for readiness so both the no-ready and the
       // post-transfer paths always consume the ChildProcess error event.
       child.once("error", (error) => {
         childError = error;
       });
+      child.once("exit", onChildExit);
     }
     try {
       ready =
         Boolean(
-          waitForReadyImpl({
+          await waitForReadyImpl({
             readyPath,
             transactionId,
             timeoutMs: WINDOWS_SIDECAR_READY_TIMEOUT_MS,
             child,
+            hasChildFailed,
           }),
-        ) && !childError;
+        ) && !hasChildFailed();
     } catch {
       ready = false;
+    } finally {
+      child.removeListener?.("exit", onChildExit);
     }
     if (!ready) {
       try {
@@ -1982,7 +1995,7 @@ export async function rollbackLastKnownGood(ctx = {}) {
       : null;
 
     if (platform === "win32") {
-      const result = scheduleWindowsTransaction({
+      const result = await scheduleWindowsTransaction({
         operation: "rescue",
         resolvedNewPath: rescueStagingPath,
         layout,
@@ -2752,10 +2765,15 @@ function restartVerifiedExecutable(targetPath, restart, spawnImpl) {
   }
 }
 
-function waitForWindowsSidecarReady({ readyPath, transactionId, timeoutMs }) {
+async function waitForWindowsSidecarReady({
+  readyPath,
+  transactionId,
+  timeoutMs,
+  hasChildFailed,
+}) {
   const deadline = Date.now() + timeoutMs;
-  const waitCell = new Int32Array(new SharedArrayBuffer(4));
   while (Date.now() < deadline) {
+    if (hasChildFailed()) return false;
     const stat = lstatOrNull(readyPath);
     if (stat) {
       try {
@@ -2769,7 +2787,8 @@ function waitForWindowsSidecarReady({ readyPath, transactionId, timeoutMs }) {
         return false;
       }
     }
-    Atomics.wait(waitCell, 0, 0, 25);
+    // Yield so native spawn errors and early exits can abort the handshake.
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
   return false;
 }
