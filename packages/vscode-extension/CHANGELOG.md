@@ -2,7 +2,15 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.127] - Bound streaming layout work (2026-10-03)
+## [0.37.128] - Resume the streaming performance release (2026-10-03)
+
+- Include the bounded streaming layout and selection improvements prepared in
+  0.37.127, retaining the published CLI 0.166.84 pairing.
+- Use a new release tag after 0.37.127 was tagged on a commit with failing CLI
+  checks. Restore native validation and fix disabled-client IPC cleanup before
+  rerunning the complete release gates.
+
+## [0.37.127] - Bound streaming layout work (unreleased candidate, 2026-10-03)
 
 - Append streaming text to adjacent nodes capped at 4096 UTF-16 characters,
   retaining the selected prefix and preserving text without added whitespace.

@@ -265,6 +265,10 @@ export function createBackgroundInteractionClient(options = {}) {
     close(reason = "Background interaction channel closed") {
       if (closed) return;
       closed = true;
+      // A disabled client never acquired this channel. It may belong to an
+      // embedding host (including a test runner), which still needs it alive
+      // to finish its own IPC protocol after this headless invocation returns.
+      if (!enabled) return;
       removeMessageListener();
       for (const entry of [...pending.values()]) {
         settle(
