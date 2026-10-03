@@ -43,7 +43,8 @@ jobs:
           [[ "$CC_DIAGNOSTIC_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$CC_DIAGNOSTIC_SOURCE_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
-          export CC_VITEST_WORKER_DIAGNOSTIC_DIR="$(cygpath -m "$RUNNER_TEMP")/worker-diagnostics"
+          CC_VITEST_WORKER_DIAGNOSTIC_DIR="$(cygpath -m "$RUNNER_TEMP")/worker-diagnostics"
+          export CC_VITEST_WORKER_DIAGNOSTIC_DIR
           printf 'CC_VITEST_WORKER_DIAGNOSTIC_DIR=%s\n' "$CC_VITEST_WORKER_DIAGNOSTIC_DIR" >> "$GITHUB_ENV"
           git fetch --no-tags origin "$CC_DIAGNOSTIC_DRIVER_SHA"
           git show "$CC_DIAGNOSTIC_DRIVER_SHA:packages/cli/scripts/vitest-worker-diagnostic.cjs" > "$RUNNER_TEMP/vitest-worker-diagnostic.cjs"
