@@ -6,7 +6,7 @@
 
 ### REL-IDE：新候选与未发布状态（2026-10-03）
 
-当前冻结提交为 **1fe7a46c0f97b93fb5110ea3427cc8551d0dab37**，已推实施分支与 `release/ide-vscode-0.37.127`。其准确 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924173)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37101923924) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924139) 已启动，结果尚待完整通过；不把旧 SHA、局部矩阵或诊断成功转移为发布许可。
+当前冻结提交为 **1fe7a46c0f97b93fb5110ea3427cc8551d0dab37**，已推实施分支与 `release/ide-vscode-0.37.127`。其准确 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37101923924) 已完成 **5/5** 作业并整体成功；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924173) 和 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924139) 尚在排队/执行，完整矩阵和该提交的不可变 VSIX 仍待验收。不把旧 SHA、局部矩阵或诊断成功转移为发布许可。
 
 冻结分支此前从历史 `96cbf6ba56` 推进到 **13095fd42635a580f4d88eaada5ef01ec0553ce1**，包含后续 settings、standalone 与有限构建预算修复。该提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338537)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338307)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37098338408) 使用 PR 的准确 head SHA；[六平台 native](https://github.com/chainlesschain/chainlesschain/actions/runs/37098416042) 另以准确 `commit_sha` 调度。Strict 已失败：安全 map 仍绑定新增覆盖前的测试源码摘要，未执行映射回归；CLI 的对应测试也拒绝同一过期摘要。`88f9dc7d09` 更新唯一漂移 producer，相关两文件 **345/345** 与格式校验通过，映射条件及测试断言保持。
 
@@ -23,6 +23,10 @@ native 的六个 standalone 构建和版本/status 运行均已通过；五个�
 `4e5bc593dacfc8b571e3d7b2255e8e98c99ad0a6` 更新中英文 README、Linux 打包设计与用户说明、IDE 设计与用户说明及中英文官网候选状态。三站最终构建均成功：用户站 **623**、设计站 **272**、官网 **20** 个 HTML；用户文档结构检查覆盖 **305** 文件的全部 **11** 个必需模块。通过既有部署脚本原子替换服务器目录，保留 `.bak-20261003-0508-gap-docsync`。
 
 [部署回执](./cli/evidence/documentation-deployment-2026-10-03.json)绑定准确提交的 **11** 个输入及公网 **20** 个文件：三站首页、改动页面、中英文 IDE 页和对应 VitePress 普通/lean 客户端模块全部 HTTP 200，字节长度与 SHA-256 均等于最终本地构建。公开渠道仍为 CLI **0.166.84**、Open VSX **0.37.126**、JetBrains **0.4.146**；文档部署不构成候选 IDE 或 npm 发布。
+
+后续文档提交 **4d22c791170fb78d9df7acd253b7fbba8b0f7958** 更新冻结候选身份、保留 native ARM64 失败，并修正设计站研究证据外链。三站重新构建及原子部署全部成功，HTML 数仍为 **623/272/20**；新[部署回执](./cli/evidence/documentation-deployment-2026-10-03-4d22.json)逐字节核对 **20** 个准确 Git 输入与 **20** 个公网 HTML/客户端模块，全部 HTTP 200 且等于本地构建。保留 `.bak-20261003-1426-gap-docsync-4d22`，旧部署回执保持原样；此时 **0.37.127** 尚未发布。
+
+[只读离线校验器](./cli/evidence/verify-documentation-deployment.mjs)独立复核上述 Git blob、公网缓存与本地构建、三份构建日志及页面数量，**19** 项反例检查通过。缓存不独立认证当前线上、HTTP 来源或采集时间；列出的输入不等于完整构建依赖清单，也不提供可复现构建或发行证明。
 
 ### NET-02 严格来源观察与权限投影（2026-10-03）
 
