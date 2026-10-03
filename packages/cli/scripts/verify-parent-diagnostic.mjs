@@ -63,10 +63,14 @@ for (const mode of ["abnormal", "normal"]) {
   const output = path.join(temp, mode);
   const result = spawnSync(
     process.execPath,
-    ["--require", probe, parentPath, childPath, mode],
+    [parentPath, childPath, mode],
     {
       encoding: "utf8",
-      env: { ...process.env, CC_PARENT_DIAGNOSTIC_DIR: output },
+      env: {
+        ...process.env,
+        NODE_OPTIONS: `--require="${probe.replaceAll("\\", "/")}"`,
+        CC_PARENT_DIAGNOSTIC_DIR: output,
+      },
     },
   );
   assert.equal(result.status, 0, result.stderr);

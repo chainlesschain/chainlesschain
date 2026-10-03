@@ -70,7 +70,7 @@ const child = spawn(process.execPath, args, {
   env: {
     ...process.env,
     NODE_OPTIONS:
-      `${process.env.NODE_OPTIONS || ""} --require="${probe}"`.trim(),
+      `${process.env.NODE_OPTIONS || ""} --require="${probe.replaceAll("\\", "/")}"`.trim(),
     CC_PARENT_DIAGNOSTIC_DIR: path.join(output, "parents"),
   },
   stdio: ["inherit", "pipe", "pipe"],
