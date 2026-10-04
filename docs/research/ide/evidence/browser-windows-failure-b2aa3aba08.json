@@ -1,0 +1,175 @@
+{
+  "schema": "chainlesschain.ide-browser-failure/v1",
+  "sourceCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "run": {
+    "id": 37194177859,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37194177859"
+  },
+  "job": {
+    "id": 111414184238,
+    "name": "Browser evidence (windows)",
+    "conclusion": "failure",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37194177859/job/111414184238",
+    "steps": [
+      {
+        "name": "Set up job",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/checkout@v5",
+        "conclusion": "success"
+      },
+      {
+        "name": "Fetch executed browser workflow authority",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/setup-node@v5",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install browser evidence dependencies",
+        "conclusion": "success"
+      },
+      {
+        "name": "Verify pinned Playwright driver",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run browser evidence contract tests",
+        "conclusion": "failure"
+      },
+      {
+        "name": "Install Chromium with target-side dependencies (Linux)",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Install Chromium (Windows/macOS)",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Validate actual image codecs and bounded animation workers",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Upload image codec and animation budget evidence",
+        "conclusion": "failure"
+      },
+      {
+        "name": "Run Workbench browser and real CLI persistence journey",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Upload Workbench browser and CLI evidence",
+        "conclusion": "failure"
+      },
+      {
+        "name": "Run real local two-origin browser evidence journey",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Upload exact-head browser evidence fragment",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Post Run actions/setup-node@v5",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Post Run actions/checkout@v5",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "environment": {
+    "os": "windows",
+    "node": "22.12.0",
+    "installation": "npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund"
+  },
+  "counts": {
+    "filesPassed": 8,
+    "filesFailed": 4,
+    "testsPassed": 109,
+    "testsFailed": 9,
+    "totalCollectedTests": 118
+  },
+  "findings": [
+    "Two DOM suites could not load because happy-dom was declared only at the excluded workspace root.",
+    "Real file snapshot reads rejected the opening identity; secondary cleanup assertions then observed absent attachment queues. The mismatching stat field has not yet been isolated.",
+    "The browser codec step and its result artifact were not reached; upload failure is retained."
+  ],
+  "sources": [
+    {
+      "file": ".github/workflows/ide-extensions.yml",
+      "gitBlob": "6640738175c25bd3d6d2bb4222f96e32b4312807",
+      "sha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712"
+    },
+    {
+      "file": "packages/cli/package.json",
+      "gitBlob": "3f49a90dd0e5ab07fcc09fcf4e41bc34d02fb354",
+      "sha256": "3c9f04f532c15f3925610eb8086e9843a2e3d67e2036eb589902ec80b3d28e51"
+    },
+    {
+      "file": "package-lock.json",
+      "gitBlob": "0875a9eb7b1d51311a9ddf6807e652026aa297ff",
+      "sha256": "f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a"
+    },
+    {
+      "file": "packages/vscode-extension/src/chat/image-file-snapshot.js",
+      "gitBlob": "2df6a964e4427debedb12903141e74c6b9be93ba",
+      "sha256": "46d97f90b21d179c0e70134275f91bc6d6ea74c1a86317e86fe2cd80d3f04f36"
+    }
+  ],
+  "log": {
+    "localPath": ".work/gap-validation/browser-windows-b2aa-failure.log",
+    "bytes": 127980,
+    "sha256": "1e7f0f47f1aa163045a99090ce311fed7732873652968da28cf02ce4def0dd40",
+    "encoding": "UTF-8 PowerShell capture",
+    "excerpt": [
+      "2026-10-04T10:51:43.8002650Z   node-version: 22.12.0",
+      "2026-10-04T10:51:54.2815369Z node: v22.12.0",
+      "2026-10-04T10:51:54.3208691Z ##[group]Run npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund",
+      "2026-10-04T10:51:54.3209905Z npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund",
+      "2026-10-04T10:52:22.5028195Z ⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "2026-10-04T10:52:22.5034341Z  FAIL  __tests__/unit/vscode-ext-draft-store.test.js [ __tests__/unit/vscode-ext-draft-store.test.js ]",
+      "2026-10-04T10:52:22.5249580Z  FAIL  __tests__/unit/vscode-ext-image-budget.test.js [ __tests__/unit/vscode-ext-image-budget.test.js ]",
+      "2026-10-04T10:52:22.5289413Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯",
+      "2026-10-04T10:52:22.5291845Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > ChatViewProvider._writeImageTemps > writes a whitelisted data URL to a temp file with the exact bytes",
+      "2026-10-04T10:52:22.5310180Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > image temp-file cleanup (no tmpdir pile-up) > deletes a conversation's temp images once its turn results",
+      "2026-10-04T10:52:22.5333820Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > image temp-file cleanup (no tmpdir pile-up) > Stop cancels image preparation before spawning and removes the prepared files",
+      "2026-10-04T10:52:22.5352044Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > image temp-file cleanup (no tmpdir pile-up) > dispose() sweeps every conversation's leftovers",
+      "2026-10-04T10:52:22.5364174Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > image temp-file cleanup (no tmpdir pile-up) > keeps a queued screenshot until its own turn finishes",
+      "2026-10-04T10:52:22.5372993Z  FAIL  __tests__/unit/vscode-ext-chat-images.test.js > image temp-file cleanup (no tmpdir pile-up) > a failed send does not delete earlier queued attachments",
+      "2026-10-04T10:52:22.5385052Z  FAIL  __tests__/unit/vscode-ext-image-decode-budget.test.js > single-descriptor image reads > reads real files and rejects an unexpected saved size",
+      "2026-10-04T10:52:22.5401199Z  FAIL  __tests__/unit/vscode-ext-image-decode-budget.test.js > persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH",
+      "2026-10-04T10:52:22.5499347Z  FAIL  __tests__/unit/vscode-ext-image-decode-budget.test.js > cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively",
+      "2026-10-04T10:52:22.5511838Z  Test Files  4 failed | 8 passed (12)",
+      "2026-10-04T10:52:22.5512576Z       Tests  9 failed | 109 passed (118)",
+      "2026-10-04T10:52:22.5513757Z    Duration  8.34s (transform 4.56s, setup 1.64s, import 8.44s, tests 3.08s, environment 2ms)",
+      "2026-10-04T10:52:22.5534352Z ##[error]Error: Saved attachment changed while opening",
+      "2026-10-04T10:52:22.5544348Z ##[error]TypeError: Cannot read properties of undefined (reading 'get')",
+      "2026-10-04T10:52:22.5548009Z ##[error]Error: Saved attachment changed while opening",
+      "2026-10-04T10:52:22.5550603Z ##[error]TypeError: Cannot read properties of undefined (reading 'values')",
+      "2026-10-04T10:52:22.5552619Z ##[error]TypeError: Cannot read properties of undefined (reading 'get')",
+      "2026-10-04T10:52:22.5555102Z ##[error]TypeError: Cannot read properties of undefined (reading 'get')",
+      "2026-10-04T10:52:22.5558828Z ##[error]Error: Cannot find package 'happy-dom' imported from D:/a/chainlesschain/chainlesschain/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+      "2026-10-04T10:52:22.5562600Z ##[error]Error: Cannot find package 'happy-dom' imported from D:/a/chainlesschain/chainlesschain/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+      "2026-10-04T10:52:22.5565785Z ##[error]Error: Saved attachment changed while opening",
+      "2026-10-04T10:52:22.5569124Z ##[error]Error: Saved attachment changed while opening",
+      "2026-10-04T10:52:22.5572715Z ##[error]Error: Saved attachment changed while opening",
+      "2026-10-04T10:52:22.7454428Z ##[error]Process completed with exit code 1.",
+      "2026-10-04T10:52:22.9738172Z ##[error]No files were found with the provided path: build/reports/image-codec-budget/windows/result.json. No artifacts will be uploaded.",
+      "2026-10-04T10:52:23.2031837Z ##[error]No files were found with the provided path: build/reports/evolution-workbench/windows/*.png"
+    ]
+  },
+  "releaseGateEligible": false,
+  "limitations": [
+    "The full workflow remains in progress; this is the completed failing Windows browser producer job.",
+    "This capture is a UTF-8 rendering of GitHub job logs, not an independent original archive digest.",
+    "A newer Node local pass does not close the configured Node 22.12.0 failure."
+  ]
+}
