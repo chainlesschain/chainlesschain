@@ -15,6 +15,10 @@ on:
         description: "Use Git Bash, full installer predecessor, then all updater tests (forces full suite)"
         type: boolean
         default: false
+      trace_journal:
+        description: "Time generated journal helper internals and post-test PowerShell probes (diagnostic only)"
+        type: boolean
+        default: false
       run_parent_worker:
         description: "Also run the historical Windows worker diagnostic"
         type: boolean
@@ -65,6 +69,7 @@ jobs:
         env:
           CC_UPDATER_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.source_sha }}
           CC_UPDATER_DIAGNOSTIC_FULL_SUITE: ${{ inputs.full_updater_suite }}
+          CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL: ${{ inputs.trace_journal }}
         run: |
           node driver/scripts/diagnostics/updater-arm64/run.mjs source "$env:RUNNER_TEMP/updater-arm64-diagnostic"
 
@@ -76,6 +81,7 @@ jobs:
           CC_UPDATER_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.source_sha }}
           CC_UPDATER_DIAGNOSTIC_GATE_CONTEXT: "true"
           CC_UPDATER_DIAGNOSTIC_LAUNCH_SHELL: "bash"
+          CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL: ${{ inputs.trace_journal }}
         run: |
           set -euo pipefail
           node driver/scripts/diagnostics/updater-arm64/run.mjs source "$RUNNER_TEMP/updater-arm64-diagnostic"
