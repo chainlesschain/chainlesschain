@@ -9,6 +9,10 @@ import net from "node:net";
 import dgram from "node:dgram";
 import dns from "node:dns";
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { Worker } from "node:worker_threads";
+import { once } from "node:events";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import { startEgressProxyWorker } from "../../src/lib/sandbox-egress-worker.js";
@@ -23,6 +27,7 @@ import {
 } from "../../src/lib/auto-mode-config.js";
 import dnsFixture from "../fixtures/dns-egress-fixture.cjs";
 import settingsLoader from "../../src/lib/settings-loader.cjs";
+import persistentSettings from "../../src/lib/settings-permission-authority.cjs";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 import {
   ScopedPermissionStore,
@@ -224,6 +229,10 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
     "host-policy-aba",
     "settings-api",
     "settings-api-aba",
+    "settings-durable-process",
+    "settings-durable-worker",
+    "scoped-durable-revoke",
+    "scoped-durable-aba-worker",
     "scoped-revoke",
     "scoped-deny-aba",
   ])(
@@ -236,7 +245,7 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
         path.join(os.tmpdir(), "cc-egress-scoped-"),
       );
       const scopedPath = path.join(scopedRoot, "rules.json");
-      const scopedStore = new ScopedPermissionStore({
+      let scopedStore = new ScopedPermissionStore({
         cwd: root,
         filePath: scopedPath,
       });
@@ -268,6 +277,8 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
         resolveAutoModeDecisions({ decisions: { medium: "allow" } }),
       );
       let pending;
+      let settingsAuthority = null;
+      let settingsLaunch = null;
       const manager = new WSSessionManager({ defaultProjectRoot: root });
       const allowedHostPolicy = { tools: { run_shell: { allowed: true } } };
       const { sessionId: hostSessionId } = manager.createSession({
@@ -275,6 +286,37 @@ const direct=()=>new Promise(resolve=>{const socket=net.connect(${port},'127.0.0
       });
       const hostSession = manager.getSession(hostSessionId);
       try {
+        if (source.includes("-durable")) {
+          const directory = path.join(scopedRoot, "anchor");
+          const userSettingsFile = path.join(scopedRoot, "user.json");
+          const managedSettingsFile = path.join(scopedRoot, "managed.json");
+          fs.mkdirSync(directory, { mode: 0o700 });
+          fs.mkdirSync(path.join(root, ".claude"), { mode: 0o700 });
+          settingsLaunch =
+            persistentSettings.initializeSettingsPermissionAuthority({
+              directory,
+              forbiddenRoots: [root, userSettingsFile, managedSettingsFile],
+              contexts: [
+                {
+                  contextId: "workspace",
+                  cwd: root,
+                  userSettingsFile,
+                  managedSettingsFile,
+                  scopedFile: scopedPath,
+                },
+              ],
+            });
+          settingsAuthority =
+            persistentSettings.openSettingsPermissionAuthority({
+              launch: settingsLaunch,
+              contextId: "workspace",
+            });
+          scopedStore = new ScopedPermissionStore({
+            cwd: root,
+            filePath: scopedPath,
+            settingsAuthority,
+          });
+        }
         const before = await docker([
           "ps",
           "-a",
@@ -319,10 +361,13 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
                 }
               : {}),
             permissionRulesProvider:
-              source.startsWith("settings-api") || source.startsWith("scoped-")
+              source.startsWith("settings-") || source.startsWith("scoped-")
                 ? createPermissionRulesProvider({
                     cwd: root,
                     env: {},
+                    ...(settingsAuthority
+                      ? { settingsAuthority, scopedStore }
+                      : {}),
                     ...(source.startsWith("scoped-") ? { scopedStore } : {}),
                   })
                 : async () => ({
@@ -356,6 +401,50 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
           expect(
             hostSession.hostManagedToolPolicyAuthority.getSnapshot().revision,
           ).toBe(source === "host-policy-aba" ? 2 : 1);
+        } else if (source.includes("-durable")) {
+          const local = settingsLoader.getSettingsPermissionRevision();
+          const localScoped = getScopedPermissionRevision();
+          const writer = new URL(
+            "../fixtures/settings-permission-runtime-probe.cjs",
+            import.meta.url,
+          );
+          const payload = {
+            launch: settingsLaunch,
+            command:
+              source === "scoped-durable-revoke"
+                ? "scoped-revoke"
+                : source === "scoped-durable-aba-worker"
+                  ? "scoped-aba"
+                  : "write",
+            ...(source === "scoped-durable-revoke"
+              ? { id: scopedGrant.id }
+              : {}),
+          };
+          if (!source.endsWith("worker")) {
+            const written = spawnSync(
+              process.execPath,
+              [fileURLToPath(writer), "--child"],
+              {
+                input: JSON.stringify(payload),
+                encoding: "utf8",
+                timeout: 15000,
+                windowsHide: true,
+              },
+            );
+            expect(written.status, written.stderr).toBe(0);
+            expect(JSON.parse(written.stdout).after.generation).toBeGreaterThan(
+              0,
+            );
+          } else {
+            const worker = new Worker(writer, { workerData: payload });
+            const closed = once(worker, "exit");
+            const [written] = await once(worker, "message");
+            expect(written.after.generation).toBeGreaterThan(0);
+            await closed;
+          }
+          // No in-process notification can make this scenario pass.
+          expect(settingsLoader.getSettingsPermissionRevision()).toBe(local);
+          expect(getScopedPermissionRevision()).toBe(localScoped);
         } else if (source.startsWith("settings-api")) {
           const settings = path.join(root, ".claude", "settings.json");
           const existed = fs.existsSync(settings);
@@ -398,6 +487,18 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
         expect(result.authorityFailure).toMatchObject({
           code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
         });
+        if (settingsAuthority) {
+          expect(result.authorityFailure.stopAcknowledgement).toMatchObject({
+            schema: "chainlesschain.egress-stop-ack/v1",
+            sessionId: "live-auto-revoke",
+            receiverId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+            proxyStopped: true,
+            sessionStopped: true,
+          });
+          expect(
+            result.authorityFailure.stopAcknowledgement.policyVersion,
+          ).toMatch(/^cc-shell-policy-authority\/v1:/);
+        }
         expect(result.sandboxCapabilities.applied).toEqual([]);
         const deadline = Date.now() + 10_000;
         while (sockets.size && Date.now() < deadline) await delay(25);
@@ -429,6 +530,10 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
         });
         await pending?.catch(() => {});
         manager.closeSession(hostSessionId);
+        if (settingsAuthority)
+          persistentSettings.closeSettingsPermissionAuthority(
+            settingsAuthority,
+          );
         for (const socket of sockets) socket.destroy();
         await new Promise((resolve) => upstream.close(resolve));
         fs.rmSync(root, { recursive: true, force: true });

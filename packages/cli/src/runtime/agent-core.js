@@ -2427,6 +2427,7 @@ function projectPermissionAuthority({ authority, rules, tool, args, cwd }) {
     version: authority?.version || authority?.policyVersion || null,
     revision: authority?.revision ?? null,
     settingsRevision: authority?.settingsRevision || null,
+    persistentSettingsRevision: authority?.persistentSettingsRevision || null,
     headHash: authority?.headHash || null,
     verdict: {
       decision: verdict.decision || null,
@@ -2635,10 +2636,19 @@ export async function executeTool(name, args, context = {}) {
   let settingsPermissionAuthority = null;
   let entrySettingsPermissionRevision = null;
   try {
+    const providerAuthority = permissionRulesProviderAuthority(
+      context.permissionRulesProvider,
+    );
+    providerAuthority?.assertWorkspace?.(context.cwd || process.cwd());
+    providerAuthority?.assertWritableRoots?.([
+      ...workspaceRootsFor(
+        path.resolve(context.cwd || process.cwd()),
+        context.additionalDirectories,
+      ),
+      ...(context.sandbox?.policy?.allowWrite || []),
+    ]);
     if (name === "run_shell") {
-      settingsPermissionAuthority = permissionRulesProviderAuthority(
-        context.permissionRulesProvider,
-      );
+      settingsPermissionAuthority = providerAuthority;
       entrySettingsPermissionRevision =
         settingsPermissionAuthority?.getSnapshot() || null;
     }
@@ -2655,6 +2665,11 @@ export async function executeTool(name, args, context = {}) {
   }
   function assertSettingsPermissionRevision() {
     if (!settingsPermissionAuthority) return;
+    settingsPermissionAuthority.assertWorkspace?.(cwd);
+    settingsPermissionAuthority.assertWritableRoots?.([
+      ...workspaceRootsFor(cwd, context.additionalDirectories),
+      ...(context.sandbox?.policy?.allowWrite || []),
+    ]);
     if (
       permissionRulesProviderAuthority(
         liveExecutionContext.permissionRulesProvider,
@@ -6946,6 +6961,9 @@ async function executeToolInner(
             const { createDockerEgressAuthorityMonitor } =
               await import("../lib/sandbox-egress-authority-monitor.js");
             authorityMonitor = createDockerEgressAuthorityMonitor({
+              sessionId: sessionId || null,
+              policyVersion:
+                shellDispatchPolicyAuthority?.policyVersion || null,
               async revalidate() {
                 await shellDispatchPolicyAuthority?.revalidate?.();
                 shellDispatchPolicyAuthority?.revalidateDockerSandbox?.();
@@ -7139,6 +7157,13 @@ async function executeToolInner(
           result.authorityFailure = {
             code: revoked.code || "CC_DOCKER_EGRESS_AUTHORITY_CHANGED",
             ...(revoked.cleanupError ? { cleanupFailed: true } : {}),
+            ...(authorityMonitor.getStopAcknowledgement()
+              ? {
+                  stopAcknowledgement: {
+                    ...authorityMonitor.getStopAcknowledgement(),
+                  },
+                }
+              : {}),
           };
           if (result.exitCode === 0) {
             result = {

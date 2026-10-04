@@ -4,6 +4,79 @@ import { createDockerEgressAuthorityMonitor } from "../../src/lib/sandbox-egress
 afterEach(() => vi.useRealTimers());
 
 describe("Docker egress live authority monitor", () => {
+  it("issues a stop acknowledgement only after both cleanups settle and monitoring stops", async () => {
+    let releaseProxy;
+    let releaseSession;
+    const monitor = createDockerEgressAuthorityMonitor({
+      sessionId: "session-one",
+      policyVersion: "admitted-revision-one",
+      revalidate: async () => {},
+      abortProxy: () =>
+        new Promise((resolve) => {
+          releaseProxy = resolve;
+        }),
+    });
+    monitor.attachSession({
+      close: () =>
+        new Promise((resolve) => {
+          releaseSession = resolve;
+        }),
+    });
+    expect(monitor.getStopAcknowledgement()).toBeNull();
+    monitor.revoke(new Error("revoked"));
+    monitor.stop();
+    expect(monitor.getStopAcknowledgement()).toBeNull();
+    releaseProxy();
+    await Promise.resolve();
+    expect(monitor.getStopAcknowledgement()).toBeNull();
+    releaseSession();
+    await monitor.awaitCleanup();
+    expect(monitor.getStopAcknowledgement()).toEqual({
+      schema: "chainlesschain.egress-stop-ack/v1",
+      ...monitor.stopIdentity,
+      proxyStopped: true,
+      sessionStopped: true,
+    });
+    expect(monitor.stopIdentity).toMatchObject({
+      sessionId: "session-one",
+      policyVersion: "admitted-revision-one",
+    });
+    const other = createDockerEgressAuthorityMonitor({
+      revalidate() {},
+      abortProxy() {},
+      sessionId: "session-one",
+      policyVersion: "admitted-revision-one",
+    });
+    expect(other.stopIdentity.receiverId).not.toBe(
+      monitor.getStopAcknowledgement().receiverId,
+    );
+    expect(() => monitor.attachSession({ close() {} })).toThrow(
+      "already attached",
+    );
+  });
+
+  it.each(["proxy", "session"])(
+    "never acknowledges a failed %s cleanup",
+    async (failed) => {
+      const monitor = createDockerEgressAuthorityMonitor({
+        revalidate: async () => {},
+        abortProxy: async () => {
+          if (failed === "proxy") throw new Error("proxy cleanup failed");
+        },
+      });
+      monitor.attachSession({
+        close: async () => {
+          if (failed === "session") throw new Error("session cleanup failed");
+        },
+      });
+      monitor.revoke(new Error("revoked"));
+      monitor.stop();
+      await monitor.awaitCleanup();
+      expect(monitor.revocationError.cleanupError).toBeInstanceOf(Error);
+      expect(monitor.getStopAcknowledgement()).toBeNull();
+    },
+  );
+
   it("latches revocation before aborting the proxy and closing the session", async () => {
     const events = [];
     let deny = false;

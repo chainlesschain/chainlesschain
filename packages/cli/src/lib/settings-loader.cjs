@@ -146,9 +146,11 @@ function accrete(target, sources, arr, file, kind) {
 }
 
 /** The ordered list of candidate settings files for a cwd. */
-function settingsPaths(cwd, explicitFile) {
+function settingsPaths(cwd, explicitFile, userSettingsFile = null) {
   const home = _deps.homedir();
-  const list = [path.join(home, ".claude", "settings.json")];
+  const list = [
+    userSettingsFile || path.join(home, ".claude", "settings.json"),
+  ];
   // When run from a subdirectory, the project-root `.claude` sits BELOW cwd's
   // own (closest wins) but ABOVE the user layer — so its rules apply yet a
   // cwd-local settings file still overrides them. Null when cwd IS the root.
@@ -171,7 +173,7 @@ function settingsPaths(cwd, explicitFile) {
 function inspectSettingsSources(opts = {}) {
   const cwd = path.resolve(opts.cwd || process.cwd());
   const candidates = [
-    ...settingsPaths(cwd, opts.settingsFile),
+    ...settingsPaths(cwd, opts.settingsFile, opts.userSettingsFile),
     managedSettingsPath(opts),
   ];
   const observation = Object.freeze({
@@ -390,7 +392,38 @@ function scopeFile(cwd, scope) {
  * @returns {{ file:string, added:boolean }} added=false → already present.
  * @throws if the target file exists but is malformed JSON (refuse to clobber).
  */
-function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
+function appendPermissionRule(data, file, kind, rule) {
+  if (
+    Object.hasOwn(data, "permissions") &&
+    (!data.permissions ||
+      typeof data.permissions !== "object" ||
+      Array.isArray(data.permissions))
+  )
+    throw new TypeError(`refusing to overwrite malformed permissions: ${file}`);
+  data.permissions ??= {};
+  for (const decision of KINDS) {
+    if (
+      Object.hasOwn(data.permissions, decision) &&
+      (!Array.isArray(data.permissions[decision]) ||
+        data.permissions[decision].some((entry) => typeof entry !== "string"))
+    )
+      throw new TypeError(
+        `refusing to overwrite malformed permission rules: ${file}`,
+      );
+  }
+  data.permissions[kind] ??= [];
+  if (data.permissions[kind].includes(rule)) return false;
+  data.permissions[kind].push(rule);
+  return true;
+}
+
+function addRule({
+  cwd = process.cwd(),
+  kind,
+  rule,
+  scope = "project",
+  settingsAuthority = null,
+} = {}) {
   const entryCwd = process.cwd();
   const absoluteCwd = path.resolve(entryCwd, cwd);
   // Check before lock acquisition: notification callbacks may reenter here.
@@ -404,11 +437,38 @@ function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
   if (!["project", "local", "user"].includes(scope)) {
     throw new TypeError("scope must be project | local | user");
   }
-  const file = path.resolve(entryCwd, scopeFile(absoluteCwd, scope));
-  _deps.fs.mkdirSync(path.dirname(file), { recursive: true });
+  let file = path.resolve(entryCwd, scopeFile(absoluteCwd, scope));
+  if (settingsAuthority !== null) {
+    const authority = require("./settings-permission-authority.cjs");
+    const bound =
+      authority.settingsPermissionAuthorityOptions(settingsAuthority);
+    if (absoluteCwd !== bound.cwd)
+      throw new TypeError("settings authority cwd mismatch");
+    if (scope === "user") file = bound.userSettingsFile;
+  } else _deps.fs.mkdirSync(path.dirname(file), { recursive: true });
   let began = false;
   let committed = false;
   try {
+    if (settingsAuthority !== null) {
+      const authority = require("./settings-permission-authority.cjs");
+      const result = authority.mutateSettingsPermissionSource(
+        settingsAuthority,
+        {
+          logicalPath: file,
+          prepare: (data) => appendPermissionRule(data, file, kind, rule),
+          revokeLocal() {
+            beginSettingsMutation();
+            began = true;
+          },
+          replace(physicalPath, data) {
+            _deps.writeSecurityStore(physicalPath, "settings", data);
+            committed = true;
+          },
+        },
+      );
+      if (began) finishSettingsMutation("ready");
+      return { file, added: result.changed };
+    }
     const result = _deps.withFileLock(
       file,
       () => {
@@ -423,35 +483,8 @@ function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
           );
         }
         const data = _deps.readSecurityStore(file, "settings");
-        if (
-          Object.hasOwn(data, "permissions") &&
-          (!data.permissions ||
-            typeof data.permissions !== "object" ||
-            Array.isArray(data.permissions))
-        ) {
-          throw new TypeError(
-            `refusing to overwrite malformed permissions: ${file}`,
-          );
-        }
-        data.permissions ??= {};
-        // Refuse to hide a damaged rule list, including a different decision.
-        for (const decision of KINDS) {
-          if (
-            Object.hasOwn(data.permissions, decision) &&
-            (!Array.isArray(data.permissions[decision]) ||
-              data.permissions[decision].some(
-                (entry) => typeof entry !== "string",
-              ))
-          ) {
-            throw new TypeError(
-              `refusing to overwrite malformed permission rules: ${file}`,
-            );
-          }
-        }
-        data.permissions[kind] ??= [];
-        if (data.permissions[kind].includes(rule))
+        if (!appendPermissionRule(data, file, kind, rule))
           return { file, added: false };
-        data.permissions[kind].push(rule);
         beginSettingsMutation();
         began = true;
         _deps.writeSecurityStore(file, "settings", data);

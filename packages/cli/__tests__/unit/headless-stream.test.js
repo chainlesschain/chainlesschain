@@ -19,6 +19,7 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 import {
   inputSubmissionDigest,
   appendSessionInputWithReceipt,
@@ -223,6 +224,32 @@ describe("runAgentHeadlessStream", () => {
   async function* input(...jsonObjs) {
     yield jsonObjs.map((o) => JSON.stringify(o)).join("\n") + "\n";
   }
+
+  it("seeds initial rules from the injected branded permission provider", async () => {
+    let captured;
+    const provider = createPermissionRulesProvider({
+      env: {},
+      baseRules: { allow: [], ask: [], deny: ["Bash"] },
+    });
+    const deps = baseDeps({
+      input: input({ text: "inspect" }),
+      agentLoop: async function* (_messages, options) {
+        captured = options;
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    await runAgentHeadlessStream(
+      {
+        permissionRulesProvider: provider,
+        expandFileRefs: false,
+        useRegisteredMcp: false,
+      },
+      deps,
+    );
+    expect(captured.permissionRules.deny).toContain("Bash");
+    expect(captured.permissionRulesProvider).toBe(provider);
+  });
 
   const parseEmitted = (lines) =>
     lines

@@ -11,6 +11,7 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import projectRoot from "./project-root.cjs";
 import permissionRules from "./permission-rules.cjs";
+import persistentSettings from "./settings-permission-authority.cjs";
 import { getMachineSecurityAnchorDir } from "./paths.js";
 import {
   readSecurityStore,
@@ -27,6 +28,7 @@ const STORE_LABEL = "scoped permission";
 const RULE_ID_PATTERN = /^spr_[0-9a-f]{32}$/;
 const DECISIONS = new Set(["allow", "ask", "deny"]);
 const DEFAULT_MAX_RECORDS = 1000;
+const persistentBindings = new WeakMap();
 
 // Official mutations revoke every provider in this module instance. Path
 // matching alone misses aliases and files that did not exist at admission.
@@ -216,6 +218,7 @@ export class ScopedPermissionStore {
     maxRecords = DEFAULT_MAX_RECORDS,
     lock = undefined,
     randomId = () => `spr_${randomUUID().replaceAll("-", "")}`,
+    settingsAuthority = null,
   } = {}) {
     this.workspace = workspaceBinding(cwd);
     this.filePath = path.resolve(
@@ -242,6 +245,17 @@ export class ScopedPermissionStore {
     );
     this._lock = lock;
     this._randomId = randomId;
+    if (settingsAuthority) {
+      const bound =
+        persistentSettings.settingsPermissionAuthorityOptions(
+          settingsAuthority,
+        );
+      if (path.resolve(cwd) !== bound.cwd || this.filePath !== bound.scopedFile)
+        throw new TypeError(
+          "persistent scoped permission authority options mismatch",
+        );
+      persistentBindings.set(this, settingsAuthority);
+    }
   }
 
   _capture() {
@@ -253,7 +267,22 @@ export class ScopedPermissionStore {
       randomId: this._randomId.bind(this),
       maxRecords: this.maxRecords,
       lock: this._lock || withFileLock,
+      settingsAuthority: persistentBindings.get(this) || null,
     });
+    if (captured.settingsAuthority) {
+      const bound = persistentSettings.settingsPermissionAuthorityOptions(
+        captured.settingsAuthority,
+      );
+      const workspace = workspaceBinding(bound.cwd);
+      if (
+        captured.filePath !== bound.scopedFile ||
+        captured.workspace.id !== workspace.id ||
+        captured.workspace.root !== workspace.root
+      )
+        throw new TypeError(
+          "persistent scoped permission authority options mismatch",
+        );
+    }
     if (getScopedPermissionRevision() !== revision)
       throw scopedPermissionError(
         "CC_SCOPED_PERMISSION_AUTHORITY_CHANGED",
@@ -264,13 +293,54 @@ export class ScopedPermissionStore {
 
   _read(captured = this._capture()) {
     getScopedPermissionRevision();
-    const stored = readSecurityStore(captured.filePath, STORE_LABEL);
+    const stored = captured.settingsAuthority
+      ? persistentSettings.readSettingsPermissionAuthority(
+          captured.settingsAuthority,
+        ).scopedObservation.settings || {}
+      : readSecurityStore(captured.filePath, STORE_LABEL);
     if (Object.keys(stored).length === 0) return emptyState(captured.workspace);
     return validateState(stored, captured.workspace);
   }
 
   _mutate(captured, update) {
     getScopedPermissionRevision(); // Reject observer reentry before the lock.
+    if (captured.settingsAuthority) {
+      let started = false;
+      try {
+        persistentSettings.mutateSettingsPermissionSource(
+          captured.settingsAuthority,
+          {
+            logicalPath: captured.filePath,
+            prepare(draft) {
+              if (Object.keys(draft).length === 0)
+                Object.assign(draft, emptyState(captured.workspace));
+              validateState(draft, captured.workspace);
+              if (update(draft) === false) return false;
+              validateState(draft, captured.workspace);
+            },
+            revokeLocal() {
+              started = true;
+              beginMutation();
+            },
+            replace(file, draft) {
+              validateState(draft, captured.workspace);
+              writeSecurityStore(file, STORE_LABEL, draft);
+            },
+          },
+        );
+        if (started) finishMutation("ready");
+      } catch (error) {
+        if (started)
+          finishMutation(
+            error.commitState === "unknown" ||
+              permissionRevision.state === "invalid"
+              ? "invalid"
+              : "ready",
+          );
+        throw error;
+      }
+      return;
+    }
     fs.mkdirSync(path.dirname(captured.filePath), {
       recursive: true,
       mode: 0o700,
@@ -486,4 +556,37 @@ export class ScopedPermissionStore {
     });
     return projectRecord(revoked, now, captured.filePath);
   }
+}
+
+// Only the production provider uses a scoped observation already validated in
+// the same durable read as settings. A store cannot substitute another source.
+export function projectScopedPermissionObservation(
+  store,
+  binding,
+  observation,
+) {
+  if (persistentBindings.get(store) !== binding)
+    throw new TypeError(
+      "scoped store must use the provider's persistent authority",
+    );
+  const captured = ScopedPermissionStore.prototype._capture.call(store);
+  if (observation.logicalPath !== captured.filePath)
+    throw new TypeError("persistent scoped permission source mismatch");
+  const stored = observation.settings || {};
+  const state =
+    Object.keys(stored).length === 0
+      ? emptyState(captured.workspace)
+      : validateState(stored, captured.workspace);
+  const now = captured.now();
+  return Object.freeze({
+    schema: state.schema,
+    schemaVersion: state.schemaVersion,
+    generation: state.generation,
+    updatedAt: state.updatedAt,
+    workspace: structuredClone(state.workspace),
+    file: captured.filePath,
+    rules: state.rules.map((record) =>
+      projectRecord(record, now, captured.filePath),
+    ),
+  });
 }

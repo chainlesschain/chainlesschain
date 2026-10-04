@@ -727,12 +727,24 @@ function transitionSettingsAuthority(
     replace,
     revokeLocal,
     transactionId = randomUUID(),
+    expectedSnapshot = null,
+    localRevision = null,
   } = {},
 ) {
   const state = stateFor(handle);
   // Snapshot caller data before any callback. These are trusted host APIs, but
   // mutable intents must not turn an already-validated no-op into a mutation.
   intent = plainCopy(intent);
+  if (expectedSnapshot !== null) {
+    expectedSnapshot = plainCopy(expectedSnapshot);
+    shape(expectedSnapshot, [
+      "domainId",
+      "epoch",
+      "generation",
+      "digest",
+      "state",
+    ]);
+  }
   requireSynchronous(observeContexts);
   requireSynchronous(revokeLocal);
   if (intent.kind === "write") requireSynchronous(replace);
@@ -743,7 +755,15 @@ function transitionSettingsAuthority(
   try {
     return locked(state, () => {
       const perform = () => {
-        const current = readSettingsAuthority(handle, { observeContexts });
+        const current = readSettingsAuthority(handle, {
+          observeContexts,
+          localRevision,
+        });
+        if (
+          expectedSnapshot !== null &&
+          !sameData(current.snapshot, expectedSnapshot)
+        )
+          refuse("CC_SETTINGS_AUTHORITY_CONFLICT");
         if (
           intent.kind === "register" &&
           current.ledger.contexts.some(
@@ -841,7 +861,15 @@ function transitionSettingsAuthority(
         };
       };
       if (intent.kind !== "write") return perform();
-      const admission = readSettingsAuthority(handle, { observeContexts });
+      const admission = readSettingsAuthority(handle, {
+        observeContexts,
+        localRevision,
+      });
+      if (
+        expectedSnapshot !== null &&
+        !sameData(admission.snapshot, expectedSnapshot)
+      )
+        refuse("CC_SETTINGS_AUTHORITY_CONFLICT");
       records.prepareTransition({
         ledger: admission.ledger,
         transactionId,
@@ -876,6 +904,12 @@ function transitionSettingsAuthority(
           : "unchanged";
     throw error;
   }
+}
+
+// Official read/modify/write adapters take an initial snapshot under the same
+// authority lock. The later transition MUST still compare expectedSnapshot.
+function readSettingsAuthorityForUpdate(handle, options) {
+  return locked(stateFor(handle), () => readSettingsAuthority(handle, options));
 }
 
 function recoverSettingsAuthority(
@@ -954,6 +988,7 @@ function recoverSettingsAuthority(
 }
 
 module.exports = {
+  readSettingsAuthorityForUpdate,
   DOMAIN_SCHEMA,
   initializeSettingsAuthorityDomain,
   pinSettingsAuthorityDomain,

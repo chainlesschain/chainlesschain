@@ -546,6 +546,8 @@ jobs:
           __tests__/unit/agent-sandbox.test.js
           __tests__/unit/settings-loader.test.js
           __tests__/unit/settings-mutation-authority.test.js
+          __tests__/unit/settings-authority-domain.test.js
+          __tests__/unit/settings-permission-runtime.test.js
           __tests__/unit/scoped-permission-store.test.js
           __tests__/unit/scoped-permission-mutation-authority.test.js
           __tests__/unit/permissions-command.test.js

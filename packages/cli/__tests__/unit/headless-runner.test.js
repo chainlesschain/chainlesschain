@@ -41,6 +41,7 @@ import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 
 const runAgentHeadless = (options = {}, deps = {}) =>
   runAgentHeadlessWithIngress(
@@ -1142,6 +1143,23 @@ describe("headless-runner — tool list threading into the loop", () => {
       "run_shell",
     ]);
     expect(captured.options.disabledTools).toEqual(["run_shell"]);
+  });
+
+  it("seeds initial rules from the injected branded permission provider", async () => {
+    const captured = {};
+    const { deps } = makeDeps(replyText("x"));
+    deps.agentLoop = capturingLoop(captured);
+    const provider = createPermissionRulesProvider({
+      env: {},
+      baseRules: { allow: [], ask: [], deny: ["Bash"] },
+    });
+    const outcome = await runAgentHeadless(
+      { prompt: "inspect", permissionRulesProvider: provider },
+      deps,
+    );
+    expect(outcome.exitCode).toBe(0);
+    expect(captured.options.permissionRules.deny).toContain("Bash");
+    expect(captured.options.permissionRulesProvider).toBe(provider);
   });
 
   it("plan mode clamps the loop's enabled tools to the read-only set", async () => {
