@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -38,12 +36,16 @@ public final class ImageAttachments {
 
     /** Inspect bounded headers without allocating a decoded pixel buffer. */
     public static long validateFile(Path file) throws IOException {
-        long bytes = Files.size(file);
+        byte[] snapshot = ImageFileSnapshot.read(file, (int) MAX_IMAGE_BYTES);
+        return validateSnapshot(file, snapshot);
+    }
+
+    /** Validate precisely the bytes that will be persisted or sent. This is
+     * container-header admission, not an assertion of complete codec decoding. */
+    public static long validateSnapshot(Path file, byte[] snapshot) throws IOException {
+        long bytes = snapshot.length;
         if (bytes <= 0 || bytes > MAX_IMAGE_BYTES) throw new IOException("Image must be at most 20 MiB and nonempty");
-        byte[] header;
-        try (InputStream stream = Files.newInputStream(file)) {
-            header = stream.readNBytes((int) Math.min(bytes, 1024 * 1024));
-        }
+        byte[] header = snapshot.length <= 1024 * 1024 ? snapshot : java.util.Arrays.copyOf(snapshot, 1024 * 1024);
         ByteBuffer b = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN);
         String format = null;
         long width = 0, height = 0;

@@ -28,7 +28,8 @@ The reopen-closed shortcut preserves the same draft identity. Discarding saved
 input releases its unreferenced images; clearing an empty record releases its
 storage directory.
 
-Limits: 100,000 characters per text; four images, 20 MiB total, 40MP per image;
+Limits: 100,000 characters per text; four images, 20 MiB total, 40MP per image
+and 40 million compositing canvas pixels across all frames and attachments;
 eight unresolved submissions per draft; 128 stored drafts and a 100 MiB storage
 budget. Serial storage work is bounded to 64 operations and 40 MiB of queued
 image payloads. Metadata uses a flushed temporary file followed by rename.
@@ -107,3 +108,51 @@ JetBrains and VS Code question draft implementations have local tests. Current
 real IDE host lifecycle acceptance, accessibility listening and cross-platform
 validation remain outstanding in IDE-DRAFT. No approvals are saved or replayed
 by this draft store. The App Server remains an opt-in pilot.
+
+## Bounded image previews
+
+Host validation admits complete PNG/JPEG/GIF/WebP containers before acknowledging
+the current page's attachment revision. Animations allow at most 200 frames per
+image, with each frame charged for its full compositing canvas, including APNG's
+separate still fallback. PNG also limits container fragmentation to 16,384 chunks.
+WebP inner coded dimensions must match their outer frame. These are admission
+checks, not a substitute for decoding.
+
+After that ACK, a dedicated browser Worker uses `ImageDecoder` to decode every
+frame and verify the actual frame count and dimensions. The worker closes each
+decoded frame, producing a 40×40 `ImageBitmap` for the preview. The page draws
+these bitmaps on an accessible canvas; it never passes the original compressed
+bytes to a second DOM image decoder. Animation durations and repeat counts are
+preserved, with a 20 ms minimum delay. A missing codec/API, malformed image or
+decode timeout remains visible and blocks attachment sending.
+
+Only the visible composer's bitmap cache is retained. Four images with 200
+frames each give an upper bound of 1.28 million thumbnail pixels (5.12 MB of
+RGBA payload, excluding browser/driver overhead). Switching tabs, hiding or
+closing the page, removing images and late worker results release the bitmaps.
+Worker operations have a five-second deadline; cancellation terminates the
+worker and rejects its result. These are input, pixel, frame, thumbnail-cache
+and operation-time bounds, not a hard browser decoder RSS or OS CPU quota.
+
+For PNG preview decoding, non-raster ancillary metadata is removed, including
+compressed ICC/text streams. IHDR, PLTE, tRNS, animation control/data and fixed-size
+gAMA/cHRM/sRGB chunks remain. **Thumbnail previews do not guarantee custom ICC
+color fidelity.** Saved and sent attachment bytes remain unchanged.
+
+Node preparation uses an owned staging directory, exclusive promotion and
+cleanup after timeout/cancellation. Saved attachments are read through one
+descriptor, with an original-size-plus-one allocation and 64 KiB chunks. File
+growth, truncation, replacement and observed modification reject the snapshot.
+Java uses the same bounded-snapshot approach for draft storage and dropped-file
+copies. File-read deadlines/cancellation are checked between I/O operations;
+they do not interrupt a filesystem syscall stalled in the OS. JetBrains still
+uses header admission and has no animated thumbnail codec path; this change
+does not claim complete JetBrains codec acceptance.
+
+The `image-decode-budget-browser.cjs` regression exercises real Chromium codecs,
+including PNG/JPEG, GIF/APNG/WebP animation, separate APNG fallback, compressed
+metadata with palette transparency, damaged IDAT, contradictory WebP dimensions
+and worker timeout/cancellation. IDE Extensions runs it on Linux, Windows and
+macOS using its existing Playwright installation and uploads raw JSON. Its
+localhost browser result does not replace the packaged VS Code host journey,
+which must verify secure-context APIs and worker CSP in the actual Webview.

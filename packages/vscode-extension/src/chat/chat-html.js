@@ -18,6 +18,11 @@ const {
 } = require("./host-dom-image-fixtures");
 const { createTranscriptReconciler } = require("./transcript-reconciler");
 const { createQuestionForms } = require("./question-form-drafts");
+const {
+  createImagePreviewGate,
+  drawImagePreview,
+  IMAGE_PREVIEW_WORKER_SOURCE,
+} = require("./image-preview-gate");
 const MD_LITE_SOURCE = fs.readFileSync(
   path.join(__dirname, "md-lite.js"),
   "utf8",
@@ -43,7 +48,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 9;
+const CHAT_UI_PROTOCOL_VERSION = 10;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -188,7 +193,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src data:; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+      content="default-src 'none'; img-src data:; worker-src blob:; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
 <style nonce="${nonce}">
   :root { color-scheme: light dark; }
   body { margin:0; font-family: var(--vscode-font-family); color: var(--vscode-foreground);
@@ -293,7 +298,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
                        color: var(--vscode-list-activeSelectionForeground); }
   #suggest .item .desc { opacity:.65; font-size:.92em; }
   #attach { display:none; padding:2px 8px; font-size:.85em; }
-  #attach .chip img { width:40px; height:40px; object-fit:contain; vertical-align:middle; margin-right:4px; }
+  #attach .chip canvas { width:40px; height:40px; vertical-align:middle; margin-right:4px; }
   #attach .chip { display:inline-block; margin-right:6px; padding:1px 8px;
                   border:1px solid var(--vscode-panel-border); border-radius:10px; }
   #attach .chip button { background:none; border:none; color:inherit; padding:0 0 0 4px;
@@ -822,6 +827,20 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   // required — configure llm.visionModel / chainlesschain.chat.model).
   const attach = document.getElementById("attach");
   let pendingImages = [];
+  const previewGate = (${createImagePreviewGate.toString()})({ workerSource: ${JSON.stringify(IMAGE_PREVIEW_WORKER_SOURCE)} });
+  let previewOwner = null;
+  let previewAnimations = [];
+  const stopPreviews = () => { for (const stop of previewAnimations) stop(); previewAnimations = []; };
+  window.addEventListener("pagehide", () => {
+    stopPreviews(); previewGate.cancel();
+    for (const draft of Object.values(composerDrafts)) { previewGate.dispose(draft.previewState?.results); draft.previewState = null; }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopPreviews(); previewGate.cancel();
+      if (previewOwner) { previewGate.dispose(previewOwner.previewState?.results); previewOwner.previewState = null; }
+    } else renderAttach();
+  });
   const composerDrafts = Object.create(null);
   const draftBackup = vscode.getState?.()?.draftTextBackup || null;
   function rememberComposer(id, draft) {
@@ -913,18 +932,45 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   }
   input.addEventListener("input", () => saveComposer());
   function renderAttach() {
+    stopPreviews();
+    const draft = composerDraft();
+    if (previewOwner !== draft) {
+      if (previewOwner) { previewGate.dispose(previewOwner.previewState?.results); previewOwner.previewState = null; }
+      previewGate.cancel(); previewOwner = draft;
+    }
+    const matches = draft.previewState && draft.previewState.images.length === pendingImages.length && draft.previewState.images.every((image, i) => image === pendingImages[i]);
+    if (!matches) { previewGate.cancel(); previewGate.dispose(draft.previewState?.results); draft.previewState = null; }
+    if (pendingImages.length && draft.imagesVerified && !draft.previewState && !document.hidden) {
+      const state = { images: [...pendingImages], status: "decoding" };
+      draft.previewState = state;
+      previewGate.validate(state.images).then((results) => {
+        if (draft.previewState !== state) { previewGate.dispose(results); return; }
+        state.results = results;
+        state.status = "ready";
+        if (composerDraft() === draft) renderAttach();
+      }, (error) => {
+        if (draft.previewState !== state) return;
+        if (error.message === "Image decoding cancelled") { draft.previewState = null; return; }
+        state.status = "failed"; state.error = error.message;
+        if (composerDraft() === draft) renderAttach();
+      });
+    }
     attach.textContent = "";
     if (!pendingImages.length) { attach.style.display = "none"; return; }
     pendingImages.forEach((img, i) => {
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = "📷 image " + (i + 1);
-      // Decode previews only after host image/header/pixel-budget validation.
-      if (composerDraft().imagesVerified && typeof img.data === "string" && /^data:image\\/(png|jpeg|gif|webp);base64,/.test(img.data)) {
-        const preview = document.createElement("img");
-        preview.alt = "Attached image " + (i + 1);
+      // Original compressed bytes are never decoded by a DOM img. The worker
+      // transfers bounded thumbnails after its complete all-frame codec pass.
+      if (draft.imagesVerified && draft.previewState?.status === "ready" && typeof img.data === "string" && /^data:image\\/(png|jpeg|gif|webp);base64,/.test(img.data)) {
+        const preview = document.createElement("canvas");
+        preview.setAttribute("role", "img");
+        preview.setAttribute("aria-label", "Attached image " + (i + 1));
         preview.width = 40; preview.height = 40;
-        preview.src = img.data;
+        const result = draft.previewState.results[i];
+        preview.__ccImagePreviewEvidence = { data: img.data, result };
+        previewAnimations.push((${drawImagePreview.toString()})(preview, result));
         chip.appendChild(preview);
       }
       const x = document.createElement("button");
@@ -934,6 +980,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       chip.appendChild(x);
       attach.appendChild(chip);
     });
+    if (draft.previewState?.status !== "ready") {
+      const status = document.createElement("span");
+      status.setAttribute("role", "status");
+      status.textContent = draft.previewState?.error || "Checking image frames…";
+      attach.appendChild(status);
+    }
     attach.style.display = "block";
   }
   // Shared by paste + drag-drop: read an image blob as a data URL and stage it.
@@ -950,9 +1002,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     draft.readingBytes += blob.size;
     const fr = new FileReader();
     let settled = false;
+    const readTimer = setTimeout(() => { fr.abort(); finish(true); }, 5000);
     const finish = (error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(readTimer);
       draft.reads -= 1;
       draft.readingBytes -= blob.size;
       if (!error) { draft.images.push({ data: fr.result, size: blob.size }); draft.imagesVerified = false; }
@@ -1003,6 +1057,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   });
   function send() {
     if (composerDraft().reads) { add("info", "Wait for the images to finish loading before sending."); return; }
+    if (pendingImages.length && composerDraft().previewState?.status !== "ready") { add("error", composerDraft().previewState?.error || "Wait for image validation before sending."); return; }
     if (composerDraft().pendingSend || composerDraft().missingImages) { add("info", "Wait for the saved input or resolve missing attachments before sending."); return; }
     if (composerDraft().storage && !composerDraft().imagesLoaded) { add("info", "Wait for the saved attachments to finish loading before sending."); return; }
     // Clicking the blue Send button must mirror Enter while the slash menu is

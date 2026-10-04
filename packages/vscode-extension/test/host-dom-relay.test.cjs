@@ -41,7 +41,7 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
   temporaryRoots.push(root);
   const at = "2026-09-27T00:00:01.000Z";
   const initial = {
-    schema: "cc-ide-conversation-recovery/v2",
+    schema: "cc-ide-conversation-recovery/v3",
     phase: "initial",
     backgroundAt: "2026-09-27T00:00:00.000Z",
     backgroundCompletedAt: at,
@@ -65,6 +65,10 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
       bytes: 64,
       naturalWidth: 1,
       naturalHeight: 1,
+      decodeSource: "isolated-image-decoder",
+      decodedFrames: 1,
+      previewWidth: 40,
+      previewHeight: 40,
       loaded: true,
     })),
   });
@@ -128,6 +132,35 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
   );
   write();
   assert.doesNotThrow(() => assertConversationRecoveryArtifacts(root, records));
+  // Keep archived v2 receipts readable; only new v3 producers promise the
+  // isolated codec/thumbnail evidence rather than DOM-image decoding.
+  for (const [phase, evidence] of [
+    ["initial", initial],
+    ["restart", restart],
+  ]) {
+    const legacy = JSON.parse(
+      JSON.stringify(evidence, (key, value) =>
+        [
+          "decodeSource",
+          "decodedFrames",
+          "previewWidth",
+          "previewHeight",
+        ].includes(key)
+          ? undefined
+          : value,
+      ),
+    );
+    legacy.schema = "cc-ide-conversation-recovery/v2";
+    fs.writeFileSync(
+      path.join(root, `conversation-recovery-${phase}.json`),
+      JSON.stringify(legacy),
+    );
+  }
+  assert.doesNotThrow(() => assertConversationRecoveryArtifacts(root, records));
+  delete restart.images.a.attachments[0].decodeSource;
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  restart.images.a = imageSnapshot("a");
   restart.images.a.attachmentChips = [];
   write();
   assert.throws(() => assertConversationRecoveryArtifacts(root, records));
@@ -600,6 +633,8 @@ test("finishing an image read immediately replaces the stale saved indication wi
   const statuses = [];
   let reader;
   const context = vm.createContext({
+    setTimeout,
+    clearTimeout,
     saveComposer() {},
     tabKey: () => "a",
     composerDraft: () => draft,
@@ -679,10 +714,13 @@ test("attachment evidence hashes rendered bytes without exporting sources or hid
   const crypto = require("node:crypto");
   const data = Buffer.from("fixed image bytes");
   const image = {
-    src: `data:image/png;base64,${data.toString("base64")}`,
-    naturalWidth: 1,
-    naturalHeight: 1,
-    complete: true,
+    __ccImagePreviewEvidence: {
+      data: `data:image/png;base64,${data.toString("base64")}`,
+      result: { decodedWidth: 1, decodedHeight: 1, frames: 2 },
+    },
+    width: 40,
+    height: 40,
+    __ccPreviewDrawn: true,
   };
   const collect = vm.runInNewContext(
     "(" + snapshotHostImageAttachments.toString() + ")",
@@ -699,12 +737,15 @@ test("attachment evidence hashes rendered bytes without exporting sources or hid
     crypto.createHash("sha256").update(data).digest("hex"),
   );
   assert.equal(evidence.loaded, true);
+  assert.equal(evidence.decodeSource, "isolated-image-decoder");
+  assert.equal(evidence.decodedFrames, 2);
+  assert.equal(evidence.previewWidth, 40);
   assert.equal(evidence.bytes, data.length);
   assert.equal(Object.hasOwn(evidence, "src"), false);
   assert.ok(!JSON.stringify(evidence).includes(data.toString("base64")));
-  image.naturalWidth = 0;
+  image.__ccImagePreviewEvidence.result.decodedWidth = 0;
   assert.equal((await collect(attach))[0].loaded, false);
-  image.src = "https://example.com/image.png";
+  image.__ccImagePreviewEvidence.data = "https://example.com/image.png";
   await assert.rejects(collect(attach), /Invalid rendered image source/);
 });
 
