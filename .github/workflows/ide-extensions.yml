@@ -201,12 +201,28 @@ jobs:
           __tests__/unit/browser-state-tool.test.js
           __tests__/unit/artifact-store.test.js
           __tests__/unit/coding-agent-contract.test.js
+          __tests__/unit/vscode-ext-image-decode-budget.test.js
+          __tests__/unit/vscode-ext-image-budget.test.js
+          __tests__/unit/vscode-ext-chat-images.test.js
+          __tests__/unit/vscode-ext-draft-store.test.js
       - name: Install Chromium with target-side dependencies (Linux)
         if: runner.os == 'Linux'
         run: npm exec -- playwright install --with-deps chromium
       - name: Install Chromium (Windows/macOS)
         if: runner.os != 'Linux'
         run: npm exec -- playwright install chromium
+      - name: Validate actual image codecs and bounded animation workers
+        timeout-minutes: 3
+        run: >-
+          node packages/vscode-extension/test/image-decode-budget-browser.cjs
+          build/reports/image-codec-budget/${{ matrix.slug }}/result.json
+      - name: Upload image codec and animation budget evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: image-codec-budget-${{ matrix.slug }}-${{ env.IDE_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: build/reports/image-codec-budget/${{ matrix.slug }}/result.json
+          if-no-files-found: error
       - name: Run Workbench browser and real CLI persistence journey
         timeout-minutes: 10
         env:

@@ -56,10 +56,11 @@ function dispatchHostImageFixture(input, fixture, via) {
  * attachment contents never enter journey logs or evidence. */
 async function snapshotHostImageAttachments(attach) {
   return Promise.all(
-    [...attach.querySelectorAll(".chip img")].map(async (img) => {
+    [...attach.querySelectorAll(".chip canvas")].map(async (canvas) => {
+      const { data, result } = canvas.__ccImagePreviewEvidence || {};
       const match =
         /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/]*={0,2})$/.exec(
-          img.src,
+          data,
         );
       if (!match || match[2].length > 28 * 1024 * 1024)
         throw new Error("Invalid rendered image source");
@@ -71,9 +72,18 @@ async function snapshotHostImageAttachments(attach) {
           .join(""),
         mime: match[1],
         bytes: bytes.length,
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        loaded: img.complete && img.naturalWidth > 0 && img.naturalHeight > 0,
+        // Retain report field names for prior journey readers; these values
+        // now originate from actual VideoFrame dimensions in the worker.
+        naturalWidth: result.decodedWidth,
+        naturalHeight: result.decodedHeight,
+        decodedFrames: result.frames,
+        decodeSource: "isolated-image-decoder",
+        previewWidth: canvas.width,
+        previewHeight: canvas.height,
+        loaded:
+          canvas.__ccPreviewDrawn === true &&
+          result.decodedWidth > 0 &&
+          result.decodedHeight > 0,
       };
     }),
   );

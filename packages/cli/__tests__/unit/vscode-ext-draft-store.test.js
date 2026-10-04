@@ -638,6 +638,24 @@ function webview(backup, { withoutRandomUUID = false } = {}) {
     },
   });
   const posted = [];
+  // This harness tests ACK/page routing; actual codecs run in the separate
+  // Chromium journey. Keep completion explicit so ACK alone cannot show img.
+  const decoders = [];
+  window.HTMLCanvasElement.prototype.getContext = () => ({
+    clearRect() {},
+    drawImage() {},
+  });
+  window.Worker = class {
+    constructor() {
+      decoders.push(this);
+    }
+    postMessage(images) {
+      this.images = images;
+    }
+    terminate() {
+      this.terminated = true;
+    }
+  };
   if (withoutRandomUUID)
     Object.defineProperty(window, "crypto", {
       value: {
@@ -675,6 +693,7 @@ function webview(backup, { withoutRandomUUID = false } = {}) {
   return {
     window,
     posted,
+    decoders,
     emit,
     keys,
     tabs,
@@ -773,12 +792,28 @@ describe("composer recovery in the generated Webview", () => {
         webviewInstance: oldUi.page.webviewInstance,
         text: "old error",
       });
-      expect(attachments.querySelectorAll("img")).toHaveLength(0);
+      expect(attachments.querySelectorAll("canvas")).toHaveLength(0);
       expect(ui.window.document.body.textContent).toBe(before);
       ui.tabs("b");
       ui.emit({ ...request, kind: "draftSaved", imagesChanged: true });
       ui.tabs("a");
-      expect(attachments.querySelectorAll("img")).toHaveLength(1);
+      expect(attachments.querySelectorAll("canvas")).toHaveLength(0);
+      expect(ui.decoders).toHaveLength(1);
+      ui.decoders[0].onmessage({
+        data: {
+          results: [
+            {
+              decodedWidth: 1,
+              decodedHeight: 1,
+              frames: 1,
+              thumbnails: [{ bitmap: { close() {} }, duration: 100 }],
+            },
+          ],
+        },
+      });
+      await until(() => attachments.querySelectorAll("canvas").length === 1);
+      expect(attachments.querySelectorAll("canvas")).toHaveLength(1);
+      expect(attachments.querySelectorAll("img")).toHaveLength(0);
       expect(ui.window.document.body.textContent).toContain(
         "Draft saved on this device",
       );

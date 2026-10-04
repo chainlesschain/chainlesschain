@@ -2690,8 +2690,8 @@ class ChatViewProvider {
    * one is validated in a worker and written asynchronously. Any rejected
    * attachment rejects the send, with no silently omitted images.
    */
-  async _writeImageTemps(images) {
-    return require("./image-attachments").writeImageTemps(images);
+  async _writeImageTemps(images, options) {
+    return require("./image-attachments").writeImageTemps(images, options);
   }
 
   async _prepareImagesAndSend(message, conv) {
@@ -2700,9 +2700,13 @@ class ChatViewProvider {
     const pending = {};
     this._imagePreparation = pending;
     conv.preparingImages = true;
+    const controller = new AbortController();
+    conv.imagePreparationAbort = controller;
     let files = [];
     try {
-      files = await this._writeImageTemps(message.images);
+      files = await this._writeImageTemps(message.images, {
+        signal: controller.signal,
+      });
       if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
         await Promise.allSettled(
           files.map((file) => require("fs/promises").unlink(file)),
@@ -2742,6 +2746,8 @@ class ChatViewProvider {
     } finally {
       if (this._imagePreparation === pending) this._imagePreparation = null;
       conv.preparingImages = false;
+      if (conv.imagePreparationAbort === controller)
+        conv.imagePreparationAbort = null;
     }
   }
 
@@ -4064,6 +4070,7 @@ class ChatViewProvider {
 
   _cancelPendingInput(conversation) {
     if (!conversation) return false;
+    conversation.imagePreparationAbort?.abort();
     const pending = Boolean(
       conversation.preparingSubmission || conversation.preparingImages,
     );
@@ -4660,6 +4667,7 @@ class ChatViewProvider {
     this._webviewProtocolConfirmed = false;
     this._flushPlanReviewDrafts();
     for (const summary of this._convs.list()) {
+      this._cancelPendingInput(this._convs.get(summary.id));
       this._stopLoop(summary.id);
       this._stopSession(this._convs.get(summary.id));
     }

@@ -8,6 +8,8 @@ const fs = require("fs/promises");
 const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
+const { inspectImageBudget } = require("./image-decode-budget");
+const { readImageSnapshot } = require("./image-file-snapshot");
 
 // Byte limit follows CLI clipboard-image. Both IDEs share these turn limits.
 const MAX_IMAGES = 4;
@@ -133,6 +135,7 @@ async function writeImageBatch(
   { directory = os.tmpdir(), io = fs } = {},
 ) {
   checkImageEnvelope(images);
+  let decodedPixels = 0;
   const decoded = images.map((image, index) => {
     try {
       const match =
@@ -153,6 +156,12 @@ async function writeImageBatch(
         info.width * info.height > MAX_IMAGE_PIXELS
       )
         throw new Error("image dimensions exceed 40 megapixels or are invalid");
+      const budget = inspectImageBudget(data);
+      decodedPixels += budget.decodedPixels;
+      if (decodedPixels > MAX_IMAGE_PIXELS)
+        throw new Error(
+          "attachments exceed 40 million decoded canvas pixels in total",
+        );
       return { data, extension: info.format === "jpeg" ? "jpg" : info.format };
     } catch (error) {
       throw new Error(`Image ${index + 1}: ${error.message}`);
@@ -183,25 +192,80 @@ async function writeImageBatch(
   }
 }
 
-function writeImageTemps(images, { directory } = {}) {
+async function writeImageTemps(
+  images,
+  { directory = os.tmpdir(), signal, timeoutMs = 5000 } = {},
+) {
   checkImageEnvelope(images);
-  if (!images.length) return Promise.resolve([]);
-  // Decoding and header inspection run away from the Extension Host event loop.
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(__filename, {
-      workerData: { images, directory },
+  if (signal?.aborted) throw new Error("Image preparation cancelled");
+  if (!images.length) return [];
+  // The parent owns a private staging directory before starting the worker.
+  // Termination can therefore clean even a partial file created just before
+  // the worker reported it, without deleting paths owned by anyone else.
+  const staging = await fs.mkdtemp(path.join(directory, ".cc-image-"));
+  const files = [];
+  let worker, timer, abort;
+  const deadline = performance.now() + timeoutMs;
+  const check = () => {
+    if (signal?.aborted) throw new Error("Image preparation cancelled");
+    if (performance.now() >= deadline)
+      throw new Error("Image preparation exceeded the time budget");
+  };
+  try {
+    check();
+    const prepared = await new Promise((resolve, reject) => {
+      worker = new Worker(__filename, {
+        workerData: { images, directory: staging },
+      });
+      abort = () => reject(new Error("Image preparation cancelled"));
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
+      timer = setTimeout(
+        () => reject(new Error("Image preparation exceeded the time budget")),
+        timeoutMs,
+      );
+      let replied = false;
+      worker.once("message", (result) => {
+        replied = true;
+        if (result.error) reject(new Error(result.error));
+        else resolve(result.files);
+      });
+      worker.once("error", reject);
+      worker.once("exit", (code) => {
+        if (!replied) reject(new Error(`Image preparation stopped (${code})`));
+      });
     });
-    let replied = false;
-    worker.once("message", (result) => {
-      replied = true;
-      if (result.error) reject(new Error(result.error));
-      else resolve(result.files);
-    });
-    worker.once("error", reject);
-    worker.once("exit", (code) => {
-      if (!replied) reject(new Error(`Image preparation stopped (${code})`));
-    });
-  });
+    clearTimeout(timer);
+    for (const source of prepared) {
+      check();
+      const target = path.join(directory, path.basename(source));
+      // Own the destination before copying so cancellation can clean it, while
+      // retaining support for filesystems that do not implement hard links.
+      const handle = await fs.open(target, "wx", 0o600);
+      files.push(target);
+      try {
+        const bytes = await readImageSnapshot(source, null, {
+          signal,
+          timeoutMs: Math.max(1, deadline - performance.now()),
+        });
+        check();
+        await handle.writeFile(bytes, { signal });
+        check();
+      } finally {
+        await handle.close();
+      }
+    }
+    check();
+    return files;
+  } catch (error) {
+    await Promise.allSettled(files.map((file) => fs.unlink(file)));
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+    if (worker) await worker.terminate();
+    await fs.rm(staging, { recursive: true, force: true });
+  }
 }
 
 if (!isMainThread && workerData?.images) {

@@ -1,6 +1,7 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.ImageAttachments;
+import com.chainlesschain.ide.ImageFileSnapshot;
 
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
@@ -24,7 +25,7 @@ final class ChatComposerImages {
     private final java.util.Set<String> ownTemps = new java.util.HashSet<>();
     private final JLabel label = new JLabel();
     private final JTextArea input; // caret target for plain-text drops
-    private int generation;
+    private volatile int generation;
     private int inFlight;
     private long attachedBytes;
     private String lastError = "";
@@ -170,15 +171,16 @@ final class ChatComposerImages {
                 com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     java.nio.file.Path copy = null;
                     try {
-                        ImageAttachments.validateFile(file.toPath());
+                        byte[] snapshot = ImageFileSnapshot.read(file.toPath(), (int) ImageAttachments.MAX_IMAGE_BYTES,
+                                () -> generation != ticket || Thread.currentThread().isInterrupted(), 5_000L);
+                        long size = ImageAttachments.validateSnapshot(file.toPath(), snapshot);
                         String name = file.getName();
                         copy = java.nio.file.Files.createTempFile("cc-drop-", name.substring(name.lastIndexOf('.')));
                         copy.toFile().deleteOnExit();
-                        try (java.io.InputStream source = java.nio.file.Files.newInputStream(file.toPath());
-                             java.io.OutputStream dest = boundedOutput(copy)) {
-                            source.transferTo(dest);
+                        try (java.io.OutputStream dest = boundedOutput(copy)) {
+                            if (generation != ticket) throw new java.io.IOException("Image preparation cancelled");
+                            dest.write(snapshot);
                         }
-                        long size = ImageAttachments.validateFile(copy);
                         finish(ticket, copy, size, null);
                     } catch (Exception error) { finish(ticket, copy, 0, file.getName() + ": " + error.getMessage()); }
                 });

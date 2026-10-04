@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 const { checkImageEnvelope, writeImageTemps } = require("./image-attachments");
+const { readImageSnapshot } = require("./image-file-snapshot");
 
 const MAX_TEXT = 100000;
 const MAX_RECORD_BYTES = 2 * 1024 * 1024;
@@ -10,35 +11,6 @@ const IMAGE_NAME = /^cc-chat-img-[a-f0-9-]{36}\.(png|jpg|gif|webp)$/;
 const KEY = /^[a-f0-9-]{36}$/;
 const CLIENT_ID = /^[a-zA-Z0-9_-]{1,80}$/;
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
-
-async function readImageSnapshot(file, expectedSize = null) {
-  const info = await fs.lstat(file);
-  if (
-    !info.isFile() ||
-    info.size <= 0 ||
-    info.size > 20 * 1024 * 1024 ||
-    (expectedSize !== null && info.size !== expectedSize)
-  )
-    throw new Error("Saved attachment is missing or changed; attach it again");
-  const handle = await fs.open(file, "r");
-  try {
-    const opened = await handle.stat();
-    if (!opened.isFile() || opened.size !== info.size)
-      throw new Error("Saved attachment changed while opening");
-    const data = Buffer.alloc(info.size + 1);
-    let n = 0;
-    while (n < data.length) {
-      const r = await handle.read(data, n, data.length - n, n);
-      if (!r.bytesRead) break;
-      n += r.bytesRead;
-    }
-    if (n !== info.size)
-      throw new Error("Saved attachment changed while reading");
-    return data.subarray(0, n);
-  } finally {
-    await handle.close();
-  }
-}
 
 function text(value) {
   if (typeof value !== "string" || value.length > MAX_TEXT)

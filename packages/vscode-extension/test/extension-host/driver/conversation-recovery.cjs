@@ -208,7 +208,7 @@ async function runConversationRecovery({
       "A did not finish while another conversation was active",
     );
     evidence = {
-      schema: "cc-ide-conversation-recovery/v2",
+      schema: "cc-ide-conversation-recovery/v3",
       phase,
       original,
       backgroundAt,
@@ -315,10 +315,16 @@ function assertConversationRecoveryArtifacts(artifactDir, records) {
     ["initial", initial],
     ["restart", restart],
   ]) {
-    assert.equal(evidence.schema, "cc-ide-conversation-recovery/v2");
+    assert.ok(
+      [
+        "cc-ide-conversation-recovery/v2",
+        "cc-ide-conversation-recovery/v3",
+      ].includes(evidence.schema),
+    );
     assert.equal(evidence.phase, phase);
   }
   assert.equal(restart.historyIdsPreserved, true);
+  assert.equal(restart.schema, initial.schema);
   assert.equal(restart.composerDraftsPreserved, true);
   assert.equal(restart.automaticInputReplay, false);
   assert.equal(initial.a.savedRows.length, 4);
@@ -337,6 +343,12 @@ function assertConversationRecoveryArtifacts(artifactDir, records) {
       assert.equal(image.loaded, true);
       assert.equal(image.naturalWidth, 1);
       assert.equal(image.naturalHeight, 1);
+      if (initial.schema === "cc-ide-conversation-recovery/v3") {
+        assert.equal(image.decodeSource, "isolated-image-decoder");
+        assert.equal(image.decodedFrames, 1);
+        assert.equal(image.previewWidth, 40);
+        assert.equal(image.previewHeight, 40);
+      }
       assert.equal(image.mime, key === "a" ? "image/png" : "image/gif");
       assert.ok(Number.isInteger(image.bytes) && image.bytes > 0);
       assert.deepEqual(snapshot.attachments, initial.images[key].attachments);

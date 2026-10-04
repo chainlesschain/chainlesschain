@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
@@ -55,19 +54,7 @@ public class ChatDraftStore {
         plainDirectory(path);
     }
     private byte[] readBounded(Path path, int limit) throws IOException {
-        BasicFileAttributes before = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-        if (!before.isRegularFile() || before.size() <= 0 || before.size() > limit)
-            throw new IOException("Saved draft or attachment is invalid or too large");
-        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)) {
-            if (channel.size() != before.size()) throw new IOException("Saved file changed while opening");
-            ByteBuffer buffer = ByteBuffer.allocate((int) before.size() + 1);
-            while (buffer.hasRemaining() && channel.read(buffer) != -1) { /* bounded */ }
-            BasicFileAttributes after = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-            if (buffer.position() != before.size() || !Objects.equals(before.fileKey(), after.fileKey())
-                    || !before.lastModifiedTime().equals(after.lastModifiedTime()))
-                throw new IOException("Saved file changed while reading");
-            return Arrays.copyOf(buffer.array(), buffer.position());
-        }
+        return ImageFileSnapshot.read(path, limit);
     }
     private static String string(Object value) throws IOException {
         if (!(value instanceof String text)) throw new IOException("Invalid saved draft text");
@@ -264,6 +251,7 @@ public class ChatDraftStore {
         for (String source : paths) {
             Path path = Path.of(source);
             byte[] bytes = readBounded(path, (int) ImageAttachments.MAX_IMAGE_BYTES);
+            ImageAttachments.validateSnapshot(path, bytes);
             total += bytes.length;
             if (total > ImageAttachments.MAX_TURN_BYTES) throw new IOException("Images exceed 20 MiB per message");
             String digest = hash(bytes), name = path.getFileName().toString().toLowerCase(Locale.ROOT);
@@ -274,8 +262,9 @@ public class ChatDraftStore {
                 if (usage() + bytes.length + MAX_RECORD > MAX_STORAGE) throw new IOException("Draft storage exceeds 100 MiB");
                 atomicWrite(target, bytes);
             }
-            ImageAttachments.validateFile(target);
-            if (!hash(readBounded(target, (int) ImageAttachments.MAX_IMAGE_BYTES)).equals(digest))
+            byte[] saved = readBounded(target, (int) ImageAttachments.MAX_IMAGE_BYTES);
+            ImageAttachments.validateSnapshot(target, saved);
+            if (!hash(saved).equals(digest))
                 throw new IOException("Saved image is changed; attach it again");
             images.add(new Attachment(targetName, bytes.length, digest));
         }
@@ -290,7 +279,7 @@ public class ChatDraftStore {
                 plainDirectory(root); plainDirectory(directory(key));
                 byte[] bytes = readBounded(file, (int) ImageAttachments.MAX_IMAGE_BYTES);
                 if (bytes.length != image.bytes() || !hash(bytes).equals(image.hash())) throw new IOException("Saved image is missing or changed");
-                ImageAttachments.validateFile(file);
+                ImageAttachments.validateSnapshot(file, bytes);
                 result.add(file.toString());
             }
             return List.copyOf(result);
