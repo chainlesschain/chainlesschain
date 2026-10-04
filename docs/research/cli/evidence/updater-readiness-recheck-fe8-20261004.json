@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.updater-readiness-recheck/v1",
+  "status": "single-observation-passed-root-cause-open",
+  "releaseGateEligible": false,
+  "sourceCommit": "fe8de1b830805e8c408e9cefea95c2bc69097787",
+  "unchangedCliSincePublishedCommit": "84f204db944d92124d95b2348814ac562bde5841",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2"
+  },
+  "command": "vitest run __tests__/unit/packer- __tests__/unit/artifact- -t 'transfers the real lock only after a sidecar readiness handshake' --reporter=json",
+  "cwd": "packages/cli",
+  "deadlines": {
+    "schedulerTimeoutMs": 60000,
+    "resultWaitMs": 60000,
+    "testTimeoutMs": 90000
+  },
+  "result": {
+    "passed": 1,
+    "failed": 0,
+    "notSelected": 448,
+    "collectedFiles": 29,
+    "assertions": [
+      {
+        "file": "packages/cli/__tests__/unit/packer-pack-update-applier.test.js",
+        "name": "scheduleReplace – Windows branch (sidecar cmd) transfers the real lock only after a sidecar readiness handshake",
+        "durationMs": 34903.3929,
+        "status": "passed"
+      }
+    ]
+  },
+  "collectedFiles": [
+    "packages/cli/__tests__/unit/artifact-access-ledger.test.js",
+    "packages/cli/__tests__/unit/artifact-cleanup-ledger.test.js",
+    "packages/cli/__tests__/unit/artifact-deletion-ledger.test.js",
+    "packages/cli/__tests__/unit/artifact-recovery.test.js",
+    "packages/cli/__tests__/unit/artifact-store.test.js",
+    "packages/cli/__tests__/unit/artifact-workbench-projection.test.js",
+    "packages/cli/__tests__/unit/artifact-ws-protocol.test.js",
+    "packages/cli/__tests__/unit/packer-allowed-commands.test.js",
+    "packages/cli/__tests__/unit/packer-auto-update.test.js",
+    "packages/cli/__tests__/unit/packer-build-policy.test.js",
+    "packages/cli/__tests__/unit/packer-config-template-builder.test.js",
+    "packages/cli/__tests__/unit/packer-default-target.test.js",
+    "packages/cli/__tests__/unit/packer-file-identity.test.js",
+    "packages/cli/__tests__/unit/packer-manifest-writer.test.js",
+    "packages/cli/__tests__/unit/packer-native-prebuild-collector.test.js",
+    "packages/cli/__tests__/unit/packer-pack-update-applier.test.js",
+    "packages/cli/__tests__/unit/packer-pack-update-checker.test.js",
+    "packages/cli/__tests__/unit/packer-pack-update-downloader.test.js",
+    "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js",
+    "packages/cli/__tests__/unit/packer-pkg-runner-missing-msg.test.js",
+    "packages/cli/__tests__/unit/packer-pkg-runner-process.test.js",
+    "packages/cli/__tests__/unit/packer-pkg-targets.test.js",
+    "packages/cli/__tests__/unit/packer-precheck-project-mode.test.js",
+    "packages/cli/__tests__/unit/packer-precheck.test.js",
+    "packages/cli/__tests__/unit/packer-project-assets-collector.test.js",
+    "packages/cli/__tests__/unit/packer-sidecar-readiness.test.js",
+    "packages/cli/__tests__/unit/packer-smoke-runner.test.js",
+    "packages/cli/__tests__/unit/packer-update-signature.test.js",
+    "packages/cli/__tests__/unit/packer-web-panel-builder-process.test.js"
+  ],
+  "rawReport": {
+    "localPath": ".work/gap-validation/updater-readiness-fe8-broad.json",
+    "bytes": 131124,
+    "sha256": "09a53637cbfbf1bfb1e22d508029fd38f8fec799ee8672363ab776d6c77fd727"
+  },
+  "limitations": [
+    "Only one selected readiness test ran; this is not a full packer suite pass.",
+    "A later pass does not identify or resolve the historical timeout root cause.",
+    "No production behavior, assertions or deadlines were changed for this run."
+  ]
+}
