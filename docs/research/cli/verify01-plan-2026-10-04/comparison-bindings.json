@@ -1,0 +1,571 @@
+{
+  "status": "FROZEN_PLAN_ONLY",
+  "productionAttested": false,
+  "executionStatus": "NOT_RUN",
+  "matrix": [
+    {
+      "id": "win32-cli",
+      "platform": "win32",
+      "os": "Windows 11 24H2",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "cli",
+      "host": "terminal",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "win32-vscode",
+      "platform": "win32",
+      "os": "Windows 11 24H2",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "vscode",
+      "host": "1.132.0",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "win32-jetbrains",
+      "platform": "win32",
+      "os": "Windows 11 24H2",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "jetbrains",
+      "host": "IntelliJ IDEA 2025.2",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "linux-cli",
+      "platform": "linux",
+      "os": "Ubuntu 24.04",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "cli",
+      "host": "terminal",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "linux-vscode",
+      "platform": "linux",
+      "os": "Ubuntu 24.04",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "vscode",
+      "host": "1.132.0",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "linux-jetbrains",
+      "platform": "linux",
+      "os": "Ubuntu 24.04",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "entry": "jetbrains",
+      "host": "IntelliJ IDEA 2025.2",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "darwin-cli",
+      "platform": "darwin",
+      "os": "macOS 15",
+      "arch": "arm64",
+      "node": "v22.12.0",
+      "entry": "cli",
+      "host": "terminal",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "darwin-vscode",
+      "platform": "darwin",
+      "os": "macOS 15",
+      "arch": "arm64",
+      "node": "v22.12.0",
+      "entry": "vscode",
+      "host": "1.132.0",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    },
+    {
+      "id": "darwin-jetbrains",
+      "platform": "darwin",
+      "os": "macOS 15",
+      "arch": "arm64",
+      "node": "v22.12.0",
+      "entry": "jetbrains",
+      "host": "IntelliJ IDEA 2025.2",
+      "install": "fresh public artifact; isolated user home/profile; no development links"
+    }
+  ],
+  "providers": [
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "modelRevision": "gpt-6-astra@official-endpoint-operator-declared"
+    }
+  ],
+  "permission": {
+    "mode": "acceptEdits",
+    "scope": "isolated task checkout only",
+    "network": "provider and dependency install only; no publish/push",
+    "sideEffects": "no external messaging or production changes"
+  },
+  "inference": {
+    "maxAttempts": 2,
+    "temperature": "provider default; capture actual request",
+    "fallback": false,
+    "taskCostUSD": 2,
+    "taskTimeMs": 1200000
+  },
+  "comparisons": {
+    "win32-cli-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:b3fd0a77ebe283005c7bfb081455cc3661ee8526d81d158bc3df98f2259027fd",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "win32-vscode-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:792e7039eed4e46f9f306b31343193e92fd8add988907201fc523f3de78ed3c8",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "win32-jetbrains-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:c6f5e48f90194b40410846aa32cc40ed4418c08c631cff7c809e0919438e9365",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-cli-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:2a91bd6b75bb90d3428003363baea2d6bf0f1a5b7dc1ed2e2db5f82b9883cd2f",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-vscode-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:c12f93a89a03dc0f0ddffb2801e6ccb4685484753ace88e18db4c9e7743a3390",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-jetbrains-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:94708e62ec9b3f3eac8d1af98c4377b1e3e3c6acb43f6d619c3c4af95f75de66",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-cli-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:6f841028f7586c9e8e6d7b97f1127221073a07ef13a8ebfc765fe09b404305bc",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-vscode-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:f6366775a9d85d6f29a8bc475b04e9c5c140e31a1c50cf2953572ced92fb0282",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-jetbrains-volcengine": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint",
+        "environmentDigest": "sha256:fa80728c7f7e5108f2cfab3878c6a8967928240884a056c4700079d90fdb1648",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "win32-cli-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:b3fd0a77ebe283005c7bfb081455cc3661ee8526d81d158bc3df98f2259027fd",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "win32-vscode-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:792e7039eed4e46f9f306b31343193e92fd8add988907201fc523f3de78ed3c8",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "win32-jetbrains-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:c6f5e48f90194b40410846aa32cc40ed4418c08c631cff7c809e0919438e9365",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-cli-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:2a91bd6b75bb90d3428003363baea2d6bf0f1a5b7dc1ed2e2db5f82b9883cd2f",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-vscode-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:c12f93a89a03dc0f0ddffb2801e6ccb4685484753ace88e18db4c9e7743a3390",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "linux-jetbrains-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:94708e62ec9b3f3eac8d1af98c4377b1e3e3c6acb43f6d619c3c4af95f75de66",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-cli-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:6f841028f7586c9e8e6d7b97f1127221073a07ef13a8ebfc765fe09b404305bc",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-vscode-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:f6366775a9d85d6f29a8bc475b04e9c5c140e31a1c50cf2953572ced92fb0282",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    },
+    "darwin-jetbrains-openai": {
+      "schema": "chainlesschain.eval-comparison/v1",
+      "basis": "local-runtime-and-operator-declarations",
+      "suite": "verify01-project-36",
+      "corpusDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "runtime": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.12.0"
+      },
+      "permissionMode": "acceptEdits",
+      "executionProtocol": "cc-agent-stream-json/v1",
+      "declared": {
+        "schema": "chainlesschain.eval-comparison-context/v1",
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared",
+        "environmentDigest": "sha256:fa80728c7f7e5108f2cfab3878c6a8967928240884a056c4700079d90fdb1648",
+        "permissionDigest": "sha256:0d6da21b8cf984f4b945bead09efa8b90cefc09025961f86a68b80aa6bb282d2",
+        "inferenceDigest": "sha256:fa79f5cb57ec4697d38d5c59d02ebc8f743aeafd43b4036923e9cc1a9439fb29"
+      }
+    }
+  },
+  "totalTaskBudgetUSD": 72,
+  "firstRunBudgetUSD": 27,
+  "totalBudgetUSD": 99,
+  "maintenance": {
+    "hoursBudget": 16,
+    "checkpointHours": [8, 24],
+    "categories": [
+      "repair",
+      "support",
+      "compatibility",
+      "release",
+      "test-infrastructure",
+      "construction"
+    ]
+  }
+}
