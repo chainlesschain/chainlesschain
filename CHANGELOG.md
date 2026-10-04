@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.86: segmented memory and controlled permission authority
+
+- Store canonical Context/Memory records, audit events and reconciliations in
+  bounded immutable buckets committed through one atomic manifest; migrate v1
+  under the existing authority lock. Shadow mode remains read-only.
+- Keep per-file limits, bounded aggregate capacity and explicit post-commit
+  failure reporting. Full queries still scan; this is not an indexed-query SLO.
+- Add an explicit cooperative Linux host for durable settings/scoped permission
+  authority across processes and Workers, with bound cleanup acknowledgements.
+  Default CLI/IDE activation and Windows/macOS durable support are unchanged.
+- Pair VS Code `0.37.131` bounded image decoding and JetBrains `0.4.149` bounded
+  file snapshots only after complete exact-commit gates and public CLI verification.
+
 ### Fixed - cc CLI 0.166.85: preserve durable state at capacity and revision limits
 
 - Reject oversized memory commits and reconciliation before replacing durable

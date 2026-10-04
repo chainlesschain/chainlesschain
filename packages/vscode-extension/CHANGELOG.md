@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.131] - Bound image decoding and file snapshots (2026-10-04)
+
+- Validate supported image container structures, cumulative frame work and frame
+  counts before creating previews; cancel or terminate stalled decoding Workers.
+- Render only validated 40px frame bitmaps, release retired frames, and read
+  attachment bytes through one bounded file handle. Original bytes stay intact.
+- Recommend CLI `0.166.86`; final publication requires the complete release gates.
+
 ## [0.37.130] - Isolate drafts across Webview reloads (2026-10-04)
 
 - Bind draft saves and acknowledgements to each page execution, including when
