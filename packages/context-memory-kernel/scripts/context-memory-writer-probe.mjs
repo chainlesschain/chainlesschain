@@ -1,13 +1,7 @@
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -154,10 +148,17 @@ try {
     importance: 1,
   });
   assert.equal(existsSync(canonicalPath), true);
-  assert.match(
-    readFileSync(canonicalPath, "utf8"),
-    /writer probe canonical payload/u,
-  );
+  // The authority path can hold a v2 shard manifest. Reopen the production
+  // port instead of assuming that the payload lives in the manifest itself.
+  const reopenedCli = new CliCanonicalMemoryService({
+    env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+    memoryFilePath: canonicalPath,
+    clock: () => Date.parse(AT),
+  });
+  const persistedRecords = await reopenedCli.runtime.memoryPort.listRecords();
+  assert.equal(persistedRecords.length, 1);
+  assert.equal(persistedRecords[0].content, "writer probe canonical payload");
+  assert.equal(await reopenedCli.runtime.memoryPort.getRevision(), 1);
 
   const legacyCli = {
     memoryManager: expectFence(
