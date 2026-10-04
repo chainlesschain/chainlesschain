@@ -1,11 +1,13 @@
 import {
   closeSync,
+  constants,
   existsSync,
+  fstatSync,
   fsyncSync,
   lstatSync,
   mkdirSync,
   openSync,
-  readFileSync,
+  readSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -124,6 +126,55 @@ function initializeState() {
   return state;
 }
 
+function storeLimit(reason) {
+  const error = new Error(`Context/Memory store limit reached: ${reason}`);
+  error.code = "CONTEXT_MEMORY_STORE_LIMIT";
+  return error;
+}
+
+function advanceRevision(state) {
+  if (state.storeRevision >= Number.MAX_SAFE_INTEGER) {
+    throw storeLimit("store revision is exhausted");
+  }
+  state.storeRevision += 1;
+}
+
+function readBoundedState(filePath, maxStoreBytes) {
+  const descriptor = openSync(
+    filePath,
+    constants.O_RDONLY |
+      (constants.O_NOFOLLOW || 0) |
+      (constants.O_NONBLOCK || 0),
+  );
+  try {
+    const stat = fstatSync(descriptor);
+    if (!stat.isFile()) {
+      throw corruptStore(filePath, "authority path is not a regular file");
+    }
+    if (stat.size > maxStoreBytes) {
+      throw corruptStore(filePath, "store exceeds its configured byte limit");
+    }
+    // Bound reads even when a non-cooperating writer grows the opened file.
+    // The extra byte distinguishes an exact-limit file from an oversized one.
+    const chunks = [];
+    let total = 0;
+    while (true) {
+      const chunk = Buffer.allocUnsafe(
+        Math.min(64 * 1024, maxStoreBytes - total + 1),
+      );
+      const count = readSync(descriptor, chunk, 0, chunk.length, null);
+      if (count === 0) return Buffer.concat(chunks, total);
+      total += count;
+      if (total > maxStoreBytes) {
+        throw corruptStore(filePath, "store exceeds its configured byte limit");
+      }
+      chunks.push(chunk.subarray(0, count));
+    }
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
 function syncDirectory(directory) {
   if (process.platform === "win32") return;
   const descriptor = openSync(directory, "r");
@@ -134,13 +185,16 @@ function syncDirectory(directory) {
   }
 }
 
-function writeState(filePath, state) {
-  const directory = dirname(filePath);
-  mkdirSync(directory, { recursive: true, mode: 0o700 });
+function writeState(filePath, state, maxStoreBytes) {
   const output = cloneCanonical(state);
   delete output.digest;
   output.digest = stateDigest(output);
   const bytes = `${JSON.stringify(output)}\n`;
+  if (Buffer.byteLength(bytes, "utf8") > maxStoreBytes) {
+    throw storeLimit("store exceeds its configured byte limit");
+  }
+  const directory = dirname(filePath);
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
   const temporary = join(
     directory,
     `.${filePath.split(/[\\/]/u).at(-1)}.${process.pid}.${randomUUID()}.tmp`,
@@ -172,6 +226,11 @@ export class DurableJsonMemoryPort {
     maxEvents = DEFAULT_MAX_EVENTS,
     lockObserver = null,
   } = {}) {
+    for (const [name, value] of Object.entries({ maxStoreBytes, maxEvents })) {
+      if (!Number.isSafeInteger(value) || value <= 0) {
+        throw new TypeError(`${name} must be a positive safe integer`);
+      }
+    }
     this.name = "cli-context-memory-authority";
     this.filePath = filePath;
     this.maxStoreBytes = maxStoreBytes;
@@ -183,13 +242,7 @@ export class DurableJsonMemoryPort {
   _readUnlocked() {
     assertRegularFile(this.filePath);
     if (!existsSync(this.filePath)) return initializeState();
-    const bytes = readFileSync(this.filePath);
-    if (bytes.length > this.maxStoreBytes) {
-      throw corruptStore(
-        this.filePath,
-        "store exceeds its configured byte limit",
-      );
-    }
+    const bytes = readBoundedState(this.filePath, this.maxStoreBytes);
     try {
       return normalizeState(JSON.parse(bytes.toString("utf8")), this.filePath);
     } catch (error) {
@@ -278,8 +331,8 @@ export class DurableJsonMemoryPort {
         state.reconciliations[reconciliation.requestId] =
           cloneCanonical(reconciliation);
       }
-      state.storeRevision += 1;
-      writeState(this.filePath, state);
+      advanceRevision(state);
+      writeState(this.filePath, state, this.maxStoreBytes);
       return {
         ok: true,
         revision: normalized.revision,
@@ -303,8 +356,8 @@ export class DurableJsonMemoryPort {
     return this._locked(() => {
       const state = this._readUnlocked();
       state.reconciliations[operation.requestId] = cloneCanonical(operation);
-      state.storeRevision += 1;
-      writeState(this.filePath, state);
+      advanceRevision(state);
+      writeState(this.filePath, state, this.maxStoreBytes);
       return { ok: true, storeRevision: state.storeRevision };
     });
   }
