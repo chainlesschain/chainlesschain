@@ -37,8 +37,16 @@ async function readImageSnapshot(
   try {
     check();
     const opened = await handle.stat();
-    if (!same(before, opened))
-      throw new Error("Saved attachment changed while opening");
+    if (!same(before, opened)) {
+      // Record only filesystem metadata, never the path or attachment bytes.
+      // This distinguishes an actual replacement from platform stat API bugs.
+      const differences = ["size", "dev", "ino", "mtimeMs", "ctimeMs"]
+        .filter((key) => before[key] !== opened[key])
+        .map((key) => `${key}: ${before[key]} -> ${opened[key]}`);
+      throw new Error(
+        `Saved attachment changed while opening (${differences.join(", ")})`,
+      );
+    }
     const buffer = Buffer.alloc(opened.size + 1);
     let count = 0;
     while (count < buffer.length) {
