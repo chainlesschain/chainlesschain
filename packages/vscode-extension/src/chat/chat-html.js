@@ -43,7 +43,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 8;
+const CHAT_UI_PROTOCOL_VERSION = 9;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -337,6 +337,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   </div>
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
+  // Cached HTML can execute again on Reload Webviews; its CSP nonce stays the
+  // same, so each execution also needs its own page identity.
+  const draftWebviewInstance = crypto.randomUUID();
+  const draftWebviewNonce = ${JSON.stringify(nonce)};
   const CC_CHAT_UI_PROTOCOL_VERSION = ${CHAT_UI_PROTOCOL_VERSION};
   const CC_HOST_DOM_TOKEN = ${JSON.stringify(safeHostDomToken)};
   const CC_L10N = ${JSON.stringify(l10n || {})};
@@ -832,7 +836,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   function sendDraftUpdate(id, draft, imagesChanged) {
     clearTimeout(draft.timer);
     if (!draft.storage || !draft.key) return;
-    vscode.postMessage({ type: "draftUpdate", convId: id, draftKey: draft.key, revision: draft.revision, text: draft.text, ...(imagesChanged ? { images: draft.images } : {}) });
+    vscode.postMessage({ type: "draftUpdate", webviewInstance: draftWebviewInstance, convId: id, draftKey: draft.key, revision: draft.revision, text: draft.text, ...(imagesChanged ? { images: draft.images } : {}) });
   }
   function queueDraft(id, draft, imagesChanged = false) {
     draft.dirty = true; draft.revision += 1;
@@ -884,14 +888,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       row.textContent = status + ": " + String(item.text || "(images)").slice(0, 80) + " ";
       if (item.status === "unknown") {
         const check = document.createElement("button"); check.textContent = "Check acceptance";
-        check.addEventListener("click", () => vscode.postMessage({ type: "draftReconcile", convId: activeTabId, draftKey: draft.key })); row.appendChild(check);
+        check.addEventListener("click", () => vscode.postMessage({ type: "draftReconcile", webviewInstance: draftWebviewInstance, convId: activeTabId, draftKey: draft.key })); row.appendChild(check);
       }
       if (item.status === "rejected" || item.status === "unknown") {
         const restore = document.createElement("button"); restore.textContent = "Copy to composer";
-        restore.addEventListener("click", () => vscode.postMessage({ type: "draftRecover", convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(restore);
+        restore.addEventListener("click", () => vscode.postMessage({ type: "draftRecover", webviewInstance: draftWebviewInstance, convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(restore);
       }
       const discard = document.createElement("button"); discard.textContent = "Discard saved input";
-      discard.addEventListener("click", () => vscode.postMessage({ type: "draftDiscard", convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(discard);
+      discard.addEventListener("click", () => vscode.postMessage({ type: "draftDiscard", webviewInstance: draftWebviewInstance, convId: activeTabId, draftKey: draft.key, clientMessageId: item.id })); row.appendChild(discard);
       draftPanel.appendChild(row);
     }
   }
@@ -1381,6 +1385,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       vscode.postMessage({
         type: "protocol",
         uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION,
+        webviewInstance: draftWebviewInstance,
+        webviewNonce: draftWebviewNonce,
       });
       return;
     }
@@ -1397,6 +1403,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "submissionStored":
       case "submissionFailed":
       case "submissionDispatched": {
+        if ((m.kind === "draftSaved" || m.kind === "draftSaveError") && m.webviewInstance !== draftWebviewInstance) break;
         const draft = composerDrafts[m.convId];
         if (!draft || draft.key !== m.draftKey) break;
         const active = m.convId === activeTabId;
@@ -2072,6 +2079,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   vscode.postMessage({
     type: "ready",
     uiProtocolVersion: CC_CHAT_UI_PROTOCOL_VERSION,
+    webviewInstance: draftWebviewInstance,
+    webviewNonce: draftWebviewNonce,
   });
 </script>
 </body>

@@ -1,0 +1,292 @@
+{
+  "schema": "chainlesschain.child-package-release-audit/v1",
+  "createdAt": "2026-10-04T05:56:05Z",
+  "registry": "https://registry.npmjs.org",
+  "registryObservation": {
+    "checkedOn": "2026-10-04",
+    "reusedEarlierSameSessionReadback": true,
+    "originalAuditSourceSha": "ca634b19fedba25597c26331951a7f669fcb4a7c",
+    "method": "npm view <package> version gitHead dist-tags.latest --json --prefer-online --registry=https://registry.npmjs.org; public npm attestations for packages without gitHead"
+  },
+  "candidate": {
+    "sourceGitSha": "72b3a6edb0b8a3d0dad0a7ab5c3cc33125388952",
+    "branch": "feature/ide-draft-instance-isolation-20261004",
+    "cliVersion": "0.166.85",
+    "publicationStatus": "candidate-not-verified-published-by-this-audit"
+  },
+  "inventorySource": ".github/workflows/npm-publish.yml",
+  "comparison": {
+    "scope": "All Git-tracked files in each child package directory, including manifests, source, tests and documentation",
+    "originalSourceComparison": "git diff --name-status <publicSourceSha> ca634b19fedba25597c26331951a7f669fcb4a7c -- <packageDirectory>",
+    "candidateRevalidation": "git diff --name-status ca634b19fedba25597c26331951a7f669fcb4a7c 72b3a6edb0b8a3d0dad0a7ab5c3cc33125388952 -- <all13ChildPackageDirectories>",
+    "candidateRevalidationChangedFiles": [],
+    "childPackageWorktreeStatus": "clean",
+    "reproduce": "git diff --exit-code <publicSourceSha> 72b3a6edb0b8a3d0dad0a7ab5c3cc33125388952 -- <packageDirectory>"
+  },
+  "packages": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "packageDirectory": "packages/agent-protocol",
+      "manifestVersion": "0.1.12",
+      "publicVersion": "0.1.12",
+      "publicLatest": "0.1.12",
+      "publicSourceSha": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "packageDirectory": "packages/agent-sdk",
+      "manifestVersion": "0.2.12",
+      "publicVersion": "0.2.12",
+      "publicLatest": "0.2.12",
+      "publicSourceSha": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "packageDirectory": "packages/context-memory-kernel",
+      "manifestVersion": "0.1.5",
+      "publicVersion": "0.1.5",
+      "publicLatest": "0.1.5",
+      "publicSourceSha": "edd49e126fc8a30591502183fa177f6765731907",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "packageDirectory": "packages/core-config",
+      "manifestVersion": "0.1.2",
+      "publicVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "packageDirectory": "packages/core-db",
+      "manifestVersion": "0.1.5",
+      "publicVersion": "0.1.5",
+      "publicLatest": "0.1.5",
+      "publicSourceSha": "9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436",
+      "sourceType": "provenance",
+      "metadataGitHeadPresent": false,
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-db@0.1.5",
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "commitField": "predicate.buildDefinition.resolvedDependencies[].digest.gitCommit",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-24",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/34007761162/attempts/1",
+        "signatureCryptographicallyVerifiedByThisAudit": false
+      },
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "packageDirectory": "packages/core-env",
+      "manifestVersion": "0.1.2",
+      "publicVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "packageDirectory": "packages/core-infra",
+      "manifestVersion": "0.1.1",
+      "publicVersion": "0.1.1",
+      "publicLatest": "0.1.1",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "packageDirectory": "packages/core-mtc",
+      "manifestVersion": "0.2.3",
+      "publicVersion": "0.2.3",
+      "publicLatest": "0.2.3",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "packageDirectory": "packages/core-multisig",
+      "manifestVersion": "0.1.4",
+      "publicVersion": "0.1.4",
+      "publicLatest": "0.1.4",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "packageDirectory": "packages/core-settlement",
+      "manifestVersion": "0.1.2",
+      "publicVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "packageDirectory": "packages/personal-data-hub",
+      "manifestVersion": "0.4.62",
+      "publicVersion": "0.4.62",
+      "publicLatest": "0.4.62",
+      "publicSourceSha": "edd49e126fc8a30591502183fa177f6765731907",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "packageDirectory": "packages/session-core",
+      "manifestVersion": "0.3.14",
+      "publicVersion": "0.3.14",
+      "publicLatest": "0.3.14",
+      "publicSourceSha": "a63101f3cc32f4cbdc644a6f0d9d1295589fe380",
+      "sourceType": "provenance",
+      "metadataGitHeadPresent": false,
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fsession-core@0.3.14",
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "commitField": "predicate.buildDefinition.resolvedDependencies[].digest.gitCommit",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-81",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/36715700885/attempts/1",
+        "signatureCryptographicallyVerifiedByThisAudit": false
+      },
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "packageDirectory": "packages/shared-logger",
+      "manifestVersion": "0.1.1",
+      "publicVersion": "0.1.1",
+      "publicLatest": "0.1.1",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "metadataGitHeadPresent": true,
+      "changedFiles": [],
+      "requiresVersionBump": false,
+      "requiresNewPublication": false
+    }
+  ],
+  "cliRuntimeDependencies": [
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "declaredVersion": "0.1.5",
+      "publicVersion": "0.1.5",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "declaredVersion": "0.1.2",
+      "publicVersion": "0.1.2",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "declaredVersion": "0.1.5",
+      "publicVersion": "0.1.5",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "declaredVersion": "0.1.2",
+      "publicVersion": "0.1.2",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "declaredVersion": "0.1.1",
+      "publicVersion": "0.1.1",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "declaredVersion": "0.2.3",
+      "publicVersion": "0.2.3",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "declaredVersion": "0.1.4",
+      "publicVersion": "0.1.4",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "declaredVersion": "0.4.62",
+      "publicVersion": "0.4.62",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "declaredVersion": "0.3.14",
+      "publicVersion": "0.3.14",
+      "exactMatch": true
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "declaredVersion": "0.1.1",
+      "publicVersion": "0.1.1",
+      "exactMatch": true
+    }
+  ],
+  "result": {
+    "childPackageCount": 13,
+    "cliInternalRuntimeDependencyCount": 10,
+    "allManifestVersionsEqualPublicLatest": true,
+    "allChildPackageDirectoriesMatchPublicSource": true,
+    "childrenRequiringVersionBump": [],
+    "childrenRequiringNewPublication": []
+  },
+  "limitations": [
+    "This receipt establishes child package directory source equality only. It does not establish npm tarball byte equality, generated artifact equality, registry-only installation success, or cryptographic signature/provenance verification.",
+    "For core-db and session-core, npm metadata omitted gitHead. The public SLSA provenance statement supplied the source commit; its signature was not cryptographically verified by this audit.",
+    "The candidate CLI version is read from the current workspace manifest and is not asserted to be publicly published.",
+    "The existing .github/workflows/npm-publish.yml release gate must compare each exact child npm archive with the candidate archive, perform registry-only downstream installation and required provenance/signature checks before publishing CLI. IDE publication follows verified CLI availability.",
+    "This audit did not change package versions, commit files or publish packages."
+  ]
+}

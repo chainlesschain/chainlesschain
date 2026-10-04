@@ -6,6 +6,8 @@ All notable changes to this extension are documented here.
 
 - Keep image save acknowledgements tied to the current attachment revision;
   text-only saves cannot hide image validation errors.
+- Bind saves and acknowledgements to each Webview instance so a delayed response
+  or image preparation from a replaced page cannot approve or overwrite a new draft.
 - Show host-validated attachment previews and refresh draft status after reads.
 - Exercise paste/drop, validation refusal, removal, session switching, and full
   process recovery with image hashes and zero automatic image submission.

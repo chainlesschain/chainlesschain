@@ -47,8 +47,8 @@ describe("streaming transcript", () => {
       const snapshot = () =>
         messages
           .filter((m) => m.type === "hostDomResult" && m.result?.tabs)
-          .at(-1).result;
-      expect(snapshot().inputText).toBe("中文😀");
+          .at(-1)?.result;
+      await vi.waitFor(() => expect(snapshot()?.inputText).toBe("中文😀"));
       expect(snapshot().draftStatus).toContain("Saving draft");
       await new Promise((done) => setTimeout(done, 300));
       const draft = messages.find(
@@ -57,7 +57,9 @@ describe("streaming transcript", () => {
       expect(draft.convId).toBe("conv-1");
       receive({ ...draft, kind: "draftSaved" });
       command("snapshot");
-      expect(snapshot().draftStatus).toContain("Draft saved on this device");
+      await vi.waitFor(() =>
+        expect(snapshot()?.draftStatus).toContain("Draft saved on this device"),
+      );
       command("switchTab", { id: "conv-2" });
       expect(messages).toContainEqual({ type: "switchTab", id: "conv-2" });
       command("click", { target: "newTab" });

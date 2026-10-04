@@ -33,6 +33,88 @@ function receipt(sessionId, clientMessageId) {
 }
 
 describe("durable composer storage", () => {
+  it("commits an empty manifest before image cleanup and completes cleanup after page replacement", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "image draft", images: [image] });
+    let current = true;
+    let cleanedImage = false;
+    const unlink = fs.unlink.bind(fs);
+    const spy = vi.spyOn(fs, "unlink").mockImplementation(async (file) => {
+      if (String(file).endsWith(".png")) {
+        await expect(
+          fs.stat(path.join(root, key, "draft.json")),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+        current = false;
+        cleanedImage = true;
+      }
+      return unlink(file);
+    });
+    try {
+      await store.save(
+        key,
+        { text: "", images: [] },
+        {
+          assertCurrent: () => {
+            if (!current) throw new Error("inactive page");
+          },
+        },
+      );
+      expect(cleanedImage).toBe(true);
+      expect(await store.list()).toEqual([]);
+      await expect(fs.stat(path.join(root, key))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+  it("rechecks page lifetime before rename and removes an abandoned temporary manifest", async () => {
+    const root = await storage();
+    const store = new DraftStore(root);
+    const key = randomUUID();
+    await store.save(key, { text: "original" });
+    const before = await fs.readFile(path.join(root, key, "draft.json"));
+    let release;
+    let paused = false;
+    let current = true;
+    const gate = new Promise((done) => {
+      release = done;
+    });
+    const quota = store._quota.bind(store);
+    const spy = vi
+      .spyOn(store, "_quota")
+      .mockImplementation(async (...args) => {
+        await quota(...args);
+        paused = true;
+        await gate;
+      });
+    const saving = store.save(
+      key,
+      { text: "obsolete" },
+      {
+        assertCurrent: () => {
+          if (!current) throw new Error("inactive page");
+        },
+      },
+    );
+    const rejection = expect(saving).rejects.toThrow("inactive page");
+    try {
+      await until(() => paused);
+      current = false;
+      release();
+      await rejection;
+      expect(await fs.readFile(path.join(root, key, "draft.json"))).toEqual(
+        before,
+      );
+      expect(await fs.readdir(path.join(root, key))).toEqual(["draft.json"]);
+    } finally {
+      release();
+      spy.mockRestore();
+      await saving.catch(() => {});
+    }
+  });
   it("recovers text and image snapshots in a fresh store, with no image data in metadata", async () => {
     const root = await storage();
     const key = randomUUID();
@@ -229,6 +311,97 @@ function init(h, version = 1) {
 }
 
 describe("host durable input lifecycle", () => {
+  it("rejects a replaced page's saves and drops delayed image writes before publication", async () => {
+    const h = host(await storage());
+    h.provider.vscode.l10n = { t: (value) => value };
+    h.provider._buildChatHtml(h.provider.view);
+    h.provider._handleMessage({
+      type: "ready",
+      webviewNonce: h.provider._draftWebviewNonce,
+      webviewInstance: randomUUID(),
+    });
+    const oldInstance = h.provider._draftWebviewInstance;
+    const conv = h.provider._activeConv();
+    const key = h.provider._draftKey(conv);
+    const request = {
+      type: "draftUpdate",
+      convId: conv.id,
+      draftKey: key,
+      webviewInstance: oldInstance,
+      revision: 5,
+      text: "old page",
+      images: [image],
+    };
+    const store = h.provider._draftStore;
+    const original = store._images.bind(store);
+    let release;
+    let paused = false;
+    const gate = new Promise((done) => {
+      release = done;
+    });
+    const spy = vi
+      .spyOn(store, "_images")
+      .mockImplementation(async (...args) => {
+        const metadata = await original(...args);
+        paused = true;
+        await gate;
+        return metadata;
+      });
+    const oldSave = h.provider._handleMessage(request);
+    try {
+      await until(() => paused);
+      // Reload Webviews executes the same cached HTML, retaining its nonce.
+      h.provider._handleMessage({
+        type: "ready",
+        webviewNonce: h.provider._draftWebviewNonce,
+        webviewInstance: randomUUID(),
+      });
+      const currentInstance = h.provider._draftWebviewInstance;
+      expect(currentInstance).not.toBe(oldInstance);
+      expect(
+        h.provider._handleMessage({
+          type: "protocol",
+          webviewNonce: h.provider._draftWebviewNonce,
+          webviewInstance: oldInstance,
+        }),
+      ).toBe(false);
+      expect(h.provider._draftWebviewInstance).toBe(currentInstance);
+      const currentSave = h.provider._handleMessage({
+        ...request,
+        webviewInstance: currentInstance,
+        revision: 1,
+        text: "new page",
+        images: [],
+      });
+      release();
+      await Promise.all([oldSave, currentSave]);
+      await h.provider._handleMessage(request);
+      expect((await store.view(key)).composer).toEqual({
+        text: "new page",
+        images: [],
+      });
+      expect(
+        (await fs.readdir(path.join(store.root, key))).filter((name) =>
+          name.endsWith(".png"),
+        ),
+      ).toEqual([]);
+      expect(h.messages.filter((m) => m.kind === "draftSaved")).toEqual([
+        expect.objectContaining({
+          webviewInstance: currentInstance,
+          revision: 1,
+        }),
+      ]);
+      expect(
+        h.messages
+          .filter((m) => m.kind === "draftSaveError")
+          .every((m) => m.webviewInstance === oldInstance),
+      ).toBe(true);
+    } finally {
+      release();
+      spy.mockRestore();
+      await oldSave;
+    }
+  });
   it.each(["prepare", "init", "unknown", "session-stop"])(
     "cancels an undispatched saved input during %s without losing its recovery record",
     async (stage) => {
@@ -501,9 +674,100 @@ function webview(backup) {
     tabs,
     input: window.document.getElementById("input"),
     state: () => state,
+    page: posted.find((m) => m.type === "ready"),
   };
 }
 describe("composer recovery in the generated Webview", () => {
+  it("binds recovery actions to the current page and keeps their errors visible", async () => {
+    const ui = webview();
+    try {
+      ui.tabs("a");
+      ui.emit({
+        kind: "draftSnapshot",
+        convId: "a",
+        draftKey: ui.keys.a,
+        pending: [{ id: "input-1", status: "unknown", text: "saved input" }],
+      });
+      for (const [label, type] of [
+        ["Check acceptance", "draftReconcile"],
+        ["Copy to composer", "draftRecover"],
+        ["Discard saved input", "draftDiscard"],
+      ]) {
+        [...ui.window.document.querySelectorAll("button")]
+          .find((button) => button.textContent === label)
+          .click();
+        const request = ui.posted.find((m) => m.type === type);
+        expect(request).toMatchObject({
+          webviewInstance: ui.page.webviewInstance,
+          convId: "a",
+          draftKey: ui.keys.a,
+        });
+        ui.emit({ ...request, kind: "draftSaveError", text: type + " failed" });
+        expect(ui.window.document.body.textContent).toContain(type + " failed");
+      }
+    } finally {
+      await ui.window.happyDOM.abort();
+    }
+  });
+  it("ignores previous-page image ACKs while accepting the current page's background ACK", async () => {
+    const oldUi = webview();
+    const ui = webview();
+    try {
+      expect(ui.page.webviewNonce).toBe(oldUi.page.webviewNonce);
+      expect(ui.page.webviewInstance).not.toBe(oldUi.page.webviewInstance);
+      ui.tabs("a");
+      ui.window.FileReader = class {
+        readAsDataURL() {
+          this.result = image.data;
+          this.onload();
+        }
+      };
+      const paste = new ui.window.Event("paste", { cancelable: true });
+      Object.defineProperty(paste, "clipboardData", {
+        value: {
+          items: [
+            {
+              type: "image/png",
+              getAsFile: () => ({ type: "image/png", size: 70 }),
+            },
+          ],
+        },
+      });
+      ui.input.dispatchEvent(paste);
+      await until(() => ui.posted.some((m) => m.type === "draftUpdate"));
+      const request = ui.posted.find((m) => m.type === "draftUpdate");
+      expect(request.revision).toBe(1);
+      expect(request.webviewInstance).toBe(ui.page.webviewInstance);
+      const attachments = ui.window.document.getElementById("attach");
+      const before = ui.window.document.body.textContent;
+      ui.emit({
+        ...request,
+        kind: "draftSaved",
+        webviewInstance: oldUi.page.webviewInstance,
+        revision: 5,
+        imagesChanged: true,
+      });
+      ui.emit({
+        ...request,
+        kind: "draftSaveError",
+        webviewInstance: oldUi.page.webviewInstance,
+        text: "old error",
+      });
+      expect(attachments.querySelectorAll("img")).toHaveLength(0);
+      expect(ui.window.document.body.textContent).toBe(before);
+      ui.tabs("b");
+      ui.emit({ ...request, kind: "draftSaved", imagesChanged: true });
+      ui.tabs("a");
+      expect(attachments.querySelectorAll("img")).toHaveLength(1);
+      expect(ui.window.document.body.textContent).toContain(
+        "Draft saved on this device",
+      );
+      expect(ui.posted.some((m) => m.type === "send")).toBe(false);
+    } finally {
+      await ui.window.happyDOM.abort();
+      await oldUi.window.happyDOM.abort();
+    }
+  });
   it("restores saved text and images, but never overwrites newer local edits", async () => {
     const ui = webview();
     try {

@@ -233,7 +233,8 @@ class DraftStore {
       throw error;
     }
   }
-  async _write(record) {
+  async _write(record, assertCurrent = () => {}) {
+    assertCurrent();
     const directory = this._directory(record.key);
     if (
       !record.composer.text &&
@@ -241,9 +242,15 @@ class DraftStore {
       !record.pending.length &&
       !record.questions.length
     ) {
-      for (const name of await fs.readdir(directory).catch(() => [])) {
-        if (name === "draft.json" || IMAGE_NAME.test(name))
-          await fs.unlink(path.join(directory, name));
+      const names = await fs.readdir(directory).catch(() => []);
+      assertCurrent();
+      // Removing the manifest commits the empty draft. Finish owned-image
+      // cleanup after this point even if the initiating page is replaced.
+      await fs.unlink(path.join(directory, "draft.json")).catch((error) => {
+        if (error.code !== "ENOENT") throw error;
+      });
+      for (const name of names) {
+        if (IMAGE_NAME.test(name)) await fs.unlink(path.join(directory, name));
       }
       await fs.rmdir(directory).catch(() => {});
       return;
@@ -272,6 +279,7 @@ class DraftStore {
       } finally {
         await handle.close();
       }
+      assertCurrent();
       await fs.rename(temporary, path.join(directory, "draft.json"));
     } finally {
       await fs.unlink(temporary).catch(() => {});
@@ -304,10 +312,11 @@ class DraftStore {
     }
     return { text: snapshot.text, images };
   }
-  save(key, draft) {
+  save(key, draft, { assertCurrent = () => {} } = {}) {
     if (draft.images !== undefined) checkImageEnvelope(draft.images);
     return this._serial(
       async () => {
+        assertCurrent();
         const record = await this._read(key);
         const next = { text: text(draft.text), images: record.composer.images };
         if (draft.images !== undefined)
@@ -315,7 +324,7 @@ class DraftStore {
         record.composer = next;
         record.sessionId = draft.sessionId || record.sessionId || null;
         try {
-          await this._write(record);
+          await this._write(record, assertCurrent);
         } catch (error) {
           if (draft.images !== undefined)
             await this._removeImages(key, next.images);

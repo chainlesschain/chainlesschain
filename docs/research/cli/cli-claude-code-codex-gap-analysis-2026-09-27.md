@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-09-27）
 
+> 2026-10-04 发布推进：CLI 0.166.85 / VS Code 0.37.129 / JetBrains 0.4.147 仍为待验证候选。用户要求的子包顺序已核对：[13 个子 npm 包均无未发布源码差异](./evidence/child-package-release-audit-20261004.json)。Webview 重载后的旧图片 ACK 竞态正在修复，新提交须重跑完整发布门；进展见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
+
 > 审计日期：2026-09-27（Asia/Shanghai）
 >
 > 代码快照：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`；开始审计时工作树干净。

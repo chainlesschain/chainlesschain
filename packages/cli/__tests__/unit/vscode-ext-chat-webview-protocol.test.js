@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Window } from "happy-dom";
+import { randomUUID } from "node:crypto";
 
 import {
   buildChatHtml,
@@ -65,7 +66,11 @@ function makeHarness() {
     posted,
     receive(message) {
       if (!receiveMessage) throw new Error("message listener not registered");
-      receiveMessage(message);
+      receiveMessage({
+        webviewNonce: provider._draftWebviewNonce,
+        webviewInstance: provider._draftWebviewInstance || randomUUID(),
+        ...message,
+      });
     },
     disposeView() {
       disposeView?.();
@@ -78,6 +83,33 @@ describe("chat Webview UI protocol self-heal", () => {
   afterEach(() => {
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("accepts cached-HTML page replacement without allowing retired handshakes to reload it", () => {
+    const harness = makeHarness();
+    harness.provider.resolveWebviewView(harness.view);
+    harness.receive({
+      type: "ready",
+      uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+    });
+    const previous = harness.provider._draftWebviewInstance;
+    const next = randomUUID();
+    harness.receive({
+      type: "ready",
+      uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+      webviewInstance: next,
+    });
+    for (const type of ["ready", "protocol"]) {
+      harness.receive({
+        type,
+        uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION,
+        webviewInstance: previous,
+      });
+      expect(harness.provider._draftWebviewInstance).toBe(next);
+      expect(harness.provider._webviewProtocolConfirmed).toBe(true);
+      expect(harness.htmlWrites).toHaveLength(1);
+    }
+    harness.disposeView();
   });
 
   it("rebuilds a retained legacy DOM whose ready message has no version", () => {

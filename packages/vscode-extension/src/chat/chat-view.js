@@ -135,6 +135,9 @@ class ChatViewProvider {
     // webview signals it is live, then flushed into the input.
     this._pendingInsert = "";
     this._webviewReady = false;
+    this._draftWebviewInstance = null;
+    this._draftWebviewNonce = null;
+    this._draftWebviewPages = new Set();
     // VS Code can keep the Webview DOM alive while its Extension Host restarts.
     // Guard resolved views with an explicit protocol handshake so an old UI
     // cannot keep applying stale client-side slash-command routing.
@@ -643,9 +646,13 @@ class ChatViewProvider {
   }
 
   _buildChatHtml(view) {
+    const nonce = crypto.randomBytes(16).toString("hex");
+    this._draftWebviewNonce = nonce;
+    this._draftWebviewInstance = null;
+    this._draftWebviewPages.clear();
     return buildChatHtml({
       cspSource: view.webview.cspSource,
-      nonce: crypto.randomBytes(16).toString("hex"),
+      nonce,
       hostDomToken: this._hostDomToken,
       // Localized in the host (the webview can't call vscode.l10n.t) and
       // injected as CC_L10N for the setup card.
@@ -3886,6 +3893,7 @@ class ChatViewProvider {
     }
     this._updateModeStatus();
     view.onDidDispose(() => {
+      this._draftWebviewInstance = null;
       this._rejectHostDomPending("chat webview was disposed");
       this._clearWebviewProtocolTimer();
       this._flushPlanReviewDrafts();
@@ -4200,6 +4208,33 @@ class ChatViewProvider {
 
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
+    if (
+      (m.type === "ready" || m.type === "protocol") &&
+      this._draftWebviewNonce
+    ) {
+      const page = m.webviewInstance;
+      const current = page === this._draftWebviewInstance;
+      // Late traffic from a retired page cannot replace or reload a live page.
+      if (
+        !current &&
+        (this._draftWebviewPages.has(page) ||
+          (m.type === "protocol" && this._draftWebviewInstance))
+      )
+        return false;
+      if (
+        m.webviewNonce !== this._draftWebviewNonce ||
+        typeof page !== "string" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+          page,
+        ) ||
+        (!current && this._draftWebviewPages.size >= 128)
+      ) {
+        this._reloadStaleWebview(this.view, "draft page handshake mismatch");
+        return false;
+      }
+      this._draftWebviewPages.add(page);
+      this._draftWebviewInstance = page;
+    }
     if (m.type === "hostDomResult") {
       this._acceptHostDomResult(m);
       return;
@@ -4305,15 +4340,29 @@ class ChatViewProvider {
         return false;
       const key = conv.draftKey;
       const operation = async () => {
+        const assertCurrent = () => {
+          if (
+            !m.webviewInstance ||
+            m.webviewInstance !== this._draftWebviewInstance
+          )
+            throw new Error("Draft belongs to an inactive editor page");
+        };
+        assertCurrent();
         if (m.type === "draftUpdate") {
           await this._persistTabs();
-          await this._draftStore.save(key, {
-            text: String(m.text || ""),
-            sessionId: conv.sessionId || null,
-            ...(m.images !== undefined ? { images: m.images } : {}),
-          });
+          assertCurrent();
+          await this._draftStore.save(
+            key,
+            {
+              text: String(m.text || ""),
+              sessionId: conv.sessionId || null,
+              ...(m.images !== undefined ? { images: m.images } : {}),
+            },
+            { assertCurrent },
+          );
           this._post({
             kind: "draftSaved",
+            webviewInstance: m.webviewInstance,
             convId: conv.id,
             draftKey: key,
             revision: m.revision,
@@ -4340,6 +4389,7 @@ class ChatViewProvider {
       return operation().catch((error) =>
         this._post({
           kind: "draftSaveError",
+          webviewInstance: m.webviewInstance,
           convId: conv.id,
           draftKey: key,
           revision: m.revision,
@@ -4603,6 +4653,7 @@ class ChatViewProvider {
   }
 
   dispose() {
+    this._draftWebviewInstance = null;
     this._disposed = true;
     this._clearWebviewProtocolTimer();
     this._webviewProtocolGuard = false;
