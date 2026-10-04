@@ -50,9 +50,24 @@ const listen = (server, ...args) =>
   });
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function waitForFile(file) {
+async function waitForFile(file, execution = null) {
   const deadline = Date.now() + 45_000;
+  let settled = null;
+  execution?.then(
+    (result) => {
+      settled = { result };
+    },
+    (error) => {
+      settled = {
+        error: { message: error.message, code: error.code, stack: error.stack },
+      };
+    },
+  );
   while (!fs.existsSync(file)) {
+    if (settled)
+      throw new Error(
+        `Target exited before readiness: ${file}; ${JSON.stringify(settled)}`,
+      );
     if (Date.now() > deadline)
       throw new Error(`Target never reached readiness: ${file}`);
     await delay(25);
@@ -382,7 +397,7 @@ setInterval(()=>fs.writeFileSync('/workspace/heartbeat',String(Date.now())),50);
             approvalGate: gate,
           },
         );
-        await waitForFile(path.join(root, "tunnel-ready"));
+        await waitForFile(path.join(root, "tunnel-ready"), pending);
         const trafficDeadline = Date.now() + 5_000;
         while (!receivedBytes && Date.now() < trafficDeadline) await delay(25);
         expect(receivedBytes).toBeGreaterThan(0);
