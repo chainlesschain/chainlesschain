@@ -517,10 +517,10 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/mcp-lifecycle-profile.mjs` | 253 | `execFile(` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 18 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 227 | `const result = spawnSync(command, args, {` |
-| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 10 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 406 | `const child = spawn(process.execPath, args, {` |
-| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 668 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 680 | `const dirtyLines = execFileSync(` |
+| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 11 | `import { execFileSync, spawn } from "node:child_process";` |
+| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 418 | `const child = spawn(process.execPath, args, {` |
+| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 766 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 778 | `const dirtyLines = execFileSync(` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 77 | `return execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 4 | `import { spawnSync } from "node:child_process";` |
