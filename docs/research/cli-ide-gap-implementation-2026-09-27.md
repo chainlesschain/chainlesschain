@@ -12,6 +12,8 @@
 
 NET 的 ARM64 Docker 早退已在 Linux Vitest 复现为 native CJS / 转换加载器之间的私有 observation 品牌不一致；修复让创建和投影使用同一加载器，伪造 observation 仍拒绝。x64 并发探针改为锁内诊断读取，并在所有子进程 reopen 后统一放行 writer，运行时读失败时拒绝的合同保持。Linux 定向 **98/98**、Windows **16 通过 / 23 平台跳过**；真实 Docker 20+4 场景继续等待新准确提交托管结果，原 45 秒条件未改。
 
+整合候选 **0.4.149** 替代未发布的 **0.4.148**，不再另发旧候选。为避免重复占用托管资源，已请求取消本任务启动的旧 `fe8de1b830` CLI CI **37189646658** / IDE **37189646495**，以及 `5a5e37dccf` Strict **37192899056** / 容量 **37192896249**；这些运行不能记为完整通过。容量工作流已改为准确 `832f6b7270` 重新调度。最终发布仅采用 PR #402 的准确源码和相应完整结果，未移动任何旧发布标签。
+
 **CLI 0.166.85 与 VS Code 0.37.130 已发布，JetBrains 0.4.148 修复候选待验证。** 准确提交 `84f204db944d92124d95b2348814ac562bde5841` 的 CLI CI **68/68**、CLI Strict Sandbox **5/5**、IDE **18 成功 / 1 预期跳过**均通过，见[发布门回执](./cli/evidence/cli-ide-0.166.85-candidate-gates-84f204.json)。CLI 通过 GitHub Actions OIDC 发布，公开 tarball 与不可变产物相同，签名和来源证明无无效或缺失项，见[CLI 回读](./cli/evidence/cli-0.166.85-publication-readback-84f204.json)。随后 Open VSX 发布 **0.37.130**，最新版本、展示和下载均已核验，公开 VSIX 与正式产物字节相同，见[发行回读](./ide/evidence/vscode-0.37.130-publication-readback-84f204.json)。按用户最新要求，发布完成后再合并 PR；Microsoft Marketplace 不在本次已发布声明内。
 
 **子 npm 包没有遗漏。** 从全部 18 个顶层 manifest 重新清点，得到 13 个独立 npm 子包、CLI、VS Code 和 3 个 private 包；嵌套 manifest 属于 vendored SDK 与测试驱动。13 个子包与发布工作流清单完全一致，15 条内部依赖声明匹配；公开版本与源码逐一重查，并从干净 Git 源码重新打包（包括重建 Agent SDK），**13/13 与 npm 公开 tarball 逐字节相同**。正式发布工作流也重复核对安装包，并验证仅从 npm 安装 CLI 子依赖成功。见[扩展复查](./cli/evidence/child-package-release-reaudit-20261004-84f204.json)。`packages/cli/src/lib/context-memory-kernel/` 的改动属于已发布 CLI，不是独立 `packages/context-memory-kernel/` 子包。
