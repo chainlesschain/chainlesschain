@@ -1,0 +1,2952 @@
+{
+  "schema": "chainlesschain.updater-arm64-diagnostic-readback.v2",
+  "sourceSha": "84f204db944d92124d95b2348814ac562bde5841",
+  "driverSha": "0a0214ad785760c0a5c43dcdf43c4b7a42532e75",
+  "runId": 37191570648,
+  "jobId": 111404667709,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37191570648",
+  "releaseEligible": false,
+  "productionChanges": false,
+  "originalSourceAndTestsUnchanged": true,
+  "originalDeadlinesChanged": false,
+  "contentPolicy": "Metadata only: names, verdicts, scalar observations, paths and hashes; no command output or fixture bytes",
+  "artifact": {
+    "id": 11300100561,
+    "size": 146660,
+    "createdAt": "2026-10-04T09:39:44Z",
+    "apiReportedZipDigest": "sha256:fe3706fcd52c4de57a43043a14d4e7d5bb3fd28fa56c0e91704edac1ab27a3d2",
+    "zipDigestLocallyVerified": false,
+    "extractedFilesLocallyHashed": true,
+    "originalLocalPath": "C:/code/chainlesschain/.work/gap-validation/astra-updater-37191570648/updater-arm64-diagnostic-84f204db944d92124d95b2348814ac562bde5841-0a0214ad785760c0a5c43dcdf43c4b7a42532e75"
+  },
+  "baseline": {
+    "runId": 37189753288,
+    "jobId": 111399295090,
+    "sourceSha": "84f204db944d92124d95b2348814ac562bde5841",
+    "updaterPassed": 64,
+    "updaterFailed": 5,
+    "failureSummary": "Readiness result absent after 60s with lock retained; four direct cmd calls returned null status after 60000ms",
+    "installerPredecessor": {
+      "passed": 18,
+      "skipped": 53,
+      "elapsedMs": 428713
+    },
+    "rawLog": {
+      "path": "C:/code/chainlesschain/.work/gap-validation/native-84f-windows-arm64-failure.log",
+      "sha256": "07b15e792cec4af3fbac5ba20d8739c2d47e7205e88a47a643e1220e5cc0da5d",
+      "hashVerifiedAtArchival": true
+    },
+    "shell": "bash",
+    "closed": false
+  },
+  "interpretation": {
+    "result": "All 69 original tests passed before their unchanged assertion deadlines; no late observation promoted a failed assertion",
+    "rootCauseEstablished": false,
+    "contextDifferencesFromBaseline": [
+      "Diagnostic launched via pwsh rather than original Git Bash",
+      "Diagnostic omitted the full installer predecessor",
+      "Diagnostic ran a PowerShell host probe before updater tests",
+      "Diagnostic adds measured observer setup and preload/reporters",
+      "Diagnostic omitted native pack/build predecessor steps"
+    ],
+    "nextCondition": "Optional gate_context uses Git Bash plus full installer predecessor then all 69 updater tests on exact 84f source, deferring host probe; still diagnostic only",
+    "samplingIntervalMs": 100,
+    "postTestObservationBudgetMs": 185000,
+    "samplingLimit": "Milestones record first observed changes, not exact write times; transient phases may be missed",
+    "asyncCallLimit": "7280-1 records asynchronous spawn return and eventual success result blob; no child exit status was captured. Observer exit zero describes only the observer"
+  },
+  "identity": {
+    "schema": "chainlesschain.windows-arm64-updater-diagnostic.v1",
+    "sourceSha": "84f204db944d92124d95b2348814ac562bde5841",
+    "testSelection": "entire-updater-file",
+    "driverSha": "0a0214ad785760c0a5c43dcdf43c4b7a42532e75",
+    "platform": "win32",
+    "arch": "arm64",
+    "nodeVersion": "v22.14.0",
+    "nodeExecPath": "C:\\hostedtoolcache\\windows\\node\\22.14.0\\arm64\\node.exe",
+    "nodePeMachine": "0xaa64",
+    "os": {
+      "type": "Windows_NT",
+      "release": "10.0.26200",
+      "machine": "unknown",
+      "cpus": 4
+    },
+    "processorArchitecture": "ARM64",
+    "runnerArch": "ARM64",
+    "sourceCleanBefore": true,
+    "sourceHashesBefore": {
+      "packages/cli/src/lib/packer/pack-update-applier.js": "e4262f4a4c5fada921a4c1778c5325a1340163a07d2e4417e1ba22371f94b827",
+      "packages/cli/src/lib/packer/native-update-state.js": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+      "packages/cli/__tests__/unit/packer-pack-update-applier.test.js": "36041df91639cd5630ddb1d4951abd633c671feb41b0f6c408d87f997466378b"
+    },
+    "driverHashes": {
+      "coordinator.mjs": "77ffc64f2426769fd4886206c708086fe818d93970ecd20b208d7c83c49106a3",
+      "observer.mjs": "d0a1a84307f87d608348f223a87f35c836c649b97ca86c9ddc9f2f414afe3b0f",
+      "preload.mjs": "8749bb7bf741a3aaa4fd0bbdb12cfda8d8482cbc47750dcf1717e520e56d35f5",
+      "run.mjs": "39de6f07715691d69d4775d695b1d8fd039a52995adab332226a6e959c049446",
+      "shared.mjs": "88204c0004934b2fd6b477921a8145c03974690c2cdad3c572a5038d8b9dd8cc"
+    },
+    "releaseEligible": false,
+    "boundary": "diagnostic instrumentation only; original tests/production bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead"
+  },
+  "host": {
+    "elapsedMs": 6284,
+    "status": 0,
+    "signal": null,
+    "errorCode": null,
+    "powershellPeMachine": "0xaa64",
+    "cmdPeMachine": "0xaa64",
+    "facts": {
+      "PowerShellVersion": "5.1.26100.9457",
+      "ProcessorArchitecture": 12,
+      "ProcessArchitecture": "ARM64",
+      "OSArchitecture": "ARM 64-bit Processor",
+      "Version": "10.0.26200"
+    }
+  },
+  "integrity": {
+    "sourceAndDriverHashesMatchGitObjects": true,
+    "sourceUnchanged": true,
+    "allObserversCompleted": true,
+    "blobCountVerified": 70,
+    "fileCountHashed": 156
+  },
+  "tests": {
+    "status": 0,
+    "signal": null,
+    "elapsedMs": 36805,
+    "originalTestNames": [
+      "transfers the real lock only after a sidecar readiness handshake",
+      "commits the canonical binary and alias with lineage/result persistence",
+      "rolls the canonical binary and alias back after verification fails",
+      "restores prior backup and lineage generations after verification fails",
+      "commits an independent rescue without consuming its canonical backup"
+    ],
+    "testSelection": "entire-updater-file",
+    "releaseEligible": false,
+    "counts": {
+      "total": 69,
+      "passed": 69,
+      "failed": 0,
+      "skipped": 0
+    },
+    "cases": [
+      {
+        "fullName": "scheduleReplace – argument guards rejects missing newExePath",
+        "status": "passed",
+        "duration": 3.397699999999986
+      },
+      {
+        "fullName": "scheduleReplace – argument guards rejects missing targetExePath",
+        "status": "passed",
+        "duration": 0.4860000000001037
+      },
+      {
+        "fullName": "scheduleReplace – argument guards rejects newExePath that does not exist",
+        "status": "passed",
+        "duration": 1.3755000000001019
+      },
+      {
+        "fullName": "scheduleReplace – argument guards requires the verified staging file to be a target sibling",
+        "status": "passed",
+        "duration": 6.101899999999887
+      },
+      {
+        "fullName": "scheduleReplace – argument guards requires an explicit lowercase downloader-bound SHA-256",
+        "status": "passed",
+        "duration": 4.252999999999929
+      },
+      {
+        "fullName": "scheduleReplace – argument guards does not treat an arbitrary standalone cc.exe as a managed alias",
+        "status": "passed",
+        "duration": 3.1310000000000855
+      },
+      {
+        "fullName": "rollbackLastKnownGood restores through staging without overwriting the previous backup",
+        "status": "passed",
+        "duration": 99.53780000000006
+      },
+      {
+        "fullName": "rollbackLastKnownGood retains rescue snapshots until the committed journal is retired",
+        "status": "passed",
+        "duration": 87.46270000000004
+      },
+      {
+        "fullName": "rollbackLastKnownGood restores the pre-rescue target when the rescued binary fails verification",
+        "status": "passed",
+        "duration": 96.81269999999995
+      },
+      {
+        "fullName": "rollbackLastKnownGood refuses a stale lineage that does not describe the active target",
+        "status": "passed",
+        "duration": 18.81230000000005
+      },
+      {
+        "fullName": "rollbackLastKnownGood preserves an independent pre-rescue snapshot if restoration itself fails",
+        "status": "passed",
+        "duration": 83.31459999999993
+      },
+      {
+        "fullName": "rollbackLastKnownGood passes the readiness handshake through a Windows rescue transaction",
+        "status": "passed",
+        "duration": 39.35089999999991
+      },
+      {
+        "fullName": "rollbackLastKnownGood fails clearly when no backup exists",
+        "status": "passed",
+        "duration": 0.49880000000007385
+      },
+      {
+        "fullName": "scheduleReplace – dryRun returns a plan and does not touch the filesystem",
+        "status": "passed",
+        "duration": 12.266900000000078
+      },
+      {
+        "fullName": "scheduleReplace – dryRun dryRun respects the forced platform",
+        "status": "passed",
+        "duration": 10.651100000000042
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch renames new → target atomically",
+        "status": "passed",
+        "duration": 80.96389999999997
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch retains update snapshots until the committed journal is retired",
+        "status": "passed",
+        "duration": 79.9991
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch keeps descriptor identity fields as bigint while hashing",
+        "status": "passed",
+        "duration": 84.17439999999988
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch quarantines stale backup/lineage on a fresh apply generation",
+        "status": "passed",
+        "duration": 66.93250000000012
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch binds the commit to the expected staging SHA-256",
+        "status": "passed",
+        "duration": 26.778600000000097
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch leaves the old target and staging file intact when backup creation fails",
+        "status": "passed",
+        "duration": 38.23669999999993
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch preserves the old target and prior rollback generation when the commit rename fails",
+        "status": "passed",
+        "duration": 95.66390000000001
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch stops before the canonical commit when its lock pathname is replaced",
+        "status": "passed",
+        "duration": 59.46939999999995
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch rolls back when the committed pathname no longer has the accepted hash",
+        "status": "passed",
+        "duration": 71.79620000000023
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch restart=true spawns the new exe detached after rename",
+        "status": "passed",
+        "duration": 79.26389999999992
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch consumes asynchronous POSIX restart spawn errors",
+        "status": "passed",
+        "duration": 77.59879999999976
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch chmod +x is applied before rename (exec bit survives)",
+        "status": "passed",
+        "duration": 74.18209999999999
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch restores the last-known-good binary when post-switch verification fails",
+        "status": "passed",
+        "duration": 68.91920000000027
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch rolls back when the verification process throws",
+        "status": "passed",
+        "duration": 65.56169999999975
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch preserves the transaction rescue snapshot when rollback fails",
+        "status": "passed",
+        "duration": 67.17680000000018
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch keeps a successfully committed binary when only restart fails",
+        "status": "passed",
+        "duration": 70.6549
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch does not enter the transaction while another updater holds the lock",
+        "status": "passed",
+        "duration": 10.883499999999913
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch blocks another update after a consumed rollback-failed result",
+        "status": "passed",
+        "duration": 11.5328999999997
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch fails closed on a symlink staging executable",
+        "status": "passed",
+        "duration": 4.980399999999918
+      },
+      {
+        "fullName": "scheduleReplace – POSIX branch fails closed on a symlink or junction in the transaction ancestor chain",
+        "status": "passed",
+        "duration": 5.933300000000145
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) writes a .cmd sidecar and spawns cmd.exe detached",
+        "status": "passed",
+        "duration": 35.844600000000355
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) keeps the transferred lock so a second Windows apply fails closed",
+        "status": "passed",
+        "duration": 39.5038999999997
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) isolates stale backup/lineage before scheduling a fresh Windows apply",
+        "status": "passed",
+        "duration": 39.267399999999725
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) canonicalizes cc.exe and carries alias pre-state into the sidecar",
+        "status": "passed",
+        "duration": 37.324499999999716
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) releases the lock and removes the sidecar when spawn throws",
+        "status": "passed",
+        "duration": 35.94349999999986
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) keeps a fail-closed lock when the sidecar safety handshake never arrives",
+        "status": "passed",
+        "duration": 31.333799999999883
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) attaches the sidecar error listener before the readiness wait",
+        "status": "passed",
+        "duration": 32.17630000000008
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) uses the bounded production readiness budget on loaded Windows hosts",
+        "status": "passed",
+        "duration": 30.44780000000037
+      },
+      {
+        "fullName": "scheduleReplace – Windows branch (sidecar cmd) transfers the real lock only after a sidecar readiness handshake",
+        "status": "passed",
+        "duration": 7863.568599999999
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) emits a cmd that waits on PARENT_PID, moves, and self-deletes",
+        "status": "passed",
+        "duration": 7.623999999999796
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) emits a `start` line when restart=true",
+        "status": "passed",
+        "duration": 5.531100000000151
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) each invocation produces a unique sidecar path",
+        "status": "passed",
+        "duration": 10.341699999999037
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) rejects cmd metacharacters that could expand into commands",
+        "status": "passed",
+        "duration": 3.809799999999086
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) accepts an 8.3 TEMP alias while publishing through its canonical root",
+        "status": "passed",
+        "duration": 9.665399999999863
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) rejects a reparse point retained from the raw TEMP spelling",
+        "status": "passed",
+        "duration": 545.5403999999999
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) commits the canonical binary and alias with lineage/result persistence",
+        "status": "passed",
+        "duration": 5937.8675
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) rolls the canonical binary and alias back after verification fails",
+        "status": "passed",
+        "duration": 4725.7471000000005
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) restores prior backup and lineage generations after verification fails",
+        "status": "passed",
+        "duration": 4861.180500000002
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) commits an independent rescue without consuming its canonical backup",
+        "status": "passed",
+        "duration": 5439.760900000001
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) does not mutate or release a lock after sidecar ownership is replaced",
+        "status": "passed",
+        "duration": 272.52400000000125
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) rejects a candidate mutated after scheduling and before sidecar commit",
+        "status": "passed",
+        "duration": 1051.241200000004
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) fails closed when a sidecar path ancestor is a junction",
+        "status": "passed",
+        "duration": 525.6049000000057
+      },
+      {
+        "fullName": "writeWindowsSidecar (cmd body) ApplyError is a typed Error with a code",
+        "status": "passed",
+        "duration": 0.4684999999954016
+      },
+      {
+        "fullName": "native sidecar result reporting recovers an interrupted POSIX generation to its exact pre-state",
+        "status": "passed",
+        "duration": 55.45440000000235
+      },
+      {
+        "fullName": "native sidecar result reporting recovers an interrupted POSIX rescue without consuming its backup",
+        "status": "passed",
+        "duration": 45.76520000000164
+      },
+      {
+        "fullName": "native sidecar result reporting finishes a durably committed POSIX generation without rolling it back",
+        "status": "passed",
+        "duration": 27.286999999996624
+      },
+      {
+        "fullName": "native sidecar result reporting fails closed without mutating a generation when its journal is corrupt",
+        "status": "passed",
+        "duration": 4.501499999998487
+      },
+      {
+        "fullName": "native sidecar result reporting schedules Windows recovery behind the current process and retains its takeover lock",
+        "status": "passed",
+        "duration": 39.29939999999624
+      },
+      {
+        "fullName": "native sidecar result reporting refuses Windows recovery while the journal owner is still live",
+        "status": "passed",
+        "duration": 5.397299999996903
+      },
+      {
+        "fullName": "native sidecar result reporting rejects a raw Windows recovery TEMP junction and closes its takeover lock",
+        "status": "passed",
+        "duration": 23.091400000004796
+      },
+      {
+        "fullName": "native sidecar result reporting recovers a Windows generation only after the scheduling CLI exits",
+        "status": "passed",
+        "duration": 1157.5305999999982
+      },
+      {
+        "fullName": "native sidecar result reporting atomically consumes a valid pending result and retains diagnostics",
+        "status": "passed",
+        "duration": 5.938900000001013
+      },
+      {
+        "fullName": "native sidecar result reporting reports and archives a detached sidecar failure",
+        "status": "passed",
+        "duration": 4.9487000000008265
+      },
+      {
+        "fullName": "native sidecar result reporting leaves an invalid result pending and reports that it could not be consumed",
+        "status": "passed",
+        "duration": 4.591800000001967
+      }
+    ]
+  },
+  "calls": [
+    {
+      "id": "4916-1",
+      "kind": "schedule-helper",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 134,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 1201,
+          "status": 0,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "size": 9,
+          "sha256": "66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -129,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 326,
+          "eventType": "files-observed",
+          "size": 41,
+          "sha256": "502e46d19e4a2ff914e796126ff7bcb6eaced2df9a602105d44c91609c7ea96c",
+          "afterOriginalDeadline": null,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3654,
+          "eventType": "files-observed",
+          "size": 561,
+          "sha256": "37ab8c39ebc29f16567f3da8bd59fa7485254598cd17872664605d547b78efdc",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 4316,
+          "eventType": "files-observed",
+          "size": 9,
+          "sha256": "aab94cc4ae2ce50e9ab2feb6c7d9f2ce34789179d9fa26d7b0e7867a4a23b3c7",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4870,
+          "eventType": "files-observed",
+          "size": 569,
+          "sha256": "fcea5396f97226b3fce1d4050ad072e86d645a6be839fa81a8d796c3256d3952",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 5424,
+          "eventType": "files-observed",
+          "size": 561,
+          "sha256": "c36459644e32206d534586a817cd6f3b9c088a187b5e2023f357cf5b8fced459",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "verified",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": 5424,
+          "eventType": "files-observed",
+          "size": 9,
+          "sha256": "66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 6090,
+          "eventType": "files-observed",
+          "size": 569,
+          "sha256": "74e79603a6052ceb96a6672d06a371734076b9ee1c9c4380ab1f1c3f1af853d8",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "backup-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 6090,
+          "eventType": "files-observed",
+          "size": 336,
+          "sha256": "4c34fa455b09ad73ae25ae2c6fc13341d0b49174f42e10cc18993729fe76ede0",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 6641,
+          "eventType": "files-observed",
+          "size": 570,
+          "sha256": "1d5f906dd82843afac1b99aec6298dcadf606826ffc0c982c6255e69866de881",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "lineage-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 7195,
+          "eventType": "files-observed",
+          "size": 560,
+          "sha256": "2dbcd4a88cee0cc00bd2b19c0b35ce1d3a6a46f368c6c4ed5e93b14d1f008171",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "committed",
+            "decision": "commit",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 7638,
+          "eventType": "files-observed",
+          "size": 413,
+          "sha256": "06c6a36b13f409bcfe8ed32cc8089378aff8a195b767b057a06db35688dcdad9",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "success",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 7748,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-2",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 30000,
+      "setupElapsedMs": 139,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 388,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -134,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 448,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 448,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-3",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 132,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 5788,
+          "status": 0,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "size": 9,
+          "sha256": "f14d2f6075a8e0a5a2473dcf4acacaacec74263db6c8e41a4ba43f8639164e85",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": 458,
+          "eventType": "files-observed",
+          "size": 38,
+          "sha256": "72acba851a502ed95244af94b1ae43f89e4b80b3a4dd3997797ce9c52f1ae707",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 1894,
+          "eventType": "files-observed",
+          "size": 622,
+          "sha256": "eb79d4b8df1af7f164cfbd023caa588799ca5b591157d9fb142c3db3f8f04df2",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 2335,
+          "eventType": "files-observed",
+          "size": 11,
+          "sha256": "b4448e969e06278d63fe66777acadcaf760bfa80d0863fb5caa9452ba516505c",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 2783,
+          "eventType": "files-observed",
+          "size": 630,
+          "sha256": "dd6bd633af61eff903d65bb5b07570d97e19f0db387bd95444209bc778acc84a",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 2783,
+          "eventType": "files-observed",
+          "size": 11,
+          "sha256": "b4448e969e06278d63fe66777acadcaf760bfa80d0863fb5caa9452ba516505c",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3335,
+          "eventType": "files-observed",
+          "size": 629,
+          "sha256": "3420b6c28a171b140a3cddf5204146f1a08d63903bd3f081fc2e6b8e2eccb16b",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "alias-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3891,
+          "eventType": "files-observed",
+          "size": 622,
+          "sha256": "d431539df046d9548b83ccb49487ea387eace96223b00e299776e40692c58d97",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "verified",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": 3891,
+          "eventType": "files-observed",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4837,
+          "eventType": "files-observed",
+          "size": 630,
+          "sha256": "24d49a54ab37574fba460328a83d36b07c8a50860d4fb90f22be64200a92df96",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "backup-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 4837,
+          "eventType": "files-observed",
+          "size": 336,
+          "sha256": "69c2e683903ead573cc9cbc764923187b6d39d6046528baad280204047b007f6",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4952,
+          "eventType": "files-observed",
+          "size": 631,
+          "sha256": "19647395b4b5c476175193c15afd4330363d97912125cf3acccad6845ced9914",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "lineage-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 5280,
+          "eventType": "files-observed",
+          "size": 621,
+          "sha256": "4710306b10b61eb678f51084f8fad2dcc4ea3f0faaffd4f2110984308e167a12",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "committed",
+            "decision": "commit",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 5791,
+          "eventType": "native-sync-return",
+          "size": 473,
+          "sha256": "cf3bb72b93a580d12f3c1d3cbf57bd42f56bdb3331be44f9e9f961d0cbc684d5",
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "success",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 5791,
+          "eventType": "native-sync-return",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 5831,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 5831,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-4",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 134,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 4437,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 9,
+          "sha256": "f14d2f6075a8e0a5a2473dcf4acacaacec74263db6c8e41a4ba43f8639164e85",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": 443,
+          "eventType": "files-observed",
+          "size": 38,
+          "sha256": "308269835c8d4593a152cb67c243526340c87d7cf9e918f76d596f62156069fb",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 1773,
+          "eventType": "files-observed",
+          "size": 623,
+          "sha256": "9bd7a9873b7656b480edef45385c1980f33e6ff6ad7497564c74a463f094082d",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 2214,
+          "eventType": "files-observed",
+          "size": 22,
+          "sha256": "ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 2657,
+          "eventType": "files-observed",
+          "size": 631,
+          "sha256": "243ec741441d6914b2aab6181a105020b08f0b6caab8cbb928794ddd3697f3ea",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 2657,
+          "eventType": "files-observed",
+          "size": 22,
+          "sha256": "ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3103,
+          "eventType": "files-observed",
+          "size": 630,
+          "sha256": "f3509ed6031d0afb1fd0d176cf047ae0b6fea691ad8d4a013c7f33c134f5961e",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "alias-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 4431,
+          "eventType": "files-observed",
+          "size": 491,
+          "sha256": "9cb8f9db10e30cd0f87eb3c73ae08c4fb5832fe789c9757816c01a138836524f",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "verify-failed-rolled-back",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 4431,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-5",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 136,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 4708,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 335,
+          "sha256": "6d5411d3c21a28278aba040b2eb49fde39e67de37be80387722774eff5dc86b2",
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "update"
+          },
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 9,
+          "sha256": "f14d2f6075a8e0a5a2473dcf4acacaacec74263db6c8e41a4ba43f8639164e85",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -130,
+          "eventType": "before-native-call",
+          "size": 12,
+          "sha256": "1b6924f18456f8aeb944010d5bbafb559dc949778c736fb00bcda48082e88bc7",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": 521,
+          "eventType": "files-observed",
+          "size": 38,
+          "sha256": "00ef72a73db4108aaa72fe2eb393e228deac055e88fbdcfeda30079f3dd12d7a",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 2178,
+          "eventType": "files-observed",
+          "size": 744,
+          "sha256": "e54fe5e13812e8b1169b60d80e192120ee3a23b68818d795250a9e7a05c56fc2",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 2727,
+          "eventType": "files-observed",
+          "size": 22,
+          "sha256": "ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3061,
+          "eventType": "files-observed",
+          "size": 752,
+          "sha256": "183f0f7774b348de95e1209706cefa2da12e939bc81dedc8d6d59dbfb5006af4",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 3170,
+          "eventType": "files-observed",
+          "size": 22,
+          "sha256": "ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3503,
+          "eventType": "files-observed",
+          "size": 751,
+          "sha256": "d8cc6dbd1860b1d3712a2a87548c0f58eb58a794325ade16fef2c7f0422f61a6",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "alias-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 4712,
+          "eventType": "native-sync-return",
+          "size": 491,
+          "sha256": "32a3e55b5fc2cdee69c778f98b1805cf9423d94c2896d7b82729774517ec7d15",
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "verify-failed-rolled-back",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 4712,
+          "eventType": "native-sync-return",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 4722,
+          "eventType": "observation-ended",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 4722,
+          "eventType": "observation-ended",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 4722,
+          "eventType": "observation-ended",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": 4722,
+          "eventType": "observation-ended",
+          "error": "ENOENT"
+        }
+      ]
+    },
+    {
+      "id": "4916-6",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 142,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 5279,
+          "status": 0,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "size": 335,
+          "sha256": "00fdaa2abf405d29174b39000af80efa88439af7cda6a5b898777c26ec143f2f",
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "update"
+          },
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "size": 14,
+          "sha256": "b53ff6dd5824b4c0b38618946de89a4830cbb44a9c16b9556bd1727bac717060",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "size": 12,
+          "sha256": "2ef0a3d7f51bbe3e04fd850865e4e9a19131f82208af7f1c0a23d0dc6bb4a1ca",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -136,
+          "eventType": "before-native-call",
+          "size": 10,
+          "sha256": "edb89d09b913b577efbd63f53446d060c97d339166531661a5196a0cf6b796bd",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": 444,
+          "eventType": "files-observed",
+          "size": 38,
+          "sha256": "8a267594870b5780302385e42056a3c9c02b4bdc83eb6f34a7ad32d9ddac43fb",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 1999,
+          "eventType": "files-observed",
+          "size": 745,
+          "sha256": "1f80a43a887cdd775f116c464b2868c1a7da0def5f3baec756e9ae5c798ae00e",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 2556,
+          "eventType": "files-observed",
+          "size": 10,
+          "sha256": "edb89d09b913b577efbd63f53446d060c97d339166531661a5196a0cf6b796bd",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 2996,
+          "eventType": "files-observed",
+          "size": 753,
+          "sha256": "3040b7d959a62c6840cb7583a38587ac4b39b287fd6273d543125dd105defd2c",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 2996,
+          "eventType": "files-observed",
+          "size": 10,
+          "sha256": "edb89d09b913b577efbd63f53446d060c97d339166531661a5196a0cf6b796bd",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3440,
+          "eventType": "files-observed",
+          "size": 752,
+          "sha256": "1ed32313dad5f5348ce11201d0e66d6736f4829eb565e2db6128dfbb87f33186",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "alias-committed",
+            "decision": "rollback",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3884,
+          "eventType": "files-observed",
+          "size": 745,
+          "sha256": "f9bbee32dc6a8111494571d11d398cac468675fba9ee63f7b3372089c433b3ff",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "verified",
+            "decision": "rollback",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 3996,
+          "eventType": "files-observed",
+          "size": 336,
+          "sha256": "37aa429aae422af77c7346b785ab9c06d5fcab0870ad2a86f69d5eb3b180d305",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4439,
+          "eventType": "files-observed",
+          "size": 754,
+          "sha256": "1b8fa05b30d02e96eba82d2b86e2d601dc51ddfe2ee622e75a5e8a44c97edbce",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "lineage-committed",
+            "decision": "rollback",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4884,
+          "eventType": "files-observed",
+          "size": 744,
+          "sha256": "9937bed8320b4bcc4dcf6dfb300210187d9d80faef0b74f0e724ccb4c72d7e34",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "committed",
+            "decision": "commit",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 5282,
+          "eventType": "native-sync-return",
+          "size": 473,
+          "sha256": "7afc9392c22fc97f321fd80e9e540aea02558394069a7b1ad14eb701bc71a07a",
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "success",
+            "operation": "rescue"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 5282,
+          "eventType": "native-sync-return",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 5321,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 5321,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "ALIAS_EXE",
+          "firstObservedElapsedMs": 5321,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": 5321,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-7",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 122,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 134,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "6692a8a65e62c6e55bbb5601bb44e67b1844bfcb7992a78251c677beaa47bdbf",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -116,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 227,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 227,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-8",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 137,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 900,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -133,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": 444,
+          "eventType": "files-observed",
+          "size": 38,
+          "sha256": "90c51a9ba25a16e249fc2679f580e25511d36ce7ce9ca6a7d0d57546566cd946",
+          "afterOriginalDeadline": false,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 887,
+          "eventType": "files-observed",
+          "size": 421,
+          "sha256": "182505d40ff87243b57fd057ebb5b6bfcbbbeaf7704a9db465db26c2fea1f71d",
+          "afterOriginalDeadline": false,
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "sha256-mismatch",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 903,
+          "eventType": "native-sync-return",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 996,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "4916-9",
+      "kind": "sidecar",
+      "synchronous": true,
+      "timeoutMs": 60000,
+      "setupElapsedMs": 131,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-sync-return",
+          "elapsedMs": 379,
+          "status": 1,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "size": 43,
+          "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "size": 11,
+          "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -127,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 450,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 450,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": false
+        }
+      ]
+    },
+    {
+      "id": "7280-1",
+      "kind": "sidecar",
+      "synchronous": false,
+      "timeoutMs": null,
+      "setupElapsedMs": 119,
+      "observerCompleted": true,
+      "observerExit": {
+        "status": 0,
+        "signal": null,
+        "error": null
+      },
+      "nativeReturns": [
+        {
+          "type": "native-async-return",
+          "elapsedMs": 15
+        }
+      ],
+      "milestones": [
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "size": 41,
+          "sha256": "502e46d19e4a2ff914e796126ff7bcb6eaced2df9a602105d44c91609c7ea96c",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "READY_FILE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "size": 9,
+          "sha256": "66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e",
+          "matchesInitialHash": true
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": -113,
+          "eventType": "before-native-call",
+          "error": "ENOENT"
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 3325,
+          "eventType": "files-observed",
+          "size": 561,
+          "sha256": "37ab8c39ebc29f16567f3da8bd59fa7485254598cd17872664605d547b78efdc",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "prepared",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 3894,
+          "eventType": "files-observed",
+          "size": 9,
+          "sha256": "aab94cc4ae2ce50e9ab2feb6c7d9f2ce34789179d9fa26d7b0e7867a4a23b3c7",
+          "afterOriginalDeadline": null,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 4449,
+          "eventType": "files-observed",
+          "size": 569,
+          "sha256": "fcea5396f97226b3fce1d4050ad072e86d645a6be839fa81a8d796c3256d3952",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "target-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 5001,
+          "eventType": "files-observed",
+          "size": 561,
+          "sha256": "c36459644e32206d534586a817cd6f3b9c088a187b5e2023f357cf5b8fced459",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "verified",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "BACKUP_EXE",
+          "firstObservedElapsedMs": 5112,
+          "eventType": "files-observed",
+          "size": 9,
+          "sha256": "66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e",
+          "afterOriginalDeadline": null,
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 5669,
+          "eventType": "files-observed",
+          "size": 569,
+          "sha256": "74e79603a6052ceb96a6672d06a371734076b9ee1c9c4380ab1f1c3f1af853d8",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "backup-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LINEAGE_FILE",
+          "firstObservedElapsedMs": 5669,
+          "eventType": "files-observed",
+          "size": 336,
+          "sha256": "4c34fa455b09ad73ae25ae2c6fc13341d0b49174f42e10cc18993729fe76ede0",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-update-lineage.v1",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 6221,
+          "eventType": "files-observed",
+          "size": 570,
+          "sha256": "1d5f906dd82843afac1b99aec6298dcadf606826ffc0c982c6255e69866de881",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "lineage-committed",
+            "decision": "rollback",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "JOURNAL_FILE",
+          "firstObservedElapsedMs": 6774,
+          "eventType": "files-observed",
+          "size": 560,
+          "sha256": "2dbcd4a88cee0cc00bd2b19c0b35ce1d3a6a46f368c6c4ed5e93b14d1f008171",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-install-transaction.v1",
+            "phase": "committed",
+            "decision": "commit",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "RESULT_FILE",
+          "firstObservedElapsedMs": 7216,
+          "eventType": "files-observed",
+          "size": 413,
+          "sha256": "06c6a36b13f409bcfe8ed32cc8089378aff8a195b767b057a06db35688dcdad9",
+          "afterOriginalDeadline": null,
+          "facts": {
+            "schema": "chainlesschain.native-update-result.v1",
+            "status": "success",
+            "operation": "update"
+          },
+          "matchesInitialHash": false
+        },
+        {
+          "fileRole": "LOCK_FILE",
+          "firstObservedElapsedMs": 7324,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": null
+        },
+        {
+          "fileRole": "TARGET_EXE",
+          "firstObservedElapsedMs": 7324,
+          "eventType": "files-observed",
+          "error": "ENOENT",
+          "afterOriginalDeadline": null
+        }
+      ]
+    }
+  ],
+  "rawReports": [
+    {
+      "path": "4916-1.config.json",
+      "size": 1488,
+      "sha256": "013b7b1045935a5097f8c03299e4867338d03ef066688abf8b2bdbeeff00934d"
+    },
+    {
+      "path": "4916-1.jsonl",
+      "size": 46130,
+      "sha256": "6e4715f3e44aabfcf66ddddf170db22a6b5411e9b816952b76c81e3228c29202"
+    },
+    {
+      "path": "4916-1.observer-done",
+      "size": 26,
+      "sha256": "d258f48181a6a8aa0020846541b22fc5f76bba1af7f63c54ce8f11caef95e2b3"
+    },
+    {
+      "path": "4916-1.observer-exit.json",
+      "size": 91,
+      "sha256": "20c88e155e005f013cd217cb6d64b48d848d4c2e8c1868dcdd034788484eedf7"
+    },
+    {
+      "path": "4916-1.observer-ready",
+      "size": 41,
+      "sha256": "c0a36137b3cd7ed1dff7d5fdc1ac8c639c523d35551af474189db15d699d22fe"
+    },
+    {
+      "path": "4916-1.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-1.returned.json",
+      "size": 26,
+      "sha256": "89dac762c8abc29ef89a7c7c64422b0629e67e63281dab0afadb45a0b23f454a"
+    },
+    {
+      "path": "4916-1.started.json",
+      "size": 26,
+      "sha256": "d81cc78201f6e9f248be3f0ff715cf54ef1f0281f4a4de957b6b9867def10cdb"
+    },
+    {
+      "path": "4916-2.config.json",
+      "size": 4570,
+      "sha256": "be352ee20656e600070894c71b7d70cc73f47f090ff6cf31b321caddbd62708f"
+    },
+    {
+      "path": "4916-2.jsonl",
+      "size": 46590,
+      "sha256": "996adcf3d11b3510af2606be5ca19d873ce2e33a5f38847855e54d1337d02941"
+    },
+    {
+      "path": "4916-2.observer-done",
+      "size": 26,
+      "sha256": "906fd1291304003a1268c11722008b94d660ce2b833e5ffb1b676197a32469f3"
+    },
+    {
+      "path": "4916-2.observer-exit.json",
+      "size": 91,
+      "sha256": "a8c56d92854b14cdbebdb3799a09b250acf5734d5043be3397e1502ae428940e"
+    },
+    {
+      "path": "4916-2.observer-ready",
+      "size": 41,
+      "sha256": "3b4be9b13385c13741cf540593b26ddefcc84c8cfbf095c7452402ed2da56da9"
+    },
+    {
+      "path": "4916-2.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-2.returned.json",
+      "size": 26,
+      "sha256": "581273a0af424ed5c06b99d5f58c5fdb050a23fd59e7ff9eb59a78f9163eeb4c"
+    },
+    {
+      "path": "4916-2.started.json",
+      "size": 26,
+      "sha256": "184201906de143933221c4ef79d1dbf3b5879c691535bad57a2f48e037dac43a"
+    },
+    {
+      "path": "4916-3.config.json",
+      "size": 4633,
+      "sha256": "a89a2022b038fe78316e2d2e7c9d2ec5f994ffbd9afbdeeb3b5241cde95dfba9"
+    },
+    {
+      "path": "4916-3.jsonl",
+      "size": 111819,
+      "sha256": "ecae73f1fa43630e1e343a00e0bcfd44f1141b38786277299bf4ed77aee658a7"
+    },
+    {
+      "path": "4916-3.observer-done",
+      "size": 26,
+      "sha256": "f9bcbb8ec0a8c01741be178407ba926f63e24edfcb4c151e3f482ce12ccaedc3"
+    },
+    {
+      "path": "4916-3.observer-exit.json",
+      "size": 91,
+      "sha256": "9b576338b40caf1f211ecc32b1096ecff6359d023ecb7fde16f4a33613e2fa7f"
+    },
+    {
+      "path": "4916-3.observer-ready",
+      "size": 41,
+      "sha256": "1853597d636e0ecd1389e919d3cacb371b8c9563887856e41df1d0ee76cb6de9"
+    },
+    {
+      "path": "4916-3.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-3.returned.json",
+      "size": 26,
+      "sha256": "2e83a9ee0120989b8f5c5ef82565e83655429535e534dee450ad8f846a99c9a2"
+    },
+    {
+      "path": "4916-3.started.json",
+      "size": 26,
+      "sha256": "ff376645107818bc5982c672b51075027e5b83e5952e3ceeef0162777fcf79fd"
+    },
+    {
+      "path": "4916-4.config.json",
+      "size": 4334,
+      "sha256": "9f815420f970f110743bfd3a1b5e12215c29baa5e6d36e19773bf2c128952edf"
+    },
+    {
+      "path": "4916-4.jsonl",
+      "size": 87235,
+      "sha256": "d6df1f747064a259c0e18cb5763247048c33fe17a22c0880196f88aa7a027a4e"
+    },
+    {
+      "path": "4916-4.observer-done",
+      "size": 26,
+      "sha256": "e4a8083fa0d19415e5348dcb8b7cd668608224e2cc9ff600ed2b37c4c66277b8"
+    },
+    {
+      "path": "4916-4.observer-exit.json",
+      "size": 92,
+      "sha256": "d00d66ac1ffa6ecc187e4bca342e081298a4224bd259a5f72369733eb8285970"
+    },
+    {
+      "path": "4916-4.observer-ready",
+      "size": 42,
+      "sha256": "16ae4d98d627924d8d43928a2d1dd8d7121915ae270aaa90719dda2150ea94f4"
+    },
+    {
+      "path": "4916-4.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-4.returned.json",
+      "size": 26,
+      "sha256": "a36eaa2c26218d8854bfeea67060504d72800f2acf1b6aba5559d08ccc9f00ed"
+    },
+    {
+      "path": "4916-4.started.json",
+      "size": 26,
+      "sha256": "392b43b00e85c1f6cdb5533f20c41b1e90a74ccb8f430ed9963d16d34f0e513e"
+    },
+    {
+      "path": "4916-5.config.json",
+      "size": 4495,
+      "sha256": "e52cdfa148dbf712c1e20663b2ce26b71ae52c769b24af05292738acbce1324c"
+    },
+    {
+      "path": "4916-5.jsonl",
+      "size": 129547,
+      "sha256": "908be2a5d277c8f44b590fd41af5ec1f1b369f557951809e59672399276e398d"
+    },
+    {
+      "path": "4916-5.observer-done",
+      "size": 26,
+      "sha256": "ec49a59bea4f1ebc65d23bd29436c5881ae0b4d9526de1d98eda8fd9c6129281"
+    },
+    {
+      "path": "4916-5.observer-exit.json",
+      "size": 91,
+      "sha256": "32821b06dbedbcd3e0a5465537b1c92ea4477d0d4e544fa5fd5df3845a8e9dde"
+    },
+    {
+      "path": "4916-5.observer-ready",
+      "size": 41,
+      "sha256": "e51a9ade61c949b14dda2962e11e98bf45331771799e4ce50955e36a1afc1413"
+    },
+    {
+      "path": "4916-5.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-5.returned.json",
+      "size": 26,
+      "sha256": "03b00fa85a28e72c51ef624c872159389ab044f632e3a1382e74b55740e6d6a9"
+    },
+    {
+      "path": "4916-5.started.json",
+      "size": 26,
+      "sha256": "10d2ef4ec565db86de510269566cd59ebc5468999a093be38fed0f372ea3651b"
+    },
+    {
+      "path": "4916-6.config.json",
+      "size": 4383,
+      "sha256": "aa25b72ad91d6777cbd688fb9eae34ca5f3378cfb10d7beb602fcc0b88aa8ada"
+    },
+    {
+      "path": "4916-6.jsonl",
+      "size": 123793,
+      "sha256": "d76301fea8bfc0b3f902f39879ad6e6f3c6a90c78e0ab60eda0c90c44bb4ed4e"
+    },
+    {
+      "path": "4916-6.observer-done",
+      "size": 26,
+      "sha256": "82187b6c7d9f1ef7b249bf21c0a4bffa0195da1f6e6944455f28d5c8fe8ebb7a"
+    },
+    {
+      "path": "4916-6.observer-exit.json",
+      "size": 91,
+      "sha256": "bdb9247377438193577e0f11e6a6156ee77f1bcbdad9d5708441dfa9d34aa97e"
+    },
+    {
+      "path": "4916-6.observer-ready",
+      "size": 41,
+      "sha256": "a272df7ef0a952465b6dea96965edc3ecaf7d74d8b9903e120d7223ecf1d8e33"
+    },
+    {
+      "path": "4916-6.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-6.returned.json",
+      "size": 26,
+      "sha256": "a9c4e7e13b1d7181a7e951edddc70c898ccf25dfd010188a3790a2553eaae5ee"
+    },
+    {
+      "path": "4916-6.started.json",
+      "size": 26,
+      "sha256": "e205c7575555965e58efb43ef13f8f58f0d32fc5b347af4e34923872dfe3e059"
+    },
+    {
+      "path": "4916-7.config.json",
+      "size": 4141,
+      "sha256": "02ff6e4c271f994aef78cf5f9a896bd270e34559129d76eb51226b6aa82161a6"
+    },
+    {
+      "path": "4916-7.jsonl",
+      "size": 24888,
+      "sha256": "b6e94c0984e657b4cc881050cb00631a9da9630782a5166490dceeabe387da9b"
+    },
+    {
+      "path": "4916-7.observer-done",
+      "size": 26,
+      "sha256": "6220e5efa5fb488449b60a9499c9f549d708aba0bf3a5c199c14beaf33ed9050"
+    },
+    {
+      "path": "4916-7.observer-exit.json",
+      "size": 91,
+      "sha256": "7c450051c0600d23333b268ab46dc586f812ed33fd761748ee19d747bdf577dd"
+    },
+    {
+      "path": "4916-7.observer-ready",
+      "size": 41,
+      "sha256": "b7f1d1d561998a7c625eb4007576a72e4150c5b96fb2b8717857c286a3a02ada"
+    },
+    {
+      "path": "4916-7.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-7.returned.json",
+      "size": 26,
+      "sha256": "05edcf07e6ff97fe1ba1fad8471ffb60051496a75757c5cebfc4660098928d88"
+    },
+    {
+      "path": "4916-7.started.json",
+      "size": 26,
+      "sha256": "ba0aaa6df08001bcb4250868949b906605d5423e987b29acddb44d0680dafd21"
+    },
+    {
+      "path": "4916-8.config.json",
+      "size": 4119,
+      "sha256": "b35da7178fc6a5154153ba440a929f055e31745f8b5fe9f111a2370ed5aaf5e6"
+    },
+    {
+      "path": "4916-8.jsonl",
+      "size": 36030,
+      "sha256": "5e34100ebdab8416aac7a0d2df8b09c0348d7f469cb32d2e7bad0a8c01d67b0d"
+    },
+    {
+      "path": "4916-8.observer-done",
+      "size": 26,
+      "sha256": "3c116f33301a0b3beca141713c796a9a391ca898d6198314cee60e81e6c4d498"
+    },
+    {
+      "path": "4916-8.observer-exit.json",
+      "size": 91,
+      "sha256": "82e95abef12ca622712efb63a4edc69765eb6d02638efc08bafa2294f44fafdb"
+    },
+    {
+      "path": "4916-8.observer-ready",
+      "size": 41,
+      "sha256": "23bd758aea22e281e4439a800e672680ae91f0de254b85d36eceedf3b536262b"
+    },
+    {
+      "path": "4916-8.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-8.returned.json",
+      "size": 26,
+      "sha256": "34afc7f2d8dcfffa0bba44e9d7f858003d767742877cf95ec59ff82c2c3a1f28"
+    },
+    {
+      "path": "4916-8.started.json",
+      "size": 26,
+      "sha256": "61cf49200492b10b97b8c9d7510f8edfb830611f37b23b6b9b86f699d977906d"
+    },
+    {
+      "path": "4916-9.config.json",
+      "size": 4317,
+      "sha256": "76d08fae8b9f9b2e42f23abac5449f3b9d8bf1ffc21477d640af923af81959a8"
+    },
+    {
+      "path": "4916-9.jsonl",
+      "size": 25753,
+      "sha256": "5cc0b3f14154f606e0598172aa925a308d739328fb867801e3fa8eff91df27ce"
+    },
+    {
+      "path": "4916-9.observer-done",
+      "size": 26,
+      "sha256": "0902e822e6db2473803b9dd41c203e10feffd8502d032bd0820f74ee4178fc83"
+    },
+    {
+      "path": "4916-9.observer-exit.json",
+      "size": 91,
+      "sha256": "6de07cb559e7156dd3c335dda25779e15497f085acd6a2c280a52784cb79d9e6"
+    },
+    {
+      "path": "4916-9.observer-ready",
+      "size": 41,
+      "sha256": "14189790744cab0371e3d465378613a87e22975ecfd7e7ac93e97b35285f75ca"
+    },
+    {
+      "path": "4916-9.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "4916-9.returned.json",
+      "size": 26,
+      "sha256": "374826b71c7499dba961ee4595328a2b0f66b89d62ea8b49bbedaa5fb4e75da3"
+    },
+    {
+      "path": "4916-9.started.json",
+      "size": 26,
+      "sha256": "6ca69ab0e235285f1bac71e14f44f37916a80c44f0cd5d2de6684e03a6dea742"
+    },
+    {
+      "path": "7280-1.config.json",
+      "size": 3989,
+      "sha256": "68221aec33a32bb10eb5066c9c2f0e320daec856305948208ac822272e1aaa26"
+    },
+    {
+      "path": "7280-1.jsonl",
+      "size": 92082,
+      "sha256": "e7c4a88c4184ae4c7b7bb71c44b1b646f5db62e2b238c4c05d260cd7acaf9ae0"
+    },
+    {
+      "path": "7280-1.observer-done",
+      "size": 26,
+      "sha256": "18a59c0a274f4ddca47ce6757afdd26655a931a55b97b8be171b2254f3ae172d"
+    },
+    {
+      "path": "7280-1.observer-exit.json",
+      "size": 91,
+      "sha256": "061188a84c09406e2cfb295cf5703cb5ecf973657efc3c9b77bd54ff58c1330a"
+    },
+    {
+      "path": "7280-1.observer-ready",
+      "size": 41,
+      "sha256": "d0a02795ebec855461344168c5e1496d228330b92c167502ca5a8c59af3e2c92"
+    },
+    {
+      "path": "7280-1.observer.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "7280-1.started.json",
+      "size": 26,
+      "sha256": "9092e2aabefce09fb3804f8ec7841b6053b82b935691a1381fea4d3fcf83571b"
+    },
+    {
+      "path": "blobs/00ef72a73db4108aaa72fe2eb393e228deac055e88fbdcfeda30079f3dd12d7a",
+      "size": 38,
+      "sha256": "00ef72a73db4108aaa72fe2eb393e228deac055e88fbdcfeda30079f3dd12d7a"
+    },
+    {
+      "path": "blobs/00fdaa2abf405d29174b39000af80efa88439af7cda6a5b898777c26ec143f2f",
+      "size": 335,
+      "sha256": "00fdaa2abf405d29174b39000af80efa88439af7cda6a5b898777c26ec143f2f"
+    },
+    {
+      "path": "blobs/06c6a36b13f409bcfe8ed32cc8089378aff8a195b767b057a06db35688dcdad9",
+      "size": 413,
+      "sha256": "06c6a36b13f409bcfe8ed32cc8089378aff8a195b767b057a06db35688dcdad9"
+    },
+    {
+      "path": "blobs/182505d40ff87243b57fd057ebb5b6bfcbbbeaf7704a9db465db26c2fea1f71d",
+      "size": 421,
+      "sha256": "182505d40ff87243b57fd057ebb5b6bfcbbbeaf7704a9db465db26c2fea1f71d"
+    },
+    {
+      "path": "blobs/183f0f7774b348de95e1209706cefa2da12e939bc81dedc8d6d59dbfb5006af4",
+      "size": 752,
+      "sha256": "183f0f7774b348de95e1209706cefa2da12e939bc81dedc8d6d59dbfb5006af4"
+    },
+    {
+      "path": "blobs/19647395b4b5c476175193c15afd4330363d97912125cf3acccad6845ced9914",
+      "size": 631,
+      "sha256": "19647395b4b5c476175193c15afd4330363d97912125cf3acccad6845ced9914"
+    },
+    {
+      "path": "blobs/1b6924f18456f8aeb944010d5bbafb559dc949778c736fb00bcda48082e88bc7",
+      "size": 12,
+      "sha256": "1b6924f18456f8aeb944010d5bbafb559dc949778c736fb00bcda48082e88bc7"
+    },
+    {
+      "path": "blobs/1b8fa05b30d02e96eba82d2b86e2d601dc51ddfe2ee622e75a5e8a44c97edbce",
+      "size": 754,
+      "sha256": "1b8fa05b30d02e96eba82d2b86e2d601dc51ddfe2ee622e75a5e8a44c97edbce"
+    },
+    {
+      "path": "blobs/1d5f906dd82843afac1b99aec6298dcadf606826ffc0c982c6255e69866de881",
+      "size": 570,
+      "sha256": "1d5f906dd82843afac1b99aec6298dcadf606826ffc0c982c6255e69866de881"
+    },
+    {
+      "path": "blobs/1ed32313dad5f5348ce11201d0e66d6736f4829eb565e2db6128dfbb87f33186",
+      "size": 752,
+      "sha256": "1ed32313dad5f5348ce11201d0e66d6736f4829eb565e2db6128dfbb87f33186"
+    },
+    {
+      "path": "blobs/1f80a43a887cdd775f116c464b2868c1a7da0def5f3baec756e9ae5c798ae00e",
+      "size": 745,
+      "sha256": "1f80a43a887cdd775f116c464b2868c1a7da0def5f3baec756e9ae5c798ae00e"
+    },
+    {
+      "path": "blobs/243ec741441d6914b2aab6181a105020b08f0b6caab8cbb928794ddd3697f3ea",
+      "size": 631,
+      "sha256": "243ec741441d6914b2aab6181a105020b08f0b6caab8cbb928794ddd3697f3ea"
+    },
+    {
+      "path": "blobs/24d49a54ab37574fba460328a83d36b07c8a50860d4fb90f22be64200a92df96",
+      "size": 630,
+      "sha256": "24d49a54ab37574fba460328a83d36b07c8a50860d4fb90f22be64200a92df96"
+    },
+    {
+      "path": "blobs/2dbcd4a88cee0cc00bd2b19c0b35ce1d3a6a46f368c6c4ed5e93b14d1f008171",
+      "size": 560,
+      "sha256": "2dbcd4a88cee0cc00bd2b19c0b35ce1d3a6a46f368c6c4ed5e93b14d1f008171"
+    },
+    {
+      "path": "blobs/2ef0a3d7f51bbe3e04fd850865e4e9a19131f82208af7f1c0a23d0dc6bb4a1ca",
+      "size": 12,
+      "sha256": "2ef0a3d7f51bbe3e04fd850865e4e9a19131f82208af7f1c0a23d0dc6bb4a1ca"
+    },
+    {
+      "path": "blobs/2fddeb1862ded8ce31f34251d8de61cf492f02cce8305f8f598807d96f6f1ba0",
+      "size": 48094,
+      "sha256": "2fddeb1862ded8ce31f34251d8de61cf492f02cce8305f8f598807d96f6f1ba0"
+    },
+    {
+      "path": "blobs/3040b7d959a62c6840cb7583a38587ac4b39b287fd6273d543125dd105defd2c",
+      "size": 753,
+      "sha256": "3040b7d959a62c6840cb7583a38587ac4b39b287fd6273d543125dd105defd2c"
+    },
+    {
+      "path": "blobs/308269835c8d4593a152cb67c243526340c87d7cf9e918f76d596f62156069fb",
+      "size": 38,
+      "sha256": "308269835c8d4593a152cb67c243526340c87d7cf9e918f76d596f62156069fb"
+    },
+    {
+      "path": "blobs/32a3e55b5fc2cdee69c778f98b1805cf9423d94c2896d7b82729774517ec7d15",
+      "size": 491,
+      "sha256": "32a3e55b5fc2cdee69c778f98b1805cf9423d94c2896d7b82729774517ec7d15"
+    },
+    {
+      "path": "blobs/3420b6c28a171b140a3cddf5204146f1a08d63903bd3f081fc2e6b8e2eccb16b",
+      "size": 629,
+      "sha256": "3420b6c28a171b140a3cddf5204146f1a08d63903bd3f081fc2e6b8e2eccb16b"
+    },
+    {
+      "path": "blobs/37aa429aae422af77c7346b785ab9c06d5fcab0870ad2a86f69d5eb3b180d305",
+      "size": 336,
+      "sha256": "37aa429aae422af77c7346b785ab9c06d5fcab0870ad2a86f69d5eb3b180d305"
+    },
+    {
+      "path": "blobs/37ab8c39ebc29f16567f3da8bd59fa7485254598cd17872664605d547b78efdc",
+      "size": 561,
+      "sha256": "37ab8c39ebc29f16567f3da8bd59fa7485254598cd17872664605d547b78efdc"
+    },
+    {
+      "path": "blobs/40ca92c6ce984340a19bcd24f8fc236779cc739fc983a6454081a0c53ba19550",
+      "size": 7567,
+      "sha256": "40ca92c6ce984340a19bcd24f8fc236779cc739fc983a6454081a0c53ba19550"
+    },
+    {
+      "path": "blobs/4119fb2f906de436e89a875b142a080562aa6ef7f85c24d602d1354e31242ed4",
+      "size": 54716,
+      "sha256": "4119fb2f906de436e89a875b142a080562aa6ef7f85c24d602d1354e31242ed4"
+    },
+    {
+      "path": "blobs/467fa7d4470dfc7cc510ea7b958f72a2c0f0dc8d1b1a0196b98eb1573ce8ebee",
+      "size": 1087,
+      "sha256": "467fa7d4470dfc7cc510ea7b958f72a2c0f0dc8d1b1a0196b98eb1573ce8ebee"
+    },
+    {
+      "path": "blobs/4710306b10b61eb678f51084f8fad2dcc4ea3f0faaffd4f2110984308e167a12",
+      "size": 621,
+      "sha256": "4710306b10b61eb678f51084f8fad2dcc4ea3f0faaffd4f2110984308e167a12"
+    },
+    {
+      "path": "blobs/4c34fa455b09ad73ae25ae2c6fc13341d0b49174f42e10cc18993729fe76ede0",
+      "size": 336,
+      "sha256": "4c34fa455b09ad73ae25ae2c6fc13341d0b49174f42e10cc18993729fe76ede0"
+    },
+    {
+      "path": "blobs/502e46d19e4a2ff914e796126ff7bcb6eaced2df9a602105d44c91609c7ea96c",
+      "size": 41,
+      "sha256": "502e46d19e4a2ff914e796126ff7bcb6eaced2df9a602105d44c91609c7ea96c"
+    },
+    {
+      "path": "blobs/529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb",
+      "size": 43,
+      "sha256": "529f8c29efe6ccf100d59b54458a4f9371485a1f1499daf1040946ea63f88beb"
+    },
+    {
+      "path": "blobs/6692a8a65e62c6e55bbb5601bb44e67b1844bfcb7992a78251c677beaa47bdbf",
+      "size": 43,
+      "sha256": "6692a8a65e62c6e55bbb5601bb44e67b1844bfcb7992a78251c677beaa47bdbf"
+    },
+    {
+      "path": "blobs/66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e",
+      "size": 9,
+      "sha256": "66d3f4d5a0ea04074775ae92f28f19568c36ee64711a727566073f31fd109e1e"
+    },
+    {
+      "path": "blobs/69c2e683903ead573cc9cbc764923187b6d39d6046528baad280204047b007f6",
+      "size": 336,
+      "sha256": "69c2e683903ead573cc9cbc764923187b6d39d6046528baad280204047b007f6"
+    },
+    {
+      "path": "blobs/6d0bbf571aed06233edc6a51bfe15e022ebed44296ce9266825dcddba5080ca2",
+      "size": 49333,
+      "sha256": "6d0bbf571aed06233edc6a51bfe15e022ebed44296ce9266825dcddba5080ca2"
+    },
+    {
+      "path": "blobs/6d5411d3c21a28278aba040b2eb49fde39e67de37be80387722774eff5dc86b2",
+      "size": 335,
+      "sha256": "6d5411d3c21a28278aba040b2eb49fde39e67de37be80387722774eff5dc86b2"
+    },
+    {
+      "path": "blobs/6f4e22732c05b81f61a96e5af6ee2b0782035f8f9bf8d0c7d4ebdeae6c3bc79a",
+      "size": 15,
+      "sha256": "6f4e22732c05b81f61a96e5af6ee2b0782035f8f9bf8d0c7d4ebdeae6c3bc79a"
+    },
+    {
+      "path": "blobs/72acba851a502ed95244af94b1ae43f89e4b80b3a4dd3997797ce9c52f1ae707",
+      "size": 38,
+      "sha256": "72acba851a502ed95244af94b1ae43f89e4b80b3a4dd3997797ce9c52f1ae707"
+    },
+    {
+      "path": "blobs/74e79603a6052ceb96a6672d06a371734076b9ee1c9c4380ab1f1c3f1af853d8",
+      "size": 569,
+      "sha256": "74e79603a6052ceb96a6672d06a371734076b9ee1c9c4380ab1f1c3f1af853d8"
+    },
+    {
+      "path": "blobs/784206d8843cf8353087bef34eddb9dbaae6a70800cc9d1c45c218a84a83c1bf",
+      "size": 56938,
+      "sha256": "784206d8843cf8353087bef34eddb9dbaae6a70800cc9d1c45c218a84a83c1bf"
+    },
+    {
+      "path": "blobs/7afc9392c22fc97f321fd80e9e540aea02558394069a7b1ad14eb701bc71a07a",
+      "size": 473,
+      "sha256": "7afc9392c22fc97f321fd80e9e540aea02558394069a7b1ad14eb701bc71a07a"
+    },
+    {
+      "path": "blobs/8029079c68d0b1d812bb161b755b5c6e995b7d48a80305874b6079add332117c",
+      "size": 54698,
+      "sha256": "8029079c68d0b1d812bb161b755b5c6e995b7d48a80305874b6079add332117c"
+    },
+    {
+      "path": "blobs/8a267594870b5780302385e42056a3c9c02b4bdc83eb6f34a7ad32d9ddac43fb",
+      "size": 38,
+      "sha256": "8a267594870b5780302385e42056a3c9c02b4bdc83eb6f34a7ad32d9ddac43fb"
+    },
+    {
+      "path": "blobs/90c51a9ba25a16e249fc2679f580e25511d36ce7ce9ca6a7d0d57546566cd946",
+      "size": 38,
+      "sha256": "90c51a9ba25a16e249fc2679f580e25511d36ce7ce9ca6a7d0d57546566cd946"
+    },
+    {
+      "path": "blobs/943b315e065238b7073b033f534ef954b6b6461fb3f03a3f5b8555b11bc4c0a2",
+      "size": 64,
+      "sha256": "943b315e065238b7073b033f534ef954b6b6461fb3f03a3f5b8555b11bc4c0a2"
+    },
+    {
+      "path": "blobs/9937bed8320b4bcc4dcf6dfb300210187d9d80faef0b74f0e724ccb4c72d7e34",
+      "size": 744,
+      "sha256": "9937bed8320b4bcc4dcf6dfb300210187d9d80faef0b74f0e724ccb4c72d7e34"
+    },
+    {
+      "path": "blobs/9bd7a9873b7656b480edef45385c1980f33e6ff6ad7497564c74a463f094082d",
+      "size": 623,
+      "sha256": "9bd7a9873b7656b480edef45385c1980f33e6ff6ad7497564c74a463f094082d"
+    },
+    {
+      "path": "blobs/9cb8f9db10e30cd0f87eb3c73ae08c4fb5832fe789c9757816c01a138836524f",
+      "size": 491,
+      "sha256": "9cb8f9db10e30cd0f87eb3c73ae08c4fb5832fe789c9757816c01a138836524f"
+    },
+    {
+      "path": "blobs/9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba",
+      "size": 11,
+      "sha256": "9d07299535536c1f072ebf53f0a8c5e82a6203c38d707720ade1743f9ed2a8ba"
+    },
+    {
+      "path": "blobs/aab94cc4ae2ce50e9ab2feb6c7d9f2ce34789179d9fa26d7b0e7867a4a23b3c7",
+      "size": 9,
+      "sha256": "aab94cc4ae2ce50e9ab2feb6c7d9f2ce34789179d9fa26d7b0e7867a4a23b3c7"
+    },
+    {
+      "path": "blobs/ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e",
+      "size": 22,
+      "sha256": "ac0a3e2891e1d1ba0c846c9a6f3124e56bdb564250e1f0ed09966752c4dd091e"
+    },
+    {
+      "path": "blobs/b4448e969e06278d63fe66777acadcaf760bfa80d0863fb5caa9452ba516505c",
+      "size": 11,
+      "sha256": "b4448e969e06278d63fe66777acadcaf760bfa80d0863fb5caa9452ba516505c"
+    },
+    {
+      "path": "blobs/b53ff6dd5824b4c0b38618946de89a4830cbb44a9c16b9556bd1727bac717060",
+      "size": 14,
+      "sha256": "b53ff6dd5824b4c0b38618946de89a4830cbb44a9c16b9556bd1727bac717060"
+    },
+    {
+      "path": "blobs/b5a069a3598a7f2ecf4c4efc261b05f7539293366dd9fff69146d0997f67f349",
+      "size": 58627,
+      "sha256": "b5a069a3598a7f2ecf4c4efc261b05f7539293366dd9fff69146d0997f67f349"
+    },
+    {
+      "path": "blobs/c36459644e32206d534586a817cd6f3b9c088a187b5e2023f357cf5b8fced459",
+      "size": 561,
+      "sha256": "c36459644e32206d534586a817cd6f3b9c088a187b5e2023f357cf5b8fced459"
+    },
+    {
+      "path": "blobs/c70452b83c5462763f02a7ffcb3013faa46b1bf23404fdd5709898be79537506",
+      "size": 49499,
+      "sha256": "c70452b83c5462763f02a7ffcb3013faa46b1bf23404fdd5709898be79537506"
+    },
+    {
+      "path": "blobs/cf3bb72b93a580d12f3c1d3cbf57bd42f56bdb3331be44f9e9f961d0cbc684d5",
+      "size": 473,
+      "sha256": "cf3bb72b93a580d12f3c1d3cbf57bd42f56bdb3331be44f9e9f961d0cbc684d5"
+    },
+    {
+      "path": "blobs/d1b9e8072c2837498472425bde4cee1f9b0d3c81e943726afcea3c4e56955805",
+      "size": 53941,
+      "sha256": "d1b9e8072c2837498472425bde4cee1f9b0d3c81e943726afcea3c4e56955805"
+    },
+    {
+      "path": "blobs/d378e78b3ea8060896f37055a2861a1ac4bc5213053b452ef262554d9c2984fa",
+      "size": 51177,
+      "sha256": "d378e78b3ea8060896f37055a2861a1ac4bc5213053b452ef262554d9c2984fa"
+    },
+    {
+      "path": "blobs/d431539df046d9548b83ccb49487ea387eace96223b00e299776e40692c58d97",
+      "size": 622,
+      "sha256": "d431539df046d9548b83ccb49487ea387eace96223b00e299776e40692c58d97"
+    },
+    {
+      "path": "blobs/d8cc6dbd1860b1d3712a2a87548c0f58eb58a794325ade16fef2c7f0422f61a6",
+      "size": 751,
+      "sha256": "d8cc6dbd1860b1d3712a2a87548c0f58eb58a794325ade16fef2c7f0422f61a6"
+    },
+    {
+      "path": "blobs/dd6bd633af61eff903d65bb5b07570d97e19f0db387bd95444209bc778acc84a",
+      "size": 630,
+      "sha256": "dd6bd633af61eff903d65bb5b07570d97e19f0db387bd95444209bc778acc84a"
+    },
+    {
+      "path": "blobs/e2c38595ed731a1aba20274f06fc48e75d1b20ab18631c441412154c348f99e3",
+      "size": 765,
+      "sha256": "e2c38595ed731a1aba20274f06fc48e75d1b20ab18631c441412154c348f99e3"
+    },
+    {
+      "path": "blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "blobs/e54fe5e13812e8b1169b60d80e192120ee3a23b68818d795250a9e7a05c56fc2",
+      "size": 744,
+      "sha256": "e54fe5e13812e8b1169b60d80e192120ee3a23b68818d795250a9e7a05c56fc2"
+    },
+    {
+      "path": "blobs/eb79d4b8df1af7f164cfbd023caa588799ca5b591157d9fb142c3db3f8f04df2",
+      "size": 622,
+      "sha256": "eb79d4b8df1af7f164cfbd023caa588799ca5b591157d9fb142c3db3f8f04df2"
+    },
+    {
+      "path": "blobs/edb89d09b913b577efbd63f53446d060c97d339166531661a5196a0cf6b796bd",
+      "size": 10,
+      "sha256": "edb89d09b913b577efbd63f53446d060c97d339166531661a5196a0cf6b796bd"
+    },
+    {
+      "path": "blobs/f14d2f6075a8e0a5a2473dcf4acacaacec74263db6c8e41a4ba43f8639164e85",
+      "size": 9,
+      "sha256": "f14d2f6075a8e0a5a2473dcf4acacaacec74263db6c8e41a4ba43f8639164e85"
+    },
+    {
+      "path": "blobs/f3509ed6031d0afb1fd0d176cf047ae0b6fea691ad8d4a013c7f33c134f5961e",
+      "size": 630,
+      "sha256": "f3509ed6031d0afb1fd0d176cf047ae0b6fea691ad8d4a013c7f33c134f5961e"
+    },
+    {
+      "path": "blobs/f7e6cbc9f28c41c3e9d6ee57df7308465ab5f1956f418df91b571c785145da00",
+      "size": 22,
+      "sha256": "f7e6cbc9f28c41c3e9d6ee57df7308465ab5f1956f418df91b571c785145da00"
+    },
+    {
+      "path": "blobs/f9bbee32dc6a8111494571d11d398cac468675fba9ee63f7b3372089c433b3ff",
+      "size": 745,
+      "sha256": "f9bbee32dc6a8111494571d11d398cac468675fba9ee63f7b3372089c433b3ff"
+    },
+    {
+      "path": "blobs/fcea5396f97226b3fce1d4050ad072e86d645a6be839fa81a8d796c3256d3952",
+      "size": 569,
+      "sha256": "fcea5396f97226b3fce1d4050ad072e86d645a6be839fa81a8d796c3256d3952"
+    },
+    {
+      "path": "completion.json",
+      "size": 869,
+      "sha256": "9c7e91d90babdec5e36d0010e2ca15bfb017ac46ba6fd8db197bf8639c7c15a2"
+    },
+    {
+      "path": "host.json",
+      "size": 353,
+      "sha256": "7acb5e874e3363f2cc1c57289a8b766a28771dedff428860ce9a49f9c22b2254"
+    },
+    {
+      "path": "identity.json",
+      "size": 1774,
+      "sha256": "1a168af6fae2504f9b99de3d126ca61818e667a561550047ed175ee29d1bcec9"
+    },
+    {
+      "path": "test-result.json",
+      "size": 535,
+      "sha256": "d502d11be16455b347b3662d261aa1666a50ee04226e83b917ac1138a693557f"
+    },
+    {
+      "path": "vitest.json",
+      "size": 22957,
+      "sha256": "9c5f30eba9a98b9988778ae0f80b9082ec39916700289d638f83c5feea90cf58"
+    },
+    {
+      "path": "vitest.stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vitest.stdout.log",
+      "size": 15516,
+      "sha256": "d61ba795a691ee98bdfb6dad2782113f2e6858df6736053a77f64d50cbee232b"
+    }
+  ]
+}
