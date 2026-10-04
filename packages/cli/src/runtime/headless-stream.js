@@ -1930,15 +1930,22 @@ async function runAgentHeadlessStreamInWorkspace(
   let permissionRulesProvider = options.permissionRulesProvider || null;
   let managedSettings = null;
   let settingsFiles = [];
-  const { createPermissionRulesProvider, loadPermissionAuthority } =
-    await import("../lib/permission-authority.js");
+  const {
+    createPermissionRulesProvider,
+    loadPermissionAuthority,
+    permissionRulesProviderAuthority,
+  } = await import("../lib/permission-authority.js");
   const authorityOptions = {
     cwd,
     settingsFile: options.settingsFile,
     managedSettingsFile: options.managedSettingsFile,
     baseRules: options.permissionRules || null,
   };
-  const loadedPermissionAuthority = loadPermissionAuthority(authorityOptions);
+  const loadedPermissionAuthority = permissionRulesProviderAuthority(
+    permissionRulesProvider,
+  )
+    ? permissionRulesProvider()
+    : loadPermissionAuthority(authorityOptions);
   managedSettings = loadedPermissionAuthority.managed;
   settingsFiles = Array.isArray(loadedPermissionAuthority.files)
     ? loadedPermissionAuthority.files

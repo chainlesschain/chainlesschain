@@ -1,11 +1,13 @@
 /** Resolve static settings plus CLI-owned workspace-scoped permission rules. */
 
 import settingsLoader from "./settings-loader.cjs";
+import persistentSettings from "./settings-permission-authority.cjs";
 import path from "node:path";
 import {
   ScopedPermissionStore,
   getScopedPermissionRevision,
   subscribeScopedPermissionRevision,
+  projectScopedPermissionObservation,
 } from "./scoped-permission-store.js";
 
 const {
@@ -86,15 +88,35 @@ export function loadPermissionAuthority({
   env = process.env,
   baseRules = null,
   scopedStore = null,
+  settingsAuthority: persistentAuthority = null,
 } = {}) {
   const settingsRevision = getSettingsPermissionRevision();
   const scopedRevision = baseRules ? null : getScopedPermissionRevision();
-  const settingsObservation = inspectSettingsSources({
-    cwd,
-    settingsFile,
-    managedSettingsFile,
-    env,
-  });
+  const persistent = persistentAuthority
+    ? persistentSettings.readSettingsPermissionAuthority(persistentAuthority)
+    : null;
+  if (persistentAuthority) {
+    const bound =
+      persistentSettings.settingsPermissionAuthorityOptions(
+        persistentAuthority,
+      );
+    if (
+      path.resolve(cwd) !== bound.cwd ||
+      (settingsFile &&
+        path.resolve(cwd, settingsFile) !== bound.settingsFile) ||
+      (managedSettingsFile &&
+        path.resolve(managedSettingsFile) !== bound.managedSettingsFile)
+    )
+      throw new TypeError("persistent settings authority options mismatch");
+  }
+  const settingsObservation =
+    persistent?.observation ||
+    inspectSettingsSources({
+      cwd,
+      settingsFile,
+      managedSettingsFile,
+      env,
+    });
   const loaded = projectSettingsObservation(settingsObservation, { env });
   const sources = baseRules ? {} : { ...loaded.sources };
   let rules = baseRules
@@ -105,7 +127,29 @@ export function loadPermissionAuthority({
   // Explicit caller rules retain their historical replacement semantics.
   // Managed-only policy also suppresses every user-owned scoped grant.
   if (!baseRules) {
-    scoped = (scopedStore || new ScopedPermissionStore({ cwd })).list();
+    const bound = persistentAuthority
+      ? persistentSettings.settingsPermissionAuthorityOptions(
+          persistentAuthority,
+        )
+      : null;
+    const store =
+      scopedStore ||
+      new ScopedPermissionStore({
+        cwd,
+        ...(bound
+          ? {
+              filePath: bound.scopedFile,
+              settingsAuthority: persistentAuthority,
+            }
+          : {}),
+      });
+    scoped = persistent
+      ? projectScopedPermissionObservation(
+          store,
+          persistentAuthority,
+          persistent.scopedObservation,
+        )
+      : store.list();
     const managedOnly =
       loaded.managed?.allowManagedPermissionRulesOnly === true;
     scoped = {
@@ -143,6 +187,17 @@ export function loadPermissionAuthority({
     error.code = "CC_SCOPED_PERMISSION_AUTHORITY_CHANGED";
     throw error;
   }
+  if (
+    persistent &&
+    persistentSettings.readSettingsPermissionAuthority(persistentAuthority)
+      .snapshot !== persistent.snapshot
+  ) {
+    const error = new Error(
+      "persistent settings changed while permission authority was loading",
+    );
+    error.code = "CC_SETTINGS_PERMISSION_AUTHORITY_CHANGED";
+    throw error;
+  }
   return freezeSnapshot({
     ...loaded,
     rules,
@@ -151,12 +206,17 @@ export function loadPermissionAuthority({
     hasRules: hasRules(rules),
     settingsRevision,
     settingsObservation,
+    ...(persistent ? { persistentSettingsRevision: persistent.snapshot } : {}),
     ...(scopedRevision ? { scopedRevision } : {}),
   });
 }
 
 export function createPermissionRulesProvider(options = {}) {
-  const cwd = path.resolve(options.cwd || process.cwd());
+  const persistentAuthority = options.settingsAuthority ?? null;
+  const bound = persistentAuthority
+    ? persistentSettings.settingsPermissionAuthorityOptions(persistentAuthority)
+    : null;
+  const cwd = path.resolve(options.cwd || bound?.cwd || process.cwd());
   const captured = Object.freeze({
     cwd,
     settingsFile: options.settingsFile
@@ -172,13 +232,84 @@ export function createPermissionRulesProvider(options = {}) {
       ? freezeSnapshot(cloneRules(options.baseRules))
       : null,
     scopedStore: options.scopedStore || null,
+    settingsAuthority: persistentAuthority,
   });
+  if (
+    bound &&
+    (cwd !== bound.cwd ||
+      (captured.settingsFile && captured.settingsFile !== bound.settingsFile) ||
+      (captured.managedSettingsFile &&
+        captured.managedSettingsFile !== bound.managedSettingsFile))
+  )
+    throw new TypeError("persistent settings authority options mismatch");
   const provider = () => loadPermissionAuthority(captured);
+  const localAuthority = captured.baseRules
+    ? settingsAuthority
+    : combinedAuthority;
   providers.set(
     provider,
-    captured.baseRules ? settingsAuthority : combinedAuthority,
+    persistentAuthority
+      ? persistentProviderAuthority(persistentAuthority, localAuthority)
+      : localAuthority,
   );
   return Object.freeze(provider);
+}
+
+function persistentProviderAuthority(binding, localAuthority) {
+  let last = null;
+  function getSnapshot() {
+    const local = localAuthority.getSnapshot();
+    const durable =
+      persistentSettings.readSettingsPermissionAuthority(binding).snapshot;
+    if (last?.local !== local || last?.durable !== durable)
+      last = Object.freeze({ local, durable });
+    return last;
+  }
+  return Object.freeze({
+    getSnapshot,
+    assertWorkspace(cwd) {
+      if (
+        path.resolve(cwd) !==
+        persistentSettings.settingsPermissionAuthorityOptions(binding).cwd
+      )
+        throw Object.assign(
+          new Error("persistent permission authority workspace mismatch"),
+          { code: "CC_SETTINGS_AUTHORITY_BINDING_CHANGED" },
+        );
+    },
+    assertWritableRoots(roots) {
+      persistentSettings.assertSettingsPermissionWritableRoots(binding, roots);
+    },
+    subscribePolicyRevision(listener) {
+      if (typeof listener !== "function")
+        throw new TypeError("permission revision listener must be a function");
+      let known = getSnapshot();
+      const remove = localAuthority.subscribePolicyRevision(listener);
+      // Persistence prevents official ABA loss between polls. Timers provide
+      // bounded observation, not a promise that another process has stopped
+      // before synchronous addRule returns.
+      const timer = setInterval(() => {
+        let next;
+        try {
+          next = getSnapshot();
+        } catch {
+          next = null;
+        }
+        if (next === known) return;
+        known = next;
+        try {
+          listener(next);
+        } catch {
+          /* isolate observers */
+        }
+      }, 100);
+      timer.unref?.();
+      return () => {
+        clearInterval(timer);
+        remove();
+      };
+    },
+  });
 }
 
 // A legacy callback cannot advertise a trusted revision subscription simply

@@ -1027,15 +1027,20 @@ async function runAgentHeadlessInWorkspace(
   let managedSettings = null;
   let settingsFiles = [];
   if (!hermeticExecution) {
-    const { createPermissionRulesProvider, loadPermissionAuthority } =
-      await import("../lib/permission-authority.js");
+    const {
+      createPermissionRulesProvider,
+      loadPermissionAuthority,
+      permissionRulesProviderAuthority,
+    } = await import("../lib/permission-authority.js");
     const authorityOptions = {
       cwd,
       settingsFile: options.settingsFile,
       managedSettingsFile: options.managedSettingsFile,
       baseRules: options.permissionRules || null,
     };
-    const loaded = loadPermissionAuthority(authorityOptions);
+    const loaded = permissionRulesProviderAuthority(permissionRulesProvider)
+      ? permissionRulesProvider()
+      : loadPermissionAuthority(authorityOptions);
     managedSettings = loaded.managed;
     settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
     permissionRules = loaded.hasRules ? loaded.rules : null;

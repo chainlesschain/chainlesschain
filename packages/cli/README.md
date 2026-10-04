@@ -2656,6 +2656,14 @@ Every remaining top-level command not documented above, with its built-in descri
 
 Full reference: https://docs.chainlesschain.com/chainlesschain/cli.html
 
+## Linux controlled-host permission authority
+
+Trusted embeddings can explicitly provision and reopen durable settings and
+scoped permissions through `chainlesschain/src/runtime/permission-authority-host.js`.
+The host exposes pinned headless/streaming runtime entry points and official
+settings/scoped writers. This opt-in Linux API does not enable automatic CLI
+registration. See the [administrator setup and failure/stop-receipt contract](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md).
+
 ## License
 
 MIT
