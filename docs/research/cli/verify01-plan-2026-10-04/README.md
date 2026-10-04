@@ -31,7 +31,7 @@ CLI 保存真实执行终态、tool 记录和独立验收输出。VS Code / JetB
 
 每项验收检查 `tasks.json` 的具体正反条件、补丁及实际命令输出。独立验收者在执行前锁定新增测试路径及确定性反例，执行相关旧回归与新增测试，并用受控错误行为验证断言确实会失败；不能由产生补丁的同一模型口头评分。文档题检查所有命令与当前脚本参数一致，fingerprint 成功、无 observations 返回 2，且不得暗示改善或生产通过。当前只冻结这些验收要求，未生成通过回执。
 
-**现有 `cc eval --suite` 仅支持 builtin，不能直接运行此任务目录。** 此目录不是声称已经接入的自定义 suite，也没有新增 runner。后续实际采集可复用 `runEvalSuite`/`createEvalHistoryRecord` 等现有接口，但须先提供并审阅实际项目 setup/check 及 IDE 终态采集接线。没有真实执行协议回执时，不能手工伪造 `terminalVerified`，outcome 继续缺失。该执行接线属于真实验收准备，尚未完成；不影响任务与预算已经冻结。
+**现有 `cc eval --suite` 仅支持 builtin，不能直接运行此任务目录。** 此目录不是声称已经接入的自定义 suite，也没有新增 runner。2026-10-05 已补[只读采集准入校验](./COLLECTION_README.md)，核对预先锁定的计划/review、文件字节和导入的既有记录，不执行任务或生成观察数据。后续实际采集可复用 `runEvalSuite`/`createEvalHistoryRecord` 等现有接口，但须先提供并审阅实际项目 setup/check 及 IDE 终态采集接线。没有真实执行协议回执时，不能手工伪造 `terminalVerified`，outcome 继续缺失。该执行接线属于真实验收准备，尚未完成；不影响任务与预算已经冻结。
 
 比较上下文包含任务目录摘要和目标环境/权限/推理摘要；执行端必须保留原始请求配置及实际身份回执，验证与声明相符。Node/OS/模型身份或版本不符时拒绝合并统计；仅有同名模型不证明服务端 checkpoint。使用精确被测发布源码 SHA 作为 Eval label，项目 checkout 另按本目录固定 SHA 保留。不得使用文档提交 SHA 冒充产品源码 SHA。
 

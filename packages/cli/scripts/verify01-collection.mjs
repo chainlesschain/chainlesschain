@@ -40,7 +40,7 @@ function relativeFile(value) {
   requireValue(
     typeof value === "string" &&
       value.length > 0 &&
-      !/[\\:\u0000]/u.test(value) &&
+      !/[\\:*?<>|"\u0000]/u.test(value) &&
       !value.startsWith("/") &&
       value.split("/").every((part) => part && !/[. ]$/u.test(part)),
     "review paths must be exact relative files",
@@ -218,7 +218,9 @@ export function validateVerify01Review(
   }
   for (const entry of reviewed.values())
     requireValue(
-      entry.allowedChangedPaths.every((file) => !protectedPaths.has(file.toLowerCase())),
+      entry.allowedChangedPaths.every(
+        (file) => !protectedPaths.has(file.toLowerCase()),
+      ),
       "reviewed evaluator must not be an allowed task edit",
     );
   return { tasks, samples, reviewed };
@@ -264,11 +266,15 @@ export function validateVerify01Collection(
     ) {
       const row = report.rows.find((item) => item.sampleId === id);
       const failureReasons = new Set([
-        "task_not_successful", "first_run_not_completed", "budget_exceeded", "manual_repair",
+        "task_not_successful",
+        "first_run_not_completed",
+        "budget_exceeded",
+        "manual_repair",
         ...(observation.cost === null ? ["missing_or_invalid_cost"] : []),
       ]);
       requireValue(
-        row.failureCause && row.reasons.every((reason) => failureReasons.has(reason)),
+        row.failureCause &&
+          row.reasons.every((reason) => failureReasons.has(reason)),
         "invalid first-run early-stop evidence",
       );
       continue;

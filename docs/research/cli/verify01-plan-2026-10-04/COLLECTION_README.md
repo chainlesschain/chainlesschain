@@ -34,7 +34,7 @@ node packages/cli/scripts/verify01-collection.mjs --plan-dir docs/research/cli/v
 }
 ```
 
-上例是格式说明，缺少其余任务和真实摘要，不能通过校验。路径必须是精确的相对文件路径，无通配符或 `..`；允许改动只能从对应任务 `expectedFiles` 和 `sourcePaths` 中选择，必须保留交付文件。setup/check 文件不能同时属于任何任务的允许改动路径。`--review-root` 指定这些已审阅文件的根目录；路径逃出该目录会拒绝。文件只读取和核对字节摘要，绝不加载为模块。
+上例是格式说明，缺少其余任务和真实摘要，不能通过校验。路径必须是精确的相对文件路径，无通配符或 `..`，每个路径段不得以点或空格结尾；允许改动只能从对应任务 `expectedFiles` 和 `sourcePaths` 中选择，必须保留交付文件。setup/check 文件不能同时属于任何任务的允许改动路径，保护集合忽略大小写以覆盖 Windows 路径别名。`--review-root` 指定这些已审阅文件的根目录；路径逃出该目录会拒绝。文件只读取和核对字节摘要，绝不加载为模块。
 
 review 的规范 JSON 摘要使用现有 `outcomeDigest(review)`；文件字节摘要使用现有 `evalDigest(bytes)`。独立验收者应在任务执行前保存该摘要，并通过与被校验文件分离的渠道提供 `--review-digest`。工具不会从当前 review 自行生成摘要再将其作为信任依据。摘要锁定不是签名或第三方认证；`--project-sha` 也是声明，不能证明实际 checkout。未来执行端必须从实际项目 checkout 读取 SHA，并将隔离配置、完整 diff、原始验收输出及宿主终态绑定到这份预审配置。
 
@@ -48,6 +48,8 @@ node packages/cli/scripts/verify01-collection.mjs --plan-dir docs/research/cli/v
 
 `terminalVerified` 必须来自实际执行协议采集器；本工具只检查既有字段和关系，不能凭 JSON 证明远端真实性。缺少可验证终态的原始材料必须另行保留，不能为了通过导入补写 true；不完整样本保持 missing，恢复结果未知时不得自动重跑副作用。CLI 记录不能冒充 IDE 操作。任何测试中的受控 fixture 只用于验证适配器，不是独立验收回执，不能写入正式 observations。
 
-费用与对应 task result 的 `totalCostUsd` 逐项一致；null 只能对应 null，不能填零。费用未知的记录仍在报告中保留，但不计任务成功或完整成本。已验证的失败、超时预算或超支由既有 outcome 口径保留为失败，不移出分母。该切片不接入维护回执，因此本工具不负责关闭完整 baseline；后续仍使用既有 `task-outcome-report.mjs` 完成维护窗口汇总。
+首次安装在任务启动前早停时，沿用既有 outcome 合同接受 `kind:first-run`、`runId:null`、`tool.passed:false`，必须保留全部五阶段的通过/失败状态及回执、有效失败归因、时间和重试记录。阶段不连续、缺回执或缺归因时拒绝；普通任务及已成功进入工具阶段的首次旅程仍须有 Eval run 和终态。早停只计已观察失败，其余未执行任务仍为 missing。
+
+费用与对应 task result 的 `totalCostUsd` 逐项一致；null 只能对应 null，不能填零。费用未知的记录仍在报告中保留，但不计任务成功或完整成本。任务启动前早停没有 Eval 费用源，只校验申报费用为 null 或非负数，保留 null；本工具不能认证申报费用真实性，必须另附原始账单或未计费回执。已验证的失败、超时预算或超支由既有 outcome 口径保留为失败，不移出分母。该切片不接入维护回执，因此本工具不负责关闭完整 baseline；后续仍使用既有 `task-outcome-report.mjs` 完成维护窗口汇总。
 
 退出码：**1** 为无效输入；**2** 为尚未执行或 outcome 证据不足；**0** 只可能表示既有报告达到其本地完整基线条件，不是改善 PASS 或生产认证。`productionAttested` 保持 false。目标公开安装、36 项预审实现及独立审阅、实际 provider/双 IDE 执行、原始终态采集、账单和维护观察全部继续开放。

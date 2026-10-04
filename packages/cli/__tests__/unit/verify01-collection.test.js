@@ -124,17 +124,29 @@ function earlyStopFixture() {
   const sample = f.frozen.plan.samples.find((row) => row.kind === "first-run");
   f.collected.sampleIds = [sample.id];
   f.collected.history.runs = [];
-  f.collected.observations = [{
-    ...f.collected.observations[0],
-    sampleId: sample.id,
-    runId: null,
-    cost: null,
-    failureCause: "install",
-    firstRun: {
-      cleanEnvironment: true,
-      stages: Object.fromEntries(["install", "configure", "authenticate", "tool", "artifact"].map((stage) => [stage, { passed: false, receipt: `test-only-${stage}-failure-or-skipped` }])),
+  f.collected.observations = [
+    {
+      ...f.collected.observations[0],
+      sampleId: sample.id,
+      runId: null,
+      cost: null,
+      failureCause: "install",
+      firstRun: {
+        cleanEnvironment: true,
+        stages: Object.fromEntries(
+          ["install", "configure", "authenticate", "tool", "artifact"].map(
+            (stage) => [
+              stage,
+              {
+                passed: false,
+                receipt: `test-only-${stage}-failure-or-skipped`,
+              },
+            ],
+          ),
+        ),
+      },
     },
-  }];
+  ];
   return f;
 }
 
@@ -148,34 +160,73 @@ describe("VERIFY-01 read-only preparation and collection", () => {
     const entry = f.preparation.review.tasks[0];
     entry.check.path = alias(entry.allowedChangedPaths[0]);
     f.preparation.expectedReviewDigest = outcomeDigest(f.preparation.review);
-    expect(() => validateVerify01Review(f.frozen, f.preparation)).toThrow(error);
+    expect(() => validateVerify01Review(f.frozen, f.preparation)).toThrow(
+      error,
+    );
   });
 
   it("retains a first-install failure before any task starts, with unknown cost", () => {
     const f = earlyStopFixture();
-    const report = validateVerify01Collection(f.frozen, f.preparation, f.collected);
-    expect(report.firstRun).toMatchObject({ observed: 1, missing: 8, succeeded: 0, totalCost: null });
+    const report = validateVerify01Collection(
+      f.frozen,
+      f.preparation,
+      f.collected,
+    );
+    expect(report.firstRun).toMatchObject({
+      observed: 1,
+      missing: 8,
+      succeeded: 0,
+      totalCost: null,
+    });
     expect(report.task).toMatchObject({ observed: 0, missing: 36 });
     const row = report.rows.find((item) => item.observed);
-    expect(row).toMatchObject({ cost: null, failureCause: "install", succeeded: false });
+    expect(row).toMatchObject({
+      cost: null,
+      failureCause: "install",
+      succeeded: false,
+    });
     expect(row.reasons).not.toContain("missing_eval_run");
   });
 
   it.each([
-    ["missing stage receipt", (f) => { delete f.collected.observations[0].firstRun.stages.install.receipt; }],
-    ["impossible completed stage", (f) => { f.collected.observations[0].firstRun.stages.artifact.passed = true; }],
-    ["missing attribution", (f) => { delete f.collected.observations[0].failureCause; }],
-    ["invalid cost", (f) => { f.collected.observations[0].cost = -1; }],
+    [
+      "missing stage receipt",
+      (f) => {
+        delete f.collected.observations[0].firstRun.stages.install.receipt;
+      },
+    ],
+    [
+      "impossible completed stage",
+      (f) => {
+        f.collected.observations[0].firstRun.stages.artifact.passed = true;
+      },
+    ],
+    [
+      "missing attribution",
+      (f) => {
+        delete f.collected.observations[0].failureCause;
+      },
+    ],
+    [
+      "invalid cost",
+      (f) => {
+        f.collected.observations[0].cost = -1;
+      },
+    ],
   ])("rejects malformed early-stop %s", (_name, mutate) => {
     const f = earlyStopFixture();
     mutate(f);
-    expect(() => validateVerify01Collection(f.frozen, f.preparation, f.collected)).toThrow(/early-stop/);
+    expect(() =>
+      validateVerify01Collection(f.frozen, f.preparation, f.collected),
+    ).toThrow(/early-stop/);
   });
 
   it("requires task terminal evidence after the first-run tool stage succeeds", () => {
     const f = earlyStopFixture();
     f.collected.observations[0].firstRun.stages.tool.passed = true;
-    expect(() => validateVerify01Collection(f.frozen, f.preparation, f.collected)).toThrow(/missing run/);
+    expect(() =>
+      validateVerify01Collection(f.frozen, f.preparation, f.collected),
+    ).toThrow(/missing run/);
   });
 
   it("does not allow a normal task to claim first-install early-stop", () => {
@@ -183,7 +234,9 @@ describe("VERIFY-01 read-only preparation and collection", () => {
     const task = f.frozen.plan.samples.find((sample) => sample.kind === "task");
     f.collected.sampleIds = [task.id];
     f.collected.observations[0].sampleId = task.id;
-    expect(() => validateVerify01Collection(f.frozen, f.preparation, f.collected)).toThrow(/missing run/);
+    expect(() =>
+      validateVerify01Collection(f.frozen, f.preparation, f.collected),
+    ).toThrow(/missing run/);
   });
   it("validates the frozen population without running tasks or creating observations", () => {
     const f = fixture();

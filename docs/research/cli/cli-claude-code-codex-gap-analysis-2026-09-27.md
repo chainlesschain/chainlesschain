@@ -1,6 +1,6 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-09-27）
 
-> 2026-10-05 后续：[准确 `22c0e4036c` 的 CLI CI **68/68**、Strict **5/5**通过](./evidence/actions-gap-gates-22c0e4036c.json)；IDE 的新 JetBrains 推荐版本失配仍待修复源码复验。后续分支补 Memory 完整 ID 删除点读优化和 VERIFY-01 只读采集准入校验；详见[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05完整矩阵回读与后续工程项)。索引/SLO、实际任务、账号账单和首次安装等剩余验收不据此关闭。
+> 2026-10-05 后续：[准确 `22c0e4036c` 的 CLI CI **68/68**、Strict **5/5**通过](./evidence/actions-gap-gates-22c0e4036c.json)；IDE 的新 JetBrains 推荐版本失配仍待修复源码复验。主分支已补 Memory 完整 ID 删除点读优化和 VERIFY-01 只读采集准入校验，后者与既有 Eval 回归 **94/94**通过；详见[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05完整矩阵回读与后续工程项)。索引/SLO、实际任务、账号账单和首次安装等剩余验收不据此关闭。
 
 > 2026-10-04 Actions 后续修复：[PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)的准确 `22c0e4036c` 已通过两个指定失败作业：[ARM64 真实 Docker **24/24**](./evidence/net02-docker-arm64-22c0e4036c.json)、[Windows 浏览器 **157/157**及 codec/Workbench 整项作业](../ide/evidence/browser-windows-repair-22c0e4036c.json)。修复 Worker 事务中间态的已准入撤销分类与 Windows 缺失设备号的句柄身份核对；原 `a3fba4c51d` 的 **22/24、132/149**失败及诊断继续[保留](./evidence/actions-gap-repair-20261004.json)。[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-04用户指定的-arm64--windows-actions-失败修复)区分局部通过与完整矩阵；其余发布门和真实验收仍未据此关闭。
 
