@@ -12,6 +12,8 @@ const HOST_DOM_ACTIONS = new Set([
   "editDraft",
   "switchTab",
   "streamProfile",
+  "attachImage",
+  "removeAttachment",
 ]);
 const HOST_DOM_CLICK_TARGETS = new Set([
   "planApprove",
@@ -60,6 +62,21 @@ function validateHostDomRequest(value) {
     if (![10_000, 100_000, 200_000].includes(value.chars))
       throw new TypeError("Unsupported streaming profile size");
     return { action: value.action, chars: value.chars };
+  }
+  if (value.action === "attachImage") {
+    if (
+      !["png", "gif", "malformed", "unsupported", "oversized"].includes(
+        value.fixture,
+      ) ||
+      !["paste", "drop"].includes(value.via)
+    )
+      throw new TypeError("Unsupported host image fixture or event");
+    return { action: value.action, fixture: value.fixture, via: value.via };
+  }
+  if (value.action === "removeAttachment") {
+    if (!Number.isInteger(value.index) || value.index < 0 || value.index > 3)
+      throw new TypeError("Invalid host attachment index");
+    return { action: value.action, index: value.index };
   }
   if (value.action === "click") {
     if (!HOST_DOM_CLICK_TARGETS.has(value.target)) {
