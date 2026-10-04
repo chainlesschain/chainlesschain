@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { hash, delay, writeJson } from "./shared.mjs";
 import { startCoordinator } from "./coordinator.mjs";
 import { createPlan, historicalNames, runTestSequence } from "./plan.mjs";
+import { runPowerShellProbes } from "./powershell-probes.mjs";
 
 const EXPECTED_SOURCE =
   process.env.CC_UPDATER_DIAGNOSTIC_SOURCE_SHA ||
@@ -57,6 +58,8 @@ const identity = {
     : "five-historical-failures",
   driverSha: process.env.GITHUB_SHA ?? null,
   executionContext: {
+    generatedJournalTimingInstrumentation:
+      process.env.CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL === "true",
     gateContext: plan.gateContext,
     launchShell: process.env.CC_UPDATER_DIAGNOSTIC_LAUNCH_SHELL ?? "pwsh",
     msystem: process.env.MSYSTEM ?? null,
@@ -93,7 +96,10 @@ const identity = {
   ),
   releaseEligible: false,
   boundary:
-    "diagnostic instrumentation only; original tests/production bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead",
+    "diagnostic instrumentation only; original tests/production source bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead" +
+    (process.env.CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL === "true"
+      ? "; generated journal helpers include timing markers with original/instrumented hashes recorded"
+      : ""),
 };
 writeJson(path.join(output, "identity.json"), identity);
 if (
@@ -236,6 +242,8 @@ if (!sequence.updaterRan) {
   });
 }
 if (plan.gateContext) probeHost();
+if (process.env.CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL === "true")
+  runPowerShellProbes(output);
 writeJson(path.join(output, "completion.json"), {
   sourceSha: git("rev-parse", "HEAD"),
   sourceCleanAfter: git("status", "--porcelain", "--untracked-files=no") === "",

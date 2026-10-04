@@ -853,6 +853,11 @@ async function scheduleWindowsTransaction(ctx) {
 function windowsGenerationJournalHelperSource() {
   return String.raw`param()
 $ErrorActionPreference = 'Stop'
+# The journal contains only JSON primitives. Use the inbox .NET serializer and
+# file/path APIs so each phase does not repeat PowerShell module discovery.
+# Keep the same synchronous atomic replacement and durable flush protocol.
+[void][Reflection.Assembly]::Load('System.Web.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35')
+$Serializer = [Web.Script.Serialization.JavaScriptSerializer]::new()
 $Action = [string]$env:JOURNAL_ACTION
 $JournalPath = [string]$env:JOURNAL_FILE
 $RetiredPath = [string]$env:JOURNAL_RETIRED
@@ -872,7 +877,7 @@ if (($Phase -eq 'committed') -ne ($Decision -eq 'commit')) { throw 'Invalid phas
 if ($Action -eq 'write' -and $Phase -eq 'prepared') {
   if ([IO.File]::Exists($JournalPath)) { throw 'A generation journal already exists' }
   $Bytes = [Convert]::FromBase64String([string]$env:JOURNAL_INITIAL_BASE64)
-  $Journal = [Text.Encoding]::UTF8.GetString($Bytes) | ConvertFrom-Json
+  $Journal = $Serializer.DeserializeObject([Text.Encoding]::UTF8.GetString($Bytes))
   $ParentSource = @'
 using System;
 using System.Runtime.InteropServices;
@@ -900,10 +905,10 @@ public static class CcParentProcess {
 }
 '@
   Add-Type -TypeDefinition $ParentSource -Language CSharp
-  $Journal | Add-Member -NotePropertyName ownerPid -NotePropertyValue ([CcParentProcess]::Get())
+  $Journal.Add('ownerPid', [CcParentProcess]::Get())
 } else {
   if (-not [IO.File]::Exists($JournalPath)) { throw 'Generation journal is missing' }
-  $Journal = Get-Content -Raw -LiteralPath $JournalPath | ConvertFrom-Json
+  $Journal = $Serializer.DeserializeObject([IO.File]::ReadAllText($JournalPath, [Text.Encoding]::UTF8))
 }
 
 $ValidBefore = {
@@ -931,7 +936,7 @@ if ($Action -eq 'retire') {
   if ([string]$Journal.phase -ne $Phase -or [string]$Journal.decision -ne $Decision) {
     throw 'Generation journal decision changed before retirement'
   }
-  $ReplacedPath = Join-Path (Split-Path -Parent $JournalPath) ('.chainlesschain.journal-retired-previous-' + [guid]::NewGuid().ToString('N'))
+  $ReplacedPath = [IO.Path]::Combine([IO.Path]::GetDirectoryName($JournalPath), ('.chainlesschain.journal-retired-previous-' + [guid]::NewGuid().ToString('N')))
   try {
     if ([IO.File]::Exists($RetiredPath)) {
       [IO.File]::Replace($JournalPath, $RetiredPath, $ReplacedPath, $true)
@@ -985,11 +990,11 @@ if ($Phase -ne 'prepared') {
 $Journal.phase = $Phase
 $Journal.decision = $Decision
 $Journal.updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
-$Directory = Split-Path -Parent $JournalPath
-$StagingPath = Join-Path $Directory ('.chainlesschain.journal-' + [guid]::NewGuid().ToString('N'))
-$ReplacedPath = Join-Path $Directory ('.chainlesschain.journal-previous-' + [guid]::NewGuid().ToString('N'))
+$Directory = [IO.Path]::GetDirectoryName($JournalPath)
+$StagingPath = [IO.Path]::Combine($Directory, ('.chainlesschain.journal-' + [guid]::NewGuid().ToString('N')))
+$ReplacedPath = [IO.Path]::Combine($Directory, ('.chainlesschain.journal-previous-' + [guid]::NewGuid().ToString('N')))
 try {
-  $Payload = $Journal | ConvertTo-Json -Compress -Depth 8
+  $Payload = $Serializer.Serialize($Journal)
   $PayloadBytes = [Text.UTF8Encoding]::new($false).GetBytes($Payload + [Environment]::NewLine)
   $Stream = [IO.File]::Open($StagingPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
   try {

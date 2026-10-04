@@ -5,6 +5,7 @@ import path from "node:path";
 import cp from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
 import { describeCall, event, snapshot, writeJson } from "./shared.mjs";
+import { instrumentJournal } from "./journal-trace.mjs";
 
 const originalSpawn = cp.spawn;
 const originalSpawnSync = cp.spawnSync;
@@ -14,6 +15,10 @@ function begin(command, args, options, synchronous) {
   if (!output) return null;
   const description = describeCall(command, args);
   if (!description) return null;
+  const journalTrace =
+    process.env.CC_UPDATER_DIAGNOSTIC_TRACE_JOURNAL === "true"
+      ? instrumentJournal(description)
+      : null;
   const id = `${process.pid}-${++sequence}`;
   const config = {
     id,
@@ -24,6 +29,7 @@ function begin(command, args, options, synchronous) {
     synchronous,
     timeoutMs: options?.timeout ?? null,
     createdAt: Date.now(),
+    journalTrace,
   };
   const configPath = path.join(output, `${id}.config.json`);
   writeJson(configPath, config);
