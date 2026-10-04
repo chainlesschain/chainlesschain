@@ -50,7 +50,8 @@ function normalizedScope(scope, scopeId) {
     return { scope: value };
   }
   const normalizedId = safeIdentifier(scopeId, "");
-  if (!normalizedId) throw new TypeError(`scopeId is required for ${value} scope`);
+  if (!normalizedId)
+    throw new TypeError(`scopeId is required for ${value} scope`);
   return { scope: value, scopeId: normalizedId };
 }
 
@@ -87,7 +88,10 @@ function legacyProposal(entry, now) {
       {
         store: "cli-sqlite-memory-entries",
         id: safeIdentifier(entry?.id, memoryId),
-        digest: canonicalDigest(entry, "chainlesschain.cli-legacy-memory-row/v1"),
+        digest: canonicalDigest(
+          entry,
+          "chainlesschain.cli-legacy-memory-row/v1",
+        ),
       },
     ],
     confidence: 0.7,
@@ -206,7 +210,11 @@ export class CliCanonicalMemoryService {
         scopeId: "local-user",
         category: safeIdentifier(options.category, "general"),
         content,
-        provenance: { source: "cli-shadow", actor: "local-user", observedAt: now },
+        provenance: {
+          source: "cli-shadow",
+          actor: "local-user",
+          observedAt: now,
+        },
         evidenceRefs: [{ store: "cli-command", id: "shadow-memory-add" }],
         confidence: 0.7,
         importance: normalizedImportance(options.importance),
@@ -316,7 +324,9 @@ export class CliCanonicalMemoryService {
         const proposal = legacyProposal(entry, now);
         const existing = await this.runtime.memoryPort.read(proposal.memoryId);
         if (existing) {
-          const projected = createMemoryCandidate(proposal, { clock: this.now });
+          const projected = createMemoryCandidate(proposal, {
+            clock: this.now,
+          });
           if (existing.digest !== projected.digest) {
             const error = new Error(
               `legacy memory ${entry?.id || "unknown"} conflicts with canonical authority`,
@@ -358,7 +368,9 @@ export class CliCanonicalMemoryService {
         const proposal = legacyScopedProposal(entry, now);
         const existing = await this.runtime.memoryPort.read(proposal.memoryId);
         if (existing) {
-          const projected = createMemoryCandidate(proposal, { clock: this.now });
+          const projected = createMemoryCandidate(proposal, {
+            clock: this.now,
+          });
           if (existing.digest !== projected.digest) {
             const error = new Error(
               `legacy scoped memory ${entry?.id || "unknown"} conflicts with canonical authority`,
@@ -533,8 +545,7 @@ export class CliCanonicalMemoryService {
       .filter(
         ({ record }) =>
           (!options.category || record.category === options.category) &&
-          (tags.length === 0 ||
-            record.tags.some((tag) => tags.includes(tag))),
+          (tags.length === 0 || record.tags.some((tag) => tags.includes(tag))),
       )
       .slice(0, limit)
       .map(({ record, relevance }) => publicScopedEntry(record, relevance));
@@ -558,11 +569,19 @@ export class CliCanonicalMemoryService {
   }
 
   async delete(idOrPrefix) {
-    const records = await this.runtime.memoryPort.listRecords();
-    const exact = records.find((record) => record.memoryId === idOrPrefix);
-    const candidates = exact
-      ? [exact]
-      : records.filter((record) => record.memoryId.startsWith(idOrPrefix));
+    const exact = await this.runtime.memoryPort.read(idOrPrefix);
+    let candidates;
+    if (exact && !["deleted", "purged"].includes(exact.state)) {
+      candidates = [exact];
+    } else {
+      const records = await this.runtime.memoryPort.listRecords();
+      const listedExact = records.find(
+        (record) => record.memoryId === idOrPrefix,
+      );
+      candidates = listedExact
+        ? [listedExact]
+        : records.filter((record) => record.memoryId.startsWith(idOrPrefix));
+    }
     if (candidates.length === 0) return null;
     if (candidates.length > 1) {
       const error = new Error(`memory prefix is ambiguous: ${idOrPrefix}`);
@@ -601,7 +620,9 @@ export class CliCanonicalMemoryService {
           const existing = await this.runtime.memoryPort.read(record.memoryId);
           if (existing) {
             if (existing.digest !== record.digest) {
-              const error = new Error(`canonical memory conflict: ${record.memoryId}`);
+              const error = new Error(
+                `canonical memory conflict: ${record.memoryId}`,
+              );
               error.code = "CONTEXT_MEMORY_IMPORT_CONFLICT";
               throw error;
             }
@@ -620,18 +641,24 @@ export class CliCanonicalMemoryService {
             recordDigest: record.digest,
             at: new Date(Number(this.now())).toISOString(),
           };
-          event.digest = canonicalDigest(event, "chainlesschain.memory-event/v1");
+          event.digest = canonicalDigest(
+            event,
+            "chainlesschain.memory-event/v1",
+          );
           const committed = await this.runtime.memoryPort.commit(
             { record, event },
             0,
           );
-          if (!committed.ok) throw new Error(`memory import raced: ${record.memoryId}`);
+          if (!committed.ok)
+            throw new Error(`memory import raced: ${record.memoryId}`);
         } else {
           const proposal = legacyProposal(
             entry,
             new Date(Number(this.now())).toISOString(),
           );
-          const existing = await this.runtime.memoryPort.read(proposal.memoryId);
+          const existing = await this.runtime.memoryPort.read(
+            proposal.memoryId,
+          );
           if (existing) {
             result.existing += 1;
             continue;

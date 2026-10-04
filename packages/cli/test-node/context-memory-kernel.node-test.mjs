@@ -14,6 +14,7 @@ import {
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
+  applyMemoryCommand,
   ContextMemoryKernel,
   parseContextMemoryConformanceFixture,
   planContext,
@@ -60,6 +61,139 @@ import {
 
 const AT = "2026-08-29T00:00:00.000Z";
 const CLOCK = () => Date.parse(AT);
+
+function exactDeleteService(t) {
+  const directory = mkdtempSync(join(tmpdir(), "cc-memory-exact-delete-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  return new CliCanonicalMemoryService({
+    env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
+    memoryFilePath: join(directory, "kernel-v1.json"),
+    legacyMemoryStorePath: join(directory, "legacy.json"),
+    purgePorts: [],
+    clock: CLOCK,
+  });
+}
+
+async function seedDeleteMemory(service, memoryId) {
+  return service.ensureScoped(`Content for ${memoryId}`, {
+    memoryId,
+    scope: "agent",
+    scopeId: "delete-test-agent",
+    category: "fact",
+  });
+}
+
+test("complete memory ID deletes without scanning and retains scope and audit", async (t) => {
+  const service = exactDeleteService(t);
+  await seedDeleteMemory(service, "exact-target");
+  await seedDeleteMemory(service, "exact-target-other");
+  const port = service.runtime.memoryPort;
+  port.listRecords = port.query = async () => {
+    throw new Error("complete ID must not scan");
+  };
+  const receipt = await service.delete("exact-target");
+  assert.equal(receipt.status, "purged");
+  const deleted = await port.read("exact-target");
+  assert.equal(deleted.state, "purged");
+  assert.equal(deleted.content, "");
+  assert.equal(deleted.scope, "agent");
+  assert.equal(deleted.scopeId, "delete-test-agent");
+  assert.equal((await port.read("exact-target-other")).state, "active");
+  const snapshot = await port.exportSnapshot();
+  assert.ok(
+    snapshot.events.some(
+      (event) =>
+        event.memoryId === "exact-target" && event.toState === "deleted",
+    ),
+  );
+  const operation = Object.values(snapshot.reconciliations).find(
+    (item) => item.memoryId === "exact-target",
+  );
+  assert.equal(operation.subject, "local-user");
+  assert.equal(operation.authority, "cli-user-request");
+  assert.equal(operation.selector, "memory:exact-target");
+  assert.match(operation.fence, /^fence-/u);
+});
+
+test("memory prefix retains ambiguity and unique selection", async (t) => {
+  const service = exactDeleteService(t);
+  await seedDeleteMemory(service, "prefix-one");
+  await seedDeleteMemory(service, "prefix-two");
+  await assert.rejects(() => service.delete("prefix-"), {
+    code: "CONTEXT_MEMORY_ID_AMBIGUOUS",
+  });
+  assert.equal(
+    (await service.runtime.memoryPort.read("prefix-one")).state,
+    "active",
+  );
+  assert.equal((await service.delete("prefix-o")).status, "purged");
+  assert.equal(await service.delete("missing"), null);
+});
+
+test("tombstones are excluded while longer prefix matches remain eligible", async (t) => {
+  const service = exactDeleteService(t);
+  await seedDeleteMemory(service, "tombstone");
+  await service.delete("tombstone");
+  assert.equal(await service.delete("tombstone"), null);
+  await seedDeleteMemory(service, "tombstone-child");
+  assert.equal((await service.delete("tombstone")).status, "purged");
+  assert.equal(
+    (await service.runtime.memoryPort.read("tombstone-child")).state,
+    "purged",
+  );
+});
+
+test("an exact ID appearing before the prefix scan still takes precedence", async (t) => {
+  const service = exactDeleteService(t);
+  await seedDeleteMemory(service, "raced-exact");
+  await seedDeleteMemory(service, "raced-exact-child");
+  const port = service.runtime.memoryPort;
+  const read = port.read.bind(port);
+  let first = true;
+  port.read = async (id) => {
+    if (first) {
+      first = false;
+      return null;
+    }
+    return read(id);
+  };
+  assert.equal((await service.delete("raced-exact")).status, "purged");
+  assert.equal((await read("raced-exact-child")).state, "active");
+});
+
+test("point-read deletion preserves CAS conflict without retrying a mutation", async (t) => {
+  const service = exactDeleteService(t);
+  await seedDeleteMemory(service, "cas-target");
+  const port = service.runtime.memoryPort;
+  const read = port.read.bind(port);
+  let first = true;
+  port.read = async (id) => {
+    const record = await read(id);
+    if (first) {
+      first = false;
+      const mutation = applyMemoryCommand(record, {
+        type: "reinforce",
+        expectedRevision: record.revision,
+        confidenceDelta: 0.01,
+        authority: "concurrent-writer",
+        at: AT,
+      });
+      assert.equal((await port.commit(mutation, record.revision)).ok, true);
+    }
+    return record;
+  };
+  port.listRecords = async () => {
+    throw new Error("CAS must not retry via scan");
+  };
+  await assert.rejects(() => service.delete("cas-target"), {
+    code: "revision_conflict",
+  });
+  assert.equal((await read("cas-target")).state, "reinforced");
+  assert.equal(
+    Object.keys((await port.exportSnapshot()).reconciliations).length,
+    0,
+  );
+});
 
 function crossSurfaceProjectionFixture() {
   const fixture = parseContextMemoryConformanceFixture(
