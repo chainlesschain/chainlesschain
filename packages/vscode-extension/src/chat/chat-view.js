@@ -4317,6 +4317,7 @@ class ChatViewProvider {
             convId: conv.id,
             draftKey: key,
             revision: m.revision,
+            imagesChanged: m.images !== undefined,
           });
         } else if (m.type === "draftRecover") {
           const draft = await this._draftStore.recover(key, m.clientMessageId);

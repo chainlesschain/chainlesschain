@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.85: preserve durable state at capacity and revision limits
+
+- Reject oversized memory commits and reconciliation before replacing durable
+  data; bound reads even if the backing file grows during the read.
+- Refuse exhausted memory and scoped permission revisions before mutation,
+  preserving safe integer identities, idempotent revocation, and stale CAS.
+- Include pending packaged-build, settings observation, and disabled background
+  IPC lifetime fixes since the previous CLI release.
+- Pair VS Code `0.37.129` image draft recovery and JetBrains `0.4.147` with this
+  CLI only after complete exact-commit CI and public npm verification.
+
 ### Fixed - cc CLI 0.166.84: revoke scoped permissions before durable writes
 
 - Begin synchronous shell revocation before official workspace-scoped permission

@@ -12,6 +12,10 @@ const fs = require("fs");
 const path = require("path");
 const { createStreamingTranscript } = require("./streaming-transcript");
 const { measureStreamingProfile } = require("./streaming-profile");
+const {
+  dispatchHostImageFixture,
+  snapshotHostImageAttachments,
+} = require("./host-dom-image-fixtures");
 const { createTranscriptReconciler } = require("./transcript-reconciler");
 const { createQuestionForms } = require("./question-form-drafts");
 const MD_LITE_SOURCE = fs.readFileSync(
@@ -39,7 +43,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 7;
+const CHAT_UI_PROTOCOL_VERSION = 8;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -184,7 +188,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+      content="default-src 'none'; img-src data:; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
 <style nonce="${nonce}">
   :root { color-scheme: light dark; }
   body { margin:0; font-family: var(--vscode-font-family); color: var(--vscode-foreground);
@@ -289,6 +293,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
                        color: var(--vscode-list-activeSelectionForeground); }
   #suggest .item .desc { opacity:.65; font-size:.92em; }
   #attach { display:none; padding:2px 8px; font-size:.85em; }
+  #attach .chip img { width:40px; height:40px; object-fit:contain; vertical-align:middle; margin-right:4px; }
   #attach .chip { display:inline-block; margin-right:6px; padding:1px 8px;
                   border:1px solid var(--vscode-panel-border); border-radius:10px; }
   #attach .chip button { background:none; border:none; color:inherit; padding:0 0 0 4px;
@@ -831,6 +836,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   }
   function queueDraft(id, draft, imagesChanged = false) {
     draft.dirty = true; draft.revision += 1;
+    if (imagesChanged) draft.imageRevision = draft.revision;
     draft.imagesChanged = draft.imagesChanged || imagesChanged;
     rememberComposer(id, draft);
     clearTimeout(draft.timer);
@@ -905,6 +911,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = "📷 image " + (i + 1);
+      // Decode previews only after host image/header/pixel-budget validation.
+      if (composerDraft().imagesVerified && typeof img.data === "string" && /^data:image\\/(png|jpeg|gif|webp);base64,/.test(img.data)) {
+        const preview = document.createElement("img");
+        preview.alt = "Attached image " + (i + 1);
+        preview.width = 40; preview.height = 40;
+        preview.src = img.data;
+        chip.appendChild(preview);
+      }
       const x = document.createElement("button");
       x.textContent = "×";
       x.title = "remove attachment";
@@ -933,13 +947,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       settled = true;
       draft.reads -= 1;
       draft.readingBytes -= blob.size;
-      if (!error) draft.images.push({ data: fr.result, size: blob.size });
+      if (!error) { draft.images.push({ data: fr.result, size: blob.size }); draft.imagesVerified = false; }
       if (!error) draft.imagesLoaded = true;
       const currentOwner = Object.keys(composerDrafts).find((key) => composerDrafts[key] === draft) || owner;
       if (!error) queueDraft(currentOwner, draft, true);
       if (composerDraft() === draft) {
         pendingImages = draft.images;
         renderAttach();
+        renderDraftPanel();
         if (error) add("error", "Image could not be read. Please attach it again.");
       }
     };
@@ -1285,7 +1300,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
                 (button) => button.textContent.trim() === "Approve" && !button.disabled,
               ) || null
             : null;
-          respond(true, {
+          const snapshot = {
             readyState: document.readyState,
             title: document.title,
             url: location.href,
@@ -1293,6 +1308,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             inputPresent: Boolean(input),
             inputText: input ? input.value : "",
             draftStatus: draftPanel ? draftPanel.textContent : "",
+            attachmentChips: [...attach.querySelectorAll(".chip")].map(chip => chip.textContent),
             tabs: [...tabsEl.querySelectorAll('[role="tab"]')].map(tab => ({ id: tab.dataset.tabId, title: tab.textContent, selected: tab.getAttribute("aria-selected") === "true" })),
             savedRows: [...log.querySelectorAll('[data-saved-row-id]')].map(row => ({ id: row.dataset.savedRowId, text: row.textContent })),
             sendEnabled: Boolean(document.getElementById("send") && !document.getElementById("send").disabled),
@@ -1300,13 +1316,25 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             planVisible: Boolean(plan && getComputedStyle(plan).display !== "none"),
             planApproveEnabled: Boolean(document.getElementById("planApprove") && !document.getElementById("planApprove").disabled),
             approvalApproveEnabled: Boolean(approvalButton),
-          });
+          };
+          (${snapshotHostImageAttachments.toString()})(attach).then(
+            attachments => respond(true, { ...snapshot, attachments }),
+            error => respond(false, error.message),
+          );
           return;
         }
         if (command.action === "editDraft" && typeof command.text === "string" && command.text.length <= 512) {
           input.value = command.text;
           input.dispatchEvent(new Event("input", { bubbles: true }));
           respond(true, { edited: true }); return;
+        }
+        if (command.action === "attachImage") {
+          respond(true, (${dispatchHostImageFixture.toString()})(input, command.fixture, command.via)); return;
+        }
+        if (command.action === "removeAttachment" && Number.isInteger(command.index) && command.index >= 0 && command.index < 4) {
+          const button = attach.querySelectorAll('.chip button[title="remove attachment"]')[command.index];
+          if (!button) throw new Error("attachment control is unavailable");
+          button.click(); respond(true, { removed: command.index }); return;
         }
         if (command.action === "switchTab" && typeof command.id === "string") {
           const tab = [...tabsEl.querySelectorAll('[role="tab"]')].find(tab => tab.dataset.tabId === command.id);
@@ -1373,20 +1401,21 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         if (!draft || draft.key !== m.draftKey) break;
         const active = m.convId === activeTabId;
         if (m.kind === "draftSaved") {
-          if (m.revision === draft.revision) { draft.dirty = false; draft.saveError = ""; }
+          if (m.imagesChanged && m.revision >= (draft.imageRevision || 0)) { draft.imagesVerified = true; if (active) renderAttach(); }
+          if (m.revision === draft.revision && (draft.imagesVerified || !draft.images.length)) { draft.dirty = false; draft.saveError = ""; }
         } else if (m.kind === "draftSaveError") { draft.saveError = String(m.text || "storage error"); if (m.imagesChanged) draft.imagesChanged = true; }
         else if (m.kind === "draftSnapshot" || m.kind === "draftCopy") {
           if (Array.isArray(m.pending)) draft.pending = m.pending;
           if (Array.isArray(m.questions)) draft.questions = m.questions;
           if (draftBackup && draftBackup.key === draft.key && draftBackup.pendingId) { draft.backupResolved = draft.backupResolved || draft.pending.some((item) => item.id === draftBackup.pendingId); draft.backupUnconfirmed = !draft.backupResolved; }
           if (m.composer && !draft.imagesLoaded && !draft.imagesChanged) {
-            draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true;
+            draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true; draft.imagesVerified = true;
             if (active) { pendingImages = draft.images; renderAttach(); }
           }
           if (m.composer && (!draft.dirty || m.kind === "draftCopy")) {
             if (m.kind === "draftCopy" && (draft.text || draft.images.length)) { if (active) add("info", "The composer has another draft. Save or clear it before restoring saved input."); }
             else {
-              draft.text = String(m.composer.text || ""); draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true;
+              draft.text = String(m.composer.text || ""); draft.images = m.composer.images || []; draft.missingImages = !!m.composer.missingImages; draft.imagesLoaded = true; draft.imagesVerified = true;
               if (active) { input.value = draft.text; pendingImages = draft.images; renderAttach(); }
               if (m.kind === "draftCopy") queueDraft(m.convId, draft, true);
             }

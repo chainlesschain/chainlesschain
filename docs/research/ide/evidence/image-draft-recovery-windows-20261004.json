@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.ide-image-draft-recovery-readback/v1",
+  "recordedAt": "2026-10-04T04:57:31.411Z",
+  "status": "passed",
+  "driverCommit": "b490b7e9d725d25634485dda766f2693a467795e",
+  "packageSourceCommit": "cce30a34f1b143543b1aa39e507530edbecc44fc",
+  "host": {
+    "name": "vscode",
+    "version": "1.132.0",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "developmentArtifact": true,
+  "releaseGateEligible": false,
+  "artifact": {
+    "kind": "release-artifact",
+    "name": "ide-gap-20261004.vsix",
+    "path": "release-artifacts/001-ide-gap-20261004.vsix",
+    "sha256": "sha256:7799a79e09a338ef98c26b63ee446a30286a6796e461f9bce359f0fb84a3e952",
+    "bytes": 694174
+  },
+  "originalEvidenceDirectory": ".work/gap-validation/ide-host-evidence-diagnostic-20261004",
+  "verifiedArtifactCount": 31,
+  "archived": [
+    {
+      "file": "docs/research/ide/evidence/image-draft-recovery-windows-20261004/initial.json",
+      "bytes": 10418,
+      "sha256": "103f4c4957068495ec3b17f54cf4a94ac24960a9c66b252b1e868a1de9839762"
+    },
+    {
+      "file": "docs/research/ide/evidence/image-draft-recovery-windows-20261004/restart.json",
+      "bytes": 1309,
+      "sha256": "48e45ccde8dfa7079bee443b50efbeafd7738338324bd5bd4b80b29872eedc3c"
+    },
+    {
+      "file": "docs/research/ide/evidence/image-draft-recovery-windows-20261004/journey-evidence.json",
+      "bytes": 10370,
+      "sha256": "d5e09cdc286ff35dd4de83d869cd52f043e82ba7dd2bfd041ddc6cea7bfba971"
+    }
+  ],
+  "sources": [
+    {
+      "file": "packages/vscode-extension/src/chat/chat-html.js",
+      "gitBlob": "800a801818c72a258432bd1d0d012cd9abad081e",
+      "sha256": "f5bc8b8ea3aa54a792fb62062c02191d53beaf3972d75b81e4ecb0c89dc7c337"
+    },
+    {
+      "file": "packages/vscode-extension/src/chat/chat-view.js",
+      "gitBlob": "1d7d897e5f9a98015766e9c2f17c0075d72a40f0",
+      "sha256": "af2c4bb00b4e6d4310022cdd4628655ecfce7d7ead291781c1dc18224eea18d3"
+    },
+    {
+      "file": "packages/vscode-extension/src/chat/host-dom-relay.js",
+      "gitBlob": "6b153e61b858fa95a04c991e4d7a16292303086f",
+      "sha256": "ec5d5d6e7755f21d7f8d9bbc9b4738a2cc8d655e9107cc5c8cd55b2fd85b8bba"
+    },
+    {
+      "file": "packages/vscode-extension/src/chat/host-dom-image-fixtures.js",
+      "gitBlob": "c7f443e422a7ebbbc9095af3f6581f7b41d5d4e3",
+      "sha256": "15bdfa97972dad842ef652f7c435cc618460ee1151b6eedc1ec15e9053591549"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/conversation-recovery.cjs",
+      "gitBlob": "1e55f75486a2b1c23a5f1bb3020fbac39c4cf882",
+      "sha256": "e1abbd0c9a2f4b765d9bae5aef2b7ab61075a454389c2c1447766ce82b51bde4"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/smoke.cjs",
+      "gitBlob": "941d338e0baa7408aac3ccea717120871f63633e",
+      "sha256": "5f3c0e668d198f7a4ec110ce5b96d3a308ece968c610d9caba25f96356045c15"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "gitBlob": "91e39b4132c97e0777b74bcc52dbb3317736f7b6",
+      "sha256": "802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "gitBlob": "7644ab6088e692e2e787bbf6c279dad68f467129",
+      "sha256": "980c68d2f051c88cfd6899ea05872b1833507f08c220cc7d054dea0f13dc5d41"
+    }
+  ],
+  "results": {
+    "canonicalHistoryRows": 6,
+    "backgroundCompletionObserved": true,
+    "historyIdsPreserved": true,
+    "composerDraftsPreserved": true,
+    "automaticInputReplay": false,
+    "images": {
+      "a": {
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": [
+          "📷 image 1×"
+        ],
+        "attachments": [
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      },
+      "b": {
+        "inputText": "unsent draft B 中文😀",
+        "attachmentChips": [
+          "📷 image 1×"
+        ],
+        "attachments": [
+          {
+            "sha256": "ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629",
+            "mime": "image/gif",
+            "bytes": 42,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-B Discard saved input"
+      }
+    },
+    "rejections": [
+      "unsupported",
+      "oversized",
+      "malformed",
+      "count-limit"
+    ],
+    "userImageSubmissions": 0
+  },
+  "priorAttempt": {
+    "result": "failed-during-activation",
+    "evidence": ".work/gap-validation/ide-host-evidence-cce30a34f1/journey-evidence.json",
+    "cause": "not-isolated; not reproduced on second attempt"
+  },
+  "limitations": [
+    "Model responses are deterministic fixtures; no real-provider acceptance.",
+    "Windows x64 only; JetBrains and other operating systems are not covered.",
+    "Four rejection cases and 1x1 PNG/GIF decoding do not prove every codec or animation budget.",
+    "Original evidence bundle is local; only listed JSON artifacts are archived in Git.",
+    "This development VSIX is not the publicly released package with the same version number.",
+    "Initial activation failure remains unexplained; successful retry does not establish causality."
+  ],
+  "packagedSourceVerification": {
+    "commit": "cce30a34f1b143543b1aa39e507530edbecc44fc",
+    "sourceFileCount": 148,
+    "prefix": "extension/src/",
+    "allMatchGitBytes": true
+  }
+}

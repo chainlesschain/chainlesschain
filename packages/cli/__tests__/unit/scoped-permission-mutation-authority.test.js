@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  SCOPED_PERMISSION_ERROR_CODES,
   ScopedPermissionStore,
   getScopedPermissionRevision,
   subscribeScopedPermissionRevision,
@@ -205,6 +206,81 @@ else console.log(store.add({ decision: 'allow', rule: 'Read', expiresAt: Date.no
     expect(getScopedPermissionRevision()).toBe(revoked);
     expect(fs.readFileSync(filePath, "utf8")).toBe(bytes);
     expect(observer).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["add", "generation"],
+    ["revoke", "generation"],
+    ["revoke", "revision"],
+  ])(
+    "refuses %s at exhausted %s before notifying or writing",
+    (operation, field) => {
+      const target = store();
+      const created = add(target);
+      const state = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      const versioned = field === "generation" ? state : state.rules[0];
+      versioned[field] = Number.MAX_SAFE_INTEGER;
+      fs.writeFileSync(filePath, JSON.stringify(state));
+      const bytes = fs.readFileSync(filePath, "utf8");
+      const before = getScopedPermissionRevision();
+      const observer = vi.fn();
+      listen(observer);
+      const rename = vi.spyOn(fs, "renameSync");
+
+      expect(() =>
+        operation === "add"
+          ? add(target, { expectedGeneration: state.generation })
+          : target.revoke({
+              id: created.id,
+              expectedRevision: state.rules[0].revision,
+            }),
+      ).toThrow(
+        expect.objectContaining({
+          code: SCOPED_PERMISSION_ERROR_CODES.INVALID,
+          message: `Scoped permission ${field} is exhausted`,
+          commitState: "not-committed",
+        }),
+      );
+      expect(getScopedPermissionRevision()).toBe(before);
+      expect(observer).not.toHaveBeenCalled();
+      expect(rename).not.toHaveBeenCalledWith(expect.anything(), filePath);
+      expect(fs.readFileSync(filePath, "utf8")).toBe(bytes);
+      expect(target.list().rules[0].status).toBe("active");
+    },
+  );
+
+  it("keeps an idempotent revoke at exhausted versions read-only while rejecting stale CAS", () => {
+    const target = store();
+    const created = add(target);
+    target.revoke({ id: created.id });
+    const state = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    state.generation = Number.MAX_SAFE_INTEGER;
+    state.rules[0].revision = Number.MAX_SAFE_INTEGER;
+    fs.writeFileSync(filePath, JSON.stringify(state));
+    const bytes = fs.readFileSync(filePath, "utf8");
+    const before = getScopedPermissionRevision();
+    const observer = vi.fn();
+    listen(observer);
+    const rename = vi.spyOn(fs, "renameSync");
+
+    expect(
+      target.revoke({
+        id: created.id,
+        expectedRevision: Number.MAX_SAFE_INTEGER,
+      }),
+    ).toMatchObject({ status: "revoked", revision: Number.MAX_SAFE_INTEGER });
+    expect(() =>
+      target.revoke({
+        id: created.id,
+        expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT }),
+    );
+    expect(getScopedPermissionRevision()).toBe(before);
+    expect(observer).not.toHaveBeenCalled();
+    expect(rename).not.toHaveBeenCalledWith(expect.anything(), filePath);
+    expect(fs.readFileSync(filePath, "utf8")).toBe(bytes);
   });
 
   it("rejects stale reads when a clock callback commits another scoped mutation", () => {

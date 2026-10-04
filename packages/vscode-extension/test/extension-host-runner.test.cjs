@@ -8,6 +8,62 @@ const path = require("node:path");
 const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
+  recordHostDriverFailure,
+} = require("./extension-host/driver/failure-receipt.cjs");
+
+test("host driver preserves the first failure receipt without capturing surrounding state", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-host-failure-"));
+  const resultFile = path.join(directory, "initial-result.json");
+  try {
+    const error = new assert.AssertionError({
+      message: "activation did not complete",
+    });
+    const lines = [];
+    recordHostDriverFailure(error, {
+      resultFile,
+      phase: "initial",
+      log: (line) => lines.push(line),
+    });
+    const receipt = JSON.parse(
+      fs.readFileSync(`${resultFile}.failure.json`, "utf8"),
+    );
+    assert.equal(receipt.error.name, "AssertionError");
+    assert.equal(receipt.error.message, error.message);
+    assert.equal(receipt.error.stack, error.stack);
+    assert.deepEqual(Object.keys(receipt).sort(), [
+      "at",
+      "error",
+      "phase",
+      "schema",
+    ]);
+    assert.equal(receipt.phase, "initial");
+    assert.equal(lines.length, 1);
+    assert.ok(
+      !fs.existsSync(resultFile),
+      "failure must not create a success result",
+    );
+    assert.doesNotThrow(() =>
+      recordHostDriverFailure(new Error("later"), {
+        resultFile,
+        log() {
+          throw new Error("console closed");
+        },
+      }),
+    );
+    assert.equal(
+      JSON.parse(fs.readFileSync(`${resultFile}.failure.json`, "utf8")).error
+        .message,
+      error.message,
+    );
+    assert.doesNotThrow(() =>
+      recordHostDriverFailure(error, { resultFile: directory, log() {} }),
+    );
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(`${directory}.failure.json`, { force: true });
+  }
+});
+const {
   assertHostApiArtifacts,
   assertMultiWindowEvidence,
   buildExternalCompanionHostLaunchArgs,

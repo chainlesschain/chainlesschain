@@ -143,7 +143,7 @@ function validateRecord(record, seenIds) {
     seenIds.has(record.id) ||
     !DECISIONS.has(record.decision) ||
     !parseRule(record.rule) ||
-    !Number.isInteger(record.revision) ||
+    !Number.isSafeInteger(record.revision) ||
     record.revision < 1 ||
     !Number.isFinite(record.createdAt) ||
     !Number.isFinite(record.expiresAt) ||
@@ -165,7 +165,7 @@ function validateState(value, workspace) {
     !value ||
     value.schema !== STATE_SCHEMA ||
     value.schemaVersion !== STATE_SCHEMA_VERSION ||
-    !Number.isInteger(value.generation) ||
+    !Number.isSafeInteger(value.generation) ||
     value.generation < 0 ||
     !value.workspace ||
     value.workspace.id !== workspace.id ||
@@ -186,6 +186,16 @@ function statusFor(record, now) {
   if (record.revokedAt !== null) return "revoked";
   if (record.expiresAt <= now) return "expired";
   return "active";
+}
+
+function nextVersion(value, label) {
+  if (value === Number.MAX_SAFE_INTEGER) {
+    throw scopedPermissionError(
+      SCOPED_PERMISSION_ERROR_CODES.INVALID,
+      `Scoped permission ${label} is exhausted`,
+    );
+  }
+  return value + 1;
 }
 
 function projectRecord(record, now, filePath) {
@@ -412,7 +422,7 @@ export class ScopedPermissionStore {
         reason: normalizedReason,
       };
       Object.assign(draft, current, {
-        generation: current.generation + 1,
+        generation: nextVersion(current.generation, "generation"),
         updatedAt: now,
         rules: [...retained, created],
       });
@@ -462,13 +472,13 @@ export class ScopedPermissionStore {
       }
       revoked = {
         ...record,
-        revision: record.revision + 1,
+        revision: nextVersion(record.revision, "revision"),
         revokedAt: now,
       };
       const rules = [...current.rules];
       rules[index] = revoked;
       Object.assign(draft, current, {
-        generation: current.generation + 1,
+        generation: nextVersion(current.generation, "generation"),
         updatedAt: now,
         rules,
       });

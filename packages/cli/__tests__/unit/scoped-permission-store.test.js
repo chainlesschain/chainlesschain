@@ -123,6 +123,89 @@ describe("ScopedPermissionStore", () => {
     );
   });
 
+  it.each(["generation", "revision"])(
+    "refuses an unsafe persisted %s instead of accepting a non-advancing version",
+    (field) => {
+      store().add({
+        decision: "allow",
+        rule: "Read",
+        expiresAt: now + 60_000,
+      });
+      const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+      const target = field === "generation" ? state : state.rules[0];
+      target[field] = Number.MAX_SAFE_INTEGER + 1;
+      fs.writeFileSync(stateFile, JSON.stringify(state));
+
+      expect(() => store().list()).toThrow(
+        expect.objectContaining({
+          code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT,
+        }),
+      );
+    },
+  );
+
+  it("advances the last safe generation on add and keeps stale generation CAS", () => {
+    store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+    state.generation = Number.MAX_SAFE_INTEGER - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+    const target = store({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+    target.add({
+      decision: "deny",
+      rule: "Write",
+      expiresAt: now + 60_000,
+      expectedGeneration: Number.MAX_SAFE_INTEGER - 1,
+    });
+    expect(target.list().generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(target.list().rules).toHaveLength(2);
+    expect(() =>
+      target.add({
+        decision: "allow",
+        rule: "Bash",
+        expiresAt: now + 60_000,
+        expectedGeneration: Number.MAX_SAFE_INTEGER - 1,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT }),
+    );
+  });
+
+  it("advances the last safe revision on revoke and keeps stale revision CAS", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+    state.generation = Number.MAX_SAFE_INTEGER - 1;
+    state.rules[0].revision = Number.MAX_SAFE_INTEGER - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const revoked = store().revoke({
+      id: created.id,
+      expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+    });
+    expect(revoked).toMatchObject({
+      status: "revoked",
+      revision: Number.MAX_SAFE_INTEGER,
+    });
+    expect(store().list().generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(() =>
+      store().revoke({
+        id: created.id,
+        expectedRevision: Number.MAX_SAFE_INTEGER - 1,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT }),
+    );
+  });
+
   it("fails closed on corrupt state or a different workspace binding", () => {
     fs.mkdirSync(path.dirname(stateFile), { recursive: true });
     fs.writeFileSync(stateFile, "{ broken", "utf8");

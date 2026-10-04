@@ -41,15 +41,61 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
   temporaryRoots.push(root);
   const at = "2026-09-27T00:00:01.000Z";
   const initial = {
-    schema: "cc-ide-conversation-recovery/v1",
+    schema: "cc-ide-conversation-recovery/v2",
     phase: "initial",
     backgroundAt: "2026-09-27T00:00:00.000Z",
     backgroundCompletedAt: at,
     foregroundReturnAt: "2026-09-27T00:00:02.000Z",
     a: {
+      draft: "unsent draft A",
       savedRows: [0, 1, 2, 3].map((n) => ({ id: `session-a:hash-${n}:0` })),
     },
-    b: { savedRows: [0, 1].map((n) => ({ id: `session-b:hash-${n}:0` })) },
+    b: {
+      draft: "unsent draft B",
+      savedRows: [0, 1].map((n) => ({ id: `session-b:hash-${n}:0` })),
+    },
+  };
+  const imageSnapshot = (key, count = 1) => ({
+    inputText: initial[key].draft,
+    attachmentChips: Array.from({ length: count }, (_, i) => `image ${i + 1}`),
+    draftStatus: "Draft saved on this device",
+    attachments: Array.from({ length: count }, () => ({
+      sha256: (key === "a" ? "ab" : "cd").repeat(32),
+      mime: key === "a" ? "image/png" : "image/gif",
+      bytes: 64,
+      naturalWidth: 1,
+      naturalHeight: 1,
+      loaded: true,
+    })),
+  });
+  initial.images = {
+    a: imageSnapshot("a"),
+    b: imageSnapshot("b"),
+    tabSwitch: { a: imageSnapshot("a"), b: imageSnapshot("b") },
+    rejected: [
+      {
+        fixture: "unsupported",
+        feedbackText: "Use PNG, JPEG, GIF or WebP images.",
+        ...imageSnapshot("a"),
+      },
+      {
+        fixture: "oversized",
+        feedbackText: "Images must total at most 20 MiB per message.",
+        ...imageSnapshot("a"),
+      },
+      {
+        fixture: "malformed",
+        ...imageSnapshot("a", 2),
+        feedbackText: "Unsupported or malformed image header",
+        draftStatus:
+          "Draft could not be saved: Unsupported or malformed image header",
+      },
+      {
+        fixture: "count-limit",
+        feedbackText: "Attach at most 4 images per message.",
+        ...imageSnapshot("a", 4),
+      },
+    ],
   };
   const restart = {
     schema: initial.schema,
@@ -57,6 +103,7 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
     historyIdsPreserved: true,
     composerDraftsPreserved: true,
     automaticInputReplay: false,
+    images: { a: imageSnapshot("a"), b: imageSnapshot("b") },
   };
   const records = [
     { direction: "canonical", sessionId: "session-a", at },
@@ -81,6 +128,23 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
   );
   write();
   assert.doesNotThrow(() => assertConversationRecoveryArtifacts(root, records));
+  restart.images.a.attachmentChips = [];
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  restart.images.a = imageSnapshot("a");
+  restart.images.a.attachments[0].sha256 = "ef".repeat(32);
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  restart.images.a = imageSnapshot("a");
+  restart.images.a.attachments[0].loaded = false;
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  restart.images.a = imageSnapshot("a");
+  initial.images.rejected[0].feedbackText = "";
+  write();
+  assert.throws(() => assertConversationRecoveryArtifacts(root, records));
+  initial.images.rejected[0].feedbackText =
+    "Use PNG, JPEG, GIF or WebP images.";
   initial.foregroundReturnAt = initial.backgroundAt;
   write();
   assert.throws(() => assertConversationRecoveryArtifacts(root, records));
@@ -94,6 +158,15 @@ test("recovery evidence rejects missing restart proof, duplicate rows, foregroun
     assertConversationRecoveryArtifacts(root, [
       ...records,
       { direction: "in", event: { type: "user", text: "unsent draft A" } },
+    ]),
+  );
+  assert.throws(() =>
+    assertConversationRecoveryArtifacts(root, [
+      ...records,
+      {
+        direction: "in",
+        event: { type: "user", text: "", images: ["image.png"] },
+      },
     ]),
   );
 });
@@ -162,6 +235,62 @@ test("host DOM relay is token-gated and only accepts fixed semantic actions", ()
       /tab ID/,
     );
   }
+  for (const fixture of [
+    "png",
+    "gif",
+    "unsupported",
+    "malformed",
+    "oversized",
+  ]) {
+    for (const via of ["paste", "drop"]) {
+      assert.deepEqual(
+        validateHostDomRequest({
+          action: "attachImage",
+          fixture,
+          via,
+          data: "untrusted",
+          path: "C:/secret",
+        }),
+        { action: "attachImage", fixture, via },
+      );
+    }
+  }
+  for (const fixture of [
+    "__proto__",
+    "constructor",
+    "file:///secret",
+    {},
+    null,
+  ]) {
+    assert.throws(
+      () =>
+        validateHostDomRequest({
+          action: "attachImage",
+          fixture,
+          via: "paste",
+        }),
+      /image fixture/,
+    );
+  }
+  assert.throws(
+    () =>
+      validateHostDomRequest({
+        action: "attachImage",
+        fixture: "png",
+        via: "evaluate",
+      }),
+    /image fixture/,
+  );
+  for (const index of [-1, 4, 1.5, "0", null]) {
+    assert.throws(
+      () => validateHostDomRequest({ action: "removeAttachment", index }),
+      /attachment index/,
+    );
+  }
+  assert.deepEqual(
+    validateHostDomRequest({ action: "removeAttachment", index: 3 }),
+    { action: "removeAttachment", index: 3 },
+  );
 });
 
 test("streaming evidence rejects forged timing summaries and missing selection/parse proof", () => {
@@ -346,6 +475,237 @@ test("chat HTML keeps the relay inert without a valid launch token", () => {
   for (const [, source] of scripts) {
     assert.doesNotThrow(() => new vm.Script(source));
   }
+});
+
+test("image DOM actions require the exact token and request identity before dispatch", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+    hostDomToken: TOKEN,
+  });
+  const start = html.indexOf('window.addEventListener("message", (e) => {');
+  const end = html.indexOf(
+    "    // The Extension Host may have restarted",
+    start,
+  );
+  assert.ok(start >= 0 && end > start);
+  let receive;
+  const events = [];
+  const responses = [];
+  let removals = 0;
+  class Transfer {
+    constructor() {
+      this.files = [];
+      this.items = { add: (file) => this.files.push(file) };
+    }
+  }
+  class ImageEvent {
+    constructor(type, options) {
+      this.type = type;
+      Object.assign(this, options);
+    }
+    preventDefault() {
+      this.defaultPrevented = true;
+    }
+  }
+  vm.runInNewContext(html.slice(start, end) + "});", {
+    window: {
+      addEventListener: (_type, listener) => {
+        receive = listener;
+      },
+    },
+    CC_HOST_DOM_TOKEN: TOKEN,
+    questionForms: { receive: () => false },
+    vscode: { postMessage: (message) => responses.push(message) },
+    input: {
+      dispatchEvent: (event) => {
+        events.push(event);
+        event.preventDefault();
+      },
+    },
+    attach: {
+      querySelectorAll: () => [
+        {
+          click: () => {
+            removals++;
+          },
+        },
+      ],
+    },
+    DataTransfer: Transfer,
+    ClipboardEvent: ImageEvent,
+    DragEvent: ImageEvent,
+    File: class {
+      constructor(parts, name, options) {
+        this.parts = parts;
+        this.name = name;
+        this.type = options.type;
+      }
+    },
+    atob: (value) => Buffer.from(value, "base64").toString("binary"),
+    Uint8Array,
+  });
+  const request = (token, requestId, command) =>
+    receive({ data: { kind: "hostDomCommand", token, requestId, command } });
+  const id = "ab".repeat(16);
+  for (const command of [
+    { action: "attachImage", fixture: "png", via: "paste" },
+    { action: "removeAttachment", index: 0 },
+  ]) {
+    for (const token of [undefined, "", "cd".repeat(32)])
+      request(token, id, command);
+    request(TOKEN, "invalid", command);
+  }
+  assert.equal(events.length, 0);
+  assert.equal(removals, 0);
+  assert.equal(responses.length, 0);
+  for (const [fixture, via] of [
+    ["png", "paste"],
+    ["gif", "drop"],
+  ]) {
+    request(TOKEN, id, { action: "attachImage", fixture, via });
+    assert.equal(responses.at(-1).ok, true);
+    assert.equal(events.at(-1).type, via);
+    const transfer = events.at(-1).clipboardData || events.at(-1).dataTransfer;
+    const file = transfer.files[0];
+    assert.equal(
+      require("../src/chat/image-attachments").imageDimensions(
+        Buffer.from(file.parts[0]),
+      ).format,
+      fixture,
+    );
+  }
+  request(TOKEN, id, {
+    action: "attachImage",
+    fixture: "__proto__",
+    via: "paste",
+  });
+  assert.equal(responses.at(-1).ok, false);
+  assert.equal(events.length, 2);
+  request(TOKEN, id, { action: "removeAttachment", index: 0 });
+  assert.equal(removals, 1);
+  assert.equal(responses.at(-1).ok, true);
+});
+
+test("finishing an image read immediately replaces the stale saved indication with saving", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+  const start = html.indexOf("  function addImageBlob(blob) {");
+  const end = html.indexOf('  input.addEventListener("paste"', start);
+  const draft = { images: [], reads: 0, readingBytes: 0, dirty: false };
+  const statuses = [];
+  let reader;
+  const context = vm.createContext({
+    saveComposer() {},
+    tabKey: () => "a",
+    composerDraft: () => draft,
+    composerDrafts: { a: draft },
+    renderAttach() {},
+    queueDraft: () => {
+      draft.dirty = true;
+    },
+    renderDraftPanel: () => statuses.push(draft.dirty ? "saving" : "saved"),
+    FileReader: class {
+      constructor() {
+        reader = this;
+      }
+      readAsDataURL() {}
+    },
+  });
+  vm.runInContext(
+    html.slice(start, end) + '\naddImageBlob({type: "image/png", size: 64});',
+    context,
+  );
+  assert.equal(draft.reads, 1);
+  reader.result = "data:image/png;base64,cG5n";
+  reader.onload();
+  assert.equal(draft.images.length, 1);
+  assert.equal(draft.reads, 0);
+  assert.deepEqual(statuses, ["saving"]);
+  assert.equal(draft.imagesVerified, false);
+});
+
+test("text-only or stale image ACKs cannot authorize unvalidated image previews", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+  const start = html.indexOf('        if (m.kind === "draftSaved") {');
+  const end = html.indexOf(' else if (m.kind === "draftSnapshot"', start);
+  assert.ok(start >= 0 && end > start);
+  const draft = {
+    revision: 4,
+    imageRevision: 3,
+    images: [{}],
+    dirty: true,
+    saveError: "bad image",
+  };
+  let previews = 0;
+  const context = vm.createContext({
+    draft,
+    active: true,
+    renderAttach: () => {
+      previews++;
+    },
+  });
+  const receive = (m) => {
+    context.m = m;
+    vm.runInContext(html.slice(start, end), context);
+  };
+  receive({ kind: "draftSaved", revision: 4, imagesChanged: false });
+  assert.equal(draft.imagesVerified, undefined);
+  assert.equal(draft.dirty, true);
+  assert.equal(draft.saveError, "bad image");
+  receive({ kind: "draftSaved", revision: 2, imagesChanged: true });
+  assert.equal(previews, 0);
+  receive({ kind: "draftSaved", revision: 3, imagesChanged: true });
+  assert.equal(draft.imagesVerified, true);
+  assert.equal(previews, 1);
+  assert.equal(draft.dirty, true);
+  receive({ kind: "draftSaved", revision: 4, imagesChanged: false });
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.saveError, "");
+});
+
+test("attachment evidence hashes rendered bytes without exporting sources or hiding decode failures", async () => {
+  const {
+    snapshotHostImageAttachments,
+  } = require("../src/chat/host-dom-image-fixtures");
+  const crypto = require("node:crypto");
+  const data = Buffer.from("fixed image bytes");
+  const image = {
+    src: `data:image/png;base64,${data.toString("base64")}`,
+    naturalWidth: 1,
+    naturalHeight: 1,
+    complete: true,
+  };
+  const collect = vm.runInNewContext(
+    "(" + snapshotHostImageAttachments.toString() + ")",
+    {
+      crypto: crypto.webcrypto,
+      Uint8Array,
+      atob: (value) => Buffer.from(value, "base64").toString("binary"),
+    },
+  );
+  const attach = { querySelectorAll: () => [image] };
+  const [evidence] = await collect(attach);
+  assert.equal(
+    evidence.sha256,
+    crypto.createHash("sha256").update(data).digest("hex"),
+  );
+  assert.equal(evidence.loaded, true);
+  assert.equal(evidence.bytes, data.length);
+  assert.equal(Object.hasOwn(evidence, "src"), false);
+  assert.ok(!JSON.stringify(evidence).includes(data.toString("base64")));
+  image.naturalWidth = 0;
+  assert.equal((await collect(attach))[0].loaded, false);
+  image.src = "https://example.com/image.png";
+  await assert.rejects(collect(attach), /Invalid rendered image source/);
 });
 
 test("chat composer gives the input and controls separate responsive rows", () => {

@@ -1,0 +1,1808 @@
+{
+  "schema": "chainlesschain.ide-candidate-gates-readback/v3",
+  "recordedAt": "2026-10-03T10:53:41.958Z",
+  "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+  "branch": "feature/ide-release-recovery-20261003",
+  "intendedTag": "ide-vscode-v0.37.128",
+  "version": "0.37.128",
+  "pairedCliVersion": "0.166.84",
+  "configuration": {
+    "value": {
+      "schema": 1,
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "branch": "feature/ide-release-recovery-20261003",
+      "version": "0.37.128",
+      "pairedCliVersion": "0.166.84",
+      "output": "docs/research/ide/evidence/vscode-0.37.128-candidate-gates-0aba6e9c63.json",
+      "runs": {
+        "cliCi": 37111394110,
+        "cliStrictSandbox": 37111393862,
+        "ideExtensions": 37111393818
+      },
+      "candidate": {
+        "directory": ".work/gap-validation/vscode-candidate-0aba6e9c63",
+        "artifactId": 11270144166,
+        "bytes": 691877,
+        "sha256": "0f7bd9483130c8fba7663a5a027ac59e2727892db03f9ad117f96dc9ec4da5db"
+      }
+    },
+    "proof": {
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/config.json",
+      "bytes": 613,
+      "sha256": "3c25813e2abfbc021a9796ee8140813915a2cc0e75113c4ac9264af9989cab1b"
+    }
+  },
+  "archiveDirectory": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0",
+  "sourceProofs": [
+    {
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "source": ".github/workflows/cli-ci.yml",
+      "gitBlob": "153056f262dfa1ec8c0022335c718436d9a38277",
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/cli-ci.yml",
+      "bytes": 17775,
+      "sha256": "7c5346cb85bd5261b167930d080080c22500c38bbcc6f4c2858434c8a31bc551"
+    },
+    {
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "source": ".github/workflows/cli-strict-sandbox.yml",
+      "gitBlob": "79e5c74dfde4c4d2d7bd6ba8434d2833bdb673b9",
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/cli-strict-sandbox.yml",
+      "bytes": 40767,
+      "sha256": "b66783aaaa01b5289e4453c4aed88bcffb110ccef353e766786075d3316b073f"
+    },
+    {
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "source": ".github/workflows/ide-extensions.yml",
+      "gitBlob": "37f65cf71650162c4e024f48f2a491fca1cdbc55",
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/ide-extensions.yml",
+      "bytes": 49943,
+      "sha256": "3afc972510211043aacb610beff8a0899a84a5198f4ffc29d0fa9f2c047a6554"
+    },
+    {
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "source": ".github/workflows/_cli-test.yml",
+      "gitBlob": "97d2969ce7be8b8fcc178e6ea605c2234892a703",
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/_cli-test.yml",
+      "bytes": 10484,
+      "sha256": "77bf1b89eecd51b97b079d804c953500290746560ad05ff556fbbb974c25dbc5"
+    },
+    {
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "source": ".github/workflows/_cli-linux-subreaper.yml",
+      "gitBlob": "58bf8f0b503f68c8ad6c8ca3ab48e8610cc4035e",
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/_cli-linux-subreaper.yml",
+      "bytes": 3588,
+      "sha256": "e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581"
+    }
+  ],
+  "workflows": [
+    {
+      "id": 37111394110,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110",
+      "name": "CLI CI",
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "event": "pull_request",
+      "branch": "feature/ide-release-recovery-20261003",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-03T08:56:59Z",
+      "updatedAt": "2026-10-03T10:13:38Z",
+      "expectedExpandedJobs": 68,
+      "successfulJobs": 68,
+      "rawBefore": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111394110/run-before.json",
+        "bytes": 13588,
+        "sha256": "706d3e8dea0f208acab43eee0c69ee7131129417c0ff6549178267e3eaca687f"
+      },
+      "rawAfter": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111394110/run-after.json",
+        "bytes": 13588,
+        "sha256": "706d3e8dea0f208acab43eee0c69ee7131129417c0ff6549178267e3eaca687f"
+      },
+      "conditionalSkips": [],
+      "historicalPlaceholders": [],
+      "attempts": [
+        {
+          "attempt": 1,
+          "conclusion": "success",
+          "jobs": 68,
+          "rawRun": {
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111394110/attempt-1-run.json",
+            "bytes": 13610,
+            "sha256": "63a5fafdf00f917ee762d44926e228c9faf6cbc83a66653138e6dd87d09bf02f"
+          },
+          "rawJobPages": [
+            {
+              "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111394110/attempt-1-jobs-page-1.json",
+              "bytes": 193702,
+              "sha256": "9a242868918ce148a84cd30e566fa9d0867233c4e4e8e231677b48170540a9e4"
+            }
+          ]
+        }
+      ],
+      "selection": "Latest execution of every exact expected matrix job across all attempt inventories; no fallback from latest non-success.",
+      "jobs": [
+        {
+          "id": 111169907462,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907462"
+        },
+        {
+          "id": 111169907420,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907420"
+        },
+        {
+          "id": 111169907299,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907299"
+        },
+        {
+          "id": 111169907352,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907352"
+        },
+        {
+          "id": 111169907452,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907452"
+        },
+        {
+          "id": 111169907715,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907715"
+        },
+        {
+          "id": 111169907450,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907450"
+        },
+        {
+          "id": 111169907486,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907486"
+        },
+        {
+          "id": 111169907515,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907515"
+        },
+        {
+          "id": 111169907605,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907605"
+        },
+        {
+          "id": 111169907679,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907679"
+        },
+        {
+          "id": 111169907539,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907539"
+        },
+        {
+          "id": 111169907424,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907424"
+        },
+        {
+          "id": 111169907358,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907358"
+        },
+        {
+          "id": 111169907442,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907442"
+        },
+        {
+          "id": 111169907376,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907376"
+        },
+        {
+          "id": 111169907524,
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907524"
+        },
+        {
+          "id": 111169907443,
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907443"
+        },
+        {
+          "id": 111169907527,
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907527"
+        },
+        {
+          "id": 111169907678,
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907678"
+        },
+        {
+          "id": 111169907487,
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907487"
+        },
+        {
+          "id": 111169907498,
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907498"
+        },
+        {
+          "id": 111169907536,
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907536"
+        },
+        {
+          "id": 111169907449,
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907449"
+        },
+        {
+          "id": 111169907514,
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907514"
+        },
+        {
+          "id": 111169907535,
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907535"
+        },
+        {
+          "id": 111169907548,
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907548"
+        },
+        {
+          "id": 111169907492,
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907492"
+        },
+        {
+          "id": 111169907456,
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907456"
+        },
+        {
+          "id": 111169907652,
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907652"
+        },
+        {
+          "id": 111169907554,
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907554"
+        },
+        {
+          "id": 111169907523,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907523"
+        },
+        {
+          "id": 111169907469,
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907469"
+        },
+        {
+          "id": 111169907395,
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907395"
+        },
+        {
+          "id": 111169907586,
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907586"
+        },
+        {
+          "id": 111169907590,
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907590"
+        },
+        {
+          "id": 111169907606,
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907606"
+        },
+        {
+          "id": 111169907700,
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907700"
+        },
+        {
+          "id": 111169907581,
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907581"
+        },
+        {
+          "id": 111169907664,
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907664"
+        },
+        {
+          "id": 111169907513,
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907513"
+        },
+        {
+          "id": 111169907552,
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907552"
+        },
+        {
+          "id": 111169907647,
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907647"
+        },
+        {
+          "id": 111169907402,
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907402"
+        },
+        {
+          "id": 111169907635,
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907635"
+        },
+        {
+          "id": 111169907500,
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907500"
+        },
+        {
+          "id": 111169907441,
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907441"
+        },
+        {
+          "id": 111169907579,
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907579"
+        },
+        {
+          "id": 111169907327,
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907327"
+        },
+        {
+          "id": 111169907410,
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907410"
+        },
+        {
+          "id": 111169907387,
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907387"
+        },
+        {
+          "id": 111169907377,
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907377"
+        },
+        {
+          "id": 111169907344,
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907344"
+        },
+        {
+          "id": 111169907426,
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907426"
+        },
+        {
+          "id": 111169907380,
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907380"
+        },
+        {
+          "id": 111169907389,
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907389"
+        },
+        {
+          "id": 111169907364,
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907364"
+        },
+        {
+          "id": 111169907476,
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907476"
+        },
+        {
+          "id": 111169907360,
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907360"
+        },
+        {
+          "id": 111169907433,
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907433"
+        },
+        {
+          "id": 111169907210,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907210"
+        },
+        {
+          "id": 111169907432,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111169907432"
+        },
+        {
+          "id": 111180662953,
+          "name": "verify-cli (ubuntu-latest)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662953"
+        },
+        {
+          "id": 111180662932,
+          "name": "verify-cli (windows-latest)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662932"
+        },
+        {
+          "id": 111180662963,
+          "name": "verify-cli (macos-latest)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662963"
+        },
+        {
+          "id": 111181929946,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111181929946"
+        },
+        {
+          "id": 111178045122,
+          "name": "pack-linux-dryrun",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111178045122"
+        },
+        {
+          "id": 111178045139,
+          "name": "dry-run-publish",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111178045139"
+        }
+      ]
+    },
+    {
+      "id": 37111393862,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862",
+      "name": "CLI Strict Sandbox",
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "event": "pull_request",
+      "branch": "feature/ide-release-recovery-20261003",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-03T08:56:59Z",
+      "updatedAt": "2026-10-03T09:05:30Z",
+      "expectedExpandedJobs": 5,
+      "successfulJobs": 5,
+      "rawBefore": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393862/run-before.json",
+        "bytes": 13220,
+        "sha256": "0c1db3a3fab53a67c4a764d6f559c4a0267918b04f1ea92973a3e67c6aa28a7d"
+      },
+      "rawAfter": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393862/run-after.json",
+        "bytes": 13220,
+        "sha256": "0c1db3a3fab53a67c4a764d6f559c4a0267918b04f1ea92973a3e67c6aa28a7d"
+      },
+      "conditionalSkips": [],
+      "historicalPlaceholders": [],
+      "attempts": [
+        {
+          "attempt": 1,
+          "conclusion": "success",
+          "jobs": 5,
+          "rawRun": {
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393862/attempt-1-run.json",
+            "bytes": 13242,
+            "sha256": "9741aba330bb0c78fec4727f8c97e0ed6da86e1991e2085e66fa24946a266c2a"
+          },
+          "rawJobPages": [
+            {
+              "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393862/attempt-1-jobs-page-1.json",
+              "bytes": 20395,
+              "sha256": "8927672c70e68b1d370d30b8f45b6656a46dcae241dd7411026b5feff3889c29"
+            }
+          ]
+        }
+      ],
+      "selection": "Latest execution of every exact expected matrix job across all attempt inventories; no fallback from latest non-success.",
+      "jobs": [
+        {
+          "id": 111169847574,
+          "name": "macOS latest native capability",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862/job/111169847574"
+        },
+        {
+          "id": 111169847733,
+          "name": "strict native boundary (ubuntu-24.04)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862/job/111169847733"
+        },
+        {
+          "id": 111169847841,
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862/job/111169847841"
+        },
+        {
+          "id": 111169847986,
+          "name": "strict native boundary (macos-15)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862/job/111169847986"
+        },
+        {
+          "id": 111169847739,
+          "name": "strict native boundary (windows-latest)",
+          "attempt": 1,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393862/job/111169847739"
+        }
+      ]
+    },
+    {
+      "id": 37111393818,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818",
+      "name": "IDE Extensions",
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "event": "pull_request",
+      "branch": "feature/ide-release-recovery-20261003",
+      "attempt": 3,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-03T08:56:59Z",
+      "updatedAt": "2026-10-03T10:23:33Z",
+      "expectedExpandedJobs": 19,
+      "successfulJobs": 18,
+      "rawBefore": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/run-before.json",
+        "bytes": 13304,
+        "sha256": "79af5ab287764832d7f3ae829cb6291ca40b792d2bb9a65ae7c83664f5343014"
+      },
+      "rawAfter": {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/run-after.json",
+        "bytes": 13304,
+        "sha256": "79af5ab287764832d7f3ae829cb6291ca40b792d2bb9a65ae7c83664f5343014"
+      },
+      "conditionalSkips": [
+        {
+          "job": "JetBrains Marketplace (post-publish verification)",
+          "condition": "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ide-jetbrains-v')",
+          "event": "pull_request",
+          "reason": "JetBrains post-publish readback requires a JetBrains release-tag push.",
+          "workflowSource": {
+            "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+            "source": ".github/workflows/ide-extensions.yml",
+            "gitBlob": "37f65cf71650162c4e024f48f2a491fca1cdbc55",
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/.github/workflows/ide-extensions.yml",
+            "bytes": 49943,
+            "sha256": "3afc972510211043aacb610beff8a0899a84a5198f4ffc29d0fa9f2c047a6554"
+          }
+        }
+      ],
+      "historicalPlaceholders": [],
+      "attempts": [
+        {
+          "attempt": 1,
+          "conclusion": "failure",
+          "jobs": 19,
+          "rawRun": {
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-1-run.json",
+            "bytes": 13234,
+            "sha256": "f5ccf26215abf9ccf28809e31d83206bfdd6f5e4d766961c867f5bf86d4f3df2"
+          },
+          "rawJobPages": [
+            {
+              "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-1-jobs-page-1.json",
+              "bytes": 63415,
+              "sha256": "935342233a37f1feaddf0ecaec82648acf55002e89b5618f70a3ccd4213c59b6"
+            }
+          ]
+        },
+        {
+          "attempt": 2,
+          "conclusion": "failure",
+          "jobs": 19,
+          "rawRun": {
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-2-run.json",
+            "bytes": 13326,
+            "sha256": "ca4de4db540f22c675d1eece3e454b5e04f80017119cf66d7b05e192b04205d8"
+          },
+          "rawJobPages": [
+            {
+              "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-2-jobs-page-1.json",
+              "bytes": 63463,
+              "sha256": "57ba19f31744a441b2bab1cd97344ca2c3f0459d0810332898312b1c67bfc7cb"
+            }
+          ]
+        },
+        {
+          "attempt": 3,
+          "conclusion": "success",
+          "jobs": 19,
+          "rawRun": {
+            "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-3-run.json",
+            "bytes": 13326,
+            "sha256": "b4009a951a6a74034868eddcb1c09759efdd16eef7ccb2e0ffab8071fe16ee38"
+          },
+          "rawJobPages": [
+            {
+              "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/37111393818/attempt-3-jobs-page-1.json",
+              "bytes": 66722,
+              "sha256": "bd64f933eb21eec968ee6f941879ac2388520123c21b4d29c45b1724ec1c7e64"
+            }
+          ]
+        }
+      ],
+      "selection": "Latest execution of every exact expected matrix job across all attempt inventories; no fallback from latest non-success.",
+      "jobs": [
+        {
+          "id": 111180371110,
+          "name": "Public IDE capability manifest (drift gate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371110"
+        },
+        {
+          "id": 111180387874,
+          "name": "VS Code extension (immutable candidate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180387874"
+        },
+        {
+          "id": 111180371781,
+          "name": "Browser evidence (linux)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371781"
+        },
+        {
+          "id": 111180394893,
+          "name": "Browser evidence (windows)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180394893"
+        },
+        {
+          "id": 111180371591,
+          "name": "Browser evidence (macos)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371591"
+        },
+        {
+          "id": 111180371461,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371461"
+        },
+        {
+          "id": 111180371269,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371269"
+        },
+        {
+          "id": 111180395500,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180395500"
+        },
+        {
+          "id": 111180370641,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180370641"
+        },
+        {
+          "id": 111180371512,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371512"
+        },
+        {
+          "id": 111180393321,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180393321"
+        },
+        {
+          "id": 111180389424,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180389424"
+        },
+        {
+          "id": 111180371549,
+          "name": "VS Code extension (Windows host gate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371549"
+        },
+        {
+          "id": 111180397219,
+          "name": "VS Code extension (macOS host gate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180397219"
+        },
+        {
+          "id": 111180371499,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371499"
+        },
+        {
+          "id": 111180372101,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180372101"
+        },
+        {
+          "id": 111180371905,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180371905"
+        },
+        {
+          "id": 111182665559,
+          "name": "JetBrains plugin (build + publish)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111182665559"
+        },
+        {
+          "id": 111183571076,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "attempt": 3,
+          "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111183571076"
+        }
+      ]
+    }
+  ],
+  "pmExplorationRecovery": {
+    "attempt": 1,
+    "jobs": [
+      {
+        "id": 111180662953,
+        "name": "verify-cli (ubuntu-latest)",
+        "attempt": 1,
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662953",
+        "startedAt": "2026-10-03T10:05:24Z",
+        "completedAt": "2026-10-03T10:08:31Z"
+      },
+      {
+        "id": 111180662932,
+        "name": "verify-cli (windows-latest)",
+        "attempt": 1,
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662932",
+        "startedAt": "2026-10-03T10:05:22Z",
+        "completedAt": "2026-10-03T10:13:13Z"
+      },
+      {
+        "id": 111180662963,
+        "name": "verify-cli (macos-latest)",
+        "attempt": 1,
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662963",
+        "startedAt": "2026-10-03T10:05:26Z",
+        "completedAt": "2026-10-03T10:07:52Z"
+      },
+      {
+        "id": 111181929946,
+        "name": "Test-only PM exploration recovery three-OS aggregate",
+        "attempt": 1,
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111181929946",
+        "startedAt": "2026-10-03T10:13:17Z",
+        "completedAt": "2026-10-03T10:13:37Z"
+      }
+    ],
+    "artifactApiPages": [
+      {
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-artifacts-page-1.json",
+        "bytes": 15940,
+        "sha256": "f93c1d67c1c6acfbaa14c39fd2676b0e1898d87c6626aa3b64e29f3a97f4c6b2"
+      }
+    ],
+    "sourceProofs": [
+      {
+        "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+        "source": "packages/cli/scripts/pm-exploration-recovery-drill.mjs",
+        "gitBlob": "bebca9ef3e468cca09850d35aa9ba58acabb696a",
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/packages/cli/scripts/pm-exploration-recovery-drill.mjs",
+        "bytes": 28030,
+        "sha256": "a02bf394197f346c09a4f8f0c5055eb02aa87b9d25c84bb8f54c1581b1b90982"
+      },
+      {
+        "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+        "source": "packages/cli/__tests__/helpers/pm-exploration-recovery-process.js",
+        "gitBlob": "5a6df456d1249af848c2e150de74d38f85957b11",
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/packages/cli/__tests__/helpers/pm-exploration-recovery-process.js",
+        "bytes": 2461,
+        "sha256": "e8230e3d71a01b96d9e1ab7bd17e1a971f1e37b949f2caba1983e9a800be4c14"
+      },
+      {
+        "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+        "source": "packages/cli/package.json",
+        "gitBlob": "55fa0cea5ef65e6b2229a8adb60558e8d3e19496",
+        "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/exact-source/packages/cli/package.json",
+        "bytes": 7327,
+        "sha256": "64b079e6c9249118f35237bbb436e02af919820f5a909a45454558c5d857f4b8"
+      }
+    ],
+    "independentlyVerifiedAt": "2026-10-03T10:53:26.684Z",
+    "independentProof": {
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-independent-verification.json",
+      "bytes": 3298,
+      "sha256": "30feb0dcf7a965e564cfed993668cc3a32b0bbe4738c3f63de23cc8d5320003a"
+    },
+    "artifacts": [
+      {
+        "artifact": {
+          "id": 11271293939,
+          "name": "pm-exploration-recovery-ubuntu-latest-0aba6e9c635c8da25331fdcabe4e06041f0f68b8-1",
+          "digest": "sha256:617ca34aefa8c63437fd38a6b72bd2f3e018ce30e9dc2376fef375ada67bce29",
+          "sizeInBytes": 1226,
+          "createdAt": "2026-10-03T10:07:04Z",
+          "workflowRun": {
+            "id": 37111394110,
+            "repository_id": 1107348698,
+            "head_repository_id": 1107348698,
+            "head_branch": "feature/ide-release-recovery-20261003",
+            "head_sha": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8"
+          }
+        },
+        "producer": {
+          "id": 111180662953,
+          "name": "verify-cli (ubuntu-latest)",
+          "attempt": 1,
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662953",
+          "startedAt": "2026-10-03T10:05:24Z",
+          "completedAt": "2026-10-03T10:08:31Z"
+        },
+        "zip": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-zips/11271293939.zip",
+          "bytes": 1226,
+          "sha256": "617ca34aefa8c63437fd38a6b72bd2f3e018ce30e9dc2376fef375ada67bce29"
+        },
+        "report": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-producers/pm-exploration-recovery-Linux.json",
+          "bytes": 3853,
+          "sha256": "4bf66e5778ecd2576fff3dd2341f510c120eefff23e7917f7f3bb79d4f82f3f6"
+        },
+        "data": {
+          "schema": "chainlesschain.pm-exploration-recovery-evidence/v2",
+          "status": "passed",
+          "sourceRevision": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "issuedAt": "2026-10-03T10:07:03.416Z",
+          "runner": {
+            "platform": "linux",
+            "arch": "x64",
+            "nodeVersion": "v22.22.2"
+          },
+          "testAuthority": true,
+          "productionAuthority": false,
+          "physicalPowerLossVerified": false,
+          "syntheticFaultInjection": true,
+          "realDiskFullVerified": false,
+          "realReadOnlyFilesystemVerified": false,
+          "realRemoteAuthorityVerified": false,
+          "qualifiesForProduction": false,
+          "unverifiedConditions": [
+            "physical-power-loss",
+            "production-kms-hsm-pki-authority",
+            "independent-remote-fault-domain",
+            "production-filesystem-and-device-cache-semantics",
+            "real-disk-full",
+            "real-read-only-filesystem",
+            "real-remote-authority-timeout-and-disconnect"
+          ],
+          "report": {
+            "schema": "chainlesschain.pm-exploration-recovery-drill/v2",
+            "status": "passed",
+            "processCount": 31,
+            "freshProcessRestartRecovered": true,
+            "localCacheLossRecoveredFromAuthority": true,
+            "authorityLossRejected": true,
+            "forcedExitAfterRetainRejected": true,
+            "uncommittedLedgerExitRejected": true,
+            "committedLedgerExitRecovered": true,
+            "divergentCasConflictRejected": true,
+            "identicalCasCommitIdempotent": true,
+            "artifactReadOnlyFailureRejected": true,
+            "authorityRetainTimeoutRejected": true,
+            "authorityDisconnectRejected": true,
+            "invalidDurabilityReceiptRejected": true,
+            "authorityResolveTimeoutRejected": true,
+            "preWitnessDiskFullRejected": true,
+            "postWitnessDiskFullRecovered": true,
+            "falseSuccessReceipts": 0,
+            "testAuthority": true,
+            "productionAuthority": false,
+            "physicalPowerLossVerified": false,
+            "syntheticFaultInjection": true,
+            "realDiskFullVerified": false,
+            "realReadOnlyFilesystemVerified": false,
+            "realRemoteAuthorityVerified": false,
+            "qualifiesForProduction": false,
+            "unverifiedConditions": [
+              "physical-power-loss",
+              "production-kms-hsm-pki-authority",
+              "independent-remote-fault-domain",
+              "production-filesystem-and-device-cache-semantics",
+              "real-disk-full",
+              "real-read-only-filesystem",
+              "real-remote-authority-timeout-and-disconnect"
+            ],
+            "crashResults": {
+              "after-retain": {
+                "crashPid": 2996,
+                "recoveredPid": 3004,
+                "committed": false
+              },
+              "after-segment": {
+                "crashPid": 3012,
+                "recoveredPid": 3020,
+                "committed": false
+              },
+              "after-witness": {
+                "crashPid": 3028,
+                "recoveredPid": 3036,
+                "committed": true
+              }
+            },
+            "faultResults": {
+              "artifact-erofs": {
+                "faultPid": 3044,
+                "recoveryPid": 3052,
+                "observedCode": "EROFS",
+                "committed": false
+              },
+              "authority-retain-timeout": {
+                "faultPid": 3060,
+                "recoveryPid": 3068,
+                "observedCode": "ETIMEDOUT",
+                "committed": false
+              },
+              "authority-retain-reset": {
+                "faultPid": 3076,
+                "recoveryPid": 3084,
+                "observedCode": "ECONNRESET",
+                "committed": false
+              },
+              "authority-invalid-receipt": {
+                "faultPid": 3092,
+                "recoveryPid": 3100,
+                "observedCode": "CC_PM_EXPLORATION_LEDGER_CORRUPT",
+                "committed": false
+              },
+              "ledger-enospc-after-segment": {
+                "faultPid": 3108,
+                "recoveryPid": 3116,
+                "observedCode": "ENOSPC",
+                "committed": false
+              },
+              "authority-resolve-timeout": {
+                "faultPid": 3132,
+                "recoveryPid": 3140,
+                "observedCode": "ETIMEDOUT",
+                "committed": true
+              },
+              "ledger-enospc-after-witness": {
+                "faultPid": 3148,
+                "recoveryPid": 3156,
+                "observedCode": "ENOSPC",
+                "committed": true
+              }
+            }
+          }
+        },
+        "aggregate": false
+      },
+      {
+        "artifact": {
+          "id": 11270708435,
+          "name": "pm-exploration-recovery-windows-latest-0aba6e9c635c8da25331fdcabe4e06041f0f68b8-1",
+          "digest": "sha256:84b166a9657ba90555f358f9feca94926948149625446fbe456a350d4c4b65fd",
+          "sizeInBytes": 1250,
+          "createdAt": "2026-10-03T10:10:20Z",
+          "workflowRun": {
+            "id": 37111394110,
+            "repository_id": 1107348698,
+            "head_repository_id": 1107348698,
+            "head_branch": "feature/ide-release-recovery-20261003",
+            "head_sha": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8"
+          }
+        },
+        "producer": {
+          "id": 111180662932,
+          "name": "verify-cli (windows-latest)",
+          "attempt": 1,
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662932",
+          "startedAt": "2026-10-03T10:05:22Z",
+          "completedAt": "2026-10-03T10:13:13Z"
+        },
+        "zip": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-zips/11270708435.zip",
+          "bytes": 1250,
+          "sha256": "84b166a9657ba90555f358f9feca94926948149625446fbe456a350d4c4b65fd"
+        },
+        "report": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-producers/pm-exploration-recovery-Windows.json",
+          "bytes": 3853,
+          "sha256": "ef20bb736cf5eab273f9b8c2c15a8f376f48318dab506a63fb181d459ce34324"
+        },
+        "data": {
+          "schema": "chainlesschain.pm-exploration-recovery-evidence/v2",
+          "status": "passed",
+          "sourceRevision": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "issuedAt": "2026-10-03T10:10:20.007Z",
+          "runner": {
+            "platform": "win32",
+            "arch": "x64",
+            "nodeVersion": "v22.22.2"
+          },
+          "testAuthority": true,
+          "productionAuthority": false,
+          "physicalPowerLossVerified": false,
+          "syntheticFaultInjection": true,
+          "realDiskFullVerified": false,
+          "realReadOnlyFilesystemVerified": false,
+          "realRemoteAuthorityVerified": false,
+          "qualifiesForProduction": false,
+          "unverifiedConditions": [
+            "physical-power-loss",
+            "production-kms-hsm-pki-authority",
+            "independent-remote-fault-domain",
+            "production-filesystem-and-device-cache-semantics",
+            "real-disk-full",
+            "real-read-only-filesystem",
+            "real-remote-authority-timeout-and-disconnect"
+          ],
+          "report": {
+            "schema": "chainlesschain.pm-exploration-recovery-drill/v2",
+            "status": "passed",
+            "processCount": 31,
+            "freshProcessRestartRecovered": true,
+            "localCacheLossRecoveredFromAuthority": true,
+            "authorityLossRejected": true,
+            "forcedExitAfterRetainRejected": true,
+            "uncommittedLedgerExitRejected": true,
+            "committedLedgerExitRecovered": true,
+            "divergentCasConflictRejected": true,
+            "identicalCasCommitIdempotent": true,
+            "artifactReadOnlyFailureRejected": true,
+            "authorityRetainTimeoutRejected": true,
+            "authorityDisconnectRejected": true,
+            "invalidDurabilityReceiptRejected": true,
+            "authorityResolveTimeoutRejected": true,
+            "preWitnessDiskFullRejected": true,
+            "postWitnessDiskFullRecovered": true,
+            "falseSuccessReceipts": 0,
+            "testAuthority": true,
+            "productionAuthority": false,
+            "physicalPowerLossVerified": false,
+            "syntheticFaultInjection": true,
+            "realDiskFullVerified": false,
+            "realReadOnlyFilesystemVerified": false,
+            "realRemoteAuthorityVerified": false,
+            "qualifiesForProduction": false,
+            "unverifiedConditions": [
+              "physical-power-loss",
+              "production-kms-hsm-pki-authority",
+              "independent-remote-fault-domain",
+              "production-filesystem-and-device-cache-semantics",
+              "real-disk-full",
+              "real-read-only-filesystem",
+              "real-remote-authority-timeout-and-disconnect"
+            ],
+            "crashResults": {
+              "after-retain": {
+                "crashPid": 8572,
+                "recoveredPid": 1500,
+                "committed": false
+              },
+              "after-segment": {
+                "crashPid": 8212,
+                "recoveredPid": 6568,
+                "committed": false
+              },
+              "after-witness": {
+                "crashPid": 9524,
+                "recoveredPid": 9312,
+                "committed": true
+              }
+            },
+            "faultResults": {
+              "artifact-erofs": {
+                "faultPid": 3640,
+                "recoveryPid": 1704,
+                "observedCode": "EROFS",
+                "committed": false
+              },
+              "authority-retain-timeout": {
+                "faultPid": 2548,
+                "recoveryPid": 6212,
+                "observedCode": "ETIMEDOUT",
+                "committed": false
+              },
+              "authority-retain-reset": {
+                "faultPid": 1080,
+                "recoveryPid": 552,
+                "observedCode": "ECONNRESET",
+                "committed": false
+              },
+              "authority-invalid-receipt": {
+                "faultPid": 4544,
+                "recoveryPid": 10212,
+                "observedCode": "CC_PM_EXPLORATION_LEDGER_CORRUPT",
+                "committed": false
+              },
+              "ledger-enospc-after-segment": {
+                "faultPid": 8820,
+                "recoveryPid": 5636,
+                "observedCode": "ENOSPC",
+                "committed": false
+              },
+              "authority-resolve-timeout": {
+                "faultPid": 9436,
+                "recoveryPid": 1276,
+                "observedCode": "ETIMEDOUT",
+                "committed": true
+              },
+              "ledger-enospc-after-witness": {
+                "faultPid": 1752,
+                "recoveryPid": 4584,
+                "observedCode": "ENOSPC",
+                "committed": true
+              }
+            }
+          }
+        },
+        "aggregate": false
+      },
+      {
+        "artifact": {
+          "id": 11270473503,
+          "name": "pm-exploration-recovery-macos-latest-0aba6e9c635c8da25331fdcabe4e06041f0f68b8-1",
+          "digest": "sha256:1011c098d4e4b0227a4af6060f7c03350fef50a73c8cb3ee3e1f0e0e2f1d6a56",
+          "sizeInBytes": 1214,
+          "createdAt": "2026-10-03T10:06:48Z",
+          "workflowRun": {
+            "id": 37111394110,
+            "repository_id": 1107348698,
+            "head_repository_id": 1107348698,
+            "head_branch": "feature/ide-release-recovery-20261003",
+            "head_sha": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8"
+          }
+        },
+        "producer": {
+          "id": 111180662963,
+          "name": "verify-cli (macos-latest)",
+          "attempt": 1,
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111180662963",
+          "startedAt": "2026-10-03T10:05:26Z",
+          "completedAt": "2026-10-03T10:07:52Z"
+        },
+        "zip": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-zips/11270473503.zip",
+          "bytes": 1214,
+          "sha256": "1011c098d4e4b0227a4af6060f7c03350fef50a73c8cb3ee3e1f0e0e2f1d6a56"
+        },
+        "report": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-producers/pm-exploration-recovery-macOS.json",
+          "bytes": 3856,
+          "sha256": "6f01022ed2913971a9a751fbe878e972f757c3bfb04b398a3e16845e8b30be30"
+        },
+        "data": {
+          "schema": "chainlesschain.pm-exploration-recovery-evidence/v2",
+          "status": "passed",
+          "sourceRevision": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "issuedAt": "2026-10-03T10:06:46.770Z",
+          "runner": {
+            "platform": "darwin",
+            "arch": "arm64",
+            "nodeVersion": "v22.22.2"
+          },
+          "testAuthority": true,
+          "productionAuthority": false,
+          "physicalPowerLossVerified": false,
+          "syntheticFaultInjection": true,
+          "realDiskFullVerified": false,
+          "realReadOnlyFilesystemVerified": false,
+          "realRemoteAuthorityVerified": false,
+          "qualifiesForProduction": false,
+          "unverifiedConditions": [
+            "physical-power-loss",
+            "production-kms-hsm-pki-authority",
+            "independent-remote-fault-domain",
+            "production-filesystem-and-device-cache-semantics",
+            "real-disk-full",
+            "real-read-only-filesystem",
+            "real-remote-authority-timeout-and-disconnect"
+          ],
+          "report": {
+            "schema": "chainlesschain.pm-exploration-recovery-drill/v2",
+            "status": "passed",
+            "processCount": 31,
+            "freshProcessRestartRecovered": true,
+            "localCacheLossRecoveredFromAuthority": true,
+            "authorityLossRejected": true,
+            "forcedExitAfterRetainRejected": true,
+            "uncommittedLedgerExitRejected": true,
+            "committedLedgerExitRecovered": true,
+            "divergentCasConflictRejected": true,
+            "identicalCasCommitIdempotent": true,
+            "artifactReadOnlyFailureRejected": true,
+            "authorityRetainTimeoutRejected": true,
+            "authorityDisconnectRejected": true,
+            "invalidDurabilityReceiptRejected": true,
+            "authorityResolveTimeoutRejected": true,
+            "preWitnessDiskFullRejected": true,
+            "postWitnessDiskFullRecovered": true,
+            "falseSuccessReceipts": 0,
+            "testAuthority": true,
+            "productionAuthority": false,
+            "physicalPowerLossVerified": false,
+            "syntheticFaultInjection": true,
+            "realDiskFullVerified": false,
+            "realReadOnlyFilesystemVerified": false,
+            "realRemoteAuthorityVerified": false,
+            "qualifiesForProduction": false,
+            "unverifiedConditions": [
+              "physical-power-loss",
+              "production-kms-hsm-pki-authority",
+              "independent-remote-fault-domain",
+              "production-filesystem-and-device-cache-semantics",
+              "real-disk-full",
+              "real-read-only-filesystem",
+              "real-remote-authority-timeout-and-disconnect"
+            ],
+            "crashResults": {
+              "after-retain": {
+                "crashPid": 6210,
+                "recoveredPid": 6213,
+                "committed": false
+              },
+              "after-segment": {
+                "crashPid": 6214,
+                "recoveredPid": 6215,
+                "committed": false
+              },
+              "after-witness": {
+                "crashPid": 6216,
+                "recoveredPid": 6217,
+                "committed": true
+              }
+            },
+            "faultResults": {
+              "artifact-erofs": {
+                "faultPid": 6219,
+                "recoveryPid": 6223,
+                "observedCode": "EROFS",
+                "committed": false
+              },
+              "authority-retain-timeout": {
+                "faultPid": 6228,
+                "recoveryPid": 6229,
+                "observedCode": "ETIMEDOUT",
+                "committed": false
+              },
+              "authority-retain-reset": {
+                "faultPid": 6230,
+                "recoveryPid": 6231,
+                "observedCode": "ECONNRESET",
+                "committed": false
+              },
+              "authority-invalid-receipt": {
+                "faultPid": 6232,
+                "recoveryPid": 6235,
+                "observedCode": "CC_PM_EXPLORATION_LEDGER_CORRUPT",
+                "committed": false
+              },
+              "ledger-enospc-after-segment": {
+                "faultPid": 6236,
+                "recoveryPid": 6237,
+                "observedCode": "ENOSPC",
+                "committed": false
+              },
+              "authority-resolve-timeout": {
+                "faultPid": 6239,
+                "recoveryPid": 6242,
+                "observedCode": "ETIMEDOUT",
+                "committed": true
+              },
+              "ledger-enospc-after-witness": {
+                "faultPid": 6243,
+                "recoveryPid": 6244,
+                "observedCode": "ENOSPC",
+                "committed": true
+              }
+            }
+          }
+        },
+        "aggregate": false
+      },
+      {
+        "artifact": {
+          "id": 11270344256,
+          "name": "pm-exploration-recovery-test-only-aggregate-0aba6e9c635c8da25331fdcabe4e06041f0f68b8-1",
+          "digest": "sha256:ad3060586c0c68cb6f9ab4d5e81cbf68ca95853e200154dd0d804e11b7ddf89b",
+          "sizeInBytes": 897,
+          "createdAt": "2026-10-03T10:13:36Z",
+          "workflowRun": {
+            "id": 37111394110,
+            "repository_id": 1107348698,
+            "head_repository_id": 1107348698,
+            "head_branch": "feature/ide-release-recovery-20261003",
+            "head_sha": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8"
+          }
+        },
+        "producer": {
+          "id": 111181929946,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "attempt": 1,
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111394110/job/111181929946",
+          "startedAt": "2026-10-03T10:13:17Z",
+          "completedAt": "2026-10-03T10:13:37Z"
+        },
+        "zip": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-zips/11270344256.zip",
+          "bytes": 897,
+          "sha256": "ad3060586c0c68cb6f9ab4d5e81cbf68ca95853e200154dd0d804e11b7ddf89b"
+        },
+        "report": {
+          "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/pm-hosted-aggregate/pm-exploration-recovery-aggregate.json",
+          "bytes": 1745,
+          "sha256": "1ef7d0619481f716cfae0e7736b680fbd638978fefc6c3345fd1a601b4249bad"
+        },
+        "data": {
+          "schema": "chainlesschain.pm-exploration-recovery-aggregate/v2",
+          "status": "passed",
+          "releaseCommit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+          "verifiedAt": "2026-10-03T10:13:35.368Z",
+          "platforms": [
+            {
+              "file": "pm-exploration-recovery-macOS.json",
+              "evidenceDigest": "sha256:6f01022ed2913971a9a751fbe878e972f757c3bfb04b398a3e16845e8b30be30",
+              "platform": "darwin",
+              "arch": "arm64",
+              "nodeVersion": "v22.22.2",
+              "processCount": 31,
+              "falseSuccessReceipts": 0
+            },
+            {
+              "file": "pm-exploration-recovery-Linux.json",
+              "evidenceDigest": "sha256:4bf66e5778ecd2576fff3dd2341f510c120eefff23e7917f7f3bb79d4f82f3f6",
+              "platform": "linux",
+              "arch": "x64",
+              "nodeVersion": "v22.22.2",
+              "processCount": 31,
+              "falseSuccessReceipts": 0
+            },
+            {
+              "file": "pm-exploration-recovery-Windows.json",
+              "evidenceDigest": "sha256:ef20bb736cf5eab273f9b8c2c15a8f376f48318dab506a63fb181d459ce34324",
+              "platform": "win32",
+              "arch": "x64",
+              "nodeVersion": "v22.22.2",
+              "processCount": 31,
+              "falseSuccessReceipts": 0
+            }
+          ],
+          "falseSuccessReceipts": 0,
+          "testAuthority": true,
+          "productionAuthority": false,
+          "physicalPowerLossVerified": false,
+          "syntheticFaultInjection": true,
+          "realDiskFullVerified": false,
+          "realReadOnlyFilesystemVerified": false,
+          "realRemoteAuthorityVerified": false,
+          "qualifiesForProduction": false,
+          "unverifiedConditions": [
+            "physical-power-loss",
+            "production-kms-hsm-pki-authority",
+            "independent-remote-fault-domain",
+            "production-filesystem-and-device-cache-semantics",
+            "real-disk-full",
+            "real-read-only-filesystem",
+            "real-remote-authority-timeout-and-disconnect"
+          ]
+        },
+        "aggregate": true
+      }
+    ],
+    "result": "passed",
+    "timestampComparison": "Hosted verifiedAt is reused only for structural equality; independentlyVerifiedAt records this audit.",
+    "scope": "Original exact-commit synthetic test-authority verifier; no production or physical-power-loss claim."
+  },
+  "candidate": {
+    "artifactBytes": 691877,
+    "artifactSha256": "0f7bd9483130c8fba7663a5a027ac59e2727892db03f9ad117f96dc9ec4da5db",
+    "manifestSha256": "c12e951a120955f3621f5085047ea26089e16e9bd02e69d6253beaadc8991a54",
+    "artifactId": 11270144166,
+    "producer": {
+      "id": 111180387874,
+      "name": "VS Code extension (immutable candidate)",
+      "attempt": 3,
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818/job/111180387874"
+    },
+    "metadata": {
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/candidate-artifact-metadata.json",
+      "bytes": 754,
+      "sha256": "1b30f0416553a2d108075fb1a5edde251c89871f7f10142de936c637d9fe5a5d"
+    },
+    "immutableZip": {
+      "file": ".work/gap-validation/candidate-gates-0aba6e9c63-attempts-OIPtc0/candidate-immutable.zip",
+      "bytes": 676250,
+      "sha256": "1a0039f99c7335be0e4496dcb2ac96ac8a0292a11e9b4133a0436d8c26cdf4bb"
+    },
+    "manifest": {
+      "schema": 1,
+      "artifact": "chainlesschain-ide.vsix",
+      "bytes": 691877,
+      "sha256": "0f7bd9483130c8fba7663a5a027ac59e2727892db03f9ad117f96dc9ec4da5db",
+      "sha512": "3574995c87b6626f04aaf2d5e1a4b5c7b770fbd6e2cd0a89bebeed723aa0c60630de7a3c96985f3733fdd3ce2c483ba70e69e92bf1e6219644894f4a392149d9",
+      "package": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.128",
+      "vsixmanifestIdentity": {
+        "id": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.128"
+      },
+      "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+      "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/37111393818",
+      "createdAt": "2026-10-03T09:18:34.685Z"
+    }
+  },
+  "limitations": [
+    "Candidate gates and downloaded bytes are verified; publication and registry readback remain separate.",
+    "Raw API pages and artifact ZIP/report bytes are retained in the identified local audit directory; producer JSON is also included in this receipt.",
+    "Hosted fixture journeys do not close real-provider, accessibility listening, hardware/SLO or long-term production acceptance.",
+    "PM recovery retains the original synthetic test-authority scope and grants no production authority."
+  ]
+}

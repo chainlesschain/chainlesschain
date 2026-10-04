@@ -1,0 +1,126 @@
+{
+  "schema": "chainlesschain.ide-publication-readback/v1",
+  "recordedAt": "2026-10-03T11:44:31.145Z",
+  "status": "publicly-available",
+  "version": "0.37.128",
+  "pairedCliVersion": "0.166.84",
+  "released": {
+    "commit": "14a41bb06eb62ca955eaa1eebac828252d86f6f5",
+    "tag": "ide-vscode-v0.37.128",
+    "tagObject": "b1f7ff0a1ac131665317c5e042996d30913d84f9",
+    "tree": "6a8bb5eb217c70dab90ab5556a17111c5841bc6a",
+    "pr": "https://github.com/chainlesschain/chainlesschain/pull/400"
+  },
+  "testedCandidate": {
+    "commit": "0aba6e9c635c8da25331fdcabe4e06041f0f68b8",
+    "tree": "6a8bb5eb217c70dab90ab5556a17111c5841bc6a",
+    "gateReceipt": "docs/research/ide/evidence/vscode-0.37.128-candidate-gates-0aba6e9c63.json",
+    "gateReceiptSha256": "dcd058f03253fa41f45ea7dbabacdaccf0002e43b753837734c61356a3d3c5e4",
+    "candidate": ".work/gap-validation/vscode-candidate-0aba6e9c63/chainlesschain-ide.vsix"
+  },
+  "tagWorkflow": {
+    "id": 37117743213,
+    "attempt": 2,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37117743213",
+    "conclusion": "success",
+    "publicationJob": 111193921058,
+    "jobs": [
+      {
+        "id": 111191594602,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111191818977,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111191819020,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111191819031,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111191819038,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111191819681,
+        "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 111192415573,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111192415596,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111192415629,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111192834202,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111192965621,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "success"
+      },
+      {
+        "id": 111193097853,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 111193098515,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 111193921058,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "independentPublicReadback": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.128",
+    "latest": "0.37.128",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "2827b7ebe4911a7cf668f7a22649f55a1d8b6a60de54fbf61a4d5bcb3cfb6029",
+    "localArchiveSha256": "0f7bd9483130c8fba7663a5a027ac59e2727892db03f9ad117f96dc9ec4da5db",
+    "contentSha256": "622e4ae19df0a7de87c6845eb50de080bbc086a3c7264219ba60502b54651e68"
+  },
+  "existingJetBrainsPublicReadback": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "ready",
+    "version": "0.4.146",
+    "approve": true,
+    "listed": true,
+    "hidden": false
+  },
+  "limitations": [
+    "The full pre-release matrices passed on the PR head; the merge commit has the identical Git tree. The tagged workflow independently passed its VS Code release gates on the merge commit.",
+    "The separate main-branch all-product CI run is not claimed complete by this receipt; a JetBrains macOS host failure was being investigated separately.",
+    "Microsoft VS Code Marketplace was not published; its separate backfill requires VSCE_PAT."
+  ]
+}

@@ -4,7 +4,23 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
-### REL-IDE：新候选与未发布状态（2026-10-03）
+### 2026-10-04：当前状态与本轮补齐
+
+**发行状态已更新：VS Code 0.37.128 已在 Open VSX 公开可用。** 原 0.37.127 候选失败保留为历史，不能继续据此判断当前公开版本。准确候选 `0aba6e9c635c8da25331fdcabe4e06041f0f68b8` 的 CLI CI **68/68**、CLI Strict Sandbox **5/5**、IDE Extensions **18 成功 / 1 合法跳过**，详见[候选回执](./ide/evidence/vscode-0.37.128-candidate-gates-0aba6e9c63.json)。发行提交 `14a41bb06eb62ca955eaa1eebac828252d86f6f5` 与候选 Git tree 相同，tag 工作流独立成功，见[公开发行回读](./ide/evidence/vscode-0.37.128-publication-readback-14a41bb06e.json)。本轮重新查询上述四个工作流均为 success，重新读取 Open VSX 0.37.128 元数据，并校验候选回执引用的 **38** 份本地原始文件的长度/摘要，无缺失。Microsoft Marketplace 不在这次已发布声明内。
+
+本轮实施分支：`feature/cli-ide-gap-completion-20261004`，基线 `32cbb0007f`。以下为后续源码改动，不追溯为上述已发布包的能力：
+
+- **PERF-01 / 持久 Memory 容量边界**：`d85af91aa1` 修复写入可超过读取上限、使存储下一次打开失败的问题。commit 与 reconciliation 写入都在替换前按实际 UTF-8 字节数（含换行）检查上限；超限保留旧记录、事件、revision 和文件字节。读取先检查已打开句柄，再最多读取配置上限加一个判定字节，覆盖读取中增长。store revision 耗尽时拒绝变更，避免写出不可读 revision。新增 **11** 项边界回归通过，既有容量 **6** 项及内核 **20** 项通过；内核 Windows symlink 子断言因 EPERM 未执行。**未增加 64 MiB 限制，100K 夹具可用性、Memory 索引/归档和性能 SLO 仍未完成。**
+- **NET-02 / scoped 版本边界**：同一提交拒绝不安全的持久 generation/revision，有效变更在本地撤销通知和写盘前拒绝版本溢出；最后一个安全版本、幂等 revoke 与 stale CAS 保持。两文件 **26/26** 通过，含新增 **8** 项。**这项修复不等于跨进程持久撤销接线。** Linux 外锚事务仍需统一 authority→source 锁序、锁内读取修改或 expected-snapshot CAS、同次观察投影、稳定启动域传递与实际撤销旅程，不能将现有 addRule 直接嵌套进 domain。
+- **IDE-DRAFT / IDE-IMAGE**：`cce30a34f1` 增加宿主校验成功后才解码的有界缩略图，修复附件读取后保存状态未即时刷新、文字保存 ACK 可能覆盖图片错误的竞态。实际 DOM 旅程增加 PNG 粘贴/GIF 拖放、切 tab/进程重启、错误 MIME/超限/损坏头/第五张图片、移除恢复和零自动发送；v2 回执核对各图 SHA-256、字节数与实际解码尺寸，不保存图片内容。VS Code 单元 **227/227**、相关草稿/图片 **25/25** 通过；真实宿主验收进展见后续记录，单测不替代宿主成功。
+
+**Windows 真宿主结果：** 以 `cce30a34f1` 打包的开发 VSIX，在 VS Code **1.132.0 / Windows x64** 的全新 profile 中，由 `b490b7e9d7` 驱动完成 multi-root、多窗口、控制、Workbench、A/B 后台历史及图片草稿重启旅程。独立重新执行 v2 artifact verifier，核对 **31** 个产物长度/摘要，并归档[回读与原始 JSON](./ide/evidence/image-draft-recovery-windows-20261004.json)。A 的 **70-byte PNG** 与 B 的 **42-byte GIF** 在切 tab 和完整进程重启后分别保持原 SHA-256、1×1 实际解码尺寸；**6** 个 canonical 历史行身份保持；四类错误及删除修复通过，自动图片发送 **0** 次。Workbench 100 样本 p95 **1,255 ms** 满足既有 2,000 ms 条件，不作为全局性能 SLO。首轮在激活期间退出的原因仍未隔离；第二轮成功不证明修复了该原因。开发 VSIX 与公开同版本包区分，未新增发布。Linux/macOS、JetBrains 附件、问题表单、磁盘故障和全部 codec/动画预算仍待验收。
+
+新增 driver 失败回执保留原异常并继续抛出，定向测试 **52/52**；安全 map 对新增 scoped 测试更新唯一漂移的 producer 摘要后，与两权限文件合计 **33/33** 通过，断言与映射条件保持。
+
+本轮未执行新的付费模型矩阵、账单核对、真人辅助技术听测或 8h/24h 生产观察。下方历史记录中的“当前”均指各记录日期；总任务是否关闭仍以状态表的剩余条件为准。
+
+### REL-IDE：历史候选与当时未发布状态（2026-10-03，已由 0.37.128 发行替代）
 
 当前冻结提交为 **1fe7a46c0f97b93fb5110ea3427cc8551d0dab37**，已推实施分支与 `release/ide-vscode-0.37.127`。其准确 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37101923924) 已完成 **5/5** 作业并整体成功；[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924139) 整体成功，**18** 个作业成功、**1** 个按非 JetBrains 发布条件跳过。该 run 的[不可变 VSIX 回读](./ide/evidence/vscode-0.37.127-candidate-artifact-1fe7.json)核验 artifact **11267725477**、内部 package/XML 身份及配套 CLI **0.166.84**；VSIX **691,734 bytes**，SHA-256 为 `8dca38bb6cac7371ab7530938960346fac4a3ec8ed689bfb80c4c2ca3c2c5ed8`。这只是产物核验，`releaseGateEligible=false`；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37101924173) 的 Windows unit **14/16** 已失败，其余矩阵尚在收尾，当前不能发布。
 
@@ -356,19 +372,19 @@ Windows 本地 17 文件 500 项通过、14 项 Linux 真容器测试按平台�
 | CODEX-01                | 三系统协议旅程已验收       | 3400318446 的固定原生 0.157.1 三系统 CI 通过；独立复核官方 schema、Linux 53 / Windows 52 / macOS 52 通知与审批取消；九个相关 Git blob 未变                             | 真实 provider 和获准工具执行；历史 CI 不替代后续提交门，未扩大生产白名单                                   |
 | BRIDGE-01               | 局部实现并验证             | Broker/bridge 回收及静态 helper/npm 包；`b776be5fc8` 完成 pkg 固定资产、目标别名与真实 snapshot 校验，本地 Windows/WSL 定向通过                                        | 准确提交六平台 standalone、updater readiness 失败定位、监督器丢失后恢复及 macOS；主路由拒绝未 attested CLI |
 | IDE-REPLAY / SESSION-01 | 局部实现并验证             | v2 历史与双 IDE 增量合并、来源/身份检查；Windows 双 IDE 实际包及旧七标签副本读取通过；4c3b9bdbc9 JetBrains 三系统 × 2024.2/2025.2 canonical recovery v2 六单元全部通过 | 原旧 profile 失败唯一根因未定；VS Code 其余原生恢复范围、旧历史边界及真实 canonical rewind/compaction/fork |
-| IDE-DRAFT               | 局部实现并验证             | 双 IDE composer/附件/问题草稿、发送前保存与回执核对；Windows 双宿主草稿重启恢复；当前 JetBrains 六宿主的 init 等待 Stop、迟到 init、取消草稿重启且不重发均通过         | 附件/问题表单真实宿主及可访问性；其余准备/写入阶段、再次发送后的 Stop 和其对应平台范围待补                 |
+| IDE-DRAFT | Windows VS Code 图片草稿旅程通过 | cce30a34f1 开发 VSIX + b490b7e9d7 driver：A/B 文字与 PNG/GIF 草稿跨 tab/完整重启保持摘要和解码尺寸，零自动发送；JetBrains 既有六宿主 Stop/取消恢复结果保留 | 问题表单、其他 OS/JetBrains 附件、准备/写入阶段故障及可访问性仍待验收 |
 | IDE-STREAM              | 三系统双 IDE 实际测量通过  | `96cbf6ba56` 的 18 旅程、628 产物绑定及两 IDE 各 1,152 更新样本独立回读；选区/滚动/恢复合同通过；此前 Windows v1/v2 对照保留                                           | 目标硬件/SLO、结束长任务与辅助技术；JetBrains 原生 Timer/paint 不是 Chromium 帧指标                        |
 | IDE-MODE                | 局部实现并验证             | 双 IDE requested/effective/pending/failed/unconfirmed；CLI init 关联 ID、实际模式与 policy digest；JetBrains 独立停止线程、退出确认、启动取消与过期响应隔离            | 真实组织策略/宿主旅程与全平台进程树证明；观测句柄不是 OS 进程隔离                                          |
-| IDE-IMAGE               | 局部实现并验证             | 双 IDE 4 张/20 MiB turn/40MP 单图；异步处理、逐项错误；CLI 保留 8 张上限，并补齐 20 MiB turn/40MP/header/有界同句柄读取；CLI 图片相关 4 文件 61 项通过                 | 真实宿主测量；完整 codec/动画帧与读取延迟不在 header 准入证明内                                            |
+| IDE-IMAGE | Windows VS Code 附件边界与恢复通过 | 有界缩略图仅在图片校验 ACK 后解码；真实宿主拒绝 MIME/20 MiB/损坏头/第五张附件，移除恢复通过；CLI 原 20 MiB/40MP/header 合同保持 | 其余宿主、磁盘故障、完整 codec/动画帧和读取延迟仍待验收 |
 | NET-01                  | Linux x64/ARM64 验收并发布 | d93c9c9766 完整 CLI CI / Strict Sandbox 通过；两架构真 Docker 步骤成功，ARM64 原始报告独立核验 20/20、0 跳过；直接连接、DNS、IPv6、redirect、WS、子进程路径通过        | 审计所列 Linux 强制出口场景已验收；其他平台/协议不从已测传输自动推导                                       |
-| NET-02                  | 真实产品撤销局部验收       | CLI 0.166.84 准确提交完整门、ARM64 20/20 与公开回读；`238acfec75` 将默认权限规则仅从同次严格观察投影，十文件 232 passed / 1 POSIX skip                                 | 持久跨进程 settings/scoped generation、Worker/外部编辑通知、其他可变来源/legacy callback 的权威协议仍开放  |
+| NET-02 | 真实产品撤销局部验收，版本边界已补强 | 已发布同进程撤销与 Linux 真实出口证据保持；d85af91aa1 拒绝 scoped 不安全版本与有效变更溢出，26/26 通过；严格来源同次投影保持 | 持久跨进程 settings/scoped generation、Worker/外部编辑通知、其他可变来源/legacy callback 权威仍开放；不能直接嵌套 addRule/domain 锁 |
 | VERIFY-01               | 待实施/验收                | 保留历史真实模型试点及其范围                                                                                                                                           | 冻结 30–50 任务、干净安装、实际项目、双 IDE、成本/维护窗口                                                 |
 | PLATFORM-01             | 局部补强，待扩展矩阵       | Windows detached 文件 fd 真载荷与正对照；`f016a60ab0` 的 Linux ARM64、x64、Windows、macOS 15/latest Strict Sandbox 作业均通过                                          | 其余 OS/架构/后端/stdio 组合及真实进程验收；后续候选需重新验证                                             |
-| PERF-01                 | 三系统 formal 已测量       | 828c0c0f61 的 Linux/Windows/macOS formal 11 samples、concurrency 8 回读；后台全遍历/索引/重建及 1K/10K Memory 并发阶段通过                                             | 100K Memory 超过 64 MiB 未可用；原全文件端口、目标硬件与冻结 SLO 仍开放                                    |
+| PERF-01 | 三系统 formal 测量与容量边界修复 | 历史 1K/10K 三系统测量保持；d85af91aa1 在替换前拒绝超限 Memory 写入、有界读取及版本溢出，11 项新增回归和6项容量回归通过 | 100K Memory 仍超过 64 MiB；索引/归档、目标硬件与冻结 SLO 未完成，不以边界修复宣称容量提升 |
 | PERF-02                 | 单模型双轮旅程通过         | 142e356049 的 Windows 真实 Volcengine 双轮压缩及只读工具序列通过；归档合同明确，冻结事实保留 100%、silent loss 0；六次真实 usage 独立核对                              | 100 次独立矩阵、其他目标 provider、冻结误差门限及实际项目任务成功率                                        |
 | MCP-01                  | 本地及准确提交 CI 通过     | 真实 loopback HTTP 覆盖 stateless 404、过期 session、并发单次重建和重建失败；只恢复连接，不重放结果未知的工具调用；当前完整 CLI CI 通过                                | 目标 MCP 服务端互操作仍待验收                                                                              |
 | MAINT-01                | 局部实现并验证             | JetBrains 问答字段合同、存储/请求生命周期和原生表单抽取；保留原 child 交付、schema 校验和草稿恢复不变量                                                                | 其余 runtime 与平台职责抽取、保行为验证                                                                    |
-| DOC-01                  | 当前发布与索引已回填       | 两份报告共享入口已记录准确提交门、不可变标签、公开 npm/Open VSX 和 JetBrains 待审核状态；历史失败按原范围保留                                                          | 后续实现与新验收结果随准确提交更新                                                                         |
+| DOC-01 | 当前公开发行与本轮实施已回填 | 0.37.128 候选完整门、公开 Open VSX 回读与 38 份本地原始文件复核；两报告链接最新实施和 Windows 图片恢复回执 | 新开发改动未发布；其他未执行的验收保持开放 |
 | UX-01                   | 按现有入口改进             | READY-01 改进 help/status；MODEL-02 改进费用未知值                                                                                                                     | 复用 doctor/instructions/cost；语音/主题不自动立项                                                         |
 
 真人 NVDA/VoiceOver/Orca 听测及 8h/24h 生产观察尚无本轮新增结果。Volcengine 真实账号已用于 input usage 试点及上述单条双轮压缩旅程，不构成双 IDE 真实任务验收。真实宿主已有 Windows VS Code 1.132.0 的有限恢复回执，以及当前 JetBrains 三系统 × 2024.2/2025.2 的 canonical recovery / init 等待 Stop 六单元通过结果；这些宿主旅程的模型输出仍为夹具。云恢复与新交互产品仍为报告中的条件性产品决策。
