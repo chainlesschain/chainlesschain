@@ -130,6 +130,7 @@
   "devDependencies": {
     "@scure/base": "^1.2.6",
     "@yao-pkg/pkg": "^6.18.2",
+    "happy-dom": "^20.11.0",
     "playwright": "1.61.1",
     "vitest": "^4.1.10"
   },
