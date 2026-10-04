@@ -11,6 +11,10 @@ on:
         description: "Run the entire updater test file with original assertions/deadlines"
         type: boolean
         default: false
+      gate_context:
+        description: "Use Git Bash, full installer predecessor, then all updater tests (forces full suite)"
+        type: boolean
+        default: false
       run_parent_worker:
         description: "Also run the historical Windows worker diagnostic"
         type: boolean
@@ -56,12 +60,25 @@ jobs:
           install-workspace: packages/cli
 
       - name: Run diagnostic on unchanged source and original deadlines
+        if: ${{ !inputs.gate_context }}
         shell: pwsh
         env:
           CC_UPDATER_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.source_sha }}
           CC_UPDATER_DIAGNOSTIC_FULL_SUITE: ${{ inputs.full_updater_suite }}
         run: |
           node driver/scripts/diagnostics/updater-arm64/run.mjs source "$env:RUNNER_TEMP/updater-arm64-diagnostic"
+
+      - name: Run original gate shell and installer/updater sequence
+        if: ${{ inputs.gate_context }}
+        shell: bash
+        env:
+          CLI_NATIVE_VALIDATION_SHA: ${{ inputs.source_sha }}
+          CC_UPDATER_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.source_sha }}
+          CC_UPDATER_DIAGNOSTIC_GATE_CONTEXT: "true"
+          CC_UPDATER_DIAGNOSTIC_LAUNCH_SHELL: "bash"
+        run: |
+          set -euo pipefail
+          node driver/scripts/diagnostics/updater-arm64/run.mjs source "$RUNNER_TEMP/updater-arm64-diagnostic"
 
       - name: Upload diagnostic observations regardless of test outcome
         if: always()
