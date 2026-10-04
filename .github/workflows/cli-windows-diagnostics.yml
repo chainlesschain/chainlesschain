@@ -2,6 +2,19 @@ name: CLI Windows Diagnostics
 
 on:
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Exact full production commit to diagnose"
+        type: string
+        default: "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37"
+      full_updater_suite:
+        description: "Run the entire updater test file with original assertions/deadlines"
+        type: boolean
+        default: false
+      run_parent_worker:
+        description: "Also run the historical Windows worker diagnostic"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -25,7 +38,7 @@ jobs:
       - name: Checkout frozen production source
         uses: actions/checkout@v5
         with:
-          ref: 1fe7a46c0f97b93fb5110ea3427cc8551d0dab37
+          ref: ${{ inputs.source_sha }}
           path: source
           persist-credentials: false
 
@@ -44,6 +57,9 @@ jobs:
 
       - name: Run diagnostic on unchanged source and original deadlines
         shell: pwsh
+        env:
+          CC_UPDATER_DIAGNOSTIC_SOURCE_SHA: ${{ inputs.source_sha }}
+          CC_UPDATER_DIAGNOSTIC_FULL_SUITE: ${{ inputs.full_updater_suite }}
         run: |
           node driver/scripts/diagnostics/updater-arm64/run.mjs source "$env:RUNNER_TEMP/updater-arm64-diagnostic"
 
@@ -51,12 +67,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: updater-arm64-diagnostic-1fe7-${{ github.sha }}
+          name: updater-arm64-diagnostic-${{ inputs.source_sha }}-${{ github.sha }}
           path: ${{ runner.temp }}/updater-arm64-diagnostic
           if-no-files-found: error
           retention-days: 30
 
   parent-worker-diagnostic:
+    if: ${{ inputs.run_parent_worker }}
     name: "diagnostic only: Windows x64 full unit shard 14/16"
     runs-on: windows-latest
     timeout-minutes: 60

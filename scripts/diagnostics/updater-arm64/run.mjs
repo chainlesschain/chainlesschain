@@ -6,7 +6,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { hash, delay, writeJson } from "./shared.mjs";
 import { startCoordinator } from "./coordinator.mjs";
 
-const EXPECTED_SOURCE = "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37";
+const EXPECTED_SOURCE =
+  process.env.CC_UPDATER_DIAGNOSTIC_SOURCE_SHA ||
+  "1fe7a46c0f97b93fb5110ea3427cc8551d0dab37";
+if (!/^[a-f0-9]{40}$/.test(EXPECTED_SOURCE))
+  throw new Error("A full source commit SHA is required");
+const fullUpdaterSuite =
+  process.env.CC_UPDATER_DIAGNOSTIC_FULL_SUITE === "true";
 const source = path.resolve(process.argv[2]);
 const output = path.resolve(process.argv[3]);
 fs.mkdirSync(path.join(output, "blobs"), { recursive: true });
@@ -37,6 +43,9 @@ const fileHashes = () =>
 const identity = {
   schema: "chainlesschain.windows-arm64-updater-diagnostic.v1",
   sourceSha: git("rev-parse", "HEAD"),
+  testSelection: fullUpdaterSuite
+    ? "entire-updater-file"
+    : "five-historical-failures",
   driverSha: process.env.GITHUB_SHA ?? null,
   platform: process.platform,
   arch: process.arch,
@@ -119,8 +128,7 @@ const args = [
   "run",
   "packages/cli/__tests__/unit/packer-pack-update-applier.test.js",
   "--maxWorkers=1",
-  "--testNamePattern",
-  names.join("|"),
+  ...(fullUpdaterSuite ? [] : ["--testNamePattern", names.join("|")]),
   "--reporter=verbose",
   "--reporter=json",
   `--outputFile.json=${path.join(output, "vitest.json")}`,
@@ -159,6 +167,9 @@ writeJson(path.join(output, "test-result.json"), {
   ...testResult,
   elapsedMs: Date.now() - testStart,
   originalTestNames: names,
+  testSelection: fullUpdaterSuite
+    ? "entire-updater-file"
+    : "five-historical-failures",
   releaseEligible: false,
 });
 // This is observation after test completion, not an extension of any test deadline.
