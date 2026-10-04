@@ -4,6 +4,14 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### 2026-10-04：最新源码补充
+
+本节核对基线已推进到 `main@443a74596248394d7d03371e176c7ec85acf1b66`，最新冻结候选及版本见下节。公开发行仍绑定 `84f204db94`；后续源码不能沿用其成功门。较早 `a72aa19828` 的 [Strict Sandbox 37192116215](https://github.com/chainlesschain/chainlesschain/actions/runs/37192116215) failure：Linux ARM64 在 native Docker egress boundary 步骤失败，Linux x64 在 platform sandbox contract tests 步骤失败，Windows 与两个 macOS 作业通过；日志读取权限不足，具体根因未核验。CLI CI `37192116387` 与 IDE `37192116287` 在本次核对时 queued，最终结论须重新回读。
+
+`21a76756a5` 已把持久 domain 接入 settings/scoped 官方 writer、同次权限 provider 与受控 headless/stream 宿主；原先“尚无运行时接线”的描述仅适用于下方历史切片。显式 Linux 管理员配置、固定 launch binding、authority→source 锁序/CAS、100 ms 跨进程/Worker 轮询和清理成功后的 receiver/session/policyVersion 停止回执见[NET-02 宿主合同](../cli/NET02_CONTROLLED_HOST.md)。普通 CLI 不默认注册；非协作写口、Windows/macOS、敌对同 UID 回滚和分布式 quorum 不在保证内。最新真实 Docker 托管门未通过，NET-02 不关闭。
+
+`48fd92562a` 增加 VS Code 预览前 PNG/JPEG/GIF/WebP 动画帧和解码像素预算及 VS Code/JetBrains 有界文件快照；该源码晚于公开 VSIX/ZIP，不推导全局 SLO。设计与用户说明已同步到[运行时设计](../design/agent-runtime-update-2026-09-26.md)和[发布升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)。
+
 ### 2026-10-04：当前发布状态
 
 **最新冻结候选为 `b2aa3aba082873570e85dce39b00754e5504ff37`，版本仍为 CLI 0.166.86 / VS Code 0.37.131 / JetBrains 0.4.149。** 真实 Windows 图片旅程发现超过 260 字符的草稿目录创建临时子目录时 `ENOENT`，因此 `832f6b7270` 不再是最终候选；`81a3f8b7a0` 整合最小路径前缀修复，真实长路径完整写入与清理回归通过，相关图片测试 **56/56**。新准确提交仍须重新完成 PR #402 的全部发布门；没有发布或把旧检查转移为新提交验收。

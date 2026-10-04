@@ -1,29 +1,62 @@
-# Agent Platform 0.166.84 发布与升级指南
+# Agent Platform 0.166.85 发布与升级指南
 
-> 核对日期：2026-10-02；主线 `2bfaea2fa9`，CLI 与配套 IDE 发布提交均为 `d93c9c9766`。
+> 核对日期：2026-10-04；源码基线 `443a745962`，公开 CLI/Open VSX 来源 `84f204db94`。下面较早版本章节保留历史时点。
 
 ## 概述
 
-本指南说明 CLI 和 IDE 的公开版本、升级步骤、权限撤销行为及源码与制品边界。桌面与移动端保持独立产品发行，历史章节保留首次发布时点。
+本指南说明 CLI 和 IDE 的公开版本、升级步骤、权限撤销行为及源码与制品边界。桌面与移动端保持独立产品发行。
 
 ## 当前公开版本
 
-npm `latest` 为 `0.166.84`，标签 `v-npm-0-166-84` 对应 `d93c9c97664ef910b16a402075b8b920338e1fe2`。[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555)和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162)成功。CLI CI 的 68 个作业全部通过，Strict 的 Linux x64/ARM64、Windows、macOS 15/latest 五个作业全部通过；[独立公共回读](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322)确认 tarball 与工作流产物字节一致。
+| 组件                    | 可安装版本              | 发行提交与 CLI 配对               |
+| ----------------------- | ----------------------- | --------------------------------- |
+| npm CLI                 | **0.166.85**            | `v-npm-0-166-85` → `84f204db94`   |
+| VS Code / VSCodium      | **Open VSX 0.37.130**   | `84f204db94`；推荐 `0.166.85`     |
+| JetBrains               | **Marketplace 0.4.146** | `d93c9c9766`；商店推荐 `0.166.84` |
+| Desktop / Android / iOS | **v5.0.3.138**          | 独立产品发行                      |
 
-[IDE 精确提交宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293161)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013953)和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013151)成功。2026-10-02 独立商店回读确认 Open VSX `latest=0.37.126`，JetBrains `0.4.146` 为 `approve/listed=true`、`hidden=false`；两个 IDE 均推荐 CLI `0.166.84`，源码同为 `d93c9c9766`。 Microsoft Marketplace 未发行；官方 VS Code 用户从 Open VSX 下载 VSIX 手动安装。Desktop/Android/iOS 仍按 `v5.0.3.138` 独立发行。
+`84f204db94` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926499) 68/68、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926341) 5/5 与 [IDE 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926528) 18 成功/1 预期跳过通过。[npm OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/37186498386)和 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37187468724)成功，公开 tarball/VSIX 与不可变制品字节一致，13 个子包及内部依赖已复查。精确回执见[实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。
 
-## 0.166.84 升级与作用域权限撤销
+Microsoft Marketplace 未发行；官方 VS Code 用户从 Open VSX 下载 VSIX，使用“从 VSIX 安装”。JetBrains `0.4.147` 未发布，`0.4.148` 的诊断竞态修复已纳入新 `0.4.149` 候选；不要将源码版本当作当前商店版本。
+
+## 0.166.85 升级与耐久状态修复
 
 ```bash
-npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.85 --registry https://registry.npmjs.org
 cc --version
 ```
 
-安装 Open VSX `0.37.126` 或 JetBrains `0.4.146` 后，重启 IDE 聊天宿主。两个插件都使用 CLI 的权限存储和执行规则。
+确认版本后重启 IDE 聊天宿主，再安装 Open VSX `0.37.130`。JetBrains 当前仍使用公开 `0.4.146`；它内置的推荐版本为 `0.166.84`，与当前 npm latest 不同。
 
-同一进程/模块实例通过官方 `ScopedPermissionStore.add/revoke` 添加或撤销 workspace-scoped 权限时，在持久写入前同步推进修订，撤销旧 Shell 许可。撤销 grant 再重新授予、添加 deny 再移除，都不会恢复原有执行许可。审批等待、Broker 启动、容器创建、运行中和结果回执阶段均检查 settings/scoped 修订；撤销会启动活动 Docker 代理连接与容器的关闭，迟到结果不能报告成功。幂等撤销不改写文件或消耗修订；落盘不确定时持续拒绝重新授权。
+`0.166.85` 为耐久记忆读写增加容量、字节及 revision 检查。达到上限时拒绝变更并保留已存状态；scoped 权限拒绝不安全版本和有效变更溢出，幂等撤销与 stale CAS 保持原合同。Linux standalone 打包带固定 supervisor，真实编译请求设置有限资源预算；Windows updater ready 等待让出事件循环。修复进入 npm 不代表签名 native 发布完成。
 
-这项即时通知只覆盖同一进程/模块实例的官方 API。独立终端执行 `cc permissions revoke`、Worker 和直接编辑文件仍受原采样与各自边界约束，不能视为已经实现跨进程即时撤销。结果或清理未知时，先检查文件、服务和已发生的外部副作用，再决定是否重试。
+## Open VSX 0.37.130：图片草稿与长回复
+
+长回复生成期间保留选区和向上阅读的位置，结束后格式化；有选区时延后格式化。图片保存、恢复、丢弃与 ACK 绑定每次 Webview 页面执行，Reload Webviews 复用 HTML 也创建新实例；旧页面迟到的确认不会将新草稿误标为已保存。
+
+粘贴或拖入图片后等待宿主验证与保存状态；若验证失败，先移除该图片或换用符合限制的文件。切换会话或重启后检查恢复的文本和附件，再手动发送。恢复不会自动发送，文本保存成功也不能掩盖图片保存错误。
+
+## 官方权限撤销与 Linux 宿主源码
+
+公开版继承同一进程/模块实例内的 settings `addRule()` 和 scoped `add/revoke` 同步撤销：持久写入前推进 revision 并锁存旧 Shell 许可撤销，恢复规则不恢复原许可。审批等待、启动、运行与结果阶段重验；不确定落盘保持拒绝授权。普通独立终端或直接文件编辑没有跨进程即时停止保证。
+
+发布后的 `21a76756a5` 接入显式 Linux `permission-authority-host` API。管理员先配置外部持久域和固定启动描述符，再由官方 writer 与 headless/stream 宿主共享 authority→source 锁序、CAS 和同次权限观察。跨进程/Worker 每 100 ms 轮询；调度可能延迟，writer 成功返回不代表全部接收方已经停止。停止回执只在代理/会话清理成功后产生，并绑定 receiver/session/policyVersion。
+
+这项宿主能力尚未进入上方公开 npm，普通 CLI 不默认启用；Windows/macOS 拒绝该持久 API。不覆盖任意外部编辑、非协作 ABA、敌对同 UID 回滚、自动迁移/恢复或全部 legacy callback。管理员示例与错误码见[受控宿主指南](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md)，架构见[最新增量设计](/design/agent-runtime-update-2026-09-26)。
+
+## 发布后的图片预算与验收限制
+
+`48fd92562a` 的 VS Code 源码在 PNG/JPEG/GIF/WebP 预览解码前检查帧和像素预算（累计 200 帧、4000 万画布像素），两端附件改用有界文件快照；尚未纳入当前商店制品。缩略图显示大小不代表解码资源上限。
+
+准确 `84f204db94` 的[六平台 native 复验](https://github.com/chainlesschain/chainlesschain/actions/runs/37189753288)有五个平台通过；Windows ARM64 updater 完整文件 64 通过/5 失败，整轮失败，无签名 native 发行。较早源码 `a72aa19828` 的 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37192116215)亦失败，后续发布须重新通过自身完整门。上述限制不影响已核验的 npm/Open VSX 发行身份。
+
+## 最新源码候选：容量与长路径
+
+最新冻结候选 `b2aa3aba08` 配对 CLI **0.166.86**、VS Code **0.37.131**、JetBrains **0.4.149**，均待准确提交完整发布门和公共回读。新增 canonical Memory v2 分片：保留单文件 64 MiB，活动 bucket 合计上限 1 GiB；旧 v1 客户端拒绝 v2，降级需兼容快照，默认 shadow 不迁移。Windows formal 的 1K/10K/100K 新进程重开、读取、更新、删除与审计后验已验证；100K 点读 p95 110.072 ms、全量查询 p95 13,954.915 ms，不能据此宣称索引或全局 SLO。Windows 超过 260 字符的图片草稿路径创建与清理已修复；这些是发布后的源码进展。
+
+## 0.166.84 历史：作用域权限同步撤销
+
+2026-10-02 公开 CLI 为 `0.166.84@d93c9c9766`，当时配套 Open VSX `0.37.126` 与 JetBrains `0.4.146` 均推荐 `0.166.84`。scoped 官方写口在同一运行时、落盘前撤销旧许可；该历史验收不能替代当前源码的持久跨进程/Docker 验收。
 
 ## 0.166.83 继承的运行时修复
 

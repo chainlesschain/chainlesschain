@@ -1,5 +1,52 @@
 # Agent 运行时与评测证据增量设计（2026-09-26）
 
+## 2026-10-04：公开发行、耐久权限接线与 IDE 图片边界
+
+源码核对基线为 `main@443a74596248394d7d03371e176c7ec85acf1b66`。公开 CLI **0.166.85** 与 Open VSX **0.37.130** 绑定 `84f204db944d92124d95b2348814ac562bde5841`；JetBrains 公开版仍为 **0.4.146@d93c9c9766**，推荐 CLI `0.166.84`，源码候选为 **0.4.149**。Desktop/Android/iOS 继续独立发行 `v5.0.3.138`。
+
+最新冻结候选 `b2aa3aba08` 配对 CLI **0.166.86**、VS Code **0.37.131**、JetBrains **0.4.149**，均待准确提交完整发布门和公共回读。新增 canonical Memory v2 分片：保留单文件 64 MiB，活动 bucket 合计上限 1 GiB；旧 v1 客户端拒绝 v2，降级需兼容快照，默认 shadow 不迁移。Windows formal 的 1K/10K/100K 新进程重开、读取、更新、删除与审计后验已验证；100K 点读 p95 110.072 ms、全量查询 p95 13,954.915 ms，不能据此宣称索引或全局 SLO。Windows 超过 260 字符的图片草稿路径创建与清理已修复；这些是发布后的源码进展。
+
+最新容量、ARM64 真容器独立回读与 updater 诊断见[实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。旧 ARM64 失败与新独立诊断成功均保留：先行安装器/Bash/测试顺序尚未对齐，不能推导原失败的唯一原因或完整 native 发布门已通过。
+
+### 发行与验收
+
+`84f204db94` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926499) 68/68、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926341) 5/5、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926528) 18 成功/1 预期跳过均通过；[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37186498386)与 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37187468724)成功。公共 tarball/VSIX 与不可变制品字节一致；13 个子包与源码及内部版本声明已复查。此门禁仅属于该精确提交。
+
+公开 CLI 加入有界耐久记忆、scoped 权限安全 revision、有限资源的真实打包请求与异步 updater ready 等待；公开 VS Code 包含长回复的有界追加、选择保持及图片草稿页面实例隔离。JetBrains `0.4.147` 发布测试发现诊断 debounce/flush 重复提交，未发布；`fe8de1b830` 在 `0.4.148` 修复并增加确定性交错回归，本机完整 JUnit 929 项、0 失败、3 平台跳过不替代发布门。
+
+六平台 [native 复验](https://github.com/chainlesschain/chainlesschain/actions/runs/37189753288)有五个平台成功；Windows ARM64 构建及 version/status 通过，但 updater 完整文件 64 通过/5 失败，汇总跳过，整轮失败。没有签名 native 制品发行或六平台通过结论。较早主线 `a72aa19828` 的 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37192116215)已失败，CLI CI/IDE 门仍需独立核对，不能沿用公开发行的成功。
+
+### NET-02：显式 Linux 持久权限宿主
+
+`21a76756a5` 的 `packages/cli/src/runtime/permission-authority-host.js` 接通 settings/scoped 官方写口、同次观察的权限投影、provider 和 headless/stream runner。此源码晚于 npm `0.166.85`，普通 CLI 没有默认开启开关。管理员先在真实、私有且排除所有工作区与可写根的目录中配置 domain；固定启动描述符绑定 context、发现输入与 settings/scoped 路径，经可信通道交给每个进程/Worker。Windows/macOS 明确拒绝持久域初始化与重开。
+
+官方写口先取 authority 锁，再取 source 锁，并使用准备阶段捕获的准确 revision/CAS，避免丢失并发 writer 更新。settings 和 scoped 从同次已验证观察投影，环境与 expiry 投影后再检查。官方 deny→revoke 即使恢复原规则也消耗单调修订，不复活旧执行许可；未绑定 writer 或原始文件修改会破坏 source manifest，拒绝继续授权。
+
+本进程同步锁存撤销；跨进程/Worker 每 **100 ms** 轮询持久状态，调度可能延迟。writer 成功返回不证明全部接收方已停止。Docker egress 的 `authorityFailure.stopAcknowledgement` 仅在 proxy abort 与 session close 成功、清理全部结束且监控停止后产生；使用不可变 `stopIdentity` 对照唯一 `receiverId`、`sessionId` 和准入 `policyVersion`。旧回执不能释放其他接收方；清理失败不发回执。
+
+```mermaid
+flowchart LR
+  A[管理员配置与固定启动描述符] --> H[受控 Linux 宿主]
+  H --> W[官方 writer: authority → source 锁与 CAS]
+  W --> D[持久单调 revision 与来源 manifest]
+  D --> P[同次权限投影与运行准入]
+  D --> R[本地通知或跨进程 100 ms 轮询]
+  R --> C[撤销代理与执行会话]
+  C --> S[成功清理后的接收方停止回执]
+```
+
+原生 child/Worker 与代理探针不等于 Docker 强制出口验收；新提交的 Linux x64/ARM64 真实容器门仍须通过。不承诺非协作 ABA、敌对同 UID 回滚、受损宿主、分布式 quorum、自动注册/迁移/恢复或所有 legacy callback。管理员调用示例、错误码与恢复合同见 [受控宿主指南](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md)。NET-02 继续局部完成。
+
+### IDE：页面草稿隔离与发布后的图片解码预算
+
+公开 VS Code `0.37.130` 每次脚本执行生成页面 ID，并同时校验当前 HTML nonce；Reload Webviews 复用 HTML 时仍区分实例。save/restore/discard/check 与 ACK 绑定页面，manifest rename 前重验实例，过期写入清理本次新图；空草稿先提交 manifest 移除再完成图片清理。恢复不会自动发送。
+
+发布后的 `48fd92562a` 在预览解码前解析 PNG/JPEG/GIF/WebP 容器，校验完整性、画布与动画帧预算；累计不超过 **200 帧 / 4000 万解码画布像素**，包含 fallback 画布。VS Code 与 JetBrains 的文件附件使用有界快照并检查文件身份/前后状态。40px CSS 缩略图尺寸不能充当解码资源上限；这些源码保护尚未纳入已公开 VSIX/ZIP，不推导全局性能 SLO 或所有图片路径已认证。
+
+实施 SHA、原始报告与失败日志见 [共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。真实 PM 收益、完整启动与成本证据、真人辅助技术及 automatic active Skill promotion 仍未验收。
+
+以下 2026-10-02 与更早章节保留历史时点。
+
 ## 2026-10-02：作用域撤销与 settings 事务基础
 
 **2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。

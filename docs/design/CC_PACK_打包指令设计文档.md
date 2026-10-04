@@ -1,5 +1,7 @@
 # `cc pack` — 项目一键打包为可执行文件 设计文档
 
+> **2026-10-04 当前核对**：公开 CLI **0.166.85@84f204db94** 已包含 Linux standalone 固定 supervisor、有界真实编译请求与 Windows updater 异步握手。npm 发行门已通过；六平台 native 复验 Windows ARM64 updater **64 通过 / 5 失败**，整轮失败，无签名 native 发行。独立本机单用例通过不能替代此失败。详见 [最新增量设计](agent-runtime-update-2026-09-26.md)和 [实施证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。以下阶段与 10 月 3 日候选描述保留当时的历史状态。
+
 > 版本：v0.7 (Phase 0-3 + 4a + 5a/5b/5c + 项目模式 Phase 2a/2b/3a/3b 已落地)
 > 日期：2026-04-24
 > 作者：longfa

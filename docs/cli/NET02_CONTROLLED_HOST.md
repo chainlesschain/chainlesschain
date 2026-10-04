@@ -1,6 +1,7 @@
 # NET-02 Linux controlled-host permission authority
 
-The shipped entry `chainlesschain/src/runtime/permission-authority-host.js`
+The source entry `chainlesschain/src/runtime/permission-authority-host.js`
+(added after the public npm `0.166.85@84f204db94` release)
 connects durable authority to settings writers, scoped permission writers,
 permission providers, and headless runtimes. This is an explicit cooperative
 Linux host API, not an automatically enabled CLI mode. Node 22.12 or later is
