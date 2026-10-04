@@ -1,0 +1,43 @@
+{
+  "schema": "cc-ide-conversation-recovery/v2",
+  "phase": "restart",
+  "historyIdsPreserved": true,
+  "composerDraftsPreserved": true,
+  "automaticInputReplay": false,
+  "images": {
+    "a": {
+      "inputText": "unsent draft A 中文😀",
+      "attachmentChips": [
+        "📷 image 1×"
+      ],
+      "attachments": [
+        {
+          "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+          "mime": "image/png",
+          "bytes": 70,
+          "naturalWidth": 1,
+          "naturalHeight": 1,
+          "loaded": true
+        }
+      ],
+      "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+    },
+    "b": {
+      "inputText": "unsent draft B 中文😀",
+      "attachmentChips": [
+        "📷 image 1×"
+      ],
+      "attachments": [
+        {
+          "sha256": "ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629",
+          "mime": "image/gif",
+          "bytes": 42,
+          "naturalWidth": 1,
+          "naturalHeight": 1,
+          "loaded": true
+        }
+      ],
+      "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-B Discard saved input"
+    }
+  }
+}
