@@ -1,0 +1,40 @@
+{
+  "schema": "chainlesschain.segmented-memory-posix-probe/v1",
+  "candidateSha": "244a3d10c0b3989b4f98a3461feaee27f113b441",
+  "host": {
+    "platform": "linux",
+    "release": "4.4.0-19041-Microsoft",
+    "node": "v22.12.0"
+  },
+  "status": "passed",
+  "outcomes": [
+    {
+      "failureBoundary": "manifest-parent-directory-fsync",
+      "directorySyncs": 1,
+      "code": "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+      "committed": true,
+      "durability": "unknown",
+      "cleanupComplete": false,
+      "storeRevision": 3,
+      "reopenedRecordVerified": true,
+      "staleCasRejected": true,
+      "auditVerified": true,
+      "noOrphanShards": true
+    },
+    {
+      "failureBoundary": "garbage-removal-directory-fsync",
+      "directorySyncs": 2,
+      "code": "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+      "committed": true,
+      "durability": "directory-sync-completed",
+      "cleanupComplete": false,
+      "storeRevision": 3,
+      "reopenedRecordVerified": true,
+      "staleCasRejected": true,
+      "auditVerified": true,
+      "noOrphanShards": true
+    }
+  ],
+  "scope": "two-record POSIX post-publication fsync fault injection; not capacity, power-loss, or production qualification",
+  "digest": "sha256:c19650c47fb5c5f6c3f2ee3656d43b2efcf7499420e8f9dd1a75a6a88bcf7ab1"
+}

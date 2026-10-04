@@ -1,0 +1,890 @@
+{
+  "schema": "chainlesschain.persistent-capacity-measurement/v1",
+  "schemaVersion": 1,
+  "status": "measured",
+  "startedAt": "2026-10-04T09:35:30.026Z",
+  "durationMs": 1020413.554,
+  "host": {
+    "platform": "win32",
+    "release": "10.0.19045",
+    "architecture": "x64",
+    "nodeVersion": "v22.22.2"
+  },
+  "checkout": {
+    "candidateSha": "244a3d10c0b3989b4f98a3461feaee27f113b441",
+    "exactCheckout": true,
+    "cleanWorktree": true,
+    "dirtyEntryCount": 0
+  },
+  "configuration": {
+    "name": "formal",
+    "memoryCounts": [
+      1000,
+      10000,
+      100000
+    ],
+    "backgroundCounts": [
+      1000,
+      10000
+    ],
+    "samples": 11,
+    "concurrency": 8,
+    "maxStoreBytes": 67108864,
+    "maxEvents": 1000000,
+    "performanceThresholds": null,
+    "storage": "segmented",
+    "maxTotalBytes": 1073741824
+  },
+  "measurements": {
+    "memory": [
+      {
+        "storage": "segmented",
+        "recordCount": 1000,
+        "fixture": {
+          "recordCount": 1000,
+          "eventCount": 1000,
+          "bytes": 1236562,
+          "setupMs": 833.486,
+          "seededThroughProductionCommit": false,
+          "seededThroughProductionSnapshotImport": true,
+          "auditDigest": "sha256:2d163ef93df8b348d689dbe71548fe7b75eef526497c74139f721aab4b6db75a"
+        },
+        "configuredLimits": {
+          "maxStoreBytes": 67108864,
+          "maxEvents": 1000000,
+          "maxTotalBytes": 1073741824
+        },
+        "reachedConfiguredEventCeiling": false,
+        "reachable": true,
+        "readFailure": null,
+        "observedCount": 1000,
+        "coldProcess": {
+          "ok": true,
+          "kind": "memory-query",
+          "count": 1000,
+          "operationMs": 703.394,
+          "lockObservations": [
+            {
+              "locked": true,
+              "waitMs": 5,
+              "attempts": 1
+            }
+          ],
+          "peakRssBytes": 88956928,
+          "processPeakRssBytes": 88969216,
+          "processExitCode": 0,
+          "wallMs": 1381.826,
+          "stderr": null
+        },
+        "query": {
+          "samples": 11,
+          "minMs": 491.89,
+          "p50Ms": 574.645,
+          "p95Ms": 955.63,
+          "p99Ms": 955.63,
+          "maxMs": 955.63
+        },
+        "pointRead": {
+          "samples": 11,
+          "minMs": 17.367,
+          "p50Ms": 18.899,
+          "p95Ms": 33.506,
+          "p99Ms": 33.506,
+          "maxMs": 33.506
+        },
+        "listAndSort": {
+          "samples": 11,
+          "minMs": 502.153,
+          "p50Ms": 603.096,
+          "p95Ms": 1355.895,
+          "p99Ms": 1355.895,
+          "maxMs": 1355.895
+        },
+        "lockWait": {
+          "samples": 33,
+          "minMs": 2,
+          "p50Ms": 3,
+          "p95Ms": 4,
+          "p99Ms": 5,
+          "maxMs": 5
+        },
+        "concurrentReads": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 2907.839,
+            "p50Ms": 4465.47,
+            "p95Ms": 6111.327,
+            "p99Ms": 6111.327,
+            "maxMs": 6111.327
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 1375.822,
+            "p50Ms": 3016.539,
+            "p95Ms": 4632.073,
+            "p99Ms": 4632.073,
+            "maxMs": 4632.073
+          },
+          "lockWait": {
+            "samples": 8,
+            "minMs": 4,
+            "p50Ms": 2190,
+            "p95Ms": 4032,
+            "p99Ms": 4032,
+            "maxMs": 4032
+          },
+          "failures": [],
+          "peakRssBytes": 89800704,
+          "processPeakRssBytes": 89808896
+        },
+        "concurrentUpdates": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1112.049,
+            "p50Ms": 1433.482,
+            "p95Ms": 1782.761,
+            "p99Ms": 1782.761,
+            "maxMs": 1782.761
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 179.839,
+            "p50Ms": 387.433,
+            "p95Ms": 817.246,
+            "p99Ms": 817.246,
+            "maxMs": 817.246
+          },
+          "lockWait": {
+            "samples": 16,
+            "minMs": 3,
+            "p50Ms": 9,
+            "p95Ms": 723,
+            "p99Ms": 723,
+            "maxMs": 723
+          },
+          "failures": [],
+          "peakRssBytes": 76902400,
+          "processPeakRssBytes": 78999552
+        },
+        "concurrentDeletes": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1307.395,
+            "p50Ms": 1997.511,
+            "p95Ms": 2233.865,
+            "p99Ms": 2233.865,
+            "maxMs": 2233.865
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 286.212,
+            "p50Ms": 692.373,
+            "p95Ms": 1162.781,
+            "p99Ms": 1162.781,
+            "maxMs": 1162.781
+          },
+          "lockWait": {
+            "samples": 24,
+            "minMs": 2,
+            "p50Ms": 44,
+            "p95Ms": 680,
+            "p99Ms": 735,
+            "maxMs": 735
+          },
+          "failures": [],
+          "peakRssBytes": 80687104,
+          "processPeakRssBytes": 80699392
+        },
+        "postWriteVerification": {
+          "originalAuditPreserved": true,
+          "expectedEvents": 1024,
+          "actualEvents": 1024,
+          "storeRevision": 1024,
+          "recordCount": 1000,
+          "updatesVerified": true,
+          "deletesVerified": true,
+          "verified": true
+        },
+        "finalBytes": 1249530,
+        "peakRssBytes": 136757248,
+        "processPeakRssBytes": 172748800
+      },
+      {
+        "storage": "segmented",
+        "recordCount": 10000,
+        "fixture": {
+          "recordCount": 10000,
+          "eventCount": 10000,
+          "bytes": 11897608,
+          "setupMs": 3038.713,
+          "seededThroughProductionCommit": false,
+          "seededThroughProductionSnapshotImport": true,
+          "auditDigest": "sha256:f147e443b4cc66fcf39a8f41ebf7dcac8e663c6d77cf50672d75503e9a8b8165"
+        },
+        "configuredLimits": {
+          "maxStoreBytes": 67108864,
+          "maxEvents": 1000000,
+          "maxTotalBytes": 1073741824
+        },
+        "reachedConfiguredEventCeiling": false,
+        "reachable": true,
+        "readFailure": null,
+        "observedCount": 10000,
+        "coldProcess": {
+          "ok": true,
+          "kind": "memory-query",
+          "count": 10000,
+          "operationMs": 2069.503,
+          "lockObservations": [
+            {
+              "locked": true,
+              "waitMs": 4,
+              "attempts": 1
+            }
+          ],
+          "peakRssBytes": 129794048,
+          "processPeakRssBytes": 129806336,
+          "processExitCode": 0,
+          "wallMs": 2573.711,
+          "stderr": null
+        },
+        "query": {
+          "samples": 11,
+          "minMs": 1390.844,
+          "p50Ms": 1753.478,
+          "p95Ms": 2125.917,
+          "p99Ms": 2125.917,
+          "maxMs": 2125.917
+        },
+        "pointRead": {
+          "samples": 11,
+          "minMs": 20.914,
+          "p50Ms": 26.189,
+          "p95Ms": 44.132,
+          "p99Ms": 44.132,
+          "maxMs": 44.132
+        },
+        "listAndSort": {
+          "samples": 11,
+          "minMs": 1450.423,
+          "p50Ms": 1733.529,
+          "p95Ms": 1982.576,
+          "p99Ms": 1982.576,
+          "maxMs": 1982.576
+        },
+        "lockWait": {
+          "samples": 33,
+          "minMs": 2,
+          "p50Ms": 3,
+          "p95Ms": 4,
+          "p99Ms": 5,
+          "maxMs": 5
+        },
+        "concurrentReads": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 3833.22,
+            "p50Ms": 5846.663,
+            "p95Ms": 8822.459,
+            "p99Ms": 8822.459,
+            "maxMs": 8822.459
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 2703.367,
+            "p50Ms": 4405.323,
+            "p95Ms": 7712.847,
+            "p99Ms": 7712.847,
+            "maxMs": 7712.847
+          },
+          "lockWait": {
+            "samples": 8,
+            "minMs": 4,
+            "p50Ms": 1728,
+            "p95Ms": 4613,
+            "p99Ms": 4613,
+            "maxMs": 4613
+          },
+          "failures": [],
+          "peakRssBytes": 129900544,
+          "processPeakRssBytes": 129912832
+        },
+        "concurrentUpdates": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1382.457,
+            "p50Ms": 1893.443,
+            "p95Ms": 2277.081,
+            "p99Ms": 2277.081,
+            "maxMs": 2277.081
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 231.279,
+            "p50Ms": 502.852,
+            "p95Ms": 777.622,
+            "p99Ms": 777.622,
+            "maxMs": 777.622
+          },
+          "lockWait": {
+            "samples": 16,
+            "minMs": 3,
+            "p50Ms": 43,
+            "p95Ms": 670,
+            "p99Ms": 670,
+            "maxMs": 670
+          },
+          "failures": [],
+          "peakRssBytes": 80592896,
+          "processPeakRssBytes": 82345984
+        },
+        "concurrentDeletes": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1675.739,
+            "p50Ms": 2054.558,
+            "p95Ms": 2566.962,
+            "p99Ms": 2566.962,
+            "maxMs": 2566.962
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 542.759,
+            "p50Ms": 974.502,
+            "p95Ms": 1426.419,
+            "p99Ms": 1426.419,
+            "maxMs": 1426.419
+          },
+          "lockWait": {
+            "samples": 24,
+            "minMs": 3,
+            "p50Ms": 83,
+            "p95Ms": 1015,
+            "p99Ms": 1137,
+            "maxMs": 1137
+          },
+          "failures": [],
+          "peakRssBytes": 85012480,
+          "processPeakRssBytes": 85020672
+        },
+        "postWriteVerification": {
+          "originalAuditPreserved": true,
+          "expectedEvents": 10024,
+          "actualEvents": 10024,
+          "storeRevision": 10024,
+          "recordCount": 10000,
+          "updatesVerified": true,
+          "deletesVerified": true,
+          "verified": true
+        },
+        "finalBytes": 11910600,
+        "peakRssBytes": 211173376,
+        "processPeakRssBytes": 262283264
+      },
+      {
+        "storage": "segmented",
+        "recordCount": 100000,
+        "fixture": {
+          "recordCount": 100000,
+          "eventCount": 100000,
+          "bytes": 118771489,
+          "setupMs": 33453.529,
+          "seededThroughProductionCommit": false,
+          "seededThroughProductionSnapshotImport": true,
+          "auditDigest": "sha256:0d85496412b8dc21dc5f1ccb685a30450376a86337a8822b9231fdecfd4dfb34"
+        },
+        "configuredLimits": {
+          "maxStoreBytes": 67108864,
+          "maxEvents": 1000000,
+          "maxTotalBytes": 1073741824
+        },
+        "reachedConfiguredEventCeiling": false,
+        "reachable": true,
+        "readFailure": null,
+        "observedCount": 100000,
+        "coldProcess": {
+          "ok": true,
+          "kind": "memory-query",
+          "count": 100000,
+          "operationMs": 12537.922,
+          "lockObservations": [
+            {
+              "locked": true,
+              "waitMs": 3,
+              "attempts": 1
+            }
+          ],
+          "peakRssBytes": 444968960,
+          "processPeakRssBytes": 445345792,
+          "processExitCode": 0,
+          "wallMs": 13154.082,
+          "stderr": null
+        },
+        "query": {
+          "samples": 11,
+          "minMs": 11463.698,
+          "p50Ms": 12471.645,
+          "p95Ms": 13954.915,
+          "p99Ms": 13954.915,
+          "maxMs": 13954.915
+        },
+        "pointRead": {
+          "samples": 11,
+          "minMs": 58.215,
+          "p50Ms": 63.112,
+          "p95Ms": 110.072,
+          "p99Ms": 110.072,
+          "maxMs": 110.072
+        },
+        "listAndSort": {
+          "samples": 11,
+          "minMs": 12142.314,
+          "p50Ms": 12863.508,
+          "p95Ms": 16283.742,
+          "p99Ms": 16283.742,
+          "maxMs": 16283.742
+        },
+        "lockWait": {
+          "samples": 33,
+          "minMs": 2,
+          "p50Ms": 3,
+          "p95Ms": 4,
+          "p99Ms": 5,
+          "maxMs": 5
+        },
+        "concurrentReads": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 23200.429,
+            "p50Ms": 26370.208,
+            "p95Ms": 28882.67,
+            "p99Ms": 28882.67,
+            "maxMs": 28882.67
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 22121.202,
+            "p50Ms": 25318.986,
+            "p95Ms": 27812.719,
+            "p99Ms": 27812.719,
+            "maxMs": 27812.719
+          },
+          "lockWait": {
+            "samples": 8,
+            "minMs": 4,
+            "p50Ms": 2309,
+            "p95Ms": 6055,
+            "p99Ms": 6055,
+            "maxMs": 6055
+          },
+          "failures": [],
+          "peakRssBytes": 444583936,
+          "processPeakRssBytes": 445427712
+        },
+        "concurrentUpdates": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1361.856,
+            "p50Ms": 2163.203,
+            "p95Ms": 2907.727,
+            "p99Ms": 2907.727,
+            "maxMs": 2907.727
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 430.032,
+            "p50Ms": 1132.167,
+            "p95Ms": 1860.94,
+            "p99Ms": 1860.94,
+            "maxMs": 1860.94
+          },
+          "lockWait": {
+            "samples": 16,
+            "minMs": 3,
+            "p50Ms": 155,
+            "p95Ms": 1618,
+            "p99Ms": 1618,
+            "maxMs": 1618
+          },
+          "failures": [],
+          "peakRssBytes": 92676096,
+          "processPeakRssBytes": 93171712
+        },
+        "concurrentDeletes": {
+          "requested": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "wall": {
+            "samples": 8,
+            "minMs": 1820.4,
+            "p50Ms": 2853.611,
+            "p95Ms": 4017.769,
+            "p99Ms": 4017.769,
+            "maxMs": 4017.769
+          },
+          "operation": {
+            "samples": 8,
+            "minMs": 711.941,
+            "p50Ms": 1510.578,
+            "p95Ms": 2968.089,
+            "p99Ms": 2968.089,
+            "maxMs": 2968.089
+          },
+          "lockWait": {
+            "samples": 24,
+            "minMs": 3,
+            "p50Ms": 135,
+            "p95Ms": 2251,
+            "p99Ms": 2297,
+            "maxMs": 2297
+          },
+          "failures": [],
+          "peakRssBytes": 105508864,
+          "processPeakRssBytes": 105779200
+        },
+        "postWriteVerification": {
+          "originalAuditPreserved": true,
+          "expectedEvents": 100024,
+          "actualEvents": 100024,
+          "storeRevision": 100024,
+          "recordCount": 100000,
+          "updatesVerified": true,
+          "deletesVerified": true,
+          "verified": true
+        },
+        "finalBytes": 118784505,
+        "peakRssBytes": 820998144,
+        "processPeakRssBytes": 1118900224
+      }
+    ],
+    "backgroundAgents": [
+      {
+        "recordCount": 1000,
+        "fixture": {
+          "recordCount": 1000,
+          "setupMs": 925.15,
+          "seededThroughProductionWriter": false
+        },
+        "observedCount": 1000,
+        "coldProcess": {
+          "ok": true,
+          "kind": "background-list",
+          "count": 1000,
+          "operationMs": 613.708,
+          "lockObservations": [],
+          "peakRssBytes": 75292672,
+          "processPeakRssBytes": 75563008,
+          "processExitCode": 0,
+          "wallMs": 1427.977,
+          "stderr": null
+        },
+        "fullDirectoryListAndSort": {
+          "samples": 11,
+          "minMs": 356.181,
+          "p50Ms": 366.688,
+          "p95Ms": 616.376,
+          "p99Ms": 616.376,
+          "maxMs": 616.376
+        },
+        "comparison": {
+          "schema": "chainlesschain.background-capacity-comparison/v1",
+          "pageLimit": 50,
+          "datasetDigest": "sha256:d430cb70de5fb1cf8a0a7869f8cfc0ee9e8ea96a0e1725281c9834503aa563a3",
+          "coldBuild": {
+            "ok": true,
+            "kind": "background-page",
+            "count": 50,
+            "page": {
+              "count": 50,
+              "firstId": "bg-capacity-00000999",
+              "lastId": "bg-capacity-00000950",
+              "rowsDigest": "sha256:8665eb2b6efa49e584d690f39a8af8f37101e6da8ba89effd6d15cc0bd8963f1",
+              "hasNextPage": true,
+              "observation": {
+                "source": "rebuilt",
+                "entryCount": 1000
+              }
+            },
+            "operationMs": 747.691,
+            "lockObservations": [],
+            "peakRssBytes": 84467712,
+            "processPeakRssBytes": 85868544,
+            "processExitCode": 0,
+            "wallMs": 1279.453,
+            "stderr": null,
+            "validation": {
+              "ok": true,
+              "expectedSource": "rebuilt"
+            }
+          },
+          "coldCached": {
+            "ok": true,
+            "kind": "background-page",
+            "count": 50,
+            "page": {
+              "count": 50,
+              "firstId": "bg-capacity-00000999",
+              "lastId": "bg-capacity-00000950",
+              "rowsDigest": "sha256:8665eb2b6efa49e584d690f39a8af8f37101e6da8ba89effd6d15cc0bd8963f1",
+              "hasNextPage": true,
+              "observation": {
+                "source": "index",
+                "entryCount": 1000
+              }
+            },
+            "operationMs": 205.545,
+            "lockObservations": [],
+            "peakRssBytes": 77463552,
+            "processPeakRssBytes": 77475840,
+            "processExitCode": 0,
+            "wallMs": 770.511,
+            "stderr": null,
+            "validation": {
+              "ok": true,
+              "expectedSource": "index"
+            }
+          },
+          "warmFirstPage": {
+            "samples": 11,
+            "minMs": 161.419,
+            "p50Ms": 169.371,
+            "p95Ms": 201.791,
+            "p99Ms": 201.791,
+            "maxMs": 201.791,
+            "sources": {
+              "index": 11
+            }
+          },
+          "warmNextPage": {
+            "samples": 11,
+            "minMs": 164.913,
+            "p50Ms": 171.63,
+            "p95Ms": 189.508,
+            "p99Ms": 189.508,
+            "maxMs": 189.508,
+            "sources": {
+              "index": 11
+            }
+          },
+          "invalidationRebuild": {
+            "samples": 11,
+            "minMs": 627.015,
+            "p50Ms": 638.165,
+            "p95Ms": 734.064,
+            "p99Ms": 734.064,
+            "maxMs": 734.064,
+            "sources": {
+              "rebuilt": 11
+            }
+          },
+          "traversal": {
+            "records": 1000,
+            "pages": 20,
+            "parityChecks": 54,
+            "exact": true
+          },
+          "pathsVerified": true,
+          "processPeakRssBytes": 1118900224,
+          "lockWait": {
+            "applicable": false,
+            "reason": "page reads use an inventory fence, no store lock"
+          },
+          "limitations": [
+            "all:true terminal synthetic records; no running-process liveness probes",
+            "warm indexed reads still enumerate/stat every authority file and sort summaries",
+            "first-process timings may benefit from the host filesystem cache",
+            "peak RSS is the process high-water mark, not an isolated page allocation delta",
+            "synthetic fixtures and local measurements do not qualify a production SLO"
+          ]
+        },
+        "paginationApplied": true,
+        "indexApplied": true,
+        "peakRssBytes": 740159488
+      },
+      {
+        "recordCount": 10000,
+        "fixture": {
+          "recordCount": 10000,
+          "setupMs": 7533.786,
+          "seededThroughProductionWriter": false
+        },
+        "observedCount": 10000,
+        "coldProcess": {
+          "ok": true,
+          "kind": "background-list",
+          "count": 10000,
+          "operationMs": 3445.19,
+          "lockObservations": [],
+          "peakRssBytes": 86118400,
+          "processPeakRssBytes": 86126592,
+          "processExitCode": 0,
+          "wallMs": 3931.641,
+          "stderr": null
+        },
+        "fullDirectoryListAndSort": {
+          "samples": 11,
+          "minMs": 3304.74,
+          "p50Ms": 3361.652,
+          "p95Ms": 3661.266,
+          "p99Ms": 3661.266,
+          "maxMs": 3661.266
+        },
+        "comparison": {
+          "schema": "chainlesschain.background-capacity-comparison/v1",
+          "pageLimit": 50,
+          "datasetDigest": "sha256:4b9a23df9ca0a596c5eaa2e09f442bd8108f42aebf7a1cc2451d89fb6ed40812",
+          "coldBuild": {
+            "ok": true,
+            "kind": "background-page",
+            "count": 50,
+            "page": {
+              "count": 50,
+              "firstId": "bg-capacity-00009999",
+              "lastId": "bg-capacity-00009950",
+              "rowsDigest": "sha256:c14df855449b32cc3f09c55b667fc55dd272e85c02327005aac8c9eab9a94579",
+              "hasNextPage": true,
+              "observation": {
+                "source": "rebuilt",
+                "entryCount": 10000
+              }
+            },
+            "operationMs": 6350.721,
+            "lockObservations": [],
+            "peakRssBytes": 112328704,
+            "processPeakRssBytes": 112758784,
+            "processExitCode": 0,
+            "wallMs": 6842.732,
+            "stderr": null,
+            "validation": {
+              "ok": true,
+              "expectedSource": "rebuilt"
+            }
+          },
+          "coldCached": {
+            "ok": true,
+            "kind": "background-page",
+            "count": 50,
+            "page": {
+              "count": 50,
+              "firstId": "bg-capacity-00009999",
+              "lastId": "bg-capacity-00009950",
+              "rowsDigest": "sha256:c14df855449b32cc3f09c55b667fc55dd272e85c02327005aac8c9eab9a94579",
+              "hasNextPage": true,
+              "observation": {
+                "source": "index",
+                "entryCount": 10000
+              }
+            },
+            "operationMs": 1521.007,
+            "lockObservations": [],
+            "peakRssBytes": 92323840,
+            "processPeakRssBytes": 92921856,
+            "processExitCode": 0,
+            "wallMs": 2029.181,
+            "stderr": null,
+            "validation": {
+              "ok": true,
+              "expectedSource": "index"
+            }
+          },
+          "warmFirstPage": {
+            "samples": 11,
+            "minMs": 1442.728,
+            "p50Ms": 1479.131,
+            "p95Ms": 1885.198,
+            "p99Ms": 1885.198,
+            "maxMs": 1885.198,
+            "sources": {
+              "index": 11
+            }
+          },
+          "warmNextPage": {
+            "samples": 11,
+            "minMs": 1469.397,
+            "p50Ms": 1494.351,
+            "p95Ms": 1816.55,
+            "p99Ms": 1816.55,
+            "maxMs": 1816.55,
+            "sources": {
+              "index": 11
+            }
+          },
+          "invalidationRebuild": {
+            "samples": 11,
+            "minMs": 6215.828,
+            "p50Ms": 6473.823,
+            "p95Ms": 6838.564,
+            "p99Ms": 6838.564,
+            "maxMs": 6838.564,
+            "sources": {
+              "rebuilt": 11
+            }
+          },
+          "traversal": {
+            "records": 10000,
+            "pages": 200,
+            "parityChecks": 234,
+            "exact": true
+          },
+          "pathsVerified": true,
+          "processPeakRssBytes": 1913323520,
+          "lockWait": {
+            "applicable": false,
+            "reason": "page reads use an inventory fence, no store lock"
+          },
+          "limitations": [
+            "all:true terminal synthetic records; no running-process liveness probes",
+            "warm indexed reads still enumerate/stat every authority file and sort summaries",
+            "first-process timings may benefit from the host filesystem cache",
+            "peak RSS is the process high-water mark, not an isolated page allocation delta",
+            "synthetic fixtures and local measurements do not qualify a production SLO"
+          ]
+        },
+        "paginationApplied": true,
+        "indexApplied": true,
+        "peakRssBytes": 1911861248
+      }
+    ]
+  },
+  "qualification": {
+    "performanceGate": false,
+    "productionQualified": false,
+    "reason": "measurement-only-no-approved-slo"
+  },
+  "limitations": [
+    "fixtures are generated directly and setup time is reported separately",
+    "first-process timing includes process startup but may benefit from the host filesystem cache",
+    "background baseline scans all content; indexed pages still enumerate/stat every file and sort summaries",
+    "background comparison validates first/next pages, full traversal, and authority-change rebuilds",
+    "results apply only to the recorded host and exact checkout",
+    "segmented point reads include the authority lock, manifest verification, bounded orphan inventory, and one bucket validation",
+    "segmented full queries capture all bucket bytes under lock and validate the owned snapshot after release; query/list/sort remain full scans",
+    "each concurrent segmented full query retains its own bounded raw snapshot; per-process RSS is not aggregate machine peak RSS"
+  ],
+  "finalPeakRssBytes": 1911865344,
+  "digest": "sha256:ba5cf16bb0d4c7e16ea729803dc8f9402a3c08cc9276b4329175622cabcdde94"
+}
