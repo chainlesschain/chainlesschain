@@ -1,0 +1,520 @@
+{
+  "schema": "chainlesschain.child-package-release-reaudit/v1",
+  "sourceGitSha": "84f204db944d92124d95b2348814ac562bde5841",
+  "checkedAt": "2026-10-04T07:08:34.9880850Z",
+  "inventory": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "directory": "packages/agent-protocol",
+      "version": "0.1.12",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "directory": "packages/agent-sdk",
+      "version": "0.2.12",
+      "private": false
+    },
+    {
+      "name": "chainlesschain",
+      "directory": "packages/cli",
+      "version": "0.166.85",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "directory": "packages/context-memory-kernel",
+      "version": "0.1.5",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "directory": "packages/core-config",
+      "version": "0.1.2",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "directory": "packages/core-db",
+      "version": "0.1.5",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "directory": "packages/core-env",
+      "version": "0.1.2",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "directory": "packages/core-infra",
+      "version": "0.1.1",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "directory": "packages/core-mtc",
+      "version": "0.2.3",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "directory": "packages/core-multisig",
+      "version": "0.1.4",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "directory": "packages/core-settlement",
+      "version": "0.1.2",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/elicitation-schema",
+      "directory": "packages/elicitation-schema",
+      "version": "0.1.0",
+      "private": true
+    },
+    {
+      "name": "@chainlesschain/locales",
+      "directory": "packages/locales",
+      "version": "0.1.0",
+      "private": true
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "directory": "packages/personal-data-hub",
+      "version": "0.4.62",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "directory": "packages/session-core",
+      "version": "0.3.14",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "directory": "packages/shared-logger",
+      "version": "0.1.1",
+      "private": false
+    },
+    {
+      "name": "chainlesschain-ide",
+      "directory": "packages/vscode-extension",
+      "version": "0.37.130",
+      "private": false
+    },
+    {
+      "name": "@chainlesschain/web-panel",
+      "directory": "packages/web-panel",
+      "version": "1.0.0",
+      "private": true
+    }
+  ],
+  "nestedManifests": [
+    "packages/vscode-extension/src/vendor/agent-sdk/package.json",
+    "packages/vscode-extension/test/extension-host/driver/package.json"
+  ],
+  "workflowChildren": [
+    "agent-protocol",
+    "agent-sdk",
+    "context-memory-kernel",
+    "core-config",
+    "core-db",
+    "core-env",
+    "core-infra",
+    "core-mtc",
+    "core-multisig",
+    "core-settlement",
+    "personal-data-hub",
+    "session-core",
+    "shared-logger"
+  ],
+  "packages": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "directory": "packages/agent-protocol",
+      "localVersion": "0.1.12",
+      "publicLatest": "0.1.12",
+      "publicSourceSha": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 43144,
+      "integrity": "sha512-1lJgYtL+mwPsWlPzRRi6zbBdTqFv1g6cD2oUzrOWoUdXkvd696SuCBr6uzkX24NY3oEYwFk+QqKsKrkSvvSLmQ==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+        "publicSha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "directory": "packages/agent-sdk",
+      "localVersion": "0.2.12",
+      "publicLatest": "0.2.12",
+      "publicSourceSha": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 88707,
+      "integrity": "sha512-S7bf3TzJUCYqvnsDWDQZXrDHlkYsa1pBzqLy3KxZ370IvSbygWYFfHP0/lGQmYE/uYSHzmzNmiHmgK+9XYbWng==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "4bb6dfdd3cc950262abe7b035834195eb0c796462c6b5a41cea2f2dcac59dfbd08bd26f28166057c73f4fe519099813fb98487ce6ccd9a21e680afbd5d86d69e",
+        "publicSha512": "4bb6dfdd3cc950262abe7b035834195eb0c796462c6b5a41cea2f2dcac59dfbd08bd26f28166057c73f4fe519099813fb98487ce6ccd9a21e680afbd5d86d69e",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "directory": "packages/context-memory-kernel",
+      "localVersion": "0.1.5",
+      "publicLatest": "0.1.5",
+      "publicSourceSha": "edd49e126fc8a30591502183fa177f6765731907",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 44225,
+      "integrity": "sha512-su3JIh+ZbxVnseQ4CI04TPL3Rgqf0bmkiOQqlFR6oub094FJHqFFuf3D+4n+adJDYntORJrZRPF2dijQ2yiYdw==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "b2edc9221f996f1567b1e438088d384cf2f7460a9fd1b9a488e42a94547aa2e6f4f781491ea145b9fdc3fb89fe69d243627b4e449ad944f1767628d0db289877",
+        "publicSha512": "b2edc9221f996f1567b1e438088d384cf2f7460a9fd1b9a488e42a94547aa2e6f4f781491ea145b9fdc3fb89fe69d243627b4e449ad944f1767628d0db289877",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "directory": "packages/core-config",
+      "localVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 3991,
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6",
+        "publicSha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "directory": "packages/core-db",
+      "localVersion": "0.1.5",
+      "publicLatest": "0.1.5",
+      "publicSourceSha": "9cf9c7bfd70ddb8b12b0d157dd6faa1ceb152436",
+      "sourceType": "public-provenance-payload",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 10302,
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88",
+        "publicSha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "directory": "packages/core-env",
+      "localVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 2600,
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1",
+        "publicSha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "directory": "packages/core-infra",
+      "localVersion": "0.1.1",
+      "publicLatest": "0.1.1",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 3482,
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4",
+        "publicSha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "directory": "packages/core-mtc",
+      "localVersion": "0.2.3",
+      "publicLatest": "0.2.3",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 38297,
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94",
+        "publicSha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "directory": "packages/core-multisig",
+      "localVersion": "0.1.4",
+      "publicLatest": "0.1.4",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 13952,
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6",
+        "publicSha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "directory": "packages/core-settlement",
+      "localVersion": "0.1.2",
+      "publicLatest": "0.1.2",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 9031,
+      "integrity": "sha512-8TAd6OKka+UgrOHwX6wHSIU6bxcVtGhnj33G5X2nqPLefITff1r4kXeBneoRmmyk5EyYlj+4QwL4jDEhEblJVg==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956",
+        "publicSha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "directory": "packages/personal-data-hub",
+      "localVersion": "0.4.62",
+      "publicLatest": "0.4.62",
+      "publicSourceSha": "edd49e126fc8a30591502183fa177f6765731907",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 873785,
+      "integrity": "sha512-Wha8fhzHchgTogWvCwW+rk5pPiYCuJsqzz4YLo3K1KUrDVJtm+/HMdMLA5LoUNztzz7n5cuGP3EMcgLJQeUqKw==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "5a16bc7e1cc7721813a205af0b05beae4e693e2602b89b2acf3e182e8dcad4a52b0d526d9befc731d30b0392e850dcedcf3ee7e5cb863f710c7202c941e52a2b",
+        "publicSha512": "5a16bc7e1cc7721813a205af0b05beae4e693e2602b89b2acf3e182e8dcad4a52b0d526d9befc731d30b0392e850dcedcf3ee7e5cb863f710c7202c941e52a2b",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "directory": "packages/session-core",
+      "localVersion": "0.3.14",
+      "publicLatest": "0.3.14",
+      "publicSourceSha": "a63101f3cc32f4cbdc644a6f0d9d1295589fe380",
+      "sourceType": "public-provenance-payload",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 67614,
+      "integrity": "sha512-AHDj3P7+wQoTPm+rMKX2OIoFlkJ89wIrD4o4lTMqPcr49Bu1zix9JytKbejObQtCf052vL4nAeFVxIswYNwMpA==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "0070e3dcfefec10a133e6fab30a5f6388a0596427cf7022b0f8a3895332a3dcaf8f41bb5ce2c7d272b4a6de8ce6d0b427f4e76bcbe2701e155c48b3060dc0ca4",
+        "publicSha512": "0070e3dcfefec10a133e6fab30a5f6388a0596427cf7022b0f8a3895332a3dcaf8f41bb5ce2c7d272b4a6de8ce6d0b427f4e76bcbe2701e155c48b3060dc0ca4",
+        "archiveBytesEqual": true
+      }
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "directory": "packages/shared-logger",
+      "localVersion": "0.1.1",
+      "publicLatest": "0.1.1",
+      "publicSourceSha": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "sourceType": "gitHead",
+      "changedFiles": [],
+      "worktreeStatus": "",
+      "tarballBytes": 4058,
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "tarballAvailable": true,
+      "archiveComparison": {
+        "candidateSha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e",
+        "publicSha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e",
+        "archiveBytesEqual": true
+      }
+    }
+  ],
+  "internalDependencies": [
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/context-memory-kernel",
+      "range": "0.1.5",
+      "targetVersion": "0.1.5",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-config",
+      "range": "0.1.2",
+      "targetVersion": "0.1.2",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-db",
+      "range": "0.1.5",
+      "targetVersion": "0.1.5",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-env",
+      "range": "0.1.2",
+      "targetVersion": "0.1.2",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-infra",
+      "range": "0.1.1",
+      "targetVersion": "0.1.1",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-mtc",
+      "range": "0.2.3",
+      "targetVersion": "0.2.3",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-multisig",
+      "range": "0.1.4",
+      "targetVersion": "0.1.4",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/personal-data-hub",
+      "range": "0.4.62",
+      "targetVersion": "0.4.62",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/session-core",
+      "range": "0.3.14",
+      "targetVersion": "0.3.14",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "chainlesschain",
+      "kind": "dependencies",
+      "name": "@chainlesschain/shared-logger",
+      "range": "0.1.1",
+      "targetVersion": "0.1.1",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "@chainlesschain/core-config",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-env",
+      "range": "0.1.2",
+      "targetVersion": "0.1.2",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "@chainlesschain/core-infra",
+      "kind": "dependencies",
+      "name": "@chainlesschain/shared-logger",
+      "range": "0.1.1",
+      "targetVersion": "0.1.1",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "@chainlesschain/core-multisig",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-mtc",
+      "range": "^0.2.0",
+      "targetVersion": "0.2.3",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "@chainlesschain/core-settlement",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-mtc",
+      "range": "^0.2.0",
+      "targetVersion": "0.2.3",
+      "private": false,
+      "valid": true
+    },
+    {
+      "from": "@chainlesschain/shared-logger",
+      "kind": "dependencies",
+      "name": "@chainlesschain/core-env",
+      "range": "0.1.2",
+      "targetVersion": "0.1.2",
+      "private": false,
+      "valid": true
+    }
+  ],
+  "issues": [],
+  "archiveMethod": "Clean git archive, Agent SDK build, npm pack --ignore-scripts, SHA512 against fetched public tarballs",
+  "result": {
+    "independentChildren": 13,
+    "archiveByteMatches": 13,
+    "privatePackages": 3,
+    "internalDependencyDeclarations": 15,
+    "requiresChildPublication": false
+  },
+  "limitations": [
+    "The local reaudit verifies source equality, public registry archive integrity, and clean-source npm archive equality; it does not independently cryptographically verify every child provenance signature.",
+    "The successful authoritative CLI publication separately repeated child archive comparison and registry-only dependency installation."
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "schema": "chainlesschain.vscode-publication-readback/v1",
+  "checkedAt": "2026-10-04T08:18:10.023Z",
+  "sourceGitSha": "84f204db944d92124d95b2348814ac562bde5841",
+  "version": "0.37.130",
+  "tag": "ide-vscode-v0.37.130",
+  "publicUrl": "https://open-vsx.org/extension/chainlesschain/chainlesschain-ide",
+  "pairedCli": "0.166.85",
+  "workflow": {
+    "id": 37187468724,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37187468724",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "manifest": {
+    "schema": 1,
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 695646,
+    "sha256": "1254366b5ce891d460d9a3c6ea49bd451ad9c772d856c33a80599b6611196dc0",
+    "sha512": "046e60f2173e6278f045ebf6958682b23561229b1c9cd7c9aa08bc443832c0ab489af609b0c3c96696a7a10b52fdd1f4204e0a5771355d8ef2b0e5d3c778567b",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.130",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.130"
+    },
+    "commit": "84f204db944d92124d95b2348814ac562bde5841",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/37187468724",
+    "createdAt": "2026-10-04T08:00:21.782Z"
+  },
+  "publicReadback": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.130",
+    "latest": "0.37.130",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "1254366b5ce891d460d9a3c6ea49bd451ad9c772d856c33a80599b6611196dc0",
+    "localArchiveSha256": "1254366b5ce891d460d9a3c6ea49bd451ad9c772d856c33a80599b6611196dc0",
+    "contentSha256": "49f686e4bfe8e009d82c82376eb8345004beff0d46fd3a32f4caa55c8046cd69"
+  },
+  "jobs": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "releaseOrder": "Published after public CLI 0.166.85 verification; PR401 remained unmerged.",
+  "limitations": [
+    "Publication is verified for Open VSX. This receipt does not claim publication to Microsoft Marketplace."
+  ]
+}

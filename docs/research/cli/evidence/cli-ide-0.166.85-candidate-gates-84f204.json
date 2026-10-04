@@ -1,0 +1,45 @@
+{
+  "schema": "chainlesschain.release-candidate-gates/v1",
+  "checkedAt": "2026-10-04T07:39:25.584Z",
+  "sourceSha": "84f204db944d92124d95b2348814ac562bde5841",
+  "cliVersion": "0.166.85",
+  "vscodeVersion": "0.37.130",
+  "jetbrainsVersion": "0.4.147",
+  "gates": [
+    {
+      "id": 37182926499,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37182926499",
+      "name": "CLI CI",
+      "attempt": 1,
+      "headSha": "84f204db944d92124d95b2348814ac562bde5841",
+      "conclusion": "success",
+      "jobs": 68,
+      "successfulJobs": 68,
+      "skippedJobs": [],
+      "platforms": ["linux", "macos", "windows"]
+    },
+    {
+      "id": 37182926341,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37182926341",
+      "name": "CLI Strict Sandbox",
+      "attempt": 1,
+      "headSha": "84f204db944d92124d95b2348814ac562bde5841",
+      "conclusion": "success",
+      "jobs": 5,
+      "successfulJobs": 5,
+      "skippedJobs": [],
+      "platforms": ["linux", "macos", "windows"]
+    },
+    {
+      "id": 37182926528,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37182926528",
+      "name": "IDE Extensions",
+      "attempt": 1,
+      "headSha": "84f204db944d92124d95b2348814ac562bde5841",
+      "conclusion": "success",
+      "jobs": 19,
+      "successfulJobs": 18,
+      "skippedJobs": ["JetBrains Marketplace (post-publish verification)"]
+    }
+  ]
+}

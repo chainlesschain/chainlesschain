@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.148] - Commit each diagnostics generation once (2026-10-04)
+
+- Prevent an already started debounce task and an immediate flush from committing
+  the same diagnostics generation twice.
+- Keep obsolete tasks from consuming a newer task's pending diagnostics or
+  scheduling state; preserve unchanged file diagnostics when canceling a generation.
+- Retain CLI `0.166.85` as the recommended public runtime.
+- Version `0.4.147` was not published: its release tests exposed this race.
+
 ## [0.4.147] - Pair with CLI durable state fixes (2026-10-04)
 
 - Recommend CLI `0.166.85`, including when npm lookup is unavailable or stale.

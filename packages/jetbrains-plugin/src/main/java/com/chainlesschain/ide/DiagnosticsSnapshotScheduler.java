@@ -290,7 +290,12 @@ public final class DiagnosticsSnapshotScheduler implements AutoCloseable {
         final List<PendingUpdate> updates;
         final boolean replaceAll;
         synchronized (lock) {
-            if (closed || processing) return;
+            // cancel(false) cannot stop a task that already entered drain but
+            // is still waiting for this monitor. flushNow may queue a second
+            // task meanwhile. A stale/committed task owns neither the latest
+            // scheduled handle nor its pending replace-all batch.
+            if (closed || processing || requestedGeneration != generation
+                    || requestedGeneration <= snapshot.generation) return;
             processing = true;
             scheduled = null;
             updates = new ArrayList<>();

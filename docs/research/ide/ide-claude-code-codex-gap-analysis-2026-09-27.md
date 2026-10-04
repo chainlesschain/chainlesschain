@@ -12,9 +12,9 @@
 
 后续修复进度见 [共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。下文保留审计时的事实，不将正在实施的改动回填为当时已完成。
 
-**2026-10-04 当前进度：** VS Code **0.37.128** 已在 Open VSX 发布，[候选完整门](./evidence/vscode-0.37.128-candidate-gates-0aba6e9c63.json)与[发行回读](./evidence/vscode-0.37.128-publication-readback-14a41bb06e.json)已归档；下文 0.37.127“未发布”属于历史。后续 `cce30a34f1` 补入图片草稿的真实 DOM 恢复旅程、40px 缩略图和图片校验 ACK 竞态修复，单元测试通过，宿主结果与当前剩余条件统一见共享实施状态。此候选代码尚不属于已发布 0.37.128，不将未执行的真人听测、性能 SLO 或双 IDE 真实项目验收记为完成。
+**2026-10-04 当前进度：** VS Code **0.37.130** 已在 Open VSX 发布，[公开下载包与正式 VSIX 完全一致](./evidence/vscode-0.37.130-publication-readback-84f204.json)，包含图片草稿恢复、40px 缩略图和页面实例 ACK 隔离。配对 CLI **0.166.85** 已先行完成 [OIDC 发布及公开回读](../cli/evidence/cli-0.166.85-publication-readback-84f204.json)。两者来自 `84f204db94`，其 CLI CI **68/68**、Strict Sandbox **5/5**、IDE **18 成功 / 1 预期跳过**，见[完整门回执](../cli/evidence/cli-ide-0.166.85-candidate-gates-84f204.json)。Microsoft Marketplace 不在本次已发布声明内；真人听测、性能 SLO 和双 IDE 真实项目验收仍按未完成条件保留。
 
-**发布前补查：** 新候选 VS Code **0.37.130** / JetBrains **0.4.147** 配对 CLI **0.166.85**，均尚未发布。最终审查复现 Webview 重载后旧 ACK 可匹配新页面图片 revision，因此停止旧提交 `72b3a6edb0` 的 CLI/IDE 矩阵，修复后重新验证。40px 是显示尺寸，不是动画或完整解码预算；历史固定 PNG/GIF 的恢复结果不能扩大为该预算验收。子 npm 包公开来源核对见[收据](../cli/evidence/child-package-release-audit-20261004.json)，无变更子包无需重复发布。
+**JetBrains 发布补查：** **0.4.147** 的六个真实宿主组合通过，但最终 JUnit 在 `inFlightCancellationRetainsUntouchedUris` 检出同一诊断 generation 重复提交，发布被阻断。Astra 在原生产代码上确定性复现：诊断内容与两个 URI 均正确，提交计数却为 2。保留失败标签，修复候选推进到 **0.4.148**；新提交须完成相应准确提交矩阵后才能发布，随后再合并 PR。40px 仅是显示尺寸，完整动画解码预算仍未验收。子包复查覆盖清单、依赖、来源与安装包，[13/13 与公开包逐字节一致](../cli/evidence/child-package-release-reaudit-20261004-84f204.json)，无需重复发布。
 
 Windows x64 / VS Code 1.132.0 的完整打包宿主旅程随后通过：后台 A/B 历史、PNG/GIF 草稿跨 tab 与重启恢复、图片摘要与实际解码、四类错误反馈、零自动发送均已观察；[独立回读](./evidence/image-draft-recovery-windows-20261004.json)核对 31 个产物。首轮激活失败保留，其他平台、JetBrains 附件及真人/真实模型验收不据此关闭。
 
