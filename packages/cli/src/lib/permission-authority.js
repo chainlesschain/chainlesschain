@@ -117,7 +117,12 @@ export function loadPermissionAuthority({
       managedSettingsFile,
       env,
     });
-  const loaded = projectSettingsObservation(settingsObservation, { env });
+  const loaded = persistent
+    ? persistentSettings.projectSettingsPermissionObservation(
+        settingsObservation,
+        { env },
+      )
+    : projectSettingsObservation(settingsObservation, { env });
   const sources = baseRules ? {} : { ...loaded.sources };
   let rules = baseRules
     ? applyManagedPermissionPolicy(baseRules, loaded.managed, sources)
