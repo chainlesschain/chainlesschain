@@ -1,0 +1,258 @@
+{
+  "schema": "chainlesschain.cli-native-validation-readback/v1",
+  "status": "failed-windows-arm64",
+  "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+  "run": {
+    "id": 37189753288,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37189753288",
+    "conclusion": "failure"
+  },
+  "releaseEligible": false,
+  "jobs": [
+    {
+      "name": "unsigned native validation (node22-win-arm64)",
+      "status": "completed",
+      "conclusion": "failure",
+      "id": 111399295090
+    },
+    {
+      "name": "unsigned native validation (node22-linux-arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111399295130
+    },
+    {
+      "name": "unsigned native validation (node22-win-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111399295142
+    },
+    {
+      "name": "unsigned native validation (node22-macos-arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111399295151
+    },
+    {
+      "name": "unsigned native validation (node22-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111399295173
+    },
+    {
+      "name": "unsigned native validation (node22-macos-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 111399295205
+    },
+    {
+      "name": "Aggregate six-target native validation evidence",
+      "status": "completed",
+      "conclusion": "skipped",
+      "id": 111403980002
+    }
+  ],
+  "successfulTargets": [
+    {
+      "artifact": {
+        "id": 11298448590,
+        "name": "cli-native-validation-node22-linux-x64-84f204db944d92124d95b2348814ac562bde5841",
+        "zipDigest": "sha256:b570d2f9d425a370bbee75e490d100bac6afa6d07bb2e89bbfa4777eb2150f55"
+      },
+      "jsonSha256": "12c86164a2b19aaa1ffe1b7bd9ad55ef84ac6bd66ae32d66d445b730321fd81d",
+      "evidence": {
+        "schema": "chainlesschain.cli-native-validation.v1",
+        "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "expectedSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "tree": "23bd9f072677ebfa3ed2a4679c9b58e9cbad978a",
+        "version": "0.166.85",
+        "target": "node22-linux-x64",
+        "platform": "linux",
+        "arch": "x64",
+        "expectedPlatform": "linux",
+        "expectedArch": "x64",
+        "binary": {
+          "size": 175553855,
+          "sha256": "63d2f1165e46d2482cd341f9e18c2330142922374f1f6b4f8cbbe4c92b61cb22",
+          "executedOnMatchingHost": true,
+          "commandProbe": "status --json"
+        },
+        "transactionTests": [
+          "native-installers-transaction",
+          "packer-pack-update-applier",
+          "native-release-manifest"
+        ],
+        "signed": false,
+        "releaseEligible": false,
+        "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+      }
+    },
+    {
+      "artifact": {
+        "id": 11298582090,
+        "name": "cli-native-validation-node22-linux-arm64-84f204db944d92124d95b2348814ac562bde5841",
+        "zipDigest": "sha256:976be36c1d30dffa4711c4931175d932d1fda0035d47f3df3bcbb396440b7d49"
+      },
+      "jsonSha256": "047622b6b08a06cc8ba5a9318fa72aab71112a82cc887bc9470150326226edfd",
+      "evidence": {
+        "schema": "chainlesschain.cli-native-validation.v1",
+        "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "expectedSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "tree": "23bd9f072677ebfa3ed2a4679c9b58e9cbad978a",
+        "version": "0.166.85",
+        "target": "node22-linux-arm64",
+        "platform": "linux",
+        "arch": "arm64",
+        "expectedPlatform": "linux",
+        "expectedArch": "arm64",
+        "binary": {
+          "size": 170181695,
+          "sha256": "e5b5217b5baeaaff50fc8a0055054055ac270744928a1edaf89f932fecfdb5a5",
+          "executedOnMatchingHost": true,
+          "commandProbe": "status --json"
+        },
+        "transactionTests": [
+          "native-installers-transaction",
+          "packer-pack-update-applier",
+          "native-release-manifest"
+        ],
+        "signed": false,
+        "releaseEligible": false,
+        "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+      }
+    },
+    {
+      "artifact": {
+        "id": 11299400070,
+        "name": "cli-native-validation-node22-win-x64-84f204db944d92124d95b2348814ac562bde5841",
+        "zipDigest": "sha256:ccd918fe394d03022ed7b8b761c33e1a8f0a6c2bbc7ed2e0902eb78b39d81f3c"
+      },
+      "jsonSha256": "849f33112e9acd79e7b84435d3fee3ee047fef9516aa921a1d910014fa8e9287",
+      "evidence": {
+        "schema": "chainlesschain.cli-native-validation.v1",
+        "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "expectedSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "tree": "23bd9f072677ebfa3ed2a4679c9b58e9cbad978a",
+        "version": "0.166.85",
+        "target": "node22-win-x64",
+        "platform": "win32",
+        "arch": "x64",
+        "expectedPlatform": "win32",
+        "expectedArch": "x64",
+        "binary": {
+          "size": 158367939,
+          "sha256": "f018d9a5db0049f289851ca290844b5e74bd5a39e81a6725f54168e2defd0bef",
+          "executedOnMatchingHost": true,
+          "commandProbe": "status --json"
+        },
+        "transactionTests": [
+          "native-installers-transaction",
+          "packer-pack-update-applier",
+          "native-release-manifest"
+        ],
+        "signed": false,
+        "releaseEligible": false,
+        "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+      }
+    },
+    {
+      "artifact": {
+        "id": 11299570191,
+        "name": "cli-native-validation-node22-macos-x64-84f204db944d92124d95b2348814ac562bde5841",
+        "zipDigest": "sha256:95ea09a6936eef34dc0df46a1ebc5a40469616767fe607601e29a1604dec198c"
+      },
+      "jsonSha256": "c347ac7ceccc6abeaef28a26cd244d22946251fabfddd21bc37bb60863af37f7",
+      "evidence": {
+        "schema": "chainlesschain.cli-native-validation.v1",
+        "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "expectedSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "tree": "23bd9f072677ebfa3ed2a4679c9b58e9cbad978a",
+        "version": "0.166.85",
+        "target": "node22-macos-x64",
+        "platform": "darwin",
+        "arch": "x64",
+        "expectedPlatform": "darwin",
+        "expectedArch": "x64",
+        "binary": {
+          "size": 164949408,
+          "sha256": "378c12b8a0f7e6341df270671ddfc3a76b4035752be8e7c7c8e16a7ea62cf552",
+          "executedOnMatchingHost": true,
+          "commandProbe": "status --json"
+        },
+        "transactionTests": [
+          "native-installers-transaction",
+          "packer-pack-update-applier",
+          "native-release-manifest"
+        ],
+        "signed": false,
+        "releaseEligible": false,
+        "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+      }
+    },
+    {
+      "artifact": {
+        "id": 11299016817,
+        "name": "cli-native-validation-node22-macos-arm64-84f204db944d92124d95b2348814ac562bde5841",
+        "zipDigest": "sha256:9d5fd177f196f97c9bbbedb4e91a4337b975b7acc7673f4be88127f9b43ce36e"
+      },
+      "jsonSha256": "94cc2d66a983f93e7f8ee1acdae8a3c11e4b4df5bc66794168bac95f887a8590",
+      "evidence": {
+        "schema": "chainlesschain.cli-native-validation.v1",
+        "exactSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "expectedSha": "84f204db944d92124d95b2348814ac562bde5841",
+        "tree": "23bd9f072677ebfa3ed2a4679c9b58e9cbad978a",
+        "version": "0.166.85",
+        "target": "node22-macos-arm64",
+        "platform": "darwin",
+        "arch": "arm64",
+        "expectedPlatform": "darwin",
+        "expectedArch": "arm64",
+        "binary": {
+          "size": 162555584,
+          "sha256": "31f37bfdf83009ed93b61bd53fc5fa73525afc6a7f8864fac611491baf50c6f3",
+          "executedOnMatchingHost": true,
+          "commandProbe": "status --json"
+        },
+        "transactionTests": [
+          "native-installers-transaction",
+          "packer-pack-update-applier",
+          "native-release-manifest"
+        ],
+        "signed": false,
+        "releaseEligible": false,
+        "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+      }
+    }
+  ],
+  "failedTarget": {
+    "target": "node22-win-arm64",
+    "buildPassed": true,
+    "binaryVersionAndStatusPassed": true,
+    "updaterSuite": {
+      "passed": 64,
+      "failed": 5,
+      "total": 69,
+      "names": [
+        "transfers the real lock only after a sidecar readiness handshake",
+        "commits the canonical binary and alias with lineage/result persistence",
+        "rolls the canonical binary and alias back after verification fails",
+        "restores prior backup and lineage generations after verification fails",
+        "commits an independent rescue without consuming its canonical backup"
+      ],
+      "observations": [
+        "The readiness scheduler succeeded, but no result file existed at the original result deadline.",
+        "Four direct sidecar subprocesses returned status:null; this log does not record error.code or signal, so it does not establish their unique failure cause."
+      ]
+    }
+  },
+  "failedLog": {
+    "path": "native-84f-windows-arm64-failure-20261004.txt",
+    "sha256": "cd179cfb20dbde2fb12ce58cdd7d1f125735b27939c764697e7414240f52f236",
+    "originalLocalLogSha256": "07b15e792cec4af3fbac5ba20d8739c2d47e7205e88a47a643e1220e5cc0da5d"
+  },
+  "limitations": [
+    "Five matching-host unsigned targets passed; the six-target aggregate was skipped and this run failed.",
+    "Content-free binary receipts were downloaded and checked; binary bytes were not uploaded by this validation workflow and were not independently downloaded.",
+    "No signed native release was published. Local Windows x64 or earlier selected-test passes do not replace the failed Windows ARM64 suite."
+  ]
+}

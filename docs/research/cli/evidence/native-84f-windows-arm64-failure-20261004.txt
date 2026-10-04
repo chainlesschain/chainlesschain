@@ -1,0 +1,275 @@
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	﻿2026-10-04T08:58:25.0987095Z ##[group]Run set -euo pipefail
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0987670Z set -euo pipefail
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0988032Z for test_file in \
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0988440Z   packages/cli/__tests__/unit/native-installers-transaction.test.js \
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0988964Z   packages/cli/__tests__/unit/packer-pack-update-applier.test.js \
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0989469Z   packages/cli/__tests__/unit/native-release-manifest.test.js; do
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0990009Z   node node_modules/vitest/vitest.mjs run "$test_file" --maxWorkers=1
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.0990414Z done
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.1008691Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.1009116Z env:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.1009421Z   CLI_NATIVE_VALIDATION_SHA: 84f204db944d92124d95b2348814ac562bde5841
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.1009781Z ##[endgroup]
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.7941361Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.7947615Z  RUN  v4.1.10 C:/a/chainlesschain/chainlesschain
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T08:58:25.7948141Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1359371Z  ✓ packages/cli/__tests__/unit/native-installers-transaction.test.js (71 tests | 53 skipped) 428713ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1361133Z      ✓ PowerShell installer quarantines a legacy GUID stale lock before recovery  34922ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1362368Z      ✓ PowerShell installer rolls the primary binary back when alias commit fails  33106ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1363507Z      ✓ PowerShell installer recovers a hard crash after prepared with a rollback decision  50227ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1364672Z      ✓ PowerShell installer recovers a hard crash after target-committed with a rollback decision  47559ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1365899Z      ✓ PowerShell installer recovers a hard crash after alias-committed with a rollback decision  48300ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1367198Z      ✓ PowerShell installer recovers a hard crash after verified with a rollback decision  49033ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1368311Z      ✓ PowerShell installer recovers a hard crash after committed with a commit decision  49308ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1370084Z      ✓ PowerShell installer recovers a sidecar update journal with a rollback decision  22494ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1371218Z      ✓ PowerShell installer recovers a sidecar update journal with a commit decision  22431ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1372555Z      ✓ PowerShell installer recovers a sidecar rescue journal with a rollback decision  22445ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1373669Z      ✓ PowerShell installer recovers a sidecar rescue journal with a commit decision  22497ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1374756Z      ✓ PowerShell fresh install quarantines stale backup and lineage generations  25998ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1436174Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1442150Z  Test Files  1 passed (1)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1443496Z       Tests  18 passed | 53 skipped (71)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1444724Z    Start at  01:58:25
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1446572Z    Duration  429.14s (transform 78ms, setup 0ms, import 155ms, tests 428.71s, environment 0ms)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.1447289Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.8347326Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.8354866Z  RUN  v4.1.10 C:/a/chainlesschain/chainlesschain
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:05:35.8355333Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:06:40.4218653Z stderr | packages/cli/__tests__/unit/packer-pack-update-applier.test.js > scheduleReplace – Windows branch (sidecar cmd) > transfers the real lock only after a sidecar readiness handshake
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:06:40.4224361Z [updater readiness test] Transaction lock remains; retained fixture: C:\Users\runneradmin\AppData\Local\Temp\cc-ready-e2e-TnJsjR
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:06:40.4224908Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3309492Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js (69 tests | 5 failed) 327915ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3312134Z      ✓ rejects missing newExePath 3ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3312789Z      ✓ rejects missing targetExePath 0ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3313504Z      ✓ rejects newExePath that does not exist 1ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3314311Z      ✓ requires the verified staging file to be a target sibling 6ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3315143Z      ✓ requires an explicit lowercase downloader-bound SHA-256 4ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3316132Z      ✓ does not treat an arbitrary standalone cc.exe as a managed alias 3ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3317054Z      ✓ restores through staging without overwriting the previous backup 95ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3317923Z      ✓ retains rescue snapshots until the committed journal is retired 87ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3318887Z      ✓ restores the pre-rescue target when the rescued binary fails verification 100ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3319792Z      ✓ refuses a stale lineage that does not describe the active target 28ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3320707Z      ✓ preserves an independent pre-rescue snapshot if restoration itself fails 82ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3321749Z      ✓ passes the readiness handshake through a Windows rescue transaction 46ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3322572Z      ✓ fails clearly when no backup exists 1ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3323275Z      ✓ returns a plan and does not touch the filesystem 11ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3324349Z      ✓ dryRun respects the forced platform 10ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3325096Z      ✓ renames new → target atomically 80ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3325915Z      ✓ retains update snapshots until the committed journal is retired 79ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3326869Z      ✓ keeps descriptor identity fields as bigint while hashing 78ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3327741Z      ✓ quarantines stale backup/lineage on a fresh apply generation 70ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3328539Z      ✓ binds the commit to the expected staging SHA-256 32ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3329397Z      ✓ leaves the old target and staging file intact when backup creation fails 40ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3330398Z      ✓ preserves the old target and prior rollback generation when the commit rename fails 90ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3331351Z      ✓ stops before the canonical commit when its lock pathname is replaced 62ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3332286Z      ✓ rolls back when the committed pathname no longer has the accepted hash 71ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3333643Z      ✓ restart=true spawns the new exe detached after rename 73ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3334576Z      ✓ consumes asynchronous POSIX restart spawn errors 73ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3335358Z      ✓ chmod +x is applied before rename (exec bit survives) 73ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3336178Z      ✓ restores the last-known-good binary when post-switch verification fails 70ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3338093Z      ✓ rolls back when the verification process throws 67ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3338972Z      ✓ preserves the transaction rescue snapshot when rollback fails 72ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3340461Z      ✓ keeps a successfully committed binary when only restart fails 74ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3341837Z      ✓ does not enter the transaction while another updater holds the lock 11ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3343089Z      ✓ blocks another update after a consumed rollback-failed result 11ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3343877Z      ✓ fails closed on a symlink staging executable 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3344688Z      ✓ fails closed on a symlink or junction in the transaction ancestor chain 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3345633Z      ✓ writes a .cmd sidecar and spawns cmd.exe detached 42ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3346484Z      ✓ keeps the transferred lock so a second Windows apply fails closed 43ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3347429Z      ✓ isolates stale backup/lineage before scheduling a fresh Windows apply 45ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3348323Z      ✓ canonicalizes cc.exe and carries alias pre-state into the sidecar 44ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3349184Z      ✓ releases the lock and removes the sidecar when spawn throws 38ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3351146Z      ✓ keeps a fail-closed lock when the sidecar safety handshake never arrives 34ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3352159Z      ✓ attaches the sidecar error listener before the readiness wait 36ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3353057Z      ✓ uses the bounded production readiness budget on loaded Windows hosts 35ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3354145Z      × transfers the real lock only after a sidecar readiness handshake 61108ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3355032Z      ✓ emits a cmd that waits on PARENT_PID, moves, and self-deletes 8ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3355781Z      ✓ emits a `start` line when restart=true 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3356474Z      ✓ each invocation produces a unique sidecar path 10ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3357266Z      ✓ rejects cmd metacharacters that could expand into commands 4ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3358291Z      ✓ accepts an 8.3 TEMP alias while publishing through its canonical root 14ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3359259Z      ✓ rejects a reparse point retained from the raw TEMP spelling  397ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3360515Z      × commits the canonical binary and alias with lineage/result persistence 60033ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3363276Z      × rolls the canonical binary and alias back after verification fails 60034ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3365334Z      × restores prior backup and lineage generations after verification fails 60022ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3366860Z      × commits an independent rescue without consuming its canonical backup 60019ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3368486Z      ✓ does not mutate or release a lock after sidecar ownership is replaced 142ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3369456Z      ✓ rejects a candidate mutated after scheduling and before sidecar commit  911ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3370354Z      ✓ fails closed when a sidecar path ancestor is a junction  384ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3371105Z      ✓ ApplyError is a typed Error with a code 1ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3372319Z      ✓ recovers an interrupted POSIX generation to its exact pre-state 61ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3373243Z      ✓ recovers an interrupted POSIX rescue without consuming its backup 49ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3374150Z      ✓ finishes a durably committed POSIX generation without rolling it back 32ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3375037Z      ✓ fails closed without mutating a generation when its journal is corrupt 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3376061Z      ✓ schedules Windows recovery behind the current process and retains its takeover lock 53ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3377015Z      ✓ refuses Windows recovery while the journal owner is still live 8ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3377907Z      ✓ rejects a raw Windows recovery TEMP junction and closes its takeover lock 25ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3378845Z      ✓ recovers a Windows generation only after the scheduling CLI exits  22641ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3379769Z      ✓ atomically consumes a valid pending result and retains diagnostics 6ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3380567Z      ✓ reports and archives a detached sidecar failure 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3381401Z      ✓ leaves an invalid result pending and reports that it could not be consumed 5ms
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3382050Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3382491Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3382800Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3383884Z  FAIL  packages/cli/__tests__/unit/packer-pack-update-applier.test.js > scheduleReplace – Windows branch (sidecar cmd) > transfers the real lock only after a sidecar readiness handshake
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3385213Z AssertionError: expected false to be true // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3385592Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3385797Z - Expected
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3386173Z + Received
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3386349Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3386694Z - true
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3387490Z + false
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3387682Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3388434Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1449:43
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3398939Z     1447|           Atomics.wait(waitCell, 0, 0, 50);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3399405Z     1448|         }
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3400015Z     1449|         expect(fs.existsSync(resultPath)).toBe(true);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3401051Z        |                                           ^
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3401862Z     1450|         expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toMatc…
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3402488Z     1451|           status: "success",
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3402735Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3403475Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3403795Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3404992Z  FAIL  packages/cli/__tests__/unit/packer-pack-update-applier.test.js > writeWindowsSidecar (cmd body) > commits the canonical binary and alias with lineage/result persistence
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3406217Z AssertionError: expected null to be +0 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3407757Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3408049Z - Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3408411Z 0
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3408557Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3408823Z + Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3409087Z null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3409206Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3409793Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1784:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3415291Z     1782|           timeout: 60_000,
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3416231Z     1783|         });
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3417244Z     1784|         expect(run.status, run.stderr || run.stdout).toBe(0);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3417900Z        |                                                      ^
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3418583Z     1785|         expect(fs.readFileSync(targetExePath, "utf8")).toBe("new-versi…
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3419329Z     1786|         expect(fs.readFileSync(aliasPath, "utf8")).toBe("new-version");
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3419708Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3420032Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3420257Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3421290Z  FAIL  packages/cli/__tests__/unit/packer-pack-update-applier.test.js > writeWindowsSidecar (cmd body) > rolls the canonical binary and alias back after verification fails
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3422495Z AssertionError: expected null to be 1 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3422847Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3423072Z - Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3423361Z 1
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3423502Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3423761Z + Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3424037Z null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3424147Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3424751Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1878:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3433855Z     1876|           timeout: 60_000,
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3434918Z     1877|         });
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3435659Z     1878|         expect(run.status, run.stderr || run.stdout).toBe(1);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3436379Z        |                                                      ^
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3437242Z     1879|         expect(fs.readFileSync(targetExePath, "utf8")).toBe("old-versi…
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3438160Z     1880|         expect(fs.readFileSync(aliasPath, "utf8")).toBe("old-alias");
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3438671Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3439146Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3439511Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3440591Z  FAIL  packages/cli/__tests__/unit/packer-pack-update-applier.test.js > writeWindowsSidecar (cmd body) > restores prior backup and lineage generations after verification fails
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3441900Z AssertionError: expected null to be 1 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3459695Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3460202Z - Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3461077Z 1
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3461325Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3461614Z + Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3461885Z null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3462019Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3462587Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1960:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3463800Z     1958|           timeout: 60_000,
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3464312Z     1959|         });
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3464865Z     1960|         expect(run.status, run.stderr || run.stdout).toBe(1);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3465532Z        |                                                      ^
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3466239Z     1961|         expect(fs.readFileSync(targetExePath, "utf8")).toBe("old-versi…
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3467282Z     1962|         expect(fs.readFileSync(aliasPath, "utf8")).toBe("old-alias");
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3467616Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3467951Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3468548Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3469566Z  FAIL  packages/cli/__tests__/unit/packer-pack-update-applier.test.js > writeWindowsSidecar (cmd body) > commits an independent rescue without consuming its canonical backup
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3470759Z AssertionError: expected null to be +0 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3471077Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3471299Z - Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3471798Z 0
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3471942Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3472985Z + Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3473273Z null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3473417Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3473984Z  ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:2033:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3474752Z     2031|           timeout: 60_000,
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3474967Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3475479Z     2032|         });
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3476046Z  Test Files  1 failed (1)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3476869Z     2033|         expect(run.status, run.stderr || run.stdout).toBe(0);
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3477692Z       Tests  5 failed | 64 passed (69)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3478482Z        |                                                      ^
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3479019Z    Start at  02:05:36
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3479772Z     2034|         expect(fs.readFileSync(targetExePath, "utf8")).toBe("known-goo…
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3480929Z    Duration  329.23s (transform 756ms, setup 0ms, import 1.01s, tests 327.92s, environment 0ms)
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3481985Z     2035|         expect(fs.readFileSync(aliasPath, "utf8")).toBe("known-good");
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3482343Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3482509Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3482932Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3483277Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3497875Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3530204Z ##[error]AssertionError: expected false to be true // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- Expected
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ Received
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- true
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ false
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	 ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1449:43
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3541957Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3545939Z ##[error]AssertionError: expected null to be +0 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	0
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	 ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1784:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3547266Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3549110Z ##[error]AssertionError: expected null to be 1 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	1
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	 ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1878:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3550211Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3551838Z ##[error]AssertionError: expected null to be 1 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	1
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	 ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:1960:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3552884Z 
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.3554970Z ##[error]AssertionError: expected null to be +0 // Object.is equality
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	- Expected:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	0
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	+ Received:
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	null
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	 ❯ packages/cli/__tests__/unit/packer-pack-update-applier.test.js:2033:54
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	
+unsigned native validation (node22-win-arm64)	Run native installer and updater transaction regressions	2026-10-04T09:11:05.4206510Z ##[error]Process completed with exit code 1.

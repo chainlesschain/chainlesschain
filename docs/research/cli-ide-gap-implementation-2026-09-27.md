@@ -16,6 +16,8 @@
 
 **Windows 更新器后续复查：** 在 `fe8de1b830` 的干净根工作树（CLI 源码与已发布 `84f204db94` 相同），从 `packages/cli` 收集 **29** 个 packer/artifact 文件，仅选择原 readiness 握手测试，**1 通过 / 448 未选中**，用时 **34.90 秒**。原 60 秒 scheduler、60 秒结果等待和 90 秒测试上限全部保留，未改生产代码或断言，见[复查回执](./cli/evidence/updater-readiness-recheck-fe8-20261004.json)。这次成功不代表整个 packer 套件通过，也不解释历史超时的唯一根因。
 
+**准确 `84f204db94` 的六平台 native 复验未通过。** [运行 37189753288](https://github.com/chainlesschain/chainlesschain/actions/runs/37189753288) 中，Linux x64/ARM64、Windows x64、macOS x64/ARM64 五个作业成功，已下载并逐一核对来源、平台、架构和版本回执。Windows ARM64 的 standalone 构建及版本/status 运行通过，但完整 updater 文件 **64 通过 / 5 失败**：readiness 在原结果期限内未出现 result；其余四项 sidecar 返回 `status:null`，日志没有 error.code/signal，不能直接认定唯一原因。汇总跳过，整轮失败；见[自包含回读与失败日志](./cli/evidence/native-validation-readback-84f-20261004.json)。新的独立诊断支持指定完整源码 SHA 和整个 updater 文件，以 `84f204db94`、原断言/期限继续调查；诊断不属于发布门。没有发布签名 native 产物，也不以本机 x64 的局部成功替代 ARM64 失败。
+
 ### 2026-10-04：本轮修复记录（发布前历史）
 
 **页面实例隔离修复已完成，本地回归通过，发布门待重跑。** 每次脚本执行生成独立页面 ID，握手同时校验当前 HTML nonce，覆盖 `Reload Webviews` 复用 HTML 的情况；退休页面及迟到协议消息不能切回旧实例。草稿更新/恢复/丢弃/核对请求绑定页面，旧成功或失败 ACK 不改变新页面状态。延迟图片准备、串行保存入口和 manifest rename 前重新核对实例；失败清理本次新图。空草稿先移除 manifest 提交，再完成图片清理，避免留下引用缺失图片的元数据。四个相关 CLI 测试文件 **46/46** 通过，含同 HTML 双页面、旧 revision=5 ACK 对新 revision=1、后台 ACK、延迟图片写入、临时文件清理、恢复错误与空草稿提交回归。Astra 只读复审未发现其他具体阻断；真实宿主及准确提交三系统门仍须通过才能发布。
