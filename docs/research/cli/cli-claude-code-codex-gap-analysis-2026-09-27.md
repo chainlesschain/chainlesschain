@@ -16,6 +16,10 @@
 
 ## 1. 复核后的结论
 
+**新增验收：** `b2aa3aba08` 的[Linux/Windows/macOS formal 容量](./evidence/persistent-capacity-matrix-b2aa3aba08.json)均完成，三档并发读/更新/删除各 **8/8**及审计保留通过，100K 点读 p95 **25–51 ms**，全扫 query **6–8 秒**，不关闭 SLO/二级索引。VERIFY-01 的[36 任务与 9 首次安装计划](./verify01-plan-2026-10-04/README.md)已冻结并校验，所有执行结果仍为 `NOT_RUN`。
+
+**最新发布阻断：** `b2aa3aba08` 的 IDE Windows 浏览器作业在 Node 22.12.0 下出现图片 snapshot 身份拒绝及缺少 DOM 测试依赖，[失败回执](../ide/evidence/browser-windows-failure-b2aa3aba08.json)保留 **109 通过 / 9 失败**和两组未加载 suite，继续修复。Windows ARM64 updater 的[原 gate 上下文诊断](./evidence/updater-arm64-gate-context-84f.json)再次复现 **64 通过 / 5 失败**，晚到成功结果不关闭原 60 秒失败。最新准确提交的 [ARM64 24 项真容器](./evidence/net02-docker-arm64-b2aa3aba08.json)及[全部子包/依赖复查](./evidence/child-package-source-reaudit-b2aa3aba08.json)通过；候选尚未发布或合并。
+
 **本轮最新验收：** 100K canonical Memory 的 Windows formal 测量已完整通过重开、8 路读/更新/删除和审计后验；点读 p95 约 110 ms，全量 query 约 14 秒，索引及全局 SLO 仍开放。NET 在 `832f6b7270` 的 Linux ARM64 真容器 **24/24** 通过。随后真实 IDE 宿主发现 Windows 长路径图片保存错误，已整合最小修复及 **56/56** 回归，因此候选继续推进，完整准确提交门重新执行；全部证据与范围见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
 
 后续修复进度见 [共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。下文保留审计时的事实，不将正在实施的改动回填为当时已完成。
