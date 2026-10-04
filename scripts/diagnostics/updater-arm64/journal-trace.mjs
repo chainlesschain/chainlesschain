@@ -17,7 +17,10 @@ Write-CcDiagnosticMarker 'entry'
   let instrumented = original.replace(/^param\(\)\r?\n/, `param()\n${marker}`);
   const checkpoints = [
     [
-      "  $Journal = [Text.Encoding]::UTF8.GetString($Bytes) | ConvertFrom-Json",
+      [
+        "  $Journal = [Text.Encoding]::UTF8.GetString($Bytes) | ConvertFrom-Json",
+        "  $Journal = $Serializer.DeserializeObject([Text.Encoding]::UTF8.GetString($Bytes))",
+      ],
       "initial-json",
     ],
     [
@@ -25,11 +28,17 @@ Write-CcDiagnosticMarker 'entry'
       "parent-type",
     ],
     [
-      "  $Journal = Get-Content -Raw -LiteralPath $JournalPath | ConvertFrom-Json",
+      [
+        "  $Journal = Get-Content -Raw -LiteralPath $JournalPath | ConvertFrom-Json",
+        "  $Journal = $Serializer.DeserializeObject([IO.File]::ReadAllText($JournalPath, [Text.Encoding]::UTF8))",
+      ],
       "read-json",
     ],
     [
-      "  $Payload = $Journal | ConvertTo-Json -Compress -Depth 8",
+      [
+        "  $Payload = $Journal | ConvertTo-Json -Compress -Depth 8",
+        "  $Payload = $Serializer.Serialize($Journal)",
+      ],
       "encode-json",
     ],
     ["    $Stream.Flush($true)", "staging-flush"],
@@ -38,9 +47,11 @@ Write-CcDiagnosticMarker 'entry'
       "final-flush",
     ],
   ];
-  for (const [line, label] of checkpoints) {
-    if (!instrumented.includes(line))
-      throw new Error(`Missing journal trace boundary: ${label}`);
+  for (const [candidates, label] of checkpoints) {
+    const line = (Array.isArray(candidates) ? candidates : [candidates]).find(
+      (candidate) => instrumented.includes(candidate),
+    );
+    if (!line) throw new Error(`Missing journal trace boundary: ${label}`);
     instrumented = instrumented.replaceAll(
       line,
       `Write-CcDiagnosticMarker '${label}-before'\n${line}\nWrite-CcDiagnosticMarker '${label}-after'`,
