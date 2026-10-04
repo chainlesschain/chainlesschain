@@ -1,5 +1,7 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
+> **2026-10-04 当前状态**：公开 Open VSX **0.37.130@84f204db94** 推荐 CLI **0.166.85**；公开 JetBrains **0.4.146@d93c9c9766** 仍推荐 CLI **0.166.84**，`0.4.147` 未发布，源码 **0.4.149** 待完整验收。公开 VS Code 包含长回复与图片草稿页面实例隔离；`48fd92562a` 的图片帧/像素解码预算和两端文件快照为发布后源码。微软 Marketplace 未发行。精确发布门、停止回执和能力范围见 [最新运行时设计](../agent-runtime-update-2026-09-26.md)。下方 10 月 3 日候选和初版实施段落均为历史记录。
+
 > ## 当前发布状态（2026-10-03）
 >
 > - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.126** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载；Microsoft VS Code Marketplace 仍未发布。

@@ -1,20 +1,26 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-10-03）：CLI `0.166.84`、Open VSX `0.37.126` 和 JetBrains Marketplace `0.4.146` 均已公开，发布提交均为 `d93c9c9766`；两个 IDE 都推荐 CLI `0.166.84`。该发布提交的 CLI CI 68/68、Strict 五作业、npm OIDC 发布和 IDE 宿主矩阵均通过。**
->
-> 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
->
-> **发布提示**：从 Open VSX 安装 `0.37.126`，从 JetBrains Marketplace 安装 `0.4.146`，并升级 CLI 至 `0.166.84`。Microsoft Marketplace 未发行。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
+> **当前渠道状态（2026-10-04）**：CLI **0.166.85** 与 Open VSX **0.37.130** 已公开，来源 `84f204db94`；公开 JetBrains **0.4.146** 来源 `d93c9c9766`，商店制品仍推荐 CLI `0.166.84`，源码候选 `0.4.149` 未发布。Microsoft Marketplace 未发行。
 
-## 0.37.127 候选：长回复显示
+## 安装与升级
 
-VS Code **0.37.127** 继续为未发布候选，推荐已公开的 CLI **0.166.84**，尚未创建发布 tag。候选正在整合后续 CLI 修复；最新冻结提交与完整门结果见[共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/feature/cli-ide-gap-completion-2026-10-02/docs/research/cli-ide-gap-implementation-2026-09-27.md)。较早的 `96cbf6ba56` 已通过 Strict Sandbox 和 IDE 宿主矩阵，但 CLI CI 的 Windows worker 在同提交重跑后再次失败；这些历史结果不转移到新的候选提交。当前安装渠道仍提供上方公开版本。
+从 Open VSX 安装 `0.37.130`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.146`。执行 `npm i -g chainlesschain@0.166.85 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。各渠道的精确发布门与配对见[发布与升级指南](/chainlesschain/agent-platform-release)。
 
-候选改进长回复的流式追加：选中文字或向上滚动阅读时保持选区和阅读位置，回到末尾后可恢复跟随。回复生成期间先显示逐步追加的纯文本，结束后再统一格式化 Markdown 和代码操作按钮；若结束时仍有选区，则延后格式化，避免打断复制。实际 Linux、Windows、macOS 宿主已验证这些交互行为，但长回复结束时仍可能出现可见的格式化与布局等待；这里不承诺固定帧率或响应时间。
+## Open VSX 0.37.130：图片草稿恢复
 
-## 2026-10-02 公开版行为
+粘贴或拖入图片后，等待宿主验证与保存确认。图片状态和文本状态分别核对；文本保存成功不会隐藏附件失败。验证错误时移除附件或更换符合限制的图片，再保存。
 
-公开插件继承会话历史分页、草稿重启恢复、初始化超时回收及可靠 Stop。JetBrains 在写入桥接 token 前验证 Windows 单用户 ACL，并保留活跃 writer 临时锁；VS Code 模式动作通过选择器切换。CLI 的 Plan/ApprovalGate 修订会撤销正在执行的 Docker 出站命令；撤销后不要假定命令没有产生副作用，结果未知时先核对目标环境。配套 CLI 已包含 Auto Mode、WS、无人值守入口、冻结工具上限及官方 settings/scoped 同步撤销；作用域权限变更在同一进程/模块实例内、落盘前撤销旧 Shell 许可，恢复规则不能复活旧许可。跨进程/Worker、外部编辑与 legacy callback 即时通知仍未闭合。任务交接继续保留失败证据，插件本身不取得执行权限。
+切换会话、重载 Webview 或重启 IDE 后，确认恢复的文本与附件再手动发送；不会自动提交恢复图片。保存及 ACK 绑定每次页面执行，退休页面或迟到的图片准备不能覆盖新页面草稿。丢弃空草稿先提交 manifest 移除，再清理图片。草稿是可恢复输入，执行与审批状态仍来自 CLI 权威记录。
+
+## Open VSX 0.37.130：长回复显示
+
+生成期间按有界文本节点追加正文，保持选区与向上滚动的阅读位置；回到末尾后可恢复跟随。回复结束后统一格式化 Markdown 和代码按钮；仍有选区时延后格式化。真实三系统宿主证据不承诺固定帧率、完成时延或全局 SLO。历史 `0.37.127` 候选已由后续公开版承接，不能继续写成当前未发布版本。
+
+## 发布后的源码与权限范围
+
+JetBrains `0.4.147` 的发布测试发现诊断 debounce/flush 重复提交而停止；`0.4.148` 为修复候选，本机通过不等于商店发行。`48fd92562a` 的源码增加预览前 PNG/JPEG/GIF/WebP 帧/像素预算和两端有界文件快照，尚未进入当前 VSIX/ZIP。
+
+公开 CLI 保留同进程官方 settings/scoped 变更的同步撤销，恢复规则不会复活旧 Shell 许可。发布后的显式 Linux 宿主 API 需管理员配置，跨进程/Worker 为 100 ms 轮询，并在清理成功后发接收方停止回执；普通 CLI 不自动开启，Windows/macOS 与任意外部编辑没有同等保证。IDE 不持有路由或执行 authority。详见[增量设计](/design/agent-runtime-update-2026-09-26)和[实施证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。
 
 ## 概述
 

@@ -1,0 +1,1934 @@
+{
+  "schema": "chainlesschain.ide-image-host-failures/v1",
+  "sourceCommit": "48fd92562ac9468f38edafc3f281d56627b88d8f",
+  "releaseGateEligible": false,
+  "status": "failed-before-image-recovery",
+  "attempts": [
+    {
+      "attempt": 1,
+      "localEvidenceDirectory": ".work/ide-image-host-validation-20261004/.work/evidence-1.132.0-attempt1",
+      "host": {
+        "name": "vscode",
+        "version": "1.132.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "startedAt": "2026-10-04T09:18:51.047Z",
+      "finishedAt": "2026-10-04T09:24:43.931Z",
+      "result": "failed",
+      "verifiedArtifactCount": 21,
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-development-48fd92562a.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide-development-48fd92562a.vsix",
+        "sha256": "sha256:ff924bf953041bfc10ed6f0013338055bf6817d18ee5c960a64a399b8a14c147",
+        "bytes": 706403
+      },
+      "envelope": {
+        "bytes": 7427,
+        "sha256": "sha256:e91bc5cd9c320f02387561b544f4fa2610752f149338c03557a11934b0869041"
+      },
+      "rawTrace": {
+        "bytes": 19650,
+        "sha256": "sha256:ecc840e3a77b063cb2ced65ccab633d653e29053a1625ab67d82b5b3a9b2984f"
+      },
+      "summary": {
+        "at": "2026-10-04T09:24:42.945Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 1086,
+        "maxLatencyMs": 4040,
+        "p95LatencyMs": 2442,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-04T09:19:48.647Z",
+        "measurementCompletedAt": "2026-10-04T09:24:42.945Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "local",
+        "runnerName": null,
+        "runnerOS": "win32",
+        "runnerArch": "x64",
+        "runnerImageOS": null,
+        "runnerImageVersion": null
+      },
+      "samples": [
+        {
+          "at": "2026-10-04T09:19:49.743Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 1,
+          "sampleCount": 100,
+          "latencyMs": 1096,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:19:51.927Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 2,
+          "sampleCount": 100,
+          "latencyMs": 1094,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:19:55.057Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 3,
+          "sampleCount": 100,
+          "latencyMs": 1702,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:19:58.362Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 4,
+          "sampleCount": 100,
+          "latencyMs": 1747,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:01.155Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 5,
+          "sampleCount": 100,
+          "latencyMs": 1704,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:04.042Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 6,
+          "sampleCount": 100,
+          "latencyMs": 1332,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:07.130Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 7,
+          "sampleCount": 100,
+          "latencyMs": 1633,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:09.552Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 8,
+          "sampleCount": 100,
+          "latencyMs": 1211,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:12.555Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 9,
+          "sampleCount": 100,
+          "latencyMs": 1920,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:17.674Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 10,
+          "sampleCount": 100,
+          "latencyMs": 2442,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:20.386Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 11,
+          "sampleCount": 100,
+          "latencyMs": 1245,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:22.579Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 12,
+          "sampleCount": 100,
+          "latencyMs": 1086,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:24.992Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 13,
+          "sampleCount": 100,
+          "latencyMs": 1315,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:27.717Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 14,
+          "sampleCount": 100,
+          "latencyMs": 1390,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:31.031Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 15,
+          "sampleCount": 100,
+          "latencyMs": 1564,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:34.815Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 16,
+          "sampleCount": 100,
+          "latencyMs": 1651,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:37.701Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 17,
+          "sampleCount": 100,
+          "latencyMs": 1437,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:41.979Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 18,
+          "sampleCount": 100,
+          "latencyMs": 2512,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:49.593Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 19,
+          "sampleCount": 100,
+          "latencyMs": 3772,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:54.450Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 20,
+          "sampleCount": 100,
+          "latencyMs": 2398,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:20:59.720Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 21,
+          "sampleCount": 100,
+          "latencyMs": 3326,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:04.655Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 22,
+          "sampleCount": 100,
+          "latencyMs": 1451,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:07.631Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 23,
+          "sampleCount": 100,
+          "latencyMs": 1542,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:10.587Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 24,
+          "sampleCount": 100,
+          "latencyMs": 1312,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:13.105Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 25,
+          "sampleCount": 100,
+          "latencyMs": 1215,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:15.732Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 26,
+          "sampleCount": 100,
+          "latencyMs": 1428,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:18.374Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 27,
+          "sampleCount": 100,
+          "latencyMs": 1211,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:20.806Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 28,
+          "sampleCount": 100,
+          "latencyMs": 1230,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:23.106Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 29,
+          "sampleCount": 100,
+          "latencyMs": 1092,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:25.292Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 30,
+          "sampleCount": 100,
+          "latencyMs": 1099,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:27.475Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 31,
+          "sampleCount": 100,
+          "latencyMs": 1090,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:30.038Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 32,
+          "sampleCount": 100,
+          "latencyMs": 1473,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:33.040Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 33,
+          "sampleCount": 100,
+          "latencyMs": 1662,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:36.013Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 34,
+          "sampleCount": 100,
+          "latencyMs": 1313,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:38.634Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 35,
+          "sampleCount": 100,
+          "latencyMs": 1311,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:42.313Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 36,
+          "sampleCount": 100,
+          "latencyMs": 1852,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:46.244Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 37,
+          "sampleCount": 100,
+          "latencyMs": 1901,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:49.807Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 38,
+          "sampleCount": 100,
+          "latencyMs": 1786,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:53.089Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 39,
+          "sampleCount": 100,
+          "latencyMs": 1565,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:56.102Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 40,
+          "sampleCount": 100,
+          "latencyMs": 1434,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:21:59.107Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 41,
+          "sampleCount": 100,
+          "latencyMs": 1674,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:05.870Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 42,
+          "sampleCount": 100,
+          "latencyMs": 4040,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:10.063Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 43,
+          "sampleCount": 100,
+          "latencyMs": 1886,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:13.271Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 44,
+          "sampleCount": 100,
+          "latencyMs": 1434,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:15.908Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 45,
+          "sampleCount": 100,
+          "latencyMs": 1213,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:18.770Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 46,
+          "sampleCount": 100,
+          "latencyMs": 1652,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:21.309Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 47,
+          "sampleCount": 100,
+          "latencyMs": 1222,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:23.635Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 48,
+          "sampleCount": 100,
+          "latencyMs": 1116,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:25.832Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 49,
+          "sampleCount": 100,
+          "latencyMs": 1092,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:28.003Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 50,
+          "sampleCount": 100,
+          "latencyMs": 1087,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:30.511Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 51,
+          "sampleCount": 100,
+          "latencyMs": 1309,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:33.290Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 52,
+          "sampleCount": 100,
+          "latencyMs": 1361,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:36.337Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 53,
+          "sampleCount": 100,
+          "latencyMs": 1522,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:39.328Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 54,
+          "sampleCount": 100,
+          "latencyMs": 1553,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:42.417Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 55,
+          "sampleCount": 100,
+          "latencyMs": 1642,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:47.766Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 56,
+          "sampleCount": 100,
+          "latencyMs": 3799,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:51.386Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 57,
+          "sampleCount": 100,
+          "latencyMs": 1444,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:54.128Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 58,
+          "sampleCount": 100,
+          "latencyMs": 1416,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:56.454Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 59,
+          "sampleCount": 100,
+          "latencyMs": 1102,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:22:58.877Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 60,
+          "sampleCount": 100,
+          "latencyMs": 1211,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:01.112Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 61,
+          "sampleCount": 100,
+          "latencyMs": 1207,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:03.636Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 62,
+          "sampleCount": 100,
+          "latencyMs": 1313,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:06.278Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 63,
+          "sampleCount": 100,
+          "latencyMs": 1217,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:08.477Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 64,
+          "sampleCount": 100,
+          "latencyMs": 1088,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:10.894Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 65,
+          "sampleCount": 100,
+          "latencyMs": 1205,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:13.076Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 66,
+          "sampleCount": 100,
+          "latencyMs": 1093,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:15.526Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 67,
+          "sampleCount": 100,
+          "latencyMs": 1363,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:17.919Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 68,
+          "sampleCount": 100,
+          "latencyMs": 1302,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:20.659Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 69,
+          "sampleCount": 100,
+          "latencyMs": 1542,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:23.057Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 70,
+          "sampleCount": 100,
+          "latencyMs": 1094,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:25.307Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 71,
+          "sampleCount": 100,
+          "latencyMs": 1159,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:27.489Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 72,
+          "sampleCount": 100,
+          "latencyMs": 1094,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:29.857Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 73,
+          "sampleCount": 100,
+          "latencyMs": 1159,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:32.292Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 74,
+          "sampleCount": 100,
+          "latencyMs": 1225,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:34.604Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 75,
+          "sampleCount": 100,
+          "latencyMs": 1103,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:37.043Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 76,
+          "sampleCount": 100,
+          "latencyMs": 1218,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:39.831Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 77,
+          "sampleCount": 100,
+          "latencyMs": 1569,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:42.492Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 78,
+          "sampleCount": 100,
+          "latencyMs": 1217,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:45.041Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 79,
+          "sampleCount": 100,
+          "latencyMs": 1452,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:47.794Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 80,
+          "sampleCount": 100,
+          "latencyMs": 1656,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:51.815Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 81,
+          "sampleCount": 100,
+          "latencyMs": 2254,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:55.817Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 82,
+          "sampleCount": 100,
+          "latencyMs": 1800,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:23:59.449Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 83,
+          "sampleCount": 100,
+          "latencyMs": 1471,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:02.097Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 84,
+          "sampleCount": 100,
+          "latencyMs": 1207,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:04.626Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 85,
+          "sampleCount": 100,
+          "latencyMs": 1325,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:06.838Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 86,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:09.057Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 87,
+          "sampleCount": 100,
+          "latencyMs": 1110,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:11.254Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 88,
+          "sampleCount": 100,
+          "latencyMs": 1096,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:13.686Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 89,
+          "sampleCount": 100,
+          "latencyMs": 1332,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:16.346Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 90,
+          "sampleCount": 100,
+          "latencyMs": 1442,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:18.909Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 91,
+          "sampleCount": 100,
+          "latencyMs": 1203,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:21.337Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 92,
+          "sampleCount": 100,
+          "latencyMs": 1211,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:24.183Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 93,
+          "sampleCount": 100,
+          "latencyMs": 1328,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:26.721Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 94,
+          "sampleCount": 100,
+          "latencyMs": 1324,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:29.069Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 95,
+          "sampleCount": 100,
+          "latencyMs": 1241,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:31.635Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 96,
+          "sampleCount": 100,
+          "latencyMs": 1212,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:33.968Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 97,
+          "sampleCount": 100,
+          "latencyMs": 1220,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:36.620Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 98,
+          "sampleCount": 100,
+          "latencyMs": 1433,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:39.254Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 99,
+          "sampleCount": 100,
+          "latencyMs": 1311,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:24:41.733Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 100,
+          "sampleCount": 100,
+          "latencyMs": 1213,
+          "thresholdMs": 2000
+        }
+      ],
+      "failure": {
+        "ok": false,
+        "phase": "initial",
+        "mode": "dom-relay",
+        "error": "Workbench needs_input P95 visibility took 2442ms; required <2000ms",
+        "completedAt": "2026-10-04T09:24:42.948Z"
+      }
+    },
+    {
+      "attempt": 2,
+      "localEvidenceDirectory": ".work/ide-image-host-validation-20261004/.work/evidence-1.132.0-attempt2",
+      "host": {
+        "name": "vscode",
+        "version": "1.132.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "startedAt": "2026-10-04T09:25:23.502Z",
+      "finishedAt": "2026-10-04T09:31:02.124Z",
+      "result": "failed",
+      "verifiedArtifactCount": 21,
+      "releaseArtifact": {
+        "kind": "release-artifact",
+        "name": "chainlesschain-ide-development-48fd92562a.vsix",
+        "path": "release-artifacts/001-chainlesschain-ide-development-48fd92562a.vsix",
+        "sha256": "sha256:ff924bf953041bfc10ed6f0013338055bf6817d18ee5c960a64a399b8a14c147",
+        "bytes": 706403
+      },
+      "envelope": {
+        "bytes": 7427,
+        "sha256": "sha256:cb58e1c30f7096b5f997693202ee0c8ab66258c6e064a2bc44277bdba6be2428"
+      },
+      "rawTrace": {
+        "bytes": 19650,
+        "sha256": "sha256:9bc997f12becad5bebcde3a658a148bb3aa06362869f622cdcca06b11f75fcc7"
+      },
+      "summary": {
+        "at": "2026-10-04T09:31:01.308Z",
+        "phase": "initial",
+        "metric": "needs-input-visible-summary",
+        "samples": 100,
+        "minLatencyMs": 1000,
+        "maxLatencyMs": 3126,
+        "p95LatencyMs": 2194,
+        "thresholdMs": 2000,
+        "warmupSamples": 1,
+        "measurementStartedAt": "2026-10-04T09:26:29.137Z",
+        "measurementCompletedAt": "2026-10-04T09:31:01.308Z",
+        "networkCondition": "loopback fixture; no external network",
+        "transport": "installed-vsix-webview-production-route",
+        "runnerEnvironment": "local",
+        "runnerName": null,
+        "runnerOS": "win32",
+        "runnerArch": "x64",
+        "runnerImageOS": null,
+        "runnerImageVersion": null
+      },
+      "samples": [
+        {
+          "at": "2026-10-04T09:26:30.243Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 1,
+          "sampleCount": 100,
+          "latencyMs": 1105,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:32.469Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 2,
+          "sampleCount": 100,
+          "latencyMs": 1110,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:34.920Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 3,
+          "sampleCount": 100,
+          "latencyMs": 1220,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:37.201Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 4,
+          "sampleCount": 100,
+          "latencyMs": 1170,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:39.453Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 5,
+          "sampleCount": 100,
+          "latencyMs": 1123,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:41.661Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 6,
+          "sampleCount": 100,
+          "latencyMs": 1106,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:43.953Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 7,
+          "sampleCount": 100,
+          "latencyMs": 1198,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:46.271Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 8,
+          "sampleCount": 100,
+          "latencyMs": 1114,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:48.465Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 9,
+          "sampleCount": 100,
+          "latencyMs": 1091,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:50.643Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 10,
+          "sampleCount": 100,
+          "latencyMs": 1092,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:53.039Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 11,
+          "sampleCount": 100,
+          "latencyMs": 1198,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:55.243Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 12,
+          "sampleCount": 100,
+          "latencyMs": 1109,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:57.435Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 13,
+          "sampleCount": 100,
+          "latencyMs": 1097,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:26:59.728Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 14,
+          "sampleCount": 100,
+          "latencyMs": 1207,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:02.355Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 15,
+          "sampleCount": 100,
+          "latencyMs": 1208,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:05.010Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 16,
+          "sampleCount": 100,
+          "latencyMs": 1339,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:07.918Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 17,
+          "sampleCount": 100,
+          "latencyMs": 1334,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:11.664Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 18,
+          "sampleCount": 100,
+          "latencyMs": 1589,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:14.711Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 19,
+          "sampleCount": 100,
+          "latencyMs": 1625,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:17.688Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 20,
+          "sampleCount": 100,
+          "latencyMs": 1523,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:20.784Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 21,
+          "sampleCount": 100,
+          "latencyMs": 1573,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:24.431Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 22,
+          "sampleCount": 100,
+          "latencyMs": 1882,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:27.981Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 23,
+          "sampleCount": 100,
+          "latencyMs": 1703,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:31.202Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 24,
+          "sampleCount": 100,
+          "latencyMs": 1695,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:34.328Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 25,
+          "sampleCount": 100,
+          "latencyMs": 1546,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:37.458Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 26,
+          "sampleCount": 100,
+          "latencyMs": 1599,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:40.702Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 27,
+          "sampleCount": 100,
+          "latencyMs": 1567,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:43.451Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 28,
+          "sampleCount": 100,
+          "latencyMs": 1323,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:46.385Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 29,
+          "sampleCount": 100,
+          "latencyMs": 1477,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:49.256Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 30,
+          "sampleCount": 100,
+          "latencyMs": 1317,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:52.101Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 31,
+          "sampleCount": 100,
+          "latencyMs": 1422,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:55.116Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 32,
+          "sampleCount": 100,
+          "latencyMs": 1470,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:27:58.725Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 33,
+          "sampleCount": 100,
+          "latencyMs": 2194,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:02.038Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 34,
+          "sampleCount": 100,
+          "latencyMs": 1201,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:04.339Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 35,
+          "sampleCount": 100,
+          "latencyMs": 1082,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:06.542Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 36,
+          "sampleCount": 100,
+          "latencyMs": 1094,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:08.790Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 37,
+          "sampleCount": 100,
+          "latencyMs": 1101,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:11.011Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 38,
+          "sampleCount": 100,
+          "latencyMs": 1117,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:13.204Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 39,
+          "sampleCount": 100,
+          "latencyMs": 1094,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:15.399Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 40,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:17.617Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 41,
+          "sampleCount": 100,
+          "latencyMs": 1106,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:19.808Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 42,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:22.010Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 43,
+          "sampleCount": 100,
+          "latencyMs": 1107,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:24.203Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 44,
+          "sampleCount": 100,
+          "latencyMs": 1095,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:26.627Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 45,
+          "sampleCount": 100,
+          "latencyMs": 1212,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:32.505Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 46,
+          "sampleCount": 100,
+          "latencyMs": 2334,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:35.031Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 47,
+          "sampleCount": 100,
+          "latencyMs": 1099,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:37.457Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 48,
+          "sampleCount": 100,
+          "latencyMs": 1216,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:40.747Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 49,
+          "sampleCount": 100,
+          "latencyMs": 1551,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:43.136Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 50,
+          "sampleCount": 100,
+          "latencyMs": 1194,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:45.635Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 51,
+          "sampleCount": 100,
+          "latencyMs": 1203,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:48.164Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 52,
+          "sampleCount": 100,
+          "latencyMs": 1214,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:50.676Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 53,
+          "sampleCount": 100,
+          "latencyMs": 1309,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:53.782Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 54,
+          "sampleCount": 100,
+          "latencyMs": 1426,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:56.375Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 55,
+          "sampleCount": 100,
+          "latencyMs": 1364,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:28:58.665Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 56,
+          "sampleCount": 100,
+          "latencyMs": 1197,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:01.089Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 57,
+          "sampleCount": 100,
+          "latencyMs": 1199,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:05.628Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 58,
+          "sampleCount": 100,
+          "latencyMs": 2291,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:08.987Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 59,
+          "sampleCount": 100,
+          "latencyMs": 1808,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:11.977Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 60,
+          "sampleCount": 100,
+          "latencyMs": 1210,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:14.370Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 61,
+          "sampleCount": 100,
+          "latencyMs": 1299,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:17.013Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 62,
+          "sampleCount": 100,
+          "latencyMs": 1322,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:19.791Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 63,
+          "sampleCount": 100,
+          "latencyMs": 1687,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:24.790Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 64,
+          "sampleCount": 100,
+          "latencyMs": 2141,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:27.311Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 65,
+          "sampleCount": 100,
+          "latencyMs": 1302,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:29.665Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 66,
+          "sampleCount": 100,
+          "latencyMs": 1252,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:31.870Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 67,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:34.419Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 68,
+          "sampleCount": 100,
+          "latencyMs": 1310,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:36.926Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 69,
+          "sampleCount": 100,
+          "latencyMs": 1195,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:41.843Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 70,
+          "sampleCount": 100,
+          "latencyMs": 3126,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:44.929Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 71,
+          "sampleCount": 100,
+          "latencyMs": 1535,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:47.124Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 72,
+          "sampleCount": 100,
+          "latencyMs": 1105,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:49.412Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 73,
+          "sampleCount": 100,
+          "latencyMs": 1198,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:51.810Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 74,
+          "sampleCount": 100,
+          "latencyMs": 1306,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:53.780Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 75,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:56.112Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 76,
+          "sampleCount": 100,
+          "latencyMs": 1135,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:29:58.736Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 77,
+          "sampleCount": 100,
+          "latencyMs": 1537,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:01.249Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 78,
+          "sampleCount": 100,
+          "latencyMs": 1320,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:04.315Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 79,
+          "sampleCount": 100,
+          "latencyMs": 1764,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:06.725Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 80,
+          "sampleCount": 100,
+          "latencyMs": 1198,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:08.805Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 81,
+          "sampleCount": 100,
+          "latencyMs": 1089,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:13.330Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 82,
+          "sampleCount": 100,
+          "latencyMs": 2838,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:15.832Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 83,
+          "sampleCount": 100,
+          "latencyMs": 1085,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:18.348Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 84,
+          "sampleCount": 100,
+          "latencyMs": 1103,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:20.632Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 85,
+          "sampleCount": 100,
+          "latencyMs": 1090,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:22.723Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 86,
+          "sampleCount": 100,
+          "latencyMs": 1000,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:25.243Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 87,
+          "sampleCount": 100,
+          "latencyMs": 1216,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:29.652Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 88,
+          "sampleCount": 100,
+          "latencyMs": 2537,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:34.077Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 89,
+          "sampleCount": 100,
+          "latencyMs": 1434,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:36.513Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 90,
+          "sampleCount": 100,
+          "latencyMs": 1208,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:38.711Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 91,
+          "sampleCount": 100,
+          "latencyMs": 1101,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:41.027Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 92,
+          "sampleCount": 100,
+          "latencyMs": 1217,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:43.227Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 93,
+          "sampleCount": 100,
+          "latencyMs": 1099,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:46.040Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 94,
+          "sampleCount": 100,
+          "latencyMs": 1542,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:48.447Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 95,
+          "sampleCount": 100,
+          "latencyMs": 1214,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:51.071Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 96,
+          "sampleCount": 100,
+          "latencyMs": 1201,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:53.391Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 97,
+          "sampleCount": 100,
+          "latencyMs": 1213,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:55.609Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 98,
+          "sampleCount": 100,
+          "latencyMs": 1098,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:30:57.793Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 99,
+          "sampleCount": 100,
+          "latencyMs": 1091,
+          "thresholdMs": 2000
+        },
+        {
+          "at": "2026-10-04T09:31:00.209Z",
+          "phase": "initial",
+          "metric": "needs-input-visible",
+          "sample": 100,
+          "sampleCount": 100,
+          "latencyMs": 1213,
+          "thresholdMs": 2000
+        }
+      ],
+      "failure": {
+        "ok": false,
+        "phase": "initial",
+        "mode": "dom-relay",
+        "error": "Workbench needs_input P95 visibility took 2194ms; required <2000ms",
+        "completedAt": "2026-10-04T09:31:01.310Z"
+      }
+    }
+  ],
+  "limitations": [
+    "Development VSIX version 0.37.130 differs from public Open VSX 0.37.130 bytes.",
+    "Both original 100-sample Workbench visibility gates failed; neither run reached image recovery.",
+    "All locally retained artifact byte lengths and hashes were checked; this compact receipt embeds only timing samples and failure metadata.",
+    "These observations do not isolate the unique performance cause or establish a global SLO."
+  ]
+}

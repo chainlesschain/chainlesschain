@@ -1,6 +1,6 @@
 # 项目打包 (pack)
 
-> **当前公开 CLI：0.166.84；文档更新：2026-10-03。** `pack` 自 0.156.6 提供；下方 2026-04 的性能与测试数据保留为历史测量。六平台构建、签名与公开分发按独立发布门验收。
+> **当前公开 CLI：0.166.85；文档更新：2026-10-04。** npm 已发布 Linux standalone 与有界打包、updater 握手修复；六平台 native 复验 Windows ARM64 updater 64 通过/5 失败，整轮未通过，没有签名 native 发行。`pack` 自 0.156.6 提供；下方早期性能与候选数据保留历史时点。详见[发布与升级指南](/chainlesschain/agent-platform-release)。
 >
 > `cc pack` 把当前项目环境打包成单文件可执行程序，内嵌 WebSocket 服务、完整 Vue Web UI 与 SQLite 运行时，收件人**双击即用**，无需安装 Node.js、npm 或后端服务。
 

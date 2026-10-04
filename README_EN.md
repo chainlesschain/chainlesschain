@@ -1,6 +1,33 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-10-02 release and source review
+## October 4, 2026 release and source review
+
+Reviewed source `main@443a745962`, Git history, and public registries:
+
+| Component               | Public version          | Source and pairing                                       |
+| ----------------------- | ----------------------- | -------------------------------------------------------- |
+| npm CLI                 | **0.166.85**            | `v-npm-0-166-85` → `84f204db94`                          |
+| VS Code / VSCodium      | **Open VSX 0.37.130**   | `84f204db94`; recommends CLI `0.166.85`                  |
+| JetBrains               | **Marketplace 0.4.146** | `d93c9c9766`; published plugin recommends CLI `0.166.84` |
+| Desktop / Android / iOS | **v5.0.3.138**          | Independent product release                              |
+
+```bash
+npm i -g chainlesschain@0.166.85 --registry https://registry.npmjs.org
+cc --version
+```
+
+Restart the IDE chat host after upgrading. Exact release SHA `84f204db94` passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926499) **68/68**, [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926341) **5/5**, and [IDE gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37182926528) **18 successful / 1 expected skip**. [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37186498386) and [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37187468724) succeeded; public tarball and VSIX bytes match immutable artifacts. All 13 child npm packages and internal dependency versions were rechecked.
+
+- **CLI 0.166.85** preserves durable memory at capacity, byte, and revision limits, rejects unsafe permission versions, and includes bounded pack builds and the Windows updater event-loop handshake fix.
+- **Open VSX 0.37.130** preserves selection and reading position during long replies. Image draft saves bind to each Webview execution; retired pages and delayed acknowledgements cannot overwrite a new draft. Restored images require an explicit send.
+- **Later source changes** add an explicit Linux durable-permission host (`21a76756a5`) with 100 ms cross-process/Worker polling and receiver-specific stop receipts after successful cleanup, plus image decoding budgets and bounded file snapshots (`48fd92562a`). These changes are outside the published npm/VSIX above.
+- **Pending acceptance**: JetBrains `0.4.147` was not published; `0.4.148` fixed a diagnostics generation race, now carried by candidate `0.4.149`. Six-platform native revalidation failed on Windows ARM64 updater tests (**64 passed / 5 failed**); no signed native release is claimed. New source requires its own complete release gates.
+
+The Linux host requires explicit administrator provisioning; ordinary CLI runs do not register it automatically. Equivalent Windows/macOS durability, arbitrary external edits, unbound writers, and legacy callbacks remain outside this guarantee. PM outcomes, complete launch/cost evidence, and automatic Skill promotion remain HOLD. See the [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [runtime design](docs/design/agent-runtime-update-2026-09-26.md), and [implementation evidence](docs/research/cli-ide-gap-implementation-2026-09-27.md).
+
+The latest frozen candidate `b2aa3aba08` pairs CLI **0.166.86**, VS Code **0.37.131**, and JetBrains **0.4.149**, pending its own complete release gates and public readback. Canonical Memory v2 uses bounded buckets (64 MiB per file, 1 GiB total active buckets); v1 clients reject v2, downgrade requires a compatible snapshot, and default shadow reads do not migrate. Windows formal validation covers reopening, reading, updating, deleting, and auditing 1K/10K/100K records. At 100K, point-read p95 is 110.072 ms and full-query p95 is 13,954.915 ms; this establishes measured capacity, not global performance SLOs. Windows image draft paths longer than 260 characters have a staging/cleanup fix. These source changes are outside current public artifacts.
+
+## October 2, 2026 release and source review (historical)
 
 Install **CLI 0.166.84**, the public npm `latest`, with `npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org`. Tag `v-npm-0-166-84` resolves to `d93c9c9766`. The exact release commit passed all 68 [CLI CI jobs](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293721) and five [Strict Sandbox jobs](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293555), covering Linux x64/ARM64, Windows, and macOS. [OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37007309162) and [public tarball readback](https://github.com/chainlesschain/chainlesschain/actions/runs/37012507322) succeeded with matching artifact bytes and signed provenance.
 
@@ -18,11 +45,11 @@ Reviewed at `main@2bfaea2fa9`: strict read-only settings observations and explic
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.84` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.166.85` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.85 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.

@@ -1,11 +1,11 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本：Design Module 98（机制篇，更新 2026-10-03）| 公开版：VS Code `0.37.126` Open VSX / JetBrains `0.4.146` Marketplace**
+> **更新 2026-10-04 | 公开 Open VSX `0.37.130` / JetBrains `0.4.146`**
 >
-> CLI `0.166.84`、Open VSX `0.37.126` 与 JetBrains Marketplace `0.4.146` 均已公开，发布提交均为 `d93c9c9766`。两端均推荐 CLI `0.166.84`；IDE 投影继续由 CLI/部署宿主裁决。微软 VS Code Marketplace 仍未发布。
+> CLI `0.166.85` 与 Open VSX `0.37.130` 发布源码为 `84f204db94`，VSIX 推荐 CLI `0.166.85`；JetBrains 公开 `0.4.146@d93c9c9766` 仍推荐 `0.166.84`，源码 `0.4.149` 为候选。Microsoft Marketplace 未发行。
 >
-> VS Code `0.37.127` 仍是未打发布 tag 的候选，正在整合后续 CLI 修复；最新冻结提交与完整门结果见[共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/feature/cli-ide-gap-completion-2026-10-02/docs/research/cli-ide-gap-implementation-2026-09-27.md)。历史 `96cbf6ba56` 的 Strict Sandbox **5/5**、IDE Extensions **18 成功 / 1 正常跳过**已通过，但 CLI CI 的 Windows worker 同提交重跑仍失败；历史成功不转移到新提交。候选包含长回复流式选择与滚动保持，以及结束后再格式化的显示改进。npm/VSIX/ZIP 保持独立制品身份。Agent Platform 的消息、handoff、Skill mutation 与 knowledge merge authority 仍留在 CLI-owned bridge/部署宿主，IDE 只提交宿主已审阅的决定并消费有界投影。
->
+> 公开 VS Code 包含长回复选区/滚动保持与图片草稿页面实例隔离，结束后再格式化；`48fd92562a` 的图片解码预算和两端文件快照尚未进入商店。CLI 执行、消息、handoff、Skill mutation 和 knowledge merge 的 authority 仍由 CLI/可信宿主裁决。发布后 Linux 持久权限宿主须管理员显式配置，跨进程/Worker 100 ms 轮询不构成即时停止或分布式 quorum。精确提交门见[发布指南](/chainlesschain/agent-platform-release)，实现证据见[共享状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。
+
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
 > 📖 本页讲**桥接机制**（发现协议 / lockfile / MCP 传输 / 安全模型）。插件的**日常使用**（Chat 面板全功能、Plan 审阅、Diff 评审、各面板、快捷键、完整设置面）见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
