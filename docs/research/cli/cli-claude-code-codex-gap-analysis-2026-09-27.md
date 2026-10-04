@@ -1,6 +1,6 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-09-27）
 
-> 2026-10-04 发布推进：CLI **0.166.85** 已通过 OIDC 发布并[回读验证](./evidence/cli-0.166.85-publication-readback-84f204.json)，VS Code **0.37.130** 已在 [Open VSX 公开可用](../ide/evidence/vscode-0.37.130-publication-readback-84f204.json)。两者来自 `84f204db94`，其[完整发布门](./evidence/cli-ide-0.166.85-candidate-gates-84f204.json)通过。重新清点全部 18 个包后，[13 个独立子 npm 包的源码、版本和安装包均与公开版本一致](./evidence/child-package-release-reaudit-20261004-84f204.json)，没有漏发子包。JetBrains **0.4.147** 的发布测试发现诊断重复提交竞态，尚未发布；正在准备修复候选 **0.4.148**。按用户要求，先发布后合并；进展见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
+> 2026-10-04 发布推进：CLI **0.166.85** 已通过 OIDC 发布并[回读验证](./evidence/cli-0.166.85-publication-readback-84f204.json)，VS Code **0.37.130** 已在 [Open VSX 公开可用](../ide/evidence/vscode-0.37.130-publication-readback-84f204.json)。两者来自 `84f204db94`，其[完整发布门](./evidence/cli-ide-0.166.85-candidate-gates-84f204.json)通过。重新清点全部 18 个包后，[13 个独立子 npm 包的源码、版本和安装包均与公开版本一致](./evidence/child-package-release-reaudit-20261004-84f204.json)，没有漏发子包。JetBrains **0.4.147** 的发布测试发现诊断重复提交竞态，尚未发布；修复已纳入整合候选 **0.4.149**，仍待验收和发布。按用户要求，先发布后合并；进展见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
 
 > 审计日期：2026-09-27（Asia/Shanghai）
 >
@@ -20,7 +20,7 @@
 
 后续修复进度见 [共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。下文保留审计时的事实，不将正在实施的改动回填为当时已完成。
 
-**后续整合候选：** [草稿 PR #402](https://github.com/chainlesschain/chainlesschain/pull/402) 冻结 `832f6b7270`，准备 CLI **0.166.86** / VS Code **0.37.131** / JetBrains **0.4.149**，尚未发布。canonical Memory 已增加有界分片和原子 v1 迁移，默认 shadow 不变；NET 显式 Linux 受控宿主已修复托管预验收暴露的观测品牌和并发探针问题，新准确提交的完整门继续执行。13 个子包 [Git tree 与公开基线一致](./evidence/child-package-source-reaudit-832f6b7270.json)，本轮无需重发子包。图片真实宿主性能失败、100K formal 测量和外部验收按实际结果保留，详见共享实施状态。
+**先前候选记录（已由 `b2aa3aba08` 推进）：** [草稿 PR #402](https://github.com/chainlesschain/chainlesschain/pull/402) 冻结 `832f6b7270`，准备 CLI **0.166.86** / VS Code **0.37.131** / JetBrains **0.4.149**，尚未发布。canonical Memory 已增加有界分片和原子 v1 迁移，默认 shadow 不变；NET 显式 Linux 受控宿主已修复托管预验收暴露的观测品牌和并发探针问题，新准确提交的完整门继续执行。13 个子包 [Git tree 与公开基线一致](./evidence/child-package-source-reaudit-832f6b7270.json)，本轮无需重发子包。图片真实宿主性能失败、100K formal 测量和外部验收按实际结果保留，详见共享实施状态。
 
 **2026-10-04 当前进度：** `d85af91aa1` 的 Memory 容量边界与 scoped generation/revision 溢出修复已随 CLI **0.166.85** 发布；图片草稿恢复与 Webview 页面实例 ACK 隔离已随 VS Code **0.37.130** 在 Open VSX 发布。旧版 0.37.127 / 0.37.128 的记录保留为历史。跨进程权限撤销接线、100K Memory 容量、真实模型/账单、任务效果与 SLO 等剩余项仍逐项保留，不以本批修复代表全部完成。
 
