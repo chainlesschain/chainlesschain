@@ -538,7 +538,7 @@ async function revealChatAndRunDomRelayJourney({
   });
 }
 
-async function run() {
+async function runJourney() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
@@ -848,6 +848,18 @@ async function run() {
 }
 
 let runPromise;
+
+async function run() {
+  try {
+    return await runJourney();
+  } catch (error) {
+    require("./failure-receipt.cjs").recordHostDriverFailure(error, {
+      resultFile: process.env.CHAINLESSCHAIN_HOST_RESULT_FILE,
+      phase: process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,
+    });
+    throw error;
+  }
+}
 
 function runOnce() {
   if (!runPromise) runPromise = run();
