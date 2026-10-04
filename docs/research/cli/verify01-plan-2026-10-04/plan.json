@@ -1,0 +1,416 @@
+{
+  "schema": "chainlesschain.outcome-plan/v1",
+  "commitSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "currency": "USD",
+  "window": {
+    "start": "2026-10-05T00:00:00.000Z",
+    "end": "2026-10-12T00:00:00.000Z"
+  },
+  "samples": [
+    {
+      "id": "verify-01",
+      "kind": "task",
+      "taskId": "verify-01",
+      "stratum": "win32-cli-volcengine",
+      "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-02",
+      "kind": "task",
+      "taskId": "verify-02",
+      "stratum": "win32-vscode-volcengine",
+      "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-03",
+      "kind": "task",
+      "taskId": "verify-03",
+      "stratum": "win32-jetbrains-volcengine",
+      "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-04",
+      "kind": "task",
+      "taskId": "verify-04",
+      "stratum": "linux-cli-volcengine",
+      "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-05",
+      "kind": "task",
+      "taskId": "verify-05",
+      "stratum": "linux-vscode-volcengine",
+      "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-06",
+      "kind": "task",
+      "taskId": "verify-06",
+      "stratum": "linux-jetbrains-volcengine",
+      "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-07",
+      "kind": "task",
+      "taskId": "verify-07",
+      "stratum": "darwin-cli-volcengine",
+      "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-08",
+      "kind": "task",
+      "taskId": "verify-08",
+      "stratum": "darwin-vscode-volcengine",
+      "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-09",
+      "kind": "task",
+      "taskId": "verify-09",
+      "stratum": "darwin-jetbrains-volcengine",
+      "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-10",
+      "kind": "task",
+      "taskId": "verify-10",
+      "stratum": "win32-cli-openai",
+      "comparisonDigest": "sha256:6e97d8cca2d845d000ccab9988d9ad23832c71a8e65c22d8984ff4c0a60b4982",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-11",
+      "kind": "task",
+      "taskId": "verify-11",
+      "stratum": "win32-vscode-openai",
+      "comparisonDigest": "sha256:f29cb6508b21a3380ecd9262ff2e35becda6c501b4426dae164db52c359d6d26",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-12",
+      "kind": "task",
+      "taskId": "verify-12",
+      "stratum": "win32-jetbrains-openai",
+      "comparisonDigest": "sha256:0097eb516d082fee2d2aad67530eb2aa7e6e0d35dd6f5a39ead842a682fb961e",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-13",
+      "kind": "task",
+      "taskId": "verify-13",
+      "stratum": "linux-cli-openai",
+      "comparisonDigest": "sha256:a9960328a3f7115a9de63f401ab5efd3c5300240dfec5a5e8850652f76edc27c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-14",
+      "kind": "task",
+      "taskId": "verify-14",
+      "stratum": "linux-vscode-openai",
+      "comparisonDigest": "sha256:c85373d1bb4b42621a73687d243cb1be72e01a5151eda28ae68aec3b6b43bd7c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-15",
+      "kind": "task",
+      "taskId": "verify-15",
+      "stratum": "linux-jetbrains-openai",
+      "comparisonDigest": "sha256:8cd57b4f5f0d57a95571ef1e2a27c67b491686319eb3b881b24dd24d75206e44",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-16",
+      "kind": "task",
+      "taskId": "verify-16",
+      "stratum": "darwin-cli-openai",
+      "comparisonDigest": "sha256:60f0c3583484c86813b3d7f5e651a35c7aa113c872943ef875cd067ea6c56e63",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-17",
+      "kind": "task",
+      "taskId": "verify-17",
+      "stratum": "darwin-vscode-openai",
+      "comparisonDigest": "sha256:9722493e74f1a6010d2af7a7ea9513455c3223b82f1e8894f2cbb54f61b0d4cb",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-18",
+      "kind": "task",
+      "taskId": "verify-18",
+      "stratum": "darwin-jetbrains-openai",
+      "comparisonDigest": "sha256:8a05412b84d28c5d55a20fc66df8cdb04e80efc53a3077502d8bcf50831f3e49",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-19",
+      "kind": "task",
+      "taskId": "verify-19",
+      "stratum": "win32-cli-volcengine",
+      "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-20",
+      "kind": "task",
+      "taskId": "verify-20",
+      "stratum": "win32-vscode-volcengine",
+      "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-21",
+      "kind": "task",
+      "taskId": "verify-21",
+      "stratum": "win32-jetbrains-volcengine",
+      "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-22",
+      "kind": "task",
+      "taskId": "verify-22",
+      "stratum": "linux-cli-volcengine",
+      "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-23",
+      "kind": "task",
+      "taskId": "verify-23",
+      "stratum": "linux-vscode-volcengine",
+      "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-24",
+      "kind": "task",
+      "taskId": "verify-24",
+      "stratum": "linux-jetbrains-volcengine",
+      "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-25",
+      "kind": "task",
+      "taskId": "verify-25",
+      "stratum": "darwin-cli-volcengine",
+      "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-26",
+      "kind": "task",
+      "taskId": "verify-26",
+      "stratum": "darwin-vscode-volcengine",
+      "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-27",
+      "kind": "task",
+      "taskId": "verify-27",
+      "stratum": "darwin-jetbrains-volcengine",
+      "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-28",
+      "kind": "task",
+      "taskId": "verify-28",
+      "stratum": "win32-cli-openai",
+      "comparisonDigest": "sha256:6e97d8cca2d845d000ccab9988d9ad23832c71a8e65c22d8984ff4c0a60b4982",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-29",
+      "kind": "task",
+      "taskId": "verify-29",
+      "stratum": "win32-vscode-openai",
+      "comparisonDigest": "sha256:f29cb6508b21a3380ecd9262ff2e35becda6c501b4426dae164db52c359d6d26",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-30",
+      "kind": "task",
+      "taskId": "verify-30",
+      "stratum": "win32-jetbrains-openai",
+      "comparisonDigest": "sha256:0097eb516d082fee2d2aad67530eb2aa7e6e0d35dd6f5a39ead842a682fb961e",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-31",
+      "kind": "task",
+      "taskId": "verify-31",
+      "stratum": "linux-cli-openai",
+      "comparisonDigest": "sha256:a9960328a3f7115a9de63f401ab5efd3c5300240dfec5a5e8850652f76edc27c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-32",
+      "kind": "task",
+      "taskId": "verify-32",
+      "stratum": "linux-vscode-openai",
+      "comparisonDigest": "sha256:c85373d1bb4b42621a73687d243cb1be72e01a5151eda28ae68aec3b6b43bd7c",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-33",
+      "kind": "task",
+      "taskId": "verify-33",
+      "stratum": "linux-jetbrains-openai",
+      "comparisonDigest": "sha256:8cd57b4f5f0d57a95571ef1e2a27c67b491686319eb3b881b24dd24d75206e44",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-34",
+      "kind": "task",
+      "taskId": "verify-34",
+      "stratum": "darwin-cli-openai",
+      "comparisonDigest": "sha256:60f0c3583484c86813b3d7f5e651a35c7aa113c872943ef875cd067ea6c56e63",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-35",
+      "kind": "task",
+      "taskId": "verify-35",
+      "stratum": "darwin-vscode-openai",
+      "comparisonDigest": "sha256:9722493e74f1a6010d2af7a7ea9513455c3223b82f1e8894f2cbb54f61b0d4cb",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "verify-36",
+      "kind": "task",
+      "taskId": "verify-36",
+      "stratum": "darwin-jetbrains-openai",
+      "comparisonDigest": "sha256:8a05412b84d28c5d55a20fc66df8cdb04e80efc53a3077502d8bcf50831f3e49",
+      "costBudget": 2,
+      "timeBudgetMs": 1200000
+    },
+    {
+      "id": "first-run-win32-cli",
+      "kind": "first-run",
+      "taskId": "verify-01",
+      "stratum": "win32-cli-volcengine",
+      "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-win32-vscode",
+      "kind": "first-run",
+      "taskId": "verify-02",
+      "stratum": "win32-vscode-volcengine",
+      "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-win32-jetbrains",
+      "kind": "first-run",
+      "taskId": "verify-03",
+      "stratum": "win32-jetbrains-volcengine",
+      "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-linux-cli",
+      "kind": "first-run",
+      "taskId": "verify-04",
+      "stratum": "linux-cli-volcengine",
+      "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-linux-vscode",
+      "kind": "first-run",
+      "taskId": "verify-05",
+      "stratum": "linux-vscode-volcengine",
+      "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-linux-jetbrains",
+      "kind": "first-run",
+      "taskId": "verify-06",
+      "stratum": "linux-jetbrains-volcengine",
+      "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-darwin-cli",
+      "kind": "first-run",
+      "taskId": "verify-07",
+      "stratum": "darwin-cli-volcengine",
+      "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-darwin-vscode",
+      "kind": "first-run",
+      "taskId": "verify-08",
+      "stratum": "darwin-vscode-volcengine",
+      "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    },
+    {
+      "id": "first-run-darwin-jetbrains",
+      "kind": "first-run",
+      "taskId": "verify-09",
+      "stratum": "darwin-jetbrains-volcengine",
+      "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+      "costBudget": 3,
+      "timeBudgetMs": 1800000
+    }
+  ]
+}
