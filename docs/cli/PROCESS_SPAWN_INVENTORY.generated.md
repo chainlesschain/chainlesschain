@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 628 (runtime: 306, tooling: 287, test: 35).
+Total matches: 640 (runtime: 306, tooling: 299, test: 35).
 Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unreviewed: 0.
 
 ## Policy
@@ -95,7 +95,7 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/background-agent-supervisor.js` | 281 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.spawnSync(file, args, {` |
 | `packages/cli/src/lib/background-agent-supervisor.js` | 3015 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _deps.spawn(process.execPath, [worker, jobFile], {` |
 | `packages/cli/src/lib/background-agent-supervisor.js` | 3029 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `keeperChild = _deps.spawn(process.execPath, [keeper, keeperJobFile], {` |
-| `packages/cli/src/lib/background-interaction-resolver.js` | 284 | `non-executable` | declaration/comment/type/regex lexical match | `* @param {import("node:child_process").ChildProcess\|object} child` |
+| `packages/cli/src/lib/background-interaction-resolver.js` | 288 | `non-executable` | declaration/comment/type/regex lexical match | `* @param {import("node:child_process").ChildProcess\|object} child` |
 | `packages/cli/src/lib/checkpoint-store.js` | 33 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/checkpoint-store.js` | 185 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = _deps.spawnSync("git", args, {` |
 | `packages/cli/src/lib/chrome-connector.js` | 383 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = deps.spawn(executable, args, {` |
@@ -309,16 +309,16 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/repl/prompt-editor.js` | 104 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/prompt-editor.js` | 151 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = deps.spawnSync(executable, [...editorArgs, filePath], {` |
 | `packages/cli/src/runtime/agent-core.js` | 441 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(file, args, options, (error, stdout, stderr) => {` |
-| `packages/cli/src/runtime/agent-core.js` | 6731 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 6753 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
-| `packages/cli/src/runtime/agent-core.js` | 6769 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 6770 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 7246 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
-| `packages/cli/src/runtime/agent-core.js` | 7279 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 7295 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 7441 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 10890 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 10942 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 6746 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 6768 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
+| `packages/cli/src/runtime/agent-core.js` | 6784 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 6785 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7271 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
+| `packages/cli/src/runtime/agent-core.js` | 7304 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7320 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 7466 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 10915 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 10967 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 84 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 90 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -525,6 +525,10 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 77 | `return execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 4 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 94 | `const result = spawnSync(invocation.executable, invocation.args, {` |
+| `packages/cli/scripts/run-parent-diagnostic.mjs` | 3 | `import { spawn, execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/run-parent-diagnostic.mjs` | 14 | `execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();` |
+| `packages/cli/scripts/run-parent-diagnostic.mjs` | 56 | `driverSha: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/run-parent-diagnostic.mjs` | 67 | `const child = spawn(process.execPath, args, {` |
 | `packages/cli/scripts/run-vitest-with-worker-retry.mjs` | 3 | `import { spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 357 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
@@ -593,6 +597,12 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/verify-mcp-lifecycle-increments.mjs` | 194 | `const result = spawnSync(` |
 | `packages/cli/scripts/verify-npm-reused-package-tree.mjs` | 3 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify-npm-reused-package-tree.mjs` | 23 | `return execFileSync("git", args, {` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 31 | `assert.equal(require('node:child_process').spawn.name, 'spawn');` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 43 | `const { fork } = require('node:child_process');` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 45 | `const child = fork(process.argv[2], [process.argv[3]], {stdio:'pipe'});` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 64 | `const result = spawnSync(` |
+| `packages/cli/scripts/verify-parent-diagnostic.mjs` | 137 | `"worker child_process unchanged",` |
 | `packages/cli/scripts/verify-rc-default-audit.mjs` | 4 | `import { execFileSync, spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/verify-rc-default-audit.mjs` | 141 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/verify-rc-default-audit.mjs` | 161 | `const committed = execFileSync(` |
@@ -616,6 +626,8 @@ Runtime audit: brokered: 214, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 249 | `return execFileSync("git", ["show", `${headSha}:${repoPath}`], {` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 359 | `execFileSync(` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 775 | `execFileSync(process.execPath, ["--expose-gc", SCRIPT_PATH], {` |
+| `packages/cli/scripts/vitest-parent-diagnostic.cjs` | 12 | `const cp = require("node:child_process");` |
+| `packages/cli/scripts/vitest-worker-diagnostic.cjs` | 6 | `const childProcess = require("node:child_process");` |
 
 ## test
 
