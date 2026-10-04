@@ -2,7 +2,18 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.129] - Validated image draft recovery (2026-10-04)
+## [0.37.130] - Isolate drafts across Webview reloads (2026-10-04)
+
+- Bind draft saves and acknowledgements to each page execution, including when
+  the editor reloads cached HTML. Ignore retired pages and delayed responses.
+- Refuse obsolete image writes before publishing their manifest, finish image
+  cleanup after discarding an empty draft, and retain recovery error feedback.
+- Generate page IDs with cryptographic random bytes in both Webviews and browser
+  validation environments that do not expose the secure-context UUID API.
+- Include the image draft recovery improvements prepared in the unpublished
+  0.37.129 candidate and retain the CLI `0.166.85` recommendation.
+
+## [0.37.129] - Validated image draft recovery (unreleased candidate, 2026-10-04)
 
 - Keep image save acknowledgements tied to the current attachment revision;
   text-only saves cannot hide image validation errors.

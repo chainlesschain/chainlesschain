@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   preserving safe integer identities, idempotent revocation, and stale CAS.
 - Include pending packaged-build, settings observation, and disabled background
   IPC lifetime fixes since the previous CLI release.
-- Pair VS Code `0.37.129` image draft recovery and JetBrains `0.4.147` with this
+- Pair VS Code `0.37.130` image draft recovery and JetBrains `0.4.147` with this
   CLI only after complete exact-commit CI and public npm verification.
 
 ### Fixed - cc CLI 0.166.84: revoke scoped permissions before durable writes

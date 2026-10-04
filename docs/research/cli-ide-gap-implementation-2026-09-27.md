@@ -8,7 +8,7 @@
 
 **页面实例隔离修复已完成，本地回归通过，发布门待重跑。** 每次脚本执行生成独立页面 ID，握手同时校验当前 HTML nonce，覆盖 `Reload Webviews` 复用 HTML 的情况；退休页面及迟到协议消息不能切回旧实例。草稿更新/恢复/丢弃/核对请求绑定页面，旧成功或失败 ACK 不改变新页面状态。延迟图片准备、串行保存入口和 manifest rename 前重新核对实例；失败清理本次新图。空草稿先移除 manifest 提交，再完成图片清理，避免留下引用缺失图片的元数据。四个相关 CLI 测试文件 **46/46** 通过，含同 HTML 双页面、旧 revision=5 ACK 对新 revision=1、后台 ACK、延迟图片写入、临时文件清理、恢复错误与空草稿提交回归。Astra 只读复审未发现其他具体阻断；真实宿主及准确提交三系统门仍须通过才能发布。
 
-**新一轮发布候选：CLI 0.166.85、VS Code 0.37.129、JetBrains 0.4.147。** 用户已授权功能完成并通过测试后按“有变更的子 npm 包 → CLI → IDE”发布。已逐一核对 13 个子包的公开版本与来源，均无未发布源码差异；CLI 内部依赖匹配现有公开版本。候选合并提交 `72b3a6edb0` 的 Strict Sandbox 通过，但最终审查复现了 Webview 重载后旧图片保存 ACK 可匹配新页面 revision 的问题，因此停止该提交的 CLI/IDE 矩阵并暂缓发布。修复在 `feature/ide-draft-instance-isolation-20261004` 继续；旧提交的通过结果不转移到新提交。自动动画预览的完整解码预算尚无验收，40px 显示尺寸不代表解码资源上限。
+**新一轮发布候选：CLI 0.166.85、VS Code 0.37.130、JetBrains 0.4.147。** 用户已授权功能完成并通过测试后按“有变更的子 npm 包 → CLI → IDE”发布。已逐一核对 13 个子包的公开版本与来源，均无未发布源码差异；CLI 内部依赖匹配现有公开版本。候选合并提交 `72b3a6edb0` 的 Strict Sandbox 通过，但最终审查复现了 Webview 重载后旧图片保存 ACK 可匹配新页面 revision 的问题，因此停止该提交的 CLI/IDE 矩阵并暂缓发布。修复在 `feature/ide-draft-instance-isolation-20261004` 继续；旧提交的通过结果不转移到新提交。自动动画预览的完整解码预算尚无验收，40px 显示尺寸不代表解码资源上限。
 
 **发行状态已更新：VS Code 0.37.128 已在 Open VSX 公开可用。** 原 0.37.127 候选失败保留为历史，不能继续据此判断当前公开版本。准确候选 `0aba6e9c635c8da25331fdcabe4e06041f0f68b8` 的 CLI CI **68/68**、CLI Strict Sandbox **5/5**、IDE Extensions **18 成功 / 1 合法跳过**，详见[候选回执](./ide/evidence/vscode-0.37.128-candidate-gates-0aba6e9c63.json)。发行提交 `14a41bb06eb62ca955eaa1eebac828252d86f6f5` 与候选 Git tree 相同，tag 工作流独立成功，见[公开发行回读](./ide/evidence/vscode-0.37.128-publication-readback-14a41bb06e.json)。本轮重新查询上述四个工作流均为 success，重新读取 Open VSX 0.37.128 元数据，并校验候选回执引用的 **38** 份本地原始文件的长度/摘要，无缺失。Microsoft Marketplace 不在这次已发布声明内。
 
