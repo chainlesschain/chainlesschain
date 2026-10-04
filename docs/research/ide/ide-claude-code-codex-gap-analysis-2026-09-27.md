@@ -16,7 +16,9 @@
 
 **JetBrains 发布补查：** **0.4.147** 的六个真实宿主组合通过，但最终 JUnit 在 `inFlightCancellationRetainsUntouchedUris` 检出同一诊断 generation 重复提交，发布被阻断。Astra 在原生产代码上确定性复现：诊断内容与两个 URI 均正确，提交计数却为 2。保留失败标签，修复候选推进到 **0.4.148**；新提交须完成相应准确提交矩阵后才能发布，随后再合并 PR。40px 仅是显示尺寸，完整动画解码预算仍未验收。子包复查覆盖清单、依赖、来源与安装包，[13/13 与公开包逐字节一致](../cli/evidence/child-package-release-reaudit-20261004-84f204.json)，无需重复发布。
 
-Windows x64 / VS Code 1.132.0 的完整打包宿主旅程随后通过：后台 A/B 历史、PNG/GIF 草稿跨 tab 与重启恢复、图片摘要与实际解码、四类错误反馈、零自动发送均已观察；[独立回读](./evidence/image-draft-recovery-windows-20261004.json)核对 31 个产物。首轮激活失败保留，其他平台、JetBrains 附件及真人/真实模型验收不据此关闭。
+**后续图片预算候选 `48fd92562a`：** 已增加结构/累计帧预算、可终止解码 Worker 和两 IDE 同句柄有界读取，本地相关 55 项通过；新版真实 Windows 宿主两次在原 Workbench 性能门失败，p95 为 2,442 / 2,194 ms，尚未进入图片恢复。已保存[失败回执和全部计时样本](./evidence/image-budget-host-failures-48fd92562a.json)，继续定位，不把旧宿主成功转移为新版验收。恢复本轮工作时 PR #401 已合并；该事实不代表 JetBrains 0.4.148 或后续源码已发布。
+
+此前 `cce30a34f1` 开发 VSIX 的 Windows x64 / VS Code 1.132.0 完整打包宿主旅程通过：后台 A/B 历史、PNG/GIF 草稿跨 tab 与重启恢复、图片摘要与实际解码、四类错误反馈、零自动发送均已观察；[独立回读](./evidence/image-draft-recovery-windows-20261004.json)核对 31 个产物。首轮激活失败保留，其他平台、JetBrains 附件及真人/真实模型验收不据此关闭。
 
 2026-10-03 后续实施已补入实际 VS Code 宿主流式测量，以及冻结归档合同下的真实 Volcengine 双轮压缩验收。性能优化和 JetBrains 原生宿主测量继续按准确提交验收，当前有效证据及未闭合范围统一记录于共享实施状态。
 

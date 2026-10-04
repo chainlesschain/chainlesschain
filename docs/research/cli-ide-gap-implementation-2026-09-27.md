@@ -18,6 +18,16 @@
 
 **准确 `84f204db94` 的六平台 native 复验未通过。** [运行 37189753288](https://github.com/chainlesschain/chainlesschain/actions/runs/37189753288) 中，Linux x64/ARM64、Windows x64、macOS x64/ARM64 五个作业成功，已下载并逐一核对来源、平台、架构和版本回执。Windows ARM64 的 standalone 构建及版本/status 运行通过，但完整 updater 文件 **64 通过 / 5 失败**：readiness 在原结果期限内未出现 result；其余四项 sidecar 返回 `status:null`，日志没有 error.code/signal，不能直接认定唯一原因。汇总跳过，整轮失败；见[自包含回读与失败日志](./cli/evidence/native-validation-readback-84f-20261004.json)。新的独立诊断支持指定完整源码 SHA 和整个 updater 文件，以 `84f204db94`、原断言/期限继续调查；诊断不属于发布门。没有发布签名 native 产物，也不以本机 x64 的局部成功替代 ARM64 失败。
 
+### 2026-10-04：后续 NET / 图片实现与尚未通过的验收
+
+`21a76756a5` 将持久 settings/scoped authority 接入显式 Linux 受控宿主：固定启动描述符可由新进程/Worker 重新打开，写入使用 authority→source 锁序及 expected-snapshot CAS，读取和权限投影来自同次观察；撤销后的 Stop ACK 绑定接收方、会话和准入版本，并等待代理及容器清理。入口与部署限制见 [NET-02 受控宿主说明](../cli/NET02_CONTROLLED_HOST.md)。这不等于默认 CLI 已启用，也不扩大 Windows/macOS 的 durable 支持。准确 `8c5e606c3e` 的 [Strict Sandbox 预验收](https://github.com/chainlesschain/chainlesschain/actions/runs/37191261622) 暴露两个失败：Linux x64 的并发观察遇到 ledger 变化而拒绝；ARM64 四个新增 durable Docker 场景未进入 tunnel-ready，旧 20 项通过。两处继续修复，不能把本地通过记为托管验收完成。
+
+`48fd92562a` 增加 VS Code 图片容器结构检查、累计 40M 合成像素/200 帧预算、可终止的 ImageDecoder Worker，以及两 IDE 的同一文件句柄有界读取。缩略图仅接收 40×40 ImageBitmap，原始附件字节保持；PNG 压缩附属元数据只从预览解码输入移除，自定义 ICC 色彩保真不在承诺内。浏览器实际 codec 测试加入三系统证据工作流，相关本地测试 **55/55** 通过。像素和时限预算不是操作系统 RSS 硬上限，JetBrains 不因此获得完整 codec 支持。
+
+该准确源码开发 VSIX 在 Windows / VS Code 1.132.0 的两次真实宿主旅程均于图片恢复前失败：原 Workbench 100 样本门要求 p95 <2,000 ms，实际为 **2,442 ms / 2,194 ms**。已逐一复核两组各 **21** 个产物长度/摘要，并独立重算原样本 p95，见[失败回执及全部计时样本](./ide/evidence/image-budget-host-failures-48fd92562a.json)。不放宽门限，也不把相同版本号的开发 VSIX 当作公开 0.37.130。宿主图片恢复、新版完整矩阵及发布继续开放。
+
+本轮恢复工作时已观察到远端 `main` 为 `a72aa19828`、PR #401 已合并，包含上述源码；这不改变其发布和测试状态。后续改动仍按先验证、发布，再合并新 PR 的顺序推进。
+
 ### 2026-10-04：本轮修复记录（发布前历史）
 
 **页面实例隔离修复已完成，本地回归通过，发布门待重跑。** 每次脚本执行生成独立页面 ID，握手同时校验当前 HTML nonce，覆盖 `Reload Webviews` 复用 HTML 的情况；退休页面及迟到协议消息不能切回旧实例。草稿更新/恢复/丢弃/核对请求绑定页面，旧成功或失败 ACK 不改变新页面状态。延迟图片准备、串行保存入口和 manifest rename 前重新核对实例；失败清理本次新图。空草稿先移除 manifest 提交，再完成图片清理，避免留下引用缺失图片的元数据。四个相关 CLI 测试文件 **46/46** 通过，含同 HTML 双页面、旧 revision=5 ACK 对新 revision=1、后台 ACK、延迟图片写入、临时文件清理、恢复错误与空草稿提交回归。Astra 只读复审未发现其他具体阻断；真实宿主及准确提交三系统门仍须通过才能发布。
