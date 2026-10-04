@@ -1824,9 +1824,19 @@ describe("writeWindowsSidecar (cmd body)", () => {
         expect(
           JSON.parse(fs.readFileSync(`${journalPath}.last`, "utf8")),
         ).toMatchObject({
+          schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
           transactionId: context.transactionId,
           phase: "committed",
           decision: "commit",
+          ownerPid: run.pid,
+          hadTarget: true,
+          targetBeforeSha256: sha256("old-version"),
+          hadAlias: true,
+          aliasBeforeSha256: sha256("old-alias"),
+          hadBackup: false,
+          backupBeforeSha256: null,
+          hadLineage: false,
+          lineageBeforeSha256: null,
         });
         expect(
           fs
