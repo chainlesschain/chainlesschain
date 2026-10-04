@@ -4,6 +4,8 @@ All notable changes to this extension are documented here.
 
 ## [0.37.131] - Bound image decoding and file snapshots (2026-10-04)
 
+- Preserve image draft saving on Windows when private staging paths exceed the
+  legacy 260-character limit; keep the same validation and cleanup boundaries.
 - Validate supported image container structures, cumulative frame work and frame
   counts before creating previews; cancel or terminate stalled decoding Workers.
 - Render only validated 40px frame bitmaps, release retired frames, and read

@@ -16,6 +16,8 @@
 
 ## 1. 复核后的结论
 
+**本轮最新验收：** 100K canonical Memory 的 Windows formal 测量已完整通过重开、8 路读/更新/删除和审计后验；点读 p95 约 110 ms，全量 query 约 14 秒，索引及全局 SLO 仍开放。NET 在 `832f6b7270` 的 Linux ARM64 真容器 **24/24** 通过。随后真实 IDE 宿主发现 Windows 长路径图片保存错误，已整合最小修复及 **56/56** 回归，因此候选继续推进，完整准确提交门重新执行；全部证据与范围见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
+
 后续修复进度见 [共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。下文保留审计时的事实，不将正在实施的改动回填为当时已完成。
 
 **后续整合候选：** [草稿 PR #402](https://github.com/chainlesschain/chainlesschain/pull/402) 冻结 `832f6b7270`，准备 CLI **0.166.86** / VS Code **0.37.131** / JetBrains **0.4.149**，尚未发布。canonical Memory 已增加有界分片和原子 v1 迁移，默认 shadow 不变；NET 显式 Linux 受控宿主已修复托管预验收暴露的观测品牌和并发探针问题，新准确提交的完整门继续执行。13 个子包 [Git tree 与公开基线一致](./evidence/child-package-source-reaudit-832f6b7270.json)，本轮无需重发子包。图片真实宿主性能失败、100K formal 测量和外部验收按实际结果保留，详见共享实施状态。

@@ -6,6 +6,12 @@
 
 ### 2026-10-04：当前发布状态
 
+**最新候选已继续推进，版本仍为 CLI 0.166.86 / VS Code 0.37.131 / JetBrains 0.4.149。** 真实 Windows 图片旅程发现超过 260 字符的草稿目录创建临时子目录时 `ENOENT`，因此 `832f6b7270` 不再是最终候选；`81a3f8b7a0` 整合最小路径前缀修复，真实长路径完整写入与清理回归通过，相关图片测试 **56/56**。新准确提交仍须重新完成 PR #402 的全部发布门；没有发布或把旧检查转移为新提交验收。
+
+Memory 的 [Windows 完整 formal 回执](./cli/evidence/persistent-capacity-segmented-formal-windows-244a3d10c0.json)已核验：1K/10K/100K 三档新进程重开、读/更新/删除各 **8/8**、审计后验均通过；100K 点读 p95 **110.072 ms**，全量 query p95 **13,954.915 ms**，因此仅闭合已测容量可用性，不宣布索引或全局 SLO 完成。两条 POSIX 发布后 fsync 故障边界亦通过，见[说明与限制](./cli/cli-persistent-capacity-comparison-2026-09-27.md)。整合后 runtime **20/20**、版本配对/发布合同 **13/13** 通过；Windows symlink 子断言仍因 EPERM 未执行。
+
+`832f6b7270` 的 [Linux ARM64 真容器独立回读](./cli/evidence/net02-docker-arm64-832f6b7270.json)为 **24/24、0 跳过**，包括四项新的 durable process/Worker 场景；三份原报告摘要及源码 Git blob 已核对。它证明该源码的 ARM64 场景，仍不能替代修复图片后的完整发布门。Windows ARM64 updater 的 [完整 69 项诊断](./cli/evidence/updater-arm64-diagnostic-84f.json)通过，但 Bash 与先行 installer 顺序尚未对齐原失败；独立诊断 **37193652496** 继续调查，不改原断言和期限。
+
 **后续整合候选已冻结为 `832f6b7270c6fa758ca4da76a80d277ed1f61ca8`。** [草稿 PR #402](https://github.com/chainlesschain/chainlesschain/pull/402) 配对 CLI **0.166.86**、VS Code **0.37.131**、JetBrains **0.4.149**；均尚未发布。此前 CLI **0.166.85** / Open VSX **0.37.130** 的公开状态不变。新候选的完整 CLI CI、Strict Sandbox 和 IDE 矩阵正在执行，发布通过后再合并；后续回执单独提交，不改动冻结源码来借用旧 SHA 的门。再次清点全部 18 个 manifest，[13 个独立子包的 Git tree 与公开基线完全相同，15 条运行时内部依赖声明匹配](./cli/evidence/child-package-source-reaudit-832f6b7270.json)，本候选无新增子包发布。
 
 整合内容包括 `c16c1baf08` 的 canonical Memory 分片存储与 `e52aeab732` 的 NET 加载器/探针修复。Memory 使用原 authority 锁及原路径的 v2 manifest 原子提交，保留 64 MiB 单文件边界并将活动 bucket 合计限制为 1 GiB；审计不截断。旧 v1 客户端拒绝 v2，降级需显式兼容快照处理；默认 shadow 不变，shadow 只读且不迁移。点读验证一个 bucket，完整查询仍全扫，详见[容量候选说明](./cli/cli-persistent-capacity-comparison-2026-09-27.md#6-memory-分片-authority-候选2026-10-04)。真实 100K formal 测量和三系统容量工作流继续记录，不能预先宣布 SLO 通过。

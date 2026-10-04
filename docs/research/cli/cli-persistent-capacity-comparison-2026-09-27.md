@@ -85,11 +85,11 @@ manifest 替换后若目录同步或 GC 失败，抛出 `CONTEXT_MEMORY_COMMIT_P
 
 在干净提交 `244a3d10c0b3989b4f98a3461feaee27f113b441`，Windows `10.0.19045` / x64 / Node `v22.22.2` 上执行完整 formal profile，耗时 **1,020.414 秒**。保留 Memory 1k/10k/100k、每档 11 样本、8 路并发和后台 1k/10k；未调整 30 秒锁等待或 120 秒 worker 超时。[完整原始 receipt](./evidence/persistent-capacity-segmented-formal-windows-244a3d10c0.json) 的 canonical digest 已独立重算核对：`sha256:ba5cf16bb0d4c7e16ea729803dc8f9402a3c08cc9276b4329175622cabcdde94`。
 
-| Memory 记录数 | 点读 p95 | 全 query p95 | list + sort p95 | 并发读/更新/删除 | 审计后验 |
-| --- | --- | --- | --- | --- | --- |
-| 1,000 | 33.506 ms | 955.630 ms | 1,355.895 ms | 各 8/8 成功 | verified |
-| 10,000 | 44.132 ms | 2,125.917 ms | 1,982.576 ms | 各 8/8 成功 | verified |
-| 100,000 | 110.072 ms | 13,954.915 ms | 16,283.742 ms | 各 8/8 成功 | verified |
+| Memory 记录数 | 点读 p95   | 全 query p95  | list + sort p95 | 并发读/更新/删除 | 审计后验 |
+| ------------- | ---------- | ------------- | --------------- | ---------------- | -------- |
+| 1,000         | 33.506 ms  | 955.630 ms    | 1,355.895 ms    | 各 8/8 成功      | verified |
+| 10,000        | 44.132 ms  | 2,125.917 ms  | 1,982.576 ms    | 各 8/8 成功      | verified |
+| 100,000       | 110.072 ms | 13,954.915 ms | 16,283.742 ms   | 各 8/8 成功      | verified |
 
 100K 通过生产 snapshot 导入写入 **118,771,489 bytes**，包含完整 100K 创建事件，准备耗时 **33.454 秒**；不是逐条执行 100K 次 commit 的吞吐测量。新进程重开 query operation 为 **12.538 秒**（含启动 wall 为 13.154 秒）。8 路并发 query 的 operation p95 为 **27.813 秒**、锁等待 p95 为 **6.055 秒**；更新/双阶段删除 operation p95 分别为 **1.861 / 2.968 秒**。最终保留 100K records，events 和 store revision 都为 **100,024**，原审计前缀摘要一致、更新 revision 正确、8 条 purge 内容为空，最终活动 bucket 合计 **118,784,505 bytes**。
 

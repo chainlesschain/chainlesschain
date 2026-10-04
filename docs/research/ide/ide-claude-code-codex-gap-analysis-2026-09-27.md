@@ -10,6 +10,8 @@
 
 ## 一、结论
 
+**本轮最新修复：** 新版真实图片旅程定位到 Windows 超长草稿路径的临时目录创建错误，保存失败发生于解码 Worker 启动前。`81a3f8b7a0` 整合原生路径前缀修复，包含实际超过 260 字符路径的完整写入及清理回归，相关 **56/56** 通过。旧候选 `832f6b7270` 因此继续推进；CLI **0.166.86** / VS Code **0.37.131** / JetBrains **0.4.149** 均须新准确提交完整验收后发布。此前 Workbench 性能失败仍保留，不能由路径修复推断其已解决。
+
 后续修复进度见 [共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。下文保留审计时的事实，不将正在实施的改动回填为当时已完成。
 
 **后续整合候选：** [草稿 PR #402](https://github.com/chainlesschain/chainlesschain/pull/402) 冻结 `832f6b7270`，对齐 CLI **0.166.86**、VS Code **0.37.131** 与 JetBrains **0.4.149**。版本元数据、Marketplace 说明及配对检查通过，完整准确提交矩阵正在执行，尚未发布；先发布并核验，再合并。子包 [13 个 Git tree 与公开基线相同](../cli/evidence/child-package-source-reaudit-832f6b7270.json)，无需重复发布。
