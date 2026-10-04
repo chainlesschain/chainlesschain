@@ -1,0 +1,3 @@
+bc26260537757b0aa55127213180d472c5f8db7ff321b9920c9866f2758dc122  packages/cli/arm64-bwrap-result.json
+e75e4c8b7dc7617d4208dea83624002deeae99135808824e93c2295f3f0bc606  packages/cli/arm64-docker-egress-result.json
+886e6d7d781beb746b4d2098d448166948769304b7c53d089bdf323b25b59f99  packages/cli/arm64-native-sandbox-result.json

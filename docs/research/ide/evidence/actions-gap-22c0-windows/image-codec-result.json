@@ -1,0 +1,133 @@
+{
+  "schema": "cc-image-codec-budget-browser/v1",
+  "status": "passed",
+  "platform": "win32",
+  "sourceCommit": "22c0e4036cd08f6a205539c88fcdec47081af544",
+  "decoded": [
+    {
+      "format": "png",
+      "width": 3,
+      "height": 2,
+      "frames": 1,
+      "extraCanvases": 0,
+      "decodedPixels": 6,
+      "decodedWidth": 3,
+      "decodedHeight": 2,
+      "strippedMetadata": [],
+      "repetitions": 0,
+      "thumbnailFrames": 1,
+      "thumbnailWidth": 40,
+      "thumbnailHeight": 40
+    },
+    {
+      "format": "jpeg",
+      "width": 3,
+      "height": 2,
+      "frames": 1,
+      "extraCanvases": 0,
+      "decodedPixels": 6,
+      "decodedWidth": 3,
+      "decodedHeight": 2,
+      "strippedMetadata": [],
+      "repetitions": 0,
+      "thumbnailFrames": 1,
+      "thumbnailWidth": 40,
+      "thumbnailHeight": 40
+    },
+    {
+      "format": "webp",
+      "width": 3,
+      "height": 2,
+      "frames": 1,
+      "extraCanvases": 0,
+      "decodedPixels": 6,
+      "decodedWidth": 3,
+      "decodedHeight": 2,
+      "strippedMetadata": [],
+      "repetitions": 0,
+      "thumbnailFrames": 1,
+      "thumbnailWidth": 40,
+      "thumbnailHeight": 40
+    },
+    {
+      "format": "gif",
+      "width": 1,
+      "height": 1,
+      "frames": 2,
+      "extraCanvases": 0,
+      "decodedPixels": 2,
+      "decodedWidth": 1,
+      "decodedHeight": 1,
+      "strippedMetadata": [],
+      "repetitions": 0,
+      "thumbnailFrames": 2,
+      "thumbnailWidth": 40,
+      "thumbnailHeight": 40
+    }
+  ],
+  "animatedDecoded": [
+    {
+      "format": "png",
+      "width": 1,
+      "height": 1,
+      "frames": 2,
+      "extraCanvases": 0,
+      "decodedPixels": 2,
+      "decodedWidth": 1,
+      "decodedHeight": 1,
+      "strippedMetadata": [],
+      "repetitions": null,
+      "thumbnailFrames": 2
+    },
+    {
+      "format": "webp",
+      "width": 3,
+      "height": 2,
+      "frames": 2,
+      "extraCanvases": 0,
+      "decodedPixels": 12,
+      "decodedWidth": 3,
+      "decodedHeight": 2,
+      "strippedMetadata": [],
+      "repetitions": null,
+      "thumbnailFrames": 2
+    },
+    {
+      "format": "png",
+      "width": 1,
+      "height": 1,
+      "frames": 2,
+      "extraCanvases": 1,
+      "decodedPixels": 3,
+      "decodedWidth": 1,
+      "decodedHeight": 1,
+      "strippedMetadata": [],
+      "repetitions": null,
+      "thumbnailFrames": 2
+    }
+  ],
+  "metadataPreview": {
+    "strippedMetadata": [
+      "iCCP",
+      "zTXt"
+    ],
+    "decodedWidth": 1,
+    "decodedHeight": 1,
+    "centerPixel": [
+      255,
+      0,
+      0,
+      128
+    ]
+  },
+  "dimensionMismatch": "WebP coded frame dimensions disagree",
+  "preview": {
+    "width": 40,
+    "height": 40,
+    "drawn": true
+  },
+  "malformed": "Failed to decode frame at index 0",
+  "timedOut": "Image decoding exceeded the 5 second budget",
+  "cancelled": "Image decoding cancelled",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.7827.55 Safari/537.36"
+}

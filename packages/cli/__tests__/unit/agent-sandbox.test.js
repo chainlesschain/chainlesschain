@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Worker } from "node:worker_threads";
+import { once } from "node:events";
+import persistentSettings from "../../src/lib/settings-permission-authority.cjs";
 import {
   DEFAULT_SANDBOX_IMAGE,
   _deps,
@@ -1167,6 +1170,165 @@ describe("explicit Docker egress configuration and execution evidence", () => {
         settingsLoader.addRule({ cwd: root, kind: "deny", rule: "Write" });
         expect(abort).toHaveBeenCalledOnce(); // The old revocation stays latched.
       } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(process.platform !== "linux").each([
+    ["write", "snapshot"],
+    ["scoped-aba", "snapshot"],
+    ["write", "provider-read"],
+    ["scoped-aba", "provider-read"],
+  ])(
+    "revokes an admitted shell while a %s Worker holds the durable guard at %s",
+    async (command, phase) => {
+      _deps.host = () => host;
+      // Hold subscription/poll timers so only the real receipt fence can
+      // detect the pending transaction; otherwise subscription wins the race.
+      vi.useFakeTimers({
+        toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout"],
+      });
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-shell-pending-"));
+      const cwd = path.join(root, "workspace");
+      const directory = path.join(root, "authority");
+      fs.mkdirSync(cwd);
+      fs.mkdirSync(path.join(cwd, ".claude"));
+      fs.mkdirSync(directory, { mode: 0o700 });
+      const latch = new Int32Array(new SharedArrayBuffer(4));
+      let authority;
+      let worker;
+      let closed;
+      let readSpy;
+      try {
+        const launch = persistentSettings.initializeSettingsPermissionAuthority(
+          {
+            directory,
+            forbiddenRoots: [cwd],
+            contexts: [
+              {
+                contextId: "workspace",
+                cwd,
+                userSettingsFile: path.join(root, "user.json"),
+                managedSettingsFile: path.join(root, "managed.json"),
+                scopedFile: path.join(root, "scoped.json"),
+              },
+            ],
+          },
+        );
+        authority = persistentSettings.openSettingsPermissionAuthority({
+          launch,
+          contextId: "workspace",
+        });
+        const provider = createPermissionRulesProvider({
+          cwd,
+          settingsAuthority: authority,
+          env: {},
+        });
+        const abort = vi.fn(async () => {});
+        workerMocks.start.mockResolvedValue({
+          socketPath: "/private/broker.sock",
+          revision: 0,
+          abort,
+          close: vi.fn(async () => {}),
+        });
+        const dockerSession = {
+          close: vi.fn(async () => {}),
+          run: vi.fn(async (_command, options) => {
+            await options.beforeStart();
+            const ready =
+              persistentSettings.readSettingsPermissionAuthority(authority);
+            worker = new Worker(
+              new URL(
+                "../fixtures/settings-permission-runtime-probe.cjs",
+                import.meta.url,
+              ),
+              {
+                workerData: { launch, command, pauseAfterGuard: latch.buffer },
+              },
+            );
+            closed = once(worker, "exit");
+            const [message] = await once(worker, "message");
+            expect(message).toEqual({ type: "guard-written" });
+            expect(() =>
+              persistentSettings.readSettingsPermissionAuthority(authority),
+            ).toThrow(
+              expect.objectContaining({
+                code: "CC_SETTINGS_AUTHORITY_NOT_READY",
+              }),
+            );
+            expect(
+              await executeTool(
+                "run_shell",
+                { command: "echo must-not-start" },
+                {
+                  cwd,
+                  permissionRulesProvider: provider,
+                },
+              ),
+            ).toMatchObject({
+              policy: {
+                decision: "blocked",
+                via: "permission-authority-load",
+                code: "CC_SETTINGS_AUTHORITY_NOT_READY",
+              },
+            });
+            if (phase === "provider-read") {
+              // Model a writer starting just after the first snapshot read:
+              // only that completed observation remains ready; the bound
+              // provider's next actual disk read still sees the held guard.
+              readSpy = vi
+                .spyOn(persistentSettings, "readSettingsPermissionAuthority")
+                .mockReturnValueOnce(ready);
+            }
+            return { stdout: "late success", stderr: "", exitCode: 0 };
+          }),
+        };
+        egressMocks.start.mockResolvedValue(dockerSession);
+        const result = await executeTool(
+          "run_shell",
+          { command: "echo pending-authority" },
+          {
+            cwd,
+            sandbox: config(),
+            sessionId: "pending-worker",
+            permissionRulesProvider: provider,
+            approvalGate: new ApprovalGate({
+              defaultPolicy: APPROVAL_POLICY.AUTOPILOT,
+            }),
+          },
+        );
+        expect(result).toMatchObject({
+          exitCode: 1,
+          retrySafe: false,
+          authorityFailure: {
+            code: "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+            stopAcknowledgement: {
+              schema: "chainlesschain.egress-stop-ack/v1",
+              sessionId: "pending-worker",
+              proxyStopped: true,
+              sessionStopped: true,
+            },
+          },
+          sandboxCapabilities: { applied: [] },
+        });
+        expect(abort).toHaveBeenCalledOnce();
+        expect(dockerSession.close).toHaveBeenCalled();
+        // The receiver has already stopped while the writer is still pending.
+        expect(Atomics.load(latch, 0)).toBe(0);
+        const written = once(worker, "message");
+        Atomics.store(latch, 0, 1);
+        Atomics.notify(latch, 0);
+        expect((await written)[0].after.generation).toBeGreaterThan(0);
+        expect((await closed)[0]).toBe(0);
+      } finally {
+        readSpy?.mockRestore();
+        Atomics.store(latch, 0, 1);
+        Atomics.notify(latch, 0);
+        if (worker) await worker.terminate();
+        if (authority)
+          persistentSettings.closeSettingsPermissionAuthority(authority);
+        vi.useRealTimers();
         fs.rmSync(root, { recursive: true, force: true });
       }
     },

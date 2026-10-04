@@ -1,0 +1,244 @@
+{
+  "schema": "chainlesschain.actions-gap-repair/v1",
+  "recordedAt": "2026-10-04T15:16:24.363Z",
+  "baselineCommit": "ed2c1d236dba14d67b3e71e8f4614123785c3cd0",
+  "originalFailureCommit": "a3fba4c51d42bc23be91c3558bed8e8c8459080e",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/404",
+  "hostedFinalValidation": "PENDING",
+  "publicationPerformed": false,
+  "originalFailures": [
+    {
+      "runId": 37200818636,
+      "jobId": 111431958585,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37200818636/job/111431958585",
+      "suite": "Linux ARM64 real Docker egress",
+      "passed": 22,
+      "failed": 2,
+      "expectedCode": "CC_SHELL_POLICY_AUTHORITY_CHANGED",
+      "actualCode": "CC_SETTINGS_AUTHORITY_NOT_READY",
+      "log": {
+        "bytes": 152526,
+        "sha256": "584385b010c434e37f3ebc6867fef48e3ef78be47e10638df95221e805361b34",
+        "excerpts": [
+          "2026-10-04T12:06:08.8470326Z       Tests  29 passed | 9 skipped (38)",
+          "2026-10-04T12:06:10.3934848Z       Tests  4 passed | 1 skipped (5)",
+          "2026-10-04T12:06:36.1653860Z      × cuts an established product tunnel on settings-durable-worker revocation 766ms",
+          "2026-10-04T12:06:36.1655729Z      × cuts an established product tunnel on scoped-durable-aba-worker revocation 787ms",
+          "2026-10-04T12:06:36.1677209Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+          "2026-10-04T12:06:36.1694671Z  FAIL  __tests__/integration/sandbox-docker-egress-live.test.js > Linux Docker egress real boundary > cuts an established product tunnel on settings-durable-worker revocation",
+          "2026-10-04T12:06:36.1696609Z  FAIL  __tests__/integration/sandbox-docker-egress-live.test.js > Linux Docker egress real boundary > cuts an established product tunnel on scoped-durable-aba-worker revocation",
+          "2026-10-04T12:06:36.1699335Z -   \"code\": \"CC_SHELL_POLICY_AUTHORITY_CHANGED\",",
+          "2026-10-04T12:06:36.1699775Z +   \"code\": \"CC_SETTINGS_AUTHORITY_NOT_READY\",",
+          "2026-10-04T12:06:36.1837220Z     503|           code: \"CC_SHELL_POLICY_AUTHORITY_CHANGED\",",
+          "2026-10-04T12:06:36.1838520Z       Tests  2 failed | 22 passed (24)"
+        ]
+      }
+    },
+    {
+      "runId": 37200818601,
+      "jobId": 111437557612,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37200818601/job/111437557612",
+      "suite": "Windows browser evidence, Node 22.12.0",
+      "passed": 132,
+      "failed": 17,
+      "log": {
+        "bytes": 292180,
+        "sha256": "4722364da62d6b58b1e822bb98f3de2716bff208a50729ff46ed0bab703dcb27",
+        "excerpts": [
+          "2026-10-04T12:45:28.1154764Z ⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯",
+          "2026-10-04T12:45:28.1172402Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1228472Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1312910Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1318931Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1405015Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1410657Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1524052Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1529784Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1543035Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1548782Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1557973Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1564906Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1581074Z Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1586220Z      41|       throw new Error(\"Saved attachment changed while opening\");",
+          "2026-10-04T12:45:28.1595791Z  Test Files  3 failed | 9 passed (12)",
+          "2026-10-04T12:45:28.1597586Z       Tests  17 failed | 132 passed (149)",
+          "2026-10-04T12:45:28.1648738Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1669059Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1689204Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1697383Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1705444Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1713792Z ##[error]Error: Saved attachment changed while opening",
+          "2026-10-04T12:45:28.1722061Z ##[error]Error: Saved attachment changed while opening"
+        ]
+      }
+    }
+  ],
+  "windowsDiagnosis": {
+    "runId": 37207644532,
+    "jobId": 111452180657,
+    "commit": "e0ea508e527b8fd01b22466d184d8a425bbaac7c",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37207644532/job/111452180657",
+    "pathDevice": "0",
+    "handleDevice": "742408122",
+    "log": {
+      "bytes": 288400,
+      "sha256": "5dd9abd4195ede95d4ca387685cb49c4a025653be2d79628969237856ec35e74",
+      "excerpts": [
+        "2026-10-04T14:01:39.3805119Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.3948686Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.3982564Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4081501Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4088357Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4092947Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4098497Z Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4119199Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4126990Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4137782Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4140015Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4142248Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4144848Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4147166Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4149603Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4153139Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4155075Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4156947Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)",
+        "2026-10-04T14:01:39.4172184Z ##[error]Error: Saved attachment changed while opening (dev: 0 -> 742408122)"
+      ]
+    },
+    "conclusion": "Missing path device identity; 64/32-bit normalization alone is insufficient.",
+    "upstream": [
+      "https://github.com/libuv/libuv/pull/4698",
+      "https://github.com/affaan-m/ECC/issues/2626",
+      "https://github.com/ljie-PI/ghc-gateway/issues/87"
+    ]
+  },
+  "fixes": {
+    "durableRevocation": "An unavailable admitted settings snapshot or bound provider immediately revokes; initial admission retains load errors. Preserve cause and cleanup ACK; no retry or deadline relaxation.",
+    "imageIdentity": "BigInt inode/size/nanosecond time; preserve complete same-API device identities. Only Windows zero-device path stats require before/after probe handles checked against the first read-handle identity. All bytes come from that read handle.",
+    "imageIdentityBoundary": "The first handle fstat establishes identity; a path stat that lacks volume identity cannot authenticate its earlier missing device value."
+  },
+  "sourceBlobs": {
+    "packages/cli/src/runtime/agent-core.js": "fba91e5bb9f249c5b9f2be93f97bf013b45c06d2",
+    "packages/cli/__tests__/unit/agent-sandbox.test.js": "9b85206eab12c404c775ba7c2c7c7bce84ef76da",
+    "packages/cli/__tests__/fixtures/settings-permission-runtime-probe.cjs": "8f2f888c8ac6bccfa4dec25653a5c8417ce3c642",
+    "packages/vscode-extension/src/chat/image-file-snapshot.js": "c7bba8e507be15b6eb18c4588f89f986c8bc0eb3",
+    "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js": "a88376316eed33e8a69c93325f2f6242a9f29716"
+  },
+  "localValidation": {
+    "browser": {
+      "node": "22.12.0",
+      "platform": "win32",
+      "suites": 12,
+      "total": 157,
+      "passed": 157,
+      "failed": 0,
+      "rawReportBytes": 54605,
+      "rawReportSha256": "579634a2e756fff7783fabb7c3c05433ca0d14b71fb9fda2ca294f0d356fc932",
+      "suiteResults": [
+        {
+          "file": "__tests__/unit/artifact-store.test.js",
+          "total": 15,
+          "passed": 15,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/browser-act-tool.test.js",
+          "total": 16,
+          "passed": 16,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/browser-evidence.test.js",
+          "total": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/browser-state-tool.test.js",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/chrome-connector-actions.test.js",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/chrome-connector.test.js",
+          "total": 8,
+          "passed": 8,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/coding-agent-contract.test.js",
+          "total": 9,
+          "passed": 9,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/ide-roadmap-browser-evidence.test.js",
+          "total": 7,
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/vscode-ext-chat-images.test.js",
+          "total": 12,
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/vscode-ext-draft-store.test.js",
+          "total": 25,
+          "passed": 25,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/vscode-ext-image-budget.test.js",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "__tests__/unit/vscode-ext-image-decode-budget.test.js",
+          "total": 21,
+          "passed": 21,
+          "failed": 0
+        }
+      ]
+    },
+    "linuxReportedByAstra": {
+      "node": "22.12.0",
+      "runtime": "WSL Linux, not Docker",
+      "agentSandbox": {
+        "passed": 87,
+        "failed": 0
+      },
+      "remoteShell": {
+        "passed": 23,
+        "failed": 0
+      },
+      "settingsRuntime": {
+        "passed": 2,
+        "failed": 0
+      },
+      "originalRedRegressionObserved": true
+    }
+  },
+  "workspaceIncident": {
+    "missingTrackedFileCount": 4502,
+    "externalCause": "NOT_VERIFIED",
+    "restoredTrackedFiles": true,
+    "accidentalTestDeletionCommit": "ead21c851a81be601e663570da0be78f14285b7d",
+    "restoredTestAssertions": true
+  },
+  "remaining": [
+    "Exact final commit hosted matrices",
+    "Real provider and billing comparisons",
+    "Actual project task and first-install journeys",
+    "Human assistive-technology evaluation",
+    "Approved performance SLO and memory indexes"
+  ]
+}

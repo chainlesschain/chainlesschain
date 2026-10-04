@@ -1,0 +1,79 @@
+{
+  "schema": "chainlesschain.net02-arm64-readback/v1",
+  "sourceCommit": "22c0e4036cd08f6a205539c88fcdec47081af544",
+  "run": {
+    "id": 37212423238,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423238"
+  },
+  "job": {
+    "id": 111466177215,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423238/job/111466177215"
+  },
+  "artifact": {
+    "id": 11306714909,
+    "name": "strict-sandbox-result-ubuntu-24.04-arm",
+    "reportedArchiveBytes": 6020,
+    "archiveDigestIndependentlyVerified": false
+  },
+  "environment": {
+    "file": "actions-gap-22c0-arm64/environment.txt",
+    "bytes": 312,
+    "sha256": "ea11092fd5c0abbb649efef132dfc550efb620a5ffcde4e078558d8559691907",
+    "text": "source_sha=22c0e4036cd08f6a205539c88fcdec47081af544\nrunner_arch=ARM64\nkernel=Linux 6.17.0-1022-azure aarch64 GNU/Linux\nnode=v22.12.0\ntmp_fs=ext4\ntmpfile_flag=404000 nlink=0 size=5\nbubblewrap 0.11.2\ndocker_image=node@sha256:a0ddbc73510e98f5e824fd64266ffe1c2c343ba9cf260d95ca2985ad632a3f3e\ndocker_image_arch=arm64\n"
+  },
+  "runnerSums": {
+    "file": "actions-gap-22c0-arm64/sha256.txt",
+    "bytes": 326,
+    "sha256": "3c6ba2c5e4400e582f55366821ce64ed2d91ff752e0e3b04cffd26bdc658faba",
+    "allReportDigestsVerified": true
+  },
+  "reports": [
+    {
+      "file": "actions-gap-22c0-arm64/arm64-bwrap-result.json",
+      "bytes": 2415,
+      "sha256": "bc26260537757b0aa55127213180d472c5f8db7ff321b9920c9866f2758dc122",
+      "total": 5,
+      "passed": 4,
+      "failed": 0,
+      "pending": 1
+    },
+    {
+      "file": "actions-gap-22c0-arm64/arm64-docker-egress-result.json",
+      "bytes": 8803,
+      "sha256": "e75e4c8b7dc7617d4208dea83624002deeae99135808824e93c2295f3f0bc606",
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "pending": 0
+    },
+    {
+      "file": "actions-gap-22c0-arm64/arm64-native-sandbox-result.json",
+      "bytes": 15009,
+      "sha256": "886e6d7d781beb746b4d2098d448166948769304b7c53d089bdf323b25b59f99",
+      "total": 38,
+      "passed": 29,
+      "failed": 0,
+      "pending": 9
+    }
+  ],
+  "sources": [
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "gitBlob": "fba91e5bb9f249c5b9f2be93f97bf013b45c06d2"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/sandbox-docker-egress-live.test.js",
+      "gitBlob": "7f1ec1db67255997f04c0ac1c5e8f73bf0da6a83"
+    },
+    {
+      "file": "packages/cli/src/lib/settings-permission-authority.cjs",
+      "gitBlob": "a63d28411d2268a1020e1303924d1bb976d8de8f"
+    },
+    {
+      "file": "packages/cli/src/lib/sandbox-egress-authority-monitor.js",
+      "gitBlob": "95966d2f0b95d9874fb334c7d4a7a658e4f90539"
+    }
+  ],
+  "conclusion": "Real Linux ARM64 Docker egress 24/24, no skips; both originally failing Worker revocation cases passed. This job does not close other matrix jobs or remaining audit tasks."
+}

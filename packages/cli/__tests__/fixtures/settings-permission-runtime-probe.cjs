@@ -102,6 +102,20 @@ async function makeProvider(f, options = {}) {
 }
 
 async function child(payload) {
+  const rename = fs.renameSync;
+  if (payload.pauseAfterGuard) {
+    assert.equal(isMainThread, false);
+    const latch = new Int32Array(payload.pauseAfterGuard);
+    fs.renameSync = function (from, to) {
+      const result = rename.call(this, from, to);
+      if (path.basename(String(to)) === "guard.json") {
+        fs.renameSync = rename;
+        parentPort.postMessage({ type: "guard-written" });
+        assert.notEqual(Atomics.wait(latch, 0, 0, 10000), "timed-out");
+      }
+      return result;
+    };
+  }
   const authority = binding.openSettingsPermissionAuthority({
     launch: payload.launch,
     contextId: "workspace",
@@ -167,6 +181,7 @@ async function child(payload) {
       launch: binding.exportSettingsPermissionAuthority(authority),
     };
   } finally {
+    fs.renameSync = rename;
     binding.closeSettingsPermissionAuthority(authority);
   }
 }
