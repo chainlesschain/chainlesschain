@@ -69,6 +69,7 @@ jobs:
         run: |
           node packages/cli/scripts/persistent-capacity-benchmark.mjs \
             --profile formal \
+            --storage segmented \
             --candidate-sha "$EXPECTED_SHA" \
             --output "$OUTPUT_PATH"
 

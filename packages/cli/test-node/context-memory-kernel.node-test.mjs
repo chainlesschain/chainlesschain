@@ -29,6 +29,7 @@ import {
   resolveCliContextMemoryCutover,
 } from "../src/lib/context-memory-kernel/authority.js";
 import { DurableJsonMemoryPort } from "../src/lib/context-memory-kernel/durable-memory-port.js";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
 import { CliCanonicalMemoryService } from "../src/lib/context-memory-kernel/memory-service.js";
 import { createCliContextMemoryRuntime } from "../src/lib/context-memory-kernel/runtime.js";
 import { JsonlSessionContextPort } from "../src/lib/context-memory-kernel/jsonl-session-context-port.js";
@@ -433,7 +434,7 @@ test("canonical CLI Chinese lexical recall survives durable restart and preserve
     assert.equal((await service.delete("han-deleted")).status, "purged");
 
     const restarted = new CliCanonicalMemoryService(serviceOptions);
-    assert.ok(restarted.runtime.memoryPort instanceof DurableJsonMemoryPort);
+    assert.ok(restarted.runtime.memoryPort instanceof SegmentedMemoryPort);
     assert.notEqual(restarted.runtime.memoryPort, service.runtime.memoryPort);
     const persisted = await restarted.runtime.memoryPort.read("han-allowed");
     assert.equal(persisted.content, content);
@@ -849,7 +850,7 @@ test("tombstone survives a killed process and restart reconciliation purges lega
     const exited = once(child, "exit");
     const marker = await firstJsonLine(child.stdout);
     assert.equal(marker.ready, true);
-    const durableBeforeKill = new DurableJsonMemoryPort({ filePath });
+    const durableBeforeKill = new SegmentedMemoryPort({ filePath });
     assert.equal(
       (await durableBeforeKill.read(marker.memoryId)).state,
       "deleted",

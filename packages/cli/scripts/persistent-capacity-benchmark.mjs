@@ -3,6 +3,7 @@
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -25,6 +26,11 @@ import {
   stateDigest,
 } from "../src/lib/context-memory-kernel/durable-memory-port.js";
 import { listBackgroundAgents } from "../src/lib/background-agent-supervisor.js";
+import {
+  SegmentedMemoryPort,
+  DEFAULT_MAX_TOTAL_BYTES,
+  DEFAULT_SEGMENTED_MAX_EVENTS,
+} from "../src/lib/context-memory-kernel/segmented-memory-port.js";
 import {
   backgroundPageEvidence,
   measureBackgroundPageComparison,
@@ -295,7 +301,12 @@ export async function runPersistentCapacityWorker(argv = process.argv) {
   const kind = workerArgument("--worker", argv);
   const targetPath = workerArgument("--path", argv);
   const lockObservations = [];
-  const port = new DurableJsonMemoryPort({
+  const storage = option("--storage", "json", argv);
+  if (!["json", "segmented"].includes(storage))
+    throw new Error("storage must be json or segmented");
+  const MemoryPort =
+    storage === "segmented" ? SegmentedMemoryPort : DurableJsonMemoryPort;
+  const port = new MemoryPort({
     filePath: targetPath,
     lockObserver: (observation) => lockObservations.push(observation),
   });
@@ -398,9 +409,10 @@ export async function runPersistentCapacityWorker(argv = process.argv) {
   }
 }
 
-function runWorker(kind, targetPath, id = null) {
+function runWorker(kind, targetPath, id = null, storage = "json") {
   return new Promise((resolvePromise) => {
     const args = [SCRIPT_PATH, "--worker", kind, "--path", targetPath];
+    args.push("--storage", storage);
     if (id) args.push("--id", id);
     const started = performance.now();
     const child = spawn(process.execPath, args, {
@@ -513,19 +525,48 @@ function workerSeriesSummary(results) {
       successes.length > 0
         ? Math.max(...successes.map((result) => result.peakRssBytes || 0))
         : null,
+    processPeakRssBytes:
+      successes.length > 0
+        ? Math.max(
+            ...successes.map((result) => result.processPeakRssBytes || 0),
+          )
+        : null,
   };
 }
 
 export async function measureDurableMemoryTier(
   root,
   recordCount,
-  { samples = 3, concurrency = 2 } = {},
+  { samples = 3, concurrency = 2, storage = "json" } = {},
 ) {
   const filePath = join(root, `memory-${recordCount}`, "kernel-v1.json");
-  const fixture = writeDurableMemoryFixture(filePath, recordCount);
-  const cold = await runWorker("memory-query", filePath);
+  if (!["json", "segmented"].includes(storage))
+    throw new Error("unknown memory storage");
+  const MemoryPort =
+    storage === "segmented" ? SegmentedMemoryPort : DurableJsonMemoryPort;
+  let fixture;
+  if (storage === "segmented") {
+    const started = performance.now();
+    const state = createDurableMemoryFixture(recordCount);
+    const seeded = new MemoryPort({ filePath });
+    await seeded.importSnapshot(state);
+    const manifest = JSON.parse(readFileSync(filePath, "utf8"));
+    fixture = {
+      recordCount,
+      eventCount: state.events.length,
+      bytes: manifest.totalBytes,
+      setupMs: round(performance.now() - started),
+      seededThroughProductionCommit: false,
+      seededThroughProductionSnapshotImport: true,
+      auditDigest: canonicalDigest(
+        state.events,
+        "persistent-capacity-audit/v1",
+      ),
+    };
+  } else fixture = writeDurableMemoryFixture(filePath, recordCount);
+  const cold = await runWorker("memory-query", filePath, null, storage);
   const lockObservations = [];
-  const port = new DurableJsonMemoryPort({
+  const port = new MemoryPort({
     filePath,
     lockObserver: (observation) => lockObservations.push(observation),
   });
@@ -569,14 +610,14 @@ export async function measureDurableMemoryTier(
     concurrentReads = workerSeriesSummary(
       await Promise.all(
         Array.from({ length: activeConcurrency }, () =>
-          runWorker("memory-query", filePath),
+          runWorker("memory-query", filePath, null, storage),
         ),
       ),
     );
     concurrentUpdates = workerSeriesSummary(
       await Promise.all(
         Array.from({ length: activeConcurrency }, (_, index) =>
-          runWorker("memory-update", filePath, memoryId(index)),
+          runWorker("memory-update", filePath, memoryId(index), storage),
         ),
       ),
     );
@@ -587,20 +628,72 @@ export async function measureDurableMemoryTier(
             "memory-delete",
             filePath,
             memoryId(activeConcurrency + index),
+            storage,
           ),
         ),
       ),
     );
   }
 
+  let postWriteVerification = null;
+  if (storage === "segmented" && reachable) {
+    const snapshot = await new SegmentedMemoryPort({
+      filePath,
+    }).exportSnapshot();
+    const expectedEvents = recordCount + activeConcurrency * 3;
+    const originalAuditPreserved =
+      canonicalDigest(
+        snapshot.events.slice(0, recordCount),
+        "persistent-capacity-audit/v1",
+      ) === fixture.auditDigest;
+    const updatesVerified = Array.from(
+      { length: activeConcurrency },
+      (_, index) => snapshot.records[memoryId(index)]?.revision === 2,
+    ).every(Boolean);
+    const deletesVerified = Array.from(
+      { length: activeConcurrency },
+      (_, index) =>
+        snapshot.records[memoryId(activeConcurrency + index)]?.state ===
+          "purged" &&
+        snapshot.records[memoryId(activeConcurrency + index)]?.content === "",
+    ).every(Boolean);
+    postWriteVerification = {
+      originalAuditPreserved,
+      expectedEvents,
+      actualEvents: snapshot.events.length,
+      storeRevision: snapshot.storeRevision,
+      recordCount: Object.keys(snapshot.records).length,
+      updatesVerified,
+      deletesVerified,
+      verified:
+        originalAuditPreserved &&
+        updatesVerified &&
+        deletesVerified &&
+        snapshot.events.length === expectedEvents &&
+        snapshot.storeRevision === expectedEvents &&
+        Object.keys(snapshot.records).length === recordCount,
+    };
+  }
+
   return {
+    storage,
     recordCount,
     fixture,
     configuredLimits: {
       maxStoreBytes: DEFAULT_MAX_STORE_BYTES,
-      maxEvents: DEFAULT_MAX_EVENTS,
+      maxEvents:
+        storage === "segmented"
+          ? DEFAULT_SEGMENTED_MAX_EVENTS
+          : DEFAULT_MAX_EVENTS,
+      ...(storage === "segmented"
+        ? { maxTotalBytes: DEFAULT_MAX_TOTAL_BYTES }
+        : {}),
     },
-    reachedConfiguredEventCeiling: recordCount >= DEFAULT_MAX_EVENTS,
+    reachedConfiguredEventCeiling:
+      recordCount >=
+      (storage === "segmented"
+        ? DEFAULT_SEGMENTED_MAX_EVENTS
+        : DEFAULT_MAX_EVENTS),
     reachable,
     readFailure,
     observedCount,
@@ -614,8 +707,13 @@ export async function measureDurableMemoryTier(
     concurrentReads,
     concurrentUpdates,
     concurrentDeletes,
-    finalBytes: statSync(filePath).size,
+    postWriteVerification,
+    finalBytes:
+      storage === "segmented"
+        ? JSON.parse(readFileSync(filePath, "utf8")).totalBytes
+        : statSync(filePath).size,
     peakRssBytes: process.memoryUsage().rss,
+    processPeakRssBytes: process.resourceUsage().maxRSS * 1024,
   };
 }
 
@@ -704,6 +802,9 @@ export async function runPersistentCapacityBenchmark({
   root = null,
 } = {}) {
   const profile = resolvePersistentCapacityProfile(profileName, env);
+  const storage = option("--storage", "json", argv);
+  if (!["json", "segmented"].includes(storage))
+    throw new Error("storage must be json or segmented");
   const checkout = checkoutEvidence(profileName, argv);
   const benchmarkRoot =
     root || mkdtempSync(join(tmpdir(), "cc-persistent-capacity-"));
@@ -714,7 +815,10 @@ export async function runPersistentCapacityBenchmark({
     const memory = [];
     for (const count of profile.memoryCounts) {
       memory.push(
-        await measureDurableMemoryTier(benchmarkRoot, count, profile),
+        await measureDurableMemoryTier(benchmarkRoot, count, {
+          ...profile,
+          storage,
+        }),
       );
     }
     const backgroundAgents = [];
@@ -736,7 +840,16 @@ export async function runPersistentCapacityBenchmark({
         nodeVersion: process.version,
       },
       checkout,
-      configuration: profile,
+      configuration: {
+        ...profile,
+        storage,
+        ...(storage === "segmented"
+          ? {
+              maxEvents: DEFAULT_SEGMENTED_MAX_EVENTS,
+              maxTotalBytes: DEFAULT_MAX_TOTAL_BYTES,
+            }
+          : {}),
+      },
       measurements: { memory, backgroundAgents },
       qualification: {
         performanceGate: false,
@@ -749,6 +862,9 @@ export async function runPersistentCapacityBenchmark({
         "background baseline scans all content; indexed pages still enumerate/stat every file and sort summaries",
         "background comparison validates first/next pages, full traversal, and authority-change rebuilds",
         "results apply only to the recorded host and exact checkout",
+        "segmented point reads include the authority lock, manifest verification, bounded orphan inventory, and one bucket validation",
+        "segmented full queries capture all bucket bytes under lock and validate the owned snapshot after release; query/list/sort remain full scans",
+        "each concurrent segmented full query retains its own bounded raw snapshot; per-process RSS is not aggregate machine peak RSS",
       ],
       finalPeakRssBytes: process.memoryUsage().rss,
     };
