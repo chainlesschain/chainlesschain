@@ -629,7 +629,7 @@ describe("host durable input lifecycle", () => {
   });
 });
 
-function webview(backup) {
+function webview(backup, { withoutRandomUUID = false } = {}) {
   const window = new Window({
     settings: {
       enableJavaScriptEvaluation: true,
@@ -638,6 +638,12 @@ function webview(backup) {
     },
   });
   const posted = [];
+  if (withoutRandomUUID)
+    Object.defineProperty(window, "crypto", {
+      value: {
+        getRandomValues: window.crypto.getRandomValues.bind(window.crypto),
+      },
+    });
   let state = backup || {};
   window.acquireVsCodeApi = () => ({
     postMessage: (m) => posted.push(m),
@@ -678,6 +684,20 @@ function webview(backup) {
   };
 }
 describe("composer recovery in the generated Webview", () => {
+  it("initializes the page and draft handshake without the secure-context randomUUID API", async () => {
+    const ui = webview(undefined, { withoutRandomUUID: true });
+    try {
+      expect(ui.page.webviewInstance).toMatch(
+        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,
+      );
+      ui.emit({ kind: "thinking", text: "reasoning is visible" });
+      expect(
+        ui.window.document.querySelector("details.thinking").textContent,
+      ).toContain("reasoning is visible");
+    } finally {
+      await ui.window.happyDOM.abort();
+    }
+  });
   it("binds recovery actions to the current page and keeps their errors visible", async () => {
     const ui = webview();
     try {

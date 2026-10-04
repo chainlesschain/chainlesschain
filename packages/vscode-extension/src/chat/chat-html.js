@@ -339,7 +339,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const vscode = acquireVsCodeApi();
   // Cached HTML can execute again on Reload Webviews; its CSP nonce stays the
   // same, so each execution also needs its own page identity.
-  const draftWebviewInstance = crypto.randomUUID();
+  const draftPageBytes = crypto.getRandomValues(new Uint8Array(16));
+  draftPageBytes[6] = (draftPageBytes[6] & 15) | 64;
+  draftPageBytes[8] = (draftPageBytes[8] & 63) | 128;
+  const draftPageHex = Array.from(draftPageBytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  const draftWebviewInstance = [draftPageHex.slice(0, 8), draftPageHex.slice(8, 12), draftPageHex.slice(12, 16), draftPageHex.slice(16, 20), draftPageHex.slice(20)].join("-");
   const draftWebviewNonce = ${JSON.stringify(nonce)};
   const CC_CHAT_UI_PROTOCOL_VERSION = ${CHAT_UI_PROTOCOL_VERSION};
   const CC_HOST_DOM_TOKEN = ${JSON.stringify(safeHostDomToken)};
