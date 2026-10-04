@@ -274,6 +274,36 @@ describe("single-descriptor image reads", () => {
   });
 });
 
+it("persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "image-long-path-"));
+  const directory = path.join(
+    root,
+    ...Array(5).fill("draft-" + "x".repeat(48)),
+  );
+  expect(directory.length).toBeGreaterThan(260);
+  try {
+    await fs.mkdir(directory, { recursive: true });
+    const [file] = await writeImageTemps(
+      [{ data: "data:image/gif;base64," + gif.toString("base64") }],
+      { directory },
+    );
+    expect(path.dirname(file)).toBe(directory);
+    expect(file.startsWith("\\\\?\\")).toBe(false);
+    expect(await readImageSnapshot(file, gif.length)).toEqual(gif);
+    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);
+    await expect(
+      writeImageTemps(
+        [{ data: "data:image/gif;base64," + gif.toString("base64") }],
+        { directory, timeoutMs: 0 },
+      ),
+    ).rejects.toThrow("budget");
+    expect(await fs.readdir(directory)).toEqual([path.basename(file)]);
+  } finally {
+    // root is the exact directory created by this test under os.tmpdir().
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 it("cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "image-worker-"));
   const images = [{ data: "data:image/png;base64," + png.toString("base64") }];

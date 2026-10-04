@@ -202,7 +202,13 @@ async function writeImageTemps(
   // The parent owns a private staging directory before starting the worker.
   // Termination can therefore clean even a partial file created just before
   // the worker reported it, without deleting paths owned by anyone else.
-  const staging = await fs.mkdtemp(path.join(directory, ".cc-image-"));
+  // Windows mkdtemp does not automatically expand long prefixes like mkdir
+  // does. Profile/workspace storage can legitimately exceed MAX_PATH; keep
+  // staging beside the destination and use the extended-length form only for
+  // this filesystem call (toNamespacedPath is a no-op on other platforms).
+  const staging = await fs.mkdtemp(
+    path.toNamespacedPath(path.join(directory, ".cc-image-")),
+  );
   const files = [];
   let worker, timer, abort;
   const deadline = performance.now() + timeoutMs;
