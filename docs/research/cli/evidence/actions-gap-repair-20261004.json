@@ -4,7 +4,8 @@
   "baselineCommit": "ed2c1d236dba14d67b3e71e8f4614123785c3cd0",
   "originalFailureCommit": "a3fba4c51d42bc23be91c3558bed8e8c8459080e",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/404",
-  "hostedFinalValidation": "PENDING",
+  "hostedFinalValidation": "REPORTED_JOBS_PASS_FULL_IDE_BLOCKED",
+  "hostedGateReadback": "actions-gap-gates-22c0e4036c.json",
   "publicationPerformed": false,
   "originalFailures": [
     {

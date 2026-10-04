@@ -1,0 +1,582 @@
+{
+  "schema": "chainlesschain.actions-gap-gate-readback/v1",
+  "sourceCommit": "22c0e4036cd08f6a205539c88fcdec47081af544",
+  "recordedDate": "2026-10-05",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/404",
+  "publicationPerformed": false,
+  "releaseGatePassed": false,
+  "runs": [
+    {
+      "id": 37212423342,
+      "name": "CLI CI",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 111466140112,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140163,
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140181,
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140200,
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140223,
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140224,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140253,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140255,
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140256,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140262,
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140278,
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140282,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140287,
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140289,
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140290,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140301,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140303,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140305,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140306,
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140310,
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140316,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140318,
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140319,
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140324,
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140328,
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140332,
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140335,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140346,
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140351,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140352,
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140354,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140360,
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140361,
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140363,
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140364,
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140375,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140376,
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140385,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140392,
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140395,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140396,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140399,
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140404,
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140408,
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140410,
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140415,
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140418,
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140436,
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140437,
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140439,
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140442,
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140443,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140445,
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140447,
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140450,
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140452,
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140463,
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140469,
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140480,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140501,
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140512,
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466140538,
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111475833739,
+          "name": "pack-linux-dryrun",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111475833786,
+          "name": "dry-run-publish",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111477566739,
+          "name": "verify-cli (macos-latest)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111477566756,
+          "name": "verify-cli (windows-latest)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111477566761,
+          "name": "verify-cli (ubuntu-latest)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111478822831,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37212423238,
+      "name": "CLI Strict Sandbox",
+      "conclusion": "success",
+      "jobCount": 5,
+      "passedJobCount": 5,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423238"
+    },
+    {
+      "id": 37212423291,
+      "name": "IDE Extensions",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 111466137652,
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251755,
+          "name": "Browser evidence (windows)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251790,
+          "name": "Browser evidence (linux)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251803,
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251822,
+          "name": "Browser evidence (macos)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251831,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251841,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251842,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251854,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251858,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111466251879,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111470034642,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111470034654,
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111470034686,
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111470866677,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111472885958,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 111473556309,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "id": 111474483212,
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 111474767034,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "originalReportedFailures": {
+    "arm64": {
+      "conclusion": "success",
+      "passed": 24,
+      "skipped": 0,
+      "receipt": "net02-docker-arm64-22c0e4036c.json"
+    },
+    "windowsBrowser": {
+      "conclusion": "success",
+      "passed": 157,
+      "receipt": "../../ide/evidence/browser-windows-repair-22c0e4036c.json"
+    }
+  },
+  "remainingFailure": {
+    "jobId": 111474483212,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423291/job/111474483212",
+    "step": "Verify JetBrains release metadata coherence",
+    "actualRuntimeRecommendedCli": "0.166.85",
+    "expectedReleaseRecommendedCli": "0.166.86",
+    "subsequentPluginBuildAndTests": "NOT_RUN",
+    "fix": "Align CliVersionCheck.RECOMMENDED_CLI_VERSION and existing JUnit assertions with gradle.properties and README. Requires a new exact-source IDE matrix."
+  },
+  "limitations": [
+    "GitHub API metadata readback is not an independently signed attestation.",
+    "Both requested failed jobs pass; the IDE release matrix remains failed.",
+    "Later commits cannot reuse these exact-source release gates.",
+    "Actual model/billing, task/installation, human accessibility and approved SLO evidence remains incomplete."
+  ]
+}

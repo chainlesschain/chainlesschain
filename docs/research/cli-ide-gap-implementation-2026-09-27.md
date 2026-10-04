@@ -4,6 +4,14 @@
 
 初始实现分支：`feature/cli-ide-gap-closure-2026-09-27`，现已合入 `main`。基线 SHA：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`。后续 token 校准改动直接进入 `main`，提交记录见下文；本地结果不代表 GitHub Actions 发布验收。
 
+### 2026-10-05：完整矩阵回读与后续工程项
+
+`22c0e4036c` 的[完整矩阵回读](./cli/evidence/actions-gap-gates-22c0e4036c.json)确认 CLI CI **68/68**、Strict Sandbox **5/5**通过；IDE 为 **17 成功 / 1 失败 / 1 发布后预期跳过**。用户指定的 ARM64 Docker 和 Windows 浏览器失败均已通过，其余三系统浏览器、六 JetBrains 实际宿主和 VS Code 宿主门也通过。唯一新增失败是 JetBrains 发布元数据一致性：`gradle.properties`、README 与 changelog 推荐 CLI **0.166.86**，`CliVersionCheck.RECOMMENDED_CLI_VERSION` 仍为 **0.166.85**，后续 JUnit、构建和兼容验证未运行。后续功能分支对齐运行时常量和现有 JUnit 断言；本地 metadata 检查及 Java 21 定向 JUnit 通过，新源码仍须取得自身完整门，不能借用 `22c0` 的成功。
+
+PERF-01 的完整 ID 删除现在先使用既有 Memory port 点读，再沿用 kernel 删除事务，避免分片存储的全库 query/filter/sort。点读没有非墓碑候选时保留前缀扫描，并在扫描中重新优先选择完整 ID；墓碑排除、scope/scopeId、expectedRevision、fence、subject、authority 与审计清理合同保持。新增五项回归覆盖禁止扫描、完整 ID 优先、前缀歧义和唯一命中、墓碑回退及并发 CAS 不重试。Windows Node **22.22.2** 的完整 canonical Memory Node 合同 **25/25**、分片 port **18 通过 / 1 POSIX 跳过**；其中既有 privacy symlink 子断言在本机因 EPERM 未执行。此子项不关闭二级索引、分页、100K 新版本测量或获批 SLO。
+
+VERIFY-01 增加[只读采集准入校验说明](./cli/verify01-plan-2026-10-04/COLLECTION_README.md)，复用既有 Eval/outcome 比较和校验，绑定外部冻结计划与 review 摘要、setup/check 文件字节及允许改动路径，导入记录仍须有对应样本、身份、终态和费用。它不运行任务或生成真实观察数据，36 项任务和 9 个首次安装仍为 `NOT_RUN`。实际预审验收器、provider/双 IDE 执行、公开安装、账单、真人辅助技术、维护窗口和 SLO 等外部条件继续开放，不将离线 fixture 作为实际样本。
+
 ### 2026-10-04：用户指定的 ARM64 / Windows Actions 失败修复
 
 **两个指定失败已在准确修复提交 `22c0e4036cd08f6a205539c88fcdec47081af544` 验收通过。** [ARM64 真实 Docker 回读](./cli/evidence/net02-docker-arm64-22c0e4036c.json)为 **24/24、0 跳过**，两项原 Worker 失败均通过；三份原始报告的字节摘要与 Runner 清单完全相同。[Windows 浏览器整项作业回读](./ide/evidence/browser-windows-repair-22c0e4036c.json)包含 **12 文件、157/157**、实际 codec/动画 Worker、Workbench 与两 origin 旅程；核对了 **21** 个 producer 源文件摘要及两份 envelope 摘要。原始 JSON 与来源保存于两个回执旁。Workbench 使用 local-test 模型夹具；producer 下载 `.bin` 未被原工作流上传，未独立核验其字节。[Strict Sandbox 整体及全部 5 个作业](https://github.com/chainlesschain/chainlesschain/actions/runs/37212423238)已通过。完整 CLI CI 和其余 IDE 矩阵仍在排队/执行，不能由局部成功推导全部发布门完成。

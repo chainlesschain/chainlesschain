@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-09-27）
 
+> 2026-10-05 后续：[准确 `22c0e4036c` 的矩阵回读](../cli/evidence/actions-gap-gates-22c0e4036c.json)为 CLI CI **68/68**、Strict **5/5**通过，IDE **17 成功 / 1 失败 / 1 发布后预期跳过**；Windows 原浏览器失败及全部三系统浏览器/六 JetBrains 宿主门均通过。新失败是 JetBrains 运行时推荐 CLI **0.166.85** 与发布配置 **0.166.86**失配，已对齐常量与现有测试，完整构建与兼容验证仍待新源码门。VERIFY-01 的只读准入校验不能代替双 IDE 实际任务、公开安装、账单或真人听测；见[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05完整矩阵回读与后续工程项)。
+
 > 2026-10-04 Actions 后续修复：[PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)的准确 `22c0e4036c` 已通过 [Windows 浏览器 **157/157**、实际 codec/动画 Worker、Workbench 与两 origin 整项作业](./evidence/browser-windows-repair-22c0e4036c.json)，[ARM64 Docker **24/24**](../cli/evidence/net02-docker-arm64-22c0e4036c.json)亦通过。Windows Node 22.12.0 路径/句柄设备号 **0 / 742408122** 通过 BigInt 身份及读取前后额外句柄核对兼容，保留跨卷、纳秒修改、预算与清理检查。原 **132 通过 / 17 失败**及[诊断](../cli/evidence/actions-gap-repair-20261004.json)保留；[实施状态](../cli-ide-gap-implementation-2026-09-27.md#2026-10-04用户指定的-arm64--windows-actions-失败修复)继续区分指定作业通过、完整发布门及其他真实验收。
 
 - 审计日期：2026-09-27（Asia/Shanghai）。
