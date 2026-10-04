@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-09-27）
 
+> 2026-10-04 Actions 后续修复：当前 `main@a3fba4c51d` 的 ARM64 Docker 为 **22/24**、Windows 浏览器为 **132/149**，失败在[PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)处理。已补齐 Worker 事务中间态的已准入撤销分类、Windows 缺失设备号的句柄身份核对及回归；最终准确提交的托管矩阵待回读。[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-04用户指定的-arm64--windows-actions-失败修复)与[证据](./evidence/actions-gap-repair-20261004.json)保留原失败；不据此宣布剩余任务或发布全部完成。
+
 > 2026-10-04 发布推进：CLI **0.166.85** 已通过 OIDC 发布并[回读验证](./evidence/cli-0.166.85-publication-readback-84f204.json)，VS Code **0.37.130** 已在 [Open VSX 公开可用](../ide/evidence/vscode-0.37.130-publication-readback-84f204.json)。两者来自 `84f204db94`，其[完整发布门](./evidence/cli-ide-0.166.85-candidate-gates-84f204.json)通过。重新清点全部 18 个包后，[13 个独立子 npm 包的源码、版本和安装包均与公开版本一致](./evidence/child-package-release-reaudit-20261004-84f204.json)，没有漏发子包。JetBrains **0.4.147** 的发布测试发现诊断重复提交竞态，尚未发布；修复已纳入整合候选 **0.4.149**，仍待验收和发布。按用户要求，先发布后合并；进展见[共享实施状态](../cli-ide-gap-implementation-2026-09-27.md)。
 
 > 审计日期：2026-09-27（Asia/Shanghai）

@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-09-27）
 
+> 2026-10-04 Actions 后续修复：当前 Windows 浏览器失败已定位为 Node 22.12.0 路径/句柄设备号 **0 / 742408122** 的差异。[PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)使用精确 BigInt 身份及读取前后额外句柄验证，保留跨卷替换、纳秒修改、预算与清理负向检查；同时修复 CLI ARM64 Worker 撤销分类。原 **132 通过 / 17 失败**及[诊断证据](../cli/evidence/actions-gap-repair-20261004.json)保留，最终托管门待回读；[实施状态](../cli-ide-gap-implementation-2026-09-27.md#2026-10-04用户指定的-arm64--windows-actions-失败修复)不将本地通过当作整体完成。
+
 - 审计日期：2026-09-27（Asia/Shanghai）。
 - 代码快照：`24911a536c9e9800c1e2e6b1d72e610841be4f5c`；开始审计时工作树干净。
 - 本项目源码版本：VS Code `0.37.118`、JetBrains `0.4.139`、CLI `0.166.77`；不据此推断本次已经核验公开市场发布。
