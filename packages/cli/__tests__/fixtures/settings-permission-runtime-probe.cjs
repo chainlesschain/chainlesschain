@@ -108,7 +108,17 @@ async function child(payload) {
   });
   try {
     const cwd = binding.settingsPermissionAuthorityOptions(authority).cwd;
-    const before = binding.readSettingsPermissionAuthority(authority).snapshot;
+    // Diagnostic reads must not race other official writers. Runtime admission
+    // deliberately retains its unlocked fail-closed observation contract.
+    const before = binding.readSettingsPermissionAuthority(authority, {
+      forUpdate: true,
+    }).snapshot;
+    if (payload.waitForStart) {
+      const started = once(process, "message");
+      process.send({ type: "ready" });
+      const [message] = await started;
+      assert.equal(message.type, "start");
+    }
     if (payload.command === "write") {
       const result = loader.addRule({
         cwd,
@@ -119,7 +129,9 @@ async function child(payload) {
       return {
         result,
         before,
-        after: binding.readSettingsPermissionAuthority(authority).snapshot,
+        after: binding.readSettingsPermissionAuthority(authority, {
+          forUpdate: true,
+        }).snapshot,
       };
     }
     if (payload.command.startsWith("scoped-")) {
@@ -145,7 +157,9 @@ async function child(payload) {
       return {
         result,
         before,
-        after: binding.readSettingsPermissionAuthority(authority).snapshot,
+        after: binding.readSettingsPermissionAuthority(authority, {
+          forUpdate: true,
+        }).snapshot,
       };
     }
     return {
@@ -168,10 +182,10 @@ function childSync(f, command = "write", rest = {}) {
   return JSON.parse(result.stdout);
 }
 
-function childAsync(f, rule) {
+function childAsync(f, rule, onReady) {
   return new Promise((resolve, reject) => {
     const processChild = spawn(process.execPath, [__filename, "--child"], {
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe", "ipc"],
       windowsHide: true,
     });
     let out = "",
@@ -187,12 +201,21 @@ function childAsync(f, rule) {
       err += chunk;
     });
     processChild.once("error", reject);
+    processChild.once("message", (message) => {
+      assert.equal(message.type, "ready");
+      onReady(() => processChild.send({ type: "start" }));
+    });
     processChild.once("close", (code) => {
       clearTimeout(timer);
       code === 0 ? resolve(JSON.parse(out)) : reject(new Error(err));
     });
     processChild.stdin.end(
-      JSON.stringify({ launch: f.launch, command: "write", rule }),
+      JSON.stringify({
+        launch: f.launch,
+        command: "write",
+        rule,
+        waitForStart: true,
+      }),
     );
   });
 }
@@ -248,8 +271,17 @@ async function probe() {
     assert.notEqual(owner.getSnapshot(), before);
   });
   await check("concurrent-official-writers-preserve-all-rules", async (f) => {
+    // Every receiver reopens before any writer starts. A rejected concurrent
+    // admission is valid runtime behavior, not a lost-update writer failure.
+    const ready = [];
+    const onReady = (start) => {
+      ready.push(start);
+      if (ready.length === 4) for (const release of ready) release();
+    };
     await Promise.all(
-      ["Read", "Write", "Bash", "WebFetch"].map((rule) => childAsync(f, rule)),
+      ["Read", "Write", "Bash", "WebFetch"].map((rule) =>
+        childAsync(f, rule, onReady),
+      ),
     );
     const data = JSON.parse(fs.readFileSync(f.file));
     assert.deepEqual([...data.permissions.deny].sort(), [

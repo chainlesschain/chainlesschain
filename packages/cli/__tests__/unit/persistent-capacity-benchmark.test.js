@@ -32,6 +32,29 @@ afterEach(() => {
 });
 
 describe("persistent capacity benchmark", () => {
+  it("measures production segmented import, restart, concurrent mutations and retained audit", async () => {
+    const result = await measureDurableMemoryTier(temporaryRoot(), 12, {
+      samples: 1,
+      concurrency: 2,
+      storage: "segmented",
+    });
+    expect(result).toMatchObject({
+      storage: "segmented",
+      reachable: true,
+      observedCount: 12,
+      fixture: { seededThroughProductionSnapshotImport: true },
+      coldProcess: { ok: true, count: 12 },
+      concurrentReads: { succeeded: 2, failed: 0 },
+      concurrentUpdates: { succeeded: 2, failed: 0 },
+      concurrentDeletes: { succeeded: 2, failed: 0 },
+      postWriteVerification: {
+        verified: true,
+        actualEvents: 18,
+        recordCount: 12,
+        storeRevision: 18,
+      },
+    });
+  }, 30000);
   it("keeps formal tiers and rejects diluted formal sampling", () => {
     expect(resolvePersistentCapacityProfile("formal", {})).toMatchObject({
       memoryCounts: [1_000, 10_000, 100_000],

@@ -64,3 +64,47 @@ node packages/cli/scripts/persistent-capacity-benchmark.mjs --profile smoke --ou
 “冷进程”只指新 Node 进程，未清空 OS page cache。进程峰值可能包含该进程更早执行的 Memory 测量及夹具/校验内存，不等于一次分页的增量分配。单次冷进程结果和 smoke 的 3 样本不能推断生产 p99；formal 的经验分位数也必须连同样本数解释。
 
 报告继续保留 `performanceGate:false`、`productionQualified:false`。目标硬件、交互预算、分位数样本量和 p95/p99/RSS/锁等待 SLO 尚未冻结；三系统精确 SHA formal 结果与汇总门仍待完成。不能按本次测量结果事后调整阈值并宣称通过，也未据此迁移 Memory 存储。
+
+## 6. Memory 分片 authority 候选（2026-10-04）
+
+CLI runtime 的 canonical 路径新增 `SegmentedMemoryPort`：按 ID 的 SHA-256 前一字节分成 256 个 bucket，点读验证一个 bucket；修改只重写涉及的 bucket，再原子替换原 authority 路径上的 v2 manifest。manifest 同时绑定全局 revision、各 bucket 内容摘要、字节数、记录数和审计事件数。记录、审计事件与 reconciliation 通过同一次 manifest 替换提交；审计使用全局 sequence 保留原事件及其顺序，`exportSnapshot()` 可重建完整 v1 形状的快照。
+
+保留单 bucket 64 MiB 边界，活动 bucket 合计最多 1 GiB、审计最多 1,000,000 条，manifest 最多 256 KiB。限制针对实际 UTF-8 字节；临时写入会额外占用本次被改写 bucket 的大小，snapshot 初始化最坏需要另一个聚合容量，不把磁盘峰值说成 1 GiB。没有截断旧事件或通过删除历史增加可用容量。分片分布不均时可能先遇到单 bucket 上限。
+
+v1 迁移和所有文件读取、提交、清理共享原 authority 文件锁。迁移先校验旧快照，再写私有不可变 bucket，最后替换 manifest；替换前失败保留 v1，旧客户端读取 v2 明确拒绝，避免双 authority。shadow 实例只读 v1/v2，不迁移、不清理。聚合容量不是恢复已超限 v1 文件的旁路；旧文件仍受原 64 MiB 有界读取约束。
+
+读路径检查 regular file、hard link、no-follow 句柄、目录身份和摘要。除 macOS root-owned 的精确 `/var`、`/tmp` 系统别名外，拒绝 authority 祖先中的 symlink/junction。GC 在同一锁内流式检查最多 4,096 个目录条目，只删除自有命名空间中未被当前 manifest 引用的 bucket/临时 manifest；未知文件不删除。目录身份变化时停止清理，避免沿替换路径删除文件。此实现没有 Node 不提供的 `openat` 级目录句柄相对操作，不宣称能抵御拥有同一目录写权限的恶意进程在系统调用之间反复替换路径。
+
+manifest 替换后若目录同步或 GC 失败，抛出 `CONTEXT_MEMORY_COMMIT_PUBLISHED`，携带 `committed:true`、已发布 `storeRevision`、`durability` 和 `cleanupComplete:false`，不回滚 manifest，也不删除其引用的 bucket。调用者必须读取已提交状态后处理，旧 CAS 重试不会重复写入。Windows 不支持目录 fsync 的既有边界被明确标记，不能据此承诺断电无损；进程崩溃留下的自有文件在下一次 canonical 操作中清理。
+
+完整 `query()` 仍读取全部 bucket：锁内捕获同一 manifest 代的有界原始字节，锁外仅对这些自有 buffer 做摘要和 schema 校验。后续 GC 不会影响已捕获快照。`listRecords()` 和语义/词法 recall 仍是全扫，未增加业务字段二级索引或全局分页。并发 query 各自保留原始快照，因此并发内存不能用单进程 RSS 代替。点读测量包含锁、manifest 校验、孤儿目录检查及 bucket 校验，并非纯哈希查找延迟。
+
+容量脚本新增 `--storage segmented`，通过生产 `importSnapshot()` 建立夹具，显式区分批量 snapshot 导入与逐记录 commit。冷进程重开、并发读/更新/删除完成后，另做完整审计前缀摘要、事件数、revision、更新和 purge 内容后验核对。正式 workflow 使用该 backend，旧单文件基线仍可用 `--storage json` 重跑。最终候选 SHA 的本机测量及三系统验收需要单独记录；这段实现说明不等于 SLO 或生产验收通过。
+
+### 6.1 精确实现提交的 Windows formal 实测
+
+在干净提交 `244a3d10c0b3989b4f98a3461feaee27f113b441`，Windows `10.0.19045` / x64 / Node `v22.22.2` 上执行完整 formal profile，耗时 **1,020.414 秒**。保留 Memory 1k/10k/100k、每档 11 样本、8 路并发和后台 1k/10k；未调整 30 秒锁等待或 120 秒 worker 超时。[完整原始 receipt](./evidence/persistent-capacity-segmented-formal-windows-244a3d10c0.json) 的 canonical digest 已独立重算核对：`sha256:ba5cf16bb0d4c7e16ea729803dc8f9402a3c08cc9276b4329175622cabcdde94`。
+
+| Memory 记录数 | 点读 p95   | 全 query p95  | list + sort p95 | 并发读/更新/删除 | 审计后验 |
+| ------------- | ---------- | ------------- | --------------- | ---------------- | -------- |
+| 1,000         | 33.506 ms  | 955.630 ms    | 1,355.895 ms    | 各 8/8 成功      | verified |
+| 10,000        | 44.132 ms  | 2,125.917 ms  | 1,982.576 ms    | 各 8/8 成功      | verified |
+| 100,000       | 110.072 ms | 13,954.915 ms | 16,283.742 ms   | 各 8/8 成功      | verified |
+
+100K 通过生产 snapshot 导入写入 **118,771,489 bytes**，包含完整 100K 创建事件，准备耗时 **33.454 秒**；不是逐条执行 100K 次 commit 的吞吐测量。新进程重开 query operation 为 **12.538 秒**（含启动 wall 为 13.154 秒）。8 路并发 query 的 operation p95 为 **27.813 秒**、锁等待 p95 为 **6.055 秒**；更新/双阶段删除 operation p95 分别为 **1.861 / 2.968 秒**。最终保留 100K records，events 和 store revision 都为 **100,024**，原审计前缀摘要一致、更新 revision 正确、8 条 purge 内容为空，最终活动 bucket 合计 **118,784,505 bytes**。
+
+100K 阶段主进程高水位为 **1,118,900,224 bytes**，包含夹具生成、前面测量和完整审计核对；并发 query 单进程高水位的最大值为 **445,427,712 bytes**，不能把它当作 8 个进程的同时总 RSS。完整 profile 在后台 10k 遍历/重建后，主进程高水位达到 **1,913,323,520 bytes**。后台两档均 `pathsVerified:true`，完整遍历分别 20 / 200 页；这部分仍有重复 inventory 的开销，也是整次测量较长的原因之一。
+
+该结果闭合了此 Windows 提交上真实 100K 夹具的初始化、重开、查询、并发更新/删除及审计完整性证据；没有闭合业务索引/分页、生产流量下的性能、三系统最终集成 SHA 或全局 SLO。11 个重复样本的经验 p95/p99 均落在最大值，不能据此推断生产尾延迟。receipt 继续为 `performanceGate:false`、`productionQualified:false`。
+
+命令（从该精确提交的干净仓库根执行，输出放工作树之外）：
+
+```powershell
+node packages/cli/scripts/persistent-capacity-benchmark.mjs --profile formal --storage segmented --candidate-sha 244a3d10c0b3989b4f98a3461feaee27f113b441 --output C:/Users/longfa/AppData/Local/Temp/persistent-capacity-segmented-formal-244a3d10c0.json --keep
+```
+
+### 6.2 正确性回归与 POSIX 发布后失败
+
+CLI 目录的四个 Vitest 文件（segmented port、durable limits、capacity harness、provider model profile）**59/59** 通过；最终 segmented 专项 **18 通过 / 1 Windows 条件跳过**，后者是真实 POSIX 目录 fsync 故障用例。完整 `context-memory-kernel.node-test.mjs` **20/20** 通过，覆盖 scoped recall、迁移、删除、重启 reconciliation、App Server 投影等；其中既有 Windows symlink 子断言因 EPERM 未执行，新加的 Windows junction 拒绝用例已执行。源文件 ESLint 无 errors/warnings，`git diff --check` 通过。首次误从仓库根运行 provider 测试缺少 CLI setup 的失败保留为执行问题，改为 CLI cwd 后通过，未修改断言。
+
+另在 WSL Linux `4.4.0-19041-Microsoft` / Node `v22.12.0` 执行[两记录 POSIX 故障探针](./evidence/segmented-memory-posix-fsync-probe-244a3d10c0.mjs)，[原始 JSON](./evidence/segmented-memory-posix-fsync-244a3d10c0.json) 摘要为 `sha256:c19650c47fb5c5f6c3f2ee3656d43b2efcf7499420e8f9dd1a75a6a88bcf7ab1`。分别在 manifest 父目录同步与 GC 删除目录同步注入 EIO，均明确报告已发布状态；重开记录正确、旧 CAS 拒绝、审计无重复、后续清理无孤儿。前者 durability 为 `unknown`，后者为 `directory-sync-completed` 且 `cleanupComplete:false`。该 probe 验证故障返回契约，不是断电实验或 Linux 100K 性能结果。WSL 直接加载 Windows Vitest 依赖因缺少 Linux Rollup 可选原生包失败，故使用 Node 断言探针；没有替换或重新安装共享依赖。

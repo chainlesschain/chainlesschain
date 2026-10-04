@@ -1,5 +1,6 @@
 export * from "./authority.js";
 export * from "./durable-memory-port.js";
+export * from "./segmented-memory-port.js";
 export * from "./jsonl-session-context-port.js";
 export * from "./message-adapter.js";
 export * from "./memory-service.js";

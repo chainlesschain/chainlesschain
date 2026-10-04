@@ -275,6 +275,13 @@ function localRevision(state) {
   return state.localRevision;
 }
 
+// Keep the observation's minting and projection within one loader instance.
+// Hosts with an ESM transform loader can also load CJS through native require;
+// the native observation must still pass its original private WeakSet brand.
+function projectSettingsPermissionObservation(observation, options) {
+  return loader().projectSettingsObservation(observation, options);
+}
+
 function assertSettingsPermissionWritableRoots(binding, roots) {
   const state = stateFor(binding);
   const directory = domain.exportSettingsAuthorityDomain(
@@ -360,6 +367,7 @@ module.exports = {
   closeSettingsPermissionAuthority,
   settingsPermissionAuthorityOptions,
   readSettingsPermissionAuthority,
+  projectSettingsPermissionObservation,
   mutateSettingsPermissionSource,
   assertSettingsPermissionWritableRoots,
 };

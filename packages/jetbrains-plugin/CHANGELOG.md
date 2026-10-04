@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.149] - Bound attachment file snapshots (2026-10-04)
+
+- Read attachment metadata and bytes from one bounded open-file snapshot in both
+  draft persistence and composer paths, including files that grow during a read.
+- Retain diagnostics generation admission fixes and recommend CLI `0.166.86`.
+- Full codec/animation support and all host validation are not implied by the
+  file-read boundary; publication still requires the complete release gates.
+
 ## [0.4.148] - Commit each diagnostics generation once (2026-10-04)
 
 - Prevent an already started debounce task and an immediate flush from committing

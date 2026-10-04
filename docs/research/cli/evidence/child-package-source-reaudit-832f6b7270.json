@@ -1,0 +1,223 @@
+{
+  "schema": "chainlesschain.child-package-source-reaudit/v1",
+  "sourceCommit": "832f6b7270c6fa758ca4da76a80d277ed1f61ca8",
+  "baselineCommit": "84f204db944d92124d95b2348814ac562bde5841",
+  "cliVersion": "0.166.86",
+  "topLevelManifestCount": 18,
+  "children": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "directory": "packages/agent-protocol",
+      "originalTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "candidateTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.12",
+      "directory": "packages/agent-sdk",
+      "originalTree": "d40af5f61cdc6c1b06e44e006098c89597acb429",
+      "candidateTree": "d40af5f61cdc6c1b06e44e006098c89597acb429",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.5",
+      "directory": "packages/context-memory-kernel",
+      "originalTree": "ad718a5121c5134fe58ab9d2431f67b65620c58a",
+      "candidateTree": "ad718a5121c5134fe58ab9d2431f67b65620c58a",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "directory": "packages/core-config",
+      "originalTree": "1106249ce17c3cdbba569c62944602dc9b446127",
+      "candidateTree": "1106249ce17c3cdbba569c62944602dc9b446127",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "directory": "packages/core-db",
+      "originalTree": "e0a16bc028c1990ccd6d056b2161daaf1caf9711",
+      "candidateTree": "e0a16bc028c1990ccd6d056b2161daaf1caf9711",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "directory": "packages/core-env",
+      "originalTree": "f1152c366d64f72024f082f6db6d2cf587267d30",
+      "candidateTree": "f1152c366d64f72024f082f6db6d2cf587267d30",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "directory": "packages/core-infra",
+      "originalTree": "8590aec02bb9ebdaf3f3065b3931300b954fc7fe",
+      "candidateTree": "8590aec02bb9ebdaf3f3065b3931300b954fc7fe",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "directory": "packages/core-mtc",
+      "originalTree": "fcd297054d76907a27e011b6971129a63a860191",
+      "candidateTree": "fcd297054d76907a27e011b6971129a63a860191",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "directory": "packages/core-multisig",
+      "originalTree": "047ff76d018c5fef300f6ad0b6dd338e5af1a5b1",
+      "candidateTree": "047ff76d018c5fef300f6ad0b6dd338e5af1a5b1",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "directory": "packages/core-settlement",
+      "originalTree": "47039e6b6e169ada6fb4d4b8b4f133284059fbba",
+      "candidateTree": "47039e6b6e169ada6fb4d4b8b4f133284059fbba",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.62",
+      "directory": "packages/personal-data-hub",
+      "originalTree": "6ce6b1d498dd60c8d9b6f3e6c1176e59b078772a",
+      "candidateTree": "6ce6b1d498dd60c8d9b6f3e6c1176e59b078772a",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.14",
+      "directory": "packages/session-core",
+      "originalTree": "9c30434daec4404b015164e594957a37ea01549c",
+      "candidateTree": "9c30434daec4404b015164e594957a37ea01549c",
+      "unchanged": true
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "directory": "packages/shared-logger",
+      "originalTree": "dcc9e9380c5f54f0546291912550614fed063b5d",
+      "candidateTree": "dcc9e9380c5f54f0546291912550614fed063b5d",
+      "unchanged": true
+    }
+  ],
+  "internalRuntimeDependencies": [
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/context-memory-kernel",
+      "declaredRange": "0.1.5",
+      "publishedVersion": "0.1.5",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-config",
+      "declaredRange": "0.1.2",
+      "publishedVersion": "0.1.2",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-db",
+      "declaredRange": "0.1.5",
+      "publishedVersion": "0.1.5",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-env",
+      "declaredRange": "0.1.2",
+      "publishedVersion": "0.1.2",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-infra",
+      "declaredRange": "0.1.1",
+      "publishedVersion": "0.1.1",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-mtc",
+      "declaredRange": "0.2.3",
+      "publishedVersion": "0.2.3",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/core-multisig",
+      "declaredRange": "0.1.4",
+      "publishedVersion": "0.1.4",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/personal-data-hub",
+      "declaredRange": "0.4.62",
+      "publishedVersion": "0.4.62",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/session-core",
+      "declaredRange": "0.3.14",
+      "publishedVersion": "0.3.14",
+      "satisfied": true
+    },
+    {
+      "consumer": "chainlesschain",
+      "dependency": "@chainlesschain/shared-logger",
+      "declaredRange": "0.1.1",
+      "publishedVersion": "0.1.1",
+      "satisfied": true
+    },
+    {
+      "consumer": "@chainlesschain/core-config",
+      "dependency": "@chainlesschain/core-env",
+      "declaredRange": "0.1.2",
+      "publishedVersion": "0.1.2",
+      "satisfied": true
+    },
+    {
+      "consumer": "@chainlesschain/core-infra",
+      "dependency": "@chainlesschain/shared-logger",
+      "declaredRange": "0.1.1",
+      "publishedVersion": "0.1.1",
+      "satisfied": true
+    },
+    {
+      "consumer": "@chainlesschain/core-multisig",
+      "dependency": "@chainlesschain/core-mtc",
+      "declaredRange": "^0.2.0",
+      "publishedVersion": "0.2.3",
+      "satisfied": true
+    },
+    {
+      "consumer": "@chainlesschain/core-settlement",
+      "dependency": "@chainlesschain/core-mtc",
+      "declaredRange": "^0.2.0",
+      "publishedVersion": "0.2.3",
+      "satisfied": true
+    },
+    {
+      "consumer": "@chainlesschain/shared-logger",
+      "dependency": "@chainlesschain/core-env",
+      "declaredRange": "0.1.2",
+      "publishedVersion": "0.1.2",
+      "satisfied": true
+    }
+  ],
+  "publicationRequired": [],
+  "baselinePublicArchiveReceipt": "./child-package-release-reaudit-20261004-84f204.json",
+  "boundary": "All 13 child Git trees match the baseline that was rebuilt and compared byte-for-byte with public npm archives. This audit does not claim a second rebuild or transfer CLI release gates to the new source. The OIDC publication workflow must recheck public archive equality."
+}
