@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.129] - Validated image draft recovery (2026-10-04)
+
+- Keep image save acknowledgements tied to the current attachment revision;
+  text-only saves cannot hide image validation errors.
+- Show host-validated attachment previews and refresh draft status after reads.
+- Exercise paste/drop, validation refusal, removal, session switching, and full
+  process recovery with image hashes and zero automatic image submission.
+- Retain original Extension Host failure diagnostics for reproducible failures.
+- Recommend CLI `0.166.85` after its public npm release.
+
 ## [0.37.128] - Resume the streaming performance release (2026-10-03)
 
 - Include the bounded streaming layout and selection improvements prepared in

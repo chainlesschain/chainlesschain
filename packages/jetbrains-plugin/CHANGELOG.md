@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.147] - Pair with CLI durable state fixes (2026-10-04)
+
+- Recommend CLI `0.166.85`, including when npm lookup is unavailable or stale.
+- Carry bounded durable memory reads/writes and safe permission revision limits
+  into IDE sessions after the paired CLI becomes publicly available.
+- Retain existing editor controls, compatibility floor, and draft recovery.
+
 ## [0.4.146] - Pair with CLI 0.166.84 scoped permission revocation (2026-10-02)
 
 - Recommend CLI `0.166.84`, including when npm lookup is unavailable or stale.

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.85",
+      "cliVersions": ["0.166.85"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.85: preserve durable state at capacity and revision limits",
+          "body": "- Reject oversized memory commits and reconciliation before replacing durable\n  data; bound reads even if the backing file grows during the read.\n- Refuse exhausted memory and scoped permission revisions before mutation,\n  preserving safe integer identities, idempotent revocation, and stale CAS.\n- Include pending packaged-build, settings observation, and disabled background\n  IPC lifetime fixes since the previous CLI release.\n- Pair VS Code `0.37.129` image draft recovery and JetBrains `0.4.147` with this\n  CLI only after complete exact-commit CI and public npm verification."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.84",
       "cliVersions": ["0.166.84"],
       "date": null,
