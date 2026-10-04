@@ -139,7 +139,7 @@ function advanceRevision(state) {
   state.storeRevision += 1;
 }
 
-function readBoundedState(filePath, maxStoreBytes) {
+function readBoundedState(filePath, maxStoreBytes, rejectHardLinks = false) {
   const descriptor = openSync(
     filePath,
     constants.O_RDONLY |
@@ -148,7 +148,7 @@ function readBoundedState(filePath, maxStoreBytes) {
   );
   try {
     const stat = fstatSync(descriptor);
-    if (!stat.isFile()) {
+    if (!stat.isFile() || (rejectHardLinks && stat.nlink !== 1)) {
       throw corruptStore(filePath, "authority path is not a regular file");
     }
     if (stat.size > maxStoreBytes) {
@@ -364,6 +364,9 @@ export class DurableJsonMemoryPort {
 }
 
 export {
+  corruptStore,
+  readBoundedState,
+  syncDirectory,
   DEFAULT_MAX_EVENTS,
   DEFAULT_MAX_STORE_BYTES,
   STORE_SCHEMA,

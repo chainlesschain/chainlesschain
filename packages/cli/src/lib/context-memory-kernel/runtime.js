@@ -1,5 +1,5 @@
 import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
-import { DurableJsonMemoryPort } from "./durable-memory-port.js";
+import { SegmentedMemoryPort } from "./segmented-memory-port.js";
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
 import { CliLegacyMemoryPrivacyPurgePort } from "./privacy-purge-port.js";
 import {
@@ -8,7 +8,8 @@ import {
 } from "./authority.js";
 
 export function createCliContextMemoryRuntime(options = {}) {
-  const scopeKey = options.scopeKey ||
+  const scopeKey =
+    options.scopeKey ||
     (options.sessionId ? `cli:session:${options.sessionId}` : "cli:memory");
   const decision = resolveCliContextMemoryCutover({
     env: options.env,
@@ -20,7 +21,8 @@ export function createCliContextMemoryRuntime(options = {}) {
   });
   const memoryPort =
     options.memoryPort ||
-    new DurableJsonMemoryPort({
+    new SegmentedMemoryPort({
+      readOnly: !decision.canonical,
       ...(options.memoryFilePath ? { filePath: options.memoryFilePath } : {}),
     });
   const sessionPort =

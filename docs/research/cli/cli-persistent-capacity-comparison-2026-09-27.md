@@ -64,3 +64,19 @@ node packages/cli/scripts/persistent-capacity-benchmark.mjs --profile smoke --ou
 “冷进程”只指新 Node 进程，未清空 OS page cache。进程峰值可能包含该进程更早执行的 Memory 测量及夹具/校验内存，不等于一次分页的增量分配。单次冷进程结果和 smoke 的 3 样本不能推断生产 p99；formal 的经验分位数也必须连同样本数解释。
 
 报告继续保留 `performanceGate:false`、`productionQualified:false`。目标硬件、交互预算、分位数样本量和 p95/p99/RSS/锁等待 SLO 尚未冻结；三系统精确 SHA formal 结果与汇总门仍待完成。不能按本次测量结果事后调整阈值并宣称通过，也未据此迁移 Memory 存储。
+
+## 6. Memory 分片 authority 候选（2026-10-04）
+
+CLI runtime 的 canonical 路径新增 `SegmentedMemoryPort`：按 ID 的 SHA-256 前一字节分成 256 个 bucket，点读验证一个 bucket；修改只重写涉及的 bucket，再原子替换原 authority 路径上的 v2 manifest。manifest 同时绑定全局 revision、各 bucket 内容摘要、字节数、记录数和审计事件数。记录、审计事件与 reconciliation 通过同一次 manifest 替换提交；审计使用全局 sequence 保留原事件及其顺序，`exportSnapshot()` 可重建完整 v1 形状的快照。
+
+保留单 bucket 64 MiB 边界，活动 bucket 合计最多 1 GiB、审计最多 1,000,000 条，manifest 最多 256 KiB。限制针对实际 UTF-8 字节；临时写入会额外占用本次被改写 bucket 的大小，snapshot 初始化最坏需要另一个聚合容量，不把磁盘峰值说成 1 GiB。没有截断旧事件或通过删除历史增加可用容量。分片分布不均时可能先遇到单 bucket 上限。
+
+v1 迁移和所有文件读取、提交、清理共享原 authority 文件锁。迁移先校验旧快照，再写私有不可变 bucket，最后替换 manifest；替换前失败保留 v1，旧客户端读取 v2 明确拒绝，避免双 authority。shadow 实例只读 v1/v2，不迁移、不清理。聚合容量不是恢复已超限 v1 文件的旁路；旧文件仍受原 64 MiB 有界读取约束。
+
+读路径检查 regular file、hard link、no-follow 句柄、目录身份和摘要。除 macOS root-owned 的精确 `/var`、`/tmp` 系统别名外，拒绝 authority 祖先中的 symlink/junction。GC 在同一锁内流式检查最多 4,096 个目录条目，只删除自有命名空间中未被当前 manifest 引用的 bucket/临时 manifest；未知文件不删除。目录身份变化时停止清理，避免沿替换路径删除文件。此实现没有 Node 不提供的 `openat` 级目录句柄相对操作，不宣称能抵御拥有同一目录写权限的恶意进程在系统调用之间反复替换路径。
+
+manifest 替换后若目录同步或 GC 失败，抛出 `CONTEXT_MEMORY_COMMIT_PUBLISHED`，携带 `committed:true`、已发布 `storeRevision`、`durability` 和 `cleanupComplete:false`，不回滚 manifest，也不删除其引用的 bucket。调用者必须读取已提交状态后处理，旧 CAS 重试不会重复写入。Windows 不支持目录 fsync 的既有边界被明确标记，不能据此承诺断电无损；进程崩溃留下的自有文件在下一次 canonical 操作中清理。
+
+完整 `query()` 仍读取全部 bucket：锁内捕获同一 manifest 代的有界原始字节，锁外仅对这些自有 buffer 做摘要和 schema 校验。后续 GC 不会影响已捕获快照。`listRecords()` 和语义/词法 recall 仍是全扫，未增加业务字段二级索引或全局分页。并发 query 各自保留原始快照，因此并发内存不能用单进程 RSS 代替。点读测量包含锁、manifest 校验、孤儿目录检查及 bucket 校验，并非纯哈希查找延迟。
+
+容量脚本新增 `--storage segmented`，通过生产 `importSnapshot()` 建立夹具，显式区分批量 snapshot 导入与逐记录 commit。冷进程重开、并发读/更新/删除完成后，另做完整审计前缀摘要、事件数、revision、更新和 purge 内容后验核对。正式 workflow 使用该 backend，旧单文件基线仍可用 `--storage json` 重跑。最终候选 SHA 的本机测量及三系统验收需要单独记录；这段实现说明不等于 SLO 或生产验收通过。
