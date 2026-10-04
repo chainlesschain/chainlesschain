@@ -2682,19 +2682,36 @@ export async function executeTool(name, args, context = {}) {
       },
     };
   }
+  function settingsPermissionRevocation(cause) {
+    const error = new Error(
+      "Settings permission authority became unavailable after admission",
+      { cause },
+    );
+    error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+    return error;
+  }
   function assertSettingsPermissionRevision() {
     if (!settingsPermissionAuthority) return;
-    settingsPermissionAuthority.assertWorkspace?.(cwd);
-    settingsPermissionAuthority.assertWritableRoots?.([
-      ...workspaceRootsFor(cwd, context.additionalDirectories),
-      ...(context.sandbox?.policy?.allowWrite || []),
-    ]);
+    let currentRevision;
+    try {
+      settingsPermissionAuthority.assertWorkspace?.(cwd);
+      settingsPermissionAuthority.assertWritableRoots?.([
+        ...workspaceRootsFor(cwd, context.additionalDirectories),
+        ...(context.sandbox?.policy?.allowWrite || []),
+      ]);
+      currentRevision = settingsPermissionAuthority.getSnapshot();
+    } catch (cause) {
+      // A concurrent durable writer can expose its guard/prepared state. Once
+      // admitted, losing the ready snapshot revokes that admission immediately;
+      // do not wait for commit or let the lower-level load error change the
+      // shell revocation contract. Initial admission retains its load errors.
+      throw settingsPermissionRevocation(cause);
+    }
     if (
       permissionRulesProviderAuthority(
         liveExecutionContext.permissionRulesProvider,
       ) !== settingsPermissionAuthority ||
-      settingsPermissionAuthority.getSnapshot() !==
-        entrySettingsPermissionRevision
+      currentRevision !== entrySettingsPermissionRevision
     ) {
       const error = new Error(
         "Settings permission authority changed after admission",
@@ -3667,11 +3684,19 @@ export async function executeTool(name, args, context = {}) {
             let currentPermissionRules =
               liveExecutionContext.permissionRules || null;
             if (permissionRulesProvider) {
-              currentPermissionAuthority = await permissionRulesProvider({
-                cwd,
-                tool: name,
-                args,
-              });
+              try {
+                currentPermissionAuthority = await permissionRulesProvider({
+                  cwd,
+                  tool: name,
+                  args,
+                });
+              } catch (cause) {
+                // A writer may start after the preceding snapshot read but
+                // before the bound provider finishes observing its sources.
+                if (settingsPermissionAuthority)
+                  throw settingsPermissionRevocation(cause);
+                throw cause;
+              }
               currentPermissionRules =
                 currentPermissionAuthority?.rules ||
                 currentPermissionAuthority ||

@@ -190,20 +190,31 @@ describe("cancellable codec worker lifecycle", () => {
 });
 
 describe("single-descriptor image reads", () => {
-  function fixture({ growth = false, mutation = false, tick = () => {} } = {}) {
+  function fixture({
+    growth = false,
+    mutation = false,
+    tick = () => {},
+    pathStat = {},
+    handleStat = {},
+    afterPathStat = {},
+    afterHandleStat = {},
+  } = {}) {
     const before = {
       isFile: () => true,
-      size: 3,
-      dev: 1,
-      ino: 2,
-      mtimeMs: 1,
-      ctimeMs: 1,
+      size: 3n,
+      dev: 1n,
+      ino: 2n,
+      mtimeNs: 1000000n,
+      ctimeNs: 1000000n,
     };
     let reads = 0;
     const handle = {
-      stat: vi.fn(async () =>
-        mutation && reads ? { ...before, mtimeMs: 2 } : before,
-      ),
+      stat: vi.fn(async () => ({
+        ...before,
+        ...handleStat,
+        ...(reads ? afterHandleStat : {}),
+        ...(mutation && reads ? { mtimeNs: before.mtimeNs + 1n } : {}),
+      })),
       read: vi.fn(async (buffer, offset, length, position) => {
         reads++;
         tick();
@@ -217,7 +228,14 @@ describe("single-descriptor image reads", () => {
     };
     return {
       handle,
-      io: { lstat: vi.fn(async () => before), open: vi.fn(async () => handle) },
+      io: {
+        lstat: vi.fn(async () => ({
+          ...before,
+          ...pathStat,
+          ...(reads ? afterPathStat : {}),
+        })),
+        open: vi.fn(async () => handle),
+      },
     };
   }
   it("handles short reads and rejects growth or same-size observed modification", async () => {
@@ -233,6 +251,66 @@ describe("single-descriptor image reads", () => {
         test.handle.read.mock.calls.every((call) => call[0].length === 4),
       ).toBe(true);
     }
+  });
+  it("accepts Windows 64-bit path and 32-bit handle volume serials without losing precision", async () => {
+    const dev = (1n << 60n) + 0xabcdef12n;
+    const test = fixture({
+      pathStat: { dev },
+      handleStat: { dev: BigInt.asUintN(32, dev) },
+    });
+    expect(
+      String(
+        await readImageSnapshot("image", null, { ...test, platform: "win32" }),
+      ),
+    ).toBe("abc");
+    expect(test.io.lstat).toHaveBeenCalledWith("image", { bigint: true });
+    expect(test.handle.stat).toHaveBeenCalledWith({ bigint: true });
+    expect(test.handle.close).toHaveBeenCalledOnce();
+  });
+  it("rejects different low device bits, large inode replacements and nanosecond changes while opening", async () => {
+    const ino = 1n << 60n;
+    for (const options of [
+      { pathStat: { dev: (1n << 60n) + 7n }, handleStat: { dev: 8n } },
+      { pathStat: { ino }, handleStat: { ino: ino + 1n } },
+      { handleStat: { mtimeNs: 1000001n } },
+      { handleStat: { ctimeNs: 1000001n } },
+      { pathStat: { isFile: () => false } },
+    ]) {
+      const test = fixture(options);
+      await expect(
+        readImageSnapshot("image", null, { ...test, platform: "win32" }),
+      ).rejects.toThrow("changed");
+      expect(test.handle.read).not.toHaveBeenCalled();
+      if (test.io.open.mock.calls.length)
+        expect(test.handle.close).toHaveBeenCalledOnce();
+    }
+  });
+  it("retains full device IDs within each API and rejects path replacement during reading", async () => {
+    const dev = (1n << 60n) + 7n;
+    for (const options of [
+      { afterPathStat: { dev: dev + (1n << 32n) } },
+      { afterHandleStat: { dev: 7n + (1n << 32n) } },
+      { afterPathStat: { ino: 3n } },
+      { afterPathStat: { isFile: () => false } },
+      { afterPathStat: { ctimeNs: 1000001n } },
+    ]) {
+      const test = fixture({
+        pathStat: { dev },
+        handleStat: { dev: 7n },
+        ...options,
+      });
+      await expect(
+        readImageSnapshot("image", null, { ...test, platform: "win32" }),
+      ).rejects.toThrow("changed while reading");
+      expect(test.handle.close).toHaveBeenCalledOnce();
+    }
+  });
+  it("compares full device IDs across APIs on POSIX", async () => {
+    const test = fixture({ pathStat: { dev: (1n << 32n) + 1n } });
+    await expect(
+      readImageSnapshot("image", null, { ...test, platform: "linux" }),
+    ).rejects.toThrow("changed while opening");
+    expect(test.handle.close).toHaveBeenCalledOnce();
   });
   it("checks cancellation and elapsed budget between chunks and closes the descriptor", async () => {
     let now = 0;
