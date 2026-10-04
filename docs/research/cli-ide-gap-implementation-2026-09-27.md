@@ -6,9 +6,11 @@
 
 ### 2026-10-04：用户指定的 ARM64 / Windows Actions 失败修复
 
+**两个指定失败已在准确修复提交 `22c0e4036cd08f6a205539c88fcdec47081af544` 验收通过。** [ARM64 真实 Docker 回读](./cli/evidence/net02-docker-arm64-22c0e4036c.json)为 **24/24、0 跳过**，两项原 Worker 失败均通过；三份原始报告的字节摘要与 Runner 清单完全相同。[Windows 浏览器整项作业回读](./ide/evidence/browser-windows-repair-22c0e4036c.json)包含 **12 文件、157/157**、实际 codec/动画 Worker、Workbench 与两 origin 旅程；核对了 **21** 个 producer 源文件摘要及两份 envelope 摘要。原始 JSON 与来源保存于两个回执旁。Workbench 使用 local-test 模型夹具；producer 下载 `.bin` 未被原工作流上传，未独立核验其字节。[Strict Sandbox 整体及全部 5 个作业](https://github.com/chainlesschain/chainlesschain/actions/runs/37212423238)已通过。完整 CLI CI 和其余 IDE 矩阵仍在排队/执行，不能由局部成功推导全部发布门完成。
+
 原失败来自 `a3fba4c51d42bc23be91c3558bed8e8c8459080e`；实际修复分支从随后包含 provider stream 提取的 `ed2c1d236d` 创建，在[草稿 PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)继续验证。公开发行版本不因本节改变。用户指定的 [Strict ARM64 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/37200818636/job/111431958585)为 **22 通过 / 2 失败**，[Windows 浏览器作业](https://github.com/chainlesschain/chainlesschain/actions/runs/37200818601/job/111437557612)为 **132 通过 / 17 失败**。原失败及后续诊断见[修复回执](./cli/evidence/actions-gap-repair-20261004.json)，不能沿用较早提交的通过结果。
 
-NET-02 的真实 Worker 可在主线程重验证时暴露已经落盘的 guard/prepared 事务。执行器原样返回 `CC_SETTINGS_AUTHORITY_NOT_READY`，而已准入 shell 的合同应立即撤销并返回 `CC_SHELL_POLICY_AUTHORITY_CHANGED`。修复同时覆盖快照读取与绑定 provider 读取，保留底层 cause；首次准入的加载错误保持。四个确定性回归在 guard 发布后暂停真实 Worker，验证接收端先停、清理 ACK、禁止成功回执及自动重试。WSL Linux Node 22.12.0 的 sandbox/remote-shell **110/110**、settings runtime **2/2**；真实 ARM64 Docker 及最终完整矩阵仍须回读。
+NET-02 的真实 Worker 可在主线程重验证时暴露已经落盘的 guard/prepared 事务。执行器原样返回 `CC_SETTINGS_AUTHORITY_NOT_READY`，而已准入 shell 的合同应立即撤销并返回 `CC_SHELL_POLICY_AUTHORITY_CHANGED`。修复同时覆盖快照读取与绑定 provider 读取，保留底层 cause；首次准入的加载错误保持。四个确定性回归在 guard 发布后暂停真实 Worker，验证接收端先停、清理 ACK、禁止成功回执及自动重试。WSL Linux Node 22.12.0 的 sandbox/remote-shell **110/110**、settings runtime **2/2**；随后取得上述真实 ARM64 Docker 回读，完整矩阵仍待完成。
 
 IDE-IMAGE 的准确诊断提交 `e0ea508e52`在[原 Windows 托管环境](https://github.com/chainlesschain/chainlesschain/actions/runs/37207644532/job/111452180657)证实失配为 **lstat.dev=0 / fstat.dev=742408122**，不是附件内容变更，也不是单纯 64/32 位差异。使用 BigInt 保留完整 inode、纳秒时间；Windows 路径设备号缺失时，以首个文件句柄为身份基准，在读取前后额外打开路径并严格比较完整句柄身份。所有附件字节仍从原句柄读取，额外句柄在失败/取消时关闭；路径前后和句柄前后不放宽身份检查。已有 libuv 64/32 位兼容只作用于路径与句柄跨 API 比较。新增回归拒绝同 inode 的跨卷替换、仅设备号高位改变及纳秒修改，保留大小/帧预算、长路径及取消合同。
 

@@ -1,0 +1,178 @@
+{
+  "schema": "chainlesschain.ide-browser-repair-readback/v1",
+  "sourceCommit": "22c0e4036cd08f6a205539c88fcdec47081af544",
+  "run": {
+    "id": 37212423291,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423291"
+  },
+  "job": {
+    "id": 111466251755,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37212423291/job/111466251755"
+  },
+  "artifacts": [
+    {
+      "id": 11307645819,
+      "name": "image-codec-budget-windows-22c0e4036cd08f6a205539c88fcdec47081af544-1",
+      "reportedArchiveBytes": 796
+    },
+    {
+      "id": 11306723730,
+      "name": "evolution-workbench-windows-22c0e4036cd08f6a205539c88fcdec47081af544-1",
+      "reportedArchiveBytes": 712132
+    },
+    {
+      "id": 11307436584,
+      "name": "browser-evidence-windows-22c0e4036cd08f6a205539c88fcdec47081af544-1",
+      "reportedArchiveBytes": 38743
+    }
+  ],
+  "archiveDigestIndependentlyVerified": false,
+  "contract": {
+    "files": 12,
+    "total": 157,
+    "passed": 157,
+    "failed": 0,
+    "originalTestsRetained": 149,
+    "addedTests": 8,
+    "node": "22.12.0"
+  },
+  "codecs": {
+    "status": "passed",
+    "formats": [
+      {
+        "format": "png",
+        "frames": 1
+      },
+      {
+        "format": "jpeg",
+        "frames": 1
+      },
+      {
+        "format": "webp",
+        "frames": 1
+      },
+      {
+        "format": "gif",
+        "frames": 2
+      }
+    ],
+    "animated": [
+      {
+        "format": "png",
+        "frames": 2,
+        "decodedPixels": 2
+      },
+      {
+        "format": "webp",
+        "frames": 2,
+        "decodedPixels": 12
+      },
+      {
+        "format": "png",
+        "frames": 2,
+        "decodedPixels": 3
+      }
+    ],
+    "preview": {
+      "width": 40,
+      "height": 40,
+      "drawn": true
+    },
+    "malformedRejected": true,
+    "timeoutRejected": true,
+    "cancellationRejected": true
+  },
+  "workbench": {
+    "ok": true,
+    "mode": "local-test",
+    "panels": 3,
+    "liveEvolution": true
+  },
+  "browserJourney": {
+    "headSha": "22c0e4036cd08f6a205539c88fcdec47081af544",
+    "outcome": "passed",
+    "measurements": {
+      "consoleErrors": 3,
+      "crossOriginAllowed": 1,
+      "crossOriginDenied": 1,
+      "domTruncated": true,
+      "downloadCount": 1,
+      "loginFieldRedactions": 1,
+      "managedArtifactCount": 5,
+      "networkErrors": 2,
+      "origins": 2,
+      "queryValueRedactions": 1,
+      "replayCount": 1,
+      "revisionDenied": 1,
+      "screenshotCount": 2,
+      "screenshotDiffs": 1,
+      "secretScanHits": 0,
+      "uploadCount": 1,
+      "workflowProvenanceDigest": "sha256:5cdefb15434e5800b2439ede16e3d545a0e79e65e3747a3adfe271e70236aa07"
+    },
+    "producerSourceDigestsVerified": 21,
+    "envelopeDigestsVerified": 2,
+    "downloadBytesIndependentlyVerified": false
+  },
+  "reports": [
+    {
+      "file": "actions-gap-22c0-windows/image-codec-result.json",
+      "bytes": 3012,
+      "sha256": "e0dc252aa38927b366d4a3b81245948e4813ecb86f25e40375089d26137cf8de"
+    },
+    {
+      "file": "actions-gap-22c0-windows/workbench-result.json",
+      "bytes": 247,
+      "sha256": "155126ab5bed50b6e8911ef4958892a76e7e02394865c63d5f7a5e841b9b05f9"
+    },
+    {
+      "file": "actions-gap-22c0-windows/browser-evidence-envelope.json",
+      "bytes": 13557,
+      "sha256": "6f49a9e437c659a84edab4a91fa45b89289b96061901c308297774151e4758e7"
+    },
+    {
+      "file": "actions-gap-22c0-windows/browser-evidence-journey-summary.json",
+      "bytes": 4840,
+      "sha256": "7368e3bd885049748f7464605be2e667384bd4687c949fc8ab8392c060bb6a4e"
+    },
+    {
+      "file": "actions-gap-22c0-windows/browser-evidence-replay-envelope.json",
+      "bytes": 2445,
+      "sha256": "f02ece9779277ba64c57322a2100e7357ce6c615e7336c36e1f3991f1701a59b"
+    },
+    {
+      "file": "actions-gap-22c0-windows/claude-code-increment-audit-fragment.json",
+      "bytes": 4148,
+      "sha256": "3ccb405244c0e8abe810678071d50c2c3e2f8d73197312c699d80f77aaf30b03"
+    }
+  ],
+  "log": {
+    "bytes": 270816,
+    "sha256": "c10b4905f8b0d5e5cdb98ddce1329c591fc5fef0d956c42748b0c2a8c69d853e",
+    "excerpts": [
+      "2026-10-04T15:25:34.5342417Z  Test Files  12 passed (12)",
+      "2026-10-04T15:25:34.5343744Z       Tests  157 passed (157)"
+    ]
+  },
+  "sources": [
+    {
+      "file": "packages/vscode-extension/src/chat/image-file-snapshot.js",
+      "gitBlob": "c7bba8e507be15b6eb18c4588f89f986c8bc0eb3"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js",
+      "gitBlob": "a88376316eed33e8a69c93325f2f6242a9f29716"
+    },
+    {
+      "file": "packages/vscode-extension/test/image-decode-budget-browser.cjs",
+      "gitBlob": "1c83009f8ef4f4e3ca477937b28507215b76938c"
+    }
+  ],
+  "limits": [
+    "This is the Windows browser producer, not all IDE matrix jobs.",
+    "Workbench local-test uses fixture model traffic; this is not a paid-model project-task outcome.",
+    "Producer download .bin was not included by the workflow upload; its bytes are not independently verified here.",
+    "No image RSS hard limit, assistive-technology or global SLO conclusion."
+  ]
+}
