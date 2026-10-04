@@ -551,6 +551,7 @@ describe('DeviceSyncManager - 智能重试机制', () => {
     });
 
     it('应该在重试成功后重置attempts计数器', async () => {
+      vi.useFakeTimers();
       manager = new RetryEnabledSyncManager({
         dataPath: tempDir,
         maxRetries: 5,
@@ -560,12 +561,17 @@ describe('DeviceSyncManager - 智能重试机制', () => {
       await manager.initialize();
 
       let callCount = 0;
+      let finishSend;
+      const sendCompleted = new Promise(resolve => {
+        finishSend = resolve;
+      });
       manager.sendFunction = async (message) => {
         callCount++;
         if (callCount < 3) {
           throw new Error('Temporary failure');
         }
-        // 第3次成功
+        // 第3次发送尚未完成时也不能提前清零。
+        await sendCompleted;
       };
 
       const messageId = await manager.queueMessage('device-001', { content: 'test' });
@@ -573,21 +579,42 @@ describe('DeviceSyncManager - 智能重试机制', () => {
       // 第1次尝试（失败）
       await manager.sendMessage(messageId);
 
-      // 等待足够的重试时间
-      // 第1次失败后延迟: 2^1 * 100 = 200ms
-      // 第2次失败后延迟: 2^2 * 100 = 400ms
-      // 总共需要至少600ms+余量
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // 按真实退避边界推进，并交付异步发送/持久化微任务；不依赖宿主负载。
+      await vi.advanceTimersByTimeAsync(199);
+      expect(callCount).toBe(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(callCount).toBe(2);
+      expect(manager.getMessageStatus(messageId).attempts).toBe(2);
+      await vi.advanceTimersByTimeAsync(399);
+      expect(callCount).toBe(2);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(callCount).toBe(3);
+      expect(manager.getMessageStatus(messageId)).toMatchObject({
+        attempts: 3,
+        status: MessageStatus.PENDING,
+      });
+
+      // message:sent 在发送成功及状态持久化之后发出。
+      const sent = new Promise(resolve => manager.once('message:sent', resolve));
+      finishSend();
+      await sent;
 
       // 验证attempts已重置为0（因为第3次成功了）
       const status = manager.getMessageStatus(messageId);
       expect(status.attempts).toBe(0);
       expect(status.status).toBe(MessageStatus.SENT);
+      expect(manager.messageQueue.get('device-001')[0].attempts).toBe(0);
+      expect(manager.retryTimers.size).toBe(0);
+      const persistedStatus = JSON.parse(
+        fs.readFileSync(path.join(tempDir, 'message-status.json'), 'utf8'),
+      );
+      expect(persistedStatus[messageId].attempts).toBe(0);
     }, 10000);
   });
 
   describe('最大重试次数限制', () => {
     it('应该在达到最大重试次数后停止重试', async () => {
+      vi.useFakeTimers();
       manager = new RetryEnabledSyncManager({
         dataPath: tempDir,
         maxRetries: 3,
@@ -607,10 +634,14 @@ describe('DeviceSyncManager - 智能重试机制', () => {
       // 第1次尝试（失败，会安排重试）
       await manager.sendMessage(messageId);
 
-      // 等待所有重试完成
-      // 延迟序列: 2^1*50=100ms, 2^2*50=200ms, 2^3*50=400ms
-      // 总共约700ms+余量
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 两次重试依次等待100ms、200ms；第3次失败后直接进入DLQ。
+      await vi.advanceTimersByTimeAsync(99);
+      expect(attemptCount).toBe(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(attemptCount).toBe(2);
+      await vi.advanceTimersByTimeAsync(199);
+      expect(attemptCount).toBe(2);
+      await vi.advanceTimersByTimeAsync(1);
 
       // 验证只尝试了maxRetries次（3次）
       expect(attemptCount).toBe(3);
@@ -618,6 +649,9 @@ describe('DeviceSyncManager - 智能重试机制', () => {
       // 验证消息已移动到DLQ
       const dlq = manager.getDeadLetterQueue();
       expect(dlq).toHaveLength(1);
+      expect(manager.retryTimers.size).toBe(0);
+      await vi.advanceTimersByTimeAsync(700);
+      expect(attemptCount).toBe(3);
     }, 10000);
 
     it('应该在超过最大重试次数时移动到DLQ', async () => {
