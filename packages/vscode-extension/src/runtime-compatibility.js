@@ -8,6 +8,7 @@
 const { looksLikeCcVersion } = require("./cli-binary");
 const {
   MIN_CLI_VERSION,
+  RECOMMENDED_CLI_VERSION,
   parseCliVersion,
   compareVersions,
 } = require("./version-check");
@@ -27,6 +28,7 @@ function evaluateRuntimeCompatibility({
   minimumCliVersion = MIN_CLI_VERSION,
   bridgePort,
   workspaceTrusted,
+  agentRuntime,
 } = {}) {
   const reasons = [];
   const raw = String(cliVersionText || "");
@@ -59,6 +61,24 @@ function evaluateRuntimeCompatibility({
     reasons.push("workspace trust is restricted");
   }
 
+  if (!cliRequiresRepair) {
+    if (agentRuntime?.state !== "running") {
+      reasons.push(
+        "agent capabilities have not been confirmed for a running session",
+      );
+    } else {
+      if (agentRuntime.inputReceipts !== true)
+        reasons.push(
+          "input acceptance receipts are unavailable; unknown delivery must not be retried automatically",
+        );
+      if (
+        agentRuntime.permissionMode?.status !== "effective" ||
+        !agentRuntime.permissionMode?.effective
+      )
+        reasons.push("effective approval mode is unconfirmed");
+    }
+  }
+
   const status = cliRequiresRepair
     ? STATUS_REPAIR
     : reasons.length
@@ -74,6 +94,8 @@ function evaluateRuntimeCompatibility({
     summary: `${LABELS[status]} — ${detail}`,
     cliVersion,
     minimumCliVersion,
+    recommendedCliVersion: RECOMMENDED_CLI_VERSION,
+    agentRuntime: agentRuntime || null,
     reasons,
   };
 }

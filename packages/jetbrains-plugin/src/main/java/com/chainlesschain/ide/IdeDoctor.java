@@ -69,7 +69,15 @@ public final class IdeDoctor {
           .append("CLI: ").append(runtime.cliVersion == null
                   ? "missing / unrecognized" : runtime.cliVersion)
           .append(" (minimum ").append(runtime.minimumCliVersion)
-          .append(")\n\n");
+          .append(")\n")
+          .append("Recommended CLI: ").append(runtime.recommendedCliVersion).append('\n');
+        RuntimeCompatibility.AgentRuntime agent = runtime.agentRuntime;
+        sb.append("Agent session: ").append(agent == null ? "not observed" : agent.state()).append('\n')
+          .append("Input acceptance receipts: ").append(agent == null || agent.inputReceipts() == null
+                  ? "not observed" : agent.inputReceipts() ? "supported" : "unavailable").append('\n')
+          .append("Approval mode: requested ").append(agent == null ? "unknown" : agent.requestedMode())
+          .append(", effective ").append(agent == null || agent.effectiveMode() == null ? "unconfirmed" : agent.effectiveMode())
+          .append(" (").append(agent == null ? "not observed" : agent.modeStatus()).append(")\n\n");
         sb.append("── Development runtimes and offline recovery ──\n");
         for (String line : RuntimeEnvironment.formatLines(environment)) {
             sb.append(line).append('\n');

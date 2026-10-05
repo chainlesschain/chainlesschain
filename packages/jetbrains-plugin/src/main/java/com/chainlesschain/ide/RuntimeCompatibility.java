@@ -18,6 +18,9 @@ public final class RuntimeCompatibility {
 
     private RuntimeCompatibility() {}
 
+    public record AgentRuntime(String state, Boolean inputReceipts,
+            String requestedMode, String effectiveMode, String modeStatus) {}
+
     public static final class Result {
         public final String status;
         public final String label;
@@ -25,15 +28,18 @@ public final class RuntimeCompatibility {
         public final String cliVersion;
         public final String minimumCliVersion;
         public final List<String> reasons;
+        public final String recommendedCliVersion = CliVersionCheck.RECOMMENDED_CLI_VERSION;
+        public final AgentRuntime agentRuntime;
 
         private Result(String status, String label, String summary,
                 String cliVersion, String minimumCliVersion,
-                List<String> reasons) {
+                List<String> reasons, AgentRuntime agentRuntime) {
             this.status = status;
             this.label = label;
             this.summary = summary;
             this.cliVersion = cliVersion;
             this.minimumCliVersion = minimumCliVersion;
+            this.agentRuntime = agentRuntime;
             this.reasons = Collections.unmodifiableList(
                     new ArrayList<String>(reasons));
         }
@@ -42,6 +48,12 @@ public final class RuntimeCompatibility {
     public static Result evaluate(String cliVersionText,
             String minimumCliVersion, int bridgePort,
             Boolean workspaceTrusted) {
+        return evaluate(cliVersionText, minimumCliVersion, bridgePort, workspaceTrusted, null);
+    }
+
+    public static Result evaluate(String cliVersionText,
+            String minimumCliVersion, int bridgePort,
+            Boolean workspaceTrusted, AgentRuntime agentRuntime) {
         String minimum = minimumCliVersion == null
                 || minimumCliVersion.trim().isEmpty()
                 ? MIN_CLI_VERSION : minimumCliVersion;
@@ -53,7 +65,7 @@ public final class RuntimeCompatibility {
         if (raw.trim().isEmpty()) {
             reasons.add("cc CLI is missing");
             cliRequiresRepair = true;
-        } else if (!looksLikeCcVersion(raw)) {
+        } else if (CliVersionCheck.installedVersion(raw) == null) {
             reasons.add("resolved command is not the chainlesschain CLI");
             cliRequiresRepair = true;
         } else {
@@ -75,6 +87,17 @@ public final class RuntimeCompatibility {
             reasons.add("workspace trust is restricted");
         }
 
+        if (!cliRequiresRepair) {
+            if (agentRuntime == null || !"running".equals(agentRuntime.state())) {
+                reasons.add("agent capabilities have not been confirmed for a running session");
+            } else {
+                if (!Boolean.TRUE.equals(agentRuntime.inputReceipts()))
+                    reasons.add("input acceptance receipts are unavailable; unknown delivery must not be retried automatically");
+                if (!"effective".equals(agentRuntime.modeStatus()) || agentRuntime.effectiveMode() == null || agentRuntime.effectiveMode().isEmpty())
+                    reasons.add("effective approval mode is unconfirmed");
+            }
+        }
+
         String status = cliRequiresRepair
                 ? STATUS_REPAIR
                 : reasons.isEmpty() ? STATUS_READY : STATUS_DEGRADED;
@@ -83,7 +106,7 @@ public final class RuntimeCompatibility {
                 ? "CLI and bridge are compatible"
                 : String.join("; ", reasons);
         return new Result(status, label, label + " — " + detail,
-                cliVersion, minimum, reasons);
+                cliVersion, minimum, reasons, agentRuntime);
     }
 
     private static String label(String status) {
@@ -94,12 +117,4 @@ public final class RuntimeCompatibility {
         return "NEEDS REPAIR (需要修复)";
     }
 
-    private static boolean looksLikeCcVersion(String output) {
-        for (String line : output.split("\\r?\\n")) {
-            String trimmed = line.trim();
-            if (trimmed.isEmpty()) continue;
-            return trimmed.matches("^v?\\d+\\.\\d+\\.\\d+.*");
-        }
-        return false;
-    }
 }

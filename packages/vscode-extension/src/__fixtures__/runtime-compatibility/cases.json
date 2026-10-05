@@ -4,7 +4,16 @@
     "input": {
       "cliVersionText": "0.162.197",
       "bridgePort": 43123,
-      "workspaceTrusted": true
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "ready",
@@ -19,7 +28,16 @@
       "cliVersionText": "v0.162.190\n",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 43123,
-      "workspaceTrusted": null
+      "workspaceTrusted": null,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "ready",
@@ -33,7 +51,16 @@
       "cliVersionText": "0.162.197",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 0,
-      "workspaceTrusted": true
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "degraded",
@@ -47,7 +74,16 @@
       "cliVersionText": "0.162.197",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 43123,
-      "workspaceTrusted": false
+      "workspaceTrusted": false,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "degraded",
@@ -61,7 +97,16 @@
       "cliVersionText": "0.162.189",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 43123,
-      "workspaceTrusted": true
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "repair",
@@ -75,7 +120,16 @@
       "cliVersionText": "",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 0,
-      "workspaceTrusted": true
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "repair",
@@ -89,12 +143,119 @@
       "cliVersionText": "cc (GCC) 12.2.0",
       "minimumCliVersion": "0.162.190",
       "bridgePort": 43123,
-      "workspaceTrusted": true
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
     },
     "expected": {
       "status": "repair",
       "cliVersion": null,
       "reasons": ["resolved command is not the chainlesschain CLI"]
+    }
+  },
+  {
+    "name": "version alone does not prove runtime readiness",
+    "input": {
+      "cliVersionText": "0.166.86",
+      "bridgePort": 43123,
+      "workspaceTrusted": true,
+      "agentRuntime": null
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.166.86",
+      "reasons": [
+        "agent capabilities have not been confirmed for a running session"
+      ]
+    }
+  },
+  {
+    "name": "initializing session is unconfirmed",
+    "input": {
+      "cliVersionText": "0.166.86",
+      "bridgePort": 43123,
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "initializing"
+      }
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.166.86",
+      "reasons": [
+        "agent capabilities have not been confirmed for a running session"
+      ]
+    }
+  },
+  {
+    "name": "receipt degradation",
+    "input": {
+      "cliVersionText": "0.166.86",
+      "bridgePort": 43123,
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": false,
+        "permissionMode": {
+          "requested": "default",
+          "effective": "default",
+          "status": "effective"
+        }
+      }
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.166.86",
+      "reasons": [
+        "input acceptance receipts are unavailable; unknown delivery must not be retried automatically"
+      ]
+    }
+  },
+  {
+    "name": "pending approval acknowledgement",
+    "input": {
+      "cliVersionText": "0.166.86",
+      "bridgePort": 43123,
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": {
+          "requested": "bypassPermissions",
+          "effective": "default",
+          "status": "pending"
+        }
+      }
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.166.86",
+      "reasons": ["effective approval mode is unconfirmed"]
+    }
+  },
+  {
+    "name": "missing approval acknowledgement",
+    "input": {
+      "cliVersionText": "0.166.86",
+      "bridgePort": 43123,
+      "workspaceTrusted": true,
+      "agentRuntime": {
+        "state": "running",
+        "inputReceipts": true,
+        "permissionMode": null
+      }
+    },
+    "expected": {
+      "status": "degraded",
+      "cliVersion": "0.166.86",
+      "reasons": ["effective approval mode is unconfirmed"]
     }
   }
 ]

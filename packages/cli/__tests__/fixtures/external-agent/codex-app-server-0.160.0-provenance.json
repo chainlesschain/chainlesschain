@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.codex-generated-schema-fixture/v1",
+  "upstream": {
+    "package": "@openai/codex",
+    "version": "0.160.0",
+    "license": "Apache-2.0",
+    "documentation": "https://developers.openai.com/codex/app-server",
+    "npmIntegrity": "sha512-kEtVGzjRAYAMOwJxN39bGcna7LT3IDQgq64NNJ/dDTfu4OzZaocJcyNb5/gGJ/IVF/Vj7oK7E2m3nmTan7lpjg=="
+  },
+  "generator": "codex app-server generate-json-schema --out <isolated-schema-directory>",
+  "scope": "Unmodified generated ClientRequest, ServerNotification, ServerRequest and command approval response schemas; schema agreement alone does not admit the upstream version or prove a provider-backed turn.",
+  "files": {
+    "ClientRequest.json": "codex-app-server-0.160.0-request.schema.json",
+    "ServerNotification.json": "codex-app-server-0.160.0-notification.schema.json",
+    "ServerRequest.json": "codex-app-server-0.160.0-server-request.schema.json",
+    "CommandExecutionRequestApprovalResponse.json": "codex-app-server-0.160.0-approval-response.schema.json"
+  }
+}

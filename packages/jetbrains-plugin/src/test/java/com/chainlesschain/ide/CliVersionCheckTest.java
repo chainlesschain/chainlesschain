@@ -9,6 +9,14 @@ import org.junit.jupiter.api.Test;
 /** Real JUnit 5 coverage for the pure {@link CliVersionCheck} layer. */
 class CliVersionCheckTest {
 
+    @Test void installedIdentityRejectsCompilerAndErrorBanners() {
+        for (String raw : new String[] {"cc (GCC) 12.2.0", "Apple clang version 17.0.0", "error\n0.166.86", "", "command not found"}) {
+            assertNull(CliVersionCheck.installedVersion(raw));
+            assertNull(CliVersionCheck.updateNotice(raw, "99.0.0"));
+        }
+        assertEquals("0.166.86", CliVersionCheck.installedVersion("\n v0.166.86\n"));
+    }
+
     @Test
     void parseVersionExtractsSemverFromOutput() {
         assertEquals("0.162.80", CliVersionCheck.parseVersion("chainlesschain 0.162.80\n"));

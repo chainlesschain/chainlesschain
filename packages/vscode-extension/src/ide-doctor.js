@@ -33,12 +33,14 @@ function formatBridgeReport({
   workspaceTrusted,
   workspace,
   runtimeEnvironment,
+  agentRuntime,
 } = {}) {
   const { evaluateRuntimeCompatibility } = require("./runtime-compatibility");
   const compatibility = evaluateRuntimeCompatibility({
     cliVersionText,
     bridgePort: port,
     workspaceTrusted,
+    agentRuntime,
   });
   const mine =
     Number(port) > 0
@@ -55,6 +57,10 @@ function formatBridgeReport({
     `- Extension: ${sectionBody(extensionVersion)}`,
     `- VS Code: ${sectionBody(vscodeVersion)}`,
     `- CLI: ${compatibility.cliVersion || "missing / unrecognized"} (minimum ${compatibility.minimumCliVersion})`,
+    `- Recommended CLI: ${compatibility.recommendedCliVersion}`,
+    `- Agent session: ${agentRuntime?.state || "not observed"}`,
+    `- Input acceptance receipts: ${agentRuntime?.inputReceipts === true ? "supported" : agentRuntime?.inputReceipts === false ? "unavailable" : "not observed"}`,
+    `- Approval mode: requested ${agentRuntime?.permissionMode?.requested || "unknown"}, effective ${agentRuntime?.permissionMode?.effective || "unconfirmed"} (${agentRuntime?.permissionMode?.status || "not observed"})`,
     `- Workspace trust: ${workspaceTrusted === true ? "trusted" : workspaceTrusted === false ? "restricted" : "unknown"}`,
     `- Workspace: ${sectionBody(workspace)}`,
     "",

@@ -1,0 +1,10 @@
+{
+  "schema": "chainlesschain.context-token-calibration-matrix/v1",
+  "minimumDistinctRequestsPerCategory": 3,
+  "targets": [
+    { "provider": "openai", "model": "gpt-6.1-sol" },
+    { "provider": "anthropic", "model": "claude-sonnet-5-5" }
+  ],
+  "executionStatus": "NOT_RUN",
+  "note": "Three distinct captured requests per Chinese/code/emoji/tool-schema category and model. No request is authorized or executed by this file. Coverage does not prove provider provenance, factual fidelity, task success or invoice accuracy."
+}

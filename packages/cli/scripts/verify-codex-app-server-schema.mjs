@@ -9,12 +9,12 @@ const FIXTURE_ROOT = fileURLToPath(
   new URL("../__tests__/fixtures/external-agent/", import.meta.url),
 );
 const FILES = Object.freeze({
-  "ClientRequest.json": "codex-app-server-0.157.1-request.schema.json",
+  "ClientRequest.json": "codex-app-server-0.160.0-request.schema.json",
   "ServerNotification.json":
-    "codex-app-server-0.157.1-notification.schema.json",
-  "ServerRequest.json": "codex-app-server-0.157.1-server-request.schema.json",
+    "codex-app-server-0.160.0-notification.schema.json",
+  "ServerRequest.json": "codex-app-server-0.160.0-server-request.schema.json",
   "CommandExecutionRequestApprovalResponse.json":
-    "codex-app-server-0.157.1-approval-response.schema.json",
+    "codex-app-server-0.160.0-approval-response.schema.json",
 });
 
 export function verifyGeneratedCodexSchemas(
@@ -35,7 +35,7 @@ export function verifyGeneratedCodexSchemas(
     };
   }
   return {
-    upstreamVersion: "0.157.1",
+    upstreamVersion: "0.160.0",
     schemaMatches: true,
     productionAdmission: false,
     files,

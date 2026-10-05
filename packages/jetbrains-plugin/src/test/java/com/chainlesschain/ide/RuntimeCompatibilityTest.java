@@ -74,11 +74,18 @@ class RuntimeCompatibilityTest {
                 (Map<String, Object>) item.get("expected");
         Boolean trusted = input.get("workspaceTrusted") instanceof Boolean
                 ? (Boolean) input.get("workspaceTrusted") : null;
+        Map<String, Object> runtime = (Map<String, Object>) input.get("agentRuntime");
+        Map<String, Object> mode = runtime == null ? null : (Map<String, Object>) runtime.get("permissionMode");
+        RuntimeCompatibility.AgentRuntime agent = runtime == null ? null : new RuntimeCompatibility.AgentRuntime(
+                stringOrNull(runtime.get("state")), (Boolean) runtime.get("inputReceipts"),
+                mode == null ? null : stringOrNull(mode.get("requested")),
+                mode == null ? null : stringOrNull(mode.get("effective")),
+                mode == null ? null : stringOrNull(mode.get("status")));
         RuntimeCompatibility.Result result = RuntimeCompatibility.evaluate(
                 stringOrNull(input.get("cliVersionText")),
                 stringOrNull(input.get("minimumCliVersion")),
                 ((Number) input.get("bridgePort")).intValue(),
-                trusted);
+                trusted, agent);
         assertEquals(expected.get("status"), result.status);
         assertEquals(expected.get("cliVersion"), result.cliVersion);
         if (expected.containsKey("minimumCliVersion")) {

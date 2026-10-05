@@ -88,6 +88,7 @@ import {
 } from "../lib/model-capabilities.js";
 import {
   createOpenAIResponsesBody,
+  createOpenAIResponsesReasoning,
   createOpenAIResponsesStreamState,
   finalizeOpenAIResponsesStream,
   normalizeOpenAIResponsesResponse,
@@ -12120,9 +12121,10 @@ export async function chatWithTools(rawMessages, options) {
       model: effectiveModel,
       messages,
       tools,
-      maxOutputTokens: options.maxOutputTokens,
-      reasoning: _openAIResponsesReasoningParams(options),
+      maxOutputTokens: modelProfile.requestMaxOutputTokens,
+      reasoning: _openAIResponsesReasoningParams(options, modelProfile),
       stream: typeof options.onToken === "function",
+      modelProfile,
     });
     if (typeof options.onToken === "function") {
       return await _retryStreamingChat(
@@ -13039,28 +13041,11 @@ function _intensityToEffort(want) {
 }
 
 /** Build an opt-in Responses reasoning request without changing default cost. */
-export function _openAIResponsesReasoningParams(options = {}) {
-  const want = options?.thinking;
-  if (!want || want === "off" || want === "none") return null;
-  const allowed = new Set([
-    "none",
-    "minimal",
-    "low",
-    "medium",
-    "high",
-    "xhigh",
-  ]);
-  const requested =
-    typeof options.thinkingEffort === "string"
-      ? options.thinkingEffort.toLowerCase()
-      : null;
-  return {
-    effort:
-      requested && allowed.has(requested)
-        ? requested
-        : _intensityToEffort(want),
-    summary: "auto",
-  };
+export function _openAIResponsesReasoningParams(
+  options = {},
+  modelProfile = null,
+) {
+  return createOpenAIResponsesReasoning(options, modelProfile);
 }
 
 /**

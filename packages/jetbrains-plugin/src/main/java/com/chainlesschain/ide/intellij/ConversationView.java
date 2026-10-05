@@ -431,7 +431,7 @@ final class ConversationView {
             // otherwise the provider probe below fails and shows the misleading
             // "未配置 LLM" hint when the real problem is "cc not installed".
             String ver = probeVersionCached(cwd);
-            if (CliVersionCheck.parseVersion(ver) == null) {
+            if (CliVersionCheck.installedVersion(ver) == null) {
                 SwingUtilities.invokeLater(() -> appendThinking(
                         CcBundle.message("chat.needsCli") + " " + CcBundle.message("cli.missing") + "\n"));
                 return;
@@ -513,8 +513,8 @@ final class ConversationView {
                     java.util.Collections.singletonList("--version"), cwd, 12000);
             // Only cache a probe that is really the chainlesschain CLI (not a gcc
             // `cc` shadow), matching probeVersionCached's gate.
-            if (AgentChatSession.looksLikeCcVersion(freshOut)) cachedVersionOut = freshOut;
-            String installed = CliVersionCheck.parseVersion(freshOut);
+            cachedVersionOut = AgentChatSession.looksLikeCcVersion(freshOut) ? freshOut : null;
+            String installed = CliVersionCheck.installedVersion(freshOut);
             String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
             SwingUtilities.invokeLater(() -> {
                 if (installed == null) {
@@ -618,6 +618,18 @@ final class ConversationView {
 
     private AgentChatSession liveSession() {
         return conv.session instanceof AgentChatSession ? (AgentChatSession) conv.session : null;
+    }
+
+    com.chainlesschain.ide.RuntimeCompatibility.AgentRuntime runtimeDiagnostics() {
+        AgentChatSession session = liveSession();
+        boolean running = !disposed && session != null && session.isRunning();
+        java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
+        Boolean receipts = running && capability != null && capability.isDone()
+                && !capability.isCompletedExceptionally() ? capability.getNow(null) : null;
+        com.chainlesschain.ide.PermissionModeState.Snapshot mode = conv.modeState.snapshot();
+        return new com.chainlesschain.ide.RuntimeCompatibility.AgentRuntime(
+                !running ? "not-started" : receipts == null ? "initializing" : "running",
+                receipts, mode.requested(), mode.effective(), mode.status());
     }
 
     void seedWorklog(String sourceSessionId) {
@@ -777,7 +789,7 @@ final class ConversationView {
                 dispatchOwner = owner;
                 java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
                 if (s == null || capability == null) throw new IOException("Agent startup was not confirmed");
-                boolean supported = dispatch.awaitReady(capability, 15, TimeUnit.SECONDS);
+                boolean supported = dispatch.awaitReady(capability, InputDispatch.INITIALIZATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))
                     throw new IOException("Agent changed before input preparation");
                 prepared = drafts.prepare(text, imgs, history, !turnActive && !s.hasPendingTurns()).get(10, TimeUnit.SECONDS);
@@ -807,7 +819,11 @@ final class ConversationView {
                 if (sent && history != null) worklogSourceSent = true;
             } catch (Exception ex) {
                 if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
-                spawnError = ex.getMessage();
+                Throwable cause = ex instanceof java.util.concurrent.ExecutionException && ex.getCause() != null
+                        ? ex.getCause() : ex;
+                spawnError = cause instanceof java.util.concurrent.TimeoutException
+                        ? "Saving input did not finish in time; draft kept for editing"
+                        : cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
             } finally {
                 if (prepared != null && !dispatch.dispatched()) {
                     try { drafts.rejectUndispatched(prepared.submission().id()).get(10, TimeUnit.SECONDS); }

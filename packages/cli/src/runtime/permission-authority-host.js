@@ -3,6 +3,8 @@ import path from "node:path";
 import persistentSettings from "../lib/settings-permission-authority.cjs";
 import settingsLoader from "../lib/settings-loader.cjs";
 import { ScopedPermissionStore } from "../lib/scoped-permission-store.js";
+import { assessAgentSandboxCapabilities } from "../lib/agent-sandbox.js";
+import { describeExecutionSupport } from "../lib/execution-support.js";
 import {
   createPermissionRulesProvider,
   permissionRulesProviderAuthority,
@@ -81,6 +83,18 @@ export function openPermissionAuthorityHost({
     };
   }
   return Object.freeze({
+    capabilities(sandbox, options = {}) {
+      assertOpen();
+      runtimeOptions({ sandbox });
+      const report = assessAgentSandboxCapabilities(sandbox, options);
+      return {
+        ...report,
+        support: describeExecutionSupport({
+          capabilityReport: report,
+          permissionRulesProvider: provider,
+        }),
+      };
+    },
     exportLaunch() {
       assertOpen();
       return persistentSettings.exportSettingsPermissionAuthority(binding);

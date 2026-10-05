@@ -212,7 +212,7 @@ describe("OpenAI Responses adapter", () => {
     ).toEqual({ effort: "low", summary: "auto" });
   });
 
-  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-6.1-sol"])(
     "selects /responses for official %s",
     async (model) => {
       const fetch = vi.fn(async () => ({
@@ -292,7 +292,7 @@ describe("OpenAI Responses adapter", () => {
     },
   );
 
-  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-6.1-sol"])(
     "streams %s Responses text and reasoning through the existing callbacks",
     async (model) => {
       const completed = {

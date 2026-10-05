@@ -268,13 +268,7 @@ public final class AgentChatSession {
      *  (chainlesschain prints "0.162.95"), distinguishing it from a {@code cc}
      *  that is really a C compiler ("cc (GCC) 12.2.0", "Apple clang …"). */
     public static boolean looksLikeCcVersion(String out) {
-        if (out == null) return false;
-        for (String line : out.split("\n")) {
-            String t = line.trim();
-            if (t.isEmpty()) continue;
-            return t.matches("v?\\d+\\.\\d+\\.\\d+.*");
-        }
-        return false;
+        return CliVersionCheck.installedVersion(out) != null;
     }
 
     /**

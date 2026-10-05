@@ -81,7 +81,7 @@ public final class DiagnoseBridgeAction extends AnAction {
                             cliVersionText,
                             RuntimeCompatibility.MIN_CLI_VERSION,
                             port,
-                            null);
+                            null, activeRuntimeSnapshot(project));
             final RemoteDoctor.Result remote =
                     remoteDoctorResult(project, port, cliVersionText);
             final RuntimeEnvironment.Result environment =
@@ -97,6 +97,15 @@ public final class DiagnoseBridgeAction extends AnAction {
                     RemoteDoctorFixes.classifyFixes(remote.checks);
             SwingUtilities.invokeLater(() -> showDialog(project, cwd, report, remote, fixes));
         });
+    }
+
+    private static RuntimeCompatibility.AgentRuntime activeRuntimeSnapshot(Project project) {
+        java.util.concurrent.atomic.AtomicReference<RuntimeCompatibility.AgentRuntime> value =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            if (!project.isDisposed()) value.set(ChatToolWindowFactory.activeRuntimeFor(project));
+        });
+        return value.get();
     }
 
     /** Gather real environment signals and run the Remote/WSL Doctor analysis. */
