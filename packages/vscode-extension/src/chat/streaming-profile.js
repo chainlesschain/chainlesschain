@@ -199,8 +199,25 @@ async function measureStreamingProfile({
         const range = document.createRange();
         range.setStart(selectedNode, 0);
         range.setEnd(selectedNode, 10);
+        // Chromium ignores addRange when even a collapsed caret range already
+        // exists. The original ranges are saved above and restored in finally.
+        selection.removeAllRanges();
         selection.addRange(range);
         selectedText = selection.toString();
+        const actualRange =
+          selection.rangeCount === 1 ? selection.getRangeAt(0) : null;
+        if (
+          selection.isCollapsed ||
+          selectedText !== text.slice(0, 10) ||
+          actualRange?.startContainer !== selectedNode ||
+          actualRange?.endContainer !== selectedNode ||
+          actualRange?.startOffset !== 0 ||
+          actualRange?.endOffset !== 10
+        ) {
+          throw new Error(
+            "Streaming profile could not select the target prefix",
+          );
+        }
       } else {
         selectionStable =
           selectionStable &&

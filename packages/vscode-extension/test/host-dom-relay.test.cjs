@@ -401,24 +401,66 @@ test("streaming evidence rejects forged timing summaries and missing selection/p
     assert.throws(() => verifyStreamingProfile({ ...value, ...patch }));
 });
 
+function profileRange() {
+  return {
+    setStart(node, offset) {
+      this.startContainer = node;
+      this.startOffset = offset;
+    },
+    setEnd(node, offset) {
+      this.endContainer = node;
+      this.endOffset = offset;
+    },
+    cloneRange() {
+      return Object.assign(profileRange(), this);
+    },
+  };
+}
+
+function chromiumSelection(initialRange = null) {
+  let range = initialRange;
+  return {
+    get rangeCount() {
+      return range ? 1 : 0;
+    },
+    get isCollapsed() {
+      return (
+        !range ||
+        (range.startContainer === range.endContainer &&
+          range.startOffset === range.endOffset)
+      );
+    },
+    getRangeAt() {
+      return range;
+    },
+    // Chromium ignores addRange if a range already exists, including a caret.
+    addRange(next) {
+      if (!range) range = next;
+    },
+    removeAllRanges() {
+      range = null;
+    },
+    toString() {
+      return range
+        ? range.startContainer.data.slice(range.startOffset, range.endOffset)
+        : "";
+    },
+  };
+}
+
 test("streaming stage timings exclude stream frames and retain DOM/selection overhead", async () => {
   const { measureStreamingProfile } = require("../src/chat/streaming-profile");
   let now = 0;
   let finishPending;
   let followCalls = 0;
-  const selection = {
-    isCollapsed: true,
-    addRange() {
-      this.isCollapsed = false;
-    },
-    removeAllRanges() {
-      this.isCollapsed = true;
-      now += 2;
-    },
-    toString: () => "selected",
+  const selection = chromiumSelection();
+  const clearSelection = selection.removeAllRanges;
+  selection.removeAllRanges = () => {
+    clearSelection();
+    now += 2;
   };
   const element = {
-    firstChild: {},
+    firstChild: { data: "" },
     querySelectorAll: () => [1, 2],
     remove() {},
   };
@@ -449,7 +491,7 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
       removeEventListener() {},
       createElement: () => element,
       getSelection: () => selection,
-      createRange: () => ({ setStart() {}, setEnd() {} }),
+      createRange: profileRange,
       dispatchEvent: () => finishPending(),
     },
     log: { appendChild() {}, getClientRects: () => [1] },
@@ -457,7 +499,8 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
     createRenderer({ renderMarkdown, decorate, follow }) {
       let formatted = false;
       const renderer = {
-        update() {
+        update(target, text) {
+          target.firstChild.data = text;
           follow();
         },
         finish(target, text) {
@@ -503,7 +546,7 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
   assert.equal(result.finalizationIdempotent, true);
 });
 
-function suspendedProfileFixture() {
+function suspendedProfileFixture({ refuseTargetRange = false } = {}) {
   const { measureStreamingProfile } = require("../src/chat/streaming-profile");
   let now = 0,
     nextId = 0;
@@ -517,30 +560,30 @@ function suspendedProfileFixture() {
     disposed: 0,
     restored: false,
   };
-  const originalRange = { original: true };
-  const selection = {
-    isCollapsed: true,
-    rangeCount: 1,
-    getRangeAt: () => ({ cloneRange: () => originalRange }),
-    addRange(range) {
-      state.restored = range === originalRange;
-      this.isCollapsed = false;
-    },
-    removeAllRanges() {
-      this.isCollapsed = true;
-    },
-    toString: () => "selected",
+  const caretNode = { data: "original caret" };
+  const originalRange = profileRange();
+  originalRange.setStart(caretNode, 3);
+  originalRange.setEnd(caretNode, 3);
+  const selection = chromiumSelection(originalRange);
+  const addRange = selection.addRange;
+  selection.addRange = (range) => {
+    if (refuseTargetRange && range.startContainer !== caretNode) return;
+    addRange(range);
+    state.restored =
+      selection.getRangeAt(0)?.startContainer === caretNode &&
+      selection.getRangeAt(0)?.startOffset === 3 &&
+      selection.isCollapsed;
   };
   const doc = Object.assign(new EventTarget(), {
     visibilityState: "hidden",
     createElement: () => ({
-      firstChild: {},
+      firstChild: { data: "" },
       remove() {
         state.removed++;
       },
     }),
     getSelection: () => selection,
-    createRange: () => ({ setStart() {}, setEnd() {} }),
+    createRange: profileRange,
   });
   const log = {
     scrollTop: 42,
@@ -583,7 +626,8 @@ function suspendedProfileFixture() {
     signal: controller.signal,
     onProgress: (value) => progress.push(value),
     createRenderer: () => ({
-      update() {
+      update(target, text) {
+        target.firstChild.data = text;
         state.updates++;
         log.scrollTop = 999;
       },
@@ -605,6 +649,7 @@ function suspendedProfileFixture() {
     frames,
     timers,
     progress,
+    selection,
     async frame(elapsedMs = 16) {
       const [id, fn] = frames.entries().next().value;
       frames.delete(id);
@@ -622,7 +667,7 @@ function suspendedProfileFixture() {
   };
 }
 
-test("stream profile waits for visible real frames and abort removes queued work and restores state", async () => {
+test("stream profile replaces a Chromium collapsed caret and restores it after cancelling queued frames", async () => {
   const f = suspendedProfileFixture();
   await f.frame();
   assert.equal(f.state.appended, 0);
@@ -631,6 +676,9 @@ test("stream profile waits for visible real frames and abort removes queued work
   assert.equal(f.state.updates, 0); // Readiness frame is not a measured sample.
   await f.frame();
   assert.equal(f.state.updates, 1);
+  assert.equal(f.selection.isCollapsed, false);
+  assert.equal(f.selection.rangeCount, 1);
+  assert.equal(f.selection.toString(), "Plain text");
   const lateFrame = [...f.frames.values()][0];
   const rejected = assert.rejects(f.promise, /cancelled/);
   f.controller.abort();
@@ -646,6 +694,23 @@ test("stream profile waits for visible real frames and abort removes queued work
   assert.equal(f.log.scrollTop, 42);
   assert.equal(f.progress.at(-1).stage, "failed");
   assert.equal(f.progress.at(-1).completedFrames, 1);
+});
+
+test("stream profile fails closed when the target prefix was not actually selected", async () => {
+  const f = suspendedProfileFixture({ refuseTargetRange: true });
+  f.doc.visibilityState = "visible";
+  await f.frame();
+  const rejected = assert.rejects(
+    f.promise,
+    /could not select the target prefix/,
+  );
+  await f.frame();
+  await rejected;
+  assert.equal(f.state.updates, 1);
+  assert.equal(f.state.removed, 1);
+  assert.equal(f.state.restored, true);
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
 });
 
 test("stream profile fails closed when visibility is lost during sampling", async () => {
