@@ -87,17 +87,16 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
       run(`import fs from 'node:fs';import {spawn} from 'node:child_process';import broker from ${JSON.stringify(brokerUrl)};
         let raw;broker._native={spawn:(...args)=>raw=spawn(...args)};
         const proc=broker.spawn(process.execPath,['-e',${JSON.stringify(target)}],{cwd:${JSON.stringify(workspace)},policy:'allow',linuxSubreaper:{graceMs:20}});proc.on('error',()=>{});
-        // Descendants keep the target pipes open after supervisor loss. Drop
-        // this fixture owner's read ends only after observing the killed
-        // supervisor, so the unconfirmed receipt precedes target self-expiry.
-        raw.once('exit',(_code,signal)=>{if(signal==='SIGKILL'){raw.stdout.destroy();raw.stderr.destroy();}});
         let output='';proc.stdout.on('data',chunk=>{output+=chunk;if(output.includes('\\n')){fs.writeFileSync(${JSON.stringify(ready)},output.trim());raw.kill('SIGKILL');}});
         const receipt=await proc.ownedProcessTreeClosed;if(receipt.cleanup.confirmed)throw Error('expected lost supervisor');process.exit(0);`);
       const state = JSON.parse(fs.readFileSync(journal));
       expect(state.pending).toHaveLength(1);
       ({ executionId: id, recovery: identity } = state.pending[0]);
       const pids = JSON.parse(fs.readFileSync(ready));
-      expect(pids.every(executing)).toBe(true);
+      expect(pids).toHaveLength(2);
+      // The supervisor gives its direct target PDEATHSIG=SIGKILL. The detached
+      // grandchild does not inherit that flag and must still need recovery.
+      expect(executing(pids[1])).toBe(true);
       const status = run(
         `import broker from ${JSON.stringify(brokerUrl)};console.log(JSON.stringify(broker.getProcessOwnershipStatus()));`,
       );
