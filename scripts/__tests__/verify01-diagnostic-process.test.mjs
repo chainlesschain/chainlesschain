@@ -92,6 +92,17 @@ test("owned cleanup terminates an actual descendant process", async (t) => {
   const pid = Number(fs.readFileSync(pidFile, "utf8"));
   process.kill(pid, 0);
   await stopOwned(handle);
+  if (process.platform === "win32") {
+    const evidence = JSON.parse(
+      fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"),
+    );
+    assert.equal(evidence.confirmed, true);
+    assert.ok(evidence.owned.some((entry) => entry.pid === handle.child.pid));
+    assert.ok(evidence.owned.some((entry) => entry.pid === pid));
+    assert.deepEqual(evidence.remaining, []);
+    assert.equal(typeof evidence.taskkill.stdout, "string");
+    assert.equal(typeof evidence.taskkill.stderr, "string");
+  }
   // POSIX may briefly retain an orphan zombie until the OS reaper runs.
   let alive = true;
   while (alive && Date.now() < deadline) {
@@ -210,6 +221,56 @@ test(
       }
     } finally {
       fs.writeFileSync(stopFile, "stop");
+    }
+  },
+);
+
+test(
+  "Windows refuses failed termination and discovers a descendant born after the initial snapshot",
+  { skip: process.platform !== "win32", timeout: 40000 },
+  async (t) => {
+    const directory = root(t);
+    // Use an actual harmless Windows executable to inject a tool failure. The
+    // process snapshots and surviving child are real; no output is treated as
+    // a substitute for querying the OS.
+    fs.copyFileSync(
+      path.join(process.env.SystemRoot, "System32", "where.exe"),
+      path.join(directory, "taskkill.exe"),
+    );
+    const logFile = path.join(directory, "survivor.log");
+    const pidFile = path.join(directory, "late-child.pid");
+    const stopFile = path.join(directory, "stop-fixture");
+    const descendant = `const fs=require('node:fs');setInterval(()=>{if(fs.existsSync(process.argv[1]))process.exit(0)},50);setTimeout(()=>process.exit(0),30000);`;
+    const leader = `const cp=require('node:child_process'),fs=require('node:fs');let started=false;setInterval(()=>{if(fs.existsSync(process.argv[3]))process.exit(0);if(!started&&fs.existsSync(process.argv[1])){started=true;const c=cp.spawn(process.execPath,['-e',process.argv[4],process.argv[3]],{windowsHide:true,stdio:'ignore'});fs.writeFileSync(process.argv[2],String(c.pid))}},25);setTimeout(()=>process.exit(0),30000);`;
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", leader, `${logFile}.cleanup.json`, pidFile, stopFile, descendant],
+      { logFile },
+    );
+    const originalPath = process.env.PATH;
+    try {
+      process.env.PATH = `${directory}${path.delimiter}${originalPath}`;
+      await assert.rejects(stopOwned(handle, { requireRunningOwner: true }), {
+        code: "CC_DIAGNOSTIC_CLEANUP_UNCONFIRMED",
+      });
+      process.kill(handle.child.pid, 0);
+      const evidence = JSON.parse(
+        fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"),
+      );
+      assert.equal(evidence.confirmed, false);
+      assert.notEqual(evidence.taskkill.status, 0);
+      assert.equal(typeof evidence.taskkill.stderr, "string");
+      assert.equal(typeof evidence.taskkill.stdout, "string");
+      assert.ok(
+        evidence.remaining.some((entry) => entry.pid === handle.child.pid),
+      );
+      const latePid = Number(fs.readFileSync(pidFile, "utf8"));
+      process.kill(latePid, 0);
+      assert.ok(evidence.remaining.some((entry) => entry.pid === latePid));
+    } finally {
+      process.env.PATH = originalPath;
+      fs.writeFileSync(stopFile, "stop");
+      await withinDeadline(handle.done, Date.now() + 10000, "fixture shutdown");
     }
   },
 );

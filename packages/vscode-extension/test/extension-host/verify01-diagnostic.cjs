@@ -162,7 +162,12 @@ async function main(argv = process.argv.slice(2)) {
         },
       },
     );
-    handle = { child, closed: false, done: null };
+    handle = {
+      child,
+      closed: false,
+      done: null,
+      logFile: path.join(root, "host.log"),
+    };
     handle.done = new Promise((yes, no) => {
       child.once("error", no);
       child.once("close", (code, signal) => {
