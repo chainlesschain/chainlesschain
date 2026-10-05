@@ -60,6 +60,8 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
     task,
   }) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-cgroup-restart-"));
+    const workspace = path.join(root, "workspace");
+    fs.mkdirSync(workspace);
     const marker = path.join(root, "task-starts"),
       ready = path.join(root, "ready.json");
     const anchor = path.join(root, "anchor"),
@@ -74,7 +76,7 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
       const result = spawnSync(
         process.execPath,
         ["--input-type=module", "--eval", code],
-        { cwd: root, env, encoding: "utf8", timeout: 30000 },
+        { cwd: workspace, env, encoding: "utf8", timeout: 30000 },
       );
       expect(result.error).toBeUndefined();
       expect(result.status, result.stderr).toBe(0);
@@ -84,7 +86,11 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
       const target = `const fs=require('node:fs');const {spawn}=require('node:child_process');fs.appendFileSync(${JSON.stringify(marker)},'started\\n');const leaf=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setTimeout(()=>{},25000)"],{detached:true,stdio:'ignore'});process.stdout.write(JSON.stringify([process.pid,leaf.pid])+'\\n');process.on('SIGTERM',()=>{});setTimeout(()=>{},25000);`;
       run(`import fs from 'node:fs';import {spawn} from 'node:child_process';import broker from ${JSON.stringify(brokerUrl)};
         let raw;broker._native={spawn:(...args)=>raw=spawn(...args)};
-        const proc=broker.spawn(process.execPath,['-e',${JSON.stringify(target)}],{cwd:${JSON.stringify(root)},policy:'allow',linuxSubreaper:{graceMs:20}});proc.on('error',()=>{});
+        const proc=broker.spawn(process.execPath,['-e',${JSON.stringify(target)}],{cwd:${JSON.stringify(workspace)},policy:'allow',linuxSubreaper:{graceMs:20}});proc.on('error',()=>{});
+        // Descendants keep the target pipes open after supervisor loss. Drop
+        // this fixture owner's read ends only after observing the killed
+        // supervisor, so the unconfirmed receipt precedes target self-expiry.
+        raw.once('exit',(_code,signal)=>{if(signal==='SIGKILL'){raw.stdout.destroy();raw.stderr.destroy();}});
         let output='';proc.stdout.on('data',chunk=>{output+=chunk;if(output.includes('\\n')){fs.writeFileSync(${JSON.stringify(ready)},output.trim());raw.kill('SIGKILL');}});
         const receipt=await proc.ownedProcessTreeClosed;if(receipt.cleanup.confirmed)throw Error('expected lost supervisor');process.exit(0);`);
       const state = JSON.parse(fs.readFileSync(journal));
