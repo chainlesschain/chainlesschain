@@ -1,0 +1,67 @@
+{
+  "schema": "chainlesschain.vscode-host-retry-history/v1",
+  "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "failedRun": 37291923667,
+  "analysis": {
+    "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+    "failedRun": 37291923667,
+    "failedJob": 111708503073,
+    "failedArtifact": 11338405182,
+    "baselineSuccessfulRun": 37279774086,
+    "baselineSuccessfulJob": 111673549433,
+    "hostVersion": "1.140.0",
+    "runnerImage": "ubuntu-24.04 20260927.320.1",
+    "observedFailure": "Managed primary host exits code 1 about 20 seconds after launch dispatch, with CodeWindow: detected unresponsive; no activation-ready, test-driver, or assertion records.",
+    "failureEvidenceComplete": false,
+    "assertionRegressionProven": false,
+    "environmentRootCauseProven": false,
+    "dbusWarningAlsoPresentOnSuccessfulBaseline": true,
+    "minimumNextAction": "One official rerun of failed job on unchanged SHA with all host gates preserved; retain failure and require actual success before publish. If repeated, investigate startup/renderer environment before code or gate changes.",
+    "evidence": [
+      {
+        "file": ".work/gap-088-vscode-failed-host.log",
+        "bytes": 32328,
+        "sha256": "2e714738ac0c0346ae0e62ccfe56696327e977b878a25d1e8ccbf4352bfe010f"
+      },
+      {
+        "file": ".work/gap-088-vscode-failed-host-artifact.zip",
+        "bytes": 694439,
+        "sha256": "05fbe9e9271940711947efcafc2c07d250bae0b33cd94bd99f37bb12f6e6f94f"
+      },
+      {
+        "file": ".work/gap-088-vscode-failed-journey-evidence.json",
+        "bytes": 1466,
+        "sha256": "29babd7ef7addfb9a295a98612bb3011938b9504d0719776807496485f22df4c"
+      },
+      {
+        "file": ".work/gap-088-vscode-failed-linux-stable.progress.jsonl",
+        "bytes": 972,
+        "sha256": "e76fcbaa6a7644896a921e26bfb454645a358f876ea997f881e5c8655f3b209d"
+      },
+      {
+        "file": ".work/gap-088-vscode-prerelease-success-host.log",
+        "bytes": 1068231,
+        "sha256": "1742057f828392101df1df87b1c4297bd0a01bd8af38cb8bc5a1ae8cbc663013"
+      }
+    ]
+  },
+  "archivedFiles": [
+    {
+      "name": "vscode-linux-host-attempt1.txt",
+      "bytes": 32328,
+      "sha256": "2e714738ac0c0346ae0e62ccfe56696327e977b878a25d1e8ccbf4352bfe010f"
+    },
+    {
+      "name": "vscode-linux-host-attempt1-journey.json",
+      "bytes": 1466,
+      "sha256": "29babd7ef7addfb9a295a98612bb3011938b9504d0719776807496485f22df4c"
+    },
+    {
+      "name": "vscode-linux-host-attempt1-progress.jsonl",
+      "bytes": 972,
+      "sha256": "e76fcbaa6a7644896a921e26bfb454645a358f876ea997f881e5c8655f3b209d"
+    }
+  ],
+  "successfulAttempt": 2,
+  "resolution": "Official same-SHA Linux host gate + publish rerun passed; candidate and all host requirements unchanged."
+}

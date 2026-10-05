@@ -47,9 +47,11 @@ public final class CcConfigurable implements Configurable {
     @Override
     public @Nullable JComponent createComponent() {
         ccPathField = new JBTextField();
+        ccPathField.getAccessibleContext().setAccessibleName("ChainlessChain CLI path");
         contextIndicatorBox = new JBCheckBox(CcBundle.message("settings.contextIndicator.label"));
         leanContextBox = new JBCheckBox(CcBundle.message("settings.leanContext.label"));
         managedCliBox = new JBCheckBox(CcBundle.message("settings.managedCli.label"));
+        managedCliBox.getAccessibleContext().setAccessibleName("ChainlessChain managed CLI fallback");
         automaticCompletionBox = new JBCheckBox(
                 CcBundle.message("settings.completion.automatic.label"));
         automaticDebounceSpinner = spinner(650, 100, 3000);

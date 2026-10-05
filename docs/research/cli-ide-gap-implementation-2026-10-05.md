@@ -150,17 +150,17 @@ VS Code 和 JetBrains 的 `AgentChatSession` 新增可选 `onProtocolRecord`，�
 
 本轮仍未关闭：完整容器运行与人工签核、三系统实际 GUI driver/公开安装、获授权模型任务及账单、真人 NVDA/VoiceOver/Orca 听测、8h/24h 维护观察、性能 SLO、跨平台 durable host 与完整云端 resume 的条件性需求。可执行工程交付和这些外部验收分别保留状态。
 
-## 10. 本轮提交发布授权与候选
+## 10. 本轮提交发布与回执
 
-用户最新授权提交并发布。新候选为 CLI `0.166.88`、VS Code `0.37.133`、JetBrains `0.4.151`，双 IDE 推荐版本同步为 `0.166.88`。子包源码相对已发布 `v-npm-0-166-87` 无变更，沿用现有精确依赖版本并重新检查公开可获取性。
+本轮发行版本为 CLI `0.166.88`、VS Code `0.37.133`、JetBrains `0.4.151`，双 IDE 推荐版本同步为 `0.166.88`。子包源码相对已发布 `v-npm-0-166-87` 无变更，沿用现有精确依赖版本并重新检查公开可获取性。
 
 发布准备验证：CLI 定向 8 文件 145 项通过；为支持 CI 浅克隆，生成器单测改用受控 synthetic Git blobs，仍断言精确冻结 SHA、3 条路径及全部 72 脚本内的字节摘要，真实语法检查和嵌套 Vitest 不 mock，修改后 6 项再次通过。生产生成器仍读取冻结 Git blobs，没有退回 HEAD。operator scripts 属于仓库工具，不在 npm `files` 中；公开 CLI 包包含 Eval/host evidence 核心。
 
 VS Code 234 项通过；JetBrains 28 项与生产 Java/Kotlin 编译通过。本地首次增量编译的 Doctor 仍内联旧 `0.166.87`，已用 javap 确认；完整 `--rerun-tasks` 后通过，未改生产断言或停止共享 daemon。13 个子包精确 registry tarball 已取回并核对 SHA512/SHA1，依赖范围一致，见[子包复审](./cli/evidence/gap-2026-10-05/release-0.166.88/child-package-audit.json)；这不替代 workflow 的 pack 比较与干净安装门。
 
-候选仍须取得准确源码提交的 CLI CI、CLI Strict Sandbox 三系统完整矩阵及 IDE 发布门；全部通过后由 immutable tag 触发 OIDC 发布 CLI，公开回读成功后再发布双 IDE。当前本段是发布准备记录，不是成功回执；准确 SHA、工作流链接及公开制品结果将在完成后追加。发布不关闭第 7、9 节所列真实验收，36+9 仍为 `NOT_RUN`。
+本轮发布已完成：源码固定为 `7db17a12e15cc92cd7d84f8087141a9521cec5c3`，CLI `0.166.88` 经 OIDC 发布及公开字节/provenance 回读成功；VS Code `0.37.133` 在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。准确提交的 CLI CI（attempt 3，67 个任务成功）、CLI Strict Sandbox 三系统完整矩阵、IDE 与 ARM64 门均成功。先校验公开子包，再发布 CLI，公开回读后才发布双 IDE。完整工作流链接、失败重跑历史、制品摘要及 CLI 前置安装回执见[本轮发行证据](./cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。发布不关闭第 7、9 节所列真实验收，36+9 仍为 `NOT_RUN`。
 
-首次候选 `4f120306418207ba3c06d6d1a9726f0d1c437cba` 的 [Linux unit shard 3/4](https://github.com/chainlesschain/chainlesschain/actions/runs/37278010296/job/111659302382) 在 changelog artifact parity 单项失败：版本和根 CHANGELOG 已升级，但提交的 `src/data/changelog.json` 仍是旧版本。该 job 419 个文件、9,212 项通过，1 项失败，13 项跳过。已用正式生成器补齐 bundled changelog，相关 3 文件 17 项本地通过；该失败 SHA 不发标签，新修复提交须重新取得完整矩阵。
+首次候选 `4f120306418207ba3c06d6d1a9726f0d1c437cba` 的 [Linux unit shard 3/4](https://github.com/chainlesschain/chainlesschain/actions/runs/37278010296/job/111659302382) 在 changelog artifact parity 单项失败：版本和根 CHANGELOG 已升级，但提交的 `src/data/changelog.json` 仍是旧版本。该 job 419 个文件、9,212 项通过，1 项失败，13 项跳过。已用正式生成器补齐 bundled changelog，相关 3 文件 17 项本地通过；该失败 SHA 未发标签；修复提交 `7db17a12e15cc92cd7d84f8087141a9521cec5c3` 随后重新通过完整矩阵并发布，见上文回执。
 
 ## 11. 实际宿主采集与验收执行接线
 

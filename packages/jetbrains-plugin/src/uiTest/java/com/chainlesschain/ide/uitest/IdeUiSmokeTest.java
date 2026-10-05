@@ -78,6 +78,13 @@ final class IdeUiSmokeTest {
             assertAutomaticCompletionContract(frame);
             dismissVendorOnboarding(robot);
 
+            String onboardingRoot = System.getProperty("ui.onboarding.root", "");
+            if (!onboardingRoot.isBlank()) {
+                ensureChatInputVisible(robot);
+                new OnboardingIdentityJourney(robot, frame, Paths.get(onboardingRoot)).run();
+                return;
+            }
+
             String verifyRoot = System.getProperty("ui.verify01.captureRoot", "");
             if (!verifyRoot.isBlank()) {
                 ensureChatInputVisible(robot);

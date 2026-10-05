@@ -404,24 +404,11 @@ final class ConversationView {
     /** One-time first-run nudge: when `cc config get llm.provider` is empty,
      *  guide the user to the ⚙ LLM button. The CLI probe runs off the EDT so
      *  it never blocks the panel; failures are swallowed (best-effort). */
-    // Process-level cache of the `cc --version` probe output: every new tab
-    // construction used to re-spawn it twice (onboarding + update nudge). The
-    // installed CLI can't change under a running IDE except via a manual
-    // upgrade — the explicit "检查 cc 更新" action re-probes and refreshes this.
-    // Only probes that look like the REAL chainlesschain CLI are cached (strict
-    // bare-semver first line — not a `cc` that is actually the C compiler, whose
-    // "cc (GCC) 12.2.0" banner parseVersion would wrongly accept and then pin
-    // process-wide). "cc not installed yet" (or a gcc shadow) keeps being
-    // re-checked and recovers as soon as the real CLI is installed / on PATH.
-    private static volatile String cachedVersionOut;
-
-    private static String probeVersionCached(File cwd) {
-        String v = cachedVersionOut;
-        if (v != null) return v;
-        String out = AgentChatSession.runCapture(
-                java.util.Collections.singletonList("--version"), cwd, 12000);
-        if (AgentChatSession.looksLikeCcVersion(out)) cachedVersionOut = out;
-        return out;
+    // Fresh command-bound probes also cover repairs at the same path and
+    // Settings changes while an asynchronous probe is still running.
+    private static String identityFailure(AgentChatSession.CliIdentity identity) {
+        return identity.configuredPath == null ? CcBundle.message("cli.missing")
+                : CcBundle.message("cli.configuredInvalid", identity.configuredPath);
     }
 
     private void maybeShowOnboarding() {
@@ -430,10 +417,13 @@ final class ConversationView {
             // The whole panel needs `cc` on PATH. If it's missing, say so first —
             // otherwise the provider probe below fails and shows the misleading
             // "未配置 LLM" hint when the real problem is "cc not installed".
-            String ver = probeVersionCached(cwd);
-            if (CliVersionCheck.installedVersion(ver) == null) {
-                SwingUtilities.invokeLater(() -> appendThinking(
-                        CcBundle.message("chat.needsCli") + " " + CcBundle.message("cli.missing") + "\n"));
+            AgentChatSession.CliIdentity identity = AgentChatSession.probeCliIdentity(cwd, 12000);
+            if (!identity.isCurrent()) return;
+            if (identity.version == null) {
+                SwingUtilities.invokeLater(() -> {
+                    if (identity.isCurrent()) appendThinking(
+                            CcBundle.message("chat.needsCli") + " " + identityFailure(identity) + "\n");
+                });
                 return;
             }
             String provider;
@@ -443,8 +433,9 @@ final class ConversationView {
                 return; // never block the panel on the probe
             }
             if (provider == null || provider.trim().isEmpty()) {
-                SwingUtilities.invokeLater(() -> appendThinking(
-                        CcBundle.message("chat.noLlm") + "\n"));
+                SwingUtilities.invokeLater(() -> {
+                    if (identity.isCurrent()) appendThinking(CcBundle.message("chat.noLlm") + "\n");
+                });
             }
         });
     }
@@ -458,7 +449,9 @@ final class ConversationView {
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                String installed = probeVersionCached(cwd);
+                AgentChatSession.CliIdentity identity = AgentChatSession.probeCliIdentity(cwd, 12000);
+                if (!identity.isCurrent() || identity.version == null) return;
+                String installed = identity.output;
                 String latestJson = fetchNpmLatest();
                 String latest = CliVersionCheck.preferredUpgradeTarget(
                         CliVersionCheck.parseNpmLatest(latestJson));
@@ -468,7 +461,9 @@ final class ConversationView {
                 PropertiesComponent props = PropertiesComponent.getInstance(project);
                 if (props.getBoolean(key, false)) return; // already nudged for this version
                 props.setValue(key, true);
-                SwingUtilities.invokeLater(() -> appendThinking("ℹ " + notice + "\n"));
+                SwingUtilities.invokeLater(() -> {
+                    if (identity.isCurrent()) appendThinking("ℹ " + notice + "\n");
+                });
             } catch (Throwable t) {
                 // best-effort — never disturb the panel on a version probe
             }
@@ -509,17 +504,16 @@ final class ConversationView {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             // Manual check: the user may have JUST upgraded — bypass and refresh
             // the process-level probe cache.
-            String freshOut = AgentChatSession.runCapture(
-                    java.util.Collections.singletonList("--version"), cwd, 12000);
-            // Only cache a probe that is really the chainlesschain CLI (not a gcc
-            // `cc` shadow), matching probeVersionCached's gate.
-            cachedVersionOut = AgentChatSession.looksLikeCcVersion(freshOut) ? freshOut : null;
-            String installed = CliVersionCheck.installedVersion(freshOut);
-            String latest = CliVersionCheck.parseNpmLatest(fetchNpmLatest());
+            AgentChatSession.CliIdentity identity = AgentChatSession.probeCliIdentity(cwd, 12000);
+            if (!identity.isCurrent()) return;
+            String installed = identity.version;
+            String latest = installed == null ? null : CliVersionCheck.parseNpmLatest(fetchNpmLatest());
             SwingUtilities.invokeLater(() -> {
+                if (!identity.isCurrent()) return;
                 if (installed == null) {
                     com.intellij.openapi.ui.Messages.showWarningDialog(project,
-                            CcBundle.message("chat.update.noVersion"),
+                            identity.configuredPath == null ? CcBundle.message("chat.update.noVersion")
+                                    : identityFailure(identity),
                             "ChainlessChain");
                     return;
                 }

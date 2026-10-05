@@ -1,0 +1,1287 @@
+{
+  "schema": "chainlesschain.cli-ide-release-workflows/v1",
+  "observedAt": "2026-10-05T11:13:32.069Z",
+  "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "tags": [
+    {
+      "tag": "v-npm-0-166-88",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/v-npm-0-166-88"
+    },
+    {
+      "tag": "ide-vscode-v0.37.133",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/ide-vscode-v0.37.133"
+    },
+    {
+      "tag": "ide-jetbrains-v0.4.151",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/ide-jetbrains-v0.4.151"
+    }
+  ],
+  "runs": [
+    {
+      "id": 37279746954,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "event": "push",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "main",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954",
+      "runAttempt": 3,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111694523261,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:16:32Z",
+          "completedAt": "2026-10-05T09:18:21Z"
+        },
+        {
+          "id": 111694524129,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:56:08Z",
+          "completedAt": "2026-10-05T08:00:54Z"
+        },
+        {
+          "id": 111694524295,
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:09:06Z",
+          "completedAt": "2026-10-05T08:11:43Z"
+        },
+        {
+          "id": 111694524425,
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:34:28Z",
+          "completedAt": "2026-10-05T08:37:24Z"
+        },
+        {
+          "id": 111694524429,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:26:59Z",
+          "completedAt": "2026-10-05T08:32:48Z"
+        },
+        {
+          "id": 111694524545,
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:15:25Z",
+          "completedAt": "2026-10-05T08:30:23Z"
+        },
+        {
+          "id": 111694524636,
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:15:09Z",
+          "completedAt": "2026-10-05T08:31:11Z"
+        },
+        {
+          "id": 111694524652,
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:37:21Z",
+          "completedAt": "2026-10-05T08:39:36Z"
+        },
+        {
+          "id": 111694524818,
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:16:27Z",
+          "completedAt": "2026-10-05T08:26:06Z"
+        },
+        {
+          "id": 111694524893,
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:33Z",
+          "completedAt": "2026-10-05T08:38:50Z"
+        },
+        {
+          "id": 111694524910,
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:15:20Z",
+          "completedAt": "2026-10-05T08:20:53Z"
+        },
+        {
+          "id": 111694524950,
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:20:12Z",
+          "completedAt": "2026-10-05T08:30:29Z"
+        },
+        {
+          "id": 111694524953,
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:22:01Z",
+          "completedAt": "2026-10-05T08:29:55Z"
+        },
+        {
+          "id": 111694525060,
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:23:21Z",
+          "completedAt": "2026-10-05T08:33:50Z"
+        },
+        {
+          "id": 111694525068,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:13:28Z",
+          "completedAt": "2026-10-05T08:15:30Z"
+        },
+        {
+          "id": 111694525164,
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:00:57Z",
+          "completedAt": "2026-10-05T08:24:21Z"
+        },
+        {
+          "id": 111694525171,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:10:35Z",
+          "completedAt": "2026-10-05T08:12:30Z"
+        },
+        {
+          "id": 111694525238,
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:29:23Z",
+          "completedAt": "2026-10-05T08:40:03Z"
+        },
+        {
+          "id": 111694525273,
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:26:08Z",
+          "completedAt": "2026-10-05T08:30:00Z"
+        },
+        {
+          "id": 111694525287,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:07:42Z",
+          "completedAt": "2026-10-05T08:09:24Z"
+        },
+        {
+          "id": 111694525376,
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:08:19Z",
+          "completedAt": "2026-10-05T08:22:22Z"
+        },
+        {
+          "id": 111694525458,
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:24:24Z",
+          "completedAt": "2026-10-05T08:35:12Z"
+        },
+        {
+          "id": 111694525479,
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:13:22Z",
+          "completedAt": "2026-10-05T08:20:40Z"
+        },
+        {
+          "id": 111694525506,
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:24:49Z",
+          "completedAt": "2026-10-05T08:32:18Z"
+        },
+        {
+          "id": 111694525627,
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:12:56Z",
+          "completedAt": "2026-10-05T08:16:18Z"
+        },
+        {
+          "id": 111694525678,
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:31:13Z",
+          "completedAt": "2026-10-05T08:41:57Z"
+        },
+        {
+          "id": 111694525775,
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:09:26Z",
+          "completedAt": "2026-10-05T08:15:21Z"
+        },
+        {
+          "id": 111694525815,
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:25:11Z",
+          "completedAt": "2026-10-05T08:38:20Z"
+        },
+        {
+          "id": 111694525841,
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:52Z",
+          "completedAt": "2026-10-05T08:41:01Z"
+        },
+        {
+          "id": 111694525874,
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:13:40Z",
+          "completedAt": "2026-10-05T08:23:44Z"
+        },
+        {
+          "id": 111694525876,
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:20:44Z",
+          "completedAt": "2026-10-05T08:40:02Z"
+        },
+        {
+          "id": 111694525914,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:24:10Z",
+          "completedAt": "2026-10-05T08:30:46Z"
+        },
+        {
+          "id": 111694525917,
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:24:07Z",
+          "completedAt": "2026-10-05T08:34:56Z"
+        },
+        {
+          "id": 111694525925,
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:11:14Z",
+          "completedAt": "2026-10-05T08:24:03Z"
+        },
+        {
+          "id": 111694525966,
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:37:30Z",
+          "completedAt": "2026-10-05T08:45:16Z"
+        },
+        {
+          "id": 111694526087,
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:32:09Z",
+          "completedAt": "2026-10-05T08:56:04Z"
+        },
+        {
+          "id": 111694527010,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:58Z",
+          "completedAt": "2026-10-05T08:44:58Z"
+        },
+        {
+          "id": 111694555989,
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:20:56Z",
+          "completedAt": "2026-10-05T08:25:59Z"
+        },
+        {
+          "id": 111694556515,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:13:58Z",
+          "completedAt": "2026-10-05T08:16:00Z"
+        },
+        {
+          "id": 111694558132,
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:02Z",
+          "completedAt": "2026-10-05T08:37:15Z"
+        },
+        {
+          "id": 111694559048,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:51:54Z",
+          "completedAt": "2026-10-05T07:52:26Z"
+        },
+        {
+          "id": 111694561290,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:19:39Z",
+          "completedAt": "2026-10-05T08:24:07Z"
+        },
+        {
+          "id": 111694565325,
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:14:01Z",
+          "completedAt": "2026-10-05T08:30:56Z"
+        },
+        {
+          "id": 111694565432,
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:22:36Z",
+          "completedAt": "2026-10-05T08:32:07Z"
+        },
+        {
+          "id": 111694567161,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:16:03Z",
+          "completedAt": "2026-10-05T08:24:46Z"
+        },
+        {
+          "id": 111694567374,
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:14:26Z",
+          "completedAt": "2026-10-05T08:21:55Z"
+        },
+        {
+          "id": 111694568963,
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:56:43Z",
+          "completedAt": "2026-10-05T08:01:38Z"
+        },
+        {
+          "id": 111694569254,
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:23:48Z",
+          "completedAt": "2026-10-05T08:32:17Z"
+        },
+        {
+          "id": 111694569836,
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:09Z",
+          "completedAt": "2026-10-05T08:37:53Z"
+        },
+        {
+          "id": 111694570594,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:13:02Z",
+          "completedAt": "2026-10-05T08:15:05Z"
+        },
+        {
+          "id": 111694570689,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:30:26Z",
+          "completedAt": "2026-10-05T08:36:58Z"
+        },
+        {
+          "id": 111694570958,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:27:00Z",
+          "completedAt": "2026-10-05T08:32:55Z"
+        },
+        {
+          "id": 111694572335,
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:26:14Z",
+          "completedAt": "2026-10-05T08:29:15Z"
+        },
+        {
+          "id": 111694572566,
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:49:36Z",
+          "completedAt": "2026-10-05T07:55:32Z"
+        },
+        {
+          "id": 111694572807,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:28:00Z",
+          "completedAt": "2026-10-05T08:33:25Z"
+        },
+        {
+          "id": 111694573459,
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:32:25Z",
+          "completedAt": "2026-10-05T08:43:03Z"
+        },
+        {
+          "id": 111694578223,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:17:51Z",
+          "completedAt": "2026-10-05T08:23:19Z"
+        },
+        {
+          "id": 111694579388,
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:22:25Z",
+          "completedAt": "2026-10-05T08:26:56Z"
+        },
+        {
+          "id": 111694581494,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:50:19Z",
+          "completedAt": "2026-10-05T07:50:52Z"
+        },
+        {
+          "id": 111694582399,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:01:41Z",
+          "completedAt": "2026-10-05T08:08:16Z"
+        },
+        {
+          "id": 111694583013,
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:01:33Z",
+          "completedAt": "2026-10-05T08:14:18Z"
+        },
+        {
+          "id": 111694584336,
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:14:00Z",
+          "completedAt": "2026-10-05T08:22:28Z"
+        },
+        {
+          "id": 111695186375,
+          "name": "verify-cli (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:18:24Z",
+          "completedAt": "2026-10-05T09:20:23Z"
+        },
+        {
+          "id": 111695186419,
+          "name": "pack-linux-dryrun",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:18:24Z",
+          "completedAt": "2026-10-05T09:19:44Z"
+        },
+        {
+          "id": 111695186424,
+          "name": "verify-cli (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:18:24Z",
+          "completedAt": "2026-10-05T09:25:06Z"
+        },
+        {
+          "id": 111695186441,
+          "name": "verify-cli (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:18:30Z",
+          "completedAt": "2026-10-05T09:23:18Z"
+        },
+        {
+          "id": 111695188035,
+          "name": "dry-run-publish",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:18:21Z",
+          "completedAt": "2026-10-05T09:18:21Z"
+        },
+        {
+          "id": 111697544454,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:25:10Z",
+          "completedAt": "2026-10-05T09:25:35Z"
+        }
+      ]
+    },
+    {
+      "id": 37279746478,
+      "name": "CLI Strict Sandbox",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "event": "push",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "main",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111664786851,
+          "name": "macOS latest native capability",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:54:23Z",
+          "completedAt": "2026-10-05T07:57:07Z"
+        },
+        {
+          "id": 111664787030,
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:47:52Z",
+          "completedAt": "2026-10-05T07:50:29Z"
+        },
+        {
+          "id": 111664787054,
+          "name": "strict native boundary (ubuntu-24.04)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:48:13Z",
+          "completedAt": "2026-10-05T07:52:31Z"
+        },
+        {
+          "id": 111664787087,
+          "name": "strict native boundary (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:48:14Z",
+          "completedAt": "2026-10-05T07:56:40Z"
+        },
+        {
+          "id": 111664787108,
+          "name": "strict native boundary (macos-15)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:03:36Z",
+          "completedAt": "2026-10-05T08:07:54Z"
+        }
+      ]
+    },
+    {
+      "id": 37279774086,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "event": "workflow_dispatch",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "main",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279774086",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111664890620,
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:53:34Z",
+          "completedAt": "2026-10-05T07:53:51Z"
+        },
+        {
+          "id": 111666641527,
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:55:46Z",
+          "completedAt": "2026-10-05T07:56:24Z"
+        },
+        {
+          "id": 111666641582,
+          "name": "Browser evidence (macos)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:11:21Z",
+          "completedAt": "2026-10-05T08:13:59Z"
+        },
+        {
+          "id": 111666641621,
+          "name": "Browser evidence (windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:02:47Z",
+          "completedAt": "2026-10-05T08:12:59Z"
+        },
+        {
+          "id": 111666641638,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:08:00Z",
+          "completedAt": "2026-10-05T08:25:08Z"
+        },
+        {
+          "id": 111666641644,
+          "name": "Browser evidence (linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:00:48Z",
+          "completedAt": "2026-10-05T08:02:42Z"
+        },
+        {
+          "id": 111666641674,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:56:17Z",
+          "completedAt": "2026-10-05T08:06:29Z"
+        },
+        {
+          "id": 111666641702,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:11:54Z",
+          "completedAt": "2026-10-05T08:34:19Z"
+        },
+        {
+          "id": 111666641716,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:56:27Z",
+          "completedAt": "2026-10-05T08:10:32Z"
+        },
+        {
+          "id": 111666641721,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:09:20Z",
+          "completedAt": "2026-10-05T08:19:36Z"
+        },
+        {
+          "id": 111666641751,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:58:45Z",
+          "completedAt": "2026-10-05T08:12:16Z"
+        },
+        {
+          "id": 111667436576,
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:05:27Z",
+          "completedAt": "2026-10-05T08:12:47Z"
+        },
+        {
+          "id": 111667436640,
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:08:53Z",
+          "completedAt": "2026-10-05T08:13:37Z"
+        },
+        {
+          "id": 111667436659,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:10:05Z",
+          "completedAt": "2026-10-05T08:11:11Z"
+        },
+        {
+          "id": 111672187537,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:12:19Z",
+          "completedAt": "2026-10-05T08:12:41Z"
+        },
+        {
+          "id": 111673117715,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:14:21Z",
+          "completedAt": "2026-10-05T08:15:17Z"
+        },
+        {
+          "id": 111673549433,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:15:33Z",
+          "completedAt": "2026-10-05T08:17:48Z"
+        },
+        {
+          "id": 111679919856,
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:34:22Z",
+          "completedAt": "2026-10-05T08:40:23Z"
+        },
+        {
+          "id": 111681959892,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T08:40:24Z",
+          "completedAt": "2026-10-05T08:40:23Z"
+        }
+      ]
+    },
+    {
+      "id": 37279869315,
+      "name": "IDE ARM64 Host Validation",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "event": "workflow_dispatch",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "main",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279869315",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111665202394,
+          "name": "VS Code architecture-neutral candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:49:41Z",
+          "completedAt": "2026-10-05T07:50:38Z"
+        },
+        {
+          "id": 111665202463,
+          "name": "JetBrains ARM64 (linux, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:49:51Z",
+          "completedAt": "2026-10-05T07:58:04Z"
+        },
+        {
+          "id": 111665202501,
+          "name": "JetBrains ARM64 (macos, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:58:08Z",
+          "completedAt": "2026-10-05T08:11:13Z"
+        },
+        {
+          "id": 111665202546,
+          "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:49:20Z",
+          "completedAt": "2026-10-05T08:10:02Z"
+        },
+        {
+          "id": 111665202552,
+          "name": "JetBrains ARM64 (macos, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:54:18Z",
+          "completedAt": "2026-10-05T08:08:56Z"
+        },
+        {
+          "id": 111665202558,
+          "name": "JetBrains ARM64 (linux, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:50:57Z",
+          "completedAt": "2026-10-05T07:59:35Z"
+        },
+        {
+          "id": 111665664649,
+          "name": "VS Code ARM64 (linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:52:36Z",
+          "completedAt": "2026-10-05T07:56:14Z"
+        },
+        {
+          "id": 111665664708,
+          "name": "VS Code ARM64 (windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:52:22Z",
+          "completedAt": "2026-10-05T08:01:22Z"
+        },
+        {
+          "id": 111665664724,
+          "name": "VS Code ARM64 (macos)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T07:58:46Z",
+          "completedAt": "2026-10-05T08:03:28Z"
+        },
+        {
+          "id": 111672198254,
+          "name": "Aggregate 11-cell IDE ARM64 evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T08:12:43Z",
+          "completedAt": "2026-10-05T08:13:25Z"
+        }
+      ]
+    },
+    {
+      "id": 37290065303,
+      "name": "Publish CLI release to npm",
+      "path": ".github/workflows/npm-publish.yml",
+      "event": "push",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "v-npm-0-166-88",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111698122473,
+          "name": "exact-sha-gate",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:26:47Z",
+          "completedAt": "2026-10-05T09:27:17Z"
+        },
+        {
+          "id": 111698123872,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:26:44Z",
+          "completedAt": "2026-10-05T09:26:43Z"
+        },
+        {
+          "id": 111698124159,
+          "name": "dry-run",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:26:44Z",
+          "completedAt": "2026-10-05T09:26:43Z"
+        },
+        {
+          "id": 111698321481,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:27:22Z",
+          "completedAt": "2026-10-05T09:27:56Z"
+        },
+        {
+          "id": 111698321491,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:27:20Z",
+          "completedAt": "2026-10-05T09:27:58Z"
+        },
+        {
+          "id": 111698560445,
+          "name": "package-cli",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:28:01Z",
+          "completedAt": "2026-10-05T09:30:16Z"
+        },
+        {
+          "id": 111699373005,
+          "name": "publish",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:30:19Z",
+          "completedAt": "2026-10-05T09:39:18Z"
+        }
+      ]
+    },
+    {
+      "id": 37291923667,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "event": "push",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "ide-vscode-v0.37.133",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37291923667",
+      "runAttempt": 2,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111724190660,
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:32Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111724191746,
+          "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T10:41:06Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111724191812,
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:44:29Z"
+        },
+        {
+          "id": 111724191925,
+          "name": "Browser evidence (windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:47:24Z"
+        },
+        {
+          "id": 111724191974,
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:46:32Z",
+          "completedAt": "2026-10-05T09:56:05Z"
+        },
+        {
+          "id": 111724191976,
+          "name": "Browser evidence (macos)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:44:02Z",
+          "completedAt": "2026-10-05T09:46:21Z"
+        },
+        {
+          "id": 111724192462,
+          "name": "Browser evidence (linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:45:44Z"
+        },
+        {
+          "id": 111724192535,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T10:55:29Z",
+          "completedAt": "2026-10-05T11:01:52Z"
+        },
+        {
+          "id": 111724192564,
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:44:32Z",
+          "completedAt": "2026-10-05T09:48:55Z"
+        },
+        {
+          "id": 111724192795,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:44:32Z",
+          "completedAt": "2026-10-05T09:45:44Z"
+        },
+        {
+          "id": 111724192859,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:47:30Z",
+          "completedAt": "2026-10-05T09:48:29Z"
+        },
+        {
+          "id": 111724193350,
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T10:41:07Z",
+          "completedAt": "2026-10-05T09:48:30Z"
+        },
+        {
+          "id": 111724193910,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:45:48Z",
+          "completedAt": "2026-10-05T09:46:15Z"
+        },
+        {
+          "id": 111724194336,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T10:41:07Z",
+          "completedAt": "2026-10-05T09:48:30Z"
+        }
+      ]
+    },
+    {
+      "id": 37291923696,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "event": "push",
+      "sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "tag": "ide-jetbrains-v0.4.151",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37291923696",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 111704084991,
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:36Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111704224498,
+          "name": "Browser evidence (windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:55Z",
+          "completedAt": "2026-10-05T09:47:02Z"
+        },
+        {
+          "id": 111704224551,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:56Z",
+          "completedAt": "2026-10-05T09:59:43Z"
+        },
+        {
+          "id": 111704224554,
+          "name": "Browser evidence (linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:45:54Z"
+        },
+        {
+          "id": 111704224561,
+          "name": "Browser evidence (macos)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:44:03Z",
+          "completedAt": "2026-10-05T09:46:28Z"
+        },
+        {
+          "id": 111704224651,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:56Z",
+          "completedAt": "2026-10-05T10:01:50Z"
+        },
+        {
+          "id": 111704224668,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:59Z",
+          "completedAt": "2026-10-05T09:56:05Z"
+        },
+        {
+          "id": 111704224708,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:55:11Z"
+        },
+        {
+          "id": 111704224756,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:43:57Z",
+          "completedAt": "2026-10-05T09:52:59Z"
+        },
+        {
+          "id": 111704224772,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:46:31Z",
+          "completedAt": "2026-10-05T10:02:59Z"
+        },
+        {
+          "id": 111704226372,
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:43:53Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111704226473,
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:43:53Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111704226674,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:43:53Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111704227172,
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:43:53Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111704227450,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:43:54Z",
+          "completedAt": "2026-10-05T09:43:53Z"
+        },
+        {
+          "id": 111705330967,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T09:47:27Z",
+          "completedAt": "2026-10-05T09:48:26Z"
+        },
+        {
+          "id": 111705826539,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-05T09:48:27Z",
+          "completedAt": "2026-10-05T09:48:26Z"
+        },
+        {
+          "id": 111710901947,
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T10:08:50Z",
+          "completedAt": "2026-10-05T10:15:22Z"
+        },
+        {
+          "id": 111715302488,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed",
+          "conclusion": "success",
+          "startedAt": "2026-10-05T10:16:38Z",
+          "completedAt": "2026-10-05T10:18:55Z"
+        }
+      ]
+    }
+  ],
+  "pmRecoveryAttempt": {
+    "attempt": 3,
+    "artifacts": [
+      {
+        "id": 11336155571,
+        "name": "pm-exploration-recovery-ubuntu-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-3",
+        "digest": "sha256:e89e42c5adb4673e6c0467ed2261429c8fe37f61700eb4bacf82400dad583b52",
+        "expired": false
+      },
+      {
+        "id": 11336031556,
+        "name": "pm-exploration-recovery-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-3",
+        "digest": "sha256:0cc88ffeae82561882c864e2bd1a55f0e3566655d0b594d710b2d3b7fb5a7d3a",
+        "expired": false
+      },
+      {
+        "id": 11335218671,
+        "name": "pm-exploration-recovery-macos-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-3",
+        "digest": "sha256:3c445918a54484dc5464e4ea23b6b0ac14c64d5c2ce3f5cf7192e2f2db1b7c5a",
+        "expired": false
+      },
+      {
+        "id": 11335708640,
+        "name": "pm-exploration-recovery-test-only-aggregate-7db17a12e15cc92cd7d84f8087141a9521cec5c3-3",
+        "digest": "sha256:1744ea338479155e6e02560cb4ccac3d96bebc7194d4e0d6ae0348583bbd459d",
+        "expired": false
+      }
+    ]
+  }
+}

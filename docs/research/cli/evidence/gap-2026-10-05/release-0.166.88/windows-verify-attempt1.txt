@@ -1,0 +1,1106 @@
+﻿2026-10-05T08:56:08.2768929Z Current runner version: '2.337.0'
+2026-10-05T08:56:08.2797336Z ##[group]Runner Image Provisioner
+2026-10-05T08:56:08.2798234Z Hosted Compute Agent
+2026-10-05T08:56:08.2798766Z Version: 20260901.588
+2026-10-05T08:56:08.2799351Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-05T08:56:08.2800031Z Build Date: 2026-09-01T19:56:44Z
+2026-10-05T08:56:08.2800664Z Worker ID: {443961b7-ffb7-4a20-bdf5-c66f64801603}
+2026-10-05T08:56:08.2801358Z Azure Region: eastus
+2026-10-05T08:56:08.2801861Z ##[endgroup]
+2026-10-05T08:56:08.2803216Z ##[group]Operating System
+2026-10-05T08:56:08.2803841Z Microsoft Windows Server 2025
+2026-10-05T08:56:08.2804406Z 10.0.26100
+2026-10-05T08:56:08.2804894Z Datacenter
+2026-10-05T08:56:08.2805364Z ##[endgroup]
+2026-10-05T08:56:08.2805840Z ##[group]Runner Image
+2026-10-05T08:56:08.2806411Z Image: windows-2025-vs2026
+2026-10-05T08:56:08.2806990Z Version: 20260925.250.1
+2026-10-05T08:56:08.2808402Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-05T08:56:08.2809955Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-05T08:56:08.2810940Z ##[endgroup]
+2026-10-05T08:56:08.2814328Z ##[group]GITHUB_TOKEN Permissions
+2026-10-05T08:56:08.2816699Z Actions: write
+2026-10-05T08:56:08.2817266Z ArtifactMetadata: write
+2026-10-05T08:56:08.2817901Z Attestations: write
+2026-10-05T08:56:08.2818419Z Checks: write
+2026-10-05T08:56:08.2818918Z CodeQuality: write
+2026-10-05T08:56:08.2819496Z Contents: write
+2026-10-05T08:56:08.2820001Z CopilotRequests: write
+2026-10-05T08:56:08.2820558Z Deployments: write
+2026-10-05T08:56:08.2821076Z Discussions: write
+2026-10-05T08:56:08.2821553Z Drives: write
+2026-10-05T08:56:08.2822048Z Issues: write
+2026-10-05T08:56:08.2822523Z Metadata: read
+2026-10-05T08:56:08.2823069Z Models: read
+2026-10-05T08:56:08.2823611Z Packages: write
+2026-10-05T08:56:08.2824108Z Pages: write
+2026-10-05T08:56:08.2824628Z PullRequests: write
+2026-10-05T08:56:08.2825159Z RepositoryProjects: write
+2026-10-05T08:56:08.2825716Z SecurityEvents: write
+2026-10-05T08:56:08.2826244Z Statuses: write
+2026-10-05T08:56:08.2826738Z VulnerabilityAlerts: read
+2026-10-05T08:56:08.2827312Z ##[endgroup]
+2026-10-05T08:56:08.2829431Z Secret source: Actions
+2026-10-05T08:56:08.2830312Z Cache mode: write
+2026-10-05T08:56:08.2830972Z Prepare workflow directory
+2026-10-05T08:56:08.3152048Z Prepare all required actions
+2026-10-05T08:56:08.3198887Z Getting action download info
+2026-10-05T08:56:08.5108198Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-05T08:56:08.6455929Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-05T08:56:08.8316471Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+2026-10-05T08:56:09.1348788Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-05T08:56:09.4879529Z Complete job name: verify-cli (windows-latest)
+2026-10-05T08:56:09.6481442Z ##[group]Run actions/checkout@v5
+2026-10-05T08:56:09.6482446Z with:
+2026-10-05T08:56:09.6482898Z   ref: 7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T08:56:09.6483495Z   repository: chainlesschain/chainlesschain
+2026-10-05T08:56:09.6487656Z   token: ***
+2026-10-05T08:56:09.6488076Z   ssh-strict: true
+2026-10-05T08:56:09.6488477Z   ssh-user: git
+2026-10-05T08:56:09.6488889Z   persist-credentials: true
+2026-10-05T08:56:09.6489349Z   clean: true
+2026-10-05T08:56:09.6489759Z   sparse-checkout-cone-mode: true
+2026-10-05T08:56:09.6490240Z   fetch-depth: 1
+2026-10-05T08:56:09.6490629Z   fetch-tags: false
+2026-10-05T08:56:09.6491038Z   show-progress: true
+2026-10-05T08:56:09.6491455Z   lfs: false
+2026-10-05T08:56:09.6491825Z   submodules: false
+2026-10-05T08:56:09.6492236Z   set-safe-directory: true
+2026-10-05T08:56:09.6492696Z   allow-unsafe-pr-checkout: false
+2026-10-05T08:56:09.6495281Z ##[endgroup]
+2026-10-05T08:56:09.8005760Z Syncing repository: chainlesschain/chainlesschain
+2026-10-05T08:56:09.8008555Z ##[group]Getting Git version info
+2026-10-05T08:56:09.8009613Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-05T08:56:09.8958243Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-05T08:56:10.2619280Z git version 2.55.0.windows.5
+2026-10-05T08:56:10.2670187Z ##[endgroup]
+2026-10-05T08:56:10.2693619Z Temporarily overriding HOME='D:\a\_temp\5dbe476a-60a6-42a2-b15d-d7968540d407' before making global git config changes
+2026-10-05T08:56:10.2698836Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-05T08:56:10.2705234Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-05T08:56:10.3378538Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-05T08:56:10.3385651Z ##[group]Initializing the repository
+2026-10-05T08:56:10.3397797Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-05T08:56:10.4225965Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-05T08:56:10.4275470Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-05T08:56:10.4927553Z ##[endgroup]
+2026-10-05T08:56:10.4929505Z ##[group]Disabling automatic garbage collection
+2026-10-05T08:56:10.4935965Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-05T08:56:10.5245042Z ##[endgroup]
+2026-10-05T08:56:10.5247226Z ##[group]Setting up auth
+2026-10-05T08:56:10.5258057Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-05T08:56:10.5559988Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-05T08:56:11.9621763Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-05T08:56:11.9934831Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-05T08:56:12.5356196Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-05T08:56:12.5678348Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-05T08:56:13.1186772Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-05T08:56:13.1500749Z ##[endgroup]
+2026-10-05T08:56:13.1501285Z ##[group]Fetching the repository
+2026-10-05T08:56:13.1514884Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T08:56:22.7192451Z From https://github.com/chainlesschain/chainlesschain
+2026-10-05T08:56:22.7193465Z  * branch              7db17a12e15cc92cd7d84f8087141a9521cec5c3 -> FETCH_HEAD
+2026-10-05T08:56:22.7239380Z ##[endgroup]
+2026-10-05T08:56:22.7242836Z ##[group]Determining the checkout info
+2026-10-05T08:56:22.7243673Z ##[endgroup]
+2026-10-05T08:56:22.7256351Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-05T08:56:22.7676431Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-05T08:56:22.8034831Z ##[group]Checking out the ref
+2026-10-05T08:56:22.8048436Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T08:56:24.1169495Z Updating files:  15% (2934/19552)
+2026-10-05T08:56:24.1815016Z Updating files:  16% (3129/19552)
+2026-10-05T08:56:24.2416289Z Updating files:  17% (3324/19552)
+2026-10-05T08:56:24.2918232Z Updating files:  18% (3520/19552)
+2026-10-05T08:56:24.3363840Z Updating files:  19% (3715/19552)
+2026-10-05T08:56:24.3805156Z Updating files:  20% (3911/19552)
+2026-10-05T08:56:24.4291742Z Updating files:  21% (4106/19552)
+2026-10-05T08:56:24.4864872Z Updating files:  22% (4302/19552)
+2026-10-05T08:56:24.5466702Z Updating files:  23% (4497/19552)
+2026-10-05T08:56:24.6037042Z Updating files:  24% (4693/19552)
+2026-10-05T08:56:24.6632354Z Updating files:  25% (4888/19552)
+2026-10-05T08:56:24.7205227Z Updating files:  26% (5084/19552)
+2026-10-05T08:56:24.7804289Z Updating files:  27% (5280/19552)
+2026-10-05T08:56:24.8432940Z Updating files:  28% (5475/19552)
+2026-10-05T08:56:24.8741275Z Updating files:  29% (5671/19552)
+2026-10-05T08:56:24.8989654Z Updating files:  29% (5782/19552)
+2026-10-05T08:56:24.9636619Z Updating files:  30% (5866/19552)
+2026-10-05T08:56:25.0193331Z Updating files:  31% (6062/19552)
+2026-10-05T08:56:25.0790850Z Updating files:  32% (6257/19552)
+2026-10-05T08:56:25.1387515Z Updating files:  33% (6453/19552)
+2026-10-05T08:56:25.1995507Z Updating files:  34% (6648/19552)
+2026-10-05T08:56:25.2570866Z Updating files:  35% (6844/19552)
+2026-10-05T08:56:25.3158105Z Updating files:  36% (7039/19552)
+2026-10-05T08:56:25.5906919Z Updating files:  37% (7235/19552)
+2026-10-05T08:56:25.6454767Z Updating files:  38% (7430/19552)
+2026-10-05T08:56:25.6982500Z Updating files:  39% (7626/19552)
+2026-10-05T08:56:25.7595695Z Updating files:  40% (7821/19552)
+2026-10-05T08:56:25.8164248Z Updating files:  41% (8017/19552)
+2026-10-05T08:56:25.8707720Z Updating files:  42% (8212/19552)
+2026-10-05T08:56:25.8760045Z Updating files:  43% (8408/19552)
+2026-10-05T08:56:25.9298350Z Updating files:  43% (8425/19552)
+2026-10-05T08:56:25.9794419Z Updating files:  44% (8603/19552)
+2026-10-05T08:56:26.0301945Z Updating files:  45% (8799/19552)
+2026-10-05T08:56:26.0844337Z Updating files:  46% (8994/19552)
+2026-10-05T08:56:26.1352343Z Updating files:  47% (9190/19552)
+2026-10-05T08:56:26.1985981Z Updating files:  48% (9385/19552)
+2026-10-05T08:56:26.2516124Z Updating files:  49% (9581/19552)
+2026-10-05T08:56:26.3125763Z Updating files:  50% (9776/19552)
+2026-10-05T08:56:26.3683675Z Updating files:  51% (9972/19552)
+2026-10-05T08:56:26.4254432Z Updating files:  52% (10168/19552)
+2026-10-05T08:56:26.4900392Z Updating files:  53% (10363/19552)
+2026-10-05T08:56:26.5627209Z Updating files:  54% (10559/19552)
+2026-10-05T08:56:26.6418720Z Updating files:  55% (10754/19552)
+2026-10-05T08:56:26.7280830Z Updating files:  56% (10950/19552)
+2026-10-05T08:56:26.9080861Z Updating files:  57% (11145/19552)
+2026-10-05T08:56:26.9654362Z Updating files:  57% (11169/19552)
+2026-10-05T08:56:27.0378209Z Updating files:  58% (11341/19552)
+2026-10-05T08:56:27.0977794Z Updating files:  59% (11536/19552)
+2026-10-05T08:56:27.1503907Z Updating files:  60% (11732/19552)
+2026-10-05T08:56:27.2201634Z Updating files:  61% (11927/19552)
+2026-10-05T08:56:27.2885904Z Updating files:  62% (12123/19552)
+2026-10-05T08:56:27.3559549Z Updating files:  63% (12318/19552)
+2026-10-05T08:56:27.4218312Z Updating files:  64% (12514/19552)
+2026-10-05T08:56:27.4830502Z Updating files:  65% (12709/19552)
+2026-10-05T08:56:27.5387135Z Updating files:  66% (12905/19552)
+2026-10-05T08:56:27.6111936Z Updating files:  67% (13100/19552)
+2026-10-05T08:56:27.6836898Z Updating files:  68% (13296/19552)
+2026-10-05T08:56:27.7438690Z Updating files:  69% (13491/19552)
+2026-10-05T08:56:27.7973777Z Updating files:  70% (13687/19552)
+2026-10-05T08:56:27.8515856Z Updating files:  71% (13882/19552)
+2026-10-05T08:56:27.8799231Z Updating files:  72% (14078/19552)
+2026-10-05T08:56:27.9125421Z Updating files:  72% (14175/19552)
+2026-10-05T08:56:27.9699741Z Updating files:  73% (14273/19552)
+2026-10-05T08:56:28.0257814Z Updating files:  74% (14469/19552)
+2026-10-05T08:56:28.2636459Z Updating files:  75% (14664/19552)
+2026-10-05T08:56:28.3153824Z Updating files:  76% (14860/19552)
+2026-10-05T08:56:28.3697837Z Updating files:  77% (15056/19552)
+2026-10-05T08:56:28.4242057Z Updating files:  78% (15251/19552)
+2026-10-05T08:56:28.4808610Z Updating files:  79% (15447/19552)
+2026-10-05T08:56:28.5391959Z Updating files:  80% (15642/19552)
+2026-10-05T08:56:28.6058237Z Updating files:  81% (15838/19552)
+2026-10-05T08:56:28.6724320Z Updating files:  82% (16033/19552)
+2026-10-05T08:56:28.7366347Z Updating files:  83% (16229/19552)
+2026-10-05T08:56:28.8028288Z Updating files:  84% (16424/19552)
+2026-10-05T08:56:28.8935103Z Updating files:  85% (16620/19552)
+2026-10-05T08:56:28.8974530Z Updating files:  85% (16801/19552)
+2026-10-05T08:56:28.9617674Z Updating files:  86% (16815/19552)
+2026-10-05T08:56:29.0248966Z Updating files:  87% (17011/19552)
+2026-10-05T08:56:29.0839307Z Updating files:  88% (17206/19552)
+2026-10-05T08:56:29.1400754Z Updating files:  89% (17402/19552)
+2026-10-05T08:56:29.1947921Z Updating files:  90% (17597/19552)
+2026-10-05T08:56:29.2522653Z Updating files:  91% (17793/19552)
+2026-10-05T08:56:29.3039489Z Updating files:  92% (17988/19552)
+2026-10-05T08:56:29.3646923Z Updating files:  93% (18184/19552)
+2026-10-05T08:56:29.4221648Z Updating files:  94% (18379/19552)
+2026-10-05T08:56:29.6617215Z Updating files:  95% (18575/19552)
+2026-10-05T08:56:29.7130933Z Updating files:  96% (18770/19552)
+2026-10-05T08:56:29.7678628Z Updating files:  97% (18966/19552)
+2026-10-05T08:56:29.8230641Z Updating files:  98% (19161/19552)
+2026-10-05T08:56:29.8758462Z Updating files:  99% (19357/19552)
+2026-10-05T08:56:29.8758952Z Updating files: 100% (19552/19552)
+2026-10-05T08:56:29.8759224Z Updating files: 100% (19552/19552), done.
+2026-10-05T08:56:29.9116320Z Note: switching to '7db17a12e15cc92cd7d84f8087141a9521cec5c3'.
+2026-10-05T08:56:29.9116810Z 
+2026-10-05T08:56:29.9117157Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-05T08:56:29.9118050Z changes and commit them, and you can discard any commits you make in this
+2026-10-05T08:56:29.9118913Z state without impacting any branches by switching back to a branch.
+2026-10-05T08:56:29.9119436Z 
+2026-10-05T08:56:29.9119755Z If you want to create a new branch to retain commits you create, you may
+2026-10-05T08:56:29.9120539Z do so (now or later) by using -c with the switch command. Example:
+2026-10-05T08:56:29.9121011Z 
+2026-10-05T08:56:29.9121736Z   git switch -c <new-branch-name>
+2026-10-05T08:56:29.9122051Z 
+2026-10-05T08:56:29.9122210Z Or undo this operation with:
+2026-10-05T08:56:29.9122478Z 
+2026-10-05T08:56:29.9122605Z   git switch -
+2026-10-05T08:56:29.9122793Z 
+2026-10-05T08:56:29.9123161Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-05T08:56:29.9123726Z 
+2026-10-05T08:56:29.9124096Z HEAD is now at 7db17a12 fix(release): synchronize bundled changelog for CLI 0.166.88
+2026-10-05T08:56:29.9293181Z ##[endgroup]
+2026-10-05T08:56:29.9610692Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-05T08:56:29.9870059Z 7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T08:56:30.0299562Z ##[group]Run test "$(git rev-parse HEAD)" = "7db17a12e15cc92cd7d84f8087141a9521cec5c3"
+2026-10-05T08:56:30.0300238Z [36;1mtest "$(git rev-parse HEAD)" = "7db17a12e15cc92cd7d84f8087141a9521cec5c3"[0m
+2026-10-05T08:56:30.0325123Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T08:56:30.0325523Z ##[endgroup]
+2026-10-05T08:56:30.2666521Z ##[group]Run actions/setup-node@v5
+2026-10-05T08:56:30.2666834Z with:
+2026-10-05T08:56:30.2667015Z   node-version: 22.22.2
+2026-10-05T08:56:30.2667213Z   cache: npm
+2026-10-05T08:56:30.2667423Z   cache-dependency-path: package-lock.json
+2026-10-05T08:56:30.2667701Z   always-auth: false
+2026-10-05T08:56:30.2667907Z   check-latest: false
+2026-10-05T08:56:30.2670285Z   token: ***
+2026-10-05T08:56:30.2670484Z   package-manager-cache: true
+2026-10-05T08:56:30.2670916Z ##[endgroup]
+2026-10-05T08:56:30.4403082Z Attempting to download 22.22.2...
+2026-10-05T08:56:30.4586632Z (node:7636) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-05T08:56:30.4587821Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-05T08:56:30.9420707Z Acquiring 22.22.2 - x64 from https://github.com/actions/node-versions/releases/download/22.22.2-23521889093/node-22.22.2-win32-x64.7z
+2026-10-05T08:56:31.2757651Z Extracting ...
+2026-10-05T08:56:33.6388928Z Adding to the cache ...
+2026-10-05T08:56:37.2397792Z ##[group]Environment details
+2026-10-05T08:56:38.5507449Z node: v22.22.2
+2026-10-05T08:56:38.5507802Z npm: 10.9.7
+2026-10-05T08:56:38.5507987Z yarn: 1.22.22
+2026-10-05T08:56:38.5508432Z ##[endgroup]
+2026-10-05T08:56:38.6266500Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\22.22.2\x64\npm.cmd config get cache"
+2026-10-05T08:56:38.9245052Z C:\npm\cache
+2026-10-05T08:56:39.1412490Z Cache hit for: node-cache-Windows-x64-npm-57328d12152732b14aa4374c0c7d1c13a30994c8cb6150000df8800676bae552
+2026-10-05T08:56:39.1525486Z (node:7636) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-05T08:56:40.2228772Z Received 205520896 of 637589473 (32.2%), 186.5 MBs/sec
+2026-10-05T08:56:41.3125753Z Received 402653184 of 637589473 (63.2%), 179.4 MBs/sec
+2026-10-05T08:56:42.3235190Z Received 612368384 of 637589473 (96.0%), 185.7 MBs/sec
+2026-10-05T08:56:42.5108853Z Received 637589473 of 637589473 (100.0%), 182.4 MBs/sec
+2026-10-05T08:56:42.5109337Z Cache Size: ~608 MB (637589473 B)
+2026-10-05T08:56:42.5172522Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/949596af-1881-4397-9149-2a96a79cf988/cache.tzst -P -C D:/a/chainlesschain/chainlesschain --force-local --use-compress-program "zstd -d"
+2026-10-05T08:56:57.2262166Z Cache restored successfully
+2026-10-05T08:56:57.2675408Z Cache restored from key: node-cache-Windows-x64-npm-57328d12152732b14aa4374c0c7d1c13a30994c8cb6150000df8800676bae552
+2026-10-05T08:56:57.3078448Z ##[group]Run actions/setup-java@v5
+2026-10-05T08:56:57.3078778Z with:
+2026-10-05T08:56:57.3078963Z   distribution: temurin
+2026-10-05T08:56:57.3079181Z   java-version: 21
+2026-10-05T08:56:57.3079378Z   java-package: jdk
+2026-10-05T08:56:57.3079569Z   check-latest: false
+2026-10-05T08:56:57.3079761Z   set-default: true
+2026-10-05T08:56:57.3079959Z   verify-signature: false
+2026-10-05T08:56:57.3080163Z   server-id: github
+2026-10-05T08:56:57.3080356Z   server-username: GITHUB_ACTOR
+2026-10-05T08:56:57.3080588Z   server-password: GITHUB_TOKEN
+2026-10-05T08:56:57.3080820Z   overwrite-settings: true
+2026-10-05T08:56:57.3081042Z   job-status: success
+2026-10-05T08:56:57.3083410Z   token: ***
+2026-10-05T08:56:57.3083623Z   show-download-progress: false
+2026-10-05T08:56:57.3083880Z ##[endgroup]
+2026-10-05T08:56:57.4978502Z ##[group]Installed distributions
+2026-10-05T08:56:57.5206068Z Resolved Java 21.0.12+101.0 from tool-cache
+2026-10-05T08:56:57.5206829Z Setting Java 21.0.12+101.0 as the default
+2026-10-05T08:56:57.5223623Z Creating toolchains.xml for JDK version 21 from temurin
+2026-10-05T08:56:57.5313510Z Writing to C:\Users\runneradmin\.m2\toolchains.xml
+2026-10-05T08:56:57.5317363Z 
+2026-10-05T08:56:57.5317664Z Java configuration:
+2026-10-05T08:56:57.5318030Z   Distribution: temurin
+2026-10-05T08:56:57.5318362Z   Version: 21.0.12+101.0
+2026-10-05T08:56:57.5319021Z   Path: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:56:57.5319611Z 
+2026-10-05T08:56:57.5319996Z ##[endgroup]
+2026-10-05T08:56:57.5325833Z Creating settings.xml with server-id: github
+2026-10-05T08:56:57.5338074Z Writing to C:\Users\runneradmin\.m2\settings.xml
+2026-10-05T08:56:57.5346295Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-05T08:56:57.5863648Z Prepare all required actions
+2026-10-05T08:56:57.6013570Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-05T08:56:57.6014043Z with:
+2026-10-05T08:56:57.6014333Z   working-directory: .
+2026-10-05T08:56:57.6015017Z   install-command: npm ci --legacy-peer-deps
+2026-10-05T08:56:57.6015567Z   install-desktop-app-vue: false
+2026-10-05T08:56:57.6015973Z env:
+2026-10-05T08:56:57.6016487Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:56:57.6017462Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:56:57.6018280Z   MAVEN_ARGS: -ntp
+2026-10-05T08:56:57.6018572Z ##[endgroup]
+2026-10-05T08:56:57.6102812Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run]
+2026-10-05T08:56:57.6260631Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-05T08:56:57.6261091Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-05T08:56:57.6261423Z [36;1mattempt_install() {[0m
+2026-10-05T08:56:57.6261665Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-05T08:56:57.6261884Z [36;1m}[0m
+2026-10-05T08:56:57.6262072Z [36;1mcleanup_partial_install() {[0m
+2026-10-05T08:56:57.6262482Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-05T08:56:57.6262983Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-05T08:56:57.6263464Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-05T08:56:57.6263945Z [36;1m  # Node's maxRetries/retryDelay also handles short Windows file-lock[0m
+2026-10-05T08:56:57.6264436Z [36;1m  # release delays while keeping the deletion scoped to this checkout.[0m
+2026-10-05T08:56:57.6265054Z [36;1m  node -e "require('node:fs').rmSync('node_modules',{recursive:true,force:true,maxRetries:5,retryDelay:250})"[0m
+2026-10-05T08:56:57.6265566Z [36;1m}[0m
+2026-10-05T08:56:57.6265759Z [36;1mfor i in 1 2 3; do[0m
+2026-10-05T08:56:57.6265999Z [36;1m  if attempt_install; then[0m
+2026-10-05T08:56:57.6266235Z [36;1m    exit 0[0m
+2026-10-05T08:56:57.6266419Z [36;1m  fi[0m
+2026-10-05T08:56:57.6266606Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-05T08:56:57.6266849Z [36;1m    delay=$((i * 15))[0m
+2026-10-05T08:56:57.6267213Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-05T08:56:57.6267617Z [36;1m    cleanup_partial_install[0m
+2026-10-05T08:56:57.6267868Z [36;1m    sleep "$delay"[0m
+2026-10-05T08:56:57.6268088Z [36;1m  fi[0m
+2026-10-05T08:56:57.6268259Z [36;1mdone[0m
+2026-10-05T08:56:57.6268501Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-05T08:56:57.6268807Z [36;1mexit 1[0m
+2026-10-05T08:56:57.7934618Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T08:56:57.7935104Z env:
+2026-10-05T08:56:57.7935451Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:56:57.7935996Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:56:57.7936398Z   MAVEN_ARGS: -ntp
+2026-10-05T08:56:57.7936598Z ##[endgroup]
+2026-10-05T08:57:01.3595582Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-05T08:57:16.3617437Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-05T08:57:16.3637339Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-05T08:57:16.4802531Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-05T08:57:16.4916082Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-05T08:57:16.5401617Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-05T08:57:16.6643483Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-05T08:57:16.7068004Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-05T08:57:16.9856220Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-05T08:57:16.9879525Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-05T08:57:16.9988969Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-05T08:57:17.7299367Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-05T08:57:18.0891452Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.0907207Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.0916145Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.0993178Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.1004522Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.1031202Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.1053899Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.1231583Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.1237304Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:18.2144840Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-05T08:57:19.0552547Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-05T08:57:19.2468956Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-05T08:57:19.4810922Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-05T08:57:20.8614265Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-05T08:57:21.6900669Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-05T08:57:22.1768739Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-05T08:57:23.5007106Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-05T08:57:23.6783464Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-05T08:57:25.0809400Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-05T08:57:28.9311810Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-05T08:57:29.3565568Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-05T08:57:29.3844718Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-05T08:57:35.3776510Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-05T08:57:35.3793248Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-05T08:57:36.6529328Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:36.6545697Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:36.6572804Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-05T08:57:36.7005220Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-05T08:57:49.2908637Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-05T08:57:55.2558207Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-05T08:59:43.3818440Z 
+2026-10-05T08:59:43.3819246Z added 2529 packages, and audited 2545 packages in 3m
+2026-10-05T08:59:43.3819833Z 
+2026-10-05T08:59:43.3820162Z 472 packages are looking for funding
+2026-10-05T08:59:43.3820762Z   run `npm fund` for details
+2026-10-05T08:59:43.6593736Z 
+2026-10-05T08:59:43.6594577Z 102 vulnerabilities (3 low, 15 moderate, 83 high, 1 critical)
+2026-10-05T08:59:43.6595116Z 
+2026-10-05T08:59:43.6595581Z To address issues that do not require attention, run:
+2026-10-05T08:59:43.6596247Z   npm audit fix
+2026-10-05T08:59:43.6596430Z 
+2026-10-05T08:59:43.6596741Z To address all issues possible (including breaking changes), run:
+2026-10-05T08:59:43.6597537Z   npm audit fix --force
+2026-10-05T08:59:43.6597734Z 
+2026-10-05T08:59:43.6598126Z Some issues need review, and may require choosing
+2026-10-05T08:59:43.6598813Z a different dependency.
+2026-10-05T08:59:43.6599013Z 
+2026-10-05T08:59:43.6599152Z Run `npm audit` for details.
+2026-10-05T08:59:44.5078261Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=166897]
+2026-10-05T08:59:44.5083234Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_2]
+2026-10-05T08:59:44.5091535Z ##[end-action id=__self.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-05T08:59:44.5095061Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_3]
+2026-10-05T08:59:44.5245097Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-05T08:59:44.5245657Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-05T08:59:44.5246175Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-05T08:59:44.5246830Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-05T08:59:44.5247328Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-05T08:59:44.5247735Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-05T08:59:44.5248200Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-05T08:59:44.5248688Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-05T08:59:44.5249152Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-05T08:59:44.5249610Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-05T08:59:44.5250061Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-05T08:59:44.5250430Z [36;1m  *)             pkg="" ;;[0m
+2026-10-05T08:59:44.5250658Z [36;1mesac[0m
+2026-10-05T08:59:44.5250867Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-05T08:59:44.5251187Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-05T08:59:44.5251504Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-05T08:59:44.5251768Z [36;1m  echo "Installing: $packages"[0m
+2026-10-05T08:59:44.5252055Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-05T08:59:44.5252411Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-05T08:59:44.5252780Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-05T08:59:44.5253096Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-05T08:59:44.5253377Z [36;1m  else[0m
+2026-10-05T08:59:44.5253648Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-05T08:59:44.5253989Z [36;1m  fi[0m
+2026-10-05T08:59:44.5254160Z [36;1mfi[0m
+2026-10-05T08:59:44.5271997Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T08:59:44.5272391Z env:
+2026-10-05T08:59:44.5272706Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:59:44.5273263Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:59:44.5273663Z   MAVEN_ARGS: -ntp
+2026-10-05T08:59:44.5273853Z   EXTRA_PACKAGES: 
+2026-10-05T08:59:44.5274039Z   INSTALL_WORKSPACE: 
+2026-10-05T08:59:44.5274243Z ##[endgroup]
+2026-10-05T08:59:44.6599834Z Installing: @rollup/rollup-win32-x64-msvc
+2026-10-05T08:59:48.4095336Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-05T08:59:48.4698643Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-05T08:59:48.7909518Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-05T08:59:48.8563694Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-05T08:59:48.8716683Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-05T08:59:53.0645948Z 
+2026-10-05T08:59:53.0648885Z added 1 package, changed 1 package, and audited 2546 packages in 8s
+2026-10-05T08:59:53.0649593Z 
+2026-10-05T08:59:53.0649932Z 472 packages are looking for funding
+2026-10-05T08:59:53.0650530Z   run `npm fund` for details
+2026-10-05T08:59:53.3020345Z 
+2026-10-05T08:59:53.3021080Z 102 vulnerabilities (3 low, 15 moderate, 83 high, 1 critical)
+2026-10-05T08:59:53.3021506Z 
+2026-10-05T08:59:53.3021827Z To address issues that do not require attention, run:
+2026-10-05T08:59:53.3022305Z   npm audit fix
+2026-10-05T08:59:53.3022507Z 
+2026-10-05T08:59:53.3022873Z To address all issues possible (including breaking changes), run:
+2026-10-05T08:59:53.3023403Z   npm audit fix --force
+2026-10-05T08:59:53.3023632Z 
+2026-10-05T08:59:53.3023854Z Some issues need review, and may require choosing
+2026-10-05T08:59:53.3024259Z a different dependency.
+2026-10-05T08:59:53.3024415Z 
+2026-10-05T08:59:53.3024602Z Run `npm audit` for details.
+2026-10-05T08:59:53.3313734Z ##[end-action id=__self.__run_3;outcome=success;conclusion=success;duration_ms=8821]
+2026-10-05T08:59:53.3503801Z ##[group]Run node packages/cli/scripts/pm-exploration-recovery-drill.mjs --source-revision "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/pm-exploration-recovery-${RUNNER_OS}.json"
+2026-10-05T08:59:53.3505481Z [36;1mnode packages/cli/scripts/pm-exploration-recovery-drill.mjs --source-revision "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/pm-exploration-recovery-${RUNNER_OS}.json"[0m
+2026-10-05T08:59:53.3523438Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T08:59:53.3523893Z env:
+2026-10-05T08:59:53.3524307Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:59:53.3524943Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T08:59:53.3525428Z   MAVEN_ARGS: -ntp
+2026-10-05T08:59:53.3525690Z ##[endgroup]
+2026-10-05T08:59:53.4595299Z checking fresh-process restart and authority recovery
+2026-10-05T08:59:55.7099868Z checking forced exit at after-retain
+2026-10-05T08:59:56.7802197Z checking forced exit at after-segment
+2026-10-05T08:59:57.9018422Z checking forced exit at after-witness
+2026-10-05T08:59:59.0457907Z checking injected artifact-erofs
+2026-10-05T09:00:00.0484110Z checking injected authority-retain-timeout
+2026-10-05T09:00:01.1344656Z checking injected authority-retain-reset
+2026-10-05T09:00:02.2094627Z checking injected authority-invalid-receipt
+2026-10-05T09:00:03.3040696Z checking injected ledger-enospc-after-segment
+2026-10-05T09:00:04.4462242Z checking injected authority-resolve-timeout
+2026-10-05T09:00:06.1542352Z checking injected ledger-enospc-after-witness
+2026-10-05T09:00:07.4235181Z checking divergent CAS race
+2026-10-05T09:00:09.4657326Z checking identical concurrent idempotence
+2026-10-05T09:00:11.5136226Z {
+2026-10-05T09:00:11.5137317Z   "schema": "chainlesschain.pm-exploration-recovery-evidence/v2",
+2026-10-05T09:00:11.5138054Z   "status": "passed",
+2026-10-05T09:00:11.5138785Z   "sourceRevision": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+2026-10-05T09:00:11.5139870Z   "issuedAt": "2026-10-05T09:00:11.509Z",
+2026-10-05T09:00:11.5140437Z   "runner": {
+2026-10-05T09:00:11.5140889Z     "platform": "win32",
+2026-10-05T09:00:11.5141413Z     "arch": "x64",
+2026-10-05T09:00:11.5141866Z     "nodeVersion": "v22.22.2"
+2026-10-05T09:00:11.5142390Z   },
+2026-10-05T09:00:11.5142831Z   "testAuthority": true,
+2026-10-05T09:00:11.5143390Z   "productionAuthority": false,
+2026-10-05T09:00:11.5144042Z   "physicalPowerLossVerified": false,
+2026-10-05T09:00:11.5144770Z   "syntheticFaultInjection": true,
+2026-10-05T09:00:11.5145441Z   "realDiskFullVerified": false,
+2026-10-05T09:00:11.5146162Z   "realReadOnlyFilesystemVerified": false,
+2026-10-05T09:00:11.5146882Z   "realRemoteAuthorityVerified": false,
+2026-10-05T09:00:11.5147861Z   "qualifiesForProduction": false,
+2026-10-05T09:00:11.5148430Z   "unverifiedConditions": [
+2026-10-05T09:00:11.5148989Z     "physical-power-loss",
+2026-10-05T09:00:11.5149596Z     "production-kms-hsm-pki-authority",
+2026-10-05T09:00:11.5150257Z     "independent-remote-fault-domain",
+2026-10-05T09:00:11.5151018Z     "production-filesystem-and-device-cache-semantics",
+2026-10-05T09:00:11.5152221Z     "real-disk-full",
+2026-10-05T09:00:11.5154378Z     "real-read-only-filesystem",
+2026-10-05T09:00:11.5155552Z     "real-remote-authority-timeout-and-disconnect"
+2026-10-05T09:00:11.5156144Z   ],
+2026-10-05T09:00:11.5156485Z   "report": {
+2026-10-05T09:00:11.5157089Z     "schema": "chainlesschain.pm-exploration-recovery-drill/v2",
+2026-10-05T09:00:11.5157764Z     "status": "passed",
+2026-10-05T09:00:11.5158192Z     "processCount": 31,
+2026-10-05T09:00:11.5158743Z     "freshProcessRestartRecovered": true,
+2026-10-05T09:00:11.5159405Z     "localCacheLossRecoveredFromAuthority": true,
+2026-10-05T09:00:11.5160123Z     "authorityLossRejected": true,
+2026-10-05T09:00:11.5160775Z     "forcedExitAfterRetainRejected": true,
+2026-10-05T09:00:11.5163805Z     "uncommittedLedgerExitRejected": true,
+2026-10-05T09:00:11.5164529Z     "committedLedgerExitRecovered": true,
+2026-10-05T09:00:11.5165201Z     "divergentCasConflictRejected": true,
+2026-10-05T09:00:11.5165823Z     "identicalCasCommitIdempotent": true,
+2026-10-05T09:00:11.5166436Z     "artifactReadOnlyFailureRejected": true,
+2026-10-05T09:00:11.5167044Z     "authorityRetainTimeoutRejected": true,
+2026-10-05T09:00:11.5167744Z     "authorityDisconnectRejected": true,
+2026-10-05T09:00:11.5169252Z     "invalidDurabilityReceiptRejected": true,
+2026-10-05T09:00:11.5170251Z     "authorityResolveTimeoutRejected": true,
+2026-10-05T09:00:11.5170682Z     "preWitnessDiskFullRejected": true,
+2026-10-05T09:00:11.5171077Z     "postWitnessDiskFullRecovered": true,
+2026-10-05T09:00:11.5171483Z     "falseSuccessReceipts": 0,
+2026-10-05T09:00:11.5171811Z     "testAuthority": true,
+2026-10-05T09:00:11.5172135Z     "productionAuthority": false,
+2026-10-05T09:00:11.5172532Z     "physicalPowerLossVerified": false,
+2026-10-05T09:00:11.5172910Z     "syntheticFaultInjection": true,
+2026-10-05T09:00:11.5173259Z     "realDiskFullVerified": false,
+2026-10-05T09:00:11.5173670Z     "realReadOnlyFilesystemVerified": false,
+2026-10-05T09:00:11.5174067Z     "realRemoteAuthorityVerified": false,
+2026-10-05T09:00:11.5174458Z     "qualifiesForProduction": false,
+2026-10-05T09:00:11.5174833Z     "unverifiedConditions": [
+2026-10-05T09:00:11.5175156Z       "physical-power-loss",
+2026-10-05T09:00:11.5175516Z       "production-kms-hsm-pki-authority",
+2026-10-05T09:00:11.5175931Z       "independent-remote-fault-domain",
+2026-10-05T09:00:11.5176588Z       "production-filesystem-and-device-cache-semantics",
+2026-10-05T09:00:11.5176991Z       "real-disk-full",
+2026-10-05T09:00:11.5177326Z       "real-read-only-filesystem",
+2026-10-05T09:00:11.5177721Z       "real-remote-authority-timeout-and-disconnect"
+2026-10-05T09:00:11.5178294Z     ],
+2026-10-05T09:00:11.5178692Z     "crashResults": {
+2026-10-05T09:00:11.5179165Z       "after-retain": {
+2026-10-05T09:00:11.5179842Z         "crashPid": 9732,
+2026-10-05T09:00:11.5180407Z         "recoveredPid": 3912,
+2026-10-05T09:00:11.5180847Z         "committed": false
+2026-10-05T09:00:11.5181328Z       },
+2026-10-05T09:00:11.5181625Z       "after-segment": {
+2026-10-05T09:00:11.5181914Z         "crashPid": 8892,
+2026-10-05T09:00:11.5182205Z         "recoveredPid": 496,
+2026-10-05T09:00:11.5182742Z         "committed": false
+2026-10-05T09:00:11.5183020Z       },
+2026-10-05T09:00:11.5183268Z       "after-witness": {
+2026-10-05T09:00:11.5183576Z         "crashPid": 8432,
+2026-10-05T09:00:11.5183876Z         "recoveredPid": 4128,
+2026-10-05T09:00:11.5184170Z         "committed": true
+2026-10-05T09:00:11.5184465Z       }
+2026-10-05T09:00:11.5185044Z     },
+2026-10-05T09:00:11.5185451Z     "faultResults": {
+2026-10-05T09:00:11.5186224Z       "artifact-erofs": {
+2026-10-05T09:00:11.5186770Z         "faultPid": 1284,
+2026-10-05T09:00:11.5187289Z         "recoveryPid": 1084,
+2026-10-05T09:00:11.5187770Z         "observedCode": "EROFS",
+2026-10-05T09:00:11.5188126Z         "committed": false
+2026-10-05T09:00:11.5188404Z       },
+2026-10-05T09:00:11.5188687Z       "authority-retain-timeout": {
+2026-10-05T09:00:11.5189044Z         "faultPid": 7208,
+2026-10-05T09:00:11.5189342Z         "recoveryPid": 4964,
+2026-10-05T09:00:11.5189663Z         "observedCode": "ETIMEDOUT",
+2026-10-05T09:00:11.5190010Z         "committed": false
+2026-10-05T09:00:11.5190281Z       },
+2026-10-05T09:00:11.5190552Z       "authority-retain-reset": {
+2026-10-05T09:00:11.5190888Z         "faultPid": 4300,
+2026-10-05T09:00:11.5191172Z         "recoveryPid": 1428,
+2026-10-05T09:00:11.5191558Z         "observedCode": "ECONNRESET",
+2026-10-05T09:00:11.5191967Z         "committed": false
+2026-10-05T09:00:11.5192369Z       },
+2026-10-05T09:00:11.5192724Z       "authority-invalid-receipt": {
+2026-10-05T09:00:11.5193153Z         "faultPid": 8272,
+2026-10-05T09:00:11.5194263Z         "recoveryPid": 8884,
+2026-10-05T09:00:11.5194792Z         "observedCode": "CC_PM_EXPLORATION_LEDGER_CORRUPT",
+2026-10-05T09:00:11.5195196Z         "committed": false
+2026-10-05T09:00:11.5195537Z       },
+2026-10-05T09:00:11.5195839Z       "ledger-enospc-after-segment": {
+2026-10-05T09:00:11.5210246Z         "faultPid": 2732,
+2026-10-05T09:00:11.5211539Z         "recoveryPid": 3516,
+2026-10-05T09:00:11.5212121Z         "observedCode": "ENOSPC",
+2026-10-05T09:00:11.5212650Z         "committed": false
+2026-10-05T09:00:11.5213099Z       },
+2026-10-05T09:00:11.5213533Z       "authority-resolve-timeout": {
+2026-10-05T09:00:11.5214071Z         "faultPid": 4892,
+2026-10-05T09:00:11.5214545Z         "recoveryPid": 6140,
+2026-10-05T09:00:11.5215053Z         "observedCode": "ETIMEDOUT",
+2026-10-05T09:00:11.5215561Z         "committed": true
+2026-10-05T09:00:11.5216032Z       },
+2026-10-05T09:00:11.5216486Z       "ledger-enospc-after-witness": {
+2026-10-05T09:00:11.5216840Z         "faultPid": 1168,
+2026-10-05T09:00:11.5217150Z         "recoveryPid": 6460,
+2026-10-05T09:00:11.5217477Z         "observedCode": "ENOSPC",
+2026-10-05T09:00:11.5217801Z         "committed": true
+2026-10-05T09:00:11.5218062Z       }
+2026-10-05T09:00:11.5218218Z     }
+2026-10-05T09:00:11.5218374Z   }
+2026-10-05T09:00:11.5218535Z }
+2026-10-05T09:00:11.5446853Z ##[group]Run actions/upload-artifact@v6
+2026-10-05T09:00:11.5447203Z with:
+2026-10-05T09:00:11.5447611Z   name: pm-exploration-recovery-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-1
+2026-10-05T09:00:11.5448150Z   path: D:\a\_temp/pm-exploration-recovery-Windows.json
+2026-10-05T09:00:11.5448481Z   if-no-files-found: error
+2026-10-05T09:00:11.5448711Z   retention-days: 90
+2026-10-05T09:00:11.5448910Z   compression-level: 6
+2026-10-05T09:00:11.5449119Z   overwrite: false
+2026-10-05T09:00:11.5449317Z   include-hidden-files: false
+2026-10-05T09:00:11.5449549Z env:
+2026-10-05T09:00:11.5449858Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:00:11.5450393Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:00:11.5450811Z   MAVEN_ARGS: -ntp
+2026-10-05T09:00:11.5451005Z ##[endgroup]
+2026-10-05T09:00:11.7318112Z With the provided path, there will be 1 file uploaded
+2026-10-05T09:00:11.7328968Z Artifact name is valid!
+2026-10-05T09:00:11.7329562Z Root directory input is valid!
+2026-10-05T09:00:11.9383437Z Beginning upload of artifact content to blob storage
+2026-10-05T09:00:12.0162534Z Uploaded bytes 1245
+2026-10-05T09:00:12.0343042Z Finished uploading artifact content to blob storage!
+2026-10-05T09:00:12.0345899Z SHA256 digest of uploaded artifact zip is bdfcac8d5b2fd9b7a977ebcab0be009d3a12cde41a28d652cba32137a9c86859
+2026-10-05T09:00:12.0347952Z Finalizing artifact upload
+2026-10-05T09:00:12.3177173Z Artifact pm-exploration-recovery-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-1.zip successfully finalized. Artifact ID 11334438665
+2026-10-05T09:00:12.3180633Z Artifact pm-exploration-recovery-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3-1 has been successfully uploaded! Final size is 1245 bytes. Artifact ID is 11334438665
+2026-10-05T09:00:12.3187947Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/artifacts/11334438665
+2026-10-05T09:00:12.3458114Z ##[group]Run node packages/cli/scripts/pr-recovery-smoke.mjs
+2026-10-05T09:00:12.3458621Z [36;1mnode packages/cli/scripts/pr-recovery-smoke.mjs[0m
+2026-10-05T09:00:12.4072193Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:00:12.4072627Z env:
+2026-10-05T09:00:12.4073015Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:00:12.4073700Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:00:12.4074225Z   MAVEN_ARGS: -ntp
+2026-10-05T09:00:12.4074451Z ##[endgroup]
+2026-10-05T09:01:04.9277593Z {
+2026-10-05T09:01:04.9278309Z   "runtime": "D:\\a\\chainlesschain\\chainlesschain\\packages\\cli\\",
+2026-10-05T09:01:04.9278936Z   "passed": [
+2026-10-05T09:01:04.9279390Z     "explicitly authorized PR close and state verification",
+2026-10-05T09:01:04.9280015Z     "unchanged PR loop exits after recovery",
+2026-10-05T09:01:04.9281369Z     "changing git arguments cannot repeat the same policy rejection",
+2026-10-05T09:01:04.9282303Z     "real canonical compaction retains the authorized PR closure task"
+2026-10-05T09:01:04.9282902Z   ],
+2026-10-05T09:01:04.9283511Z   "providerRequests": 24,
+2026-10-05T09:01:04.9283878Z   "summaryRequests": 0,
+2026-10-05T09:01:04.9284202Z   "githubRequests": 0
+2026-10-05T09:01:04.9284502Z }
+2026-10-05T09:01:05.1793882Z ##[group]Run npm test -- --maxWorkers=1
+2026-10-05T09:01:05.1794304Z [36;1mnpm test -- --maxWorkers=1[0m
+2026-10-05T09:01:05.1883210Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:01:05.1883579Z env:
+2026-10-05T09:01:05.1883912Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:05.1884462Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:05.1884872Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:05.1885060Z ##[endgroup]
+2026-10-05T09:01:06.0958299Z 
+2026-10-05T09:01:06.0959128Z > @chainlesschain/core-db@0.1.5 test
+2026-10-05T09:01:06.0959783Z > vitest run --maxWorkers=1
+2026-10-05T09:01:06.0960090Z 
+2026-10-05T09:01:06.8067067Z 
+2026-10-05T09:01:06.8070962Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/a/chainlesschain/chainlesschain/packages/core-db[39m
+2026-10-05T09:01:06.8071771Z 
+2026-10-05T09:01:07.2583306Z  [32m✓[39m __tests__/database-manager-sqljs-compat.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 129[2mms[22m[39m
+2026-10-05T09:01:07.4961202Z  [32m✓[39m __tests__/query-builder.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-05T09:01:07.7310372Z  [32m✓[39m __tests__/index-optimizer.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-05T09:01:07.9617131Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mvalidateOrder[2m > [22m[2mrejects invalid order
+2026-10-05T09:01:07.9619065Z [22m[39m[SqlSecurity] Invalid sort order: RANDOM
+2026-10-05T09:01:07.9619503Z 
+2026-10-05T09:01:07.9629471Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mvalidateTableName[2m > [22m[2mrejects invalid characters
+2026-10-05T09:01:07.9631103Z [22m[39m[SqlSecurity] Invalid table name: notes; DROP TABLE
+2026-10-05T09:01:07.9631894Z [SqlSecurity] Invalid table name: 123start
+2026-10-05T09:01:07.9632321Z 
+2026-10-05T09:01:07.9638676Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mvalidateTableName[2m > [22m[2mrejects tables not in whitelist
+2026-10-05T09:01:07.9641407Z [22m[39m[SqlSecurity] Table not in whitelist: notes
+2026-10-05T09:01:07.9641917Z 
+2026-10-05T09:01:07.9652516Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mvalidateColumnName[2m > [22m[2mrejects invalid names
+2026-10-05T09:01:07.9653398Z [22m[39m[SqlSecurity] Invalid column name: col-name
+2026-10-05T09:01:07.9653645Z 
+2026-10-05T09:01:07.9664711Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mvalidateLimit[2m > [22m[2mcaps at maxLimit
+2026-10-05T09:01:07.9666512Z [22m[39m[SqlSecurity] LIMIT exceeded max, capping: { limit: [33m2000[39m, maxLimit: [33m1000[39m }
+2026-10-05T09:01:07.9667269Z 
+2026-10-05T09:01:07.9710133Z [90mstderr[2m | __tests__/sql-security.test.js[2m > [22m[2mSqlSecurity[2m > [22m[2mbuildSafeWhereClause[2m > [22m[2mskips fields not in whitelist
+2026-10-05T09:01:07.9711089Z [22m[39m[SqlSecurity] Filter field not in whitelist: evil
+2026-10-05T09:01:07.9711365Z 
+2026-10-05T09:01:07.9773812Z  [32m✓[39m __tests__/sql-security.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-05T09:01:08.2005277Z [90mstderr[2m | __tests__/database-manager.test.js[2m > [22m[2mDatabaseManager[2m > [22m[2mgetInfo[2m > [22m[2mreturns error info when not initialized
+2026-10-05T09:01:08.2007813Z [22m[39m[DatabaseManager] Failed to get info: Cannot read properties of null (reading 'prepare')
+2026-10-05T09:01:08.2008590Z 
+2026-10-05T09:01:08.2057470Z  [32m✓[39m __tests__/database-manager.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-05T09:01:08.2109076Z 
+2026-10-05T09:01:08.2116686Z [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+2026-10-05T09:01:08.2120255Z [2m      Tests [22m [1m[32m85 passed[39m[22m[90m (85)[39m
+2026-10-05T09:01:08.2121330Z [2m   Start at [22m 09:01:06
+2026-10-05T09:01:08.2122461Z [2m   Duration [22m 1.39s[2m (transform 105ms, setup 0ms, import 207ms, tests 187ms, environment 1ms)[22m
+2026-10-05T09:01:08.2125226Z 
+2026-10-05T09:01:08.3357792Z ##[group]Run npm test -- --maxWorkers=1
+2026-10-05T09:01:08.3358176Z [36;1mnpm test -- --maxWorkers=1[0m
+2026-10-05T09:01:08.3430416Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:01:08.3430764Z env:
+2026-10-05T09:01:08.3431086Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:08.3431638Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:08.3432037Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:08.3432232Z ##[endgroup]
+2026-10-05T09:01:09.1890661Z 
+2026-10-05T09:01:09.1891289Z > @chainlesschain/session-core@0.3.14 test
+2026-10-05T09:01:09.1891723Z > vitest run --maxWorkers=1
+2026-10-05T09:01:09.1891914Z 
+2026-10-05T09:01:09.7466196Z 
+2026-10-05T09:01:09.7469849Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/a/chainlesschain/chainlesschain/packages/session-core[39m
+2026-10-05T09:01:09.7470504Z 
+2026-10-05T09:01:10.1162827Z  [32m✓[39m __tests__/evolvable-artifact.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+2026-10-05T09:01:10.4105398Z  [32m✓[39m __tests__/structured-evolution-memory.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+2026-10-05T09:01:10.7424735Z  [32m✓[39m __tests__/approval-gate.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+2026-10-05T09:01:10.9906728Z  [32m✓[39m __tests__/quality-gate.test.js [2m([22m[2m41 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-05T09:01:11.2535708Z  [32m✓[39m __tests__/memory-store.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-05T09:01:11.4855263Z  [32m✓[39m __tests__/skill-invocation-receipt.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-05T09:01:11.7386654Z  [32m✓[39m __tests__/shared-task-list.test.js [2m([22m[2m31 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-05T09:01:11.9936576Z  [32m✓[39m __tests__/session-manager.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-05T09:01:12.2488683Z  [32m✓[39m __tests__/memory-consolidator.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-05T09:01:12.5032219Z  [32m✓[39m __tests__/agent-definition.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-05T09:01:12.8683458Z  [32m✓[39m __tests__/nostr-crypto.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 121[2mms[22m[39m
+2026-10-05T09:01:13.1131098Z  [32m✓[39m __tests__/trace-store.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-05T09:01:13.3469510Z  [32m✓[39m __tests__/agent-group.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-05T09:01:13.6236841Z  [32m✓[39m __tests__/file-adapters.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+2026-10-05T09:01:13.8628748Z  [32m✓[39m __tests__/idle-parker.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-05T09:01:14.1021300Z  [32m✓[39m __tests__/mcp-policy.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-05T09:01:14.3363181Z  [32m✓[39m __tests__/stream-router.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-05T09:01:14.5677167Z  [32m✓[39m __tests__/sandbox-policy.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-05T09:01:14.7980627Z  [32m✓[39m __tests__/beta-flags.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-05T09:01:15.0299804Z  [32m✓[39m __tests__/service-envelope.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-05T09:01:15.2612681Z  [32m✓[39m __tests__/session-handle.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-05T09:01:15.4961083Z  [32m✓[39m __tests__/envelope-sse.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-05T09:01:15.7359902Z  [32m✓[39m __tests__/agent-bundle-resolver.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-05T09:01:15.9676552Z  [32m✓[39m __tests__/agent-bundle-schema.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-05T09:01:16.2228570Z  [32m✓[39m __tests__/agent-bundle-loader.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+2026-10-05T09:01:16.4381998Z  [32m✓[39m __tests__/runtime-claims.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-05T09:01:16.4442160Z 
+2026-10-05T09:01:16.4450650Z [2m Test Files [22m [1m[32m26 passed[39m[22m[90m (26)[39m
+2026-10-05T09:01:16.4453469Z [2m      Tests [22m [1m[32m563 passed[39m[22m[90m (563)[39m
+2026-10-05T09:01:16.4454752Z [2m   Start at [22m 09:01:09
+2026-10-05T09:01:16.4457250Z [2m   Duration [22m 6.68s[2m (transform 364ms, setup 0ms, import 948ms, tests 722ms, environment 4ms)[22m
+2026-10-05T09:01:16.4460516Z 
+2026-10-05T09:01:16.5673962Z ##[group]Run node packages/cli/scripts/run-claude-security-map-tests.mjs --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"
+2026-10-05T09:01:16.5675239Z [36;1mnode packages/cli/scripts/run-claude-security-map-tests.mjs --output "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json"[0m
+2026-10-05T09:01:16.5693693Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T09:01:16.5694133Z env:
+2026-10-05T09:01:16.5694491Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:16.5695128Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:16.5695601Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:16.5695807Z ##[endgroup]
+2026-10-05T09:01:30.3019471Z JSON report written to D:/a/_temp/claude-security-map-tests-Windows.json
+2026-10-05T09:01:30.5188445Z ##[group]Run node packages/cli/scripts/verify-claude-security-map.mjs --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --test-report "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json" --disposition advisory --artifact-name "claude-security-map-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"
+2026-10-05T09:01:30.5191480Z [36;1mnode packages/cli/scripts/verify-claude-security-map.mjs --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --test-report "${RUNNER_TEMP}/claude-security-map-tests-${RUNNER_OS}.json" --disposition advisory --artifact-name "claude-security-map-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/claude-security-map-${RUNNER_OS}.json"[0m
+2026-10-05T09:01:30.5211138Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T09:01:30.5211535Z env:
+2026-10-05T09:01:30.5211907Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:30.5212462Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:30.5212874Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:30.5213077Z ##[endgroup]
+2026-10-05T09:01:31.2477982Z ##[group]Run actions/upload-artifact@v6
+2026-10-05T09:01:31.2478332Z with:
+2026-10-05T09:01:31.2478762Z   name: claude-security-map-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T09:01:31.2479509Z   path: D:\a\_temp/claude-security-map-tests-Windows.json
+D:\a\_temp/claude-security-map-Windows.json
+
+2026-10-05T09:01:31.2480046Z   if-no-files-found: error
+2026-10-05T09:01:31.2480271Z   compression-level: 6
+2026-10-05T09:01:31.2480471Z   overwrite: false
+2026-10-05T09:01:31.2480672Z   include-hidden-files: false
+2026-10-05T09:01:31.2480888Z env:
+2026-10-05T09:01:31.2481193Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:31.2481767Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:31.2482194Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:31.2482384Z ##[endgroup]
+2026-10-05T09:01:31.4478873Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-05T09:01:31.4482998Z The least common ancestor is D:\a\_temp. This will be the root directory of the artifact
+2026-10-05T09:01:31.4484289Z With the provided path, there will be 2 files uploaded
+2026-10-05T09:01:31.4490299Z Artifact name is valid!
+2026-10-05T09:01:31.4492891Z Root directory input is valid!
+2026-10-05T09:01:31.6636823Z Beginning upload of artifact content to blob storage
+2026-10-05T09:01:31.8011832Z Uploaded bytes 33030
+2026-10-05T09:01:31.8164581Z Finished uploading artifact content to blob storage!
+2026-10-05T09:01:31.8165893Z SHA256 digest of uploaded artifact zip is c8e285ce4c6ab0d65a88d5325b816b0eabf30ac042a1b556cc7e329b71244a5e
+2026-10-05T09:01:31.8168062Z Finalizing artifact upload
+2026-10-05T09:01:32.1116025Z Artifact claude-security-map-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3.zip successfully finalized. Artifact ID 11335061838
+2026-10-05T09:01:32.1118877Z Artifact claude-security-map-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3 has been successfully uploaded! Final size is 33030 bytes. Artifact ID is 11335061838
+2026-10-05T09:01:32.1126247Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/artifacts/11335061838
+2026-10-05T09:01:32.1429482Z ##[group]Run node packages/cli/scripts/verify-rc-default-audit.mjs --required --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --artifact-name "rc-default-audit-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/rc-default-audit-${RUNNER_OS}.json"
+2026-10-05T09:01:32.1431901Z [36;1mnode packages/cli/scripts/verify-rc-default-audit.mjs --required --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --artifact-name "rc-default-audit-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/rc-default-audit-${RUNNER_OS}.json"[0m
+2026-10-05T09:01:32.1450207Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T09:01:32.1450628Z env:
+2026-10-05T09:01:32.1450963Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:32.1451564Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:32.1451987Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:32.1452194Z ##[endgroup]
+2026-10-05T09:01:40.5004518Z ##[group]Run actions/upload-artifact@v6
+2026-10-05T09:01:40.5004885Z with:
+2026-10-05T09:01:40.5005283Z   name: rc-default-audit-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T09:01:40.5005809Z   path: D:\a\_temp/rc-default-audit-Windows.json
+2026-10-05T09:01:40.5006117Z   if-no-files-found: error
+2026-10-05T09:01:40.5006374Z   compression-level: 6
+2026-10-05T09:01:40.5006579Z   overwrite: false
+2026-10-05T09:01:40.5006787Z   include-hidden-files: false
+2026-10-05T09:01:40.5007012Z env:
+2026-10-05T09:01:40.5007337Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:40.5008130Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:40.5008755Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:40.5008958Z ##[endgroup]
+2026-10-05T09:01:40.7043542Z With the provided path, there will be 1 file uploaded
+2026-10-05T09:01:40.7048896Z Artifact name is valid!
+2026-10-05T09:01:40.7050916Z Root directory input is valid!
+2026-10-05T09:01:40.9178266Z Beginning upload of artifact content to blob storage
+2026-10-05T09:01:40.9916118Z Uploaded bytes 1735
+2026-10-05T09:01:41.0083100Z Finished uploading artifact content to blob storage!
+2026-10-05T09:01:41.0084609Z SHA256 digest of uploaded artifact zip is b1a9eb11c10ac4d2f9bdd5ce3bb3a1d74c76a9d2225bcc4688f3bc0ae9aca926
+2026-10-05T09:01:41.0086581Z Finalizing artifact upload
+2026-10-05T09:01:41.2416809Z Artifact rc-default-audit-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3.zip successfully finalized. Artifact ID 11335440442
+2026-10-05T09:01:41.2419802Z Artifact rc-default-audit-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3 has been successfully uploaded! Final size is 1735 bytes. Artifact ID is 11335440442
+2026-10-05T09:01:41.2427305Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/artifacts/11335440442
+2026-10-05T09:01:41.2700824Z ##[group]Run node packages/cli/scripts/verify-session-message-fabric.mjs --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/session-message-fabric-${RUNNER_OS}.json"
+2026-10-05T09:01:41.2702363Z [36;1mnode packages/cli/scripts/verify-session-message-fabric.mjs --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" --output "${RUNNER_TEMP}/session-message-fabric-${RUNNER_OS}.json"[0m
+2026-10-05T09:01:41.2719856Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T09:01:41.2720269Z env:
+2026-10-05T09:01:41.2720609Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:41.2721166Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:41.2721587Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:41.2722033Z   CC_XSESSION_WORKFLOW_ID: chainlesschain/chainlesschain/.github/workflows/cli-ci.yml@refs/heads/main
+2026-10-05T09:01:41.2722564Z   CC_XSESSION_RUN_ID: 37279746954
+2026-10-05T09:01:41.2722840Z   CC_XSESSION_JOB_ID: verify-cli-Windows
+2026-10-05T09:01:41.2723698Z   CC_XSESSION_ARTIFACT_NAME: session-message-fabric-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T09:01:41.2724273Z ##[endgroup]
+2026-10-05T09:01:51.3484295Z ##[group]Run actions/upload-artifact@v6
+2026-10-05T09:01:51.3484658Z with:
+2026-10-05T09:01:51.3486293Z   name: session-message-fabric-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T09:01:51.3486898Z   path: D:\a\_temp/session-message-fabric-Windows.json
+2026-10-05T09:01:51.3487245Z   if-no-files-found: error
+2026-10-05T09:01:51.3487494Z   compression-level: 6
+2026-10-05T09:01:51.3487721Z   overwrite: false
+2026-10-05T09:01:51.3487934Z   include-hidden-files: false
+2026-10-05T09:01:51.3488167Z env:
+2026-10-05T09:01:51.3488499Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:51.3489060Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:51.3489485Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:51.3489692Z ##[endgroup]
+2026-10-05T09:01:51.5370164Z With the provided path, there will be 1 file uploaded
+2026-10-05T09:01:51.5375815Z Artifact name is valid!
+2026-10-05T09:01:51.5378026Z Root directory input is valid!
+2026-10-05T09:01:51.7310284Z Beginning upload of artifact content to blob storage
+2026-10-05T09:01:51.8171520Z Uploaded bytes 2264
+2026-10-05T09:01:51.8352366Z Finished uploading artifact content to blob storage!
+2026-10-05T09:01:51.8353715Z SHA256 digest of uploaded artifact zip is f34a11d8e26630bdb9226770b5da39934a6fa89bfd4b97bfde54969d6517ca76
+2026-10-05T09:01:51.8356308Z Finalizing artifact upload
+2026-10-05T09:01:52.0809408Z Artifact session-message-fabric-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3.zip successfully finalized. Artifact ID 11335032070
+2026-10-05T09:01:52.0812189Z Artifact session-message-fabric-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3 has been successfully uploaded! Final size is 2264 bytes. Artifact ID is 11335032070
+2026-10-05T09:01:52.0819120Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/artifacts/11335032070
+2026-10-05T09:01:52.1095906Z ##[group]Run attempts=1
+2026-10-05T09:01:52.1096267Z [36;1mattempts=1[0m
+2026-10-05T09:01:52.1096598Z [36;1mif [ "${RUNNER_OS}" = "Windows" ]; then attempts=2; fi[0m
+2026-10-05T09:01:52.1096986Z [36;1mfor attempt in $(seq 1 "${attempts}"); do[0m
+2026-10-05T09:01:52.1097437Z [36;1m  if node packages/cli/scripts/verify-mcp-lifecycle-increments.mjs \[0m
+2026-10-05T09:01:52.1097861Z [36;1m    --required \[0m
+2026-10-05T09:01:52.1098227Z [36;1m    --release-commit "7db17a12e15cc92cd7d84f8087141a9521cec5c3" \[0m
+2026-10-05T09:01:52.1098900Z [36;1m    --artifact-name "mcp-lifecycle-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3" \[0m
+2026-10-05T09:01:52.1099668Z [36;1m    --output "${RUNNER_TEMP}/mcp-lifecycle-${RUNNER_OS}/mcp-lifecycle-audit-fragment.json"; then[0m
+2026-10-05T09:01:52.1100143Z [36;1m    exit 0[0m
+2026-10-05T09:01:52.1100357Z [36;1m  fi[0m
+2026-10-05T09:01:52.1100657Z [36;1m  if [ "${attempt}" -eq "${attempts}" ]; then exit 1; fi[0m
+2026-10-05T09:01:52.1101259Z [36;1m  echo "::warning::Windows hosted-runner MCP lifecycle profile missed its recovery-latency SLO; retrying once"[0m
+2026-10-05T09:01:52.1101790Z [36;1m  sleep 2[0m
+2026-10-05T09:01:52.1101997Z [36;1mdone[0m
+2026-10-05T09:01:52.1118892Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-05T09:01:52.1119320Z env:
+2026-10-05T09:01:52.1119670Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:52.1120257Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:01:52.1120680Z   MAVEN_ARGS: -ntp
+2026-10-05T09:01:52.1120885Z ##[endgroup]
+2026-10-05T09:02:11.9499406Z MCP lifecycle passed: 7db17a12e15cc92cd7d84f8087141a9521cec5c3, 17 required test ids
+2026-10-05T09:02:11.9918961Z ##[group]Run actions/upload-artifact@v6
+2026-10-05T09:02:11.9919325Z with:
+2026-10-05T09:02:11.9919731Z   name: mcp-lifecycle-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3
+2026-10-05T09:02:11.9920359Z   path: D:\a\_temp/mcp-lifecycle-Windows/mcp-lifecycle-audit-fragment.json
+2026-10-05T09:02:11.9920978Z   if-no-files-found: error
+2026-10-05T09:02:11.9921218Z   compression-level: 6
+2026-10-05T09:02:11.9921433Z   overwrite: false
+2026-10-05T09:02:11.9921644Z   include-hidden-files: false
+2026-10-05T09:02:11.9921874Z env:
+2026-10-05T09:02:11.9922199Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:11.9922762Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:11.9923217Z   MAVEN_ARGS: -ntp
+2026-10-05T09:02:11.9923422Z ##[endgroup]
+2026-10-05T09:02:12.2090454Z With the provided path, there will be 1 file uploaded
+2026-10-05T09:02:12.2096173Z Artifact name is valid!
+2026-10-05T09:02:12.2098979Z Root directory input is valid!
+2026-10-05T09:02:12.4603706Z Beginning upload of artifact content to blob storage
+2026-10-05T09:02:12.5340928Z Uploaded bytes 2703
+2026-10-05T09:02:12.5495328Z Finished uploading artifact content to blob storage!
+2026-10-05T09:02:12.5497096Z SHA256 digest of uploaded artifact zip is e01e61a9308fe3b2da12e967829c0fcf0a00d09dee5ed826405cbb5bcf2f69e4
+2026-10-05T09:02:12.5499802Z Finalizing artifact upload
+2026-10-05T09:02:12.7870146Z Artifact mcp-lifecycle-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3.zip successfully finalized. Artifact ID 11334324587
+2026-10-05T09:02:12.7872735Z Artifact mcp-lifecycle-cli-ci-windows-latest-7db17a12e15cc92cd7d84f8087141a9521cec5c3 has been successfully uploaded! Final size is 2703 bytes. Artifact ID is 11334324587
+2026-10-05T09:02:12.7879657Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/artifacts/11334324587
+2026-10-05T09:02:12.8153430Z ##[group]Run node bin/chainlesschain.js --version
+2026-10-05T09:02:12.8153904Z [36;1mnode bin/chainlesschain.js --version[0m
+2026-10-05T09:02:12.8230569Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:02:12.8230936Z env:
+2026-10-05T09:02:12.8231302Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:12.8231888Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:12.8232310Z   MAVEN_ARGS: -ntp
+2026-10-05T09:02:12.8232517Z ##[endgroup]
+2026-10-05T09:02:13.1862314Z 0.166.88
+2026-10-05T09:02:13.3184298Z ##[group]Run node bin/chainlesschain.js --help
+2026-10-05T09:02:13.3184766Z [36;1mnode bin/chainlesschain.js --help[0m
+2026-10-05T09:02:13.3258413Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:02:13.3258795Z env:
+2026-10-05T09:02:13.3259139Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:13.3259715Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:13.3260145Z   MAVEN_ARGS: -ntp
+2026-10-05T09:02:13.3260363Z ##[endgroup]
+2026-10-05T09:02:13.6871152Z Usage: cc [global options] [command]
+2026-10-05T09:02:13.6871659Z 
+2026-10-05T09:02:13.6872134Z Start ChainlessChain's coding agent by running cc in a terminal.
+2026-10-05T09:02:13.6873004Z Pipe a prompt to cc for a non-interactive agent turn.
+2026-10-05T09:02:13.6873434Z 
+2026-10-05T09:02:13.6873597Z Core commands:
+2026-10-05T09:02:13.6873928Z   Code:
+2026-10-05T09:02:13.6874581Z     agent (a, exec)  Start an agentic AI session (reads/writes files, runs commands)
+2026-10-05T09:02:13.6875412Z     session          Conversation session management
+2026-10-05T09:02:13.6876225Z     skill            Manage and run AI skills (multi-layer: bundled + global + project)
+2026-10-05T09:02:13.6877184Z   Integrations:
+2026-10-05T09:02:13.6877672Z     mcp     MCP server management and tool execution
+2026-10-05T09:02:13.6878272Z     plugin  Plugin and marketplace management
+2026-10-05T09:02:13.6878776Z   Configuration:
+2026-10-05T09:02:13.6879264Z     config            Manage ChainlessChain configuration
+2026-10-05T09:02:13.6879884Z     auth              RBAC permission management
+2026-10-05T09:02:13.6881029Z     doctor (checkup)  Diagnose your ChainlessChain environment (alias: checkup)
+2026-10-05T09:02:13.6881924Z     status            Show status of ChainlessChain app and services
+2026-10-05T09:02:13.6882618Z     update            Check for and install updates
+2026-10-05T09:02:13.6883003Z 
+2026-10-05T09:02:13.6883163Z Global options:
+2026-10-05T09:02:13.6883643Z   -v, --version                 Show the CLI version
+2026-10-05T09:02:13.6884238Z   -h, --help                    Show this help
+2026-10-05T09:02:13.6884879Z       --verbose                 Add diagnostics on stderr
+2026-10-05T09:02:13.6885564Z       --quiet                   Suppress non-error human output
+2026-10-05T09:02:13.6886295Z       --jsii-runtime <runtime>  JSII runtime: native | quickjs
+2026-10-05T09:02:13.6887351Z       --otlp-endpoint <url>     Export telemetry to an OTLP collector
+2026-10-05T09:02:13.6887857Z 
+2026-10-05T09:02:13.6888197Z Run `cc help --all` for every compatibility command.
+2026-10-05T09:02:13.6888901Z Run `cc help <command>` for command-specific help.
+2026-10-05T09:02:13.8140901Z ##[group]Run npx vitest run __tests__/unit/settings-loader.test.js __tests__/unit/settings-mutation-authority.test.js __tests__/unit/permissions-command.test.js __tests__/unit/agent-sandbox.test.js
+2026-10-05T09:02:13.8142461Z [36;1mnpx vitest run __tests__/unit/settings-loader.test.js __tests__/unit/settings-mutation-authority.test.js __tests__/unit/permissions-command.test.js __tests__/unit/agent-sandbox.test.js[0m
+2026-10-05T09:02:13.8223564Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-05T09:02:13.8223946Z env:
+2026-10-05T09:02:13.8224287Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:13.8224859Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-05T09:02:13.8225314Z   MAVEN_ARGS: -ntp
+2026-10-05T09:02:13.8225524Z ##[endgroup]
+2026-10-05T09:02:16.0858380Z 
+2026-10-05T09:02:16.0862291Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/a/chainlesschain/chainlesschain/packages/cli[39m
+2026-10-05T09:02:16.0862786Z 
+2026-10-05T09:02:21.8081205Z  [31m❯[39m __tests__/unit/settings-mutation-authority.test.js [2m([22m[2m30 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 4167[2mms[22m[39m
+2026-10-05T09:02:21.8083306Z      [32m✓[39m preserves unrelated fields and writes project synchronously[32m 219[2mms[22m[39m
+2026-10-05T09:02:21.8084817Z      [32m✓[39m preserves unrelated fields and writes local synchronously[32m 48[2mms[22m[39m
+2026-10-05T09:02:21.8086240Z      [32m✓[39m preserves unrelated fields and writes user synchronously[32m 104[2mms[22m[39m
+2026-10-05T09:02:21.8088314Z      [32m✓[39m duplicate rules leave exact bytes, revision and subscribers unchanged[32m 9[2mms[22m[39m
+2026-10-05T09:02:21.8090876Z      [32m✓[39m binds relative targets before a synchronous observer changes process.cwd[32m 70[2mms[22m[39m
+2026-10-05T09:02:21.8093187Z      [32m✓[39m refuses a final settings file symlink without replacing it or its target (real Node)[32m 11[2mms[22m[39m
+2026-10-05T09:02:21.8094674Z      [32m✓[39m refuses to replace corrupt settings "{ bad json"[32m 9[2mms[22m[39m
+2026-10-05T09:02:21.8095936Z      [32m✓[39m refuses to replace corrupt settings "null"[32m 10[2mms[22m[39m
+2026-10-05T09:02:21.8097185Z      [32m✓[39m refuses to replace corrupt settings "[]"[32m 9[2mms[22m[39m
+2026-10-05T09:02:21.8098295Z      [32m✓[39m refuses to replace corrupt settings "3"[32m 7[2mms[22m[39m
+2026-10-05T09:02:21.8099549Z      [32m✓[39m refuses to replace corrupt settings {"permissions":null}[32m 11[2mms[22m[39m
+2026-10-05T09:02:21.8100870Z      [32m✓[39m refuses to replace corrupt settings {"permissions":[]}[32m 9[2mms[22m[39m
+2026-10-05T09:02:21.8102237Z      [32m✓[39m refuses to replace corrupt settings {"permissions":"broken"}[32m 5[2mms[22m[39m
+2026-10-05T09:02:21.8104092Z      [32m✓[39m refuses to replace corrupt settings {"permissions":{"deny":"Bash"}}[32m 7[2mms[22m[39m
+2026-10-05T09:02:21.8105519Z      [32m✓[39m refuses to replace corrupt settings {"permissions":{"allow":[3]}}[32m 8[2mms[22m[39m
+2026-10-05T09:02:21.8107074Z      [32m✓[39m rejects invalid mutation inputs {"kind":"maybe","rule":"Read"} before file effects[32m 2[2mms[22m[39m
+2026-10-05T09:02:21.8108743Z      [32m✓[39m rejects invalid mutation inputs {"kind":"allow","rule":""} before file effects[32m 1[2mms[22m[39m
+2026-10-05T09:02:21.8110376Z      [32m✓[39m rejects invalid mutation inputs {"kind":"allow","rule":2} before file effects[32m 1[2mms[22m[39m
+2026-10-05T09:02:21.8112091Z      [32m✓[39m rejects invalid mutation inputs {"kind":"allow","rule":"Read","scope":"other"} before file effects[32m 1[2mms[22m[39m
+2026-10-05T09:02:21.8114285Z      [32m✓[39m isolates observer exceptions and rejects reader/writer reentry before acquiring a lock[32m 290[2mms[22m[39m
+2026-10-05T09:02:21.8118286Z      [32m✓[39m fails closed on an unavailable strict lock without changing revision or files[32m 217[2mms[22m[39m
+2026-10-05T09:02:21.8119875Z      [32m✓[39m known uncommitted writes still revoke old authority and retain the original file[32m 9[2mms[22m[39m
+2026-10-05T09:02:21.8121442Z      [32m✓[39m reports a committed lock cleanup error after synchronously revoking and retaining the write[32m 65[2mms[22m[39m
+2026-10-05T09:02:21.8123061Z      [32m✓[39m keeps uncertain commits unavailable even after external restoration (isolated process)[32m 277[2mms[22m[39m
+2026-10-05T09:02:21.8124727Z [31m     [31m×[31m preserves every concurrent process update using the existing strict lock[39m[33m 2266[2mms[22m[39m
+2026-10-05T09:02:21.8126364Z      [32m✓[39m keeps real Node read-only discovery and provider loading free of write bridge diagnostics[32m 179[2mms[22m[39m
+2026-10-05T09:02:21.8127945Z      [32m✓[39m revokes absent and unrelated project sources and directory aliases through one owner[32m 99[2mms[22m[39m
+2026-10-05T09:02:21.8130611Z      [32m✓[39m captures source options and immutable rule inputs without replacing live scoped owners[32m 8[2mms[22m[39m
+2026-10-05T09:02:21.8165203Z      [32m✓[39m rejects a settings write during its synchronous load instead of attaching new revision to stale rules[32m 36[2mms[22m[39m
+2026-10-05T09:02:21.8167417Z      [32m✓[39m uses the same owner under real Node CJS and ESM loading with synchronous return[32m 167[2mms[22m[39m
+2026-10-05T09:02:22.2395370Z  [32m✓[39m __tests__/unit/settings-loader.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-05T09:02:24.4412785Z  [32m✓[39m __tests__/unit/permissions-command.test.js [2m([22m[2m18 tests[22m[2m)[22m[33m 1507[2mms[22m[39m
+2026-10-05T09:02:24.4414660Z      [33m[2m✓[22m[39m emits the versioned actual-resource and recovery projection [33m 1169[2mms[22m[39m
+2026-10-05T09:02:33.4558494Z  [32m✓[39m __tests__/unit/agent-sandbox.test.js [2m([22m[2m87 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m[33m 7861[2mms[22m[39m
+2026-10-05T09:02:33.4559630Z      [33m[2m✓[22m[39m revokes a running product shell when live permission authority tightens [33m 640[2mms[22m[39m
+2026-10-05T09:02:33.4560596Z      [33m[2m✓[22m[39m revokes a running product shell when live sandbox authority tightens [33m 522[2mms[22m[39m
+2026-10-05T09:02:33.4561637Z      [33m[2m✓[22m[39m rejects a WS host-policy ABA while waiting for permission-read [33m 3412[2mms[22m[39m
+2026-10-05T09:02:33.4563307Z      [33m[2m✓[22m[39m closes a product session delivered after authority was revoked [33m 534[2mms[22m[39m
+2026-10-05T09:02:33.4588563Z 
+2026-10-05T09:02:33.4589347Z [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-05T09:02:33.4589670Z 
+2026-10-05T09:02:33.4594622Z [41m[1m FAIL [22m[49m __tests__/unit/settings-mutation-authority.test.js[2m > [22mofficial settings mutations on real files[2m > [22mpreserves every concurrent process update using the existing strict lock
+2026-10-05T09:02:33.4604127Z [31m[1mError[22m: Command failed: C:\hostedtoolcache\windows\node\22.22.2\x64\node.exe D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW writer3
+2026-10-05T09:02:33.4605832Z D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:507
+2026-10-05T09:02:33.4606287Z     throw error;
+2026-10-05T09:02:33.4606501Z     ^
+2026-10-05T09:02:33.4606612Z 
+2026-10-05T09:02:33.4607400Z Error: Could not acquire state lock: C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW\.claude\settings.json; owner pid=4660, ageMs=214, alive=true, releasePublished=false
+2026-10-05T09:02:33.4608515Z     at withFileLock (file:///D:/a/chainlesschain/chainlesschain/packages/cli/src/lib/with-file-lock.js:173:19)
+2026-10-05T09:02:33.4611166Z     at Object.withFileLock (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:51:42)
+2026-10-05T09:02:33.4612113Z     at addRule (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:472:26)
+2026-10-05T09:02:33.4613016Z     at Object.<anonymous> (D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs:6:3)
+2026-10-05T09:02:33.4613743Z     at Module._compile (node:internal/modules/cjs/loader:1705:14)
+2026-10-05T09:02:33.4614204Z     at Object..js (node:internal/modules/cjs/loader:1838:10)
+2026-10-05T09:02:33.4614652Z     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-10-05T09:02:33.4615123Z     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-10-05T09:02:33.4615608Z     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-10-05T09:02:33.4616091Z     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24) {
+2026-10-05T09:02:33.4616482Z   code: 'STATE_LOCK_UNAVAILABLE',
+2026-10-05T09:02:33.4616765Z   attempts: 17,
+2026-10-05T09:02:33.4616993Z   lockOwner: {
+2026-10-05T09:02:33.4617210Z     pid: 4660,
+2026-10-05T09:02:33.4617426Z     startedAt: 1791190941061,
+2026-10-05T09:02:33.4617678Z     alive: true,
+2026-10-05T09:02:33.4617911Z     releasePublished: false
+2026-10-05T09:02:33.4618159Z   },
+2026-10-05T09:02:33.4618384Z   commitState: 'not-committed'
+2026-10-05T09:02:33.4618646Z }
+2026-10-05T09:02:33.4618747Z 
+2026-10-05T09:02:33.4618842Z Node.js v22.22.2
+2026-10-05T09:02:33.4619126Z [39m
+2026-10-05T09:02:33.4619609Z [36m [2m❯[22m withFileLock src/lib/with-file-lock.js:[2m173:19[22m[39m
+2026-10-05T09:02:33.4725486Z     [90m171|[39m         )}, alive=${lastOwnerObservation.alive}, releasePublished=${Bo…
+2026-10-05T09:02:33.4730516Z     [90m172|[39m       [33m:[39m [32m""[39m[33m;[39m
+2026-10-05T09:02:33.4732084Z     [90m173|[39m     [35mconst[39m error [33m=[39m [35mnew[39m [33mError[39m(
+2026-10-05T09:02:33.4733085Z     [90m   |[39m                   [31m^[39m
+2026-10-05T09:02:33.4734931Z     [90m174|[39m       [32m`Could not acquire state lock: [39m[36m${[39mtargetPath[36m}[39m[32m[39m[36m${[39mownerDetails[36m}[39m[32m`[39m[33m,[39m
+2026-10-05T09:02:33.4735977Z 
+2026-10-05T09:02:33.4737055Z     [90m175|[39m       acquisitionError [33m?[39m { cause[33m:[39m acquisitionError } [33m:[39m undefined[33m,[39m
+2026-10-05T09:02:33.4738723Z [90m [2m❯[22m Object.withFileLock src/lib/settings-loader.cjs:[2m51:42[22m[39m
+2026-10-05T09:02:33.4739997Z [90m [2m❯[22m addRule src/lib/settings-loader.cjs:[2m472:26[22m[39m
+2026-10-05T09:02:33.4741382Z [90m [2m❯[22m Object.<anonymous> __tests__/fixtures/settings-rule-writer.cjs:[2m6:3[22m[39m
+2026-10-05T09:02:33.4743101Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (4)[39m
+2026-10-05T09:02:33.4743897Z 
+2026-10-05T09:02:33.4744633Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+2026-10-05T09:02:33.4746326Z [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m159 passed[39m[22m[2m | [22m[33m4 skipped[39m[90m (164)[39m
+2026-10-05T09:02:33.4747329Z 
+2026-10-05T09:02:33.4747666Z [2m   Start at [22m 09:02:16
+2026-10-05T09:02:33.4748984Z [2m   Duration [22m 17.17s[2m (transform 7.86s, setup 1.03s, import 9.60s, tests 13.57s, environment 1ms)[22m
+2026-10-05T09:02:33.4751727Z 
+2026-10-05T09:02:33.4786966Z 
+2026-10-05T09:02:33.4868791Z ##[error]Error: Command failed: C:\hostedtoolcache\windows\node\22.22.2\x64\node.exe D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW writer3
+D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:507
+    throw error;
+    ^
+
+Error: Could not acquire state lock: C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW\.claude\settings.json; owner pid=4660, ageMs=214, alive=true, releasePublished=false
+    at withFileLock (file:///D:/a/chainlesschain/chainlesschain/packages/cli/src/lib/with-file-lock.js:173:19)
+    at Object.withFileLock (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:51:42)
+    at addRule (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:472:26)
+    at Object.<anonymous> (D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs:6:3)
+    at Module._compile (node:internal/modules/cjs/loader:1705:14)
+    at Object..js (node:internal/modules/cjs/loader:1838:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24) {
+  code: 'STATE_LOCK_UNAVAILABLE',
+  attempts: 17,
+  lockOwner: {
+    pid: 4660,
+    startedAt: 1791190941061,
+    alive: true,
+    releasePublished: false
+  },
+  commitState: 'not-committed'
+}
+
+Node.js v22.22.2
+
+ ❯ withFileLock src/lib/with-file-lock.js:173:19
+ ❯ Object.withFileLock src/lib/settings-loader.cjs:51:42
+ ❯ addRule src/lib/settings-loader.cjs:472:26
+ ❯ Object.<anonymous> __tests__/fixtures/settings-rule-writer.cjs:6:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 1, killed: false, signal: null, cmd: 'C:\hostedtoolcache\windows\node\22.22.2\x64\node.exe D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW writer3', stdout: '', stderr: 'D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:507\r\n    throw error;\r\n    ^\r\n\r\nError: Could not acquire state lock: C:\Users\RUNNER~1\AppData\Local\Temp\cc-settings-authority-2iNeTW\.claude\settings.json; owner pid=4660, ageMs=214, alive=true, releasePublished=false\r\n    at withFileLock (file:///D:/a/chainlesschain/chainlesschain/packages/cli/src/lib/with-file-lock.js:173:19)\r\n    at Object.withFileLock (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:51:42)\r\n    at addRule (D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\settings-loader.cjs:472:26)\r\n    at Object.<anonymous> (D:\a\chainlesschain\chainlesschain\packages\cli\__tests__\fixtures\settings-rule-writer.cjs:6:3)\r\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\r\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\r\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\r\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\r\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24) {\r\n  code: \'STATE_LOCK_UNAVAILABLE\',\r\n  attempts: 17,\r\n  lockOwner: {\r\n    pid: 4660,\r\n    startedAt: 1791190941061,\r\n    alive: true,\r\n    releasePublished: false\r\n  },\r\n  commitState: \'not-committed\'\r\n}\r\n\r\nNode.js v22.22.2\r\n' }
+
+2026-10-05T09:02:33.8216533Z ##[error]Process completed with exit code 1.
+2026-10-05T09:02:33.8479228Z Post job cleanup.
+2026-10-05T09:02:34.0408983Z Post job cleanup.
+2026-10-05T09:02:34.2399483Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-05T09:02:34.2663922Z git version 2.55.0.windows.5
+2026-10-05T09:02:34.2728059Z Temporarily overriding HOME='D:\a\_temp\f40e52a4-5ac4-4eae-b0dd-d42d97d6ffc8' before making global git config changes
+2026-10-05T09:02:34.2728945Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-05T09:02:34.2738270Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-05T09:02:34.3041393Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-05T09:02:34.3345136Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-05T09:02:34.9080386Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-05T09:02:34.9338107Z http.https://github.com/.extraheader
+2026-10-05T09:02:34.9385746Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-05T09:02:34.9696145Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-05T09:02:35.5162230Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-05T09:02:35.5454877Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-05T09:02:36.0897607Z Cleaning up orphan processes

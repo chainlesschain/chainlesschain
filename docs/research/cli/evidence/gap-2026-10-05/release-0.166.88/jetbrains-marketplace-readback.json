@@ -1,0 +1,18 @@
+{
+  "observedAt": "2026-10-05T10:40:19.479Z",
+  "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "tagWorkflow": {
+    "id": 37291923696,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37291923696"
+  },
+  "verificationSource": "supplementary local public readback using repository marketplace verifier",
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "ready",
+  "version": "0.4.151",
+  "approve": true,
+  "listed": true,
+  "hidden": false
+}
