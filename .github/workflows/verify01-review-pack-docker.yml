@@ -1,0 +1,57 @@
+name: VERIFY01 Docker Review Pack
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "feature/cli-ide-gap-*"]
+    paths:
+      - "packages/cli/scripts/verify01-review-*.mjs"
+      - "packages/cli/src/lib/eval/**"
+      - "packages/cli/__tests__/unit/verify01-review-*.test.js"
+      - ".github/workflows/verify01-review-pack-docker.yml"
+  pull_request:
+    paths:
+      - "packages/cli/scripts/verify01-review-*.mjs"
+      - "packages/cli/src/lib/eval/**"
+      - "packages/cli/__tests__/unit/verify01-review-*.test.js"
+      - ".github/workflows/verify01-review-pack-docker.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    name: generated pack (${{ matrix.shard }}/6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Pin real acceptance image outside the task deadline
+        run: |
+          docker pull node:22.12.0-bookworm-slim
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm-slim --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Run generated stages and behavioral controls in real Docker
+        run: >-
+          node packages/cli/scripts/verify01-review-pack-diagnostic.mjs
+          --source-sha '${{ github.event.pull_request.head.sha || github.sha }}'
+          --image-id "$REVIEW_IMAGE_ID"
+          --shard '${{ matrix.shard }}/6'
+          --output-dir "$RUNNER_TEMP/verify01-review-pack"
+      - name: Preserve raw scripts, executed receipts and failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-review-pack-${{ matrix.shard }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/verify01-review-pack/
+          include-hidden-files: true
+          if-no-files-found: error
