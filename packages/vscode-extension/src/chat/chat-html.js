@@ -1373,7 +1373,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             draftStatus: draftPanel ? draftPanel.textContent : "",
             attachmentChips: [...attach.querySelectorAll(".chip")].map(chip => chip.textContent),
             tabs: [...tabsEl.querySelectorAll('[role="tab"]')].map(tab => ({ id: tab.dataset.tabId, title: tab.textContent, selected: tab.getAttribute("aria-selected") === "true" })),
-            savedRows: [...log.querySelectorAll('[data-saved-row-id]')].map(row => ({ id: row.dataset.savedRowId, text: row.textContent })),
+            savedRows: [...log.querySelectorAll('[data-saved-row-id]')].map(row => ({ id: row.dataset.savedRowId, text: row.textContent, source: transcriptReconciler.renderedSource(row) })),
+            displayedRows: [...log.querySelectorAll('[data-transcript-view-id]')].map(row => ({ id: row.dataset.savedRowId || null, text: row.textContent, source: transcriptReconciler.renderedSource(row) })),
             sendEnabled: Boolean(document.getElementById("send") && !document.getElementById("send").disabled),
             stopEnabled: Boolean(document.getElementById("stop") && !document.getElementById("stop").disabled),
             planVisible: Boolean(plan && getComputedStyle(plan).display !== "none"),
@@ -1390,6 +1391,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           input.value = command.text;
           input.dispatchEvent(new Event("input", { bubbles: true }));
           respond(true, { edited: true }); return;
+        }
+        if (command.action === "setMode") {
+          const slash = { default: "/normal", acceptEdits: "/auto", bypassPermissions: "/bypass" }[command.mode];
+          const button = document.getElementById("send");
+          if (!slash || !input || !button || button.disabled) throw new Error("mode control is unavailable");
+          input.value = slash;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          button.click(); respond(true, { requestedMode: command.mode }); return;
         }
         if (command.action === "attachImage") {
           respond(true, (${dispatchHostImageFixture.toString()})(input, command.fixture, command.via)); return;

@@ -1,0 +1,18 @@
+{
+  "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+  "passed": false,
+  "exit": {
+    "code": 1,
+    "signal": null
+  },
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.133",
+  "vsixDigest": "sha256:d05f597d48470c5dcef41a306631178a2039a6cf174d515562132b6d13ca1e11",
+  "providerAssessed": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "platform": "darwin",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "32fcd3b20f5c7840026336bf4d1ded6e0898d2b7"
+}

@@ -2,6 +2,10 @@
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
 
+> **最新续做**：显式 Linux `agent controlled-host`、IDE prepare/finish 与双宿主驱动已接通。准确工程提交 `f289a08844` 的官方 MCP stdio/HTTP/GET-SSE 三系统 CI 和双 IDE 六宿主矩阵全部通过，原始协议、UI 与退出证据已归档。IDE 诊断允许有界回收并核验进程消失，逐平台退出方式见[实施记录第 13 节](../cli-ide-gap-implementation-2026-10-05.md#13-真实矩阵反馈与退出生命周期)。候选 CLI `0.166.89`、VS Code `0.37.134`、JetBrains `0.4.152` 尚未发布。正式 36+9 样本保持 `NOT_RUN`；账号账单、公开安装、人工验收及 Windows/macOS durable 后端仍开放。
+
+> **本次续做**：在 `4f12030641` 之后补齐 IDE 任务的 prepare/finish 执行器、完整基线/diff 与 reviewed setup/check 回执接线，接入双 IDE 面板采集驱动，并完成官方 MCP stdio/HTTP 的本地真实进程补验。最新验证、尚缺的实际环境与验收项见[实施记录第 11 节](../cli-ide-gap-implementation-2026-10-05.md#11-实际宿主采集与验收执行接线)。下列原始审计及前几轮发布记录保留其各自时点含义。
+
 > **后续实施（2026-10-05）**：模型合同与目录审查、Memory 查询索引、Codex 0.160.0 协议探针、MCP 参考服务端互操作及 IDE 修复已落地；其余执行接线、真实验收与平台边界见[本期实施状态与证据](../cli-ide-gap-implementation-2026-10-05.md)。以下正文保留原审计快照，“当前缺失”与行号均指原基线，不能视作实施后的现状。按用户要求，后续修改已转到 `main`。
 
 > **本轮工作区补充**：增加覆盖全部 36 题的 setup/check 生成器（72 个自包含脚本、42 个源码行为反例）、双 IDE 原始协议观察接口及首次安装/宿主证据只读导入器。工程验证和限制见[实施记录第 9 节](../cli-ide-gap-implementation-2026-10-05.md#9-本轮验收工程补充)。当前仍无正式任务 observations，36+9 保持 `NOT_RUN`。native 六目标 unsigned 验证已有独立历史回执，不能再将 Windows ARM64 描述为始终未通过，详见实施记录。用户最新已授权提交发布，发行结果及准确提交验证见实施记录第 10 节；正式验收状态不因发布改变。

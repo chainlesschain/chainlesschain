@@ -479,6 +479,10 @@ export function runReviewStage(
         [
           "npm",
           "ci",
+          "--workspace",
+          "packages/cli",
+          "--include-workspace-root=false",
+          "--legacy-peer-deps",
           "--ignore-scripts",
           "--no-audit",
           "--no-fund",

@@ -1,0 +1,12 @@
+{
+  "root": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-verify01-jetbrains-NFVQjc",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+  "hostVersion": "2024.2"
+}

@@ -1,0 +1,12 @@
+{
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-jetbrains-BC12WT",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "sourceCommit": null,
+  "hostVersion": "2024.2"
+}

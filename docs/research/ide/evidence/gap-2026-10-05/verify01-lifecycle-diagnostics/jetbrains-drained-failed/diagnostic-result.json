@@ -1,0 +1,23 @@
+{
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-jetbrains-HGCQRq",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "sourceCommit": null,
+  "hostVersion": "2024.2",
+  "passed": false,
+  "pluginVersion": "0.4.152",
+  "pluginDigest": "sha256:89cd5ff9835a286301a1198b3e1fb503b81cde486b4cd1bf2d30ea4389dd4442",
+  "canonicalCommandDrain": {
+    "initial": {
+      "started": 1,
+      "completed": 1
+    }
+  },
+  "error": "Error: Windows process identities survived tree termination (taskkill 128): 22676; ����: �޷���ֹ PID 12928 (���� PID 22676 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\r\r\n����: �޷���ֹ PID 22676 (���� PID 22816 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\n    at cleanupUnconfirmed (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:55:24)\n    at file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:230:19\n    at async stopOwned (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:295:10)\n    at async main (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:201:9)",
+  "cleanupError": "Error: Windows process identities survived tree termination (taskkill 128): 22676; ����: �޷���ֹ PID 12928 (���� PID 22676 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\r\r\n����: �޷���ֹ PID 22676 (���� PID 22816 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\n    at cleanupUnconfirmed (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:55:24)\n    at file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:230:19\n    at async stopOwned (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:295:10)\n    at async main (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:201:9)"
+}

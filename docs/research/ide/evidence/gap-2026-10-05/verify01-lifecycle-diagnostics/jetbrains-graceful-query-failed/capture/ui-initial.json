@@ -1,0 +1,27 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791195281051-414120",
+    "at": "2026-10-05T10:14:41.788484500Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791195281051-414120",
+    "at": "2026-10-05T10:14:42.839949Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791195281051-414120",
+    "at": "2026-10-05T10:15:03.101240100Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791195281051-414120",
+    "at": "2026-10-05T10:15:05.816123200Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  }
+]

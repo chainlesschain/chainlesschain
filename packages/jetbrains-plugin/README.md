@@ -22,12 +22,12 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Candidate `0.4.151` adds an optional ordered raw protocol observer for evaluation
+Candidate `0.4.152` adds an optional ordered raw protocol observer for evaluation
 drivers, disabled by default. Real GUI/provider acceptance remains open. It preserves drafts during bounded slow initialization, uses
 strict ChainlessChain command identity during setup and updates, and reports
 receipt/mode capabilities from the running conversation in Doctor.
 
-Candidate release `0.4.151` pairs with CLI `0.166.88` after the CLI is published
+Candidate release `0.4.152` pairs with CLI `0.166.89` after the CLI is published
 and this IDE commit passes its release gates. The paired CLI freezes unattended
 policy and tool limits, checks WebSocket host revisions, and revokes active
 shell authority when an official settings rule write starts in the same runtime.
@@ -86,7 +86,7 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.88` for older installations, including when the
+- Recommend `chainlesschain@0.166.89` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -106,7 +106,7 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.88` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.89` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -124,7 +124,7 @@ after this exact IDE commit passes its gates.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.151** is the current release candidate that re-certifies the read-only
+Plugin **0.4.152** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -143,10 +143,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.88`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.89`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.151` accepts only the exact
+permission/budget enforcement. Version `0.4.152` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -155,7 +155,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.151` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.152` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -164,7 +164,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.151`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.152`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph
@@ -394,3 +394,68 @@ The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sectio
 
 </details>
 <!-- chainlesschain-public-ide-capabilities:end -->
+
+### VERIFY01 task capture (operator initiated)
+
+`ConversationView` can observe its real CLI protocol when the IDE JVM is launched with
+`-Dchainlesschain.verify01.captureRoot=<absolute existing directory>`. Ordinary launches
+do not record protocol. The directory must be outside the task workspace. Each session
+writes exclusive `protocol-<generation>.jsonl`; a write failure invalidates the capture
+and emits a `capture-error-*` marker where possible. These records can contain task
+content and tool results; choose an operator-controlled directory.
+
+The existing `runIdeForUiTests` / `uiSmokeTest` tasks now support a single real task using
+these **explicit** system properties on both Gradle invocations:
+
+| Property                     | Value                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `ui.verify01.captureRoot`    | Fresh existing evidence directory, absolute and outside the task checkout                                |
+| `ui.verify01.workspace`      | Prepared frozen task checkout; the launcher does not add `hello.txt`                                     |
+| `ui.verify01.home`           | Existing isolated home with the authorized CLI configuration in `.chainlesschain`                        |
+| `ui.verify01.sampleId`       | Frozen sample ID, such as `verify-03`                                                                    |
+| `ui.verify01.promptFile`     | Absolute UTF-8 file containing the exact frozen prompt                                                   |
+| `ui.verify01.deadlineMs`     | Required absolute Unix epoch milliseconds; same deadline across both phases, at most 1200000 ms ahead    |
+| `ui.verify01.permissionMode` | Required frozen mode; selected using the normal composer `/auto`, `/normal` or `/bypass` before the task |
+| `ui.journey.phase`           | `initial`, then `restart`                                                                                |
+
+Keep the same `-PuiJourneyRunId=<unique-run-id>`, host version, project, home and IDE
+sandbox across both phases. Start `runIdeForUiTests`, then run `uiSmokeTest` against its
+loopback Robot server. The initial phase uses native composer/tab controls, saves raw
+protocol plus the observed UI steps, closes the real child's stdin, and waits for its
+actual drained exit. After `restart-state.json` is written and Save All completes,
+close/reopen the IDE using the same launch arguments; invoke `uiSmokeTest` with phase
+`restart`. The restart phase requires a different IDE process and the same profile,
+session, canonical assistant text and rendered text. It never submits another prompt.
+An explicit model error preserves only the observed UI prefix in `ui.json`; there is
+no fabricated reload or success. Driver failures leave `driver-failure-*.json` and
+the completed `action-*.json` observations.
+
+This path uses the configured real CLI and may incur provider charges when deliberately
+run. It does not select an account, approve a task budget, authenticate a public install,
+or execute the separately reviewed setup/check. The packaged plugin installed by the
+Gradle sandbox is a local artifact, not proof of a Marketplace installation. The outer
+operator still must bind host/package/source identity, run setup/check, scan full diffs,
+enforce the task-wide deadline across both phases, and generate the capture manifest for
+`verify01-host-import.mjs`. Compilation and deterministic core tests do not constitute a
+real GUI/provider or formal 36+9 result.
+
+For a **keyless engineering diagnostic** on Windows, Linux or macOS, use:
+
+```sh
+node scripts/verify01-diagnostic.mjs --ide-version 2024.2 --artifact-dir build/reports/verify01-new-attempt
+```
+
+Use JDK 21 and Node >=22.12.0; on headless Linux prefix the command with
+`xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"`. The runner
+builds/installs the local plugin, creates an isolated fixture CLI and canonical store,
+then opens the real IDE twice with the same profile. Preparation has a 30-minute bound;
+both task phases share a 12-minute deadline. It refuses an occupied Robot port or an
+existing artifact directory, records failures, and waits for owned process cleanup.
+`CC_JETBRAINS_GRADLE_EXECUTABLE` and `CC_JETBRAINS_IDE_LOCAL_PATH` can select an
+existing Gradle/IDE installation. IDE profiles remain in the reported temporary
+location; the archive contains capture files and logs, excluding profile sockets.
+
+The repository's `VERIFY01 Host Diagnostics` workflow drives this entry and the VS Code
+equivalent on Linux, Windows and macOS with Node 22.12.0. Its results are deterministic
+host-driver diagnostics, with `formalSample:false` and `providerAssessed:false`.
+They do not change the frozen model/first-install samples or prove a public installation.

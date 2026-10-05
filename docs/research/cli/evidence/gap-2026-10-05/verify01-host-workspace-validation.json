@@ -1,0 +1,242 @@
+{
+  "schema": "chainlesschain.verify01-host-workspace-validation/v1",
+  "observedAt": "2026-10-05T08:50:57.543Z",
+  "source": {
+    "commit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+    "dirty": true,
+    "files": {
+      ".github/workflows/mcp-reference-interop.yml": "sha256:98777cc941359a18f6b34ec57b450ae5761f797d8324267df623767f1e60352e",
+      "packages/cli/__tests__/unit/verify01-host-capture.test.js": "sha256:448c2bfa8f12404784622f3945cff4966bb50f158c3d7732c52613cc7ccb6425",
+      "packages/cli/scripts/mcp-reference-interop.mjs": "sha256:55688d11cd8f5faff1abef89632a33777660d3c9e64ae2ac4231128e3976eba2",
+      "packages/cli/scripts/mcp-reference-stdio-worker.mjs": "sha256:ea57cd516566871ba88350f017f8b8df216b62185a5efd45d3de0fda84b61e5e",
+      "packages/cli/scripts/verify01-host-capture.mjs": "sha256:9b7f2ce1a0b53a7222fa889a63942a44a612036c21207d5381180c7b7b0dc428",
+      "packages/cli/src/lib/eval/verify01-execution.js": "sha256:adaa8dfc356c0b48377a2286868d8a88803c4cb604d5d7b0121bee7a9c718d52",
+      "packages/cli/src/lib/eval/verify01-host-capture.js": "sha256:044eb4dc6432182aa777fa1288733a25dd7533e298c071ebe0f75bd843e40828",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:8c0091d5430aad85ee88c66d3c26308413ec9f19b6293a723be32bc5b99736ca",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Verify01ProtocolCapture.java": "sha256:096527622b942a969f3c1d5425a32e6a4654e5caec3145679eb9ba5909b4e9e8",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:f882a540fa6622c4f32fb1f47f039e3ec08f17adc99e4f359a24d3ef23b25d4d",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/Verify01ProtocolCaptureTest.java": "sha256:f9617d3f36ad38716e12ff0e7652c12566b5641c239363efd3c8aae6e11053f4",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:d03e195ba0795261040abd67161ca5a2d87f804cb4c680070d3a7a60476c3157",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:6b648bd13f30d7d99ad85b7151127be9e26b2af6af2f25b53f58e82e3cec59c0",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java": "sha256:022f06efd03aa69b9fedb117ff5d3b5d3daebcce2b3561144c832c61fafc851a",
+      "packages/vscode-extension/package.json": "sha256:c9a2fbd6defc8c0b8e02a2ffcb8abd59f2fe5eedf42b8ed5bfd4742d61314343",
+      "packages/vscode-extension/src/chat/chat-html.js": "sha256:2c198be04149d59490fc08eaafb0e382431dabc847400b83369b63651e0f7db8",
+      "packages/vscode-extension/src/chat/chat-view.js": "sha256:9a423499ed10aece051efa6188cbaec9f309a8c24fab229e3b0b6024192d8e4d",
+      "packages/vscode-extension/src/chat/host-dom-relay.js": "sha256:9cb0e3e3d3f09f5958101e545e71ad07377b17062b0c0617cccba762544e604f",
+      "packages/vscode-extension/src/chat/protocol-capture.js": "sha256:226dcaed25ddb7ad4bf448e186e40564db0570aae22270d9358723069b5b86c8",
+      "packages/vscode-extension/src/chat/transcript-reconciler.js": "sha256:8870581756df26f9b6dd32b73bc7ce4516e3989495b2ff2d808c421b3bfb0246",
+      "packages/vscode-extension/src/extension.js": "sha256:b09fd4eb06492af75cf02b6aafb11c56fadc457e9b3a2ab1d98d35c0b51e5b07",
+      "packages/vscode-extension/test/extension-host/driver/noop.cjs": "sha256:1ae68344c10168efc5f9e17bd32de225aab5bac2294448bf95db3052a015c3f1",
+      "packages/vscode-extension/test/extension-host/driver/verify01.cjs": "sha256:100e5279e7ddcd293dd94e0dba890b3b4a15e1d672db5c89b1da1bfa382b3068",
+      "packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs": "sha256:4706e69aa234f27723d7e45e67194013d0c7be656cb4b7fa22ae85cb3574e638",
+      "packages/vscode-extension/test/extension-host/verify01-run.cjs": "sha256:79c2c6c62f377fc99e7281657c2e102f8713e84989b54957349ff4550b492517",
+      "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:b285515c811160b22551cec5db3d808e757111eb0022497dd4312e3a662c090a",
+      "packages/vscode-extension/test/protocol-capture.test.cjs": "sha256:0ec3bd67a8d5119fc3fb42aab0bb77893b530d6ab61a70fef79fcbdbbcdf221b",
+      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11"
+    }
+  },
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2"
+  },
+  "tests": [
+    {
+      "name": "CLI prepare/finish, host evidence and execution",
+      "command": "npm test -- --run __tests__/unit/verify01-host-capture.test.js __tests__/unit/verify01-host-evidence.test.js __tests__/unit/verify01-execution.test.js",
+      "cwd": "packages/cli",
+      "passed": 51,
+      "failed": 0
+    },
+    {
+      "name": "VS Code unit suite",
+      "command": "npm run test:unit",
+      "cwd": "packages/vscode-extension",
+      "passed": 241,
+      "failed": 0
+    },
+    {
+      "name": "Final VS Code capture/relay/initialization subset",
+      "command": "node --test test/protocol-capture.test.cjs test/agent-initialization.test.cjs test/host-dom-relay.test.cjs",
+      "cwd": "packages/vscode-extension",
+      "passed": 36,
+      "failed": 0,
+      "subsetOfPrevious": true
+    },
+    {
+      "name": "JetBrains protocol capture and session core",
+      "command": "gradlew.bat test --tests com.chainlesschain.ide.Verify01ProtocolCaptureTest --tests com.chainlesschain.ide.AgentChatSessionTest compileUiTestJava --console=plain",
+      "cwd": "packages/jetbrains-plugin",
+      "passed": 17,
+      "failed": 0,
+      "finalCoreTaskCacheReused": true,
+      "uiDriverRecompiledAndExecuted": true,
+      "buildJdk": "Temurin 21.0.12.1+1"
+    }
+  ],
+  "vscode": {
+    "result": {
+      "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+      "passed": true,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "hostVersion": "1.132.0",
+      "extensionVersion": "0.37.133",
+      "vsixDigest": "sha256:16520a2d910f91717ea5ee9f8cdbfdbc2ac6ccf453fcca98e472af122bebb535",
+      "providerAssessed": false,
+      "formalSample": false,
+      "observationsCreated": false
+    },
+    "artifacts": {
+      "diagnostic-result.json": {
+        "digest": "sha256:ab932cc81ea57c07b63b330cb78cdbf312f5663259767e6f1ea244dbd97dfc72",
+        "size": 379
+      },
+      "protocol.json": {
+        "digest": "sha256:be7afedee74d904e8684a6b99e3704c4cdb0ddbc10930f46feff1a54f5db1c72",
+        "size": 4484
+      },
+      "ui.json": {
+        "digest": "sha256:dc480249d33eaba637a4dc78486fcb569493f2a6fa5bde1dd686276ecbdeb330",
+        "size": 1192
+      },
+      "vscode-initial.json": {
+        "digest": "sha256:f229f40d58c83e14f1bcca3b335f39d44e61ca439665d1d7a763277a4c272005",
+        "size": 4350
+      },
+      "vscode-restart.json": {
+        "digest": "sha256:6f08060356da5cfd2770a6af4f12fa08892cd3f4cf0922db080a8c516cc576c0",
+        "size": 2891
+      },
+      "vscode-install.json": {
+        "digest": "sha256:a379332285e2076b25e4edb41763fae872fcb62c52e409ae0a84df6647477286",
+        "size": 633
+      },
+      "1f6256e6-c061-478a-a645-ab22b001e722.ndjson": {
+        "digest": "sha256:36630fcb741f635b9db17a24cc44c2033724c09e7e75da762bb7aa4076b2025b",
+        "size": 3420
+      }
+    },
+    "scope": "real-installed-host-with-deterministic-peer",
+    "formalSample": false
+  },
+  "jetbrains": {
+    "result": {
+      "root": "C:\\code\\chainlesschain\\.work\\verify01-jetbrains-gui-3yPXRt",
+      "formalSample": false,
+      "providerAssessed": false,
+      "observationsCreated": false,
+      "dirty": true,
+      "scope": "real-jetbrains-host-with-deterministic-peer",
+      "passed": true
+    },
+    "artifacts": {
+      "diagnostic-result.json": {
+        "digest": "sha256:45d84eed96355d3345b8c7adb12f314d7ba49e1d33857cffa2b989ba57f1ff66",
+        "size": 257
+      },
+      "diagnostic-scope.json": {
+        "digest": "sha256:0357dfd07d449e398ad2e0020be605618b6aa3f7537f93ea5c1788bfb0015385",
+        "size": 239
+      },
+      "prepare.stdout.txt": {
+        "digest": "sha256:c7ad167c0909cb6b0517c68bc9dc54ba331436297e37f1f2a76ff1e2813ab142",
+        "size": 1187
+      },
+      "protocol-b6113f35-ec26-4239-87b7-9cd4250ec9fe.jsonl": {
+        "digest": "sha256:dd1947bed6bdb2681a93f4fd2a04baa56a81a57b1b703b35eb16b3dc4e422aa9",
+        "size": 3379
+      },
+      "protocol.json": {
+        "digest": "sha256:2b691563ebd4ee35830fbfd2cf967f8f728ec40fc53f19ff1eea9e1ed8afea86",
+        "size": 4435
+      },
+      "restart-state.json": {
+        "digest": "sha256:f446f8b77411a9a611bf03fe0f470a1cb5a01871a0799938beefad34dbbbe0d7",
+        "size": 3116
+      },
+      "restored-snapshot.json": {
+        "digest": "sha256:46e5eda13c4899b6a95ba7391581bf3a9ae95489b7e308cdff259df655b1dd9f",
+        "size": 1929
+      },
+      "test-initial.stdout.txt": {
+        "digest": "sha256:ac7280d04ef768ac743ce5cb9fa6b5e548ddb11746288439995524d8ba4690eb",
+        "size": 874
+      },
+      "test-restart.stdout.txt": {
+        "digest": "sha256:74be965bcfce48804cefa9ce7286e5f927068bdd6114eca04d4a8b1b4081920d",
+        "size": 880
+      },
+      "ui.json": {
+        "digest": "sha256:487116deff8df4f2c824c9605c9f885cae847fefa7613622a26ec38a52172675",
+        "size": 1129
+      },
+      "unit-AgentChatSessionTest.xml": {
+        "digest": "sha256:8aa67a4055d895ae961e06fed3882705d2b35223347e21c35c05014dcafb3651",
+        "size": 2266
+      },
+      "unit-Verify01ProtocolCaptureTest.xml": {
+        "digest": "sha256:90ddebcc5e43392d82380e6fb9b78b41504ae1f059c15168265a4a00dbfab678",
+        "size": 797
+      }
+    },
+    "hostBuild": "IC-242.20224.300",
+    "pluginVersion": "0.4.151",
+    "jbr": "21.0.3+13-b509.4",
+    "scope": "real-installed-host-with-deterministic-peer",
+    "formalSample": false
+  },
+  "mcp": {
+    "receipt": "mcp-reference-stdio-windows-workspace.json",
+    "realOfficialServer": true,
+    "stdio": true,
+    "http": true,
+    "externalAccount": false
+  },
+  "priorDiagnosticFailures": [
+    {
+      "stage": "vscode-workspace-identity",
+      "reason": "Windows drive-letter case comparison",
+      "resolution": "normalized actual Windows paths",
+      "retainedLocalRoot": ".work/verify01-driver-gui-jW3tMD"
+    },
+    {
+      "stage": "vscode-fixture-start",
+      "reason": "canonical fixture directory rejected inside repository",
+      "resolution": "moved fixture state to OS temp without changing guard",
+      "retainedLocalRoot": ".work/verify01-driver-gui-6h2pgf"
+    },
+    {
+      "stage": "jetbrains-robot-call",
+      "reason": "generic String.valueOf inferred char[]",
+      "resolution": "explicit Object cast",
+      "retainedLocalRoot": ".work/verify01-jetbrains-gui-hGze94"
+    },
+    {
+      "stage": "jetbrains-saved-row-comparison",
+      "reason": "saved renderer heading included in body equality",
+      "resolution": "verify exact renderer heading/suffix and compare complete actual body; keep full span",
+      "retainedLocalRoot": ".work/verify01-jetbrains-gui-zyCM2a"
+    },
+    {
+      "stage": "jetbrains-protocol-summary-fidelity",
+      "reason": "default Gson serialization omitted explicit null fields",
+      "resolution": "serializeNulls and compare the saved summary deeply with the actual JSONL records",
+      "retainedLocalRoot": ".work/verify01-jetbrains-gui-oXTJyr",
+      "priorGuiPassed": true
+    }
+  ],
+  "boundaries": {
+    "providerAssessed": false,
+    "formalObservationsCreated": false,
+    "frozenTasks": 36,
+    "frozenFirstRuns": 9,
+    "formalStatus": "NOT_RUN",
+    "fullCiMatrixAssessed": false,
+    "releaseEligible": false,
+    "humanAccessibilityAssessed": false,
+    "longDurationAssessed": false
+  }
+}

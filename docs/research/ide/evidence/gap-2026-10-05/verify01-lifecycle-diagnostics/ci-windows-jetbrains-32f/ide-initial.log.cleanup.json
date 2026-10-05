@@ -1,0 +1,48 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 4460,
+      "parentPid": 7076,
+      "created": "639267907902111860"
+    },
+    {
+      "pid": 900,
+      "parentPid": 4460,
+      "created": "639267907902420190"
+    },
+    {
+      "pid": 8764,
+      "parentPid": 900,
+      "created": "639267907909294170"
+    },
+    {
+      "pid": 7744,
+      "parentPid": 8764,
+      "created": "639267908183518310"
+    },
+    {
+      "pid": 5112,
+      "parentPid": 7744,
+      "created": "639267908183549560"
+    },
+    {
+      "pid": 8852,
+      "parentPid": 7744,
+      "created": "639267908221029860"
+    },
+    {
+      "pid": 7048,
+      "parentPid": 8852,
+      "created": "639267908221317480"
+    }
+  ],
+  "taskkill": {
+    "status": 0,
+    "signal": null,
+    "stdout": "SUCCESS: The process with PID 7048 (child process of PID 8852) has been terminated.\r\nSUCCESS: The process with PID 5112 (child process of PID 7744) has been terminated.\r\nSUCCESS: The process with PID 8852 (child process of PID 7744) has been terminated.\r\nSUCCESS: The process with PID 7744 (child process of PID 8764) has been terminated.\r\nSUCCESS: The process with PID 8764 (child process of PID 900) has been terminated.\r\nSUCCESS: The process with PID 900 (child process of PID 4460) has been terminated.\r\nSUCCESS: The process with PID 4460 (child process of PID 7076) has been terminated.\r\n",
+    "stderr": ""
+  },
+  "confirmed": true,
+  "remaining": []
+}

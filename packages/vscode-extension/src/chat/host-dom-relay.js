@@ -11,6 +11,7 @@ const HOST_DOM_ACTIONS = new Set([
   "click",
   "editDraft",
   "switchTab",
+  "setMode",
   "streamProfile",
   "attachImage",
   "removeAttachment",
@@ -57,6 +58,11 @@ function validateHostDomRequest(value) {
     )
       throw new TypeError("Invalid host DOM tab ID");
     return { action: "switchTab", id: value.id };
+  }
+  if (value.action === "setMode") {
+    if (!["default", "acceptEdits", "bypassPermissions"].includes(value.mode))
+      throw new TypeError("Unsupported host permission mode");
+    return { action: "setMode", mode: value.mode };
   }
   if (value.action === "streamProfile") {
     if (![10_000, 100_000, 200_000].includes(value.chars))

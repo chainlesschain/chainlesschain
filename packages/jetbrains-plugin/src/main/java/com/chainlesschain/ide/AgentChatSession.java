@@ -166,9 +166,13 @@ public final class AgentChatSession {
      * override and restores auto-detection. Takes precedence over
      * {@link #resolveBinary()}'s candidate probing.
      */
-    public static void setConfiguredBinary(String path) {
+    private static volatile long binaryConfigurationRevision;
+
+    public static synchronized void setConfiguredBinary(String path) {
         String p = path == null ? null : path.trim();
         configuredBinary = (p == null || p.isEmpty()) ? null : p;
+        resolvedBinary = null;
+        binaryConfigurationRevision++;
     }
 
     /** The active cc-path override, or null when unset (auto-detection applies). */
@@ -188,8 +192,47 @@ public final class AgentChatSession {
     private static volatile java.util.function.Supplier<String> managedCliSupplier = null;
 
     /** Install (or clear, with null) the managed-CLI candidate source. */
-    public static void setManagedCliSupplier(java.util.function.Supplier<String> supplier) {
+    public static synchronized void setManagedCliSupplier(java.util.function.Supplier<String> supplier) {
         managedCliSupplier = supplier;
+        resolvedBinary = null;
+        binaryConfigurationRevision++;
+    }
+
+    /** A fresh probe of one actual command, never a cached version string.
+     * The revision prevents a slow probe publishing guidance for old settings. */
+    public static final class CliIdentity {
+        public final String command;
+        public final String configuredPath;
+        public final String output;
+        public final String version;
+        private final long revision;
+
+        private CliIdentity(String command, String configuredPath, String output, long revision) {
+            this.command = command;
+            this.configuredPath = configuredPath;
+            this.output = output;
+            this.version = CliVersionCheck.installedVersion(output);
+            this.revision = revision;
+        }
+
+        public boolean isCurrent() { return revision == binaryConfigurationRevision; }
+    }
+
+    public static CliIdentity probeCliIdentity(File cwd, long timeoutMs) {
+        long revision = binaryConfigurationRevision;
+        String configured = configuredBinary;
+        // Re-evaluate global/managed selection as well: an installation can be
+        // repaired or replaced at the same path while the IDE remains open.
+        String command = configured;
+        if (command == null) {
+            command = chooseBinary(candidate -> runCaptureWith(candidate,
+                    java.util.Collections.singletonList("--version"), null, cwd, timeoutMs));
+            if (command == null) command = managedCommandOrNull();
+            if (command == null) command = "cc";
+        }
+        String output = runCaptureWith(command, java.util.Collections.singletonList("--version"),
+                null, cwd, timeoutMs);
+        return new CliIdentity(command, configured, output, revision);
     }
 
     /** The managed command, or null (unset supplier / no install / any failure). */

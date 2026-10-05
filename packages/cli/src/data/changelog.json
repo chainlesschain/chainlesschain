@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.89",
+      "cliVersions": ["0.166.89"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.89: IDE capture journeys and controlled Linux entry",
+          "body": "- Prepare and finish frozen IDE tasks with byte-pinned baselines, complete diffs,\n  a shared deadline and real protocol/UI evidence from both IDE hosts.\n- Add explicit `agent controlled-host` for pre-provisioned Linux permission domains;\n  configuration checks do not claim backend execution or provision new authority.\n- Pair VS Code `0.37.134` and JetBrains `0.4.152` with CLI `0.166.89` for\n  opt-in panel capture, deterministic initial/restart diagnostics and retained\n  process-cleanup evidence. Add official MCP stdio interoperability checks."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.88",
       "cliVersions": ["0.166.88"],
       "date": null,

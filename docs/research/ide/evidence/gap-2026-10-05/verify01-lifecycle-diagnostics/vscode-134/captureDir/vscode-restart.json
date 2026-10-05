@@ -1,0 +1,71 @@
+{
+  "completedAt": "2026-10-05T10:13:12.194Z",
+  "restored": {
+    "readyState": "complete",
+    "title": "",
+    "url": "vscode-webview://0jv4gphreitlhcp5ggfghnsv62d288l5l1dt9a451qji66q45vj2/index.html?id=7fdd7cf5-31ba-4923-bd4b-b09cffb5e355&parentId=1&origin=9f25b29a-6e98-4350-96a0-9ce5583f7bc3&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+    "text": "journey:history-A\n×\nChat 2\n×\n+\n↗\nLatest messages\nNo model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)\nConfigure LLM\njourney:history-A\ncanonical answer A\nnot started — send a message to launch cc agent\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+    "inputPresent": true,
+    "inputText": "",
+    "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input",
+    "attachmentChips": [],
+    "tabs": [
+      {
+        "id": "conv-1",
+        "title": "journey:history-A",
+        "selected": true
+      },
+      {
+        "id": "conv-2",
+        "title": "Chat 2",
+        "selected": false
+      }
+    ],
+    "savedRows": [
+      {
+        "id": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f:0425f391a882950a41ae69b272b5b2655d4e287515c95c3014d2a193ce739cba:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f:37942cc3d12d0999ca9a05d644cb8c5fe7f3b7b24a01f6e43a663275732bcc44:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "displayedRows": [
+      {
+        "id": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f:0425f391a882950a41ae69b272b5b2655d4e287515c95c3014d2a193ce739cba:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f:37942cc3d12d0999ca9a05d644cb8c5fe7f3b7b24a01f6e43a663275732bcc44:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "sendEnabled": true,
+    "stopEnabled": true,
+    "planVisible": false,
+    "planApproveEnabled": true,
+    "approvalApproveEnabled": false,
+    "attachments": []
+  }
+}

@@ -695,6 +695,7 @@ emit({
   provider: sessionProvider,
   model: sessionModel,
   session_id: sessionId,
+  permission_mode: option("--permission-mode", "default"),
   resumed_messages: priorMessages,
   slash_commands: ["compact", "context", "cost", "doctor"],
   ...(receiptPeer ? { input_receipts: { version: 1 } } : {}),

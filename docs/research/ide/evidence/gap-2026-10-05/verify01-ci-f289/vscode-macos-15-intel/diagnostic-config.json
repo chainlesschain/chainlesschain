@@ -1,0 +1,16 @@
+{
+  "sampleId": "verify-02",
+  "prompt": "journey:history-A",
+  "provider": "ollama",
+  "model": "deterministic-host-peer",
+  "permissionMode": "acceptEdits",
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.134",
+  "deadline": 1791196551393,
+  "workspace": "/private/tmp/ccv-Jywau7/workspace",
+  "captureDir": "/private/tmp/ccv-Jywau7/captureDir",
+  "profileHome": "/private/tmp/ccv-Jywau7/profileHome",
+  "userDataDir": "/private/tmp/ccv-Jywau7/userDataDir",
+  "extensionsDir": "/private/tmp/ccv-Jywau7/extensionsDir",
+  "canonical": "/private/tmp/ccv-Jywau7/canonical"
+}

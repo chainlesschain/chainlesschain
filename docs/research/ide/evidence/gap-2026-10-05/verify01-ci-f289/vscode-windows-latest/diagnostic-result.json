@@ -1,0 +1,211 @@
+{
+  "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+  "passed": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.134",
+  "vsixDigest": "sha256:751e89b4b73b54a57da59a8b867774830df4d77afd8c06772b8aad3938e6d832",
+  "providerAssessed": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "f289a08844132538571e254c7d9ec9e4bf2b0fdd",
+  "capture": {
+    "rawRecords": 9,
+    "uiActions": 6,
+    "initial": {
+      "sessionId": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866",
+      "terminalText": "canonical answer A",
+      "renderedText": "canonical answer A",
+      "profileStorage": "c:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\ccv-sgSzFN\\userDataDir\\User\\globalStorage\\chainlesschain-tests.chainlesschain-extension-host-smoke-driver",
+      "recoveryRequired": true,
+      "protocolFile": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\ccv-sgSzFN\\captureDir\\f6c44554-73f1-4689-8560-5e01cad2fdf0.ndjson",
+      "closed": {
+        "files": [
+          {
+            "file": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\ccv-sgSzFN\\captureDir\\f6c44554-73f1-4689-8560-5e01cad2fdf0.ndjson",
+            "sequence": 9,
+            "exited": true,
+            "failed": false
+          }
+        ],
+        "errors": []
+      },
+      "rendered": {
+        "readyState": "complete",
+        "title": "",
+        "url": "vscode-webview://00ilc7qdk0ab241mfqhmuo03481lh9mh5l2k9i0ask8mikdfbqn5/index.html?id=4551b345-29aa-4259-b4e0-e846bb332734&parentId=1&origin=ece5fbc5-995b-4f75-b0d9-2364e9f0eee8&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+        "text": "journey:history-A\n×\nChat 2\n×\n+\n↗\nLatest messages\n/auto\napproval mode requested → auto-accept edits (waiting for CLI confirmation on your next message)\nNo model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)\nConfigure LLM\nTurn 1, User message\njourney:history-A\nchecking history fixture\n\nread_file: fixture.txt\nTurn 1, Assistant response\ncanonical answer A\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputPresent": true,
+        "inputText": "",
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input",
+        "attachmentChips": [],
+        "tabs": [
+          {
+            "id": "conv-1",
+            "title": "journey:history-A",
+            "selected": true
+          },
+          {
+            "id": "conv-2",
+            "title": "Chat 2",
+            "selected": false
+          }
+        ],
+        "savedRows": [
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:acefb8488a5c7012c0fbe8a7ea375c24bfd45c31a4d877a66e842cd41b61da8a:0",
+            "text": "journey:history-A",
+            "source": {
+              "text": "journey:history-A",
+              "role": "user",
+              "streaming": false
+            }
+          },
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:d66c85beb72493b085582c8cf38da18652fb7ee4cf1d92a2a84fbfe9747ed102:0",
+            "text": "canonical answer A",
+            "source": {
+              "text": "canonical answer A",
+              "role": "assistant",
+              "streaming": false
+            }
+          }
+        ],
+        "displayedRows": [
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:acefb8488a5c7012c0fbe8a7ea375c24bfd45c31a4d877a66e842cd41b61da8a:0",
+            "text": "journey:history-A",
+            "source": {
+              "text": "journey:history-A",
+              "role": "user",
+              "streaming": false
+            }
+          },
+          {
+            "id": null,
+            "text": "checking history fixture",
+            "source": {
+              "text": "checking history fixture\n",
+              "role": "assistant",
+              "streaming": false
+            }
+          },
+          {
+            "id": null,
+            "text": "read_file: fixture.txt",
+            "source": {
+              "text": "read_file: fixture.txt",
+              "role": "tool",
+              "streaming": false
+            }
+          },
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:d66c85beb72493b085582c8cf38da18652fb7ee4cf1d92a2a84fbfe9747ed102:0",
+            "text": "canonical answer A",
+            "source": {
+              "text": "canonical answer A",
+              "role": "assistant",
+              "streaming": false
+            }
+          }
+        ],
+        "sendEnabled": true,
+        "stopEnabled": true,
+        "planVisible": false,
+        "planApproveEnabled": true,
+        "approvalApproveEnabled": false,
+        "attachments": []
+      },
+      "extensionHostPid": 3996,
+      "completedAt": "2026-10-05T10:49:11.273Z"
+    },
+    "restart": {
+      "completedAt": "2026-10-05T10:49:20.589Z",
+      "restored": {
+        "readyState": "complete",
+        "title": "",
+        "url": "vscode-webview://00ilc7qdk0ab241mfqhmuo03481lh9mh5l2k9i0ask8mikdfbqn5/index.html?id=5805331d-19e7-4d39-b45b-c2e022cae86f&parentId=1&origin=ece5fbc5-995b-4f75-b0d9-2364e9f0eee8&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+        "text": "journey:history-A\n×\nChat 2\n×\n+\n↗\nLatest messages\nNo model configured yet — a one-minute guide gets you chatting (written to config.json, shared by the CLI and the panel)\nConfigure LLM\njourney:history-A\ncanonical answer A\nnot started — send a message to launch cc agent\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputPresent": true,
+        "inputText": "",
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input",
+        "attachmentChips": [],
+        "tabs": [
+          {
+            "id": "conv-1",
+            "title": "journey:history-A",
+            "selected": true
+          },
+          {
+            "id": "conv-2",
+            "title": "Chat 2",
+            "selected": false
+          }
+        ],
+        "savedRows": [
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:acefb8488a5c7012c0fbe8a7ea375c24bfd45c31a4d877a66e842cd41b61da8a:0",
+            "text": "journey:history-A",
+            "source": {
+              "text": "journey:history-A",
+              "role": "user",
+              "streaming": false
+            }
+          },
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:d66c85beb72493b085582c8cf38da18652fb7ee4cf1d92a2a84fbfe9747ed102:0",
+            "text": "canonical answer A",
+            "source": {
+              "text": "canonical answer A",
+              "role": "assistant",
+              "streaming": false
+            }
+          }
+        ],
+        "displayedRows": [
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:acefb8488a5c7012c0fbe8a7ea375c24bfd45c31a4d877a66e842cd41b61da8a:0",
+            "text": "journey:history-A",
+            "source": {
+              "text": "journey:history-A",
+              "role": "user",
+              "streaming": false
+            }
+          },
+          {
+            "id": "panel-961c09ab-1fe3-4154-95c4-ba0bf3e13866:d66c85beb72493b085582c8cf38da18652fb7ee4cf1d92a2a84fbfe9747ed102:0",
+            "text": "canonical answer A",
+            "source": {
+              "text": "canonical answer A",
+              "role": "assistant",
+              "streaming": false
+            }
+          }
+        ],
+        "sendEnabled": true,
+        "stopEnabled": true,
+        "planVisible": false,
+        "planApproveEnabled": true,
+        "approvalApproveEnabled": false,
+        "attachments": []
+      }
+    },
+    "digests": {
+      "f6c44554-73f1-4689-8560-5e01cad2fdf0.ndjson": "sha256:cd61589153219915ef9244b32cf38e78da6fec3b167208f496eb5ed233fe58fc",
+      "launcher-config.json": "sha256:d1a6a9056ba7c3457e259ddce4ed23cbc2d7ba3f4c8f9c3c76d1a6559a031e6c",
+      "protocol.json": "sha256:c0dec36b0e940629144839c3b7c4af1c58824c9cde99ebb33545f15d084fd862",
+      "terminal.json": "sha256:1cc75efa064c04d0afcae1f4851b1532acd69f76f515a5391dae37fa8bf3ad13",
+      "ui.json": "sha256:dd2e46aadf8df14a1cefdc32b263e210e7ca5352ea66e775faff6732a6ca879a",
+      "ui.ndjson": "sha256:fc59b1800528563e3a3bf870e3a12d03775914d263682d5e0af8baead413bd30",
+      "vscode-initial.json": "sha256:505cd4f0ae1739d8c39ac5f40fb258d52f8a52f57ce9043ae1bd2aacbb36ce2c",
+      "vscode-install.json": "sha256:138969aae9f7f5f1022c8fc5d5dfaa18b3ed781bd80bd8c18518ee7c9f3a061c",
+      "vscode-restart.json": "sha256:30e3663f9927caf54cb19c08aad0b55e506d05634f1924590ff862485c50ba54"
+    }
+  }
+}

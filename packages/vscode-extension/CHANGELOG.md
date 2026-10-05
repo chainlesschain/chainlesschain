@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.134] - Wire real panel capture and restart diagnostics (2026-10-05)
+
+- Connect explicit protocol capture to the actual chat panel and preserve raw
+  input, output and drained exit records through the host relay.
+- Add bounded initial/restart host diagnostics with immutable attempt archives
+  and process-tree cleanup confirmation. Recommend CLI `0.166.89`.
+
 ## [0.37.133] - Capture optional raw session evidence (2026-10-05)
 
 - Add an optional protocol observer for input attempts, output and drained process

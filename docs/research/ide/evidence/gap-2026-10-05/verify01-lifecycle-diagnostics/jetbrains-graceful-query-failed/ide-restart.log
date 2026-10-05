@@ -1,0 +1,181 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: runIdeForUiTests
+> Task :initializeIntellijPlatformPlugin
+> Task :patchPluginXml UP-TO-DATE
+> Task :generateManifest UP-TO-DATE
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :generatePluginMetadata UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :instrumentCode SKIPPED
+> Task :jar UP-TO-DATE
+> Task :composedJar UP-TO-DATE
+> Task :prepareSandbox UP-TO-DATE
+> Task :buildSearchableOptions UP-TO-DATE
+> Task :prepareJarSearchableOptions UP-TO-DATE
+> Task :jarSearchableOptions UP-TO-DATE
+> Task :buildPlugin UP-TO-DATE
+> Task :prepareSandbox_runIdeForUiTests
+> Task :installUiJourneyPlugin
+
+> Task :runIdeForUiTests
+2026-10-05 18:15:54,842 [    873]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition for key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrains.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.registry.RegistryKeyBean.overrides for more details.
+2026-10-05 18:15:55,319 [   1350]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: C:\Users\longfa\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shared-indexes
+2026-10-05 18:15:57,374 [   3405]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=org.jetbrains.kotlin.idea.search.refIndex.KotlinCompilerReferenceIndexService, plugin=org.jetbrains.kotlin)
+2026-10-05 18:15:57,374 [   3405]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=org.jetbrains.idea.maven.project.MavenProjectsManagerEx, plugin=org.jetbrains.idea.maven)
+2026-10-05 18:15:57,374 [   3405]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=org.jetbrains.idea.maven.navigator.MavenProjectsNavigator, plugin=org.jetbrains.idea.maven)
+2026-10-05 18:15:57,375 [   3406]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=org.jetbrains.idea.maven.tasks.MavenShortcutsManager, plugin=org.jetbrains.idea.maven)
+2026-10-05 18:15:57,375 [   3406]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=com.jetbrains.rdserver.toolWindow.BackendServerToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,375 [   3406]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.users.BackendUserManager, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,375 [   3406]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.ports.CwmPortForwardingToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,376 [   3407]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.users.BackendCWMUserFocusHost, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,376 [   3407]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.FollowMeManagerService, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,376 [   3407]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.BackendProjectViewSync, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,376 [   3407]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.BackendFollowMeEditorsHost, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,377 [   3408]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.BackendFollowMeDebuggerHost, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:57,377 [   3408]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.FollowMeLookupSynchronizer, plugin=com.jetbrains.codeWithMe)
+2026-10-05 18:15:59,820 [   5851]   WARN - #c.i.o.a.Application - issue detected: ide.script.launcher.used
+2026-10-05 18:16:00,270 [   6301] SEVERE - #c.i.c.ComponentStoreImpl - Cannot init component state (componentName=GradleJvmSupportMatrix, componentClass=GradleJvmSupportMatrix) [Plugin: com.intellij.gradle]
+com.intellij.diagnostic.PluginException: Cannot init component state (componentName=GradleJvmSupportMatrix, componentClass=GradleJvmSupportMatrix) [Plugin: com.intellij.gradle]
+	at com.intellij.configurationStore.ComponentStoreImpl.initComponent(ComponentStoreImpl.kt:185)
+	at com.intellij.configurationStore.ComponentStoreWithExtraComponents.initComponent(ComponentStoreWithExtraComponents.kt:46)
+	at com.intellij.serviceContainer.ComponentManagerImpl.initializeService$intellij_platform_serviceContainer(ComponentManagerImpl.kt:651)
+	at com.intellij.serviceContainer.ServiceInstanceInitializer.createInstance$suspendImpl(ServiceInstanceInitializer.kt:70)
+	at com.intellij.serviceContainer.ServiceInstanceInitializer.createInstance(ServiceInstanceInitializer.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invokeSuspend(LazyInstanceHolder.kt:162)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invoke(LazyInstanceHolder.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invoke(LazyInstanceHolder.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:62)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:163)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invokeSuspend(LazyInstanceHolder.kt:160)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invoke(LazyInstanceHolder.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invoke(LazyInstanceHolder.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startCoroutineUndispatched(Undispatched.kt:27)
+	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:90)
+	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:123)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:52)
+	at kotlinx.coroutines.BuildersKt.launch(Unknown Source)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.initialize(LazyInstanceHolder.kt:145)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.access$initialize(LazyInstanceHolder.kt:13)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.tryInitialize(LazyInstanceHolder.kt:135)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstance(LazyInstanceHolder.kt:95)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstanceInCallerContext$suspendImpl(LazyInstanceHolder.kt:87)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstanceInCallerContext(LazyInstanceHolder.kt)
+	at com.intellij.serviceContainer.ComponentManagerImplKt$doGetOrCreateInstanceBlocking$1.invokeSuspend(ComponentManagerImpl.kt:1568)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:111)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$BuildersKt__BuildersKt(Builders.kt:84)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:52)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at com.intellij.serviceContainer.ComponentManagerImplKt$runBlockingInitialization$1.invoke(ComponentManagerImpl.kt:1686)
+	at com.intellij.serviceContainer.ComponentManagerImplKt$runBlockingInitialization$1.invoke(ComponentManagerImpl.kt:1677)
+	at com.intellij.openapi.progress.ContextKt.prepareThreadContext(context.kt:82)
+	at com.intellij.serviceContainer.ComponentManagerImplKt.runBlockingInitialization(ComponentManagerImpl.kt:1677)
+	at com.intellij.serviceContainer.ComponentManagerImplKt.doGetOrCreateInstanceBlocking(ComponentManagerImpl.kt:1567)
+	at com.intellij.serviceContainer.ComponentManagerImplKt.getOrCreateInstanceBlocking(ComponentManagerImpl.kt:1562)
+	at com.intellij.serviceContainer.ComponentManagerImpl.doGetService(ComponentManagerImpl.kt:746)
+	at com.intellij.serviceContainer.ComponentManagerImpl.getService(ComponentManagerImpl.kt:690)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix$Companion.getInstance(GradleJvmSupportMatrix.kt:224)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleCompatibilitySupportUpdater.<init>(GradleCompatibilitySupportUpdater.kt:16)
+	at com.intellij.platform.instanceContainer.instantiation.InstantiateKt$instantiate$2.invoke(instantiate.kt:45)
+	at com.intellij.platform.instanceContainer.instantiation.InstantiateKt$instantiate$2.invoke(instantiate.kt:42)
+	at com.intellij.platform.instanceContainer.instantiation.InstantiateKt.instantiate(instantiate.kt:313)
+	at com.intellij.platform.instanceContainer.instantiation.InstantiateKt.instantiate(instantiate.kt:42)
+	at com.intellij.serviceContainer.ServiceInstanceInitializer.createInstance$suspendImpl(ServiceInstanceInitializer.kt:31)
+	at com.intellij.serviceContainer.ServiceInstanceInitializer.createInstance(ServiceInstanceInitializer.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invokeSuspend(LazyInstanceHolder.kt:162)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invoke(LazyInstanceHolder.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1$1.invoke(LazyInstanceHolder.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:62)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:163)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invokeSuspend(LazyInstanceHolder.kt:160)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invoke(LazyInstanceHolder.kt)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder$initialize$1.invoke(LazyInstanceHolder.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startCoroutineUndispatched(Undispatched.kt:27)
+	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:90)
+	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:123)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:52)
+	at kotlinx.coroutines.BuildersKt.launch(Unknown Source)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.initialize(LazyInstanceHolder.kt:145)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.access$initialize(LazyInstanceHolder.kt:13)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.tryInitialize(LazyInstanceHolder.kt:135)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstance(LazyInstanceHolder.kt:95)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstance$suspendImpl(LazyInstanceHolder.kt:83)
+	at com.intellij.platform.instanceContainer.internal.LazyInstanceHolder.getInstance(LazyInstanceHolder.kt)
+	at com.intellij.platform.instanceContainer.internal.InstanceContainerImpl.instance(InstanceContainerImpl.kt:68)
+	at com.intellij.serviceContainer.ComponentManagerImpl.getServiceAsync(ComponentManagerImpl.kt:694)
+	at org.jetbrains.plugins.gradle.service.project.GradleVersionUpdateStartupActivity.execute(GradleVersionUpdateStartupActivity.kt:26)
+	at com.intellij.ide.startup.impl.StartupManagerImplKt$launchActivity$1.invokeSuspend(StartupManagerImpl.kt:496)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:608)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:873)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:763)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:750)
+Caused by: java.lang.IllegalArgumentException: 25
+	at com.intellij.util.lang.JavaVersion.parse(JavaVersion.java:308)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix$getCompatibilityRanges$1$javaRange$1.invoke(GradleJvmSupportMatrix.kt:44)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix$getCompatibilityRanges$1$javaRange$1.invoke(GradleJvmSupportMatrix.kt:44)
+	at org.jetbrains.plugins.gradle.jvmcompat.IdeVersionedDataParser$Companion.parseVersion(IdeVersionedDataParser.kt:21)
+	at org.jetbrains.plugins.gradle.jvmcompat.IdeVersionedDataParser$Companion.parseRange(IdeVersionedDataParser.kt:31)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix.getCompatibilityRanges(GradleJvmSupportMatrix.kt:44)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix.applyState(GradleJvmSupportMatrix.kt:28)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix.onStateChanged(GradleJvmSupportMatrix.kt:50)
+	at org.jetbrains.plugins.gradle.jvmcompat.GradleJvmSupportMatrix.onStateChanged(GradleJvmSupportMatrix.kt:13)
+	at org.jetbrains.plugins.gradle.jvmcompat.IdeVersionedDataStorage.loadState(IdeVersionedDataStorage.kt:38)
+	at org.jetbrains.plugins.gradle.jvmcompat.IdeVersionedDataStorage.loadState(IdeVersionedDataStorage.kt:7)
+	at com.intellij.configurationStore.ComponentStoreImpl.doInitComponent(ComponentStoreImpl.kt:593)
+	at com.intellij.configurationStore.ComponentStoreImpl.initComponent(ComponentStoreImpl.kt:493)
+	at com.intellij.configurationStore.ComponentStoreImpl.initComponent(ComponentStoreImpl.kt:160)
+	... 78 more
+2026-10-05 18:16:00,335 [   6366] SEVERE - #c.i.c.ComponentStoreImpl - IntelliJ IDEA 2024.2  Build #IC-242.20224.300
+2026-10-05 18:16:00,336 [   6367] SEVERE - #c.i.c.ComponentStoreImpl - JDK: 21.0.3; VM: OpenJDK 64-Bit Server VM; Vendor: JetBrains s.r.o.
+2026-10-05 18:16:00,336 [   6367] SEVERE - #c.i.c.ComponentStoreImpl - OS: Windows 10
+2026-10-05 18:16:00,336 [   6367] SEVERE - #c.i.c.ComponentStoreImpl - Last Action: 
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Configuration cache problems found in this build.
+
+12 problems were found storing the configuration cache, 8 of which seem unique.
+- Task `:buildSearchableOptions` of type `org.jetbrains.intellij.platform.gradle.tasks.BuildSearchableOptionsTask`: invocation of 'Task.project' at execution time is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:composedJar` of type `org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask`: invocation of 'Task.project' at execution time is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:initializeIntellijPlatformPlugin` of type `org.jetbrains.intellij.platform.gradle.tasks.InitializeIntelliJPlatformPluginTask`: invocation of 'Task.project' at execution time is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:prepareJarSearchableOptions` of type `org.jetbrains.intellij.platform.gradle.tasks.PrepareJarSearchableOptionsTask`: execution of task ':prepareJarSearchableOptions' caused invocation of 'Task.project' in other task at execution time which is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:prepareSandbox_runIdeForUiTests` of type `org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask`: execution of task ':prepareSandbox_runIdeForUiTests' caused invocation of 'Task.project' in other task at execution time which is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:prepareSandbox` of type `org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask`: execution of task ':prepareSandbox' caused invocation of 'Task.project' in other task at execution time which is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+- Task `:runIdeForUiTests` of type `org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:disallowed_types
+- Task `:runIdeForUiTests` of type `org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask`: invocation of 'Task.project' at execution time is unsupported.
+  See https://docs.gradle.org/8.7/userguide/configuration_cache.html#config_cache:requirements:use_project_during_execution
+
+See the complete report at file:///C:/code/chainlesschain/packages/jetbrains-plugin/build/reports/configuration-cache/bs98vkco71gtpvh41f3xm6g3x/702ijsbjqsdmjhldivlr69x8q/configuration-cache-report.html
+> Invocation of 'Task.project' by task ':initializeIntellijPlatformPlugin' at execution time is unsupported.
+> Invocation of 'Task.project' by task ':composedJar' at execution time is unsupported.
+> Execution of task ':prepareSandbox' caused invocation of 'Task.project' by task ':composedJar' at execution time which is unsupported.
+> Invocation of 'Task.project' by task ':buildSearchableOptions' at execution time is unsupported.
+> Execution of task ':prepareJarSearchableOptions' caused invocation of 'Task.project' by task ':composedJar' at execution time which is unsupported.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 23s
+18 actionable tasks: 5 executed, 13 up-to-date
+Configuration cache entry discarded with 12 problems.

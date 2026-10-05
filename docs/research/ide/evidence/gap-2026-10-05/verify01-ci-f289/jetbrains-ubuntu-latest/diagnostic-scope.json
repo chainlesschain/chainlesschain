@@ -1,0 +1,12 @@
+{
+  "root": "/tmp/cc-verify01-jetbrains-K4c53I",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "f289a08844132538571e254c7d9ec9e4bf2b0fdd",
+  "hostVersion": "2024.2"
+}

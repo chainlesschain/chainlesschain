@@ -1,0 +1,22 @@
+{
+  "text": "canonical answer A",
+  "event": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "turn": 1,
+    "result": "canonical answer A",
+    "usage": {
+      "input_tokens": 32,
+      "output_tokens": 12
+    },
+    "session_id": "panel-1677f07e-ab3f-4e6d-b50b-1748e615ab13",
+    "transcript_refs": {
+      "schema": "chainlesschain.session-transcript-references/v1",
+      "sessionId": "panel-1677f07e-ab3f-4e6d-b50b-1748e615ab13",
+      "assistantEventId": "993c6fbb694b7726afaac60ddeed6b6585626e66fe1a0e60e94ede7957395bb6",
+      "userEventId": "3aa39ba502c5f7e7b5381dbb5783d958fc4c759b735f03b4a957f66ccdbd030e",
+      "clientMessageId": "6918c5f7-e29e-4241-9e73-82bc22f0f835"
+    }
+  }
+}

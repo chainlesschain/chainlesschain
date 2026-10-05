@@ -1,0 +1,78 @@
+{
+  "sampleId": "verify-03",
+  "sessionId": "panel-1791190086189-7ca299",
+  "deadlineMs": 1791190722274,
+  "tabId": "c47673c2-d3e0-4006-962c-3ef0e893b2da",
+  "processId": "18744",
+  "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\config_runIdeForUiTests",
+  "result": "canonical answer A",
+  "renderedText": "canonical answer A",
+  "savedRowId": "panel-1791190086189-7ca299:463307a66a724531791b1ab45bce7600269ebb9fffed2c31f1d0676914f22da3:0",
+  "finalSnapshot": {
+    "observedAt": "2026-10-05T08:48:27.025100500Z",
+    "processId": "18744",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "c47673c2-d3e0-4006-962c-3ef0e893b2da",
+    "sessionId": "panel-1791190086189-7ca299",
+    "tabs": [
+      {
+        "id": "9d071273-94ae-47ff-b6d9-69dc642a25c1",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "c47673c2-d3e0-4006-962c-3ef0e893b2da",
+        "index": 1,
+        "selected": true
+      },
+      {
+        "id": "0a3397a8-2de8-409a-8d91-e9ee57cdbd0e",
+        "index": 2,
+        "selected": false
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "11088",
+    "childProcessIds": [
+      "11088",
+      "23340",
+      "16428"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Saved messages 1–2 of 2",
+    "binaryChoice": "cc",
+    "text": "ℹ approval mode → auto (accept edits) — next message applies\n── deterministic-host-peer · ollama ──\n\nTurn 1, User message\n\nyou\u003e journey:history-A\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nchecking history fixture\n\n→ read_file fixture.txt\n✓ read_file\ncanonical answer A\n",
+    "visible": true,
+    "savedRows": [
+      {
+        "id": "panel-1791190086189-7ca299:e213477b712099e9a6425bf50b10b1e04a3f1f20edd7294971a02e0cc24ce9bb:0",
+        "text": "\nTurn 1, User message\n\nyou\u003e journey:history-A\n",
+        "bodyText": "\nTurn 1, User message\n\nyou\u003e journey:history-A\n",
+        "start": 100,
+        "sourceText": "journey:history-A",
+        "role": "user",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791190086189-7ca299:463307a66a724531791b1ab45bce7600269ebb9fffed2c31f1d0676914f22da3:0",
+        "text": "canonical answer A",
+        "bodyText": "canonical answer A",
+        "start": 293,
+        "sourceText": "canonical answer A",
+        "role": "assistant",
+        "truncated": false
+      }
+    ]
+  },
+  "rawProtocolDigests": {
+    "protocol-b6113f35-ec26-4239-87b7-9cd4250ec9fe.jsonl": "dd1947bed6bdb2681a93f4fd2a04baa56a81a57b1b703b35eb16b3dc4e422aa9",
+    "protocol.json": "2b691563ebd4ee35830fbfd2cf967f8f728ec40fc53f19ff1eea9e1ed8afea86"
+  },
+  "readyForRestartAt": "2026-10-05T08:48:27.171185Z"
+}

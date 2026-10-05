@@ -1,0 +1,40 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:12:20.534Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:12:35.597Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:12:35.606Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:12:46.787Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  },
+  {
+    "action": "reload",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:13:04.275Z"
+  },
+  {
+    "action": "restored-result",
+    "sampleId": "verify-02",
+    "sessionId": "panel-59be930c-6dfe-4267-8ff8-cae5816eb61f",
+    "at": "2026-10-05T10:13:12.190Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  }
+]

@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 654 (runtime: 309, tooling: 310, test: 35).
+Total matches: 655 (runtime: 309, tooling: 311, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unreviewed: 0.
 
 ## Policy
@@ -124,9 +124,9 @@ Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/lib/ensure-utf8.js` | 39 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_deps.execFileSync("cmd.exe", ["/d", "/s", "/c", "chcp 65001"], {` |
 | `packages/cli/src/lib/eval/tasks.js` | 18 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/eval/tasks.js` | 22 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.execFileSync(process.execPath, [script], {` |
-| `packages/cli/src/lib/eval/verify01-execution.js` | 23 | `brokered` | call targets ProcessExecutionBroker | `return executionBroker.execFileSync("git", ["-C", directory, ...args], {` |
-| `packages/cli/src/lib/eval/verify01-execution.js` | 91 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
-| `packages/cli/src/lib/eval/verify01-execution.js` | 329 | `brokered` | call targets ProcessExecutionBroker | `const result = executionBroker.spawnSync(` |
+| `packages/cli/src/lib/eval/verify01-execution.js` | 32 | `brokered` | call targets ProcessExecutionBroker | `return executionBroker.execFileSync("git", ["-C", directory, ...args], {` |
+| `packages/cli/src/lib/eval/verify01-execution.js` | 100 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
+| `packages/cli/src/lib/eval/verify01-execution.js` | 338 | `brokered` | call targets ProcessExecutionBroker | `const result = executionBroker.spawnSync(` |
 | `packages/cli/src/lib/evolution/evolution-eval-process-supervisor.js` | 509 | `brokered` | call targets ProcessExecutionBroker | `spawnProcess = (...args) => executionBroker.spawn(...args),` |
 | `packages/cli/src/lib/evolution/governed-skill-synthesis-process-attestor.js` | 244 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
 | `packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js` | 231 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
@@ -518,10 +518,11 @@ Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/macos-mcp-launcher-live-test.mjs` | 1042 | `const parent = spawn(` |
 | `packages/cli/scripts/mcp-lifecycle-profile.mjs` | 2 | `import { execFile } from "node:child_process";` |
 | `packages/cli/scripts/mcp-lifecycle-profile.mjs` | 253 | `execFile(` |
-| `packages/cli/scripts/mcp-reference-interop.mjs` | 3 | `import { execFileSync, fork } from "node:child_process";` |
-| `packages/cli/scripts/mcp-reference-interop.mjs` | 40 | `const child = fork(` |
-| `packages/cli/scripts/mcp-reference-interop.mjs` | 296 | `commit: execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/mcp-reference-interop.mjs` | 301 | `clean: !execFileSync(` |
+| `packages/cli/scripts/mcp-reference-interop.mjs` | 3 | `import { execFileSync, fork, spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/mcp-reference-interop.mjs` | 37 | `const child = fork(` |
+| `packages/cli/scripts/mcp-reference-interop.mjs` | 107 | `const child = fork(` |
+| `packages/cli/scripts/mcp-reference-interop.mjs` | 370 | `commit: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/mcp-reference-interop.mjs` | 375 | `clean: !execFileSync(` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 3 | `import { spawnSync, execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 101 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 104 | `workingTree: execFileSync(` |

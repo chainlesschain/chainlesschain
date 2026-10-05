@@ -1,0 +1,14 @@
+{
+  "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+  "passed": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.133",
+  "vsixDigest": "sha256:16520a2d910f91717ea5ee9f8cdbfdbc2ac6ccf453fcca98e472af122bebb535",
+  "providerAssessed": false,
+  "formalSample": false,
+  "observationsCreated": false
+}

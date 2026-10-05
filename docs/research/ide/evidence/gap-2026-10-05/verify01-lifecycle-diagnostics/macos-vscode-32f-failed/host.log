@@ -1,0 +1,111 @@
+- Resolving version...
+✔ Validated version: 1.132.0
+✔ Found existing install in /Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0
+- Resolving version...
+✔ Validated version: 1.132.0
+✔ Found existing install in /Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0
+Warning: 'disable-background-timer-throttling' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-backgrounding-occluded-windows' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-renderer-backgrounding' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-extension-update-checks' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'cached-data' is not in the list of known options, but still passed to Electron/Chromium.
+WARNING: IPC handle "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/1.13-main.sock" is longer than 103 chars, try a shorter --user-data-dir
+[90m[main 2026-10-05T10:00:09.264Z][0m PolicyConfiguration#initialize
+[90m[main 2026-10-05T10:00:09.265Z][0m PolicyConfiguration#updatePolicyDefinitions [
+  'update.mode',
+  'update.channel',
+  'update.showReleaseNotes',
+  'update.showPostInstallInfo',
+  'update.titleBar',
+  'http.useLocalProxyConfiguration',
+  'http.electronFetch',
+  'http.proxy',
+  'http.proxyStrictSSL',
+  'http.proxyKerberosServicePrincipal',
+  'http.noProxy',
+  'http.proxyAuthorization',
+  'http.proxySupport',
+  'http.systemCertificates',
+  'http.systemCertificatesNode',
+  'http.experimental.systemCertificatesV2',
+  'http.fetchAdditionalSupport',
+  'http.webSocketAdditionalSupport',
+  'http.experimental.networkInterfaceCheckInterval',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'telemetry.enableTelemetry',
+  'extensions.allowed',
+  'chat.agentHost.enabled',
+  'chat.agents.copilotCli.hideExtensionHost',
+  'chat.editor.preferCopilotHarness',
+  'chat.defaultToCopilotHarness',
+  'chat.editor.localAgent.enabled',
+  'chat.editor.copilotCli.hideExtensionHost',
+  'chat.agentHost.systemProxy.enabled',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.byokModels.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile',
+  'chat.agentHost.otel.dbSpanExporter.enabled'
+]
+[90m[main 2026-10-05T10:00:09.270Z][0m NativePolicyService#_updatePolicyDefinitions - Found 11 policy definitions
+[90m[main 2026-10-05T10:00:09.313Z][0m Creating watcher for productName com.microsoft.VSCode
+[90m[main 2026-10-05T10:00:09.366Z][0m NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[90m[main 2026-10-05T10:00:09.367Z][0m PolicyConfiguration#update [
+  'update.mode',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'extensions.allowed',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile'
+]
+[90m[main 2026-10-05T10:00:09.367Z][0m PolicyConfiguration#updatePolicyDefinitions [
+  'update.enableWindowsBackgroundUpdates',
+  'chat.agentHost.copilotAgent.multiRootEnabled',
+  'chat.agentHost.claudeAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.sdkRoot',
+  'chat.agentHost.codexAgent.codexHome',
+  'chat.agentHost.codexAgent.binaryArgs',
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[90m[main 2026-10-05T10:00:09.368Z][0m NativePolicyService#_updatePolicyDefinitions - Found 15 policy definitions
+[90m[main 2026-10-05T10:00:09.374Z][0m Creating watcher for productName com.microsoft.VSCode
+[90m[main 2026-10-05T10:00:09.382Z][0m [File Watcher (node.js)] Request to start watching: /Library/Application Support/GitHubCopilot/managed-settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/User/settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[90m[main 2026-10-05T10:00:09.387Z][0m [File Watcher (node.js)] ignoring a path for watching who's stat info failed to resolve: /Library/Application Support/GitHubCopilot/managed-settings.json (error: Error: ENOENT: no such file or directory, stat '/Library/Application Support/GitHubCopilot/managed-settings.json')
+[90m[main 2026-10-05T10:00:09.387Z][0m [File Watcher (node.js)] starting fs.watchFile() on /Library/Application Support/GitHubCopilot/managed-settings.json (correlationId: undefined)
+[90m[main 2026-10-05T10:00:09.390Z][0m NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[90m[main 2026-10-05T10:00:09.391Z][0m PolicyConfiguration#update [
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[91m[main 2026-10-05T10:00:09.425Z][0m Error: listen EINVAL: invalid argument /private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/1.13-main.sock
+    at Server.setupListenHandle [as _listen2] (node:net:1987:21)
+    at listenInCluster (node:net:2066:12)
+    at Server.listen (node:net:2188:5)
+    at file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:440:954
+    at new Promise (<anonymous>)
+    at WP (file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:440:905)
+    at VS.claimInstance (file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:592:56876)
+    at file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:592:53989
+    at i.invokeFunction (file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:588:941)
+    at VS.startup (file:///Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-darwin-1.132.0/Visual%20Studio%20Code.app/Contents/Resources/app/out/main.js:592:53900)
+[90m[main 2026-10-05T10:00:09.426Z][0m Lifecycle#kill()
+[90m[main 2026-10-05T10:00:09.426Z][0m Lifecycle#onWillShutdown.fire()
+[90m[main 2026-10-05T10:00:09.454Z][0m [File Watcher (node.js)] Started watching: '/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/User'
+[90m[main 2026-10-05T10:00:09.477Z][0m [File Watcher (node.js)] Started watching: '/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir/User/settings.json'
+VS Code managed host failed (code=1, signal=null)

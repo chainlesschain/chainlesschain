@@ -46,6 +46,7 @@ import {
   isFormalQualityHermeticRuntime,
 } from "../lib/formal-quality-eval-runtime.js";
 import { withQuietStdout } from "../runtime/quiet-stdout.js";
+import { registerControlledHostCommand } from "./agent-controlled-host.js";
 import { resolveCredentialEnvironmentValue } from "../lib/process-execution-broker/credential-transport.js";
 import {
   captureClaudeStorageLaunchEnvironment,
@@ -290,7 +291,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       : captureSkillRetrievalRevocationReader(
           dependencies.skillRetrievalRevocationReader,
         );
-  program
+  const agent = program
     .command("agent")
     .aliases(["a", "exec"])
     .description(
@@ -2259,6 +2260,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       // Interactive session ended (REPL closed) — settle the worktree.
       await _finishWorktree();
     });
+  registerControlledHostCommand(agent, dependencies.controlledHost);
 }
 
 export function registerSubAgentV2Command(program) {

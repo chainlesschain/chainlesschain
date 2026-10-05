@@ -500,6 +500,13 @@ async function activate(context) {
   const hostDomToken = normalizeHostDomToken(
     process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN,
   );
+  const protocolCapture =
+    hostDomToken && process.env.CHAINLESSCHAIN_VERIFY01_CAPTURE_DIR
+      ? require("./chat/protocol-capture").createProtocolCapture(
+          process.env.CHAINLESSCHAIN_VERIFY01_CAPTURE_DIR,
+        )
+      : null;
+  if (protocolCapture) context.subscriptions.push(protocolCapture);
   const chatProvider = new ChatViewProvider(vscode, {
     getBridgeEnv: () =>
       _port && _token
@@ -510,7 +517,12 @@ async function activate(context) {
         : {},
     state: context.workspaceState, // per-workspace chat session resume
     storagePath: context.storageUri?.fsPath,
-    deps: { draftStore: _questionDraftStore },
+    deps: {
+      draftStore: _questionDraftStore,
+      ...(protocolCapture
+        ? { createSession: protocolCapture.createSession }
+        : {}),
+    },
     enableSessionIndex: true,
     hostDomToken,
     log,
@@ -546,6 +558,10 @@ async function activate(context) {
           if (!hostDomTokensEqual(hostDomToken, presentedToken)) {
             throw new Error("host DOM relay token mismatch");
           }
+          if (request?.action === "captureStatus" && protocolCapture)
+            return protocolCapture.status();
+          if (request?.action === "captureEnd" && protocolCapture)
+            return chatProvider.endCapturedSession(request.id);
           if (request?.surface === "sessions-workbench") {
             const sessionsView = require("./ui/sessions-view.js");
             // Relay polling must not re-open the panel: the existing-panel

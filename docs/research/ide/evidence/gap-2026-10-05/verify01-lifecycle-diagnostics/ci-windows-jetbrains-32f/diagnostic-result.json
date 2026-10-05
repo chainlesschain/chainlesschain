@@ -1,0 +1,169 @@
+{
+  "root": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-verify01-jetbrains-NFVQjc",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+  "hostVersion": "2024.2",
+  "passed": true,
+  "pluginVersion": "0.4.151",
+  "pluginDigest": "sha256:f6bba3b594fb66963b1b9a61504d3ed017ea0c11ecbeaa7acab719995af43369",
+  "capture": {
+    "rawRecords": 9,
+    "uiActions": 6,
+    "initial": {
+      "sampleId": "verify-03",
+      "sessionId": "panel-1791194053045-c8b27d",
+      "deadlineMs": 1791194710207,
+      "tabId": "d0fa67d7-8465-4e1e-9cfb-5f929aaaafa9",
+      "processId": "7744",
+      "profile": "D:\\a\\chainlesschain\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-NFVQjc\\IC-2024.2\\config_runIdeForUiTests",
+      "result": "canonical answer A",
+      "renderedText": "canonical answer A",
+      "savedRowId": "panel-1791194053045-c8b27d:7159498043aabf2335efbe2970bab4dde3707ee000458d6c4e33c5f88c079f13:0",
+      "finalSnapshot": {
+        "observedAt": "2026-10-05T09:54:22.947420700Z",
+        "processId": "7744",
+        "profile": "D:\\a\\chainlesschain\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-NFVQjc\\IC-2024.2\\config_runIdeForUiTests",
+        "id": "d0fa67d7-8465-4e1e-9cfb-5f929aaaafa9",
+        "sessionId": "panel-1791194053045-c8b27d",
+        "tabs": [
+          {
+            "id": "19fd50e1-ac8b-4e30-ac04-96aa82a1dfd1",
+            "index": 0,
+            "selected": false
+          },
+          {
+            "id": "d0fa67d7-8465-4e1e-9cfb-5f929aaaafa9",
+            "index": 1,
+            "selected": true
+          },
+          {
+            "id": "9dfcdf00-4169-46d5-9825-1d0719e0c4c5",
+            "index": 2,
+            "selected": false
+          }
+        ],
+        "inputText": "",
+        "editable": true,
+        "sendInFlight": false,
+        "childRunning": true,
+        "childProcessId": "3628",
+        "childProcessIds": [
+          "3628",
+          "5972",
+          "4008"
+        ],
+        "turnActive": false,
+        "interruptPending": false,
+        "receiptReady": true,
+        "draftStatus": "Input accepted and stored by the CLI",
+        "historyStatus": " Saved messages 1–2 of 2",
+        "binaryChoice": "cc",
+        "text": "ℹ approval mode → auto (accept edits) — next message applies\n── deterministic-host-peer · ollama ──\n\nTurn 1, User message\n\nyou> journey:history-A\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nchecking history fixture\n\n→ read_file fixture.txt\n✓ read_file\ncanonical answer A\n",
+        "visible": true,
+        "savedRows": [
+          {
+            "id": "panel-1791194053045-c8b27d:b3b647b5cbadd797d5e428d8b876b2c0f848d4712027384b8c5a0b6f7c49a488:0",
+            "text": "\nTurn 1, User message\n\nyou> journey:history-A\n",
+            "bodyText": "\nTurn 1, User message\n\nyou> journey:history-A\n",
+            "start": 100,
+            "sourceText": "journey:history-A",
+            "role": "user",
+            "truncated": false
+          },
+          {
+            "id": "panel-1791194053045-c8b27d:7159498043aabf2335efbe2970bab4dde3707ee000458d6c4e33c5f88c079f13:0",
+            "text": "canonical answer A",
+            "bodyText": "canonical answer A",
+            "start": 293,
+            "sourceText": "canonical answer A",
+            "role": "assistant",
+            "truncated": false
+          }
+        ]
+      },
+      "rawProtocolDigests": {
+        "protocol-0d16336d-360e-4122-b269-78b98d41db82.jsonl": "cd7f7c8da2b1b21d7a15d25efd100e80fd1ed7ec5075741a630e77b0e007a76b",
+        "protocol.json": "4cc831a65c4b674fb2e3a261d39cc133337c385e1105aaeee681f19a4ed959d8"
+      },
+      "readyForRestartAt": "2026-10-05T09:54:23.096059600Z"
+    },
+    "restart": {
+      "observedAt": "2026-10-05T09:55:14.321013200Z",
+      "processId": "6832",
+      "profile": "D:\\a\\chainlesschain\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-NFVQjc\\IC-2024.2\\config_runIdeForUiTests",
+      "id": "d0fa67d7-8465-4e1e-9cfb-5f929aaaafa9",
+      "sessionId": "panel-1791194053045-c8b27d",
+      "tabs": [
+        {
+          "id": "19fd50e1-ac8b-4e30-ac04-96aa82a1dfd1",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "d0fa67d7-8465-4e1e-9cfb-5f929aaaafa9",
+          "index": 1,
+          "selected": true
+        },
+        {
+          "id": "9dfcdf00-4169-46d5-9825-1d0719e0c4c5",
+          "index": 2,
+          "selected": false
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " Saved messages 1–2 of 2",
+      "binaryChoice": "cc",
+      "text": "ℹ 1 saved input(s); review acceptance before intentionally resending.\n\nMessage 1, user (saved)\njourney:history-A\n\nMessage 2, assistant (saved)\ncanonical answer A\n",
+      "visible": true,
+      "savedRows": [
+        {
+          "id": "panel-1791194053045-c8b27d:b3b647b5cbadd797d5e428d8b876b2c0f848d4712027384b8c5a0b6f7c49a488:0",
+          "text": "\nMessage 1, user (saved)\njourney:history-A\n",
+          "bodyText": "journey:history-A",
+          "start": 70,
+          "sourceText": "journey:history-A",
+          "role": "user",
+          "truncated": false
+        },
+        {
+          "id": "panel-1791194053045-c8b27d:7159498043aabf2335efbe2970bab4dde3707ee000458d6c4e33c5f88c079f13:0",
+          "text": "\nMessage 2, assistant (saved)\ncanonical answer A\n",
+          "bodyText": "canonical answer A",
+          "start": 113,
+          "sourceText": "canonical answer A",
+          "role": "assistant",
+          "truncated": false
+        }
+      ]
+    },
+    "digests": {
+      "action-1.json": "sha256:9e684089d73a75323a36f172e25411d22fda319302f662f149ff974b0c8b5903",
+      "action-2.json": "sha256:5814069945180e454e27d5c39f0ebda7de952e04f3a1c3adb6040c6f55bbfc14",
+      "action-3.json": "sha256:3bcc89ba850262b86e45837ee5b24d2665fc622c16efdafac8826e2e7e74d0f4",
+      "action-4.json": "sha256:b53eed1ab5d9f8c34220c94b4dc1a83712e35820c5cb76bca2741b2b66317b9f",
+      "action-5.json": "sha256:7e96fa9aed2818bb6847d2eb241de1ebcc91f2a8ac7f09b494bc5788bc73ca4d",
+      "action-6.json": "sha256:1c19b840076cde632052390a4ff97c092116be263f557bf8b4b9f0335508637d",
+      "protocol-0d16336d-360e-4122-b269-78b98d41db82.jsonl": "sha256:cd7f7c8da2b1b21d7a15d25efd100e80fd1ed7ec5075741a630e77b0e007a76b",
+      "protocol.json": "sha256:4cc831a65c4b674fb2e3a261d39cc133337c385e1105aaeee681f19a4ed959d8",
+      "restart-state.json": "sha256:48dc4f097c2a506a08cd589f6e302989b355bc0c75fcbd62635ba55624cd3d67",
+      "restored-snapshot.json": "sha256:e6901d722cad3394922993e79c3b9b3e0d30916282015db8d524cad15d9b5ee7",
+      "ui-initial.json": "sha256:812fa1fa6f7490bc1506024c722df9f35f480baaa3ddbc915cc306124cd0134d",
+      "ui.json": "sha256:ff9afee25295ce2d2538dc84e290049817cd07918fd5402dac185950f37fdf5f"
+    }
+  }
+}

@@ -33,6 +33,17 @@ const {
 const TOKEN = "ab".repeat(32);
 const temporaryRoots = [];
 
+test("host mode selection uses a fixed permission-mode allowlist", () => {
+  assert.deepEqual(
+    validateHostDomRequest({ action: "setMode", mode: "acceptEdits" }),
+    { action: "setMode", mode: "acceptEdits" },
+  );
+  assert.throws(
+    () => validateHostDomRequest({ action: "setMode", mode: "arbitrary" }),
+    /permission mode/u,
+  );
+});
+
 test("recovery evidence rejects missing restart proof, duplicate rows, foreground completion and replayed drafts", () => {
   const {
     assertConversationRecoveryArtifacts,

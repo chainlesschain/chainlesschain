@@ -16,9 +16,15 @@ final class ConversationRecoveryJourney {
     private final RemoteRobot robot;
     private final ComponentFixture frame;
     private final Path root;
+    private final long taskDeadline;
 
     ConversationRecoveryJourney(RemoteRobot robot, ComponentFixture frame, Path root) {
+        this(robot, frame, root, Long.MAX_VALUE);
+    }
+
+    ConversationRecoveryJourney(RemoteRobot robot, ComponentFixture frame, Path root, long taskDeadline) {
         this.robot = robot; this.frame = frame; this.root = root;
+        this.taskDeadline = taskDeadline;
     }
 
     private static final String SNAPSHOT = """
@@ -52,7 +58,18 @@ final class ConversationRecoveryJourney {
             var span = spans.get(i), saved = field(span, 'saved');
             if (saved != null) {
                 var start = Number(field(span, 'start')), end = Number(field(span, 'end'));
-                rows.push({id:String(saved.id()), text:String(pane.getDocument().getText(start, end-start)), start:start});
+                var rendered = String(pane.getDocument().getText(start, end-start)), body = rendered;
+                // History insertion has a precise heading/suffix; promoted live spans have no wrapper.
+                // Keep the full visible span too, and reject malformed wrappers instead of trimming text.
+                if (field(span, 'owner') == null) {
+                    var heading = '\\nMessage ' + (Number(saved.ordinal()) + 1) + ', ' + String(saved.role()) + ' (saved)\\n';
+                    var suffix = saved.truncated() ? '\\n[Message shortened for display; the saved session retains its original content.]\\n' : '\\n';
+                    if (rendered.indexOf(heading) !== 0 || rendered.slice(-suffix.length) !== suffix
+                            || rendered.length < heading.length + suffix.length) throw 'Malformed saved row wrapper';
+                    body = rendered.slice(heading.length, rendered.length - suffix.length);
+                }
+                rows.push({id:String(saved.id()), text:rendered, bodyText:body, start:start,
+                    sourceText:String(saved.text()), role:String(saved.role()), truncated:saved.truncated()});
             }
         }
         rows.sort(function(a,b){return a.start-b.start;});
@@ -78,15 +95,16 @@ final class ConversationRecoveryJourney {
         });
         """;
 
-    private JsonObject snapshot() {
+    JsonObject snapshot() {
+        assertTrue(System.currentTimeMillis() < taskDeadline, "task-wide deadline expired");
         Object result = frame.callJs(SNAPSHOT, true);
         return JsonParser.parseString(String.valueOf(result)).getAsJsonObject();
     }
     private static String text(JsonObject value, String key) { return value.get(key).getAsString(); }
-    private JsonObject waitFor(String label, Predicate<JsonObject> condition) throws Exception {
+    JsonObject waitFor(String label, Predicate<JsonObject> condition) throws Exception {
         long deadline = System.nanoTime() + BUDGET.toNanos();
         JsonObject last = null;
-        while (System.nanoTime() < deadline) {
+        while (System.nanoTime() < deadline && System.currentTimeMillis() < taskDeadline) {
             last = snapshot();
             if (condition.test(last)) return last;
             Thread.sleep(150);
@@ -94,7 +112,10 @@ final class ConversationRecoveryJourney {
         throw new AssertionError(label + " did not settle: " + last);
     }
     private ComponentFixture component(String xpath) {
-        return robot.find(ComponentFixture.class, Locators.byXpath(xpath), BUDGET);
+        long remaining = taskDeadline - System.currentTimeMillis();
+        assertTrue(remaining > 0, "task-wide deadline expired");
+        return robot.find(ComponentFixture.class, Locators.byXpath(xpath),
+                Duration.ofMillis(Math.min(BUDGET.toMillis(), remaining)));
     }
     private void click(String name) {
         component("//div[@text='" + name + "' and @visible='true']").runJs("component.doClick();", true);
@@ -103,17 +124,17 @@ final class ConversationRecoveryJourney {
         component("//div[@accessiblename='Message the agent' and @visible='true']")
                 .runJs("component.setText(" + JSON.toJson(value) + ");", true);
     }
-    private void send(String value) throws Exception {
+    void send(String value) throws Exception {
         waitFor("editable composer", s -> s.get("editable").getAsBoolean());
         edit(value); click("Send");
     }
-    private JsonObject newTab() throws Exception {
+    JsonObject newTab() throws Exception {
         JsonObject before = snapshot(); click("+ New chat");
         return waitFor("new conversation", s -> !text(s,"id").equals(text(before,"id"))
                 && s.getAsJsonArray("tabs").size() == before.getAsJsonArray("tabs").size()+1
                 && s.get("editable").getAsBoolean());
     }
-    private void select(String key) throws Exception {
+    void select(String key) throws Exception {
         JsonObject state = snapshot(); int index = -1;
         for (JsonElement entry : state.getAsJsonArray("tabs")) {
             JsonObject tab = entry.getAsJsonObject();

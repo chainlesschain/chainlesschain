@@ -1,0 +1,79 @@
+{
+  "schema": "chainlesschain.mcp-reference-ci-readback/v1",
+  "recordedAt": "2026-10-05T10:10:17.539Z",
+  "sourceCommit": "32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+  "run": {
+    "name": "MCP Reference Interoperability",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37292293347",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "reference (ubuntu-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37292293347/job/111705277760"
+      },
+      {
+        "name": "reference (windows-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37292293347/job/111705278016"
+      },
+      {
+        "name": "reference (macos-latest)",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37292293347/job/111705278076"
+      }
+    ]
+  },
+  "receipts": [
+    {
+      "os": "ubuntu-latest",
+      "file": "ubuntu-latest.json",
+      "digest": "sha256:cf0ec5db927146fab8792c0c9cfbfc342a770ae56d6c8960689cce8b30263319",
+      "bytes": 2011,
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "artifact": {
+        "id": 11336642522,
+        "name": "mcp-reference-ubuntu-latest-32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+        "digest": "sha256:23495cead2c2128970b11647bf8ef3604cc024a0421751f3f12a5cc106df1fbb"
+      }
+    },
+    {
+      "os": "windows-latest",
+      "file": "windows-latest.json",
+      "digest": "sha256:4f3406bcad62cc755ced70108bf0cf7f00d97ef821728c703278aaa5ca880f72",
+      "bytes": 2011,
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "artifact": {
+        "id": 11336898210,
+        "name": "mcp-reference-windows-latest-32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+        "digest": "sha256:dc33218e132c5604e0ece59c092f3f3ea72cc7a9722beb1a89f6bf215c9a5d06"
+      }
+    },
+    {
+      "os": "macos-latest",
+      "file": "macos-latest.json",
+      "digest": "sha256:9b19abf9affe76ad83aa96d6555b7a434558dfe4a0cf950bf1181973c771c6ad",
+      "bytes": 2014,
+      "platform": "darwin",
+      "arch": "arm64",
+      "node": "v22.12.0",
+      "artifact": {
+        "id": 11337359752,
+        "name": "mcp-reference-macos-latest-32fcd3b20f5c7840026336bf4d1ded6e0898d2b7",
+        "digest": "sha256:5077b2f1527bf8699dfed187ac084daa27bc67cbe3b3259ca15be281f75db978"
+      }
+    }
+  ],
+  "boundaries": {
+    "formalSamplesCreated": false,
+    "providerAssessed": false,
+    "externalAccountAssessed": false,
+    "serverPushAssessed": false,
+    "releaseEligible": false
+  }
+}
