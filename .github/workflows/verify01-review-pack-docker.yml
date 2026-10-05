@@ -38,8 +38,8 @@ jobs:
           node-version: "22.12.0"
       - name: Pin real acceptance image outside the task deadline
         run: |
-          docker pull node:22.12.0-bookworm-slim
-          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm-slim --format '{{.Id}}')" >> "$GITHUB_ENV"
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
       - name: Run generated stages and behavioral controls in real Docker
         run: >-
           node packages/cli/scripts/verify01-review-pack-diagnostic.mjs

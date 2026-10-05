@@ -7,7 +7,8 @@ import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 
-export const REVIEW_IMAGE = "node:22.12.0-bookworm-slim";
+// Frozen permission tests invoke real git; the slim image omits it.
+export const REVIEW_IMAGE = "node:22.12.0-bookworm";
 const MAX_OUTPUT = 8 * 1024 * 1024;
 const MAX_STAGE_MS = 10 * 60 * 1000;
 const CLEANUP_RESERVE_MS = 40000;
@@ -185,8 +186,18 @@ export function parseReviewTests(
       cases.some(
         (test) =>
           test.status === "failed" &&
-          (test.failureMessages || []).some((message) =>
-            /^AssertionError(?:\s*\[[^\]]+\])?(?::|\b)/mu.test(message),
+          (test.failureMessages || []).some(
+            (message) =>
+              /^AssertionError(?:\s*\[[^\]]+\])?(?::|\b)/mu.test(message) ||
+              // Vitest serializes rejects/resolves assertion failures as Error.
+              // Require its assertion frame as well as the mismatch message;
+              // arbitrary Error, import and rejected application errors fail.
+              (/^Error: (?:promise (?:resolved|rejected)[^\n]*instead of|expected [^\n]* to )/u.test(
+                message,
+              ) &&
+                /at _Assertion\.__VITEST_(?:REJECTS|RESOLVES)__ \([^\n]*[/\\]@vitest[/\\]expect[/\\]/u.test(
+                  message,
+                )),
           ),
       ),
       "mutant failure must include an assertion, not a syntax/import/runner error",
@@ -497,7 +508,8 @@ export function runReviewStage(
           "ci",
           "--workspace",
           "packages/cli",
-          "--include-workspace-root=false",
+          // Frozen DOM tests depend on the root's locked happy-dom package.
+          "--include-workspace-root=true",
           "--legacy-peer-deps",
           "--ignore-scripts",
           "--no-audit",
@@ -515,6 +527,33 @@ export function runReviewStage(
           !installation.signal,
         "locked dependency installation failed",
       );
+      // npm lifecycle hooks stay disabled. Explicitly invoke only the locked
+      // native dependency's prebuild installer, before any candidate exists.
+      // Do not fall back to arbitrary install scripts or a source build.
+      const native = runner.run(
+        [
+          "node",
+          "--input-type=commonjs",
+          "--eval",
+          'process.chdir("/workspace/node_modules/better-sqlite3"); require("/workspace/node_modules/prebuild-install/bin.js");',
+        ],
+        { setup: true },
+      );
+      requireCondition(
+        native.status === 0 && !native.error && !native.signal,
+        "locked SQLite native prebuild installation failed",
+      );
+      const nativeProbe = runner.run([
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        'const fs=require("node:fs"),crypto=require("node:crypto"),Database=require("/workspace/node_modules/better-sqlite3"); const db=new Database(":memory:"); if(db.prepare("select 42 as value").get().value!==42) throw new Error("SQLite native probe failed"); db.close(); const bytes=fs.readFileSync("/workspace/node_modules/better-sqlite3/build/Release/better_sqlite3.node"); console.log(JSON.stringify({sha256:crypto.createHash("sha256").update(bytes).digest("hex"),sqliteVerified:true}));',
+      ]);
+      requireCondition(
+        nativeProbe.status === 0 && !nativeProbe.error && !nativeProbe.signal,
+        "installed SQLite native prebuild cannot execute",
+      );
+      receipt.nativeDependency = JSON.parse(nativeProbe.stdout.trim());
       if (spec.baselineTests.length)
         receipt.tests.push({
           kind: "baseline",

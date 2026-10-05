@@ -325,4 +325,26 @@ describe("real Vitest reports, not implementation-shaped success flags", () => {
       ),
     ).toThrow();
   });
+  it("recognizes real Promise matcher assertions while rejecting application errors", () => {
+    for (const assertion of [
+      "await expect(Promise.resolve([])).rejects.toThrow('cancelled');",
+      "await expect(Promise.reject(Object.assign(new Error('commit published'), {published:true}))).rejects.toMatchObject({published:false});",
+      "await expect(Promise.reject(new Error('unexpected'))).resolves.toBe(42);",
+    ]) {
+      const result = run(
+        `it('Promise mismatch', async () => { ${assertion} });`,
+      );
+      expect(parseReviewTests(result, { mutant: true })).toMatchObject({
+        total: 1,
+        passed: 0,
+        failed: 1,
+      });
+    }
+    const applicationError = run(`it('application failure', async () => {
+      throw new Error('promise resolved instead of rejecting');
+    });`);
+    expect(() => parseReviewTests(applicationError, { mutant: true })).toThrow(
+      /must include an assertion/,
+    );
+  });
 });
