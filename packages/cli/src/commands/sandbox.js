@@ -5,6 +5,7 @@
 
 import chalk from "chalk";
 import { intArg } from "../lib/cli-arg.js";
+import { describeExecutionSupport } from "../lib/execution-support.js";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -132,6 +133,7 @@ export function registerSandboxCommand(program, dependencies = {}) {
           availability,
           host: dependencies.host,
         });
+        report.support = describeExecutionSupport({ capabilityReport: report });
 
         if (options.json) {
           console.log(JSON.stringify(report, null, 2));
@@ -144,6 +146,13 @@ export function registerSandboxCommand(program, dependencies = {}) {
             `  Backend: ${report.backend.engine || "none"} (${report.backend.availabilityChecked ? (report.backend.available ? "available" : "unavailable") : "not probed"})`,
           );
           logger.log(`  Status:  ${report.status}`);
+          logger.log(
+            `  I/O:     ${report.support.io.stdin} stdin; captured stdout/stderr`,
+          );
+          logger.log(`  Permission source: ${report.support.permissionSource}`);
+          logger.log(
+            `  Persistent network revocation: ${report.support.persistentNetworkRevocation.status} (${report.support.persistentNetworkRevocation.reason || "configured"})`,
+          );
           logger.log(
             `  Execution observed: ${report.execution.observed ? "yes" : "no"}`,
           );

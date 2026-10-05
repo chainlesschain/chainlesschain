@@ -1,0 +1,10 @@
+{
+  "name": "chainlesschain-mcp-reference-probe",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "@modelcontextprotocol/server-everything": "2026.8.31",
+    "chainlesschain": "file:../../../../.."
+  }
+}

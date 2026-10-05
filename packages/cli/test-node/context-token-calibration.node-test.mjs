@@ -8,8 +8,67 @@ import { fileURLToPath } from "node:url";
 import {
   compareContextTokenEstimates,
   observedInputTokens,
+  assessCalibrationMatrix,
 } from "../scripts/context-token-calibration.mjs";
 import { parseLiveProbeArgs } from "../scripts/context-token-volcengine-live-probe.mjs";
+
+test("matrix retains missing cells and duplicate requests cannot fill the denominator", () => {
+  const matrix = {
+    schema: "chainlesschain.context-token-calibration-matrix/v1",
+    minimumDistinctRequestsPerCategory: 3,
+    targets: [
+      { provider: "openai", model: "gpt-6.1-sol" },
+      { provider: "anthropic", model: "claude-sonnet-5-5" },
+    ],
+  };
+  const row = {
+    category: "code",
+    provider: "openai",
+    model: "gpt-6.1-sol",
+    requestSha256: "same-capture",
+  };
+  const report = assessCalibrationMatrix([row, row, row], matrix);
+  assert.equal(report.status, "INSUFFICIENT_EVIDENCE");
+  assert.equal(report.cells.length, 8);
+  assert.equal(
+    report.cells.find((c) => c.provider === "openai" && c.category === "code")
+      .missing,
+    2,
+  );
+  assert.equal(report.realProviderAcceptance, false);
+  assert.equal(report.taskSuccessAssessed, false);
+  assert.throws(
+    () =>
+      assessCalibrationMatrix([], {
+        ...matrix,
+        targets: [matrix.targets[0], matrix.targets[0]],
+      }),
+    /duplicate/,
+  );
+});
+
+test("complete capture coverage still does not claim real task or invoice acceptance", () => {
+  const targets = [
+    { provider: "openai", model: "gpt-6.1-sol" },
+    { provider: "anthropic", model: "claude-sonnet-5-5" },
+  ];
+  const rows = targets.flatMap((target) =>
+    ["chinese", "code", "emoji", "tool-schema"].map((category) => ({
+      ...target,
+      category,
+      requestSha256: category,
+    })),
+  );
+  const report = assessCalibrationMatrix(rows, {
+    schema: "chainlesschain.context-token-calibration-matrix/v1",
+    minimumDistinctRequestsPerCategory: 1,
+    targets,
+  });
+  assert.equal(report.status, "CAPTURE_COVERAGE_COMPLETE");
+  assert.equal(report.realProviderAcceptance, false);
+  assert.equal(report.factualFidelityAssessed, false);
+  assert.equal(report.estimatorChanged, false);
+});
 
 test("input usage includes Anthropic cache creation and read tokens", () => {
   assert.equal(
