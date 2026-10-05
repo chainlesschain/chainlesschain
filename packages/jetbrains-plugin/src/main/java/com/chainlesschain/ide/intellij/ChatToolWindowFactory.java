@@ -79,6 +79,14 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         return c == null ? null : c.modeState.snapshot();
     }
 
+    /** Called on the EDT without opening the panel or starting a child. */
+    static com.chainlesschain.ide.RuntimeCompatibility.AgentRuntime activeRuntimeFor(Project project) {
+        ChatPanel panel = REGISTRY.get(project);
+        ConversationManager.Conversation c = panel != null ? panel.conversations.active() : null;
+        ConversationView view = c == null ? null : panel.views.get(c.id);
+        return view == null ? null : view.runtimeDiagnostics();
+    }
+
     /** Current CLI session identity for CLI-owned auxiliary viewers. */
     static String activeSessionIdFor(Project project) {
         ChatPanel panel = REGISTRY.get(project);

@@ -845,6 +845,7 @@ async function activate(context) {
           workspaceTrusted: vscode.workspace.isTrusted,
           workspace: cwd || "(no workspace folder)",
           runtimeEnvironment,
+          agentRuntime: chatProvider.runtimeDiagnostics(),
         }),
         language: "markdown",
       });

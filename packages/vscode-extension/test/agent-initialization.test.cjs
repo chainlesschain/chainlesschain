@@ -56,6 +56,24 @@ async function waitForInitWaiter(conv) {
   assert.equal(conv.inputInitWaiters?.size, 1);
 }
 
+test("doctor observes the active child and discards stale generation capabilities", () => {
+  const { conv, onEvent, provider, writes } = makeSubmission();
+  assert.equal(provider.runtimeDiagnostics().state, "initializing");
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+  assert.equal(provider.runtimeDiagnostics().inputReceipts, true);
+  assert.equal(
+    provider.runtimeDiagnostics().permissionMode.status,
+    "unconfirmed",
+  );
+  conv._sessionToken = {};
+  conv.inputReceiptVersion = undefined;
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+  assert.equal(provider.runtimeDiagnostics().inputReceipts, null);
+  conv.session.running = false;
+  assert.equal(provider.runtimeDiagnostics().state, "not-started");
+  assert.deepEqual(writes, []);
+});
+
 test("a cold agent can initialize after the former 15-second limit and dispatch once", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { conv, onEvent, send, settlements, writes } = makeSubmission();

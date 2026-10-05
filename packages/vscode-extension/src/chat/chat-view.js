@@ -626,6 +626,30 @@ class ChatViewProvider {
     return this._convs.active()?.sessionId || this._storedSessionId();
   }
 
+  /** Read-only observation of the active child; never creates or starts a tab. */
+  runtimeDiagnostics() {
+    const conv = this._convs.active();
+    if (!conv)
+      return {
+        state: "not-started",
+        inputReceipts: null,
+        permissionMode: null,
+      };
+    const running = !!conv.session?.running;
+    return {
+      state: !running
+        ? "not-started"
+        : conv.inputReceiptVersion === undefined
+          ? "initializing"
+          : "running",
+      inputReceipts:
+        running && conv.inputReceiptVersion !== undefined
+          ? conv.inputReceiptVersion === 1
+          : null,
+      permissionMode: modeState(conv),
+    };
+  }
+
   _rememberSessionId(id) {
     this.opts.state?.update?.("chainlesschain.chat.sessionId", id || null);
   }

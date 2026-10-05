@@ -12,6 +12,41 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InputDispatchTest {
+    @Test void initTimeoutKeepsDraftAndCannotDispatchOnLateInit() throws Exception {
+        InputDispatch dispatch = new InputDispatch();
+        CompletableFuture<Boolean> init = new CompletableFuture<>();
+        var failure = assertThrows(InputDispatch.InitializationTimeoutException.class,
+                () -> dispatch.awaitReady(init, 5, TimeUnit.MILLISECONDS));
+        assertTrue(failure.getMessage().contains("draft kept"));
+        assertFalse(init.isDone());
+        init.complete(true);
+        assertFalse(dispatch.reserve());
+        assertThrows(IOException.class, () -> dispatch.awaitReady(init, 1, TimeUnit.SECONDS));
+        InputDispatch retry = new InputDispatch();
+        assertTrue(retry.awaitReady(init, 1, TimeUnit.SECONDS));
+        assertTrue(retry.reserve());
+        assertFalse(retry.reserve());
+    }
+
+    @Test void thirtySecondColdStartDispatchesExactlyOnce() throws Exception {
+        assertEquals(120, InputDispatch.INITIALIZATION_TIMEOUT_SECONDS);
+        try (ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor()) {
+            CompletableFuture<Boolean> init = new CompletableFuture<>();
+            timer.schedule(() -> init.complete(true), 30, TimeUnit.SECONDS);
+            InputDispatch dispatch = new InputDispatch();
+            assertTrue(dispatch.awaitReady(init, InputDispatch.INITIALIZATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertTrue(dispatch.reserve());
+            assertFalse(dispatch.reserve());
+        }
+    }
+
+    @Test void earlyExitKeepsItsOwnFailureClassification() {
+        CompletableFuture<Boolean> init = new CompletableFuture<>();
+        init.completeExceptionally(new IOException("Agent exited (1) before initialization"));
+        Exception failure = assertThrows(ExecutionException.class,
+                () -> new InputDispatch().awaitReady(init, 1, TimeUnit.SECONDS));
+        assertTrue(failure.getCause().getMessage().contains("Agent exited"));
+    }
     @Test void cancellationInsideTheSessionMonitorStillWinsBeforeReservation() throws Exception {
         BlockingQueue<Map<String, Object>> events = new LinkedBlockingQueue<>();
         CountDownLatch guarded = new CountDownLatch(1), release = new CountDownLatch(1);

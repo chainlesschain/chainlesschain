@@ -30,6 +30,17 @@ public final class CliVersionCheck {
         return m.find() ? m.group(0) : null;
     }
 
+    /** Installed command identity: the first nonempty line must be cc's version. */
+    public static String installedVersion(String output) {
+        if (output == null) return null;
+        for (String line : output.split("\\r?\\n")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            return trimmed.matches("^v?\\d+\\.\\d+\\.\\d+.*") ? parseVersion(trimmed) : null;
+        }
+        return null;
+    }
+
     /** Compare two {@code x.y.z} versions (prerelease ignored): -1 / 0 / 1. */
     public static int compare(String a, String b) {
         String[] pa = String.valueOf(a).split("-")[0].split("\\.");
@@ -55,7 +66,7 @@ public final class CliVersionCheck {
      * unknown. Both inputs are raw strings (parsed here).
      */
     public static String updateNotice(String installedRaw, String latestRaw) {
-        String installed = parseVersion(installedRaw);
+        String installed = installedVersion(installedRaw);
         String latest = parseVersion(latestRaw);
         if (installed == null || latest == null) return null;
         if (compare(installed, latest) >= 0) return null; // up to date or ahead
