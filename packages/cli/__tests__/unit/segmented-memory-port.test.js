@@ -248,9 +248,11 @@ describe("segmented memory authority", () => {
       syncBuiltinESMExports();
       expect(await port.exportSnapshot()).toEqual(state);
       const manifest = JSON.parse(readFileSync(filePath));
-      expect(readdirSync(port.shardDirectory)).toHaveLength(
-        Object.keys(manifest.shards).length,
-      );
+      expect(
+        readdirSync(port.shardDirectory).filter(
+          (name) => !name.startsWith("query-"),
+        ),
+      ).toHaveLength(Object.keys(manifest.shards).length);
     },
   );
 

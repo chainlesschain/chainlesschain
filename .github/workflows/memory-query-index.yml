@@ -1,0 +1,53 @@
+name: Memory Query Index Measurement
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - ".github/workflows/memory-query-index.yml"
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - ".github/workflows/memory-query-index.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  measurement:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Query, cursor, corruption and concurrency contracts
+        working-directory: packages/cli
+        run: >-
+          npx vitest run __tests__/unit/memory-query-index.test.js
+          __tests__/unit/segmented-memory-port.test.js
+      - name: Compare identical 1K, 10K and 100K datasets
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-query-index-benchmark.mjs
+          --counts 1000,10000,100000 --samples 11
+          --output "$RUNNER_TEMP/memory-query-index.json"
+      # A performance measurement is not a passed latency SLO. The script
+      # gates row equivalence and integrity; no unapproved timing threshold.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: memory-query-index-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/memory-query-index.json
+          if-no-files-found: error

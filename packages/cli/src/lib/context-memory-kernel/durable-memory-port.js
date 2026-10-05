@@ -21,6 +21,16 @@ import {
 } from "@chainlesschain/context-memory-kernel";
 import { withFileLock } from "../with-file-lock.js";
 import { getHomeDir } from "../paths.js";
+import { resolve } from "node:path";
+import {
+  compareMemoryRows,
+  decodeListCursor,
+  encodeListCursor,
+  listCursorBinding,
+  matchesListQuery,
+  normalizeListQuery,
+  pageLimit,
+} from "./memory-query-index.js";
 
 const STORE_SCHEMA = "chainlesschain.cli-context-memory-store/v1";
 const DEFAULT_MAX_STORE_BYTES = 64 * 1024 * 1024;
@@ -292,19 +302,48 @@ export class DurableJsonMemoryPort {
     );
   }
 
-  async listRecords({ includeTombstones = false } = {}) {
+  async listRecords(options = {}) {
+    const query = normalizeListQuery(options);
     const records = await this.query();
     return records
-      .filter(
-        (record) =>
-          includeTombstones || !["deleted", "purged"].includes(record.state),
-      )
-      .sort(
-        (left, right) =>
-          right.importance - left.importance ||
-          right.updatedAt.localeCompare(left.updatedAt, "en") ||
-          left.memoryId.localeCompare(right.memoryId, "en"),
+      .filter((record) => matchesListQuery(record, query))
+      .sort(compareMemoryRows)
+      .slice(
+        0,
+        options.limit == null
+          ? undefined
+          : Math.max(1, Number(options.limit) || 20),
       );
+  }
+
+  async listPage(options = {}) {
+    const query = normalizeListQuery(options);
+    const count = pageLimit(options.limit);
+    return this._locked(() => {
+      const state = this._readUnlocked();
+      const binding = listCursorBinding(
+        resolve(this.filePath),
+        state.digest,
+        query,
+      );
+      const after = decodeListCursor(options.cursor, binding);
+      const matches = Object.values(state.records)
+        .filter(
+          (record) =>
+            matchesListQuery(record, query) &&
+            (!after || compareMemoryRows(record, after) > 0),
+        )
+        .sort(compareMemoryRows);
+      const records = matches.slice(0, count);
+      return {
+        records,
+        storeRevision: state.storeRevision,
+        nextCursor:
+          matches.length > count
+            ? encodeListCursor(binding, records.at(-1))
+            : null,
+      };
+    });
   }
 
   async commit({ record, event, reconciliation }, expectedRevision = 0) {

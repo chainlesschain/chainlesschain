@@ -403,12 +403,27 @@ export class CliCanonicalMemoryService {
     return result;
   }
 
-  async list({ limit = 20, category } = {}) {
-    const records = await this.runtime.memoryPort.listRecords();
+  async list({ limit = 20, category, scopeAdmissions, sink, tags } = {}) {
+    const records = await this.runtime.memoryPort.listRecords({
+      limit: Math.max(1, Number(limit) || 20),
+      category,
+      scopeAdmissions,
+      sink,
+      tags,
+    });
     return records
       .filter((record) => !category || record.category === category)
       .slice(0, Math.max(1, Number(limit) || 20))
       .map((record) => publicEntry(record));
+  }
+
+  async listPage(options = {}) {
+    const page = await this.runtime.memoryPort.listPage(options);
+    return {
+      entries: page.records.map((record) => publicEntry(record)),
+      nextCursor: page.nextCursor,
+      storeRevision: page.storeRevision,
+    };
   }
 
   async add(content, options = {}) {

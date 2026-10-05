@@ -26,6 +26,20 @@ import {
   stateDigest,
   syncDirectory,
 } from "./durable-memory-port.js";
+import {
+  compareMemoryRows,
+  compileQueryIndex,
+  decodeListCursor,
+  encodeListCursor,
+  encodeQueryIndex,
+  listCursorBinding,
+  matchesListQuery,
+  mergeQueryRows,
+  normalizeListQuery,
+  pageLimit,
+  queryDigest,
+  selectQueryRows,
+} from "./memory-query-index.js";
 
 export const SEGMENTED_STORE_SCHEMA =
   "chainlesschain.cli-context-memory-store/v2";
@@ -147,6 +161,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     this.readOnly = Boolean(readOnly);
     this.filePath = resolve(this.filePath);
     this.shardDirectory = `${this.filePath}.shards`;
+    this._queryIndexes = new Map();
   }
 
   _locked(operation) {
@@ -194,6 +209,13 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     );
   }
 
+  _queryIndexPath(bucket, descriptor) {
+    return join(
+      this.shardDirectory,
+      `query-${bucket}-${descriptor.queryDigest.slice(7)}.json`,
+    );
+  }
+
   _validateManifest(input) {
     const invalid = () => {
       throw corruptStore(this.filePath, "segmented manifest is invalid");
@@ -219,13 +241,23 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       if (
         !BUCKET.test(bucket) ||
         !entry ||
-        Object.keys(entry).sort().join() !==
-          "bytes,digest,eventCount,recordCount" ||
+        ![
+          "bytes,digest,eventCount,recordCount",
+          "bytes,digest,eventCount,queryBytes,queryDigest,recordCount",
+        ].includes(Object.keys(entry).sort().join()) ||
         !HEX.test(entry.digest)
       )
         invalid();
       for (const key of ["bytes", "eventCount", "recordCount"])
         if (!Number.isSafeInteger(entry[key]) || entry[key] < 0) invalid();
+      if (
+        entry.queryDigest !== undefined &&
+        (!HEX.test(entry.queryDigest) ||
+          !Number.isSafeInteger(entry.queryBytes) ||
+          entry.queryBytes < 1 ||
+          entry.queryBytes > this.maxStoreBytes)
+      )
+        invalid();
       if (entry.bytes > this.maxStoreBytes)
         throw limit("shard exceeds configured byte limit");
       bytes += entry.bytes;
@@ -241,6 +273,15 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       invalid();
     if (bytes > this.maxTotalBytes || events > this.maxEvents)
       throw limit("aggregate capacity exceeded");
+    if (
+      bytes +
+        Object.values(input.shards).reduce(
+          (sum, entry) => sum + (entry.queryBytes || 0),
+          0,
+        ) >
+      this.maxTotalBytes
+    )
+      throw limit("authority and query indexes exceed aggregate capacity");
     return input;
   }
 
@@ -339,9 +380,12 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
   _collect(manifest) {
     this._checkDirectories();
     const live = new Set(
-      Object.entries(manifest.shards).map(
-        ([bucket, entry]) => `${bucket}-${entry.digest.slice(7)}.json`,
-      ),
+      Object.entries(manifest.shards).flatMap(([bucket, entry]) => [
+        `${bucket}-${entry.digest.slice(7)}.json`,
+        ...(entry.queryDigest
+          ? [`query-${bucket}-${entry.queryDigest.slice(7)}.json`]
+          : []),
+      ]),
     );
     // All readers hold the same authority lock. No reader can still be using
     // a superseded shard here. Unknown files are never treated as our garbage.
@@ -355,6 +399,8 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
           throw limit("shard directory inventory exceeds 4096 entries");
         const owned =
           /^[a-f0-9]{2}-[a-f0-9]{64}\.json$/u.test(entry.name) ||
+          /^query-[a-f0-9]{2}-[a-f0-9]{64}\.json$/u.test(entry.name) ||
+          /^query-rebuild-[a-f0-9-]{36}\.tmp$/u.test(entry.name) ||
           /^manifest-[a-f0-9-]{36}\.tmp$/u.test(entry.name);
         if (owned && !live.has(entry.name)) {
           const file = join(this.shardDirectory, entry.name);
@@ -388,7 +434,12 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     for (const [bucket, state] of changed) {
       state.digest = stateDigest(state);
       const bytes = `${JSON.stringify(state)}\n`;
-      const size = Buffer.byteLength(bytes);
+      const unchanged = manifest.shards[bucket]?.digest === state.digest;
+      // Canonical digests do not encode JSON property order. During a derived
+      // index upgrade retain the original immutable authority bytes verbatim.
+      const size = unchanged
+        ? manifest.shards[bucket].bytes
+        : Buffer.byteLength(bytes);
       if (size > this.maxStoreBytes)
         throw limit("shard exceeds configured byte limit");
       pendingBytes += size - (next.shards[bucket]?.bytes || 0);
@@ -402,9 +453,19 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
         eventCount: state.events.length,
         recordCount: Object.keys(state.records).length,
       };
+      const queryBytes = encodeQueryIndex(state);
+      if (queryBytes.length > this.maxStoreBytes)
+        throw limit("query index exceeds configured byte limit");
+      next.shards[bucket].queryDigest = queryDigest(queryBytes);
+      next.shards[bucket].queryBytes = queryBytes.length;
+      if (!unchanged)
+        pending.push({
+          file: this._shardPath(bucket, next.shards[bucket]),
+          bytes,
+        });
       pending.push({
-        file: this._shardPath(bucket, next.shards[bucket]),
-        bytes,
+        file: this._queryIndexPath(bucket, next.shards[bucket]),
+        bytes: queryBytes,
       });
     }
     next.totalBytes = Object.values(next.shards).reduce(
@@ -557,7 +618,214 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       ),
     );
   }
-  async query() {
+
+  _ensureQueryIndexes(manifest) {
+    if (manifest.schema === STORE_SCHEMA || this.readOnly) return manifest;
+    const missing = Object.keys(manifest.shards).filter(
+      (bucket) => !manifest.shards[bucket].queryDigest,
+    );
+    if (!missing.length) return manifest;
+    // Upgrade older v2 snapshots without changing records, revisions or audit.
+    // Old strict readers reject these extended descriptors instead of writing
+    // a second authority. Shadow readers derive indexes only in memory.
+    return this._publish(
+      manifest,
+      new Map(
+        missing.map((bucket) => [bucket, this._readShard(manifest, bucket)]),
+      ),
+    );
+  }
+
+  _readQueryIndex(manifest, bucket) {
+    const descriptor = manifest.shards[bucket];
+    let bytes;
+    if (descriptor.queryDigest) {
+      const file = this._queryIndexPath(bucket, descriptor);
+      this._checkDirectories();
+      if (existsSync(file)) {
+        // Unsafe filesystem objects are authority errors, never repair targets.
+        regular(file);
+        try {
+          bytes = readBoundedState(file, descriptor.queryBytes, true);
+        } catch (error) {
+          if (error.code !== "CONTEXT_MEMORY_STORE_CORRUPT") throw error;
+        }
+      }
+      if (
+        !bytes ||
+        bytes.length !== descriptor.queryBytes ||
+        queryDigest(bytes) !== descriptor.queryDigest
+      ) {
+        bytes = encodeQueryIndex(this._readShard(manifest, bucket));
+        if (
+          bytes.length !== descriptor.queryBytes ||
+          queryDigest(bytes) !== descriptor.queryDigest
+        )
+          throw corruptStore(
+            file,
+            "query index cannot be reproduced from authority",
+          );
+        if (!this.readOnly) {
+          const temporary = join(
+            this.shardDirectory,
+            `query-rebuild-${randomUUID()}.tmp`,
+          );
+          const fd = openSync(temporary, "wx", 0o600);
+          try {
+            writeFileSync(fd, bytes);
+            fsyncSync(fd);
+          } finally {
+            closeSync(fd);
+          }
+          this._checkDirectories();
+          if (existsSync(file)) regular(file);
+          renameSync(temporary, file);
+          syncDirectory(this.shardDirectory);
+        }
+      }
+    } else {
+      bytes = encodeQueryIndex(this._readShard(manifest, bucket));
+    }
+    const digest = descriptor.queryDigest || queryDigest(bytes);
+    const cached = this._queryIndexes.get(bucket);
+    if (cached?.digest === digest) return cached.index;
+    let index;
+    try {
+      index = compileQueryIndex(bytes, descriptor);
+    } catch (cause) {
+      throw corruptStore(
+        this.filePath,
+        "query index structure is invalid",
+        cause,
+      );
+    }
+    this._queryIndexes.set(bucket, { digest, index });
+    return index;
+  }
+
+  async _indexedRecords(
+    options = {},
+    { limit: count = Infinity, cursor = null } = {},
+  ) {
+    const query = normalizeListQuery(options);
+    const captured = await this._locked(() => {
+      const manifest = this._ensureQueryIndexes(this._loadManifest());
+      const binding = listCursorBinding(
+        this.filePath,
+        manifest.digest || queryDigest(JSON.stringify(manifest)),
+        query,
+      );
+      const after = decodeListCursor(cursor, binding);
+      if (manifest.schema === STORE_SCHEMA) {
+        const matches = Object.values(manifest.records)
+          .filter(
+            (row) =>
+              matchesListQuery(row, query) &&
+              (!after || compareMemoryRows(row, after) > 0),
+          )
+          .sort(compareMemoryRows);
+        const records = matches.slice(0, count);
+        return {
+          legacy: records,
+          storeRevision: manifest.storeRevision,
+          nextCursor:
+            matches.length > count
+              ? encodeListCursor(binding, records.at(-1))
+              : null,
+        };
+      }
+      // Merge each sorted posting lazily. Only the requested page is captured;
+      // every candidate has already passed scope, sink and lifecycle filters.
+      const heads = [];
+      for (const bucket of Object.keys(manifest.shards)) {
+        const iterator = selectQueryRows(
+          this._readQueryIndex(manifest, bucket),
+          query,
+          after,
+        );
+        const next = iterator.next();
+        if (!next.done) heads.push({ bucket, iterator, row: next.value });
+      }
+      const selected = [];
+      for (const row of mergeQueryRows(heads)) {
+        selected.push(row);
+        if (selected.length > count) break;
+      }
+      const more = selected.length > count;
+      if (more) selected.pop();
+      const shards = new Map();
+      for (const { bucket } of selected)
+        if (!shards.has(bucket))
+          shards.set(bucket, this._readShardBytes(manifest, bucket));
+      return {
+        manifest,
+        selected,
+        shards,
+        storeRevision: manifest.storeRevision,
+        nextCursor: more
+          ? encodeListCursor(binding, selected.at(-1).row)
+          : null,
+      };
+    });
+    if (captured.legacy)
+      return {
+        records: captured.legacy,
+        nextCursor: captured.nextCursor,
+        storeRevision: captured.storeRevision,
+      };
+    const decoded = new Map(
+      [...captured.shards].map(([bucket, bytes]) => [
+        bucket,
+        this._decodeShard(captured.manifest, bucket, bytes),
+      ]),
+    );
+    const records = captured.selected.map(({ bucket, row }) => {
+      const record = own(decoded.get(bucket).records, row.memoryId);
+      if (
+        !record ||
+        !matchesListQuery(record, query) ||
+        compareMemoryRows(record, row) !== 0
+      )
+        throw corruptStore(
+          this.filePath,
+          "query index result disagrees with authority",
+        );
+      return record;
+    });
+    return {
+      records,
+      nextCursor: captured.nextCursor,
+      storeRevision: captured.storeRevision,
+    };
+  }
+
+  async listRecords(options = {}) {
+    const count =
+      options.limit == null
+        ? Infinity
+        : Math.max(1, Number(options.limit) || 20);
+    return (await this._indexedRecords(options, { limit: count })).records;
+  }
+
+  async listPage(options = {}) {
+    return this._indexedRecords(options, {
+      limit: pageLimit(options.limit),
+      cursor: options.cursor,
+    });
+  }
+
+  async query(request) {
+    if (request?.scopeAdmissions || request?.sink) {
+      // Do not push recall's limit before lexical/semantic ranking in the
+      // kernel. Push only gates that cannot discard an admissible result.
+      return (
+        await this._indexedRecords({
+          scopeAdmissions: request.scopeAdmissions,
+          sink: request.sink,
+          states: ["active", "reinforced"],
+        })
+      ).records;
+    }
     const snapshot = await this._locked(() => {
       const manifest = this._loadManifest();
       if (manifest.schema === STORE_SCHEMA) return { legacy: manifest };
