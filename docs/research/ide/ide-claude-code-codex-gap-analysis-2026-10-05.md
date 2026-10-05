@@ -1,6 +1,6 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
-> **身份与 Actions 续做**：Windows IntelliJ 2024.2 / 插件 0.4.152 的八阶段 CLI 身份旅程已安全归档。随后四个 Linux/Windows 宿主的 CI 失败共因为测试探针读取已移除的版本缓存；探针与 EDT 调度已修复，Java 编译、2 项回归及 49 项证据校验通过，Windows 完整恢复、Stop、原生测量与重启补验也通过。新准确提交的完整宿主矩阵仍需验证。Docker 33/36 回读暴露的三题控制与原始证据 EOL 属性冲突已补修；失败原文与本地 dirty-start 溯源保留。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，原审计快照与正式 36+9 边界保留。
+> **身份与 Actions 续做**：Windows IntelliJ 2024.2 / 插件 0.4.152 的八阶段 CLI 身份旅程已安全归档，旧缓存探针与 EDT 调度已修复，`6196cd065d` 六宿主完整通过。该提交的 Docker 六分片已验证 36/36 题与 42 个行为反例，Strict Sandbox 5/5 通过。macOS VS Code 1.85.2 的流式采集期限已改为独立有界合同，补齐可见性、逐案例诊断与取消清理；宿主回归 86/86、CLI 引用回归 260/260 通过。候选尚未发布，修复后的准确提交仍须完整矩阵。原始失败与通过证据均保留，详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，原审计快照与正式 36+9 边界保留。
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
 

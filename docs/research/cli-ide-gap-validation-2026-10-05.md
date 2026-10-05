@@ -44,22 +44,34 @@ CLI CI 的 Linux integration 1/8 作业中 149 项通过、1 项失败，原因�
 
 本机 Windows 2024.2 的完整 canonical 旅程补验通过：恢复、Stop、原生 transcript 测量及真实 IDE 重启均完成。[最小文本证据包](./ide/evidence/gap-2026-10-05/native-probe-windows-fix/readback.json) 保留 7 份原始记录、全部字节摘要和三份测试源码摘要；不含截图或 ZIP。运行从 `ad129eb3fe` 加 dirty 修复开始，期间生成 `4f24f474b1`，driver 在结束时读取 HEAD；三份测试源码字节始终一致。该补验不属于干净准确提交 CI，也不满足正式样本、独立人工验收或性能 SLO。
 
-## 3. JetBrains 身份旅程
+## 3. Docker 完整通过与 macOS 流式采集失败
+
+准确提交 `6196cd065dca2afd55ca51ed53c8d95a196be223` 的 [Docker Review Pack #37326983206](https://github.com/chainlesschain/chainlesschain/actions/runs/37326983206) 已完整通过：六分片、36/36 题、42 个行为反例全部检出，包括 verify-04、27、31。六份原始 ZIP 与 GitHub artifact digest 逐份一致，见[完整回读](./cli/evidence/gap-2026-10-05/verify01-docker-ci-6196/tasks-readback.json)。该结果是冻结项目的 setup/check 与反例工程验证，不是正式 provider 任务样本或独立人工审阅。
+
+同一提交的 [CLI Strict Sandbox #37326983050](https://github.com/chainlesschain/chainlesschain/actions/runs/37326983050) 5/5 作业通过；macOS MCP 发布门、E2E、IDE Roadmap Safety Matrix、Code Quality & Security 和 Full Test Automation with Diagnostics 已完整成功。CLI CI 仍在执行，不能据此提前发布候选。
+
+[IDE Extensions #37327110713 的 macOS 作业](https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111825117269) 在最低版本 VS Code 1.85.2 的 `streamProfile` 采集阶段失败。前面的真实交互、100 次 Workbench needs-input、reply-artifact 均已通过，随后通用 DOM relay 的 10 秒响应期限到期。该作业 stable 版本的三个录制案例耗时约 2.2、2.8、4.3 秒；没有最低版本逐案例开始/结束记录，不能确定失败尺寸或将隐藏视图调度认定为根因。[安全文本回读](./ide/evidence/gap-2026-10-05/ide-ci-6196-macos-failure/readback.json) 保留原始失败日志、进度与对照指标，不公开截图和完整 ZIP。
+
+修复为流式采集增加独立有界期限：host 90 秒、renderer 75 秒、可见性预检 15 秒；普通 relay 仍为 10 秒。必须使用真实可见 DOM 与真实 rAF，逐案例/warmup 记录 started/completed/failed 及实际帧进度。隐藏、取消、超时和逾期帧会停止采样、清理临时 DOM 并恢复 selection/scroll；取消和进度消息均校验 token/requestId，不接受并发采样。原有 64 帧、selection、parse/finalization 等断言及 `performanceGate:false` 保留，没有将采集期限扩大解释为 SLO 通过。
+
+本地 host DOM 与 extension-host runner **86/86** 通过，CLI 引用侧 20 个文件分轮 **260/260** 通过；最初两个 DOM 文件因本地缺少锁定 `happy-dom` 没有加载，隔离补齐 lock 中的 20.11.1 后通过，未修改仓库依赖。ESLint、Prettier 和 diff 检查通过。同一旧提交的 JetBrains 三系统 × 两版本六宿主全部成功，IDE 工作流最终只有上述 macOS VS Code 作业失败；Linux 发布门因此跳过。修复后的准确提交仍须完整 CLI 双门与 IDE 宿主矩阵，当前候选 CLI 0.166.89、VS Code 0.37.134、JetBrains 0.4.152 均未发布。
+
+## 4. JetBrains 身份旅程
 
 真实 Windows IntelliJ 2024.2 / 插件 0.4.152 的同一 IDE 进程完成八阶段诊断：有效 CLI、显式错误路径且存在 managed fallback、修复显式路径、同路径替换为 GCC、PATH 上 GCC、四个命令别名均缺失、managed fallback、安装到 PATH 后无需重启恢复。两次手动更新也显示正确的身份失败原因。
 
 该诊断只使用本地命令 fixture，没有发送模型请求、运行 agent 任务或安装公开产品。[安全归档与回读](./ide/evidence/gap-2026-10-05/onboarding-identity-windows/readback.json) 包含 29 份原始文件，其中 10 张截图限定 IDE/对话框；前两次失败尝试的整桌面截图不公开，前三次失败原因和清理结果分别保留。最终回执绑定 `ae6adbe13c` 加 dirty 工作区及逐文件字节摘要，五份源码摘要与当前文件一致；不能将其描述为干净提交的 CI 或首次公开安装样本。实际 IDE 正常退出，Gradle owner exit 0、taskkill 未使用、已记录进程身份均已消失。
 
-## 4. 仍需独立完成的任务
+## 5. 仍需独立完成的任务
 
-| 项目                      | 当前证据与剩余条件                                                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| MODEL-03 / PERF-02        | 模型、价格、reasoning 与 usage 工程合同已实现；真实目标账号、usage、账单及估算器校准仍未执行                           |
-| VERIFY-02 / VERIFY-IDE-02 | 36 题 setup/check、42 行为反例及双 IDE 采集已有实现；Docker 整包成功、独立人工审阅、正式 provider 与公开安装样本仍开放 |
-| PLATFORM-02 / NET-02      | 显式 Linux controlled-host 已接通；Windows/macOS durable 权限存储、持久网络撤销与崩溃恢复仍缺后端实现                  |
-| IDE-ONBOARD-02            | 本地真实 Windows 宿主身份诊断通过；Linux/macOS 对应旅程及公开安装来源仍需验证                                          |
-| IDE-COLD-02               | 120 秒有界等待及迟到 init 不补发已有合同；真实慢初始化、永不 init 与 Stop 竞态的 GUI 旅程仍需补验                      |
-| 辅助技术与性能            | 真实宿主语义/性能采集存在；NVDA、VoiceOver、Orca 真人听测、8h/24h 观察与获批 SLO 仍开放                                |
-| CLOUD-02                  | 完整跨机器 resume 仍为需求条件项，现有 self-hosted handoff 不承担该支持声明                                            |
+| 项目                      | 当前证据与剩余条件                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| MODEL-03 / PERF-02        | 模型、价格、reasoning 与 usage 工程合同已实现；真实目标账号、usage、账单及估算器校准仍未执行               |
+| VERIFY-02 / VERIFY-IDE-02 | 36 题 setup/check 与 42 行为反例已通过完整 Docker 六分片；独立人工审阅、正式 provider 与公开安装样本仍开放 |
+| PLATFORM-02 / NET-02      | 显式 Linux controlled-host 已接通；Windows/macOS durable 权限存储、持久网络撤销与崩溃恢复仍缺后端实现      |
+| IDE-ONBOARD-02            | 本地真实 Windows 宿主身份诊断通过；Linux/macOS 对应旅程及公开安装来源仍需验证                              |
+| IDE-COLD-02               | 120 秒有界等待及迟到 init 不补发已有合同；真实慢初始化、永不 init 与 Stop 竞态的 GUI 旅程仍需补验          |
+| 辅助技术与性能            | 真实宿主语义/性能采集存在；NVDA、VoiceOver、Orca 真人听测、8h/24h 观察与获批 SLO 仍开放                    |
+| CLOUD-02                  | 完整跨机器 resume 仍为需求条件项，现有 self-hosted handoff 不承担该支持声明                                |
 
 只读冻结计划回读仍为 `executionStatus:NOT_RUN` / `INSUFFICIENT_EVIDENCE`，真实进程退出码 **2**。任务 observed=0、missing=36；首次安装 observed=0、missing=9；总费用为 null。正式分母与预算 $72+$27=$99 不变。本轮没有付费调用、发布新候选或写入正式 observations。

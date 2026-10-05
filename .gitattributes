@@ -69,3 +69,9 @@ docs/research/ide/evidence/gap-2026-10-05/native-probe-windows-fix/** -text !eol
 docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-4f24/** -text !eol -whitespace
 
 docs/research/cli/evidence/gap-2026-10-05/cli-integration-ci-4f24/** -text !eol -whitespace
+
+docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-6196/** -text !eol -whitespace
+
+docs/research/ide/evidence/gap-2026-10-05/ide-ci-6196-macos-failure/** -text !eol -whitespace
+
+docs/research/ide/evidence/gap-2026-10-05/jetbrains-ci-6196/** -text !eol -whitespace

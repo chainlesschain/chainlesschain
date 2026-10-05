@@ -1,0 +1,300 @@
+{
+  "sourceCommit": "6196cd065dca2afd55ca51ed53c8d95a196be223",
+  "runId": 37326983206,
+  "status": "completed",
+  "conclusion": "success",
+  "tasks": [
+    {
+      "taskId": "verify-01",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-02",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-03",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-04",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-05",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-06",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-6.zip"
+    },
+    {
+      "taskId": "verify-07",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-08",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-09",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-10",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-11",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-12",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-6.zip"
+    },
+    {
+      "taskId": "verify-13",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-14",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-15",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-16",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-17",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-18",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-6.zip"
+    },
+    {
+      "taskId": "verify-19",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-20",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-21",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-22",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-23",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-24",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-6.zip"
+    },
+    {
+      "taskId": "verify-25",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-26",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-27",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-28",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-29",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-30",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 2,
+      "archive": "shard-6.zip"
+    },
+    {
+      "taskId": "verify-31",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-1.zip"
+    },
+    {
+      "taskId": "verify-32",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-2.zip"
+    },
+    {
+      "taskId": "verify-33",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-3.zip"
+    },
+    {
+      "taskId": "verify-34",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 0,
+      "archive": "shard-4.zip"
+    },
+    {
+      "taskId": "verify-35",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-5.zip"
+    },
+    {
+      "taskId": "verify-36",
+      "passed": true,
+      "setup": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "check": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "mutants": 1,
+      "archive": "shard-6.zip"
+    }
+  ],
+  "passed": 36,
+  "failed": 0,
+  "formalSample": false,
+  "providerAssessed": false
+}

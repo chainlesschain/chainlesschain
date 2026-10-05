@@ -1,0 +1,10 @@
+{
+  "schema": "cc-ide-host-driver-failure/v1",
+  "phase": "initial",
+  "at": "2026-10-05T15:05:05.498Z",
+  "error": {
+    "name": "Error",
+    "message": "host DOM command timed out: streamProfile",
+    "stack": "Error: host DOM command timed out: streamProfile\n\tat Timeout._onTimeout (/private/tmp/ccv-R4BYGe/extensions/chainlesschain.chainlesschain-ide-0.37.134/src/chat/chat-view.js:737:16)\n\tat listOnTimeout (node:internal/timers:569:17)\n\tat process.processTimers (node:internal/timers:512:7)"
+  }
+}

@@ -81,6 +81,9 @@ const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 // flight on a busy host.
 const WEBVIEW_PROTOCOL_TIMEOUT_MS = 5_000;
 const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
+// The diagnostic uses 64 real animation frames plus production Markdown work.
+// This is a bounded collection deadline, never a performance SLO.
+const HOST_DOM_STREAM_PROFILE_TIMEOUT_MS = 90_000;
 // A first persisted `cc agent --resume` can bootstrap/migrate its store and
 // run SessionStart hooks before emitting system/init. Keep the draft pending
 // through a cold start; a failed child still rejects its waiter immediately.
@@ -730,14 +733,29 @@ class ChatViewProvider {
       );
     }
     const command = validateHostDomRequest(request);
+    if (command.action === "streamProfile") this.view.show(false);
     const requestId = crypto.randomBytes(16).toString("hex");
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this._hostDomPending.delete(requestId);
-        reject(new Error(`host DOM command timed out: ${command.action}`));
-      }, HOST_DOM_RESPONSE_TIMEOUT_MS);
+      const timer = setTimeout(
+        () => {
+          const pending = this._hostDomPending.get(requestId);
+          this._cancelHostDomProfile(requestId, pending);
+          this._hostDomPending.delete(requestId);
+          reject(
+            new Error(
+              `host DOM command timed out: ${command.action}` +
+                (pending?.progress
+                  ? `; progress=${JSON.stringify(pending.progress)}`
+                  : ""),
+            ),
+          );
+        },
+        command.action === "streamProfile"
+          ? HOST_DOM_STREAM_PROFILE_TIMEOUT_MS
+          : HOST_DOM_RESPONSE_TIMEOUT_MS,
+      );
       timer.unref?.();
-      this._hostDomPending.set(requestId, { resolve, reject, timer });
+      this._hostDomPending.set(requestId, { resolve, reject, timer, command });
       Promise.resolve(
         this.view.webview.postMessage({
           kind: "hostDomCommand",
@@ -777,18 +795,76 @@ class ChatViewProvider {
     }
     const pending = this._hostDomPending.get(message.requestId);
     if (!pending) return false;
+    if (message.type === "hostDomProgress") {
+      const p = message.progress;
+      if (
+        pending.command.action !== "streamProfile" ||
+        !p ||
+        p.chars !== pending.command.chars ||
+        ![
+          "waiting-visible",
+          "visible",
+          "sampling",
+          "finalizing",
+          "completed",
+          "failed",
+        ].includes(p.stage) ||
+        !Number.isInteger(p.completedFrames) ||
+        p.completedFrames < 0 ||
+        p.completedFrames > 64 ||
+        !["visible", "hidden"].includes(p.visibilityState) ||
+        typeof p.visible !== "boolean" ||
+        !Number.isFinite(p.elapsedMs) ||
+        p.elapsedMs < 0
+      )
+        return false;
+      pending.progress = {
+        chars: p.chars,
+        stage: p.stage,
+        completedFrames: p.completedFrames,
+        visibilityState: p.visibilityState,
+        visible: p.visible,
+        elapsedMs: p.elapsedMs,
+      };
+      this.opts.log?.(
+        `streamProfile progress: ${JSON.stringify(pending.progress)}`,
+      );
+      return true;
+    }
     this._hostDomPending.delete(message.requestId);
     clearTimeout(pending.timer);
     if (message.ok === true) pending.resolve(message.result);
     else
       pending.reject(
-        new Error(String(message.error || "host DOM command failed")),
+        new Error(
+          String(message.error || "host DOM command failed") +
+            (pending.progress
+              ? `; progress=${JSON.stringify(pending.progress)}`
+              : ""),
+        ),
       );
     return true;
   }
 
+  _cancelHostDomProfile(requestId, pending) {
+    if (pending?.command.action !== "streamProfile") return;
+    try {
+      Promise.resolve(
+        this.view?.webview.postMessage({
+          kind: "hostDomCancel",
+          token: this._hostDomToken,
+          requestId,
+        }),
+      ).catch(() => {});
+    } catch {
+      // Disposal can synchronously reject postMessage; the renderer itself is
+      // then gone, but its pending host promise must still be rejected below.
+    }
+  }
+
   _rejectHostDomPending(reason) {
-    for (const pending of this._hostDomPending.values()) {
+    for (const [requestId, pending] of this._hostDomPending) {
+      this._cancelHostDomProfile(requestId, pending);
       clearTimeout(pending.timer);
       pending.reject(new Error(reason));
     }
@@ -4277,7 +4353,7 @@ class ChatViewProvider {
       this._draftWebviewPages.add(page);
       this._draftWebviewInstance = page;
     }
-    if (m.type === "hostDomResult") {
+    if (m.type === "hostDomResult" || m.type === "hostDomProgress") {
       this._acceptHostDomResult(m);
       return;
     }

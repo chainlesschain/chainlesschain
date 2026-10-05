@@ -63,17 +63,48 @@ function verifyStreamingProfile(value) {
 }
 
 async function runStreamingProfiles({ commands, token, artifactDir }) {
-  const call = (chars) =>
-    commands.executeCommand("chainlesschain.internal.hostDomCommand", token, {
-      action: "streamProfile",
-      chars,
-    });
-  await call(10_000); // Warmup is deliberately excluded from the recorded cases.
+  fs.mkdirSync(artifactDir, { recursive: true });
+  const journal = fs.openSync(
+    path.join(artifactDir, "streaming-profile-progress.jsonl"),
+    "wx",
+    0o600,
+  );
+  const record = (value) =>
+    fs.writeSync(
+      journal,
+      JSON.stringify({ at: new Date().toISOString(), ...value }) + "\n",
+    );
+  const call = async (chars, warmup = false) => {
+    record({ chars, warmup, status: "started" });
+    try {
+      const result = await commands.executeCommand(
+        "chainlesschain.internal.hostDomCommand",
+        token,
+        {
+          action: "streamProfile",
+          chars,
+        },
+      );
+      verifyStreamingProfile(result);
+      record({
+        chars,
+        warmup,
+        status: "completed",
+        elapsedMs: result.elapsedMs,
+        samples: result.samples,
+      });
+      return result;
+    } catch (error) {
+      record({ chars, warmup, status: "failed", error: error.message });
+      throw error;
+    }
+  };
   const cases = [];
-  for (const chars of SIZES) {
-    const result = await call(chars);
-    verifyStreamingProfile(result);
-    cases.push(result);
+  try {
+    await call(10_000, true); // Warmup is excluded from the recorded cases.
+    for (const chars of SIZES) cases.push(await call(chars));
+  } finally {
+    fs.closeSync(journal);
   }
   const evidence = {
     schema: "cc-ide-host-streaming-profile/v2",

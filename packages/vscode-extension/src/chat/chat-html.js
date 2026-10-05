@@ -1329,9 +1329,15 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   });
 
   const questionForms = (${createQuestionForms.toString()})({ document, vscode });
+  const hostStreamProfiles = new Map();
   window.addEventListener("message", (e) => {
     const m = e.data || {};
     if (questionForms.receive(m)) return;
+    if (m.kind === "hostDomCancel" && CC_HOST_DOM_TOKEN &&
+      m.token === CC_HOST_DOM_TOKEN && /^[a-f0-9]{32}$/.test(String(m.requestId || ""))) {
+      hostStreamProfiles.get(m.requestId)?.abort();
+      return;
+    }
     if (
       m.kind === "hostDomCommand" &&
       CC_HOST_DOM_TOKEN &&
@@ -1348,10 +1354,17 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       try {
         const command = m.command || {};
         if (command.action === "streamProfile") {
+          if (hostStreamProfiles.size) throw new Error("Streaming profile already running");
+          const controller = new AbortController();
+          hostStreamProfiles.set(m.requestId, controller);
           measureStreamingProfile({ document, log, chars: command.chars,
             createRenderer: createStreamingTranscript, renderMarkdown: mdLite,
             decorate: decorateCodeBlocks, follow: followTranscript,
-          }).then(value => respond(true, value), error => respond(false, error.message));
+            signal: controller.signal,
+            onProgress: progress => vscode.postMessage({ type: "hostDomProgress",
+              token: CC_HOST_DOM_TOKEN, requestId: m.requestId, progress }),
+          }).then(value => respond(true, value), error => respond(false, error.message))
+            .finally(() => hostStreamProfiles.delete(m.requestId));
           return;
         }
         if (command.action === "snapshot") {

@@ -1,0 +1,94 @@
+{
+  "schema": "chainlesschain.ide-macos-host-failure-readback/v1",
+  "recordedAt": "2026-10-05T15:10:52.185Z",
+  "sourceCommit": "6196cd065dca2afd55ca51ed53c8d95a196be223",
+  "runId": 37327110713,
+  "jobId": 111825117269,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111825117269",
+  "artifact": {
+    "id": 11354211434,
+    "verifiedZipDigest": "sha256:1d5822e6dce13c14eae94078bd43a03818a2ee0063347c7e0fe399a3c49079be",
+    "zipArchived": false
+  },
+  "files": [
+    {
+      "name": "job-111825117269.log",
+      "bytes": 1005042,
+      "sha256": "313b03f0487d47f192c6898f1785e89762ac997b2d01a2bb7351e554627d1395"
+    },
+    {
+      "name": "macos-minimum.progress.jsonl",
+      "bytes": 2144,
+      "sha256": "05ec866c84d6921e5442f9f54a7e6d1247e5ac14f7823d63bab9a16f77051eda"
+    },
+    {
+      "name": "macos-minimum/journey-evidence.json",
+      "bytes": 7732,
+      "sha256": "fd7d35aef621728192aca2e0a43a20df3361d2748e42569b336e433a269b2b68"
+    },
+    {
+      "name": "macos-minimum/cdp-journey.jsonl",
+      "bytes": 18304,
+      "sha256": "9348860c05dd95769fd9a885776e66e6ac2e979124a5654d004d9da165fedef5"
+    },
+    {
+      "name": "macos-minimum/initial-cdp-result.failure.json",
+      "bytes": 510,
+      "sha256": "1be0c75f34b983deb04ed66123d506d75663c4ebab2c554b909e973a4cc9e1f3"
+    },
+    {
+      "name": "macos-minimum/multi-window-evidence.json",
+      "bytes": 403,
+      "sha256": "ce448fb20a04709c88693f2a485ef71788172e6de89a3c2057f2bad3ac7f0d8e"
+    },
+    {
+      "name": "macos-stable/journey-evidence.json",
+      "bytes": 10403,
+      "sha256": "9700f4187f87277f6e7e87a6d73544c5768ec4639ba265b9ffe0a84cc1ff2d03"
+    },
+    {
+      "name": "macos-stable/streaming-profile.json",
+      "bytes": 12524,
+      "sha256": "0574dca0d2cec7c7a285662ea133ebd7e5410eb4d254780fade0273199cabd6f"
+    }
+  ],
+  "observedFailure": "Minimum 1.85.2 reached streamProfile after real interactions, needs-input latency and reply-artifact checks; the host relay response deadline expired after 10 seconds.",
+  "unknowns": [
+    "No per-case progress was collected; the failing sample size and any visibility/background scheduling cause are not established."
+  ],
+  "stableProfile": {
+    "hostVersion": "1.140.0",
+    "performanceGate": false,
+    "cases": [
+      {
+        "chars": 10000,
+        "samples": 64,
+        "elapsedMs": 2196.0999999999767,
+        "frameP95Ms": 35.10000000000582,
+        "updateP95Ms": 5.299999999930151
+      },
+      {
+        "chars": 100000,
+        "samples": 64,
+        "elapsedMs": 2763.5,
+        "frameP95Ms": 34.60000000000582,
+        "updateP95Ms": 14
+      },
+      {
+        "chars": 200000,
+        "samples": 64,
+        "elapsedMs": 4335.899999999907,
+        "frameP95Ms": 104.39999999999418,
+        "updateP95Ms": 34.09999999997672
+      }
+    ]
+  },
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "performanceSloApproved": false,
+    "subsetOnly": true,
+    "screenshotsArchived": false,
+    "rawProtocolArchived": false
+  }
+}

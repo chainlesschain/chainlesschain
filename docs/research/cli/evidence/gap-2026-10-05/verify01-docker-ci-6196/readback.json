@@ -1,0 +1,64 @@
+{
+  "sourceCommit": "6196cd065dca2afd55ca51ed53c8d95a196be223",
+  "runId": 37326983206,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37326983206",
+  "status": "completed",
+  "conclusion": "success",
+  "recordedAt": "2026-10-05T15:05:03.321Z",
+  "archives": [
+    {
+      "artifactId": 11353760606,
+      "name": "verify01-review-pack-1-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:2a2354ef8204fbe7f48f7edb513eba81f74a9f1978ab270e1b1d959d0521f38b",
+      "file": "shard-1.zip",
+      "digest": "sha256:2a2354ef8204fbe7f48f7edb513eba81f74a9f1978ab270e1b1d959d0521f38b",
+      "bytes": 589254
+    },
+    {
+      "artifactId": 11353615203,
+      "name": "verify01-review-pack-4-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:c5a3ed25ed9e9ed48e1d4455d17127634190f4bd731d83d24fbb647f72e639f5",
+      "file": "shard-4.zip",
+      "digest": "sha256:c5a3ed25ed9e9ed48e1d4455d17127634190f4bd731d83d24fbb647f72e639f5",
+      "bytes": 577680
+    },
+    {
+      "artifactId": 11353402248,
+      "name": "verify01-review-pack-3-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:51411a1f02f138755fdeb19539bbab5bfb047dad90490a6921c522c0734a7466",
+      "file": "shard-3.zip",
+      "digest": "sha256:51411a1f02f138755fdeb19539bbab5bfb047dad90490a6921c522c0734a7466",
+      "bytes": 578517
+    },
+    {
+      "artifactId": 11353296414,
+      "name": "verify01-review-pack-6-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:32cfd7538eb9b998277d2839fb8c41804d86516f89d82577d161895f351958e2",
+      "file": "shard-6.zip",
+      "digest": "sha256:32cfd7538eb9b998277d2839fb8c41804d86516f89d82577d161895f351958e2",
+      "bytes": 575261
+    },
+    {
+      "artifactId": 11352548387,
+      "name": "verify01-review-pack-2-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:6f8c523d9020a311ac684853f6290ffd7a54afdb081914712ea428bc118b72b0",
+      "file": "shard-2.zip",
+      "digest": "sha256:6f8c523d9020a311ac684853f6290ffd7a54afdb081914712ea428bc118b72b0",
+      "bytes": 589101
+    },
+    {
+      "artifactId": 11352398464,
+      "name": "verify01-review-pack-5-6196cd065dca2afd55ca51ed53c8d95a196be223",
+      "upstreamDigest": "sha256:3f5e950810ae8c462bc55d17cd236b0b14511c4661ae63917aaf4e11a8cb5099",
+      "file": "shard-5.zip",
+      "digest": "sha256:3f5e950810ae8c462bc55d17cd236b0b14511c4661ae63917aaf4e11a8cb5099",
+      "bytes": 588912
+    }
+  ],
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "independentHumanReview": false,
+    "releaseEligible": false
+  }
+}

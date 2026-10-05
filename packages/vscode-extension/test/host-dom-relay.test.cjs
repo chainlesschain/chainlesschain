@@ -428,6 +428,9 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
     "(" + measureStreamingProfile.toString() + ")",
     {
       performance: { now: () => now },
+      setTimeout,
+      clearTimeout,
+      cancelAnimationFrame() {},
       requestAnimationFrame(callback) {
         now += 16;
         callback(now);
@@ -441,12 +444,15 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
   );
   const result = await measure({
     document: {
+      visibilityState: "visible",
+      addEventListener() {},
+      removeEventListener() {},
       createElement: () => element,
       getSelection: () => selection,
       createRange: () => ({ setStart() {}, setEnd() {} }),
       dispatchEvent: () => finishPending(),
     },
-    log: { appendChild() {} },
+    log: { appendChild() {}, getClientRects: () => [1] },
     chars: 10_000,
     createRenderer({ renderMarkdown, decorate, follow }) {
       let formatted = false;
@@ -495,6 +501,215 @@ test("streaming stage timings exclude stream frames and retain DOM/selection ove
   assert.equal(result.parseCalls, 1);
   assert.equal(result.deferredWhileSelected, true);
   assert.equal(result.finalizationIdempotent, true);
+});
+
+function suspendedProfileFixture() {
+  const { measureStreamingProfile } = require("../src/chat/streaming-profile");
+  let now = 0,
+    nextId = 0;
+  const frames = new Map(),
+    timers = new Map(),
+    progress = [];
+  const state = {
+    updates: 0,
+    appended: 0,
+    removed: 0,
+    disposed: 0,
+    restored: false,
+  };
+  const originalRange = { original: true };
+  const selection = {
+    isCollapsed: true,
+    rangeCount: 1,
+    getRangeAt: () => ({ cloneRange: () => originalRange }),
+    addRange(range) {
+      state.restored = range === originalRange;
+      this.isCollapsed = false;
+    },
+    removeAllRanges() {
+      this.isCollapsed = true;
+    },
+    toString: () => "selected",
+  };
+  const doc = Object.assign(new EventTarget(), {
+    visibilityState: "hidden",
+    createElement: () => ({
+      firstChild: {},
+      remove() {
+        state.removed++;
+      },
+    }),
+    getSelection: () => selection,
+    createRange: () => ({ setStart() {}, setEnd() {} }),
+  });
+  const log = {
+    scrollTop: 42,
+    getClientRects: () => [1],
+    appendChild() {
+      state.appended++;
+    },
+  };
+  const controller = new AbortController();
+  const measure = vm.runInNewContext(
+    "(" + measureStreamingProfile.toString() + ")",
+    {
+      performance: { now: () => now },
+      setTimeout(fn, delay) {
+        const id = ++nextId;
+        timers.set(id, { fn, delay });
+        return id;
+      },
+      clearTimeout(id) {
+        timers.delete(id);
+      },
+      requestAnimationFrame(fn) {
+        const id = ++nextId;
+        frames.set(id, fn);
+        return id;
+      },
+      cancelAnimationFrame(id) {
+        frames.delete(id);
+      },
+      MutationObserver: class {
+        observe() {}
+        disconnect() {}
+      },
+    },
+  );
+  const promise = measure({
+    document: doc,
+    log,
+    chars: 10_000,
+    signal: controller.signal,
+    onProgress: (value) => progress.push(value),
+    createRenderer: () => ({
+      update() {
+        state.updates++;
+        log.scrollTop = 999;
+      },
+      dispose() {
+        state.disposed++;
+      },
+    }),
+  });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+  return {
+    promise,
+    doc,
+    log,
+    controller,
+    state,
+    frames,
+    timers,
+    progress,
+    async frame(elapsedMs = 16) {
+      const [id, fn] = frames.entries().next().value;
+      frames.delete(id);
+      now += elapsedMs;
+      fn(now);
+      await flush();
+    },
+    async timeout() {
+      const [id, timer] = timers.entries().next().value;
+      timers.delete(id);
+      now += timer.delay;
+      timer.fn();
+      await flush();
+    },
+  };
+}
+
+test("stream profile waits for visible real frames and abort removes queued work and restores state", async () => {
+  const f = suspendedProfileFixture();
+  await f.frame();
+  assert.equal(f.state.appended, 0);
+  f.doc.visibilityState = "visible";
+  await f.frame();
+  assert.equal(f.state.updates, 0); // Readiness frame is not a measured sample.
+  await f.frame();
+  assert.equal(f.state.updates, 1);
+  const lateFrame = [...f.frames.values()][0];
+  const rejected = assert.rejects(f.promise, /cancelled/);
+  f.controller.abort();
+  await rejected;
+  lateFrame(100_000);
+  await Promise.resolve();
+  assert.equal(f.state.updates, 1);
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
+  assert.equal(f.state.removed, 1);
+  assert.equal(f.state.disposed, 1);
+  assert.equal(f.state.restored, true);
+  assert.equal(f.log.scrollTop, 42);
+  assert.equal(f.progress.at(-1).stage, "failed");
+  assert.equal(f.progress.at(-1).completedFrames, 1);
+});
+
+test("stream profile fails closed when visibility is lost during sampling", async () => {
+  const f = suspendedProfileFixture();
+  f.doc.visibilityState = "visible";
+  await f.frame();
+  await f.frame();
+  const rejected = assert.rejects(f.promise, /became hidden/);
+  f.doc.visibilityState = "hidden";
+  f.doc.dispatchEvent(new Event("visibilitychange"));
+  await rejected;
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
+  assert.equal(f.state.removed, 1);
+  assert.equal(f.log.scrollTop, 42);
+});
+
+test("stream profile bounds a suspended renderer before modifying the transcript", async () => {
+  const f = suspendedProfileFixture();
+  const rejected = assert.rejects(
+    f.promise,
+    /timed out waiting for a real animation frame/,
+  );
+  await f.timeout();
+  await rejected;
+  assert.equal(f.state.appended, 0);
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
+});
+
+test("stream profile frame deadline cleans up after sampling starts", async () => {
+  const f = suspendedProfileFixture();
+  f.doc.visibilityState = "visible";
+  await f.frame();
+  await f.frame();
+  const rejected = assert.rejects(
+    f.promise,
+    /timed out waiting for a real animation frame/,
+  );
+  await f.timeout();
+  await rejected;
+  assert.equal(f.state.updates, 1);
+  assert.equal(f.state.removed, 1);
+  assert.equal(f.state.restored, true);
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
+});
+
+test("a late animation callback cannot sample after the deadline ahead of an overdue timer", async () => {
+  const f = suspendedProfileFixture();
+  f.doc.visibilityState = "visible";
+  await f.frame();
+  await f.frame();
+  const rejected = assert.rejects(
+    f.promise,
+    /exceeded its bounded frame deadline/,
+  );
+  await f.frame(75_000);
+  await rejected;
+  assert.equal(f.state.updates, 1);
+  assert.equal(f.state.removed, 1);
+  assert.equal(f.state.restored, true);
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.timers.size, 0);
 });
 
 test("chat HTML keeps the relay inert without a valid launch token", () => {
@@ -630,6 +845,84 @@ test("image DOM actions require the exact token and request identity before disp
   request(TOKEN, id, { action: "removeAttachment", index: 0 });
   assert.equal(removals, 1);
   assert.equal(responses.at(-1).ok, true);
+});
+
+test("generated stream relay authenticates cancellation and prevents overlapping measurements", async () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+    hostDomToken: TOKEN,
+  });
+  const start = html.indexOf("  const hostStreamProfiles = new Map();");
+  const end = html.indexOf(
+    "    // The Extension Host may have restarted",
+    start,
+  );
+  assert.ok(start >= 0 && end > start);
+  const responses = [];
+  let receive,
+    signal,
+    calls = 0;
+  vm.runInNewContext(html.slice(start, end) + "});", {
+    window: {
+      addEventListener: (_name, callback) => {
+        receive = callback;
+      },
+    },
+    questionForms: { receive: () => false },
+    CC_HOST_DOM_TOKEN: TOKEN,
+    AbortController,
+    document: {},
+    log: {},
+    createStreamingTranscript() {},
+    mdLite() {},
+    decorateCodeBlocks() {},
+    followTranscript() {},
+    vscode: { postMessage: (message) => responses.push(message) },
+    measureStreamingProfile(options) {
+      calls++;
+      signal = options.signal;
+      options.onProgress({ stage: "waiting-visible" });
+      return new Promise((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(new Error("cancelled")), {
+          once: true,
+        }),
+      );
+    },
+  });
+  const id = "ab".repeat(16),
+    otherId = "cd".repeat(16);
+  const request = (kind, token = TOKEN, requestId = id) =>
+    receive({
+      data: {
+        kind,
+        token,
+        requestId,
+        command: { action: "streamProfile", chars: 10_000 },
+      },
+    });
+  request("hostDomCommand");
+  assert.equal(calls, 1);
+  assert.equal(responses[0].type, "hostDomProgress");
+  request("hostDomCommand", TOKEN, otherId);
+  assert.equal(calls, 1);
+  assert.match(responses.at(-1).error, /already running/);
+  request("hostDomCancel", "ef".repeat(32));
+  request("hostDomCancel", TOKEN, otherId);
+  assert.equal(signal.aborted, false);
+  request("hostDomCancel");
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(signal.aborted, true);
+  assert.match(responses.at(-1).error, /cancelled/);
+  request("hostDomCommand", TOKEN, otherId);
+  assert.equal(calls, 2);
+  request("hostDomCancel", TOKEN, otherId);
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 });
 
 test("finishing an image read immediately replaces the stale saved indication with saving", () => {
@@ -1361,6 +1654,160 @@ test("ChatViewProvider reveals a suspended relay view once and reports readiness
     /chat webview DOM is not ready/u,
   );
   assert.equal(revealCount, 1);
+});
+
+test("stream profile relay has a fixed bounded deadline, authenticated progress and cancellation", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const logs = [],
+    posted = [];
+  const provider = new ChatViewProvider(
+    { l10n: { t: (value) => value } },
+    {
+      hostDomToken: TOKEN,
+      log: (value) => logs.push(value),
+    },
+  );
+  provider._webviewReady = true;
+  provider._webviewProtocolConfirmed = true;
+  let reveals = 0;
+  provider.view = {
+    show(preserveFocus) {
+      assert.equal(preserveFocus, false);
+      reveals++;
+    },
+    webview: {
+      postMessage(message) {
+        posted.push(message);
+        return Promise.resolve(true);
+      },
+    },
+  };
+  const promise = provider.runHostDomCommand({
+    action: "streamProfile",
+    chars: 200_000,
+  });
+  const request = posted[0];
+  const message = {
+    type: "hostDomProgress",
+    token: TOKEN,
+    requestId: request.requestId,
+    progress: {
+      chars: 200_000,
+      stage: "sampling",
+      completedFrames: 32,
+      visibilityState: "visible",
+      visible: true,
+      elapsedMs: 25_000,
+    },
+  };
+  assert.equal(
+    provider._acceptHostDomResult({ ...message, token: "cd".repeat(32) }),
+    false,
+  );
+  assert.equal(
+    provider._acceptHostDomResult({
+      ...message,
+      progress: { ...message.progress, completedFrames: 100 },
+    }),
+    false,
+  );
+  assert.equal(logs.length, 0);
+  assert.equal(provider._acceptHostDomResult(message), true);
+  assert.equal(logs.length, 1);
+  t.mock.timers.tick(10_000);
+  assert.equal(provider._hostDomPending.size, 1);
+  t.mock.timers.tick(79_999);
+  assert.equal(provider._hostDomPending.size, 1);
+  const rejected = assert.rejects(
+    promise,
+    /streamProfile.*completedFrames.*32/,
+  );
+  t.mock.timers.tick(1);
+  await rejected;
+  assert.equal(reveals, 1);
+  assert.equal(provider._hostDomPending.size, 0);
+  assert.deepEqual(posted[1], {
+    kind: "hostDomCancel",
+    token: TOKEN,
+    requestId: request.requestId,
+  });
+  assert.equal(
+    provider._acceptHostDomResult({
+      ...message,
+      type: "hostDomResult",
+      ok: true,
+    }),
+    false,
+  );
+  const ordinary = provider.runHostDomCommand({ action: "snapshot" });
+  const ordinaryRejected = assert.rejects(ordinary, /timed out: snapshot/);
+  t.mock.timers.tick(10_000);
+  await ordinaryRejected;
+  assert.equal(posted.filter((m) => m.kind === "hostDomCancel").length, 1);
+});
+
+test("disposing a diagnostic relay sends profile cancellation before rejecting", async () => {
+  const provider = new ChatViewProvider(
+    { l10n: { t: (v) => v } },
+    { hostDomToken: TOKEN },
+  );
+  provider._webviewReady = provider._webviewProtocolConfirmed = true;
+  const messages = [];
+  provider.view = {
+    show() {},
+    webview: {
+      postMessage(m) {
+        messages.push(m);
+        return true;
+      },
+    },
+  };
+  const promise = provider.runHostDomCommand({
+    action: "streamProfile",
+    chars: 10_000,
+  });
+  const rejected = assert.rejects(promise, /disposed/);
+  provider._rejectHostDomPending("disposed");
+  await rejected;
+  assert.equal(messages[1].kind, "hostDomCancel");
+  assert.equal(provider._hostDomPending.size, 0);
+});
+
+test("stream profile driver preserves warmup and failed-case diagnostics without starting another case", async () => {
+  const {
+    runStreamingProfiles,
+  } = require("./extension-host/driver/streaming-profile.cjs");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-stream-progress-"));
+  temporaryRoots.push(root);
+  let calls = 0;
+  await assert.rejects(
+    runStreamingProfiles({
+      token: TOKEN,
+      artifactDir: root,
+      commands: {
+        async executeCommand() {
+          calls++;
+          throw new Error("frame deadline; completedFrames=32");
+        },
+      },
+    }),
+    /frame deadline/,
+  );
+  const rows = fs
+    .readFileSync(path.join(root, "streaming-profile-progress.jsonl"), "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.deepEqual(
+    rows.map(({ chars, warmup, status }) => ({ chars, warmup, status })),
+    [
+      { chars: 10_000, warmup: true, status: "started" },
+      { chars: 10_000, warmup: true, status: "failed" },
+    ],
+  );
+  assert.match(rows[1].error, /completedFrames=32/);
+  assert.equal(calls, 1);
+  assert.equal(fs.existsSync(path.join(root, "streaming-profile.json")), false);
 });
 
 test("token-gated fresh Webviews do not self-reload during cold startup", () => {
