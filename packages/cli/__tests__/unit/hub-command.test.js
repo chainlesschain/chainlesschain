@@ -45,6 +45,10 @@ describe("cc hub command surface", () => {
         "collect-qzone", // module 101 (B1) — QQ空间 feed collection via qzone-collect.js
         "collect-wechat", // module 101 — wechat-collect.js bundle (derived-key decrypt + parse)
         "destroy",
+        "delete-entity",
+        "derivation-state",
+        "derivation-status",
+        "retry-derivations",
         "douyin-adb-sync", // Phase 2a (Douyin C 路径) — PC + ADB <uid>_im.db
         "douyin-watch-sync", // Douyin 观看历史 C 路径 — ADB video_record.db → history (BROWSE) events
         "event-detail", // §A6 citation chip — opens raw event for "出处" link
@@ -403,6 +407,105 @@ describe("cc hub command surface", () => {
       "--json",
     ]) {
       expect(optNames).toContain(o);
+    }
+  });
+});
+
+describe("cc hub derivation commands", () => {
+  it("prints scoped status and validates retry limits before loading the hub", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    const getDerivationStatus = vi.fn(() => ({ pending: 3 }));
+    const _getHub = vi.fn(async () => ({ registry: { getDerivationStatus } }));
+    try {
+      expect(
+        await _internal.cmdDerivation("status", null, {
+          adapter: "mail",
+          scope: "a",
+          _getHub,
+          json: true,
+        }),
+      ).toEqual({ pending: 3 });
+      expect(getDerivationStatus).toHaveBeenCalledWith({
+        adapter: "mail",
+        scope: "a",
+      });
+      expect(JSON.parse(log.mock.calls[0][0])).toEqual({ pending: 3 });
+      _getHub.mockClear();
+      await _internal.cmdDerivation("retry", null, {
+        limit: "2oops",
+        _getHub,
+        json: true,
+      });
+      expect(_getHub).not.toHaveBeenCalled();
+      expect(exit).toHaveBeenCalledWith(1);
+    } finally {
+      log.mockRestore();
+      exit.mockRestore();
+    }
+  });
+
+  it("delivers bounded retry and host-owned lineage requests", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const retryDerivations = vi.fn(async () => ({ failed: 1, remaining: 1 }));
+    const getState = vi.fn(() => ({ revision: 2 }));
+    const _getHub = async () => ({
+      registry: { consumerId: "host", retryDerivations },
+      vault: { getDerivationStore: () => ({ getState }) },
+    });
+    try {
+      expect(
+        await _internal.cmdDerivation("retry", null, { limit: "5", _getHub }),
+      ).toEqual({ failed: 1, remaining: 1 });
+      expect(retryDerivations).toHaveBeenCalledWith({
+        adapter: undefined,
+        scope: undefined,
+        limit: 5,
+      });
+      expect(
+        await _internal.cmdDerivation(
+          "state",
+          { entityType: "event", entityId: "e" },
+          { _getHub },
+        ),
+      ).toEqual({ revision: 2 });
+      expect(getState).toHaveBeenCalledWith("event", "e", {
+        consumerId: "host",
+      });
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("requires confirmation before opening the vault and reports pending removal independently", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    const deleted = { entityType: "event", entityId: "e", deleted: true };
+    const deleteEntity = vi.fn(() => deleted);
+    const retryDerivations = vi.fn(async () => ({ failed: 1 }));
+    const _getHub = vi.fn(async () => ({
+      registry: { retryDerivations },
+      vault: { deleteEntity },
+    }));
+    try {
+      await _internal.cmdDerivation(
+        "delete",
+        { entityType: "event", entityId: "e" },
+        { _getHub, json: true },
+      );
+      expect(_getHub).not.toHaveBeenCalled();
+      expect(deleteEntity).not.toHaveBeenCalled();
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(
+        await _internal.cmdDerivation(
+          "delete",
+          { entityType: "event", entityId: "e" },
+          { _getHub, confirm: true },
+        ),
+      ).toEqual({ deleted, derivations: { failed: 1 } });
+    } finally {
+      log.mockRestore();
+      exit.mockRestore();
     }
   });
 });

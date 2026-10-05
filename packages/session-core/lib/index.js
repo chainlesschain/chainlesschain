@@ -216,7 +216,11 @@ const {
   createEvolvableArtifactReceipt,
 } = require("./evolvable-artifact.js");
 
+const businessObjectContract = require("./business-object-contract.js");
+
 module.exports = {
+  // Pure business object/action contracts; hosts own authorization and execution.
+  ...businessObjectContract,
   // SessionHandle
   SessionHandle,
   SESSION_STATUS: STATUS,

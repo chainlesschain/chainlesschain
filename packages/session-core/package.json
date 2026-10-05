@@ -28,6 +28,7 @@
     "./envelope-sse": "./lib/envelope-sse.js",
     "./quality-gate": "./lib/quality-gate.js",
     "./runtime-claims": "./lib/runtime-claims.js",
+    "./business-object-contract": "./lib/business-object-contract.js",
     "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
     "./evolution-run": "./lib/evolution-run.js",
     "./evolvable-artifact": "./lib/evolvable-artifact.js",

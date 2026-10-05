@@ -382,3 +382,312 @@ describe("CcRagSink.write", () => {
     expect(r).toEqual({ indexed: 0, skipped: 0, errors: [] });
   });
 });
+
+describe("CcRagSink.remove", () => {
+  it("removes real BM25 terms and allows unchanged same-ID reimport", async () => {
+    const bm25 = new BM25Search({ language: "en" });
+    const remove = vi.spyOn(bm25, "removeDocument");
+    const sink = new CcRagSink({ bm25 });
+    await sink.write([doc("a", "obsolete"), doc("b", "retained")]);
+    remove.mockClear();
+
+    expect(await sink.remove(["a"])).toEqual({
+      removed: 1,
+      skipped: 0,
+      errors: [],
+    });
+    expect(bm25.totalDocs).toBe(1);
+    expect(bm25.df.has("obsolete")).toBe(false);
+    expect(bm25.search("obsolete")).toEqual([]);
+    expect(bm25.search("retained")[0].id).toBe("b");
+    expect(await sink.remove(["a"])).toEqual({
+      removed: 0,
+      skipped: 1,
+      errors: [],
+    });
+    expect(remove).toHaveBeenCalledTimes(1);
+
+    expect(await sink.write([doc("a", "obsolete")])).toEqual({
+      indexed: 1,
+      skipped: 0,
+      errors: [],
+    });
+    expect(bm25.search("obsolete")[0].id).toBe("a");
+    expect((await sink.remove(["a"])).removed).toBe(1);
+  });
+
+  it("removes unknown IDs from persisted destinations and deduplicates retries", async () => {
+    const bm25 = makeFakeBm25();
+    bm25.addDocument({ id: "persisted", content: "old" });
+    const vectorDocs = new Map([["persisted", "old"]]);
+    const remove = vi.fn(async (ids) => {
+      for (const id of ids) vectorDocs.delete(id);
+    });
+    const sink = new CcRagSink({
+      bm25,
+      vector: { index: vi.fn(), remove },
+    });
+    expect(await sink.remove(["persisted", "absent"])).toEqual({
+      removed: 2,
+      skipped: 0,
+      errors: [],
+    });
+    expect(bm25.docs).toEqual([]);
+    expect(vectorDocs.size).toBe(0);
+    expect(remove).toHaveBeenCalledExactlyOnceWith(["persisted", "absent"]);
+    expect(await sink.remove(["persisted", "absent"])).toEqual({
+      removed: 0,
+      skipped: 2,
+      errors: [],
+    });
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips malformed and duplicate IDs and accepts empty input", async () => {
+    const bm25 = makeFakeBm25();
+    const remove = vi.spyOn(bm25, "removeDocument");
+    const sink = new CcRagSink({ bm25 });
+    expect(await sink.remove([null, {}, 42, "", " ", "a", "a"])).toEqual({
+      removed: 1,
+      skipped: 6,
+      errors: [],
+    });
+    expect(remove).toHaveBeenCalledExactlyOnceWith("a");
+    for (const empty of [[], undefined, null, "a"]) {
+      expect(await sink.remove(empty)).toEqual({
+        removed: 0,
+        skipped: 0,
+        errors: [],
+      });
+    }
+  });
+
+  it("reports unsupported BM25 deletion while independently removing vectors", async () => {
+    const addDocument = vi.fn();
+    const remove = vi.fn(async () => {});
+    const sink = new CcRagSink({
+      bm25: { addDocument },
+      vector: { index: vi.fn(), remove },
+    });
+    await sink.write([doc("a", "body")]);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const result = await sink.remove(["a"]);
+      expect(result.removed).toBe(0);
+      expect(result.skipped).toBe(0);
+      expect(result.errors).toEqual([
+        {
+          id: "a",
+          phase: "bm25",
+          error: expect.stringContaining("deletion requires removeDocument"),
+        },
+      ]);
+    }
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(addDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports unsupported vector deletion on every retry without repeating BM25 removal", async () => {
+    const bm25 = makeFakeBm25();
+    const remove = vi.spyOn(bm25, "removeDocument");
+    const sink = new CcRagSink({ bm25, vector: { index: vi.fn() } });
+    await sink.write([doc("a", "body")]);
+    remove.mockClear();
+    const first = await sink.remove(["a"]);
+    const retry = await sink.remove(["a"]);
+    expect(first.removed).toBe(1);
+    expect(retry.removed).toBe(0);
+    expect(retry.skipped).toBe(0);
+    expect(first.errors).toEqual(retry.errors);
+    expect(retry.errors).toEqual([
+      {
+        ids: ["a"],
+        phase: "vector",
+        error: expect.stringContaining("deletion requires remove(ids)"),
+      },
+    ]);
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries partial BM25 removal independently from successful vector removal", async () => {
+    const bm25 = makeFakeBm25();
+    const vectorRemove = vi.fn(async () => {});
+    const sink = new CcRagSink({
+      bm25,
+      vector: { index: vi.fn(), remove: vectorRemove },
+    });
+    await sink.write([doc("a", "alpha"), doc("b", "beta")]);
+    const originalRemove = bm25.removeDocument;
+    bm25.removeDocument = vi.fn((id) => {
+      originalRemove(id);
+      if (id === "a" && bm25.removeDocument.mock.calls.length === 1) {
+        throw new Error("failed after mutation");
+      }
+    });
+    const first = await sink.remove(["a", "b"]);
+    expect(first.removed).toBe(1);
+    expect(first.errors).toEqual([
+      { id: "a", phase: "bm25", error: "failed after mutation" },
+    ]);
+    expect(bm25.docs).toEqual([]);
+    expect(await sink.remove(["a", "b"])).toEqual({
+      removed: 1,
+      skipped: 1,
+      errors: [],
+    });
+    expect(bm25.removeDocument.mock.calls).toEqual([["a"], ["b"], ["a"]]);
+    expect(vectorRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a partially applied vector batch without repeating BM25 removal", async () => {
+    const bm25 = makeFakeBm25();
+    const bm25Remove = vi.spyOn(bm25, "removeDocument");
+    const vectorDocs = new Map();
+    const remove = vi.fn(async (ids) => {
+      vectorDocs.delete(ids[0]);
+      if (remove.mock.calls.length === 1) throw new Error("partial batch");
+      for (const id of ids) vectorDocs.delete(id);
+    });
+    const sink = new CcRagSink({
+      bm25,
+      vector: {
+        index: async (batch) => {
+          for (const entry of batch) vectorDocs.set(entry.id, entry.text);
+        },
+        remove,
+      },
+    });
+    await sink.write([doc("a", "alpha"), doc("b", "beta")]);
+    bm25Remove.mockClear();
+    const first = await sink.remove(["a", "b"]);
+    expect(first.removed).toBe(2);
+    expect(first.errors).toEqual([
+      { ids: ["a", "b"], phase: "vector", error: "partial batch" },
+    ]);
+    expect(vectorDocs.has("b")).toBe(true);
+    expect(await sink.remove(["a", "b"])).toEqual({
+      removed: 0,
+      skipped: 0,
+      errors: [],
+    });
+    expect(vectorDocs.size).toBe(0);
+    expect(bm25Remove).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(2);
+  });
+
+  it("reindexes unchanged content after uncertain deletion outcomes", async () => {
+    const bm25 = makeFakeBm25();
+    const vectorDocs = new Map();
+    const index = vi.fn(async (batch) => {
+      for (const entry of batch) vectorDocs.set(entry.id, entry.text);
+    });
+    const sink = new CcRagSink({
+      bm25,
+      vector: {
+        index,
+        remove: async (ids) => {
+          for (const id of ids) vectorDocs.delete(id);
+          throw new Error("unknown vector deletion outcome");
+        },
+      },
+    });
+    await sink.write([doc("a", "body")]);
+    const originalRemove = bm25.removeDocument;
+    bm25.removeDocument = vi
+      .fn()
+      .mockImplementationOnce((id) => {
+        originalRemove(id);
+        throw new Error("unknown BM25 deletion outcome");
+      })
+      .mockImplementation(originalRemove);
+    expect((await sink.remove(["a"])).errors).toHaveLength(2);
+    expect(bm25.docs).toEqual([]);
+    expect(vectorDocs.size).toBe(0);
+    expect(await sink.write([doc("a", "body")])).toEqual({
+      indexed: 1,
+      skipped: 0,
+      errors: [],
+    });
+    expect(bm25.docs).toHaveLength(1);
+    expect(vectorDocs.get("a")).toBe("body");
+    expect(index).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates deletion acknowledgements before a reimport with uncertain outcome", async () => {
+    const bm25 = makeFakeBm25();
+    const vectorRemove = vi.fn(async () => {});
+    const index = vi.fn(async () => {});
+    const sink = new CcRagSink({
+      bm25,
+      vector: { index, remove: vectorRemove },
+    });
+    await sink.remove(["a"]);
+    bm25.addDocument = vi.fn(() => {
+      throw new Error("uncertain insert");
+    });
+    index.mockRejectedValueOnce(new Error("uncertain upsert"));
+    expect((await sink.write([doc("a", "body")])).errors).toHaveLength(2);
+    expect(await sink.remove(["a"])).toEqual({
+      removed: 1,
+      skipped: 0,
+      errors: [],
+    });
+    expect(vectorRemove).toHaveBeenCalledTimes(2);
+  });
+
+  it("serializes write, delete, and reimport until vector operations complete", async () => {
+    let releaseWrite;
+    let notifyWriteStarted;
+    const writeStarted = new Promise((resolve) => {
+      notifyWriteStarted = resolve;
+    });
+    const writeBlocked = new Promise((resolve) => {
+      releaseWrite = resolve;
+    });
+    let releaseDelete;
+    let notifyDeleteStarted;
+    const deleteStarted = new Promise((resolve) => {
+      notifyDeleteStarted = resolve;
+    });
+    const deleteBlocked = new Promise((resolve) => {
+      releaseDelete = resolve;
+    });
+    const vectorDocs = new Map();
+    const calls = [];
+    const bm25 = makeFakeBm25();
+    const sink = new CcRagSink({
+      bm25,
+      vector: {
+        index: async (batch) => {
+          calls.push(`index:${batch[0].text}`);
+          if (batch[0].text === "old") {
+            notifyWriteStarted();
+            await writeBlocked;
+          }
+          for (const entry of batch) vectorDocs.set(entry.id, entry.text);
+        },
+        remove: async (ids) => {
+          calls.push("remove");
+          notifyDeleteStarted();
+          await deleteBlocked;
+          for (const id of ids) vectorDocs.delete(id);
+        },
+      },
+    });
+    const write = sink.write([doc("a", "old")]);
+    await writeStarted;
+    const deletion = sink.remove(["a"]);
+    const reimport = sink.write([doc("a", "new")]);
+    expect(calls).toEqual(["index:old"]);
+    releaseWrite();
+    await deleteStarted;
+    expect(calls).toEqual(["index:old", "remove"]);
+    expect(bm25.docs).toEqual([]);
+    releaseDelete();
+    const results = await Promise.all([write, deletion, reimport]);
+    expect(results.every((result) => result.errors.length === 0)).toBe(true);
+    expect(calls).toEqual(["index:old", "remove", "index:new"]);
+    expect(bm25.docs).toHaveLength(1);
+    expect(bm25.docs[0].content).toBe("new");
+    expect(vectorDocs.get("a")).toBe("new");
+  });
+});

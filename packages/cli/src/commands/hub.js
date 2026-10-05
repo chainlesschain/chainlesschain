@@ -3446,6 +3446,58 @@ function _defaultKnownVendors() {
 
 // ─── Commander wire-up ───────────────────────────────────────────────
 
+async function cmdDerivation(operation, reference, options = {}) {
+  try {
+    if (
+      reference &&
+      (!["event", "person", "place", "item", "topic"].includes(
+        reference.entityType,
+      ) ||
+        typeof reference.entityId !== "string" ||
+        !reference.entityId.trim() ||
+        reference.entityId.length > 1024)
+    ) {
+      throw new Error("A valid entity type and ID are required");
+    }
+    if (operation === "delete" && options.confirm !== true) {
+      throw new Error(
+        "Normalized entity deletion requires --confirm; raw archive is retained",
+      );
+    }
+    const limit = options.limit === undefined ? 100 : Number(options.limit);
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+      throw new Error("Derivation limit must be between 1 and 1000");
+    }
+    const hub = await (options._getHub || getHub)();
+    const filters = { adapter: options.adapter, scope: options.scope };
+    let result;
+    if (operation === "retry") {
+      result = await hub.registry.retryDerivations({ ...filters, limit });
+    } else if (operation === "state") {
+      result = hub.vault
+        .getDerivationStore()
+        .getState(reference.entityType, reference.entityId, {
+          consumerId: hub.registry.consumerId,
+        });
+    } else if (operation === "delete") {
+      const deleted = hub.vault.deleteEntity(
+        reference.entityType,
+        reference.entityId,
+      );
+      result = {
+        deleted,
+        derivations: await hub.registry.retryDerivations({ limit: 1000 }),
+      };
+    } else {
+      result = hub.registry.getDerivationStatus(filters);
+    }
+    printJson(result);
+    return result;
+  } catch (error) {
+    fail(null, error, options.json);
+  }
+}
+
 export function registerHubCommand(program, dependencies = {}) {
   const factory = readEvolutionCompositionFactory(dependencies);
   const invocationOptions = (options) => {
@@ -3570,6 +3622,50 @@ export function registerHubCommand(program, dependencies = {}) {
     .description("List registered adapters")
     .option("--json", "Output JSON")
     .action(cmdListAdapters);
+
+  for (const [name, operation, description] of [
+    [
+      "derivation-status",
+      "status",
+      "Inspect KG/RAG delivery status for this vault",
+    ],
+    [
+      "retry-derivations",
+      "retry",
+      "Retry a bounded page of KG/RAG work from current vault state",
+    ],
+  ]) {
+    const command = hub
+      .command(name)
+      .description(description)
+      .option("--adapter <name>", "Filter by source adapter")
+      .option("--scope <scope>", "Filter by source scope")
+      .option("--json", "Output JSON");
+    if (operation === "retry")
+      command.option("--limit <n>", "Maximum deliveries (1-1000)", "100");
+    command.action((options) => cmdDerivation(operation, null, options));
+  }
+
+  hub
+    .command("derivation-state <entityType> <entityId>")
+    .description(
+      "Inspect an entity's source revision and KG/RAG receipts without its payload",
+    )
+    .option("--json", "Output JSON")
+    .action((entityType, entityId, options) =>
+      cmdDerivation("state", { entityType, entityId }, options),
+    );
+
+  hub
+    .command("delete-entity <entityType> <entityId>")
+    .description(
+      "Delete a normalized entity and queue index removal; raw archive remains and reimport may restore it",
+    )
+    .option("--confirm", "Confirm deletion of this normalized entity")
+    .option("--json", "Output JSON")
+    .action((entityType, entityId, options) =>
+      cmdDerivation("delete", { entityType, entityId }, options),
+    );
 
   hub
     .command("readiness")
@@ -4318,6 +4414,7 @@ export function registerHubCommand(program, dependencies = {}) {
 // `_wizard` / `_factoryDeps` / `_knownVendors` injected, bypassing the
 // real `getHub()` call. The commander wiring above is the runtime path.
 export const _internal = {
+  cmdDerivation,
   cmdAsk,
   cmdRepl,
   cmdRetrieveContext,

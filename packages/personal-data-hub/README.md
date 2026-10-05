@@ -342,6 +342,76 @@ v.rotateKey(generateKeyHex());
 v.close();
 ```
 
+## Durable KG/RAG projections (unreleased, 2026-10-06)
+
+The encrypted vault now records each normalized entity's desired projection
+revision in the same transaction as its insert, update, or deletion. KG and RAG
+deliveries acknowledge revisions separately. A collected source checkpoint can
+therefore advance while an index delivery fails; inspect `derivationStatus` on
+sync reports or the commands below to distinguish the two outcomes. Sink-returned
+errors and thrown failures remain visible and retryable.
+
+```bash
+cc hub derivation-status --json
+cc hub derivation-status --adapter local-files --scope "account-scope" --json
+cc hub retry-derivations --limit 100 --json
+cc hub derivation-state event <entity-id> --json
+cc hub delete-entity event <entity-id> --confirm --json
+```
+
+`retry-derivations` accepts `--adapter`, `--scope`, and a limit from 1 to 1000
+(default 100). It reads the latest canonical entities and deletion tombstones;
+it does not replay archived source payloads. `derivation-state` returns source
+identity, revision, operation, and this runtime's delivery receipts without the
+entity payload. Entity types are `event`, `person`, `place`, `item`, and `topic`.
+
+Indexed RAG documents include `metadata.derivation` with entity type, ID, desired
+projection revision, and transform version. A dependency change can also advance
+that revision; it is not an immutable raw-source version or a complete answer
+citation history. Existing sinks use bare IDs, so collisions between entity types
+(including retained tombstones) fail with `DERIVATION_ID_CONFLICT` before any
+sink mutation. Such records need identity repair, not repeated retries.
+
+`delete-entity` deletes the **normalized entity**, atomically records its
+tombstone, and attempts a bounded index drain. Its result reports the canonical
+deletion separately from index-delivery failures. The raw archive remains;
+explicit later reimport or rederivation can restore the entity. This command
+does not implement privacy erasure or deletion of the upstream platform record.
+Deleting a KG entity cascades its relationships; dependency revisions cause
+referring entities to be reconsidered when a target is deleted or restored.
+
+Both CLI and desktop currently use an in-memory BM25 index and the in-memory
+KG. Each registry creates a new consumer generation and rebuilds from durable
+desired state at initialization, including previously acknowledged entities.
+Startup drains at most 100 pages of 1000 deliveries; residual work is visible
+through status and retry. KG replay uses stable relationship IDs, replaces
+entity properties, and reconciles its owned outgoing relationships while
+preserving unrelated manual relationships. RAG updates replace old text, and
+configured destinations acknowledge updates and removals independently.
+
+The optional vector bridge requires idempotent `index(docs)` and `remove(ids)`
+adapters. **Neither production host currently wires a vector destination.**
+An interrupted `running` delivery for the same consumer has an unknown outcome
+and stays blocked; elapsed time does not authorize replay. New consumer
+generations apply to newly created ephemeral indexes, not automatic recovery of
+an unknown external side effect. Old generation receipts are retained in the
+encrypted vault; bounded retention and compaction remain follow-up work.
+
+The same operations are available as WS topics
+`personal-data-hub.derivation-status`, `.derivation-state`,
+`.retry-derivations`, and `.delete-entity`; registered desktop IPC equivalents
+use `personal-data-hub:`. Requests use `adapter`, `scope`, `limit`, or
+`entityType`/`entityId` as applicable; deletion requires `confirm: true`.
+These surfaces inherit the existing authenticated shared-vault access policy.
+Adapter/scope filters select work; they are not object-level authorization
+policies. Dedicated frontend controls and object-level policies are not included
+in this change.
+
+For embedded use, pass `kgSink`, `ragSink`, `kgRemove`, and `ragRemove` callbacks
+to `AdapterRegistry`. A stable `consumerId` is appropriate only for a persistent
+destination whose existing receipts remain valid. Default fresh consumer IDs
+match the current host-owned ephemeral indexes.
+
 ## Key providers
 
 Production builds inject a platform-specific KeyProvider that talks to
@@ -386,7 +456,7 @@ tolerance), and the 1k events <30s ingest perf gate.
 | Concern                                         | Lives in                                                                                       |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Platform KeyProviders (DPAPI/Keychain/Keystore) | desktop-app-vue main-process bridge (the package ships the contract + InMemory/File providers) |
-| Qdrant vector retrieval                         | wired into the existing RAG engine at the cc entry (BM25 derivation ships here)                |
+| Qdrant vector retrieval                         | optional injected bridge; current CLI/desktop PDH hosts wire BM25 only                         |
 | AI analysis skills                              | `skills/personal-analysis-*/` (the 5 built-in analysis skills)                                 |
 | Native SQLCipher build                          | `better-sqlite3-multiple-ciphers` — host/Electron ABI dual-load handled at the cc entry        |
 

@@ -193,7 +193,8 @@ async function withHub(fn, loadHub = getHub) {
 }
 
 function governedHubLoader(factory) {
-  if (typeof factory === "function") return () => getGovernedAnalysisHub(factory);
+  if (typeof factory === "function")
+    return () => getGovernedAnalysisHub(factory);
   const error = new Error(
     "Personal Data Hub model egress requires an authenticated evolution composition factory",
   );
@@ -201,16 +202,24 @@ function governedHubLoader(factory) {
   throw error;
 }
 
+function validateEntityReference(entityType, entityId) {
+  if (
+    !["event", "person", "place", "item", "topic"].includes(entityType) ||
+    typeof entityId !== "string" ||
+    !entityId.trim() ||
+    entityId.length > 1024
+  ) {
+    throw new Error("A valid entityType and entityId are required");
+  }
+}
+
 export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.ask": async (msg, context = {}) => {
     const factory = context.server?.evolutionCompositionFactory;
-    return withHub(
-      async (hub) => {
-        if (!hub.engine) throw new Error("Analysis engine unavailable");
-        return await hub.engine.ask(msg.question, msg.options || {});
-      },
-      governedHubLoader(factory),
-    );
+    return withHub(async (hub) => {
+      if (!hub.engine) throw new Error("Analysis engine unavailable");
+      return await hub.engine.ask(msg.question, msg.options || {});
+    }, governedHubLoader(factory));
   },
 
   // Path Y: prompt context only, no LLM call. Lets web-shell / mobile host
@@ -249,6 +258,43 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
 
   "personal-data-hub.list-adapters": async () =>
     withHub((hub) => hub.registry.list()),
+
+  "personal-data-hub.derivation-status": async (msg) =>
+    withHub((hub) =>
+      hub.registry.getDerivationStatus({
+        adapter: msg.adapter,
+        scope: msg.scope,
+      }),
+    ),
+
+  "personal-data-hub.derivation-state": async (msg) =>
+    withHub((hub) => {
+      validateEntityReference(msg.entityType, msg.entityId);
+      return hub.vault
+        .getDerivationStore()
+        .getState(msg.entityType, msg.entityId, {
+          consumerId: hub.registry.consumerId,
+        });
+    }),
+
+  "personal-data-hub.retry-derivations": async (msg) =>
+    withHub((hub) =>
+      hub.registry.retryDerivations({
+        adapter: msg.adapter,
+        scope: msg.scope,
+        limit: msg.limit,
+      }),
+    ),
+
+  "personal-data-hub.delete-entity": async (msg) =>
+    withHub(async (hub) => {
+      if (msg.confirm !== true)
+        throw new Error("Entity deletion requires confirm: true");
+      validateEntityReference(msg.entityType, msg.entityId);
+      const deleted = hub.vault.deleteEntity(msg.entityType, msg.entityId);
+      const derivations = await hub.registry.retryDerivations({ limit: 1000 });
+      return { deleted, derivations };
+    }),
 
   // Per-adapter readiness ("能否采集 + 不能的原因"). Probes each adapter's
   // authenticate({ readinessOnly: true }) — see AdapterRegistry.readiness().

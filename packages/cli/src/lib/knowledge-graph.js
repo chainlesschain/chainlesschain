@@ -239,6 +239,33 @@ export function getEntity(id) {
   return e ? _strip(e) : null;
 }
 
+/** Replace supplied entity fields while preserving identity and relationships. */
+export function updateEntity(db, id, config = {}) {
+  const current = _entities.get(id);
+  if (!current) throw new Error(`Entity not found: ${id}`);
+  const name = String(config.name ?? current.name).trim();
+  const type = String(config.type ?? current.type).trim();
+  if (!name) throw new Error("entity name is required");
+  if (!type) throw new Error("entity type is required");
+  const entity = {
+    ...current,
+    name,
+    type,
+    properties: Object.hasOwn(config, "properties")
+      ? config.properties
+      : current.properties,
+    tags: Object.hasOwn(config, "tags")
+      ? Array.isArray(config.tags)
+        ? [...config.tags]
+        : null
+      : current.tags,
+    updatedAt: Number(config.now ?? Date.now()),
+  };
+  _persistEntity(db, entity);
+  _entities.set(id, entity);
+  return _strip(entity);
+}
+
 export function listEntities(opts = {}) {
   let rows = [..._entities.values()];
   if (opts.type) {

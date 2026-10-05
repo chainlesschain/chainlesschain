@@ -1,0 +1,365 @@
+{
+  "schema": "chainlesschain.palantir-implementation-validation/v1",
+  "date": "2026-10-06",
+  "batch": 2,
+  "baseline": "59e3107d952a1b80c8fca68a34822c7d9e662ebb",
+  "branch": "feature/palantir-capability-hardening",
+  "state": "pre-commit-working-tree",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "vitestVersion": "4.1.10",
+  "nativeVaultDriver": {
+    "name": "better-sqlite3-multiple-ciphers",
+    "testedVersion": "11.10.0",
+    "declaredRange": "^12.5.0",
+    "source": "existing local npm cache; selected native tests enabled through NODE_PATH",
+    "productionDependenciesModified": false
+  },
+  "testRuns": {
+    "pdh": {
+      "cwd": "packages/personal-data-hub",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/vault-derivation.test.js",
+        "__tests__/vault.test.js",
+        "__tests__/vault-source-identity.test.js",
+        "__tests__/vault-resolved-batch.test.js",
+        "__tests__/registry-derivation.test.js",
+        "__tests__/registry.test.js",
+        "__tests__/registry-watermark.test.js",
+        "__tests__/registry-partitioned-watermark.test.js",
+        "__tests__/registry-resolved-ingest.test.js",
+        "__tests__/registry-retry-rate-limit.test.js",
+        "__tests__/registry-deferred-sync-commit.test.js",
+        "__tests__/registry-long-task-boundaries.test.js",
+        "__tests__/bridges-cc-rag.test.js",
+        "__tests__/bridges-cc-kg.test.js",
+        "__tests__/rag-derive.test.js",
+        "__tests__/kg-derive.test.js",
+        "__tests__/integration/derivation-projections.test.js",
+        "__tests__/entity-resolver-vault.test.js",
+        "__tests__/entity-resolver-ingest-hook.test.js"
+      ],
+      "args": [
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report path>"
+      ],
+      "environment": {
+        "NODE_PATH": "<node_modules containing host-compatible better-sqlite3-multiple-ciphers 11.10.0>"
+      },
+      "passed": 330,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T18:15:52.436Z",
+      "reportSha256": "7c77b99cef32e0511df8406dda5f4854f551d0714092096fae9b4a17f3b7f483",
+      "perFile": [
+        {
+          "file": "__tests__/bridges-cc-kg.test.js",
+          "status": "passed",
+          "tests": 20
+        },
+        {
+          "file": "__tests__/bridges-cc-rag.test.js",
+          "status": "passed",
+          "tests": 33
+        },
+        {
+          "file": "__tests__/entity-resolver-ingest-hook.test.js",
+          "status": "passed",
+          "tests": 6
+        },
+        {
+          "file": "__tests__/entity-resolver-vault.test.js",
+          "status": "passed",
+          "tests": 21
+        },
+        {
+          "file": "__tests__/kg-derive.test.js",
+          "status": "passed",
+          "tests": 13
+        },
+        {
+          "file": "__tests__/rag-derive.test.js",
+          "status": "passed",
+          "tests": 9
+        },
+        {
+          "file": "__tests__/registry-deferred-sync-commit.test.js",
+          "status": "passed",
+          "tests": 3
+        },
+        {
+          "file": "__tests__/registry-derivation.test.js",
+          "status": "passed",
+          "tests": 14
+        },
+        {
+          "file": "__tests__/registry-long-task-boundaries.test.js",
+          "status": "passed",
+          "tests": 7
+        },
+        {
+          "file": "__tests__/registry-partitioned-watermark.test.js",
+          "status": "passed",
+          "tests": 13
+        },
+        {
+          "file": "__tests__/registry-resolved-ingest.test.js",
+          "status": "passed",
+          "tests": 3
+        },
+        {
+          "file": "__tests__/registry-retry-rate-limit.test.js",
+          "status": "passed",
+          "tests": 8
+        },
+        {
+          "file": "__tests__/registry-watermark.test.js",
+          "status": "passed",
+          "tests": 35
+        },
+        {
+          "file": "__tests__/registry.test.js",
+          "status": "passed",
+          "tests": 21
+        },
+        {
+          "file": "__tests__/vault-derivation.test.js",
+          "status": "passed",
+          "tests": 12
+        },
+        {
+          "file": "__tests__/vault-resolved-batch.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "file": "__tests__/vault-source-identity.test.js",
+          "status": "passed",
+          "tests": 14
+        },
+        {
+          "file": "__tests__/vault.test.js",
+          "status": "passed",
+          "tests": 87
+        },
+        {
+          "file": "__tests__/integration/derivation-projections.test.js",
+          "status": "passed",
+          "tests": 1
+        }
+      ]
+    },
+    "cli": {
+      "cwd": "packages/cli",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/unit/knowledge-graph.test.js",
+        "__tests__/unit/hub-command.test.js",
+        "__tests__/unit/pdh-derivation-protocol.test.js",
+        "__tests__/unit/personal-data-hub-protocol.test.js",
+        "__tests__/unit/message-dispatcher.test.js",
+        "__tests__/unit/pdh-wiring-account-stores.test.js",
+        "__tests__/unit/personal-data-hub-wiring-atomic.test.js",
+        "__tests__/unit/pdh-one-click-sync-result.test.js",
+        "__tests__/unit/shell-completions.test.js"
+      ],
+      "args": [
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report path>"
+      ],
+      "passed": 208,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T18:14:45.933Z",
+      "reportSha256": "09b226ef3deec24cb82c066ab191781e6703e1f8b57e4311fc3a13dafb1b7038",
+      "perFile": [
+        {
+          "file": "__tests__/unit/hub-command.test.js",
+          "status": "passed",
+          "tests": 27
+        },
+        {
+          "file": "__tests__/unit/knowledge-graph.test.js",
+          "status": "passed",
+          "tests": 118
+        },
+        {
+          "file": "__tests__/unit/message-dispatcher.test.js",
+          "status": "passed",
+          "tests": 19
+        },
+        {
+          "file": "__tests__/unit/pdh-derivation-protocol.test.js",
+          "status": "passed",
+          "tests": 10
+        },
+        {
+          "file": "__tests__/unit/pdh-one-click-sync-result.test.js",
+          "status": "passed",
+          "tests": 4
+        },
+        {
+          "file": "__tests__/unit/pdh-wiring-account-stores.test.js",
+          "status": "passed",
+          "tests": 16
+        },
+        {
+          "file": "__tests__/unit/personal-data-hub-protocol.test.js",
+          "status": "passed",
+          "tests": 9
+        },
+        {
+          "file": "__tests__/unit/personal-data-hub-wiring-atomic.test.js",
+          "status": "passed",
+          "tests": 1
+        },
+        {
+          "file": "__tests__/unit/shell-completions.test.js",
+          "status": "passed",
+          "tests": 4
+        }
+      ]
+    },
+    "core": {
+      "cwd": "packages/session-core",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/business-object-contract.test.js",
+        "__tests__/approval-gate.test.js",
+        "__tests__/skill-invocation-receipt.test.js",
+        "__tests__/runtime-claims.test.js",
+        "__tests__/service-envelope.test.js"
+      ],
+      "args": [
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report path>"
+      ],
+      "passed": 152,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T18:15:52.424Z",
+      "reportSha256": "7408f0d1a56fe1dcdaf9b3f0fd8143ac14543ef4edaea3aecf11548e71b13838",
+      "perFile": [
+        {
+          "file": "__tests__/approval-gate.test.js",
+          "status": "passed",
+          "tests": 44
+        },
+        {
+          "file": "__tests__/business-object-contract.test.js",
+          "status": "passed",
+          "tests": 74
+        },
+        {
+          "file": "__tests__/runtime-claims.test.js",
+          "status": "passed",
+          "tests": 3
+        },
+        {
+          "file": "__tests__/service-envelope.test.js",
+          "status": "passed",
+          "tests": 22
+        },
+        {
+          "file": "__tests__/skill-invocation-receipt.test.js",
+          "status": "passed",
+          "tests": 9
+        }
+      ]
+    }
+  },
+  "totals": {
+    "files": 33,
+    "passed": 690,
+    "failed": 0,
+    "skippedWithinSelectedFiles": 0
+  },
+  "checks": {
+    "commandManifest": "passed",
+    "commandHelpIndex": "passed",
+    "shellCompletions": "passed",
+    "prettier": "passed for changed source/docs except generator-owned command-help-index.json",
+    "diffWhitespace": "passed",
+    "desktopSyntax": "passed",
+    "independentReadOnlyReview": "no new blocking correctness finding within current in-memory host projection scope"
+  },
+  "limitations": [
+    "Selective local Windows/Node validation only; no full OS release matrix or release.",
+    "Real encrypted vault tested with cached native driver 11.10.0, not declared ^12.5.0; exact declared dependency still needs verification.",
+    "IPC tests use a VM/Electron substitute; no renderer or complete desktop/IDE journey.",
+    "Current hosts wire ephemeral BM25 and KG, not a production vector destination.",
+    "Deleting a normalized entity retains raw archives; reimport may restore it. Not privacy erasure.",
+    "Projection revisions also advance with dependencies; no immutable raw snapshot or complete answer-citation lineage delivered.",
+    "Old consumer receipts remain retained; retirement/retention and compaction not implemented.",
+    "Cross-type bare sink ID collisions fail closed and require identity repair.",
+    "Business object/action contracts are shared primitives without business execution, live authorization or approval adapters.",
+    "Shared-vault auth inherited; adapter/scope filters are not object-level authorization.",
+    "No real IdP/SaaS integration, complete project-risk business evaluation or external publication."
+  ],
+  "sourceSha256": {
+    "desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js": "f29fac320eeb8a9e2f833df186c2f11027ee4316074f119956dbbf3b836365be",
+    "desktop-app-vue/src/main/personal-data-hub/wiring.js": "7664ceb51a71c98e8eed11ad6019f6c50b806d9631e088bc880cf700542fece7",
+    "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md": "ebf0e1f173ec9c6a9f2c90a12129e5689632c521c8dd20cc60a4446b5342b693",
+    "packages/cli/README.md": "5c0c3a1b7d00124d10c3855ec9b328598de4e13a53a3c422cd08cb66dc84c9c3",
+    "packages/cli/__tests__/unit/hub-command.test.js": "efe78164bd37689ef5fa8388328feaf7326e8a90f077884a25ee85acb643ae34",
+    "packages/cli/__tests__/unit/knowledge-graph.test.js": "24c909e5ab72bfbdb466c70b5f171695be7a12c48565a66043f7c3fbda192623",
+    "packages/cli/__tests__/unit/message-dispatcher.test.js": "6ebe1656b780c65fb873350cf37e28dc2238a6ad0e53db8c790a91ca8fdb1204",
+    "packages/cli/__tests__/unit/pdh-derivation-protocol.test.js": "13847f9fccb18baa5feb6ecac527a5a171b0bd862736b979eaa98896fad8612b",
+    "packages/cli/__tests__/unit/pdh-one-click-sync-result.test.js": "340668b258aec26b5f3794b8e8b4dd4e8adb0c7c9ebef630b908c4abe22e0c38",
+    "packages/cli/__tests__/unit/pdh-wiring-account-stores.test.js": "4cf3c5216277e1d0bd595631564e2bd721dd267207c52a4c6b039d0e2a807ca1",
+    "packages/cli/__tests__/unit/personal-data-hub-protocol.test.js": "fa40d1e74ec478dc76f4d5b6674d1dc4b9634c38c3171bfbf6f2e92ef12646e3",
+    "packages/cli/__tests__/unit/personal-data-hub-wiring-atomic.test.js": "3b61e5edddb0565ac095e09162f7497015cfa64af67d2bcd7a17678a75fc38a6",
+    "packages/cli/__tests__/unit/shell-completions.test.js": "6d06c17410c6a94671468c075e192e13dde6efb650588d03d7c7153169e35ee0",
+    "packages/cli/src/command-help-index.json": "41fb573bc4d8e90151d7c341a76aad1e7287bc7c745eced183e59f0c4d3e8ea6",
+    "packages/cli/src/commands/hub.js": "5627cb9667e572be78e7d59e333139bf68df6d9c306e2058ea3a51f6642cb93d",
+    "packages/cli/src/gateways/ws/personal-data-hub-protocol.js": "16c5030d2579c66465a247dba278427f5c07d6f01bd44b6965ffe2b72c01f873",
+    "packages/cli/src/lib/bm25-search.js": "116fc5273cb0f5e41c8d68c0c9c408965ac09d42f337341f4b05481b1cd3400f",
+    "packages/cli/src/lib/knowledge-graph.js": "093f68ddfb2f8fa03dbe84baf2fc403a28d3cfca587aaff759a769a0791595c8",
+    "packages/cli/src/lib/personal-data-hub-wiring.js": "b544d50e82ca3f5ecbb8616b1fe95ba77d46bb82ca07e45d88af9cd3147abfcb",
+    "packages/personal-data-hub/README.md": "2f2857d0b181e7cf430e8d8a153d412d21184d5058c1960bf2f566cefba2859a",
+    "packages/personal-data-hub/__tests__/bridges-cc-kg.test.js": "5908a851109ba4fa85f0d1b8e0ab178de286fd51d762d67c528f5f2a8fccae6c",
+    "packages/personal-data-hub/__tests__/bridges-cc-rag.test.js": "987ad0c7df62e7191f6ed3d9627f92572229904bace698d7b7e0939987ce457c",
+    "packages/personal-data-hub/__tests__/entity-resolver-ingest-hook.test.js": "15e12fb9ecf2d17749815ba7219e585af6a6ed72bd1f572ca9ac854dce0d44d6",
+    "packages/personal-data-hub/__tests__/entity-resolver-vault.test.js": "db48bb8c86b590182a90ff9129a9dad17b8824dd9fe76f268d48bdb6750cd776",
+    "packages/personal-data-hub/__tests__/integration/derivation-projections.test.js": "176c1116aa2cf888562c8b8f60a405578908f7dbea4692c61e6f8c1c900be776",
+    "packages/personal-data-hub/__tests__/kg-derive.test.js": "5fcd974c9732e9ba936713fc6a613691f8f32b1b09c5586f8fddaf3d11d2e6ed",
+    "packages/personal-data-hub/__tests__/rag-derive.test.js": "85bf0f1e230abacbc8058540411ef8f08251ff7fdf37774113273069b0f47875",
+    "packages/personal-data-hub/__tests__/registry-deferred-sync-commit.test.js": "40f1aced9d146c8b523143b13dae87fe1bb5c4fbb3bf20b1474c34777bfd8b5a",
+    "packages/personal-data-hub/__tests__/registry-derivation.test.js": "f81a1045b7619c72328487f660c1d5208e9f1dc3b428534310fe4597639d0c6f",
+    "packages/personal-data-hub/__tests__/registry-long-task-boundaries.test.js": "e66288fc588e7b0911ae54ae4a557dddf37db0664eaf6b248db4ae97364738dd",
+    "packages/personal-data-hub/__tests__/registry-partitioned-watermark.test.js": "2b13b76dff315608ebd5019ec0fc602adfd36033939a78f70809e00f56a7a421",
+    "packages/personal-data-hub/__tests__/registry-resolved-ingest.test.js": "1b98ea2705e237db1f475d9daec9ecfd056e8083472a91cb44b7b17d46f0a489",
+    "packages/personal-data-hub/__tests__/registry-retry-rate-limit.test.js": "e66bf83ebcf81d45d60b8bb5d0df3d84941c109733862b0f127065e973a39eb2",
+    "packages/personal-data-hub/__tests__/registry-watermark.test.js": "5febeffa69530da83217d0cb1341cd2028171413461baa0807e680116328e015",
+    "packages/personal-data-hub/__tests__/registry.test.js": "c3317ef23f79204ef28787c77280475aaecb170665c8d6ae1edbf2e28c6bc236",
+    "packages/personal-data-hub/__tests__/vault-derivation.test.js": "48f3613bbbafb78685b7ddbfe9a31fad11e50c4a1822fdf27f29e06010dd9b79",
+    "packages/personal-data-hub/__tests__/vault-resolved-batch.test.js": "757f3e6a4a817efe48715ae38b4cbbf3ebac542933109f38dcacd718561bfbc1",
+    "packages/personal-data-hub/__tests__/vault-source-identity.test.js": "4caeb3e77a00b57c0684ac22b8b68f07698d2f47e03f95463566b9b6814b945e",
+    "packages/personal-data-hub/__tests__/vault.test.js": "c5ce78859dbcb97ce913b7c3ccfb642c9314bb0d86fbf4ea77d7d41fb0bc6e9b",
+    "packages/personal-data-hub/lib/bridges/cc-kg-sink.js": "e67fbb9a185061fd5602746b2834040bae686173ede975f9c247f6e82b0c82f3",
+    "packages/personal-data-hub/lib/bridges/cc-rag-sink.js": "833e33f536c3eb5797c1f0bf55115b697051d06b6e2a45d5515ec146a2e5fe2e",
+    "packages/personal-data-hub/lib/derivation-store.js": "87cfe871f596c6b133415da6680a6f57660224820daa9be41fae0a74459ed556",
+    "packages/personal-data-hub/lib/kg-derive.js": "1be3716cc530400ddfc1a9abc0eebeb81299e9476c3f5b2043e7d46681d0b8b5",
+    "packages/personal-data-hub/lib/migrations.js": "69c8a2c30f01c2483e978643c1a04199007773a439dcdfb9c1a4e236a143e167",
+    "packages/personal-data-hub/lib/rag-derive.js": "633b2526143e616aa806484c5bbf9b2861e3c5d6b11c1a6b6ca1fd598742a913",
+    "packages/personal-data-hub/lib/registry.js": "24a34af2d8bfce9b742e83c105fb2739e8a0a9188111ce4eb55a8862d71c6001",
+    "packages/personal-data-hub/lib/vault.js": "ea4a178af4605a449235eb4017558feb2ececd2869ea485aaea1ee42a3c30bfc",
+    "packages/personal-data-hub/vitest.config.js": "33088d8f5daf7b7f514501174d599f640baf7ac1e3a186dc240d4307b5e0dbb7",
+    "packages/session-core/README.md": "51d2c46aa2f3bb06cf7ca209c31cbb32835397853e5820af6210cea858269ae5",
+    "packages/session-core/__tests__/approval-gate.test.js": "6addee38675a60fbf1819c2f73f7af6c9d016b3f44d930ee2e903df9dbde7de4",
+    "packages/session-core/__tests__/business-object-contract.test.js": "eeeeb71f5c75edc7ee6ffd96b8de27f12de6b8147a92316dd77708f6978bf57a",
+    "packages/session-core/__tests__/runtime-claims.test.js": "b000b7ff84596400699bca4e9a558b91e935c9643f5012f98cfb30588347ac40",
+    "packages/session-core/__tests__/service-envelope.test.js": "2780ed9294c09eb97183f54ec73a800cb420adbfb5ed40ee043a81cdc7e3cca7",
+    "packages/session-core/__tests__/skill-invocation-receipt.test.js": "8ff7604257f556a2778aff988f7dd189178890811a6b865717361877da6f09b2",
+    "packages/session-core/lib/business-object-contract.js": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+    "packages/session-core/lib/index.js": "e624ceb257345b60177cc0bac786a6f85f3932fb7fbbb7abfe3212cf5a6a44f7",
+    "packages/session-core/package.json": "54055f86f8441fd46da027f3bc187924439bf01d042be03acc3d8b3fed1ec927"
+  }
+}

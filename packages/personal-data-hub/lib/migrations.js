@@ -20,6 +20,8 @@
 
 "use strict";
 
+const { installDerivationSchema } = require("./derivation-store");
+
 const INITIAL_DDL = [
   // ── _meta: schema version + vault-level state ───────────────────────────
   `CREATE TABLE IF NOT EXISTS _meta (
@@ -795,6 +797,8 @@ const MIGRATIONS = [
     },
   },
 ];
+
+MIGRATIONS.push({ version: 12, up: installDerivationSchema });
 
 const TARGET_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 

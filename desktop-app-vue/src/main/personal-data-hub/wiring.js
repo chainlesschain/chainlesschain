@@ -290,6 +290,11 @@ async function initHub() {
     kgSink = new CcKgSink({
       addEntity: kgMod.addEntity,
       addRelation: kgMod.addRelation,
+      updateEntity: kgMod.updateEntity,
+      getEntity: kgMod.getEntity,
+      removeEntity: kgMod.removeEntity,
+      listRelations: kgMod.listRelations,
+      removeRelation: kgMod.removeRelation,
       db: null, // cli KG keeps in-memory state + optional db; null skips persistence
       logger: (...args) => logger.debug("[CcKgSink]", ...args),
     });
@@ -377,6 +382,8 @@ async function initHub() {
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
     ragSink: ragSink ? ragSink.write.bind(ragSink) : null,
+    kgRemove: kgSink?.remove?.bind(kgSink) || null,
+    ragRemove: ragSink?.remove?.bind(ragSink) || null,
     entityResolver, // Phase 8.6 — sync-time rule resolution on every ingest
     onSyncEvent: (msg) =>
       logger.debug("[PersonalDataHub sync]", msg.kind, msg.adapter || ""),
@@ -385,6 +392,17 @@ async function initHub() {
       oneClickNames: ADB_ONE_CLICK_NAMES,
     },
   });
+
+  // Rebuild ephemeral projections for this registry generation; bounded
+  // failure leaves durable work available through the retry/status APIs.
+  if (typeof registry.retryDerivations === "function") {
+    for (let page = 0; page < 100; page += 1) {
+      const result = await registry.retryDerivations({ limit: 1000 });
+      if (!result.remaining) break;
+      if (result.summary?.pending > 0) continue;
+      if (!result.succeeded || result.unsupported || result.blocked) break;
+    }
+  }
 
   // Analysis engine — only if LLM is available.
   let engine = null;

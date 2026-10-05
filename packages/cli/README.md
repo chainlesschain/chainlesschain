@@ -2484,9 +2484,22 @@ chainlesschain hub search "keyword"                        # FTS5 vault search +
 chainlesschain hub query-events                            # Filtered event query
 chainlesschain hub export                                  # Export vault data
 chainlesschain hub aichat list                             # AIChat vendor sub-group (login/probe/register/health)
+chainlesschain hub derivation-status --json                 # Durable KG/RAG delivery status
+chainlesschain hub retry-derivations --limit 100 --json      # Retry latest source revisions (limit 1-1000)
+chainlesschain hub derivation-state event <id> --json       # Source revision + index receipts, without payload
+chainlesschain hub delete-entity event <id> --confirm --json # Delete normalized entity and queue index removal
 ```
 
 Other ADB collectors: `weibo-adb-sync`, `kuaishou-adb-sync`, `toutiao-adb-sync`, `xhs-adb-sync`, `douyin-adb-sync`. Also: `list-adapters`, `facet-counts`, `recent-audit`, `event-detail <id>`, `rederive`, `run-skill <name>`, `register-mock`, `destroy`.
+
+The derivation commands above are working-tree additions awaiting release.
+Status and retry accept optional `--adapter` and `--scope` filters. Normalized
+deletion retains the raw archive, and explicit later reimport/rederivation may
+restore the entity; its result separates source deletion from pending index
+removal. CLI and desktop rebuild their in-memory KG/BM25 indexes for each new
+runtime generation; vector storage is not currently wired. See the
+[PDH projection lifecycle](../personal-data-hub/README.md#durable-kgrag-projections-working-tree-unreleased)
+for recovery, authorization, and retention boundaries.
 
 ### `chainlesschain pair <action>`
 

@@ -45,6 +45,8 @@ function probeNativeVault() {
  */
 const NATIVE_DEPENDENT_TESTS = [
   "__tests__/vault.test.js",
+  "__tests__/vault-derivation.test.js",
+  "__tests__/registry-derivation.test.js",
   "__tests__/vault-search.test.js",
   "__tests__/registry.test.js",
   "__tests__/analysis.test.js",
@@ -59,6 +61,7 @@ const NATIVE_DEPENDENT_TESTS = [
   "__tests__/integration/ai-chat-history-registry.test.js",
   "__tests__/integration/social-bilibili-pipeline.test.js",
   "__tests__/integration/wechat-bootstrap-end-to-end.test.js",
+  "__tests__/integration/derivation-projections.test.js",
 ];
 
 const native = probeNativeVault();

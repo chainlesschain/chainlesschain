@@ -20,6 +20,8 @@
  * BM25 replacements use removeDocument before addDocument. Vector adapters
  * must implement idempotent upsert by document ID, including after a batch
  * partially writes and then rejects. A rejected batch is never acknowledged.
+ * Deletions share the same queue and acknowledge each destination separately.
+ * Both removal adapters must be idempotent, including an already absent ID.
  *
  * Like the other bridges this is dependency-injected — caller passes
  * the BM25 instance (or any object with .addDocument(doc)).
@@ -49,8 +51,8 @@ function fingerprint(value) {
 class CcRagSink {
   /**
    * @param {object} deps
-   * @param {{ addDocument: (doc: object) => void, removeDocument?: (id: string) => void }} deps.bm25 cc BM25Search instance; removal is required for updates
-   * @param {{ index: (docs: Array) => Promise<void> }} [deps.vector] idempotent vector upsert adapter
+   * @param {{ addDocument: (doc: object) => void, removeDocument?: (id: string) => void }} deps.bm25 cc BM25Search instance; removal is required for updates and deletions
+   * @param {{ index: (docs: Array) => Promise<void>, remove?: (ids: string[]) => Promise<void> }} [deps.vector] idempotent vector upsert/removal adapter
    * @param {(label: string, ...args: any[]) => void} [deps.logger]
    * @param {(doc: object) => object} [deps.transformDoc]       optional pre-write hook
    */
@@ -71,6 +73,8 @@ class CcRagSink {
       typeof deps.transformDoc === "function" ? deps.transformDoc : null;
     this._bm25Versions = new Map();
     this._vectorVersions = new Map();
+    this._bm25Removed = new Set();
+    this._vectorRemoved = new Set();
     this._pending = Promise.resolve();
   }
 
@@ -87,6 +91,85 @@ class CcRagSink {
     const pending = this._pending.then(() => this._write(docs));
     this._pending = pending.catch(() => {});
     return pending;
+  }
+
+  /**
+   * Remove document IDs from every configured destination. `removed` counts
+   * successful BM25 removal acknowledgements, including already absent IDs;
+   * it is not an existence count. `skipped` counts invalid, duplicate, or
+   * fully acknowledged deleted IDs. A vector-only retry has neither count.
+   * Unknown IDs still reach the adapters: they may exist in a persisted index.
+   * Missing removal capabilities are reported in `errors`, never as success.
+   *
+   * @param {string[]} ids
+   * @returns {Promise<{removed: number, skipped: number, errors: object[]}>}
+   */
+  remove(ids) {
+    const pending = this._pending.then(() => this._remove(ids));
+    this._pending = pending.catch(() => {});
+    return pending;
+  }
+
+  async _remove(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { removed: 0, skipped: 0, errors: [] };
+    }
+    let removed = 0;
+    let skipped = 0;
+    const errors = [];
+    const seen = new Set();
+    const forVector = [];
+
+    for (const id of ids) {
+      if (typeof id !== "string" || !id.trim() || seen.has(id)) {
+        skipped += 1;
+        continue;
+      }
+      seen.add(id);
+      const bm25Pending = !this._bm25Removed.has(id);
+      const vectorPending = this._vector && !this._vectorRemoved.has(id);
+      if (!bm25Pending && !vectorPending) {
+        skipped += 1;
+        continue;
+      }
+      if (vectorPending) forVector.push(id);
+      if (bm25Pending) {
+        try {
+          if (typeof this._bm25.removeDocument !== "function") {
+            throw new Error(
+              "CcRagSink: BM25 deletion requires removeDocument(id)",
+            );
+          }
+          // A rejected removal may already have changed the destination.
+          // Invalidate the old content acknowledgement before making the call.
+          this._bm25Versions.delete(id);
+          await this._bm25.removeDocument(id);
+          this._bm25Removed.add(id);
+          removed += 1;
+        } catch (err) {
+          const msg = err && err.message ? err.message : String(err);
+          errors.push({ id, phase: "bm25", error: msg });
+          if (this._log) this._log("CcRagSink.BM25 removal failed", id, msg);
+        }
+      }
+    }
+
+    if (forVector.length > 0) {
+      try {
+        if (typeof this._vector.remove !== "function") {
+          throw new Error("CcRagSink: vector deletion requires remove(ids)");
+        }
+        for (const id of forVector) this._vectorVersions.delete(id);
+        await this._vector.remove(forVector);
+        for (const id of forVector) this._vectorRemoved.add(id);
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        errors.push({ ids: [...forVector], phase: "vector", error: msg });
+        if (this._log) this._log("CcRagSink.vector.remove failed", msg);
+      }
+    }
+
+    return { removed, skipped, errors };
   }
 
   async _write(docs) {
@@ -127,6 +210,7 @@ class CcRagSink {
           continue;
         }
         if (bm25Changed) {
+          this._bm25Removed.delete(d.id);
           if (typeof this._bm25.removeDocument === "function") {
             // Remove even on the first write: the injected index may already
             // contain the ID, or a previous add may have mutated then thrown.
@@ -156,7 +240,10 @@ class CcRagSink {
       try {
         // A rejected upsert may have partially written. Its previous version
         // is no longer confirmed either, including when a caller retries it.
-        for (const id of forVector.keys()) this._vectorVersions.delete(id);
+        for (const id of forVector.keys()) {
+          this._vectorVersions.delete(id);
+          this._vectorRemoved.delete(id);
+        }
         await this._vector.index(
           [...forVector.values()].map((entry) => entry.doc),
         );

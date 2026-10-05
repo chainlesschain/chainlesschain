@@ -35,6 +35,11 @@ const {
 const { isValidKeyHex } = require("./key-providers");
 const { getCategory, PREFIX_RULES } = require("./categories");
 const { likeContains } = require("./sql-like");
+const {
+  DerivationStore,
+  validateEntityType,
+  ENTITY_TABLES,
+} = require("./derivation-store");
 
 // FTS5 trigram tokenizer requires queries of >= 3 chars to produce any
 // trigrams at all (single 2-char input gives zero index keys → empty result).
@@ -552,6 +557,28 @@ class LocalVault {
         this.db = null;
       }
     }
+  }
+
+  getDerivationStore() {
+    return new DerivationStore(this._requireOpen());
+  }
+
+  /** Remove a normalized entity; SQL triggers durably enqueue both deletions.
+   * This is not raw-archive erasure. An explicit later source import/rederive
+   * may restore the entity and produces a newer projection revision.
+   */
+  deleteEntity(entityType, entityId) {
+    validateEntityType(entityType);
+    ensureValidId(entityId, "deleteEntity");
+    const db = this._requireOpen();
+    return db
+      .transaction(() => {
+        const result = db
+          .prepare(`DELETE FROM ${ENTITY_TABLES[entityType]} WHERE id=?`)
+          .run(entityId);
+        return { entityType, entityId, deleted: result.changes === 1 };
+      })
+      .immediate();
   }
 
   /**

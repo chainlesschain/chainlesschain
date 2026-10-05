@@ -453,6 +453,11 @@ async function initHub() {
     kgSink = new CcKgSink({
       addEntity: kgMod.addEntity,
       addRelation: kgMod.addRelation,
+      updateEntity: kgMod.updateEntity,
+      getEntity: kgMod.getEntity,
+      removeEntity: kgMod.removeEntity,
+      listRelations: kgMod.listRelations,
+      removeRelation: kgMod.removeRelation,
       db: null,
     });
   }
@@ -550,12 +555,28 @@ async function initHub() {
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
     ragSink: ragSink ? ragSink.write.bind(ragSink) : null,
+    kgRemove: kgSink?.remove?.bind(kgSink) || null,
+    ragRemove: ragSink?.remove?.bind(ragSink) || null,
     entityResolver,
     adbReadiness: {
       probe: adbReadinessProbe,
       oneClickNames: ADB_ONE_CLICK_NAMES,
     },
   });
+
+  // Both projections are in memory. A fresh registry consumer must rebuild
+  // from durable desired state before serving retrieval; leave failures
+  // visible and explicitly retryable instead of blocking startup forever.
+  if (typeof registry.retryDerivations === "function") {
+    for (let page = 0; page < 100; page += 1) {
+      const result = await registry.retryDerivations({ limit: 1000 });
+      if (!result.remaining) break;
+      // A referenced KG endpoint can occur on a later page. Visit fresh
+      // work before concluding that a failed dependency is unrecoverable.
+      if (result.summary?.pending > 0) continue;
+      if (!result.succeeded || result.unsupported || result.blocked) break;
+    }
+  }
 
   const engine = new AnalysisEngine({
     vault,

@@ -56,6 +56,17 @@ function safe(fn) {
   };
 }
 
+function validateEntityReference(entityType, entityId) {
+  if (
+    !["event", "person", "place", "item", "topic"].includes(entityType) ||
+    typeof entityId !== "string" ||
+    !entityId.trim() ||
+    entityId.length > 1024
+  ) {
+    throw new Error("A valid entityType and entityId are required");
+  }
+}
+
 function register({
   desktopModelIngressHost = null,
   ipcMain = null,
@@ -144,6 +155,43 @@ function register({
     safe(async () => {
       const hub = await hubWiring.getHub();
       return hub.registry.list();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:derivation-status`,
+    safe(async ({ adapter, scope }) => {
+      const hub = await hubWiring.getHub();
+      return hub.registry.getDerivationStatus({ adapter, scope });
+    }),
+  );
+  ipcMain.handle(
+    `${NS}:retry-derivations`,
+    safe(async ({ adapter, scope, limit }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registry.retryDerivations({ adapter, scope, limit });
+    }),
+  );
+  ipcMain.handle(
+    `${NS}:derivation-state`,
+    safe(async ({ entityType, entityId }) => {
+      validateEntityReference(entityType, entityId);
+      const hub = await hubWiring.getHub();
+      return hub.vault.getDerivationStore().getState(entityType, entityId, {
+        consumerId: hub.registry.consumerId,
+      });
+    }),
+  );
+  ipcMain.handle(
+    `${NS}:delete-entity`,
+    safe(async ({ entityType, entityId, confirm }) => {
+      if (confirm !== true)
+        throw new Error("Entity deletion requires confirm: true");
+      validateEntityReference(entityType, entityId);
+      const hub = await hubWiring.getHub();
+      const deleted = hub.vault.deleteEntity(entityType, entityId);
+      const derivations = await hub.registry.retryDerivations({ limit: 1000 });
+      return { deleted, derivations };
     }),
   );
 
@@ -705,6 +753,10 @@ function unregister() {
     "ask",
     "stats",
     "health",
+    "derivation-status",
+    "derivation-state",
+    "retry-derivations",
+    "delete-entity",
     "list-adapters",
     "adapter-readiness",
     "sync-adapter",

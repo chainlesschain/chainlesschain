@@ -11,6 +11,7 @@ import {
   listEntityTypes,
   addEntity,
   getEntity,
+  updateEntity,
   listEntities,
   removeEntity,
   addRelation,
@@ -170,6 +171,48 @@ describe("knowledge-graph", () => {
   });
 
   /* ── Entities ──────────────────────────────────────────────── */
+
+  describe("updateEntity", () => {
+    it("replaces supplied fields, retains identity and edges, and persists after reload", () => {
+      addEntity(db, {
+        id: "a",
+        name: "Old",
+        type: "Person",
+        now: 1,
+        properties: { old: true },
+      });
+      addEntity(db, { id: "b", name: "Bob", type: "Person" });
+      addRelation(db, { sourceId: "a", targetId: "b", relationType: "knows" });
+      expect(
+        updateEntity(db, "a", {
+          name: "New",
+          properties: { latest: true },
+          now: 2,
+        }),
+      ).toMatchObject({
+        id: "a",
+        name: "New",
+        createdAt: 1,
+        updatedAt: 2,
+        properties: { latest: true },
+      });
+      _resetState();
+      loadFromDb(db);
+      expect(getEntity("a").properties).toEqual({ latest: true });
+      expect(listRelations()).toHaveLength(1);
+    });
+
+    it("rejects invalid or missing targets without altering the prior entity", () => {
+      addEntity(null, { id: "a", name: "Original", type: "Person" });
+      expect(() => updateEntity(null, "a", { name: " " })).toThrow(
+        "entity name is required",
+      );
+      expect(() => updateEntity(null, "missing", { name: "New" })).toThrow(
+        "Entity not found",
+      );
+      expect(getEntity("a").name).toBe("Original");
+    });
+  });
 
   describe("addEntity", () => {
     it("creates entity with generated id", () => {

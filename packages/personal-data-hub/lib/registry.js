@@ -49,8 +49,8 @@ const {
 const { partitionBatch } = require("./batch");
 const { readBoundedSnapshot } = require("./snapshot-file");
 const { scopeNormalizedBatch } = require("./scope-normalized-batch");
-const { deriveBatchTriples } = require("./kg-derive");
-const { deriveBatchDocs } = require("./rag-derive");
+const { deriveBatchTriples, deriveEntityTriples } = require("./kg-derive");
+const { deriveBatchDocs, entityToRagDoc } = require("./rag-derive");
 const { describeReadiness, categoryForMode } = require("./adapter-readiness");
 const { getAdapterGuide } = require("./adapter-guide");
 
@@ -65,6 +65,24 @@ const DEFAULT_SYNC_RETRY_BASE_DELAY_MS = 500;
 const DEFAULT_SYNC_RETRY_MAX_DELAY_MS = 30_000;
 const MAX_DEFERRED_SYNC_COMMITS = 64;
 const SYNC_ATTEMPT_ERROR = Symbol("syncAttemptError");
+const DERIVATION_VERSIONS = { rag: "pdh-rag-v1", kg: "pdh-kg-v1" };
+const DERIVATION_GETTERS = {
+  event: "getEvent",
+  person: "getPerson",
+  place: "getPlace",
+  item: "getItem",
+  topic: "getTopic",
+};
+const DERIVATION_REFERENCE_TYPES = {
+  by: "person",
+  involves: "person",
+  "happened-at": "place",
+  about: "item",
+  topic: "topic",
+  "sold-by": "person",
+  parent: "topic",
+  "derived-from": "event",
+};
 const ADB_READINESS_REASONS = new Set([
   "ADB_NOT_INSTALLED",
   "ADB_PROBE_FAILED",
@@ -201,12 +219,39 @@ async function mapWithConcurrency(items, concurrency, mapper) {
   return results;
 }
 
+function sinkFailureCount(result) {
+  // Legacy collector callbacks often return Array.push's numeric result.
+  if (
+    result === undefined ||
+    (typeof result === "number" && Number.isFinite(result))
+  ) {
+    return 0;
+  }
+  if (!result || typeof result !== "object") return 1;
+  if (result.errors !== undefined && !Array.isArray(result.errors)) return 1;
+  return Math.max(
+    Array.isArray(result.errors) ? result.errors.length : 0,
+    result.success === false ? 1 : 0,
+  );
+}
+
+function derivationState(summary) {
+  if (summary.running > 0) return "blocked";
+  if (summary.failed > 0) return "failed";
+  if (summary.unsupported > 0) return "unsupported";
+  if (summary.pending > 0) return "pending";
+  return "complete";
+}
+
 class AdapterRegistry {
   /**
    * @param {object} opts
    * @param {import("./vault").LocalVault} opts.vault       open LocalVault to write into
    * @param {(triples: object[]) => void|Promise<void>} [opts.kgSink]
    * @param {(docs: object[]) => void|Promise<void>} [opts.ragSink]
+   * @param {(ids: string[]) => object|Promise<object>} [opts.ragRemove]
+   * @param {(ids: string[]) => object|Promise<object>} [opts.kgRemove]
+   * @param {string} [opts.consumerId] Stable ID for persistent destinations; defaults to a fresh generation for ephemeral indexes
    * @param {number} [opts.batchSize=100]   raw events per ingest batch (commit size)
    * @param {(msg: object) => void} [opts.onSyncEvent]   optional progress callback
    * @param {number} [opts.syncMaxRetries=3] transient sync retries after the first attempt
@@ -222,6 +267,18 @@ class AdapterRegistry {
     this.vault = opts.vault;
     this.kgSink = typeof opts.kgSink === "function" ? opts.kgSink : null;
     this.ragSink = typeof opts.ragSink === "function" ? opts.ragSink : null;
+    this.ragRemove =
+      typeof opts.ragRemove === "function" ? opts.ragRemove : null;
+    this.kgRemove = typeof opts.kgRemove === "function" ? opts.kgRemove : null;
+    if (
+      opts.consumerId !== undefined &&
+      (typeof opts.consumerId !== "string" || !opts.consumerId.trim())
+    ) {
+      throw new TypeError(
+        "AdapterRegistry: consumerId must be a nonempty string",
+      );
+    }
+    this.consumerId = opts.consumerId || crypto.randomUUID();
     this.onSyncEvent =
       typeof opts.onSyncEvent === "function" ? opts.onSyncEvent : null;
     this.batchSize =
@@ -337,6 +394,267 @@ class AdapterRegistry {
 
   has(name) {
     return this._adapters.has(name);
+  }
+
+  _getDerivationStore() {
+    return typeof this.vault.getDerivationStore === "function"
+      ? this.vault.getDerivationStore()
+      : null;
+  }
+
+  _hasDerivationIdConflict(store, entityId) {
+    if (typeof store.getState !== "function") return false;
+    let matches = 0;
+    for (const type of Object.keys(DERIVATION_GETTERS)) {
+      if (
+        store.getState(type, entityId, {
+          consumerId: this.consumerId,
+          transformVersions: DERIVATION_VERSIONS,
+        })
+      ) {
+        matches += 1;
+        if (matches > 1) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Inspect durable index delivery independently from source checkpoints. */
+  getDerivationStatus({ adapter, scope } = {}) {
+    const store = this._getDerivationStore();
+    if (!store) {
+      return {
+        available: false,
+        consumerId: this.consumerId,
+        status: "unsupported",
+      };
+    }
+    const summary = store.summary({
+      consumerId: this.consumerId,
+      adapter,
+      scope,
+      transformVersions: DERIVATION_VERSIONS,
+    });
+    return {
+      ...summary,
+      available: true,
+      consumerId: this.consumerId,
+      status: derivationState(summary),
+    };
+  }
+
+  /**
+   * Rebuild or retry a bounded page from canonical entities and tombstones.
+   * A running delivery is never automatically replayed for the same consumer.
+   * Sink errors are counted and recorded as fixed codes without raw payloads.
+   */
+  async retryDerivations({ adapter, scope, limit = 100 } = {}) {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+      throw new RangeError(
+        "AdapterRegistry: derivation limit must be between 1 and 1000",
+      );
+    }
+    const store = this._getDerivationStore();
+    const result = {
+      available: !!store,
+      consumerId: this.consumerId,
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      unsupported: 0,
+      blocked: 0,
+      superseded: 0,
+      errorCount: 0,
+      remaining: 0,
+      kgTripleCount: 0,
+      ragDocCount: 0,
+      status: store ? "complete" : "unsupported",
+    };
+    if (!store) return result;
+    const jobs = store.listPending({
+      consumerId: this.consumerId,
+      adapter,
+      scope,
+      limit,
+      transformVersions: DERIVATION_VERSIONS,
+    });
+    for (const job of jobs) {
+      const claim = store.claim(job, {
+        consumerId: this.consumerId,
+        target: job.target,
+        transformVersion: DERIVATION_VERSIONS[job.target],
+      });
+      if (!claim) {
+        result.blocked += 1;
+        continue;
+      }
+      result.processed += 1;
+      let errorCode = null;
+      let failureCount = 0;
+      try {
+        let callback = job.target === "rag" ? this.ragSink : this.kgSink;
+        let payload;
+        let context;
+        let countKey;
+        // The ledger has typed identity; existing destinations use bare IDs.
+        // A tombstone collision is also unsafe: deletion could erase another
+        // entity type's live projection. Require identity repair first.
+        if (this._hasDerivationIdConflict(store, job.entityId)) {
+          errorCode = "DERIVATION_ID_CONFLICT";
+        } else if (job.operation === "delete") {
+          callback = job.target === "rag" ? this.ragRemove : this.kgRemove;
+          payload = [job.entityId];
+        } else {
+          const getter = DERIVATION_GETTERS[job.entityType];
+          const entity =
+            getter && typeof this.vault[getter] === "function"
+              ? this.vault[getter](job.entityId)
+              : null;
+          if (!entity) {
+            errorCode = "DERIVATION_SOURCE_MISSING";
+          } else if (job.target === "rag") {
+            const doc = entityToRagDoc(entity);
+            if (!doc) {
+              errorCode = "DERIVATION_SOURCE_INVALID";
+            } else if (!doc.text) {
+              // An empty projection must remove any old searchable content.
+              callback = this.ragRemove;
+              payload = [job.entityId];
+            } else {
+              payload = [
+                {
+                  ...doc,
+                  metadata: {
+                    ...doc.metadata,
+                    // This is the desired projection revision, which also
+                    // advances on dependency changes; it is not a raw archive
+                    // version or an immutable source snapshot identifier.
+                    derivation: {
+                      entityType: claim.entityType,
+                      entityId: claim.entityId,
+                      revision: claim.revision,
+                      transformVersion: claim.transformVersion,
+                    },
+                  },
+                },
+              ];
+              countKey = "ragDocCount";
+            }
+          } else {
+            payload = deriveEntityTriples(entity).filter((triple) => {
+              const referenceType =
+                DERIVATION_REFERENCE_TYPES[triple.predicate];
+              if (
+                !triple.object ||
+                !referenceType ||
+                typeof store.getState !== "function"
+              )
+                return true;
+              if (this._hasDerivationIdConflict(store, triple.object)) {
+                errorCode = "DERIVATION_ID_CONFLICT";
+                return false;
+              }
+              // An explicit canonical tombstone removes the owned edge. An
+              // unknown endpoint remains a retryable missing dependency.
+              const referenceState = store.getState(
+                referenceType,
+                triple.object,
+                {
+                  consumerId: this.consumerId,
+                  transformVersions: DERIVATION_VERSIONS,
+                },
+              );
+              return referenceState?.operation !== "delete";
+            });
+            // Cross-entity edges can precede their target's own delivery.
+            // Hydrate complete literal attributes only; the bridge must not
+            // reconcile outgoing edges for these reference-only subjects.
+            const referenceSubjects = [];
+            const visited = new Set([entity.id]);
+            for (const triple of [...payload]) {
+              const type = DERIVATION_REFERENCE_TYPES[triple.predicate];
+              const referenceGetter = DERIVATION_GETTERS[type];
+              if (
+                !triple.object ||
+                visited.has(triple.object) ||
+                !referenceGetter
+              )
+                continue;
+              visited.add(triple.object);
+              const reference =
+                typeof this.vault[referenceGetter] === "function"
+                  ? this.vault[referenceGetter](triple.object)
+                  : null;
+              if (!reference) continue;
+              payload.push(
+                ...deriveEntityTriples(reference).filter(
+                  (entry) => !Object.hasOwn(entry, "object"),
+                ),
+              );
+              referenceSubjects.push(reference.id);
+            }
+            if (referenceSubjects.length > 0) context = { referenceSubjects };
+            countKey = "kgTripleCount";
+          }
+        }
+        if (!errorCode && !callback) errorCode = "DERIVATION_UNSUPPORTED";
+        if (!errorCode) {
+          if (countKey) result[countKey] += payload.length;
+          failureCount = sinkFailureCount(
+            context
+              ? await callback(payload, context)
+              : await callback(payload),
+          );
+          if (failureCount > 0) errorCode = "DERIVATION_SINK_REJECTED";
+        }
+      } catch (_error) {
+        errorCode = "DERIVATION_SINK_FAILED";
+      }
+      const success = !errorCode;
+      const accepted = store.complete(claim, {
+        success,
+        ...(errorCode ? { errorCode } : {}),
+        unsupported: errorCode === "DERIVATION_UNSUPPORTED",
+      });
+      if (!accepted) {
+        result.superseded += 1;
+      } else if (success) {
+        result.succeeded += 1;
+      } else if (errorCode === "DERIVATION_UNSUPPORTED") {
+        result.unsupported += 1;
+      } else {
+        result.failed += 1;
+      }
+      if (!success) {
+        result.errorCount += Math.max(1, failureCount);
+        this._auditDerivationFailure(
+          job.target,
+          job.adapter,
+          job.scope,
+          errorCode,
+          Math.max(1, failureCount),
+        );
+      }
+    }
+    const summary = this.getDerivationStatus({ adapter, scope });
+    result.remaining =
+      summary.pending + summary.running + summary.failed + summary.unsupported;
+    result.blocked = Math.max(result.blocked, summary.running);
+    result.status = summary.status;
+    result.summary = summary;
+    return result;
+  }
+
+  _auditDerivationFailure(target, adapter, scope, errorCode, count) {
+    try {
+      this.vault.audit(`adapter.sync.${target}_sink_failed`, adapter, {
+        scope,
+        errorCode,
+        count,
+      });
+    } catch (_auditError) {
+      // Durable derivation state, rather than audit availability, owns retry.
+    }
   }
 
   // ─── Readiness ───────────────────────────────────────────────────────
@@ -844,6 +1162,9 @@ class AdapterRegistry {
       invalidCount: 0,
       kgTripleCount: 0,
       ragDocCount: 0,
+      derivationStatus: "not_run",
+      derivationFailureCount: 0,
+      derivationPendingCount: 0,
       resolvedConflictCount: 0,
       sourceAliasCount: 0,
       rawObservationCount: 0,
@@ -1878,8 +2199,8 @@ class AdapterRegistry {
    *   - On adapter.normalize() throw, increments invalidCount + audit
    *
    * Does NOT re-fetch from the source, does NOT update watermarks (raw
-   * archive timestamp is what it was), does NOT run KG/RAG sinks (those
-   * are sync-time concerns — call them via syncAll if needed).
+   * archive timestamp is what it was), does NOT run KG/RAG sinks. Canonical
+   * writes enqueue durable projection work; call retryDerivations to deliver it.
    *
    * @param {object} [opts]
    * @param {string} [opts.adapter]  Filter by adapter name; default = all
@@ -2557,32 +2878,77 @@ class AdapterRegistry {
       }
     }
 
-    // 5. KG sink (per-batch, not per-entity, so the sink can amortize work).
-    if (this.kgSink) {
-      const triples = deriveBatchTriples(persistedBatch);
-      report.kgTripleCount += triples.length;
+    // 5. Deliver only after canonical data and projection intent have committed.
+    // Source checkpoints can then advance even if a destination is unavailable.
+    if (typeof this.vault.getDerivationStore === "function") {
       try {
-        await this.kgSink(triples);
-      } catch (err) {
-        this.vault.audit("adapter.sync.kg_sink_failed", adapter.name, {
+        const entityCount = Object.values(persistedBatch).reduce(
+          (sum, entries) => sum + (Array.isArray(entries) ? entries.length : 0),
+          0,
+        );
+        const derived = await this.retryDerivations({
+          adapter: adapter.name,
           scope,
-          error: toError(err, "kgSink").message,
+          limit: Math.min(1000, Math.max(100, entityCount * 2)),
         });
-      }
-    }
-
-    // 6. RAG sink.
-    if (this.ragSink) {
-      const docs = deriveBatchDocs(persistedBatch);
-      report.ragDocCount += docs.length;
-      try {
-        await this.ragSink(docs);
-      } catch (err) {
-        this.vault.audit("adapter.sync.rag_sink_failed", adapter.name, {
+        report.kgTripleCount += derived.kgTripleCount;
+        report.ragDocCount += derived.ragDocCount;
+        report.derivationStatus = derived.status;
+        report.derivationFailureCount =
+          (report.derivationFailureCount || 0) + derived.errorCount;
+        report.derivationPendingCount = derived.remaining;
+      } catch (_error) {
+        // The durable queue remains authoritative when delivery itself fails.
+        report.derivationStatus = "failed";
+        report.derivationFailureCount =
+          (report.derivationFailureCount || 0) + 1;
+        this._auditDerivationFailure(
+          "queue",
+          adapter.name,
           scope,
-          error: toError(err, "ragSink").message,
-        });
+          "DERIVATION_QUEUE_FAILED",
+          1,
+        );
       }
+    } else {
+      // Custom vaults retain their batch callback contract, but cannot claim
+      // durable delivery or swallow structured per-destination error results.
+      const deliveries = [
+        ["kg", this.kgSink, deriveBatchTriples, "kgTripleCount"],
+        ["rag", this.ragSink, deriveBatchDocs, "ragDocCount"],
+      ];
+      let dispatched = false;
+      for (const [target, sink, derive, countKey] of deliveries) {
+        if (!sink) continue;
+        dispatched = true;
+        let failureCount = 0;
+        let errorCode = "DERIVATION_SINK_REJECTED";
+        try {
+          const payload = derive(persistedBatch);
+          report[countKey] += payload.length;
+          failureCount = sinkFailureCount(await sink(payload));
+        } catch (_error) {
+          failureCount = 1;
+          errorCode = "DERIVATION_SINK_FAILED";
+        }
+        if (failureCount > 0) {
+          report.derivationFailureCount =
+            (report.derivationFailureCount || 0) + failureCount;
+          this._auditDerivationFailure(
+            target,
+            adapter.name,
+            scope,
+            errorCode,
+            failureCount,
+          );
+        }
+      }
+      report.derivationStatus =
+        report.derivationFailureCount > 0
+          ? "failed"
+          : dispatched
+            ? "complete_volatile"
+            : "not_configured";
     }
 
     this._emit({
