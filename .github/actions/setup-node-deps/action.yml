@@ -48,9 +48,10 @@ runs:
           # A failed npm ci can leave partially-extracted packages behind.
           # Retrying in-place then fails with ENOTEMPTY (notably electron on
           # hosted runners), so restore npm ci's clean-install precondition.
-          # Node's maxRetries/retryDelay also handles short Windows file-lock
-          # release delays while keeping the deletion scoped to this checkout.
-          node -e "require('node:fs').rmSync('node_modules',{recursive:true,force:true,maxRetries:5,retryDelay:250})"
+          # Use async rm: Node 22's synchronous rimraf can throw an initial
+          # directory EBUSY without applying maxRetries (e.g. pkcs11js).
+          # The absolute target is always this install directory's direct child.
+          node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"
         }
         for i in 1 2 3; do
           if attempt_install; then
@@ -59,8 +60,11 @@ runs:
           if [ "$i" -lt 3 ]; then
             delay=$((i * 15))
             echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
-            cleanup_partial_install
             sleep "$delay"
+            if ! cleanup_partial_install; then
+              echo "::error::Cannot clean partial node_modules after npm install attempt $i"
+              exit 1
+            fi
           fi
         done
         echo "::error::npm install failed after 3 attempts"

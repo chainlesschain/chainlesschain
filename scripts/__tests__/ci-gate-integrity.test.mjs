@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import "./setup-node-deps.test.mjs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
