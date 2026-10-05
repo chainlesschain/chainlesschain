@@ -1,0 +1,98 @@
+{
+  "schema": "chainlesschain.cli-ide-release-workflow-snapshot/v1",
+  "observedAt": "2026-10-05T07:04:09.962Z",
+  "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+  "workflows": [
+    {
+      "runId": 37263113287,
+      "workflow": "CLI CI",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "main",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 2,
+      "createdAt": "2026-10-05T04:20:51Z",
+      "updatedAt": "2026-10-05T05:57:43Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37263113287"
+    },
+    {
+      "runId": 37263117813,
+      "workflow": "CLI Strict Sandbox",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "main",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T04:20:55Z",
+      "updatedAt": "2026-10-05T04:47:49Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37263117813"
+    },
+    {
+      "runId": 37262884353,
+      "workflow": "IDE Extensions",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "main",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T04:17:49Z",
+      "updatedAt": "2026-10-05T04:58:14Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37262884353"
+    },
+    {
+      "runId": 37262884363,
+      "workflow": "IDE ARM64 Host Validation",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "main",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T04:17:49Z",
+      "updatedAt": "2026-10-05T04:40:50Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37262884363"
+    },
+    {
+      "runId": 37271910978,
+      "workflow": "Publish CLI release to npm",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "v-npm-0-166-87",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T06:20:20Z",
+      "updatedAt": "2026-10-05T06:31:48Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37271910978"
+    },
+    {
+      "runId": 37272979353,
+      "workflow": "IDE Extensions",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "ide-vscode-v0.37.132",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T06:32:57Z",
+      "updatedAt": "2026-10-05T06:54:33Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37272979353"
+    },
+    {
+      "runId": 37272989376,
+      "workflow": "IDE Extensions",
+      "commit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+      "refName": "ide-jetbrains-v0.4.150",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "createdAt": "2026-10-05T06:33:04Z",
+      "updatedAt": "2026-10-05T07:02:04Z",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37272989376"
+    }
+  ]
+}
