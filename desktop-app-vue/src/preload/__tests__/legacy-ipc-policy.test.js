@@ -109,6 +109,11 @@ describe("legacy generic IPC policy", () => {
       "task:controlled-description-preview",
       "task:controlled-description-execute",
       "task:controlled-description-run",
+      "task:controlled-list",
+      "task:controlled-read",
+      "task:controlled-description-runs",
+      "project:risk-evaluate",
+      "project:risk-review",
     ]) {
       expect(isFixedRendererIpcChannel(channel), channel).toBe(true);
     }

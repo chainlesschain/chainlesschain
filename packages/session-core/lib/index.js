@@ -219,12 +219,14 @@ const {
 const businessObjectContract = require("./business-object-contract.js");
 const taskDescriptionAction = require("./task-description-action-service.js");
 const projectRiskEvaluation = require("./project-risk-evaluation.js");
+const projectRiskReview = require("./project-risk-review-service.js");
 
 module.exports = {
   // Pure business object/action contracts; hosts own authorization and execution.
   ...businessObjectContract,
   ...taskDescriptionAction,
   ...projectRiskEvaluation,
+  ...projectRiskReview,
   // SessionHandle
   SessionHandle,
   SESSION_STATUS: STATUS,

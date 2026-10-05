@@ -901,6 +901,8 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:get-files",
   "project:import-file",
   "project:move-file",
+  "project:risk-evaluate",
+  "project:risk-review",
   "project:stats:get",
   "project:stats:update",
   "project:update",
@@ -1080,6 +1082,9 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "task:controlled-description-execute",
   "task:controlled-description-preview",
   "task:controlled-description-run",
+  "task:controlled-description-runs",
+  "task:controlled-list",
+  "task:controlled-read",
   "task:create-board",
   "task:create-column",
   "task:create-label",
@@ -2830,6 +2835,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // 项目管理
   project: {
+    evaluateRisk: (params) =>
+      ipcRenderer.invoke("project:risk-evaluate", params),
+    getRiskReview: (params) =>
+      ipcRenderer.invoke("project:risk-review", params),
     // 项目CRUD
     getAll: (userId) => ipcRenderer.invoke("project:get-all", userId),
     get: (projectId) => ipcRenderer.invoke("project:get", projectId),
@@ -4735,6 +4744,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:controlled-description-execute", params),
     getDescriptionActionRun: (params) =>
       ipcRenderer.invoke("task:controlled-description-run", params),
+    listControlledTasks: (params) =>
+      ipcRenderer.invoke("task:controlled-list", params),
+    readControlledTask: (params) =>
+      ipcRenderer.invoke("task:controlled-read", params),
+    listDescriptionActionRuns: (params) =>
+      ipcRenderer.invoke("task:controlled-description-runs", params),
     deleteTask: (params) => ipcRenderer.invoke("task:delete-task", params),
     getTask: (params) => ipcRenderer.invoke("task:get-task", params),
     getTasks: (params) => ipcRenderer.invoke("task:get-tasks", params),

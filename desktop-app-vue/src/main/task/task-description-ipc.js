@@ -7,6 +7,11 @@ const CHANNELS = Object.freeze({
   preview: "task:controlled-description-preview",
   execute: "task:controlled-description-execute",
   run: "task:controlled-description-run",
+  list: "task:controlled-list",
+  read: "task:controlled-read",
+  runs: "task:controlled-description-runs",
+  evaluateRisk: "project:risk-evaluate",
+  riskReview: "project:risk-review",
 });
 
 function hostError(code) {
@@ -46,7 +51,7 @@ function createTaskDescriptionHost({
     return window;
   }
 
-  function createService(event) {
+  function createAuthority(event) {
     currentWindow(event);
     const getActor = () => {
       // Repeated by the service inside its atomic write, after the async dialog.
@@ -59,6 +64,11 @@ function createTaskDescriptionHost({
     };
     getActor();
     const db = database?.getDatabase ? database.getDatabase() : database;
+    return { db, getActor };
+  }
+
+  function createService(event) {
+    const { db, getActor } = createAuthority(event);
     const gate = new ApprovalGate({
       defaultPolicy: "strict",
       confirm: async ({ request, before, after, actorDid }) => {
@@ -100,6 +110,22 @@ function createTaskDescriptionHost({
     });
   }
 
+  function createRiskService(event) {
+    const authority = createAuthority(event);
+    const {
+      ProjectRiskReviewService,
+    } = require("@chainlesschain/session-core/project-risk-review-service");
+    return new ProjectRiskReviewService(authority);
+  }
+
+  function selectedParams(params, keys) {
+    return Object.fromEntries(
+      keys
+        .filter((key) => params?.[key] !== undefined)
+        .map((key) => [key, params[key]]),
+    );
+  }
+
   return Object.freeze({
     preview(event, params = {}) {
       return createService(event).preview({
@@ -113,6 +139,27 @@ function createTaskDescriptionHost({
     },
     getRun(event, params = {}) {
       return createService(event).getRun(params?.runId);
+    },
+    listTasks(event, params = {}) {
+      return createService(event).listTasks(
+        selectedParams(params, ["projectId", "afterId", "limit"]),
+      );
+    },
+    readTask(event, params = {}) {
+      return createService(event).readTask(params?.taskId);
+    },
+    listRuns(event, params = {}) {
+      return createService(event).listRuns(
+        selectedParams(params, ["taskId", "beforeId", "limit"]),
+      );
+    },
+    evaluateRisk(event, params = {}) {
+      return createRiskService(event).evaluate({
+        projectId: params?.projectId,
+      });
+    },
+    getRiskReview(event, params = {}) {
+      return createRiskService(event).getReview({ reviewId: params?.reviewId });
     },
   });
 }
@@ -134,6 +181,21 @@ function registerTaskDescriptionIPC(database, dependencies = {}) {
   );
   electron.ipcMain.handle("task:controlled-description-run", (event, params) =>
     host.getRun(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-list", (event, params) =>
+    host.listTasks(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-read", (event, params) =>
+    host.readTask(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-description-runs", (event, params) =>
+    host.listRuns(event, params),
+  );
+  electron.ipcMain.handle("project:risk-evaluate", (event, params) =>
+    host.evaluateRisk(event, params),
+  );
+  electron.ipcMain.handle("project:risk-review", (event, params) =>
+    host.getRiskReview(event, params),
   );
 }
 

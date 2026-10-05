@@ -291,11 +291,12 @@ function formatFileSize(bytes: number): string {
 }
 
 function onOpenWorkspace(): void {
-  if (!project.value?.id) {
+  const projectId = project.value?.id;
+  if (!projectId) {
     return;
   }
   store.closeDetails();
-  router.push(`/projects/${project.value.id}`);
+  router.push(`/projects/${projectId}`);
 }
 
 function onRename(): void {

@@ -52,7 +52,7 @@ describe("personal task description desktop authority", () => {
         id TEXT PRIMARY KEY, project_id TEXT NOT NULL, task_type TEXT,
         description TEXT NOT NULL, status TEXT, org_id TEXT, workspace_id TEXT,
         updated_at INTEGER NOT NULL, created_at INTEGER, completed_at INTEGER,
-        sync_status TEXT, deleted INTEGER DEFAULT 0
+        sync_status TEXT, deleted INTEGER DEFAULT 0, due_date INTEGER, blocked_by TEXT
       );
     `);
     db.prepare(
@@ -220,5 +220,100 @@ describe("personal task description desktop authority", () => {
         idempotencyKey: "ipc-change",
       }).after.description,
     ).toBe("From IPC");
+  });
+
+  it("serves authorized task lists, bounded detail and action history", async () => {
+    const listing = host.listTasks(event, {
+      projectId: "project-1",
+      actorDid: "did:attacker",
+      limit: undefined,
+    });
+    expect(listing.tasks).toHaveLength(1);
+    expect(listing.tasks[0]).toMatchObject({
+      id: "task-1",
+      taskType: "query_info",
+      status: "pending",
+    });
+    expect(host.readTask(event, { taskId: "task-1" })).toMatchObject({
+      editable: true,
+      description: "Original description",
+    });
+    const executed = await host.execute(event, { request: preview().request });
+    expect(
+      host.listRuns(event, { taskId: "task-1", beforeId: undefined }).runs[0]
+        .run.id,
+    ).toBe(executed.run.id);
+    actor = "did:chainlesschain:other";
+    for (const read of [
+      () => host.listTasks(event, { projectId: "project-1" }),
+      () => host.readTask(event, { taskId: "task-1" }),
+      () => host.listRuns(event, { taskId: "task-1" }),
+    ]) {
+      expect(read).toThrow("ACTION_NOT_FOUND_OR_DENIED");
+    }
+  });
+
+  it("evaluates real authorized rows and reads the saved risk source under current ownership", () => {
+    db.prepare(
+      "UPDATE project_tasks SET due_date=1,blocked_by=NULL WHERE id='task-1'",
+    ).run();
+    const evaluated = host.evaluateRisk(event, {
+      projectId: "project-1",
+      actorDid: "did:attacker",
+      asOf: "2000-01-01T00:00:00.000Z",
+    });
+    expect(evaluated.review.actorDid).toBe(owner);
+    expect(evaluated.evaluation.status).toBe("evaluated");
+    expect(evaluated.evaluation.summary.overdueTaskCount).toBe(1);
+    expect(evaluated.sourceSnapshot.tasks[0].blocked_by).toEqual([]);
+    expect(
+      host.getRiskReview(event, { reviewId: evaluated.review.id }),
+    ).toEqual(evaluated);
+    actor = "did:chainlesschain:other";
+    expect(() =>
+      host.getRiskReview(event, { reviewId: evaluated.review.id }),
+    ).toThrow();
+  });
+
+  it("enforces the window and sender checks for every added reader", () => {
+    const calls = [
+      () => host.listTasks(event, { projectId: "project-1" }),
+      () => host.readTask(event, { taskId: "task-1" }),
+      () => host.listRuns(event, { taskId: "task-1" }),
+      () => host.evaluateRisk(event, { projectId: "project-1" }),
+      () => host.getRiskReview(event, { reviewId: "unknown" }),
+    ];
+    event.senderFrame.url = "https://attacker.example";
+    for (const call of calls)
+      expect(call).toThrow("BUSINESS_ACTION_UNTRUSTED_SENDER");
+    event.senderFrame.url = "http://localhost:5173";
+    window.isDestroyed.mockReturnValue(true);
+    for (const call of calls)
+      expect(call).toThrow("BUSINESS_ACTION_WINDOW_UNAVAILABLE");
+  });
+
+  it("makes unresolved receipt history available without enabling another task edit", async () => {
+    let finish;
+    electron.dialog.showMessageBox.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const prepared = preview();
+    const pending = host.execute(event, { request: prepared.request });
+    expect(host.readTask(event, { taskId: "task-1" })).toMatchObject({
+      editable: false,
+      reason: "ACTION_UNRESOLVED_ACTION",
+    });
+    expect(host.listRuns(event, { taskId: "task-1" }).runs[0].run.status).toBe(
+      "running",
+    );
+    expect(() => preview({ idempotencyKey: "new-key" })).toThrow(
+      "ACTION_UNRESOLVED_ACTION",
+    );
+    finish({ response: 0 });
+    expect((await pending).run.status).toBe("cancelled");
+    expect(host.readTask(event, { taskId: "task-1" }).editable).toBe(true);
   });
 });

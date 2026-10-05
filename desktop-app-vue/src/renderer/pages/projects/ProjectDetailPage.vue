@@ -62,6 +62,13 @@
 
           <!-- 右侧：操作按钮 -->
           <div class="toolbar-right">
+            <a-button
+              v-if="currentProject?.id === projectId && !isAICreatingMode"
+              data-testid="project-tasks-button"
+              @click="showControlledTasks = true"
+            >
+              项目任务
+            </a-button>
             <!-- 文件导出菜单 -->
             <FileExportMenu
               v-if="currentFile"
@@ -474,6 +481,12 @@
       />
 
       <!-- 分享项目对话框 -->
+      <ProjectTaskDescriptionDrawer
+        v-model:open="showControlledTasks"
+        :project-id="String(projectId)"
+        :identity-key="`${taskIdentityStore.primaryDID || ''}:${taskIdentityStore.currentContext}:${taskAppStore.isAuthenticated}`"
+      />
+
       <ProjectShareDialog
         v-model:open="showShareModal"
         :project="currentProject"
@@ -513,6 +526,9 @@ import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { useProjectStore } from "@/stores/project";
 import { useActiveContextStore } from "@/stores/activeContext";
+import { useIdentityStore } from "@/stores/identity";
+import { useAppStore } from "@/stores/app";
+import ProjectTaskDescriptionDrawer from "@/components/projects/ProjectTaskDescriptionDrawer.vue";
 import {
   getProjectTypeColor,
   getProjectTypeText,
@@ -647,6 +663,9 @@ const webEditorRef = ref(null); // Web开发编辑器引用
 const pptEditorRef = ref(null); // PPT编辑器引用
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
+const showControlledTasks = ref(false);
+const taskIdentityStore = useIdentityStore();
+const taskAppStore = useAppStore();
 const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）- 已启用
 
 // 计算属性

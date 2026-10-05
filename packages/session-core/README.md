@@ -45,6 +45,13 @@ tasks and non-native database fallbacks are unsupported. Repeated invocations
 return durable receipts; interrupted running receipts remain unresolved and are
 never automatically replayed. Receipt reads recheck current ownership.
 
+The service also supplies bounded `listTasks`, `readTask`, and `listRuns`
+readers for the live project task panel. Metadata and receipt reads do not load
+large task result payloads. An unresolved run blocks a new action for the same
+task, even with a new idempotency key; replaying the original request only reads
+its durable receipt. Workspace resource associations are refused by this
+personal-only adapter alongside organization fields.
+
 The same module's `createTaskDescriptionPreview` prepares a request from an
 offline snapshot and explicitly labels its authority `unverified-snapshot`.
 The CLI exposes this preparation path, while the desktop host exposes the live
@@ -59,6 +66,17 @@ input digest and content-versioned references support reproducible comparisons.
 Its risk-specific references are selected-field projections, not the complete
 database-row versions required by controlled actions. Evaluation neither
 authenticates the snapshot nor approves an action or predicts project delivery.
+
+`./project-risk-review-service` adds an authorized desktop reader and durable
+rule review. `ProjectRiskReviewService({ db, getActor })` reads the current
+owner's personal project in one native SQLite transaction, evaluates selected
+task fields, and stores the source snapshot and result. `evaluate({ projectId })`
+and `getReview({ reviewId })` return `{ review, sourceSnapshot, evaluation }`.
+Historical reads recheck current ownership and verify stored content against
+the deterministic evaluator. Missing columns or excessive task counts remain
+explicitly incomplete; a failed SQL read never becomes an empty successful
+evaluation. Reviews are not approvals and are not yet bound to action receipts.
+See the [project task workbench guide](../../docs/research/palantir/project-task-review-workbench.md).
 
 ```bash
 npm test --workspace packages/session-core

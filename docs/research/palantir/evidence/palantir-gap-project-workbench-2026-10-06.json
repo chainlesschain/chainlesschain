@@ -1,0 +1,238 @@
+{
+  "schema": "chainlesschain.palantir-implementation-validation/v1",
+  "date": "2026-10-06",
+  "batch": 4,
+  "baseline": "afd099a51a3e3d9d4d656ec5d36ef3226f1d0141",
+  "branch": "feature/palantir-capability-hardening",
+  "state": "pre-commit-working-tree",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "vitestVersion": "4.1.10",
+  "actionTestDriver": {
+    "name": "better-sqlite3",
+    "testedVersion": "12.11.1"
+  },
+  "rendererEnvironment": {
+    "vitest": "4.1.10",
+    "vue": "3.5.42",
+    "@vue/test-utils": "2.4.11",
+    "happy-dom": "20.11.2",
+    "@vitejs/plugin-vue": "6.0.6"
+  },
+  "testRuns": {
+    "cli": {
+      "cwd": "packages/cli",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/unit/task-description-action-service.test.js",
+        "__tests__/unit/task-description-read-service.test.js",
+        "__tests__/unit/project-risk-review-service.test.js",
+        "__tests__/unit/project-snapshot.test.js",
+        "__tests__/integration/project-offline-cli.test.js"
+      ],
+      "args": [
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "passed": 106,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T19:15:24.465Z",
+      "reportSha256": "cbf0a2c9f0634175621d5dd965a7b57277dfb574358bc79143ec36d7da76f4f0",
+      "perFile": [
+        {
+          "file": "__tests__/integration/project-offline-cli.test.js",
+          "status": "passed",
+          "tests": 9
+        },
+        {
+          "file": "__tests__/unit/project-risk-review-service.test.js",
+          "status": "passed",
+          "tests": 44
+        },
+        {
+          "file": "__tests__/unit/project-snapshot.test.js",
+          "status": "passed",
+          "tests": 12
+        },
+        {
+          "file": "__tests__/unit/task-description-action-service.test.js",
+          "status": "passed",
+          "tests": 22
+        },
+        {
+          "file": "__tests__/unit/task-description-read-service.test.js",
+          "status": "passed",
+          "tests": 19
+        }
+      ]
+    },
+    "core": {
+      "cwd": "packages/session-core",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/project-risk-evaluation.test.js",
+        "__tests__/business-object-contract.test.js"
+      ],
+      "args": [
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "passed": 146,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T19:15:24.377Z",
+      "reportSha256": "bc182f98963e3aecf6b48d3dca169d4a348e4a246a639cc48e774351d235c47c",
+      "perFile": [
+        {
+          "file": "__tests__/business-object-contract.test.js",
+          "status": "passed",
+          "tests": 74
+        },
+        {
+          "file": "__tests__/project-risk-evaluation.test.js",
+          "status": "passed",
+          "tests": 72
+        }
+      ]
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "runner": "node ../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "src/main/task/__tests__/task-description-ipc.test.js",
+        "src/preload/__tests__/legacy-ipc-policy.test.js",
+        "src/main/ipc/__tests__/ipc-sender-guard.test.js"
+      ],
+      "args": [
+        "--config",
+        "vitest.business-actions.config.mjs",
+        "--maxWorkers=1",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "passed": 49,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T19:15:26.519Z",
+      "reportSha256": "815e38b9682fd35e90890b6a0ab5e36f2717f3d2d33672dbac573fed8cd45a42",
+      "perFile": [
+        {
+          "file": "src/preload/__tests__/legacy-ipc-policy.test.js",
+          "status": "passed",
+          "tests": 6
+        },
+        {
+          "file": "src/main/ipc/__tests__/ipc-sender-guard.test.js",
+          "status": "passed",
+          "tests": 27
+        },
+        {
+          "file": "src/main/task/__tests__/task-description-ipc.test.js",
+          "status": "passed",
+          "tests": 16
+        }
+      ]
+    },
+    "renderer": {
+      "cwd": "desktop-app-vue",
+      "runner": "node <isolated Vitest 4.1.10 with Vue and happy-dom>/vitest.mjs run",
+      "files": [
+        "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts"
+      ],
+      "args": [
+        "--config",
+        "vitest.business-actions-renderer.config.mjs",
+        "--maxWorkers=1",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "passed": 29,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true,
+      "startedAt": "2026-10-05T19:18:13.827Z",
+      "reportSha256": "f64f47db940f55d01aeab96e77820b5082d2dc3a02ad3c0941f54f3fa9852e75",
+      "perFile": [
+        {
+          "file": "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+          "status": "passed",
+          "tests": 27
+        },
+        {
+          "file": "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+          "status": "passed",
+          "tests": 2
+        }
+      ]
+    }
+  },
+  "totals": {
+    "files": 12,
+    "passed": 330,
+    "failed": 0,
+    "skippedWithinSelectedFiles": 0
+  },
+  "checks": {
+    "desktopIpcManifest": "passed; 1225 exact channels, 156 denied",
+    "vuePageCompilation": "passed for project detail and quick detail pages",
+    "prettier": "passed for changed authored code and docs",
+    "diffWhitespace": "passed",
+    "independentReview": "authorization, bounded reads, stored risk history and renderer state reviewed; unresolved retry, explicit denial recovery, stale response metadata, IPC structured clone and route handoff findings fixed"
+  },
+  "limitations": [
+    "Selective local Windows/Node verification. No complete repository suite or exact-commit release matrix at evidence capture.",
+    "Native tests use better-sqlite3 12.11.1. Exact production SQLCipher dependency and OS matrix remain to be verified separately.",
+    "Renderer tests mount the real Vue component in happy-dom; two journeys cross the real host/service and SQLite with structured-clone IPC simulation. Electron windows/dialog and Ant Drawer are injected, not actual GUI end-to-end.",
+    "Vue test tooling is installed in an isolated temporary environment; tracked production dependencies and lockfiles are unchanged in this feature batch.",
+    "Personal saved project_tasks only. Existing device-ID/default-user ownership is not silently adopted; task creation and organization/multistep approval are not implemented.",
+    "New controlled page does not replace every legacy CRUD entrypoint. Workspace resource mappings are rejected by this personal adapter.",
+    "Unresolved action receipts block a new key for the same target; no force replay, automated recovery or receipt retention interface is introduced.",
+    "Risk reviews preserve selected source snapshots and deterministic rule results under current owner/source checks. They are not yet bound to ActionRun and do not prove model quality, cost or real project delivery.",
+    "Historical risk source tasks that have moved, been deleted or entered unsupported scope prevent re-reading the review. No review listing/retention/independent signature is delivered.",
+    "User has authorized downstream child npm, CLI and IDE releases; publication is separate work gated by the exact release commit and GitHub Actions OIDC, not this local evidence."
+  ],
+  "sourceSha256": {
+    "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs": "e769a40cf22e773385069049624c163190a0db109c72247f367cea2048a8f3a8",
+    "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a",
+    "desktop-app-vue/src/main/ipc/ipc-sender-guard.js": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c",
+    "desktop-app-vue/src/main/permission/current-user-context.js": "f0b454d5d3b0f1a32c3af2d43ca018c33d8cb560f7b19b62d3729a07aca2e00d",
+    "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js": "e60c11f2724d8f56c98472920647461e052ec7cb8093524be3ee497e21f39713",
+    "desktop-app-vue/src/main/task/task-description-ipc.js": "e5d91a0d510f0ae92297afe3a88bed2eb4e8fc1bcd44621174ec08ae0269add1",
+    "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb",
+    "desktop-app-vue/src/preload/index.js": "4b001f131f15520454c9a23702f28c46514ec1b84d4a6636461ebadebe9a65f1",
+    "desktop-app-vue/src/preload/renderer-ipc-capabilities.json": "eaeb10ceabc519095a055cae070a94bf5c160725d2714d27006c6442c13926a4",
+    "desktop-app-vue/src/renderer/components/projects/ProjectTaskDescriptionDrawer.vue": "1fdf63834a4fca7b7647150d24b1ef8782937e21dc233eca0c1de356e2bc0569",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts": "1de006a95cfa354b26858c2963edb7db6b26a282073bb7a73596a6f2d97a472c",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts": "4fa0012bd958c66350c0871bddcdcf49e35835b42d7ad10ac3d41a7eeabfae89",
+    "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts": "7029ef4d0610868bedc36f2af1a42a037ad3a5eb8f8f0e82b0367e256e5043fb",
+    "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue": "0c11a03ebe9218d526fa58f6fb303f1f9d35e60d0d62e32845384031affc0e71",
+    "desktop-app-vue/src/renderer/shell/projects/ProjectDetailDrawer.vue": "9f9e4e492f0644f15d9057044d4bcae891c5fea6bdf0670200bf518ae2b88fae",
+    "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "8f655e9b92b2ddf2f643b8251f49db0afbc01a2e5e75acc9a56abf3d90c2fb81",
+    "desktop-app-vue/vitest.business-actions.config.mjs": "8dc3a9ff66cc5c33f451afae83d974b49341197e63887ec365f1d0c1080a67bc",
+    "docs/research/palantir/controlled-task-description-action.md": "bd0ceb7cbb32428f7b8c2384b2898f43b7314ad08e639db1b68cf73d83dbe87e",
+    "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md": "3ef27ac90d22154fe58668266c83db173b3ee23575f3f91387e2f26124e08a33",
+    "docs/research/palantir/project-task-review-workbench.md": "823a07c2a5f062ea35a93909afb971a1fca0e1de2c92ad08dbe51a56c019592e",
+    "packages/cli/__tests__/integration/project-offline-cli.test.js": "d8411ab42925bd6db613f3a09ee7f9718dae1ccf6665095568665d5f26982314",
+    "packages/cli/__tests__/unit/project-risk-review-service.test.js": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e",
+    "packages/cli/__tests__/unit/project-snapshot.test.js": "7d813d935decc01b1fec05a8c9f688deea137b4718e09ce5aeb661ba7b67f06e",
+    "packages/cli/__tests__/unit/task-description-action-service.test.js": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065",
+    "packages/cli/__tests__/unit/task-description-read-service.test.js": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a",
+    "packages/session-core/README.md": "228b94fb72ca1d5707820b809d199cd98750f67c72fbe86ffb3dc3aa7cdc4730",
+    "packages/session-core/__tests__/business-object-contract.test.js": "eeeeb71f5c75edc7ee6ffd96b8de27f12de6b8147a92316dd77708f6978bf57a",
+    "packages/session-core/__tests__/project-risk-evaluation.test.js": "ff56760aaf0398d93cd68bd0f72b009424e442127a1f0350521110bb2af6736b",
+    "packages/session-core/lib/approval-gate.js": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88",
+    "packages/session-core/lib/business-object-contract.js": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+    "packages/session-core/lib/index.js": "57015a2d59201d2648af540a40c551783044b2264492335d909cbf0f9b7498ef",
+    "packages/session-core/lib/project-risk-evaluation.js": "7807c05dbc90ebf097c427d6b971308a5e16cb6645626a46b1f43c50090d9ca5",
+    "packages/session-core/lib/project-risk-review-service.js": "3b09b96232b1e1faec9909200d06e7c9fc33c1e657bff1deef57424c8f0334e5",
+    "packages/session-core/lib/task-description-action-service.js": "183c5fb2c813b9e91f1b922a20fbfcb052203770e26f4ac75d3b55a4c3075804",
+    "packages/session-core/package.json": "1f9dd59d175c8c709f01dffd397289080c00a7ba62ac71a28b90f8bbaf3cb16a"
+  }
+}
