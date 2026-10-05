@@ -1,0 +1,13 @@
+{"stage":"prepared","at":"2026-10-05T10:07:15.388Z"}
+{"stage":"install_started","at":"2026-10-05T10:07:15.420Z"}
+{"stage":"install_completed","at":"2026-10-05T10:07:25.112Z"}
+{"stage":"list_started","at":"2026-10-05T10:07:25.112Z"}
+{"stage":"list_completed","at":"2026-10-05T10:07:25.358Z"}
+{"stage":"download_started","at":"2026-10-05T10:07:25.358Z"}
+{"stage":"download_completed","at":"2026-10-05T10:07:25.360Z"}
+{"stage":"multi_window_started","at":"2026-10-05T10:07:25.360Z"}
+{"actor":"orchestrator","transport":"managed-extension-host","attempt":1,"stage":"multi_window_primary_launch_requested","at":"2026-10-05T10:07:25.361Z"}
+{"actor":"orchestrator","transport":"managed-extension-host","attempt":1,"stage":"multi_window_primary_launch_dispatched","at":"2026-10-05T10:07:25.363Z"}
+{"stage":"journey_failed","at":"2026-10-05T10:07:45.384Z"}
+{"stage":"evidence_started","at":"2026-10-05T10:07:45.388Z"}
+{"stage":"evidence_completed","at":"2026-10-05T10:07:45.394Z"}

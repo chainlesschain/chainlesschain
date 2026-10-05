@@ -1,0 +1,4 @@
+# Preserve receipt and diagnostic bytes so recorded SHA-256 values survive Git.
+*.json -text
+*.jsonl -text
+*.txt -text

@@ -1,0 +1,46 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
+  "required": true,
+  "releaseCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "host": {
+    "name": "vscode",
+    "version": "1.140.0",
+    "operatingSystem": "linux",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "workspace": {
+    "layout": "multi-root",
+    "rootCount": 2,
+    "orderedRootsDigest": "sha256:6bb0f85dd2e72a8485a803cd774d6c20403f7f21461111a4b817e75c65c89d38"
+  },
+  "cliVersion": "0.166.88",
+  "extensionVersion": "0.37.133",
+  "startedAt": "2026-10-05T10:07:15.388Z",
+  "finishedAt": "2026-10-05T10:07:45.388Z",
+  "result": "failed",
+  "evidenceComplete": false,
+  "artifactBundleDigest": "sha256:9d1e5577aff400feba9cdd5cedf7e2a7d72e6deb940260cc94101bcf129a96ee",
+  "artifacts": [
+    {
+      "kind": "release-artifact",
+      "name": "chainlesschain-ide.vsix",
+      "path": "release-artifacts/001-chainlesschain-ide.vsix",
+      "sha256": "sha256:b0186911cefbade90e18266c5a29983fe8b4546031948d46ba01c76a28f371c5",
+      "bytes": 709659
+    }
+  ],
+  "incidents": [
+    {
+      "code": "source-empty",
+      "sourceIndex": 0
+    },
+    {
+      "code": "host-diagnostics-missing"
+    }
+  ],
+  "evidenceDigest": "sha256:fb84ee23b7d19a0df127b1e2f060ac92bf2728c5d0ea347521978ab1e91a4ee8"
+}

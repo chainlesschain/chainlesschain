@@ -1,0 +1,406 @@
+{
+  "schema": "chainlesschain.cli-ci-retry-history/v1",
+  "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "firstFailure": {
+    "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+    "observedAt": "2026-10-05T09:16:10.009Z",
+    "job": {
+      "id": 111687317847,
+      "run_id": 37279746954,
+      "workflow_name": "CLI CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37279746954",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaARU5Vw",
+      "head_sha": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111687317847",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/job/111687317847",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-05T08:56:04Z",
+      "started_at": "2026-10-05T08:56:07Z",
+      "completed_at": "2026-10-05T09:02:37Z",
+      "name": "verify-cli (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-05T08:56:08Z",
+          "completed_at": "2026-10-05T08:56:09Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-05T08:56:09Z",
+          "completed_at": "2026-10-05T08:56:30Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-05T08:56:30Z",
+          "completed_at": "2026-10-05T08:56:30Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-05T08:56:30Z",
+          "completed_at": "2026-10-05T08:56:57Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-05T08:56:57Z",
+          "completed_at": "2026-10-05T08:56:57Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-05T08:56:57Z",
+          "completed_at": "2026-10-05T08:59:53Z"
+        },
+        {
+          "name": "Run exact-SHA PM exploration recovery drill",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-05T08:59:53Z",
+          "completed_at": "2026-10-05T09:00:11Z"
+        },
+        {
+          "name": "Upload exact-SHA PM exploration recovery evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-05T09:00:11Z",
+          "completed_at": "2026-10-05T09:00:12Z"
+        },
+        {
+          "name": "Verify asynchronous PR recovery without GitHub writes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-05T09:00:12Z",
+          "completed_at": "2026-10-05T09:01:05Z"
+        },
+        {
+          "name": "Test Core DB release payload source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-05T09:01:05Z",
+          "completed_at": "2026-10-05T09:01:08Z"
+        },
+        {
+          "name": "Test Session Core release payload source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-05T09:01:08Z",
+          "completed_at": "2026-10-05T09:01:16Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-05T09:01:16Z",
+          "completed_at": "2026-10-05T09:01:30Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-05T09:01:30Z",
+          "completed_at": "2026-10-05T09:01:31Z"
+        },
+        {
+          "name": "Upload Claude security delta evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-05T09:01:31Z",
+          "completed_at": "2026-10-05T09:01:32Z"
+        },
+        {
+          "name": "Produce required canonical RC-DEFAULT fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-05T09:01:32Z",
+          "completed_at": "2026-10-05T09:01:40Z"
+        },
+        {
+          "name": "Upload RC-DEFAULT audit evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-05T09:01:40Z",
+          "completed_at": "2026-10-05T09:01:41Z"
+        },
+        {
+          "name": "Verify 32-process cross-session message fabric",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-05T09:01:41Z",
+          "completed_at": "2026-10-05T09:01:51Z"
+        },
+        {
+          "name": "Upload cross-session message fabric evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-05T09:01:51Z",
+          "completed_at": "2026-10-05T09:01:52Z"
+        },
+        {
+          "name": "Produce canonical MCP lifecycle compatibility evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-05T09:01:52Z",
+          "completed_at": "2026-10-05T09:02:11Z"
+        },
+        {
+          "name": "Upload MCP lifecycle evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-05T09:02:11Z",
+          "completed_at": "2026-10-05T09:02:12Z"
+        },
+        {
+          "name": "Verify CLI --version",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-05T09:02:12Z",
+          "completed_at": "2026-10-05T09:02:13Z"
+        },
+        {
+          "name": "Verify CLI --help",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-05T09:02:13Z",
+          "completed_at": "2026-10-05T09:02:13Z"
+        },
+        {
+          "name": "Verify settings permission revision and mutation contracts",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 23,
+          "started_at": "2026-10-05T09:02:13Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify command surface and top-level growth gate",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 24,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify command lifecycle evidence contract",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 25,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify generated command help index",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 26,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify generated shell completions",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 27,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify canonical Agent stream causal conformance",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 28,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Verify CLI startup SLOs",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:33Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 56,
+          "started_at": "2026-10-05T09:02:33Z",
+          "completed_at": "2026-10-05T09:02:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 57,
+          "started_at": "2026-10-05T09:02:34Z",
+          "completed_at": "2026-10-05T09:02:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 58,
+          "started_at": "2026-10-05T09:02:34Z",
+          "completed_at": "2026-10-05T09:02:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 59,
+          "started_at": "2026-10-05T09:02:36Z",
+          "completed_at": "2026-10-05T09:02:36Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111687317847",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000377626,
+      "runner_name": "GitHub Actions 1000377626",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    "review": {
+      "failureCode": "STATE_LOCK_UNAVAILABLE",
+      "failedTest": "preserves every concurrent process update using the existing strict lock",
+      "writer": "writer3",
+      "attempts": 17,
+      "commitState": "not-committed",
+      "latestOwner": {
+        "pid": 4660,
+        "ageMs": 214,
+        "alive": true,
+        "releasePublished": false
+      },
+      "productLockBudgetMs": 2000,
+      "concurrentWriterProcesses": 4,
+      "writesPerProcess": 6,
+      "reportedDurationMs": 2266,
+      "rootCause": "not-confirmed",
+      "sameCommitPassingEvidence": [
+        {
+          "jobId": 111664951607,
+          "context": "Windows full unit shard15",
+          "durationMs": 530
+        },
+        {
+          "jobId": 111664787087,
+          "context": "Windows Strict Sandbox",
+          "durationMs": 725
+        }
+      ],
+      "previousReleasePassingEvidence": {
+        "sourceCommit": "85f2f14aa1c36169e9f362eaaf733fde561a906c",
+        "jobId": 111633121192,
+        "durationMs": 705
+      },
+      "operatorAction": "single official same-SHA failed-job rerun; successful latest exact-SHA matrix still required",
+      "reviewer": "Astra AI code review, not independent human acceptance"
+    }
+  },
+  "originalFailureLog": {
+    "evidencePath": "windows-verify-attempt1.txt",
+    "bytes": 96653,
+    "sha256": "83545907c9e2078142759c562ed37ae96ccb7fbf941f874b36afd892508f457e"
+  },
+  "priorAttempts": [
+    {
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "failedJobs": [
+        {
+          "id": 111687317847,
+          "name": "verify-cli (windows-latest)",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/job/111687317847",
+          "steps": [
+            {
+              "name": "Verify settings permission revision and mutation contracts",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 23,
+              "started_at": "2026-10-05T09:02:13Z",
+              "completed_at": "2026-10-05T09:02:33Z"
+            }
+          ]
+        },
+        {
+          "id": 111689591581,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/job/111689591581",
+          "steps": [
+            {
+              "name": "Refuse an incomplete PM recovery platform matrix",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 2,
+              "started_at": "2026-10-05T09:02:43Z",
+              "completed_at": "2026-10-05T09:02:43Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "failure",
+      "failedJobs": [
+        {
+          "id": 111692672495,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954/job/111692672495",
+          "steps": [
+            {
+              "name": "Verify complete test-only PM recovery evidence matrix",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 7,
+              "started_at": "2026-10-05T09:11:40Z",
+              "completed_at": "2026-10-05T09:11:40Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "attempt2AggregateFailure": "expected exactly three PM recovery evidence files; found 1",
+  "resolution": "Official upstream job rerun generated all three OS verification receipts in one attempt; exact SHA unchanged.",
+  "successfulAttempt": 3
+}

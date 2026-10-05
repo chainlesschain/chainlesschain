@@ -1,8 +1,10 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
+
 > **后续实施（2026-10-05）**：IDE-READY-02、IDE-ONBOARD-02、IDE-COLD-02 及共享模型修复已落地；实现、测试及真实宿主验收边界见[本期实施状态与证据](../cli-ide-gap-implementation-2026-10-05.md)。以下正文保留原审计快照，所述缺陷与行号指原代码基线。后续工作按用户要求在 `main` 进行。
 
-> **本轮工作区补充**：双 IDE `AgentChatSession` 支持可选原始协议观察，新的只读导入器核对输入接受回执、真实终态、退出、tab/reload 操作记录和完整文件变更，并接入既有 Eval/outcome。接口与合同测试已经补齐；真实 GUI driver、公开安装、provider/账单、真人听测和长时观察仍须另行验收。详见[实施记录第 9 节](../cli-ide-gap-implementation-2026-10-05.md#9-本轮验收工程补充)。36+9 仍为 `NOT_RUN`；用户最新已授权提交发布，候选及准确提交验证见实施记录第 10 节；正式验收状态不因发布改变。
+> **本轮工作区补充**：双 IDE `AgentChatSession` 支持可选原始协议观察，新的只读导入器核对输入接受回执、真实终态、退出、tab/reload 操作记录和完整文件变更，并接入既有 Eval/outcome。接口与合同测试已经补齐；真实 GUI driver、公开安装、provider/账单、真人听测和长时观察仍须另行验收。详见[实施记录第 9 节](../cli-ide-gap-implementation-2026-10-05.md#9-本轮验收工程补充)。36+9 仍为 `NOT_RUN`；用户最新已授权提交发布，发行结果及准确提交验证见实施记录第 10 节；正式验收状态不因发布改变。
 
 - 审计日期：2026-10-05（Asia/Shanghai）。
 - 代码快照：`main@8b13129624d4b7fa5b122a4109151c574564448e`。开始时共享实施记录已有工作区修改；本次保留该修改，未改产品代码。

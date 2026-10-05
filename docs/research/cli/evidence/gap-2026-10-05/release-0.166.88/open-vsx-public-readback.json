@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-05T11:03:01.987Z",
+  "sourceCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+  "tagWorkflow": {
+    "id": 37291923667,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37291923667"
+  },
+  "verificationSource": "supplementary local public readback using repository marketplace verifier",
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.133",
+  "latest": "0.37.133",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "b0186911cefbade90e18266c5a29983fe8b4546031948d46ba01c76a28f371c5",
+  "localArchiveSha256": "b0186911cefbade90e18266c5a29983fe8b4546031948d46ba01c76a28f371c5",
+  "contentSha256": "b525e2835daf9c96fb82742f65348758000a72fa59506c36e9b63daeb177709b"
+}
