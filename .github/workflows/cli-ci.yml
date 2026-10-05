@@ -94,7 +94,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       PDH_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      PDH_EVIDENCE_DIR: ${{ runner.temp }}/pdh-native-evidence
     steps:
       - uses: actions/checkout@v5
         with:
@@ -107,6 +106,8 @@ jobs:
           node-version: "22.22.2"
       - name: Test complete PDH suite with host-native drivers
         shell: bash
+        env:
+          PDH_EVIDENCE_DIR: ${{ runner.temp }}/pdh-native-evidence
         run: bash .github/scripts/ci-test-pdh.sh
       - name: Upload PDH native identity and full test report
         if: always()

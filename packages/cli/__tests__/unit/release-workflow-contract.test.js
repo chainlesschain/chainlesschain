@@ -68,6 +68,11 @@ describe("CLI release workflow contracts", () => {
     );
     expect(job).toContain('test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"');
     expect(job).toContain("bash .github/scripts/ci-test-pdh.sh");
+    // Runner context is unavailable in job-level env, only after job scheduling.
+    expect(job.split("    steps:")[0]).not.toContain("runner.temp");
+    expect(job).toMatch(
+      /Test complete PDH suite with host-native drivers\s+shell: bash\s+env:\s+PDH_EVIDENCE_DIR: \$\{\{ runner\.temp \}\}\/pdh-native-evidence/u,
+    );
     expect(job).not.toContain("continue-on-error");
     expect(job).not.toMatch(/^    (?:if|needs):/mu);
     for (const trigger of ["push", "pull_request"]) {
