@@ -2,27 +2,41 @@
 
 更新日期：2026-10-06。用户已授权直接提交主分支、推送 GitHub Actions，测试通过后按依赖顺序发布，并持续修复发布失败。
 
-| 阶段               | 目标版本 / 范围                            | 状态                               | 验证依据                                                                   |
-| ------------------ | ------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------- |
-| 功能实现           | 四批 Palantir 对照改进                     | 已提交                             | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
-| 子包核对           | PDH、Session Core                          | 已确认必须更新                     | 两包实现均不同于公开版本；其余子包无实现变更                               |
-| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                  | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
-| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 首轮发现工作流解析失败，修复后重跑 | 必须绑定修复后的最终提交；Linux、Windows、macOS 全部通过                   |
-| Session Core       | `0.3.14` → `0.3.15`                        | 待门禁通过                         | GitHub Actions OIDC 发布；公开包下载核验                                   |
-| Personal Data Hub  | `0.4.62` → `0.4.63`                        | 待门禁通过                         | 新增三平台完整 PDH 原生测试，声明的 SQLCipher 依赖必须实际加载             |
-| CLI                | `0.166.89` → `0.166.90`                    | 待子包发布和核验                   | 精确依赖对齐、公开子包逐包校验后 OIDC 发布                                 |
-| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 待 CLI 公开可用                    | 配对 CLI `0.166.90`；三平台 IDE 测试和发布工作流                           |
-| JetBrains          | 候选 `0.4.153`                             | 待 CLI 公开可用                    | 旧 `0.4.152` 发布仍在进行，候选不复用其版本；上传与公开审核状态分别记录    |
+| 阶段               | 目标版本 / 范围                            | 状态                                | 验证依据                                                                   |
+| ------------------ | ------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
+| 功能实现           | 四批 Palantir 对照改进                     | 已提交                              | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
+| 子包核对           | PDH、Session Core                          | 已确认必须更新                      | 两包实现均不同于公开版本；其余子包无实现变更                               |
+| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                   | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
+| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 修复 PDH 跨包测试布局后重启完整检查 | 解析错误和隐式跳过缺口已修复；须最新提交全部通过后发布                     |
+| Session Core       | `0.3.14` → `0.3.15`                        | 待门禁通过                          | GitHub Actions OIDC 发布；公开包下载核验                                   |
+| Personal Data Hub  | `0.4.62` → `0.4.63`                        | 待门禁通过                          | 新增三平台完整 PDH 原生测试，声明的 SQLCipher 依赖必须实际加载             |
+| CLI                | `0.166.89` → `0.166.90`                    | 待子包发布和核验                    | 精确依赖对齐、公开子包逐包校验后 OIDC 发布                                 |
+| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 待 CLI 公开可用                     | 配对 CLI `0.166.90`；三平台 IDE 测试和发布工作流                           |
+| JetBrains          | 候选 `0.4.153`                             | 待 CLI 公开可用                     | 旧 `0.4.152` 发布仍在进行，候选不复用其版本；上传与公开审核状态分别记录    |
 
 发布标签依次为 `v-npm-0-166-90`、`ide-vscode-v0.37.135`、`ide-jetbrains-v0.4.153`。npm 工作流先发布缺失的子包并核验公开归档，再发布 CLI。仅本地测试、部分矩阵或旧提交检查均不能满足发布条件。
 
-本地发布准备检查：VS Code 单元测试 254 项通过；发布工作流契约和门禁 31 项通过；命令 manifest/help/completions、版本同步和包版本滞后检查通过。JetBrains smokeTest 1445 项通过，完整原生 IDE 验证以 Actions 为准。
+本地发布准备检查：VS Code 单元测试 254 项通过；发布工作流契约和门禁 31 项通过；命令 manifest/help/completions、版本同步和包版本滞后检查通过。JetBrains smokeTest 1445 项、定向 JUnit 14 项通过，完整原生 IDE 验证以 Actions 为准。
 
 首轮 Actions：
 
 - [CLI CI 工作流解析失败](https://github.com/chainlesschain/chainlesschain/actions/runs/37363962753)
 - [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37363964482)
 - [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37363964413)
+
+第二轮候选 `3d234bd8841e3c582213fc6bf5337adcca67cb6d`（由下述布局修复替代）：
+
+- [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37364245400)
+- [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37364244876)
+- [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37364278953)
+
+已修复新增 PDH job 在 job 级 env 使用不支持的 `runner.temp` 上下文问题，移至 step env 后通过 actionlint 和 31 项门禁测试。GitHub 官方当前报告 [Actions runner 分配延迟](https://www.githubstatus.com/incidents/3q1yb5m7ltvb)，排队并非测试通过。
+
+第二轮 Windows PDH 日志审计发现 20 项测试因缺少 CLI bin 和 Python bridge 被隐式跳过。已改为从准确提交归档完整候选源码，使用现有生产依赖安装器校验并安装 10 个本地子包，三平台显式安装 Python 3.12；报告强制检查这些 20 项测试与新增 35 项派生恢复测试均实际通过。
+
+补齐布局后的本地独立环境验证：288 个文件通过，4482 项通过、0 失败，125 项源码显式停用的历史 Evolution ingress 测试保持跳过；本轮未将这些跳过计为通过。原缺失 20 项全部执行通过，两个 native 驱动均实际加载。该结果作为补充，发布仍等待新提交的三平台 Actions。
+
+按用户要求清理过期队列：19 个旧候选任务已取消；3 条 5 月 / 8 月的旧记录虽然 API 显示 queued，取消接口却返回已完成或未排队，无法取消且未删除历史。当前候选与正式 JetBrains 发布任务保留。
 
 当前 VS Code 配置的发布渠道为 Open VSX；Microsoft Marketplace 的 `VSCE_PAT` 未配置。JetBrains 作者签名密钥未配置，不能声称本次包已完成作者签名。JetBrains 上传完成后仍需以市场公开版本确认最终可用状态。
 

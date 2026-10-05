@@ -68,6 +68,8 @@ describe("CLI release workflow contracts", () => {
     );
     expect(job).toContain('test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"');
     expect(job).toContain("bash .github/scripts/ci-test-pdh.sh");
+    expect(job).toContain("uses: actions/setup-python@v6");
+    expect(job).toContain('python-version: "3.12"');
     // Runner context is unavailable in job-level env, only after job scheduling.
     expect(job.split("    steps:")[0]).not.toContain("runner.temp");
     expect(job).toMatch(
@@ -79,7 +81,10 @@ describe("CLI release workflow contracts", () => {
       const paths = text.split(`\n  ${trigger}:`)[1].split(/\n  \w/u)[0];
       for (const input of [
         "packages/personal-data-hub/**",
+        "packages/personal-data-hub-bridge/**",
         ".github/scripts/ci-test-pdh.sh",
+        ".github/scripts/ci-install-cli-production-deps.sh",
+        ".github/scripts/ci-npm-retry.sh",
         "scripts/android/pdh-sqlite-leaf-salvage.js",
         "docs/internal/pdh-app-data-catalog.json",
       ])
@@ -107,10 +112,24 @@ describe("CLI release workflow contracts", () => {
       "npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn",
     );
     expect(script).toContain("--pool=forks --maxWorkers=2");
+    expect(script).toContain("git archive HEAD");
+    expect(script).toContain("packages/personal-data-hub-bridge");
     expect(script).toContain(
-      "dependencies: { semver: cli.dependencies.semver }",
+      'GITHUB_WORKSPACE="$PDH_SCRATCH" bash "$PDH_SCRATCH/.github/scripts/ci-install-cli-production-deps.sh"',
     );
-    expect(script).toContain('npm install --prefix "$PDH_SCRATCH"');
+    expect(script).toContain("import forensics_bridge.ipc_server");
+    for (const suite of [
+      "e2e/local-data-adapters-cli.e2e.test.js",
+      "sidecar-supervisor.test.js",
+      "sidecar-contacts-cross-validate.test.js",
+      "vault-derivation.test.js",
+      "registry-derivation.test.js",
+      "integration/derivation-projections.test.js",
+    ])
+      expect(script).toContain(`'${suite}'`);
+    expect(script).toContain(
+      "result.assertionResults.some((test) => test.status !== 'passed')",
+    );
     for (const module of [
       "knowledge-graph.js",
       "bm25-search.js",

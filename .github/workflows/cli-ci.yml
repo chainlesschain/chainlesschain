@@ -8,7 +8,10 @@ on:
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
+      - "packages/personal-data-hub-bridge/**"
       - ".github/scripts/ci-test-pdh.sh"
+      - ".github/scripts/ci-install-cli-production-deps.sh"
+      - ".github/scripts/ci-npm-retry.sh"
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
@@ -46,7 +49,10 @@ on:
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
+      - "packages/personal-data-hub-bridge/**"
       - ".github/scripts/ci-test-pdh.sh"
+      - ".github/scripts/ci-install-cli-production-deps.sh"
+      - ".github/scripts/ci-npm-retry.sh"
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
@@ -104,6 +110,9 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.22.2"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
       - name: Test complete PDH suite with host-native drivers
         shell: bash
         env:
