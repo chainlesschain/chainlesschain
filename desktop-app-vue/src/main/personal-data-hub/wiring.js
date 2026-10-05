@@ -2280,6 +2280,15 @@ function close() {
   }
   if (_hub && _hub.vault) {
     try {
+      _hub.registry?.retireDerivationConsumer?.();
+    } catch (err) {
+      // A busy generation remains active; shutdown must not erase unknown work.
+      logger.warn(
+        "[PersonalDataHub] derivation receipts retained:",
+        err && err.message,
+      );
+    }
+    try {
       _hub.vault.close();
       logger.info("[PersonalDataHub] vault closed");
     } catch (err) {

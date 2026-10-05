@@ -48,6 +48,8 @@ describe("cc hub command surface", () => {
         "delete-entity",
         "derivation-state",
         "derivation-status",
+        "derivation-consumers",
+        "prune-derivations",
         "retry-derivations",
         "douyin-adb-sync", // Phase 2a (Douyin C 路径) — PC + ADB <uid>_im.db
         "douyin-watch-sync", // Douyin 观看历史 C 路径 — ADB video_record.db → history (BROWSE) events

@@ -20,7 +20,10 @@
 
 "use strict";
 
-const { installDerivationSchema } = require("./derivation-store");
+const {
+  installDerivationSchema,
+  installConsumerRetentionSchema,
+} = require("./derivation-store");
 
 const INITIAL_DDL = [
   // ── _meta: schema version + vault-level state ───────────────────────────
@@ -799,6 +802,7 @@ const MIGRATIONS = [
 ];
 
 MIGRATIONS.push({ version: 12, up: installDerivationSchema });
+MIGRATIONS.push({ version: 13, up: installConsumerRetentionSchema });
 
 const TARGET_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 

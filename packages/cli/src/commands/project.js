@@ -14,6 +14,8 @@
  *   cc project list [--user <id>] [--status <s>] [--limit <n>] [--json]
  *   cc project show <id> [--json]
  *   cc project delete <id> [--hard] [--json]
+ *   cc project risk-evaluate --snapshot <json-file> [--json]
+ *   cc project task-description-preview --snapshot <json-file> [--json]
  *
  * 设计 (per #21 v1.2 GA 反馈 "目标在手机端做ai项目的交互要像在电脑端那样丝滑"):
  *   CLI 直接读写 desktop chainlesschain.db, 立刻在 desktop UI 出现,
@@ -21,6 +23,8 @@
  */
 
 import chalk from "chalk";
+import fs from "node:fs";
+import path from "node:path";
 import {
   openProjectsDb,
   defaultProjectDbPath,
@@ -30,6 +34,114 @@ import {
 } from "../lib/project-runtime.js";
 
 const DEFAULT_USER = "default";
+const MAX_PROJECT_SNAPSHOT_BYTES = 2 * 1024 * 1024;
+
+function snapshotFailure(code) {
+  const error = new Error(code);
+  error.code = code;
+  throw error;
+}
+
+/** Read a user-selected regular snapshot without following links or devices. */
+function readProjectSnapshot(file, io = fs) {
+  if (
+    typeof file !== "string" ||
+    !file ||
+    /^[\\/]{2}[?.][\\/]/u.test(file) ||
+    (process.platform === "win32" &&
+      /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(
+        path.basename(file),
+      ))
+  )
+    snapshotFailure("SNAPSHOT_INVALID_PATH");
+  let fd;
+  try {
+    // Reject FIFO/device paths before opening. O_NONBLOCK also covers a POSIX
+    // file replaced by a FIFO between this check and the descriptor open.
+    if (!io.lstatSync(file).isFile())
+      snapshotFailure("SNAPSHOT_REGULAR_FILE_REQUIRED");
+    fd = io.openSync(
+      file,
+      fs.constants.O_RDONLY |
+        (fs.constants.O_NONBLOCK || 0) |
+        (fs.constants.O_NOFOLLOW || 0),
+    );
+    const before = io.fstatSync(fd);
+    if (!before.isFile()) snapshotFailure("SNAPSHOT_REGULAR_FILE_REQUIRED");
+    if (
+      !Number.isSafeInteger(before.size) ||
+      before.size < 0 ||
+      before.size > MAX_PROJECT_SNAPSHOT_BYTES
+    )
+      snapshotFailure("SNAPSHOT_FILE_TOO_LARGE");
+    const data = Buffer.alloc(before.size + 1);
+    let count = 0;
+    while (count < data.length) {
+      const read = io.readSync(fd, data, count, data.length - count, count);
+      if (read === 0) break;
+      count += read;
+    }
+    const after = io.fstatSync(fd);
+    if (
+      count !== before.size ||
+      after.size !== before.size ||
+      after.mtimeMs !== before.mtimeMs ||
+      after.ctimeMs !== before.ctimeMs
+    )
+      snapshotFailure("SNAPSHOT_CHANGED_DURING_READ");
+    let text;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(
+        data.subarray(0, count),
+      );
+    } catch {
+      snapshotFailure("SNAPSHOT_INVALID_UTF8");
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      snapshotFailure("SNAPSHOT_INVALID_JSON");
+    }
+  } catch (error) {
+    if (error.code?.startsWith("SNAPSHOT_")) throw error;
+    snapshotFailure("SNAPSHOT_READ_FAILED");
+  } finally {
+    if (fd !== undefined) io.closeSync(fd);
+  }
+}
+
+function printSnapshotError(error, options) {
+  const code =
+    typeof error?.code === "string" &&
+    /^(SNAPSHOT|ACTION)_[A-Z_]+$/u.test(error.code)
+      ? error.code
+      : "SNAPSHOT_EVALUATION_FAILED";
+  if (options.json)
+    console.log(JSON.stringify({ status: "error", error: code }));
+  else console.error(chalk.red(code));
+  process.exitCode = 2;
+}
+
+function printProjectRisk(result) {
+  console.log("Offline project risk evaluation (unverified snapshot)");
+  console.log(`Status: ${result.status}`);
+  console.log(`Rule: ${result.ruleVersion}`);
+  if (result.asOf) console.log(`As of: ${result.asOf}`);
+  if (result.inputDigest) console.log(`Input: ${result.inputDigest}`);
+  if (result.status !== "evaluated") {
+    console.log(`Reasons: ${result.reasonCodes.join(", ")}`);
+    return;
+  }
+  console.log(
+    `Tasks: ${result.summary.taskCount}; matching tasks: ${result.summary.riskTaskCount}; overdue: ${result.summary.overdueTaskCount}; blocked: ${result.summary.blockedTaskCount}`,
+  );
+  for (const task of result.tasks) {
+    const blockers = task.blockingTaskRefs.map((ref) => ref.id).join(", ");
+    console.log(
+      `${task.taskRef.id}: ${task.reasonCodes.join(", ")}${blockers ? ` (dependencies: ${blockers})` : ""}`,
+    );
+  }
+}
 
 function _now() {
   return Date.now();
@@ -73,6 +185,54 @@ export function registerProjectCommand(program) {
     .description(
       "Manage desktop projects (shared SQLite, syncs to mobile via Phase 3d)",
     );
+
+  cmd
+    .command("risk-evaluate")
+    .description(
+      "Evaluate overdue tasks and direct blockers in an offline snapshot",
+    )
+    .requiredOption(
+      "--snapshot <json-file>",
+      "Complete project risk snapshot (max 2 MiB)",
+    )
+    .option("--json", "Output JSON")
+    .action(async (options) => {
+      try {
+        const snapshot = readProjectSnapshot(options.snapshot);
+        const { evaluateProjectRiskSnapshot } =
+          await import("@chainlesschain/session-core/project-risk-evaluation");
+        const result = evaluateProjectRiskSnapshot(snapshot);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else printProjectRisk(result);
+        if (result.status === "insufficient-data") process.exitCode = 2;
+      } catch (error) {
+        printSnapshotError(error, options);
+      }
+    });
+
+  cmd
+    .command("task-description-preview")
+    .description(
+      "Preview a task description request from an unverified offline snapshot",
+    )
+    .requiredOption(
+      "--snapshot <json-file>",
+      "Task/project/description/idempotencyKey JSON (max 2 MiB)",
+    )
+    .option("--json", "Output JSON")
+    .action(async (options) => {
+      try {
+        const snapshot = readProjectSnapshot(options.snapshot);
+        const { createTaskDescriptionPreview } =
+          await import("@chainlesschain/session-core/task-description-action-service");
+        const result = createTaskDescriptionPreview(snapshot);
+        if (!options.json)
+          console.log("Offline task description preview (unverified snapshot)");
+        console.log(JSON.stringify(result, null, 2));
+      } catch (error) {
+        printSnapshotError(error, options);
+      }
+    });
 
   // ===== init =====
   cmd
@@ -255,4 +415,6 @@ export function registerProjectCommand(program) {
 // 暴露给单测
 export const _projectInternals = {
   defaultProjectDbPath,
+  readProjectSnapshot,
+  MAX_PROJECT_SNAPSHOT_BYTES,
 };

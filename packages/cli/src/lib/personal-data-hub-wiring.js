@@ -368,6 +368,17 @@ async function loadBm25() {
 let _hub = null;
 let _initPromise = null;
 let _bm25 = null;
+let _processExitHook = null;
+
+function installProcessExitHook() {
+  if (_processExitHook) return;
+  _processExitHook = (code) => {
+    // exit callbacks are synchronous. Nonzero exits keep the generation active;
+    // exit(0) still has to pass the registry's in-flight operation guard.
+    close({ retireConsumer: code === 0 });
+  };
+  process.once("exit", _processExitHook);
+}
 
 // LLM override — see file header. Default cli-side hub uses a direct
 // OllamaClient; when the desktop main process embeds this wiring via
@@ -2127,6 +2138,7 @@ export async function getHub() {
     _initPromise = initHub()
       .then((h) => {
         _hub = h;
+        installProcessExitHook();
         return h;
       })
       .catch((err) => {
@@ -2247,6 +2259,7 @@ export async function getHubMinimal() {
     _hubMinimalInitPromise = initHubMinimal()
       .then((h) => {
         _hubMinimal = h;
+        installProcessExitHook();
         return h;
       })
       .catch((err) => {
@@ -2257,7 +2270,11 @@ export async function getHubMinimal() {
   return _hubMinimalInitPromise;
 }
 
-export function close() {
+export function close({ retireConsumer = true } = {}) {
+  if (_processExitHook) {
+    process.removeListener("exit", _processExitHook);
+    _processExitHook = null;
+  }
   if (_hub && _hub.aichatHealthChecker) {
     try {
       _hub.aichatHealthChecker.stop();
@@ -2266,6 +2283,11 @@ export function close() {
     }
   }
   if (_hub && _hub.vault) {
+    try {
+      if (retireConsumer) _hub.registry?.retireDerivationConsumer?.();
+    } catch {
+      // Busy/unknown generations retain their receipts for explicit recovery.
+    }
     try {
       _hub.vault.close();
     } catch {

@@ -1,0 +1,128 @@
+[
+  {
+    "name": "read failure returning an empty array is not a complete snapshot",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "failed",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": []
+    },
+    "reasonCode": "READ_NOT_COMPLETE"
+  },
+  {
+    "name": "missing dependency invalidates the entire snapshot",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-1",
+          "status": "running",
+          "due_date": 1791158400000,
+          "blocked_by": ["unread-task"],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "reasonCode": "MISSING_DEPENDENCY"
+  },
+  {
+    "name": "task from another project cannot enter this evaluation",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-2",
+          "status": "pending",
+          "due_date": null,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "reasonCode": "CROSS_PROJECT_TASK"
+  },
+  {
+    "name": "baseline SQL task statuses cannot silently use task-manager semantics",
+    "input": {
+      "sourceSchema": "desktop.task-manager/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-1",
+          "status": "running",
+          "due_date": null,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "reasonCode": "UNKNOWN_TASK_STATUS"
+  },
+  {
+    "name": "a normalized nonexistent calendar date is rejected",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-02-30T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": { "id": "project-1", "status": "active", "updated_at": 0 },
+      "tasks": []
+    },
+    "reasonCode": "INVALID_AS_OF"
+  },
+  {
+    "name": "legacy table without risk fields is insufficient even with complete reads",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-1",
+          "status": "pending",
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "reasonCode": "INVALID_TASK"
+  }
+]

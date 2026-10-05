@@ -217,10 +217,14 @@ const {
 } = require("./evolvable-artifact.js");
 
 const businessObjectContract = require("./business-object-contract.js");
+const taskDescriptionAction = require("./task-description-action-service.js");
+const projectRiskEvaluation = require("./project-risk-evaluation.js");
 
 module.exports = {
   // Pure business object/action contracts; hosts own authorization and execution.
   ...businessObjectContract,
+  ...taskDescriptionAction,
+  ...projectRiskEvaluation,
   // SessionHandle
   SessionHandle,
   SESSION_STATUS: STATUS,

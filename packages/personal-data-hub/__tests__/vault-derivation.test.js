@@ -166,6 +166,276 @@ describe("durable source projections in the encrypted LocalVault", () => {
     expect(store.claim(job, { consumerId })).toBeNull();
   });
 
+  it("bounds pruning to explicitly retired ephemeral receipts while preserving source deletions", () => {
+    const old = store.registerConsumer({
+      consumerId: "old-index",
+      kind: "ephemeral",
+    });
+    store.registerConsumer({ consumerId, kind: "ephemeral" });
+    vault.putPerson(person());
+    vault.deleteEntity("person", "person-a");
+    for (const job of store.listPending({ consumerId: old.consumerId })) {
+      store.complete(store.claim(job, { consumerId: old.consumerId }), {
+        success: true,
+      });
+    }
+    expect(() =>
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+      }),
+    ).toThrow(/retired/);
+    expect(() =>
+      store.retireConsumer({ ...old, retirementToken: "wrong" }),
+    ).toThrow(/handle/);
+    store.retireConsumer(old);
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+        limit: 1,
+      }),
+    ).toEqual({
+      selectedConsumers: 1,
+      deletedReceipts: 1,
+      remainingReceipts: 1,
+      retainedRunning: 0,
+    });
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+      }),
+    ).toMatchObject({ deletedReceipts: 1, remainingReceipts: 0 });
+    expect(store.getState("person", "person-a", { consumerId })).toMatchObject({
+      operation: "delete",
+      revision: 2,
+    });
+    expect(store.listPending({ consumerId })).toHaveLength(2);
+    expect(store.listPending({ consumerId: old.consumerId })).toEqual([]);
+    expect(store.summary({ consumerId: old.consumerId }).total).toBe(0);
+    expect(
+      store.claim(store.listPending({ consumerId })[0], {
+        consumerId: old.consumerId,
+      }),
+    ).toBeNull();
+    reopen();
+    expect(store.getConsumer(old.consumerId)).toMatchObject({
+      state: "retired",
+      kind: "ephemeral",
+    });
+    expect(store.getConsumer(old.consumerId)).not.toHaveProperty(
+      "retirementToken",
+    );
+    expect(() =>
+      store.registerConsumer({ consumerId: old.consumerId, kind: "ephemeral" }),
+    ).toThrow(/already/);
+    expect(() =>
+      store.registerConsumer({
+        consumerId: old.consumerId,
+        kind: "persistent",
+      }),
+    ).toThrow(/already/);
+  });
+
+  it("retains unknown running receipts until their actual completion even after retirement and reopen", () => {
+    const old = store.registerConsumer({
+      consumerId: "interrupted-index",
+      kind: "ephemeral",
+    });
+    store.registerConsumer({ consumerId, kind: "ephemeral" });
+    vault.putPerson(person());
+    const [first, second] = store.listPending({ consumerId: old.consumerId });
+    const unknown = store.claim(first, { consumerId: old.consumerId });
+    store.complete(store.claim(second, { consumerId: old.consumerId }), {
+      success: false,
+      errorCode: "PROJECTION_FAILED",
+    });
+    store.retireConsumer(old);
+    reopen();
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+      }),
+    ).toEqual({
+      selectedConsumers: 1,
+      deletedReceipts: 1,
+      remainingReceipts: 1,
+      retainedRunning: 1,
+    });
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+      }),
+    ).toMatchObject({ deletedReceipts: 0, retainedRunning: 1 });
+    expect(store.claim(first, { consumerId: old.consumerId })).toBeNull();
+    expect(
+      store.complete({ ...unknown, token: "unrelated" }, { success: true }),
+    ).toBe(false);
+    expect(store.complete(unknown, { success: true })).toBe(true);
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+      }),
+    ).toMatchObject({
+      deletedReceipts: 1,
+      remainingReceipts: 0,
+      retainedRunning: 0,
+    });
+  });
+
+  it("reports retired receipt history separately from absent receipts and newer source revisions", () => {
+    const old = store.registerConsumer({
+      consumerId: "retired-history",
+      kind: "ephemeral",
+    });
+    store.registerConsumer({ consumerId, kind: "ephemeral" });
+    vault.putPerson(person());
+    const job = store.listPending({
+      consumerId: old.consumerId,
+      targets: ["rag"],
+    })[0];
+    store.complete(store.claim(job, { consumerId: old.consumerId }), {
+      success: true,
+    });
+    store.retireConsumer(old);
+    vault.putPerson({ ...person(), names: ["newer source"] });
+    const historical = store.getState("person", "person-a", {
+      consumerId: old.consumerId,
+    });
+    expect(historical).toMatchObject({
+      revision: 2,
+      consumer: {
+        consumerId: old.consumerId,
+        kind: "ephemeral",
+        state: "retired",
+      },
+      deliveries: [
+        { target: "rag", revision: 1, status: "succeeded" },
+        { target: "kg", status: "not-retained" },
+      ],
+    });
+    expect(JSON.stringify(historical)).not.toContain(old.retirementToken);
+    store.pruneRetiredConsumers({
+      consumerIds: [old.consumerId],
+      activeConsumerId: consumerId,
+    });
+    reopen();
+    expect(
+      store.getState("person", "person-a", { consumerId: old.consumerId })
+        .deliveries,
+    ).toEqual([
+      { target: "rag", status: "not-retained" },
+      { target: "kg", status: "not-retained" },
+    ]);
+    expect(
+      store
+        .getState("person", "person-a", { consumerId })
+        .deliveries.every((entry) => entry.status === "pending"),
+    ).toBe(true);
+  });
+
+  it("never adopts legacy receipts as ephemeral or removes stable and active consumer receipts", () => {
+    vault.putPerson(person());
+    const job = store.listPending({ consumerId })[0];
+    store.complete(store.claim(job, { consumerId }), { success: true });
+    expect(() =>
+      store.registerConsumer({ consumerId, kind: "ephemeral" }),
+    ).toThrow(/classified/);
+    expect(store.getConsumer(consumerId)).toBeNull();
+    expect(
+      store.registerConsumer({ consumerId, kind: "persistent" }),
+    ).toMatchObject({ kind: "persistent", state: "active" });
+    expect(
+      store.registerConsumer({ consumerId, kind: "persistent" }),
+    ).not.toHaveProperty("retirementToken");
+    expect(() =>
+      store.registerConsumer({ consumerId, kind: "ephemeral" }),
+    ).toThrow(/already/);
+    expect(() =>
+      store.retireConsumer({ consumerId, retirementToken: "invented" }),
+    ).toThrow(/handle/);
+    const old = store.registerConsumer({
+      consumerId: "old-empty",
+      kind: "ephemeral",
+    });
+    store.retireConsumer(old);
+    for (const selected of [
+      [consumerId],
+      ["unknown"],
+      [old.consumerId, consumerId],
+    ]) {
+      expect(() =>
+        store.pruneRetiredConsumers({
+          consumerIds: selected,
+          activeConsumerId: consumerId,
+        }),
+      ).toThrow(/retired/);
+    }
+    expect(
+      store.getState("person", "person-a", { consumerId }).deliveries,
+    ).toContainEqual(expect.objectContaining({ status: "succeeded" }));
+    expect(() =>
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: old.consumerId,
+      }),
+    ).toThrow(/active/);
+    expect(() =>
+      store.pruneRetiredConsumers({
+        consumerIds: [],
+        activeConsumerId: consumerId,
+      }),
+    ).toThrow(/between/);
+    expect(() =>
+      store.pruneRetiredConsumers({
+        consumerIds: [old.consumerId],
+        activeConsumerId: consumerId,
+        limit: 1001,
+      }),
+    ).toThrow(/limit/);
+  });
+
+  it("migrates existing receipts without inventing ownership and lists lifecycle markers with bounded pages", () => {
+    vault.putPerson(person());
+    const job = store.listPending({ consumerId })[0];
+    store.complete(store.claim(job, { consumerId }), { success: true });
+    vault.db.exec("DROP TABLE derivation_consumers");
+    vault.db
+      .prepare("UPDATE _meta SET value='12' WHERE key='schema_version'")
+      .run();
+    reopen();
+    expect(store.listConsumers()).toEqual([]);
+    expect(store.getConsumer(consumerId)).toBeNull();
+    expect(store.summary({ consumerId }).succeeded).toBe(1);
+    const old = store.registerConsumer({
+      consumerId: "a-retired",
+      kind: "ephemeral",
+    });
+    store.retireConsumer(old);
+    store.registerConsumer({ consumerId: "b-active", kind: "ephemeral" });
+    store.registerConsumer({ consumerId, kind: "persistent" });
+    expect(
+      store.listConsumers({ limit: 1 }).map((entry) => entry.consumerId),
+    ).toEqual([old.consumerId]);
+    expect(
+      store
+        .listConsumers({ afterConsumerId: old.consumerId, kind: "ephemeral" })
+        .map((entry) => entry.consumerId),
+    ).toEqual(["b-active"]);
+    expect(store.listConsumers({ state: "retired" })).toEqual([
+      expect.objectContaining({ consumerId: old.consumerId, state: "retired" }),
+    ]);
+    expect(JSON.stringify(store.listConsumers())).not.toContain(
+      old.retirementToken,
+    );
+    expect(() => store.listConsumers({ state: "unknown" })).toThrow(/state/);
+    expect(() => store.listConsumers({ limit: 1001 })).toThrow(/limit/);
+  });
+
   it("coalesces deletion and reimport to the latest revision without storing source content", () => {
     vault.putPerson({ ...person(), notes: "private-source-content" });
     const job = store.listPending({ consumerId, targets: ["rag"] })[0];

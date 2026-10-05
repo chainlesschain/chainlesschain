@@ -394,8 +394,20 @@ adapters. **Neither production host currently wires a vector destination.**
 An interrupted `running` delivery for the same consumer has an unknown outcome
 and stays blocked; elapsed time does not authorize replay. New consumer
 generations apply to newly created ephemeral indexes, not automatic recovery of
-an unknown external side effect. Old generation receipts are retained in the
-encrypted vault; bounded retention and compaction remain follow-up work.
+an unknown external side effect. The registry now records consumer lifecycle
+and attempts to retire its idle ephemeral generation at normal host shutdown.
+An explicit, bounded cleanup can remove non-running receipts for selected
+retired ephemeral generations. Active and persistent consumers, unknown running
+receipts, and older unregistered generations remain protected. Source intents,
+deletion tombstones, and lifecycle markers remain in the encrypted vault;
+crash-generation reconciliation and compaction remain follow-up work. See
+[consumer receipt retention](../../docs/research/palantir/pdh-consumer-retention.md)
+for the lifecycle API and its limits.
+
+```bash
+cc hub derivation-consumers --kind ephemeral --state retired --limit 100 --json
+cc hub prune-derivations --consumer <retired-consumer-id> --limit 100 --confirm --json
+```
 
 The same operations are available as WS topics
 `personal-data-hub.derivation-status`, `.derivation-state`,

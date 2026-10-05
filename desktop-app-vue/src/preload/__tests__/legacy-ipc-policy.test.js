@@ -104,6 +104,19 @@ describe("legacy generic IPC policy", () => {
     expect(preloadSource).not.toContain("legacyInvoke");
   });
 
+  it("retains only the exact controlled task description capabilities", () => {
+    for (const channel of [
+      "task:controlled-description-preview",
+      "task:controlled-description-execute",
+      "task:controlled-description-run",
+    ]) {
+      expect(isFixedRendererIpcChannel(channel), channel).toBe(true);
+    }
+    expect(
+      isFixedRendererIpcChannel("task:controlled-description-force-execute"),
+    ).toBe(false);
+  });
+
   it("exposes collaboration through a scoped allowlist, not generic renderer IPC", () => {
     const preloadSource = readFileSync(
       resolve(process.cwd(), "src/preload/index.js"),

@@ -1077,6 +1077,9 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "system:open-external",
   "system:restart",
   "task:complete-sprint",
+  "task:controlled-description-execute",
+  "task:controlled-description-preview",
+  "task:controlled-description-run",
   "task:create-board",
   "task:create-column",
   "task:create-label",
@@ -4726,6 +4729,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:create-task", removeUndefined(params)),
     updateTask: (params) =>
       ipcRenderer.invoke("task:update-task", removeUndefined(params)),
+    previewDescriptionUpdate: (params) =>
+      ipcRenderer.invoke("task:controlled-description-preview", params),
+    executeDescriptionUpdate: (params) =>
+      ipcRenderer.invoke("task:controlled-description-execute", params),
+    getDescriptionActionRun: (params) =>
+      ipcRenderer.invoke("task:controlled-description-run", params),
     deleteTask: (params) => ipcRenderer.invoke("task:delete-task", params),
     getTask: (params) => ipcRenderer.invoke("task:get-task", params),
     getTasks: (params) => ipcRenderer.invoke("task:get-tasks", params),

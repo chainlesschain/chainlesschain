@@ -62,6 +62,24 @@ function boundedLimit(value = 100) {
   return value;
 }
 
+// Consumer lifecycle is separate from source intent. Retired generation markers
+// deliberately survive receipt pruning so their IDs can never schedule a replay.
+function installConsumerRetentionSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS derivation_consumers (
+      consumer_id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('ephemeral', 'persistent')),
+      state TEXT NOT NULL CHECK (state IN ('active', 'retired')),
+      retirement_token TEXT,
+      registered_at INTEGER NOT NULL,
+      retired_at INTEGER,
+      CHECK (kind = 'ephemeral' OR state = 'active'),
+      CHECK ((state = 'active' AND retired_at IS NULL)
+        OR (state = 'retired' AND retired_at IS NOT NULL))
+    );
+  `);
+}
+
 // This ledger lives in the same encrypted database as the source entities.
 // Triggers guarantee that no source commit can outrun its projection intent,
 // including direct putEntity calls and source-identity conflict updates.
@@ -167,6 +185,178 @@ class DerivationStore {
     this.db = db;
   }
 
+  getConsumer(consumerId) {
+    identifier(consumerId, "consumerId");
+    return (
+      this.db
+        .prepare(
+          `SELECT consumer_id AS consumerId,kind,state,
+          registered_at AS registeredAt,retired_at AS retiredAt
+          FROM derivation_consumers WHERE consumer_id=?`,
+        )
+        .get(consumerId) || null
+    );
+  }
+
+  listConsumers({ state, kind, afterConsumerId, limit = 100 } = {}) {
+    boundedLimit(limit);
+    const clauses = [];
+    const params = [];
+    for (const [column, value, allowed] of [
+      ["state", state, ["active", "retired"]],
+      ["kind", kind, ["ephemeral", "persistent"]],
+    ]) {
+      if (value === undefined) continue;
+      if (!allowed.includes(value))
+        throw new TypeError(`Invalid consumer ${column}`);
+      clauses.push(`${column}=?`);
+      params.push(value);
+    }
+    if (afterConsumerId !== undefined) {
+      clauses.push("consumer_id>?");
+      params.push(identifier(afterConsumerId, "afterConsumerId"));
+    }
+    return this.db
+      .prepare(
+        `SELECT consumer_id AS consumerId,kind,state,
+      registered_at AS registeredAt,retired_at AS retiredAt
+      FROM derivation_consumers ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+      ORDER BY consumer_id LIMIT ?`,
+      )
+      .all(...params, limit);
+  }
+
+  registerConsumer({ consumerId, kind } = {}) {
+    identifier(consumerId, "consumerId");
+    if (!["ephemeral", "persistent"].includes(kind)) {
+      throw new TypeError("Consumer kind must be ephemeral or persistent");
+    }
+    return this.db
+      .transaction(() => {
+        const existing = this.getConsumer(consumerId);
+        if (existing) {
+          if (existing.kind === "persistent" && kind === "persistent")
+            return existing;
+          throw new Error("Derivation consumer ID is already registered");
+        }
+        // An old, unclassified generation may have been a persistent sink. Only
+        // persistent registration may adopt its existing receipts.
+        if (
+          kind === "ephemeral" &&
+          this.db
+            .prepare(
+              "SELECT 1 FROM derivation_deliveries WHERE consumer_id=? LIMIT 1",
+            )
+            .get(consumerId)
+        ) {
+          throw new Error(
+            "Existing derivation receipts cannot be classified as ephemeral",
+          );
+        }
+        const retirementToken = kind === "ephemeral" ? randomUUID() : null;
+        this.db
+          .prepare(
+            `INSERT INTO derivation_consumers
+        (consumer_id,kind,state,retirement_token,registered_at,retired_at)
+        VALUES (?,?,'active',?,?,NULL)`,
+          )
+          .run(consumerId, kind, retirementToken, Date.now());
+        return {
+          ...this.getConsumer(consumerId),
+          ...(retirementToken ? { retirementToken } : {}),
+        };
+      })
+      .immediate();
+  }
+
+  retireConsumer({ consumerId, retirementToken } = {}) {
+    identifier(consumerId, "consumerId");
+    identifier(retirementToken, "retirementToken");
+    return this.db
+      .transaction(() => {
+        const consumer = this.db
+          .prepare(
+            "SELECT kind,state,retirement_token FROM derivation_consumers WHERE consumer_id=?",
+          )
+          .get(consumerId);
+        if (
+          consumer?.kind !== "ephemeral" ||
+          consumer.retirement_token !== retirementToken
+        ) {
+          throw new Error(
+            "Retirement requires the registered ephemeral consumer handle",
+          );
+        }
+        if (consumer.state === "active") {
+          this.db
+            .prepare(
+              `UPDATE derivation_consumers SET state='retired',retired_at=?
+          WHERE consumer_id=?`,
+            )
+            .run(Date.now(), consumerId);
+        }
+        return this.getConsumer(consumerId);
+      })
+      .immediate();
+  }
+
+  pruneRetiredConsumers({ consumerIds, activeConsumerId, limit = 100 } = {}) {
+    identifier(activeConsumerId, "activeConsumerId");
+    boundedLimit(limit);
+    if (
+      !Array.isArray(consumerIds) ||
+      consumerIds.length < 1 ||
+      consumerIds.length > 100
+    ) {
+      throw new RangeError("Select between 1 and 100 retired consumer IDs");
+    }
+    const selected = [
+      ...new Set(consumerIds.map((id) => identifier(id, "consumerId"))),
+    ];
+    return this.db
+      .transaction(() => {
+        if (this.getConsumer(activeConsumerId)?.state !== "active") {
+          throw new Error("Pruning requires a registered active consumer");
+        }
+        for (const id of selected) {
+          const consumer = this.getConsumer(id);
+          if (
+            id === activeConsumerId ||
+            consumer?.kind !== "ephemeral" ||
+            consumer.state !== "retired"
+          ) {
+            throw new Error(
+              "Only explicitly retired ephemeral consumers can be pruned",
+            );
+          }
+        }
+        const placeholders = selected.map(() => "?").join(",");
+        const deleted = this.db
+          .prepare(
+            `DELETE FROM derivation_deliveries WHERE rowid IN (
+        SELECT rowid FROM derivation_deliveries
+        WHERE consumer_id IN (${placeholders}) AND status <> 'running'
+        ORDER BY updated_at,consumer_id,target,entity_type,entity_id LIMIT ?
+      )`,
+          )
+          .run(...selected, limit);
+        const remaining = this.db
+          .prepare(
+            `SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN status='running' THEN 1 ELSE 0 END),0) AS running
+        FROM derivation_deliveries WHERE consumer_id IN (${placeholders})`,
+          )
+          .get(...selected);
+        return {
+          selectedConsumers: selected.length,
+          deletedReceipts: deleted.changes,
+          remainingReceipts: remaining.total,
+          retainedRunning: remaining.running,
+        };
+      })
+      .immediate();
+  }
+
   _query({
     consumerId,
     targets,
@@ -176,8 +366,10 @@ class DerivationStore {
   } = {}) {
     identifier(consumerId, "consumerId");
     const selected = selectedTargets(targets);
-    const clauses = [];
-    const params = [consumerId];
+    const clauses = [
+      "NOT EXISTS (SELECT 1 FROM derivation_consumers c WHERE c.consumer_id=? AND c.state='retired')",
+    ];
+    const params = [consumerId, consumerId];
     if (adapter !== undefined) {
       identifier(adapter, "adapter");
       clauses.push("s.adapter = ?");
@@ -240,6 +432,7 @@ class DerivationStore {
     selectedTargets([target]);
     return this.db
       .transaction(() => {
+        if (this.getConsumer(consumerId)?.state === "retired") return null;
         const source = this.db
           .prepare(
             "SELECT * FROM derivation_sources WHERE entity_type=? AND entity_id=?",
@@ -375,6 +568,7 @@ class DerivationStore {
       )
       .get(entityType, entityId);
     if (!source) return null;
+    const consumer = this.getConsumer(consumerId);
     const deliveries = this.db
       .prepare(
         `SELECT target,revision,transform_version AS transformVersion,status,attempts,error_code AS errorCode
@@ -383,18 +577,21 @@ class DerivationStore {
       .all(consumerId, entityType, entityId);
     return {
       ...source,
+      consumer,
       deliveries: TARGETS.map((target) => {
         const delivery = deliveries.find((entry) => entry.target === target);
         return {
           target,
           ...(delivery || {}),
           status:
-            delivery?.status === "running"
-              ? "running"
-              : delivery?.revision === source.revision &&
-                  delivery.transformVersion === transformVersions[target]
-                ? delivery.status
-                : "pending",
+            consumer?.state === "retired"
+              ? delivery?.status || "not-retained"
+              : delivery?.status === "running"
+                ? "running"
+                : delivery?.revision === source.revision &&
+                    delivery.transformVersion === transformVersions[target]
+                  ? delivery.status
+                  : "pending",
         };
       }),
     };
@@ -404,6 +601,7 @@ class DerivationStore {
 module.exports = {
   DerivationStore,
   installDerivationSchema,
+  installConsumerRetentionSchema,
   validateEntityType,
   ENTITY_TABLES,
 };

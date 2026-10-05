@@ -3464,6 +3464,20 @@ async function cmdDerivation(operation, reference, options = {}) {
         "Normalized entity deletion requires --confirm; raw archive is retained",
       );
     }
+    if (operation === "prune" && options.confirm !== true) {
+      throw new Error("Retired derivation receipt pruning requires --confirm");
+    }
+    if (
+      operation === "prune" &&
+      (!Array.isArray(options.consumer) ||
+        options.consumer.length < 1 ||
+        options.consumer.length > 100 ||
+        options.consumer.some(
+          (id) => typeof id !== "string" || !id.trim() || id.length > 1024,
+        ))
+    ) {
+      throw new Error("Select between 1 and 100 retired consumer IDs");
+    }
     const limit = options.limit === undefined ? 100 : Number(options.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       throw new Error("Derivation limit must be between 1 and 1000");
@@ -3471,7 +3485,20 @@ async function cmdDerivation(operation, reference, options = {}) {
     const hub = await (options._getHub || getHub)();
     const filters = { adapter: options.adapter, scope: options.scope };
     let result;
-    if (operation === "retry") {
+    if (operation === "consumers") {
+      result = hub.vault.getDerivationStore().listConsumers({
+        state: options.state,
+        kind: options.kind,
+        afterConsumerId: options.after,
+        limit,
+      });
+    } else if (operation === "prune") {
+      result = hub.vault.getDerivationStore().pruneRetiredConsumers({
+        consumerIds: options.consumer,
+        activeConsumerId: hub.registry.consumerId,
+        limit,
+      });
+    } else if (operation === "retry") {
       result = await hub.registry.retryDerivations({ ...filters, limit });
     } else if (operation === "state") {
       result = hub.vault
@@ -3645,6 +3672,29 @@ export function registerHubCommand(program, dependencies = {}) {
       command.option("--limit <n>", "Maximum deliveries (1-1000)", "100");
     command.action((options) => cmdDerivation(operation, null, options));
   }
+
+  hub
+    .command("derivation-consumers")
+    .description(
+      "List registered derivation consumers without retirement tokens",
+    )
+    .option("--state <state>", "Filter by active or retired")
+    .option("--kind <kind>", "Filter by ephemeral or persistent")
+    .option("--after <id>", "Continue after a consumer ID")
+    .option("--limit <n>", "Maximum consumers (1-1000)", "100")
+    .option("--json", "Output JSON")
+    .action((options) => cmdDerivation("consumers", null, options));
+
+  hub
+    .command("prune-derivations")
+    .description(
+      "Prune non-running receipts of explicitly selected retired ephemeral consumers",
+    )
+    .requiredOption("--consumer <ids...>", "Retired consumer IDs (1-100)")
+    .option("--limit <n>", "Maximum receipts removed (1-1000)", "100")
+    .option("--confirm", "Confirm removal of these retired projection receipts")
+    .option("--json", "Output JSON")
+    .action((options) => cmdDerivation("prune", null, options));
 
   hub
     .command("derivation-state <entityType> <entityId>")

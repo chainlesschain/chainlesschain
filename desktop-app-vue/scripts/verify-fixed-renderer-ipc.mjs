@@ -39,6 +39,9 @@ const retainedGovernedChannels = [
   "browser:operator:revoke-quarantine-artifact",
   "evolution-artifact:promote",
   "evolution-artifact:revalidate",
+  "task:controlled-description-execute",
+  "task:controlled-description-preview",
+  "task:controlled-description-run",
 ];
 
 function listFiles(directory) {

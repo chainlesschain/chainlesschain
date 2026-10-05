@@ -35,6 +35,31 @@ comparison, durable idempotency and authorized evidence readers. Matching reques
 digests do not permit replay when the previous outcome is unknown. A structurally
 valid run record does not authenticate its evidence or prove business success.
 
+`./task-description-action-service` adds the first concrete business action:
+`TaskDescriptionActionService` updates `project_tasks.description` for pending
+tasks in personal draft/active projects. The native SQLite host supplies its
+current DID and a private strict/high ApprovalGate with native user confirmation.
+The service checks ownership and the complete row version again after approval,
+then commits the edit and ActionRun evidence atomically. Organization/workspace
+tasks and non-native database fallbacks are unsupported. Repeated invocations
+return durable receipts; interrupted running receipts remain unresolved and are
+never automatically replayed. Receipt reads recheck current ownership.
+
+The same module's `createTaskDescriptionPreview` prepares a request from an
+offline snapshot and explicitly labels its authority `unverified-snapshot`.
+The CLI exposes this preparation path, while the desktop host exposes the live
+action through separate IPC/preload methods. Existing task editors and legacy
+CRUD paths are not all converted. See the
+[controlled action guide](../../docs/research/palantir/controlled-task-description-action.md)
+for the boundary, invocation examples, receipt semantics, and focused host tests.
+
+`./project-risk-evaluation` exports `evaluateProjectRiskSnapshot`, a deterministic
+offline evaluation of complete, bounded project/task snapshots. Its rule version,
+input digest and content-versioned references support reproducible comparisons.
+Its risk-specific references are selected-field projections, not the complete
+database-row versions required by controlled actions. Evaluation neither
+authenticates the snapshot nor approves an action or predicts project delivery.
+
 ```bash
 npm test --workspace packages/session-core
 ```

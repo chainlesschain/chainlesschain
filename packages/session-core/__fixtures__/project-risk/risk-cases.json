@@ -1,0 +1,256 @@
+[
+  {
+    "name": "deadline comparison is strict and failed tasks remain unresolved",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "active",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "before",
+          "project_id": "project-1",
+          "status": "pending",
+          "due_date": 1791244799999,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "equal",
+          "project_id": "project-1",
+          "status": "running",
+          "due_date": 1791244800000,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "after",
+          "project_id": "project-1",
+          "status": "pending",
+          "due_date": 1791244800001,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "done",
+          "project_id": "project-1",
+          "status": "completed",
+          "due_date": 1791158400000,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "failed",
+          "project_id": "project-1",
+          "status": "failed",
+          "due_date": 1791158400000,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "expected": {
+      "status": "evaluated",
+      "reasonCodes": ["OVERDUE_INCOMPLETE_TASK"],
+      "tasks": [
+        {
+          "id": "before",
+          "reasonCodes": ["OVERDUE_INCOMPLETE_TASK"],
+          "blockingTaskIds": []
+        },
+        {
+          "id": "failed",
+          "reasonCodes": ["OVERDUE_INCOMPLETE_TASK"],
+          "blockingTaskIds": []
+        }
+      ],
+      "summary": {
+        "taskCount": 5,
+        "unresolvedTaskCount": 4,
+        "riskTaskCount": 2,
+        "overdueTaskCount": 2,
+        "blockedTaskCount": 0
+      }
+    }
+  },
+  {
+    "name": "only completed dependencies satisfy a prerequisite",
+    "input": {
+      "sourceSchema": "desktop.task-manager/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "organization", "id": "org-1" },
+      "project": {
+        "id": "project-1",
+        "status": "draft",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-1",
+          "status": "pending",
+          "due_date": null,
+          "blocked_by": ["task-c", "task-b"],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-b",
+          "project_id": "project-1",
+          "status": "in_progress",
+          "due_date": null,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-c",
+          "project_id": "project-1",
+          "status": "completed",
+          "due_date": null,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-d",
+          "project_id": "project-1",
+          "status": "in_progress",
+          "due_date": 1791158400000,
+          "blocked_by": "[\"task-e\"]",
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-e",
+          "project_id": "project-1",
+          "status": "cancelled",
+          "due_date": 1791158400000,
+          "blocked_by": [],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "expected": {
+      "status": "evaluated",
+      "reasonCodes": [
+        "OVERDUE_INCOMPLETE_TASK",
+        "BLOCKED_BY_INCOMPLETE_DEPENDENCY"
+      ],
+      "tasks": [
+        {
+          "id": "task-a",
+          "reasonCodes": ["BLOCKED_BY_INCOMPLETE_DEPENDENCY"],
+          "blockingTaskIds": ["task-b"]
+        },
+        {
+          "id": "task-d",
+          "reasonCodes": [
+            "OVERDUE_INCOMPLETE_TASK",
+            "BLOCKED_BY_INCOMPLETE_DEPENDENCY"
+          ],
+          "blockingTaskIds": ["task-e"]
+        }
+      ],
+      "summary": {
+        "taskCount": 5,
+        "unresolvedTaskCount": 3,
+        "riskTaskCount": 2,
+        "overdueTaskCount": 1,
+        "blockedTaskCount": 2
+      }
+    }
+  },
+  {
+    "name": "cycles yield direct blockers without recursive inference",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "team", "id": "team-1" },
+      "project": {
+        "id": "project-1",
+        "status": "completed",
+        "updated_at": 1791158400000
+      },
+      "tasks": [
+        {
+          "id": "task-a",
+          "project_id": "project-1",
+          "status": "pending",
+          "due_date": null,
+          "blocked_by": ["task-b"],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-b",
+          "project_id": "project-1",
+          "status": "pending",
+          "due_date": null,
+          "blocked_by": ["task-a"],
+          "updated_at": 1791158400000
+        },
+        {
+          "id": "task-c",
+          "project_id": "project-1",
+          "status": "completed",
+          "due_date": null,
+          "blocked_by": ["task-a"],
+          "updated_at": 1791158400000
+        }
+      ]
+    },
+    "expected": {
+      "status": "evaluated",
+      "reasonCodes": ["BLOCKED_BY_INCOMPLETE_DEPENDENCY"],
+      "tasks": [
+        {
+          "id": "task-a",
+          "reasonCodes": ["BLOCKED_BY_INCOMPLETE_DEPENDENCY"],
+          "blockingTaskIds": ["task-b"]
+        },
+        {
+          "id": "task-b",
+          "reasonCodes": ["BLOCKED_BY_INCOMPLETE_DEPENDENCY"],
+          "blockingTaskIds": ["task-a"]
+        }
+      ],
+      "summary": {
+        "taskCount": 3,
+        "unresolvedTaskCount": 2,
+        "riskTaskCount": 2,
+        "overdueTaskCount": 0,
+        "blockedTaskCount": 2
+      }
+    }
+  },
+  {
+    "name": "explicit complete empty snapshot has no matching rule signals",
+    "input": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-10-06T00:00:00.000Z",
+      "scope": { "kind": "personal", "id": "owner-1" },
+      "project": {
+        "id": "project-1",
+        "status": "archived",
+        "updated_at": 1791158400000
+      },
+      "tasks": []
+    },
+    "expected": {
+      "status": "evaluated",
+      "reasonCodes": [],
+      "tasks": [],
+      "summary": {
+        "taskCount": 0,
+        "unresolvedTaskCount": 0,
+        "riskTaskCount": 0,
+        "overdueTaskCount": 0,
+        "blockedTaskCount": 0
+      }
+    }
+  }
+]

@@ -2488,6 +2488,8 @@ chainlesschain hub derivation-status --json                 # Durable KG/RAG del
 chainlesschain hub retry-derivations --limit 100 --json      # Retry latest source revisions (limit 1-1000)
 chainlesschain hub derivation-state event <id> --json       # Source revision + index receipts, without payload
 chainlesschain hub delete-entity event <id> --confirm --json # Delete normalized entity and queue index removal
+chainlesschain hub derivation-consumers --state retired --kind ephemeral --json # Inspect retired generations
+chainlesschain hub prune-derivations --consumer <id> --limit 100 --confirm --json # Bounded receipt cleanup
 ```
 
 Other ADB collectors: `weibo-adb-sync`, `kuaishou-adb-sync`, `toutiao-adb-sync`, `xhs-adb-sync`, `douyin-adb-sync`. Also: `list-adapters`, `facet-counts`, `recent-audit`, `event-detail <id>`, `rederive`, `run-skill <name>`, `register-mock`, `destroy`.
@@ -2500,6 +2502,9 @@ removal. CLI and desktop rebuild their in-memory KG/BM25 indexes for each new
 runtime generation; vector storage is not currently wired. See the
 [PDH projection lifecycle](../personal-data-hub/README.md#durable-kgrag-projections-working-tree-unreleased)
 for recovery, authorization, and retention boundaries.
+Receipt cleanup requires explicit retired ephemeral consumer IDs and
+`--confirm`; running receipts with unknown outcomes and source/dependency
+intents are retained. A timeout does not retire a consumer automatically.
 
 ### `chainlesschain pair <action>`
 
@@ -2551,7 +2556,64 @@ chainlesschain project init <name> --description "..."   # Create project
 chainlesschain project list                              # List projects
 chainlesschain project show <id>                         # Details
 chainlesschain project delete <id>                       # Soft delete (--hard to remove)
+chainlesschain project risk-evaluate --snapshot risk.json --json
+chainlesschain project task-description-preview --snapshot description.json --json
 ```
+
+The two snapshot commands are working-tree additions awaiting release. They
+read a regular UTF-8 JSON file of at most 2 MiB and run locally without opening
+the desktop database or calling a model. Invalid snapshots or insufficient
+risk data return exit code 2; `--json` returns a structured result.
+
+`risk-evaluate` evaluates overdue unresolved tasks and incomplete direct
+dependencies using an explicit `asOf`; an empty result means these rules found
+no matching signals. Its input is a complete selected-field snapshot:
+
+```json
+{
+  "sourceSchema": "desktop.project-tasks/v1",
+  "readStatus": "complete",
+  "asOf": "2026-10-06T00:00:00.000Z",
+  "scope": { "kind": "personal", "id": "did:key:owner" },
+  "project": {
+    "id": "project-1",
+    "status": "active",
+    "updated_at": 1791158400000
+  },
+  "tasks": [
+    {
+      "id": "task-1",
+      "project_id": "project-1",
+      "status": "pending",
+      "due_date": 1791158400000,
+      "blocked_by": [],
+      "updated_at": 1791158400000
+    }
+  ]
+}
+```
+
+The caller must establish `readStatus: "complete"` from a successful complete
+read; query failures, pagination gaps, missing risk columns, and missing
+dependencies must not be represented as empty data. The evaluator accepts up
+to 1000 tasks and 10000 dependency edges. `desktop.project-tasks/v1` uses SQL
+statuses `pending|running|completed|failed`; `desktop.task-manager/v1` uses
+`pending|in_progress|completed|cancelled`. Both require the displayed fields,
+with epoch-millisecond row dates and `due_date: null` when no deadline exists.
+`blocked_by` may be an array or serialized JSON array. Project statuses are
+`draft|active|completed|archived`. Unknown values fail closed. Output contains
+rule version, input digest, and risk-specific Project/Task references; these
+selected-field versions cannot serve as full-row action revisions.
+
+`task-description-preview` accepts exactly
+`{ "task": <full task SQL row>, "project": <project snapshot>, "description": <new text>, "idempotencyKey": <unique key> }`.
+The project snapshot needs `id`, `user_id`, `status`, `updated_at`, and optional
+`deleted`. Only pending personal tasks in draft/active projects are supported;
+organization/workspace tasks are rejected. The supplied owner must be a DID,
+and the output remains `authority: "unverified-snapshot"`. It returns the
+bound request and before/after description for review. The CLI does not
+execute this request or accept an actor/approval flag; authenticated desktop
+execution must independently re-read ownership and the exact task version.
 
 ### `chainlesschain video <action>`
 

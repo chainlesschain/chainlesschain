@@ -73,6 +73,112 @@ afterEach(() => {
 });
 
 describe("AdapterRegistry durable derivation", () => {
+  it("registers lifecycle ownership and retires only its idle ephemeral generation", async () => {
+    const vault = freshVault();
+    const ephemeral = successfulRegistry(vault, { consumerId: undefined });
+    const stable = successfulRegistry(vault);
+    const store = vault.getDerivationStore();
+    expect(store.getConsumer(ephemeral.consumerId)).toMatchObject({
+      kind: "ephemeral",
+      state: "active",
+    });
+    expect(store.getConsumer(stable.consumerId)).toMatchObject({
+      kind: "persistent",
+      state: "active",
+    });
+    vault.putEvent(event("a"));
+    await ephemeral.retryDerivations();
+    expect(ephemeral.retireDerivationConsumer()).toMatchObject({
+      retired: true,
+      state: "retired",
+    });
+    expect(ephemeral.retireDerivationConsumer()).toMatchObject({
+      retired: true,
+    });
+    expect(ephemeral.getDerivationStatus()).toMatchObject({
+      total: 0,
+      status: "retired",
+    });
+    await expect(ephemeral.retryDerivations()).rejects.toThrow(/retired/);
+    await expect(ephemeral.syncAdapter("missing")).rejects.toThrow(/retired/);
+    await expect(ephemeral.syncAll()).rejects.toThrow(/retired/);
+    await expect(ephemeral.rederive()).rejects.toThrow(/retired/);
+    expect(stable.retireDerivationConsumer()).toEqual({
+      retired: false,
+      reason: "persistent",
+    });
+    expect((await stable.retryDerivations()).succeeded).toBe(2);
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: [ephemeral.consumerId],
+        activeConsumerId: stable.consumerId,
+      }),
+    ).toMatchObject({ deletedReceipts: 2 });
+    expect((await stable.retryDerivations()).processed).toBe(0);
+  });
+
+  it("refuses retirement during a sink call and permits it once actual completion arrives", async () => {
+    const vault = freshVault();
+    vault.putEvent(event("a"));
+    let release, started;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    const entered = new Promise((resolve) => {
+      started = resolve;
+    });
+    const registry = successfulRegistry(vault, {
+      consumerId: undefined,
+      ragSink: async () => {
+        started();
+        await waiting;
+        return { errors: [] };
+      },
+    });
+    const pending = registry.retryDerivations();
+    await entered;
+    try {
+      expect(() => registry.retireDerivationConsumer()).toThrow(/busy/);
+      expect(
+        vault.getDerivationStore().getConsumer(registry.consumerId).state,
+      ).toBe("active");
+    } finally {
+      release();
+    }
+    expect((await pending).succeeded).toBe(2);
+    expect(registry.retireDerivationConsumer()).toMatchObject({
+      retired: true,
+    });
+  });
+
+  it("keeps source syncs busy across awaits and releases failed operations", async () => {
+    const vault = freshVault();
+    const registry = successfulRegistry(vault, { consumerId: undefined });
+    let release;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    registry.register(new MockAdapter({ count: 0 }));
+    const original = registry._syncAdapterOnce.bind(registry);
+    registry._syncAdapterOnce = async (...args) => {
+      await waiting;
+      return original(...args);
+    };
+    const pending = registry.syncAdapter("mock");
+    try {
+      expect(() => registry.retireDerivationConsumer()).toThrow(/busy/);
+    } finally {
+      release();
+    }
+    await pending;
+    await expect(registry.retryDerivations({ limit: 0 })).rejects.toThrow(
+      /limit/,
+    );
+    expect(registry.retireDerivationConsumer()).toMatchObject({
+      retired: true,
+    });
+  });
+
   it("advances a source checkpoint after durable enqueue and retries only failed destinations after reopening", async () => {
     const vault = freshVault();
     const kgSink = vi.fn(async () => ({ errors: [] }));

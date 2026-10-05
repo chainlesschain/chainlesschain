@@ -35,6 +35,9 @@ function resolveDatabase(database) {
  */
 function registerTaskIPC(database) {
   logger.info("[IPC] 注册团队任务管理IPC处理器 (49个handlers)");
+  require("./task-description-ipc").registerTaskDescriptionIPC(
+    resolveDatabase(database),
+  );
 
   // ========================================
   // Board Management (8 handlers)
@@ -153,7 +156,9 @@ function registerTaskIPC(database) {
 
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      const tasks = await manager.getTasks(params.options || params.filters || {});
+      const tasks = await manager.getTasks(
+        params.options || params.filters || {},
+      );
       return { success: true, tasks };
     } catch (error) {
       logger.error("[IPC] task:get-tasks failed:", error);

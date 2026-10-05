@@ -345,6 +345,16 @@ class AdapterRegistry {
 
     this._adapters = new Map();
     this._activeSync = null; // name of currently-running adapter, or null
+    this._consumerOperationCount = 0;
+    this._consumerRetired = false;
+    const derivationStore = this._getDerivationStore();
+    this._derivationConsumer =
+      typeof derivationStore?.registerConsumer === "function"
+        ? derivationStore.registerConsumer({
+            consumerId: this.consumerId,
+            kind: opts.consumerId === undefined ? "ephemeral" : "persistent",
+          })
+        : null;
   }
 
   // ─── Registration ────────────────────────────────────────────────────
@@ -402,6 +412,37 @@ class AdapterRegistry {
       : null;
   }
 
+  async _runConsumerOperation(operation) {
+    if (this._consumerRetired) {
+      throw new Error("AdapterRegistry: derivation consumer has been retired");
+    }
+    this._consumerOperationCount += 1;
+    try {
+      return await operation();
+    } finally {
+      this._consumerOperationCount -= 1;
+    }
+  }
+
+  /** Retire only this idle ephemeral generation; receipts are pruned separately. */
+  retireDerivationConsumer() {
+    if (this._consumerOperationCount > 0 || this._activeSync) {
+      const error = new Error("AdapterRegistry: derivation consumer is busy");
+      error.code = "DERIVATION_CONSUMER_BUSY";
+      throw error;
+    }
+    if (!this._derivationConsumer)
+      return { retired: false, reason: "unsupported" };
+    if (this._derivationConsumer.kind === "persistent") {
+      return { retired: false, reason: "persistent" };
+    }
+    const consumer = this._getDerivationStore().retireConsumer(
+      this._derivationConsumer,
+    );
+    this._consumerRetired = true;
+    return { ...consumer, retired: true };
+  }
+
   _hasDerivationIdConflict(store, entityId) {
     if (typeof store.getState !== "function") return false;
     let matches = 0;
@@ -439,7 +480,7 @@ class AdapterRegistry {
       ...summary,
       available: true,
       consumerId: this.consumerId,
-      status: derivationState(summary),
+      status: this._consumerRetired ? "retired" : derivationState(summary),
     };
   }
 
@@ -448,7 +489,11 @@ class AdapterRegistry {
    * A running delivery is never automatically replayed for the same consumer.
    * Sink errors are counted and recorded as fixed codes without raw payloads.
    */
-  async retryDerivations({ adapter, scope, limit = 100 } = {}) {
+  async retryDerivations(options = {}) {
+    return this._runConsumerOperation(() => this._retryDerivations(options));
+  }
+
+  async _retryDerivations({ adapter, scope, limit = 100 } = {}) {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       throw new RangeError(
         "AdapterRegistry: derivation limit must be between 1 and 1000",
@@ -988,6 +1033,10 @@ class AdapterRegistry {
    * @property {string} scope         Privacy-safe account/source scope
    */
   async syncAdapter(name, options = {}) {
+    return this._runConsumerOperation(() => this._syncAdapter(name, options));
+  }
+
+  async _syncAdapter(name, options = {}) {
     const adapter = this._adapters.get(name);
     if (!adapter)
       throw new Error(`AdapterRegistry.syncAdapter: no adapter "${name}"`);
@@ -2217,6 +2266,10 @@ class AdapterRegistry {
    * @property {Array<{adapter,scope,error,sample?}>} errors  Source-level errors
    */
   async rederive(opts = {}) {
+    return this._runConsumerOperation(() => this._rederive(opts));
+  }
+
+  async _rederive(opts = {}) {
     const startedAt = Date.now();
     const report = {
       rawSeen: 0,
@@ -2400,6 +2453,10 @@ class AdapterRegistry {
    * @returns {Promise<Array<SyncReport>>} registration-order reports
    */
   async syncAll(options = {}) {
+    return this._runConsumerOperation(() => this._syncAll(options));
+  }
+
+  async _syncAll(options = {}) {
     const normalizedOptions =
       options && typeof options === "object" ? options : {};
     const readyOnly = normalizedOptions.readyOnly !== false;
