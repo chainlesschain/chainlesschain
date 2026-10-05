@@ -12,9 +12,9 @@ const fixtureUrl = (name) =>
   new URL(`../fixtures/external-agent/${name}`, import.meta.url);
 const read = (name) => JSON.parse(readFileSync(fixtureUrl(name), "utf8"));
 const fixture = read("codex-app-server-session.json");
-const requestSchema = read("codex-app-server-0.157.1-request.schema.json");
+const requestSchema = read("codex-app-server-0.160.0-request.schema.json");
 const notificationSchema = read(
-  "codex-app-server-0.157.1-notification.schema.json",
+  "codex-app-server-0.160.0-notification.schema.json",
 );
 const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
 const validators = new Map();
@@ -38,7 +38,7 @@ function assertOfficial(schema, message) {
   expect(validate(message), JSON.stringify(validate.errors)).toBe(true);
 }
 
-describe("Codex 0.157.1 generated schema", () => {
+describe("Codex 0.160.0 generated schema", () => {
   it("validates every known fixture notification against the unmodified official schema", () => {
     for (const event of fixture) {
       expect(event).not.toHaveProperty("jsonrpc");
@@ -79,9 +79,9 @@ describe("Codex 0.157.1 generated schema", () => {
       client,
       fallback,
       enabled: true,
-      upstreamVersion: "0.157.1",
+      upstreamVersion: "0.160.0",
       // Probe-only override; schema agreement does not change production admission.
-      compatibilityMatrix: [{ version: "0.157.1" }],
+      compatibilityMatrix: [{ version: "0.160.0" }],
     }).execute({ prompt: "official schema fixture" });
     expect(result).toMatchObject({
       terminal: "completed",
@@ -98,7 +98,7 @@ describe("Codex 0.157.1 generated schema", () => {
     expect(client.listenerCount("notification")).toBe(0);
     expect(
       isCodexAppServerVersionCompatible(
-        "0.157.1",
+        "0.160.0",
         CODEX_APP_SERVER_COMPATIBILITY_MATRIX,
       ),
     ).toBe(false);

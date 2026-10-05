@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
 
-export const PROBE_VERSION = "0.157.1";
+export const PROBE_VERSION = "0.160.0";
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const SCENARIOS = [
   "completed",

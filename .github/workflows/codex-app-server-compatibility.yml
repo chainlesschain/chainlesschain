@@ -73,7 +73,7 @@ jobs:
           packages/cli/__tests__/unit/external-agent-adapters.test.js
 
   upstream-schema:
-    name: Codex 0.157.1 schema and real turns (${{ matrix.runner }}, no admission)
+    name: Codex 0.160.0 schema and real turns (${{ matrix.runner }}, no admission)
     strategy:
       fail-fast: false
       matrix:
@@ -93,9 +93,9 @@ jobs:
         shell: bash
         run: |
           test "$(git rev-parse HEAD)" = "${COMPAT_SHA}"
-          npm install --prefix "${RUNNER_TEMP}/codex-schema-install" --no-package-lock --no-save --ignore-scripts --no-audit --no-fund @openai/codex@0.157.1
+          npm install --prefix "${RUNNER_TEMP}/codex-schema-install" --no-package-lock --no-save --ignore-scripts --no-audit --no-fund @openai/codex@0.160.0
           CODEX_GENERATOR="${RUNNER_TEMP}/codex-schema-install/node_modules/@openai/codex/bin/codex.js"
-          test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli 0.157.1"
+          test "$(node "${CODEX_GENERATOR}" --version)" = "codex-cli 0.160.0"
           node "${CODEX_GENERATOR}" app-server generate-json-schema --out "${RUNNER_TEMP}/codex-generated-schema"
           node packages/cli/scripts/verify-codex-app-server-schema.mjs --schema-dir "${RUNNER_TEMP}/codex-generated-schema"
       - name: Exercise interleaved real turns, cancellation and admitted transport loss
