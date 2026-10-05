@@ -111,3 +111,5 @@ cgroup 路径显式由受控宿主通过 `CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP
 候选版本本地回归：VS Code 234/234；Java 21 定向测试和生产 SDK 编译通过；执行器、恢复与结果报告定向回归 87 项通过、2 项 Linux 测试跳过；发布工作流与命令生命周期回归 64 项通过。5 个相关 workflow 通过 actionlint（未运行 shellcheck/pyflakes），生成文件与 spawn inventory 检查通过。这些结果不替代准确提交的完整 CI；真实 cgroup2 恢复必须在 Linux 两架构实际执行后确认。
 
 真实 cgroup2 专项现已通过：[Process Ownership Recovery #37258234311](https://github.com/chainlesschain/chainlesschain/actions/runs/37258234311)，源码 `320301e6e7ff6dd0be42a0e62177ac2db9ce1fb1`，Node 22.12.0，Linux x64 / arm64 各 2 项通过。原始恢复回执：[x64](./cli/evidence/gap-2026-10-05/cgroup-recovery-x64.json)、[arm64](./cli/evidence/gap-2026-10-05/cgroup-recovery-arm64.json)。覆盖仍存活的脱离会话孙进程、清理后重新准入且不重放、旧记录拒绝、boot/inode 漂移及持久化失败保留后重试。测试修复了配置目录与 cwd 重叠，以及直接 target 受 `PDEATHSIG=SIGKILL` 保护时应检查存活孙进程的断言；生产保护未放宽。
+
+`320301e6e7` 的 [CLI CI #37258234461](https://github.com/chainlesschain/chainlesschain/actions/runs/37258234461) 在 Linux/macOS unit shard 2/4、Windows unit shard 8/16 均因同一个旧 Doctor 断言失败：测试未传活动会话能力，却预期 `READY`。已保留 `DEGRADED` 生产行为，更新 CLI 侧报告回归以覆盖未知能力、已确认回执与有效审批模式、不完整能力三种情况；本地 7 项报告测试和 14 项共享合同检查通过。该失败提交不满足发布门，修复提交必须重新取得完整 CLI CI / CLI Strict Sandbox 矩阵。

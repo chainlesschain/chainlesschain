@@ -46,12 +46,74 @@ describe("formatBridgeReport", () => {
     expect(md).toContain("reason: workspace-match");
     expect(md).toContain("## cc ide status");
     expect(md).toContain("## cc ide doctor");
-    expect(md).toContain("READY (可运行)");
+    expect(md).toContain("DEGRADED (可降级运行)");
+    expect(md).toContain(
+      "agent capabilities have not been confirmed for a running session",
+    );
+    expect(md).toContain("Agent session: not observed");
+    expect(md).toContain("Input acceptance receipts: not observed");
     expect(md).toContain(`CLI: ${MIN_CLI_VERSION}`);
     expect(md).toContain("## Development runtimes and offline recovery");
     expect(md).toContain("Node.js: 22.12.0");
     expect(md).toContain("Managed CLI offline copy: ready (0.200.0)");
     expect(md).toContain("Plugin registry offline cache: ready (3 entries)");
+  });
+
+  it("reports ready when the running session confirms receipts and its effective approval mode", () => {
+    const md = formatBridgeReport({
+      port: 51234,
+      cliVersionText: MIN_CLI_VERSION,
+      workspaceTrusted: true,
+      agentRuntime: {
+        state: "running",
+        inputReceipts: true,
+        permissionMode: {
+          requested: "default",
+          effective: "default",
+          status: "effective",
+        },
+      },
+    });
+    expect(md).toContain("READY (可运行)");
+    expect(md).toContain("Agent session: running");
+    expect(md).toContain("Input acceptance receipts: supported");
+    expect(md).toContain(
+      "Approval mode: requested default, effective default (effective)",
+    );
+  });
+
+  it.each([
+    {
+      inputReceipts: false,
+      permissionMode: {
+        requested: "default",
+        effective: "default",
+        status: "effective",
+      },
+      reason: "input acceptance receipts are unavailable",
+    },
+    {
+      inputReceipts: true,
+      permissionMode: {
+        requested: "bypassPermissions",
+        effective: "default",
+        status: "pending",
+      },
+      reason: "effective approval mode is unconfirmed",
+    },
+  ])("keeps incomplete running capabilities degraded: $reason", (entry) => {
+    const md = formatBridgeReport({
+      port: 51234,
+      cliVersionText: MIN_CLI_VERSION,
+      workspaceTrusted: true,
+      agentRuntime: {
+        state: "running",
+        inputReceipts: entry.inputReceipts,
+        permissionMode: entry.permissionMode,
+      },
+    });
+    expect(md).toContain("DEGRADED (可降级运行)");
+    expect(md).toContain(entry.reason);
   });
 
   it("says STOPPED (with the recovery action) when the bridge is down", () => {
