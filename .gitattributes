@@ -54,3 +54,7 @@ docs/research/ide/evidence/gap-2026-10-05/verify01-lifecycle-diagnostics/** -tex
 docs/research/ide/evidence/gap-2026-10-05/verify01-ci-f289/** -text -whitespace
 docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-32f/** -text -whitespace
 docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-f289/** -text -whitespace
+
+docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows/** -text -whitespace
+
+docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-feda/** -text -whitespace

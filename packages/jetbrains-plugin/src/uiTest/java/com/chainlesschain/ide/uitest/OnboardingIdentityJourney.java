@@ -6,7 +6,6 @@ import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import java.nio.file.*;
 import java.time.*;
-import javax.imageio.ImageIO;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Real Settings controls and chat panels; local command fixtures, no provider. */
@@ -67,7 +66,8 @@ final class OnboardingIdentityJourney {
             failed.addProperty("error", error.toString());
             failed.add("completed", results);
             write("onboarding-failure.json", failed);
-            ImageIO.write(robot.getScreenshot(), "png", root.resolve("onboarding-failure.png").toFile());
+            try { screenshot(frame, "onboarding-failure.png"); }
+            catch (Exception captureError) { error.addSuppressed(captureError); }
             throw error;
         }
     }
@@ -112,21 +112,28 @@ final class OnboardingIdentityJourney {
         record.addProperty("case", name); record.addProperty("at", Instant.now().toString());
         record.add("snapshot", snapshot); results.add(record);
         write(name + ".json", record);
-        ImageIO.write(robot.getScreenshot(), "png", root.resolve(name + ".png").toFile());
+        screenshot(frame, name + ".png");
     }
 
     private void manualFailure(String expected) throws Exception {
         find("//div[@text='⚙ LLM' and @visible='true']").runJs("component.doClick();", true);
         find("//div[@text='Check for cc updates…' and @visible='true']").runJs("component.doClick();", true);
         ComponentFixture dialog = find("//div[@class='MyDialog' and @visible='true']");
-        String text = String.valueOf((Object) dialog.callJs("""
+        String text = "";
+        long until = System.currentTimeMillis() + 10000;
+        do {
+            text = String.valueOf((Object) dialog.callJs("""
             var result=[];
             function walk(c){
                 try{var t=c.getText();if(t!=null)result.push(String(t));}catch(ignore){}
-                if(c instanceof java.awt.Container){var children=c.getComponents();for(var i=0;i<children.length;i++)walk(children[i]);}
+                try{var children=c.getComponents();for(var i=0;i<children.length;i++)walk(children[i]);}catch(ignore){}
             }
             walk(component);result.join('\\n');
             """, true));
+            if (text.contains(expected)) break;
+            Thread.sleep(100);
+        } while (System.currentTimeMillis() < until);
+        screenshot(dialog, "manual-update-" + results.size() + ".png");
         assertTrue(text.contains(expected), "Manual update did not reject this identity: " + text);
         JsonObject evidence = new JsonObject(); evidence.addProperty("text", text);
         evidence.addProperty("at", Instant.now().toString());
@@ -136,5 +143,13 @@ final class OnboardingIdentityJourney {
 
     private void write(String name, JsonElement value) throws Exception {
         Files.writeString(root.resolve(name), JSON.toJson(value) + "\n", StandardOpenOption.CREATE_NEW);
+    }
+
+    private void screenshot(ComponentFixture fixture, String name) throws Exception {
+        Object encoded = fixture.callJs("var bounds=new Packages.java.awt.Rectangle(component.getLocationOnScreen(),component.getSize());"
+                + "var bytes=new Packages.java.io.ByteArrayOutputStream();"
+                + "Packages.javax.imageio.ImageIO.write(new Packages.java.awt.Robot().createScreenCapture(bounds),'png',bytes);"
+                + "Packages.java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());");
+        Files.write(root.resolve(name), java.util.Base64.getDecoder().decode(String.valueOf(encoded)), StandardOpenOption.CREATE_NEW);
     }
 }

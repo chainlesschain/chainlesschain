@@ -1,0 +1,4 @@
+{
+  "text": "\nChainlessChain\n\u003chtml\u003e\n  \u003chead\u003e\n    \n  \u003c/head\u003e\n  \u003cbody\u003e\n    ChainlessChain\n  \u003c/body\u003e\n\u003c/html\u003e\n\n\u003chtml\u003e\n  \u003chead\u003e\n    \n  \u003c/head\u003e\n  \u003cbody\u003e\n    The configured CLI path did not identify a usable ChainlessChain CLI: \n    C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-onboard-N642Dt\\not-installed.cmd. \n    Check Settings \u0026#8594; Tools \u0026#8594; ChainlessChain IDE. This explicit path is \n    preserved; managed fallback is not used.\n  \u003c/body\u003e\n\u003c/html\u003e\n\nOK",
+  "at": "2026-10-05T11:49:54.109766200Z"
+}

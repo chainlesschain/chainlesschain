@@ -1,0 +1,35 @@
+{
+  "scope": "real-windows-intellij-onboarding-local-command-fixtures",
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "passed": true,
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-onboard-N642Dt",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "hostVersion": "2024.2",
+  "source": {
+    "commit": "ae6adbe13cfdba0555d9bfaff97861320715822b",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:50494d38b5517f697cfba8c3826fb37dfc02122cd2c6fcd4dcc3ef10276567f5",
+      "scripts/onboarding-diagnostic.mjs": "sha256:d9452e901d28238cc29ed5c20a71003f817e62be061825d8d7c7648b5739a7e8"
+    }
+  },
+  "pluginVersion": "0.4.152",
+  "pluginDigest": "sha256:d1b392b63a4009ae897f1cbe9e52b156b98afc96742729bd3362c3fe9289376d",
+  "cases": [
+    "valid",
+    "bad-explicit-with-managed",
+    "repaired-explicit",
+    "same-path-gcc",
+    "gcc-on-path",
+    "missing",
+    "managed-fallback",
+    "installed-on-path-without-restart"
+  ],
+  "commandInvocations": 30
+}

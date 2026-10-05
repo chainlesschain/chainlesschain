@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **Actions 修复续做**：`main` 的 `feda6d1eee` 已解决容器 UID/GID 写入权限；其六分片原始失败材料完整保留。后续 `49d36bc06e` 补齐 Git、锁定 DOM/SQLite 依赖、Promise 断言识别及行为控制，Windows 定向测试 21/21 通过，新的完整 Docker 结果待回读。JetBrains 本地真实身份旅程已完成八阶段诊断并安全归档。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)；正式 36+9、账号账单及人工验收仍开放。
+
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
 
 > **最新续做**：显式 Linux `agent controlled-host`、IDE prepare/finish 与双宿主驱动已接通。准确工程提交 `f289a08844` 的官方 MCP stdio/HTTP/GET-SSE 三系统 CI 和双 IDE 六宿主矩阵全部通过，原始协议、UI 与退出证据已归档。IDE 诊断允许有界回收并核验进程消失，逐平台退出方式见[实施记录第 13 节](../cli-ide-gap-implementation-2026-10-05.md#13-真实矩阵反馈与退出生命周期)。候选 CLI `0.166.89`、VS Code `0.37.134`、JetBrains `0.4.152` 尚未发布。正式 36+9 样本保持 `NOT_RUN`；账号账单、公开安装、人工验收及 Windows/macOS durable 后端仍开放。

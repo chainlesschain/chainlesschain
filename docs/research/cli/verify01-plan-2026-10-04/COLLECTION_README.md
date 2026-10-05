@@ -66,7 +66,7 @@ node packages/cli/scripts/verify01-collection.mjs --plan-dir docs/research/cli/v
 
 ## 36 项 setup/check 生成器（本轮工程补充）
 
-`packages/cli/scripts/verify01-review-pack.mjs` 仅生成 operator 配置，不运行模型或任务。要求全新 review 目录，以及验收者从可信镜像渠道另行锁定的 Docker image ID；标签 `node:22.12.0-bookworm-slim` 只是参考，每阶段实际检查 Node 版本。占位值不能作为执行配置：
+`packages/cli/scripts/verify01-review-pack.mjs` 仅生成 operator 配置，不运行模型或任务。要求全新 review 目录，以及验收者从可信镜像渠道另行锁定的 Docker image ID；标签 `node:22.12.0-bookworm` 只是参考，每阶段实际检查 Node 版本。完整镜像提供冻结权限测试需要的真实 Git。占位值不能作为执行配置：
 
 ```powershell
 node packages/cli/scripts/verify01-review-pack.mjs --output-dir <新的项目外review目录> --image-id sha256:<独立锁定的64位镜像ID> --plan-dir docs/research/cli/verify01-plan-2026-10-04
@@ -74,7 +74,7 @@ node packages/cli/scripts/verify01-review-pack.mjs --output-dir <新的项目外
 
 输出包括 72 个自包含 `.mjs`、`review.json`、`review.sha256` 和 `pack.json`。核对全部规格、允许路径、测试支持文件、确定性反例和 Docker 隔离参数后，独立保存 review 摘要，再将 review 交给前述执行器。不能直接把新生成的摘要称为人工预审认证。生成器拒绝覆盖旧目录；修改 runtime/spec/image 后须生成新 pack 并重新审阅及锁定摘要。
 
-此 pack **只支持 Linux operator + Linux Docker 验收**；native Windows/macOS 的独立 review 尚需准备，不能直接沿用容器结果。安装阶段只挂载隔离 workspace 可写，以 lockfile 执行 `npm ci --ignore-scripts`；测试阶段断网且 workspace、`/review` 和容器根文件系统只读。所有候选测试实际运行，skip/todo/空测试拒绝，反例只接受断言失败；原有基线可保留已有 pending，但至少有实际 passed。测试支持文件和独立纯 JSON Vitest 配置锁定，以 `--configLoader native` 加载，避免默认 bundle 在只读挂载内写临时文件，不读取候选新增配置。
+此 pack **只支持 Linux operator + Linux Docker 验收**；native Windows/macOS 的独立 review 尚需准备，不能直接沿用容器结果。安装和测试容器使用 Linux 操作者真实 UID/GID，保持 capabilities 全部移除。安装阶段只挂载隔离 workspace 可写，以 lockfile 执行 CLI workspace 与 root 的 `npm ci --ignore-scripts`，包含冻结 DOM 测试需要的 root happy-dom；只显式调用已锁定 SQLite 依赖的 prebuild installer，并实际执行内存 SQL 查询、记录原生文件摘要，不启用其他 lifecycle 脚本。测试阶段断网且 workspace、`/review` 和容器根文件系统只读。所有候选测试实际运行，skip/todo/空测试拒绝，反例只接受断言失败（包括具备 Vitest matcher 栈的 Promise 断言）；原有基线可保留已有 pending，但至少有实际 passed。测试支持文件和独立纯 JSON Vitest 配置锁定，以 `--configLoader native` 加载，避免默认 bundle 在只读挂载内写临时文件，不读取候选新增配置。
 
 验收脚本按执行器合同以 `node --input-type=module --eval <已捕获脚本字节> <隔离workspace> <外层deadline毫秒时间戳>` 运行，cwd 为 review root；`process.argv[1]` 是工作区，`argv[2]` 为任务剩余预算对应的 deadline。不可用普通 `node script.mjs workspace` 替代这一调用合同。源码变体只在任务工作区临时应用，并在 finally 还原；mutation-only 行为归属映射不扩大 Agent 的允许改动路径。第 34 题计划从内联锁定数据放到 `/review/plan.json`，因为冻结 checkout 早于本目录。
 

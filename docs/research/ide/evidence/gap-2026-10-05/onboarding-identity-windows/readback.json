@@ -1,0 +1,260 @@
+{
+  "schema": "chainlesschain.onboarding-identity-windows-readback/v1",
+  "recordedAt": "2026-10-05T12:24:27.592Z",
+  "source": {
+    "commit": "ae6adbe13cfdba0555d9bfaff97861320715822b",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:50494d38b5517f697cfba8c3826fb37dfc02122cd2c6fcd4dcc3ef10276567f5",
+      "scripts/onboarding-diagnostic.mjs": "sha256:d9452e901d28238cc29ed5c20a71003f817e62be061825d8d7c7648b5739a7e8"
+    }
+  },
+  "currentWorkspaceMatchesRecordedSourceFiles": true,
+  "successfulAttempt": 4,
+  "pluginVersion": "0.4.152",
+  "pluginDigest": "sha256:d1b392b63a4009ae897f1cbe9e52b156b98afc96742729bd3362c3fe9289376d",
+  "hostVersion": "2024.2",
+  "node": "v22.22.2",
+  "cases": [
+    "valid",
+    "bad-explicit-with-managed",
+    "repaired-explicit",
+    "same-path-gcc",
+    "gcc-on-path",
+    "missing",
+    "managed-fallback",
+    "installed-on-path-without-restart"
+  ],
+  "commandInvocations": 30,
+  "failures": [
+    {
+      "attempt": 1,
+      "passed": false,
+      "reason": "Fixture returned {} for scalar config get, so onboarding interpreted a configured provider. Fixture was corrected to return empty output.",
+      "driverError": "java.lang.AssertionError: valid did not settle: {\"observedAt\":\"2026-10-05T11:32:06.714755100Z\",\"processId\":\"20588\",\"profile\":\"C:\\\\code\\\\chainlesschain\\\\packages\\\\jetbrains-plugin\\\\build\\\\idea-sandbox\\\\cc-onboard-2yNZLa\\\\IC-2024.2\\\\config_runIdeForUiTests\",\"id\":\"98697ee4-ba07-4544-8625-1337bc42801f\",\"sessionId\":\"panel-1791199866507-46165e\",\"tabs\":[{\"id\":\"d79ecde4-5034-4335-bbee-eb9f42295857\",\"index\":0,\"selected\":false},{\"id\":\"98697ee4-ba07-4544-8625-1337bc42801f\",\"index\":1,\"selected\":true}],\"inputText\":\"\",\"editable\":true,\"sendInFlight\":false,\"childRunning\":false,\"childProcessId\":\"\",\"childProcessIds\":[],\"turnActive\":false,\"interruptPending\":false,\"receiptReady\":false,\"draftStatus\":\"Saved input restored for editing; it has not been sent\",\"historyStatus\":\" \",\"binaryChoice\":\"null\",\"text\":\"\",\"visible\":true,\"savedRows\":[]}",
+      "completedCases": [],
+      "source": {
+        "commit": "07a383c906add37eae2067a1e20b41bbd22ded2d",
+        "dirty": true,
+        "files": {
+          "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+          "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:d518de7c20aa12b4e1faabbf19c8a99e344fb3366019b81bfd16890ae5d9bef3",
+          "scripts/onboarding-diagnostic.mjs": "sha256:319c7bab072901ec963d2d2848dd779c83fe3d4c4dbd9bea388142b5d5ee024a"
+        }
+      },
+      "resultDigest": "sha256:9fb653fbe937249c75a34cb6813f72bf447ec33854d4376c975630959545d5fb",
+      "driverFailureDigest": "sha256:ba4fe3387f957749970be94f3a5d7b7209972ada3b382342d63e7ec6c8008d91",
+      "cleanup": {
+        "confirmed": true,
+        "ownerExit": {
+          "code": 0,
+          "signal": null
+        },
+        "taskkillUsed": false
+      },
+      "screenshotsPublished": false
+    },
+    {
+      "attempt": 2,
+      "passed": false,
+      "reason": "Actual bad-path UI and update dialog were correct; Robot text traversal did not visit Java containers.",
+      "driverError": "org.opentest4j.AssertionFailedError: Manual update did not reject this identity:  ==> expected: <true> but was: <false>",
+      "completedCases": [
+        "valid",
+        "bad-explicit-with-managed"
+      ],
+      "source": {
+        "commit": "b858ae95d5bf5502f9c7484fef81358979a6f848",
+        "dirty": true,
+        "files": {
+          "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+          "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:d518de7c20aa12b4e1faabbf19c8a99e344fb3366019b81bfd16890ae5d9bef3",
+          "scripts/onboarding-diagnostic.mjs": "sha256:d9452e901d28238cc29ed5c20a71003f817e62be061825d8d7c7648b5739a7e8"
+        }
+      },
+      "resultDigest": "sha256:890ed27465c2b01129a4ae4bad45c83f6ffc25650c2434b7026f7b766e79e3b9",
+      "driverFailureDigest": "sha256:736bbf95fdf86fd486f3d6cbac0f3d05f29ab4b520fcd38d6255eae2601e4fe6",
+      "cleanup": {
+        "confirmed": true,
+        "ownerExit": {
+          "code": 0,
+          "signal": null
+        },
+        "taskkillUsed": false
+      },
+      "screenshotsPublished": false
+    },
+    {
+      "attempt": 3,
+      "passed": false,
+      "reason": "Robot screenshot helper treated a Java top-level Window as a non-Window and dereferenced a null ancestor.",
+      "driverError": "com.intellij.remoterobot.client.IdeaSideException: TypeError: Cannot call method \"getBounds\" of null (js#8)",
+      "completedCases": [
+        "valid"
+      ],
+      "source": {
+        "commit": "ae6adbe13cfdba0555d9bfaff97861320715822b",
+        "dirty": true,
+        "files": {
+          "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+          "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:6a6da5ce4e5bcbb3ebf0cf6967a78033b85f44af700d88b0da1acd184c8353ae",
+          "scripts/onboarding-diagnostic.mjs": "sha256:d9452e901d28238cc29ed5c20a71003f817e62be061825d8d7c7648b5739a7e8"
+        }
+      },
+      "resultDigest": "sha256:b70f8769f35f9ce4b574cf35b34e875aa230550ba25ca819b535a1845ecd5047",
+      "driverFailureDigest": "sha256:cf486e618ef3080b7a8b577a0c10ba05adb7a5ca1e9c6ed8e1995416c8cd8392",
+      "cleanup": {
+        "confirmed": true,
+        "ownerExit": {
+          "code": 0,
+          "signal": null
+        },
+        "taskkillUsed": false
+      },
+      "screenshotsPublished": false
+    }
+  ],
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "publicInstallationAssessed": false,
+    "releaseEligible": false,
+    "operatingSystemsAssessed": [
+      "win32"
+    ],
+    "managedFixture": "Local deterministic layout; no registry installation claim",
+    "screenshots": "Only original host-4 IDE-window and dialog-bounds images. No screenshots from attempts 1-3 are published."
+  },
+  "files": {
+    "host-4/diagnostic-result.json": {
+      "digest": "sha256:9137e0f64d46946269619176fe2fb526059bcbdf48be69594124fead5381a9b6",
+      "bytes": 1526
+    },
+    "host-4/ide.log.cleanup.json": {
+      "digest": "sha256:ca1113c8a4c4c4d32d0a07933758de85c4ead196ccc4ccab53ea398af65bc739",
+      "bytes": 1974
+    },
+    "host-4/identity-trace.jsonl": {
+      "digest": "sha256:57161229f1401d9ea2b9acac0087264c83067fff45010b2565286a285965b6a8",
+      "bytes": 3148
+    },
+    "host-4/identity-peer.cjs": {
+      "digest": "sha256:9b1e34668a830928b61cd216806ef0ba171c8a3449b0a0c95e26e55e024e0d72",
+      "bytes": 717
+    },
+    "host-4/good.cmd": {
+      "digest": "sha256:c50af7c68d4a20d630f28caa726dbed8046ad09165e4fbef82ccf0932f0bffe4",
+      "bytes": 126
+    },
+    "host-4/prepare.log": {
+      "digest": "sha256:578e2eebeb94750e9a93159dd129b21c22291bcab2e9a8071563df98e11d7e75",
+      "bytes": 1038
+    },
+    "host-4/ui.log": {
+      "digest": "sha256:7e5d4aed1423b0dc75b0d55c4871d836c3086d2a7d4793637ef711dc62bbdf1e",
+      "bytes": 726
+    },
+    "host-4/capture/bad-explicit-with-managed.json": {
+      "digest": "sha256:9338b7e5b39c955621e01a70154745b018adba8533e14e6acb12b3924b162c09",
+      "bytes": 1515
+    },
+    "host-4/capture/bad-explicit-with-managed.png": {
+      "digest": "sha256:1acb0a10888c6300f5b31807ca87db6e1f48ba1f316873a3460da0322958c46c",
+      "bytes": 172242
+    },
+    "host-4/capture/gcc-on-path.json": {
+      "digest": "sha256:8b8918c504bf29a9896f33b1e2438a1c6b50923830eaba4a37be5d7424296996",
+      "bytes": 1822
+    },
+    "host-4/capture/gcc-on-path.png": {
+      "digest": "sha256:951ce4886492fe251012f5972cd6e59396ac36a007dd4d4e5835b7a639bec68e",
+      "bytes": 168292
+    },
+    "host-4/capture/installed-on-path-without-restart.json": {
+      "digest": "sha256:963cbf04aced465b3f323455b81daa8040de5dd1c67d09546a535ed57f9ac710",
+      "bytes": 2045
+    },
+    "host-4/capture/installed-on-path-without-restart.png": {
+      "digest": "sha256:60aeeae90dd3143fff15feaeb18c958a58286f1e3542685455d800f31b73818b",
+      "bytes": 162023
+    },
+    "host-4/capture/managed-fallback.json": {
+      "digest": "sha256:ae93aa90bf7c143347e67088fa9a8ddee6db67fdb84c50549cb977e50f3dd121",
+      "bytes": 1913
+    },
+    "host-4/capture/managed-fallback.png": {
+      "digest": "sha256:04d20cc861b55763fe2f86a3fc8c857ec6152578b6abe1ebfc83fd82643c068c",
+      "bytes": 161767
+    },
+    "host-4/capture/manual-update-2.json": {
+      "digest": "sha256:7e88b40021176aee9684ac4d7c7a83cabe1b72ffd7d4c88a4f2071e2714b2fb2",
+      "bytes": 655
+    },
+    "host-4/capture/manual-update-2.png": {
+      "digest": "sha256:dd976f54e83f1db0c9ac087735ab7460947e1afdb3a467640335d580e7450a7c",
+      "bytes": 18577
+    },
+    "host-4/capture/manual-update-5.json": {
+      "digest": "sha256:cf16dcfefb31be7ec69a84d0a626f27cb1bed456e68de27b452ddb4ad6d6eae4",
+      "bytes": 467
+    },
+    "host-4/capture/manual-update-5.png": {
+      "digest": "sha256:fbfc7959ca27df6a45437509ae13902c1e65ecf84f4038f3f181ebb33b9d4362",
+      "bytes": 8700
+    },
+    "host-4/capture/missing.json": {
+      "digest": "sha256:f2d4918a6ac9982d2390ad457d689e9fc88e524b7b9d91fc2708aeff2b937349",
+      "bytes": 1935
+    },
+    "host-4/capture/missing.png": {
+      "digest": "sha256:b06702a5f1eff8f0bc5eea2908a2991d4ef83f917b8843e006607a957cdb7260",
+      "bytes": 171191
+    },
+    "host-4/capture/onboarding-config.json": {
+      "digest": "sha256:5788eb8bf6affe01bed9734c34a0c8097f1486feada642fa937ecd1d37d207fa",
+      "bytes": 317
+    },
+    "host-4/capture/onboarding-ui.json": {
+      "digest": "sha256:417d0a8c82baf39bb8cc77426f593e94f5955340ff620962b6c54da7ab36195c",
+      "bytes": 14503
+    },
+    "host-4/capture/repaired-explicit.json": {
+      "digest": "sha256:150fe5874e5caa97418c1c0780b0c9e06fa40a2bf2de2c71865a51073e574825",
+      "bytes": 1446
+    },
+    "host-4/capture/repaired-explicit.png": {
+      "digest": "sha256:06cea55d9f04092de8024540923a3086a2af45b4ce0c6e423df4010a33d927b8",
+      "bytes": 160806
+    },
+    "host-4/capture/same-path-gcc.json": {
+      "digest": "sha256:e709bea2fc736fec342d86492001d861285ea50283f2e35d20e8127cfefcf3f7",
+      "bytes": 1728
+    },
+    "host-4/capture/same-path-gcc.png": {
+      "digest": "sha256:935f9b512c30b3e4776026eef78abb1be4ddd6c7f27fa7f366bb79d4d18c50ce",
+      "bytes": 171361
+    },
+    "host-4/capture/valid.json": {
+      "digest": "sha256:4237e75aede293a80e1a58227ac2c0e8118f34ab1a929c59896890e6caa33e4c",
+      "bytes": 1200
+    },
+    "host-4/capture/valid.png": {
+      "digest": "sha256:08fb808101c094a3a2a378818fafd6a21674b52916a9ae55f2ca249894750f31",
+      "bytes": 161193
+    }
+  },
+  "reproduce": {
+    "jdk": "JDK 21",
+    "tests": "gradlew.bat test --tests com.chainlesschain.ide.CliIdentityProbeTest --tests com.chainlesschain.ide.AgentChatSessionTest --tests com.chainlesschain.ide.CliVersionCheckTest compileUiTestJava --no-daemon --no-configuration-cache --console=plain",
+    "host": "node packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs --artifact-dir NEW_DIRECTORY"
+  }
+}
