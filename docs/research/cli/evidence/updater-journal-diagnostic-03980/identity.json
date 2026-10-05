@@ -1,0 +1,61 @@
+{
+  "schema": "chainlesschain.windows-arm64-updater-diagnostic.v1",
+  "sourceSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "testSelection": "entire-updater-file",
+  "driverSha": "03980cf9a715c439039366b2278e496a2067e5b5",
+  "executionContext": {
+    "generatedJournalTimingInstrumentation": true,
+    "gateContext": true,
+    "launchShell": "bash",
+    "msystem": "CLANGARM64",
+    "shell": null,
+    "nativeValidationSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "hostProbeTiming": "after-tests",
+    "predecessorArgs": [
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "packages/cli/__tests__/unit/native-installers-transaction.test.js",
+      "--maxWorkers=1"
+    ],
+    "residualDifferences": [
+      "No native pack/build predecessor steps",
+      "Updater retains diagnostic preload, verbose/JSON reporters and independent observers"
+    ]
+  },
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.14.0",
+  "nodeExecPath": "C:\\hostedtoolcache\\windows\\node\\22.14.0\\arm64\\node.exe",
+  "nodePeMachine": "0xaa64",
+  "os": {
+    "type": "Windows_NT",
+    "release": "10.0.26200",
+    "machine": "unknown",
+    "cpus": 4
+  },
+  "processorArchitecture": "ARM64",
+  "runnerArch": "ARM64",
+  "sourceCleanBefore": true,
+  "sourceHashesBefore": {
+    "packages/cli/src/lib/packer/pack-update-applier.js": "e4262f4a4c5fada921a4c1778c5325a1340163a07d2e4417e1ba22371f94b827",
+    "packages/cli/src/lib/packer/native-update-state.js": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+    "packages/cli/__tests__/unit/packer-pack-update-applier.test.js": "36041df91639cd5630ddb1d4951abd633c671feb41b0f6c408d87f997466378b",
+    "packages/cli/__tests__/unit/native-installers-transaction.test.js": "7ba229d9e2f031bc18ed08d9c131ba265af0305f6b6c04fd16637c7bc543460c",
+    "packages/cli/install/install.ps1": "26a9536a89bed2405e399ea637a02c7ee01ad111ffadea9b3c317d5eac5628a8",
+    "packages/cli/install/install.sh": "685be23b057cc216a6808c1a286046ed550ff2aa1c5cef2851d71c51218859cd",
+    "packages/cli/bin/chainlesschain.js": "32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+  },
+  "driverHashes": {
+    "coordinator.mjs": "77ffc64f2426769fd4886206c708086fe818d93970ecd20b208d7c83c49106a3",
+    "journal-trace.mjs": "c6c00d288f22a4866f7d43b19e6cb7f557f03e337a7f8c17d219cb053c4794a7",
+    "observer.mjs": "d0a1a84307f87d608348f223a87f35c836c649b97ca86c9ddc9f2f414afe3b0f",
+    "plan.mjs": "49af2fd9aacc9470049db1e9e6b74424a35feda549c85eaf17455ac428e808e2",
+    "plan.test.mjs": "b1fe896c1b8bf1c704f5d6069987ce889709f5006dec8619d90c3de80cf2c0a0",
+    "powershell-probes.mjs": "1a49c6f664ebf3e6ef37e0ccb7b6cf25806d2fbbfa4e9567cef769fc44632f95",
+    "preload.mjs": "a6d5e5958c0402ffc2bdd216ab82010b490e80cbcf94fb8273d3bc285b64eaab",
+    "run.mjs": "0031398cd6270c8c731f13948c79c55ab2e7a038eaa832d026da1fec58b03a9f",
+    "shared.mjs": "88204c0004934b2fd6b477921a8145c03974690c2cdad3c572a5038d8b9dd8cc"
+  },
+  "releaseEligible": false,
+  "boundary": "diagnostic instrumentation only; original tests/production source bytes/deadlines unchanged; late observations never convert failed assertions to passes; file observations are sampled at 100ms and observer startup adds measured pre-call overhead; generated journal helpers include timing markers with original/instrumented hashes recorded"
+}

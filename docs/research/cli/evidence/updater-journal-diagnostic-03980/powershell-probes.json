@@ -1,0 +1,42 @@
+{
+  "boundary": "After original test verdicts; probe-only environment variants never affect the tests or production calls",
+  "msystem": "CLANGARM64",
+  "modulePath": "C:\\\\Modules\\az_15.6.1;C:\\Users\\packer\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\PowerShell\\Modules\\",
+  "results": [
+    {
+      "name": "empty-inherited",
+      "elapsedMs": 207,
+      "status": 0,
+      "signal": null,
+      "errorCode": null
+    },
+    {
+      "name": "json-inherited",
+      "elapsedMs": 371,
+      "status": 0,
+      "signal": null,
+      "errorCode": null
+    },
+    {
+      "name": "empty-without-msystem",
+      "elapsedMs": 200,
+      "status": 0,
+      "signal": null,
+      "errorCode": null
+    },
+    {
+      "name": "empty-system-module-path",
+      "elapsedMs": 194,
+      "status": 0,
+      "signal": null,
+      "errorCode": null
+    },
+    {
+      "name": "json-system-module-path",
+      "elapsedMs": 321,
+      "status": 0,
+      "signal": null,
+      "errorCode": null
+    }
+  ]
+}

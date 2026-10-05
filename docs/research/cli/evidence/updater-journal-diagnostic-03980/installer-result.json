@@ -1,0 +1,14 @@
+{
+  "status": 0,
+  "signal": null,
+  "startedAt": "2026-10-04T11:38:56.275Z",
+  "elapsedMs": 111562,
+  "args": [
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "packages/cli/__tests__/unit/native-installers-transaction.test.js",
+    "--maxWorkers=1"
+  ],
+  "diagnosticPreload": false,
+  "releaseEligible": false
+}

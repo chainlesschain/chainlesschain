@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.cli-native-validation.v1",
+  "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+  "version": "0.166.86",
+  "target": "node22-linux-arm64",
+  "platform": "linux",
+  "arch": "arm64",
+  "expectedPlatform": "linux",
+  "expectedArch": "arm64",
+  "binary": {
+    "size": 170227371,
+    "sha256": "16837e604cf75868e9504bdbc530ff53a518133274cde8e30fa89dbb60e4109d",
+    "executedOnMatchingHost": true,
+    "commandProbe": "status --json"
+  },
+  "transactionTests": [
+    "native-installers-transaction",
+    "packer-pack-update-applier",
+    "native-release-manifest"
+  ],
+  "signed": false,
+  "releaseEligible": false,
+  "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+}

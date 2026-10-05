@@ -1,0 +1,1009 @@
+{
+  "total_count": 7,
+  "jobs": [
+    {
+      "id": 111426403346,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf8Eg",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426403346",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426403346",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T11:57:39Z",
+      "completed_at": "2026-10-04T12:03:37Z",
+      "name": "unsigned native validation (node22-linux-arm64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T11:57:40Z",
+          "completed_at": "2026-10-04T11:57:41Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T11:57:41Z",
+          "completed_at": "2026-10-04T11:58:14Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T11:58:14Z",
+          "completed_at": "2026-10-04T11:58:23Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T11:58:23Z",
+          "completed_at": "2026-10-04T11:58:24Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T11:58:24Z",
+          "completed_at": "2026-10-04T11:58:32Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T11:58:32Z",
+          "completed_at": "2026-10-04T11:58:32Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T11:58:32Z",
+          "completed_at": "2026-10-04T11:58:33Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-04T11:58:33Z",
+          "completed_at": "2026-10-04T11:58:35Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T11:58:35Z",
+          "completed_at": "2026-10-04T12:00:34Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T12:00:34Z",
+          "completed_at": "2026-10-04T12:00:34Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T12:00:34Z",
+          "completed_at": "2026-10-04T12:03:33Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:03:33Z",
+          "completed_at": "2026-10-04T12:03:33Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:03:33Z",
+          "completed_at": "2026-10-04T12:03:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:03:34Z",
+          "completed_at": "2026-10-04T12:03:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:03:34Z",
+          "completed_at": "2026-10-04T12:03:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:03:35Z",
+          "completed_at": "2026-10-04T12:03:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426403346",
+      "labels": [
+        "ubuntu-24.04-arm"
+      ],
+      "runner_id": 1000375657,
+      "runner_name": "GitHub Actions 1000375657",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111426403421,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf8XQ",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426403421",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426403421",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T11:56:59Z",
+      "completed_at": "2026-10-04T12:18:00Z",
+      "name": "unsigned native validation (node22-win-arm64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T11:57:00Z",
+          "completed_at": "2026-10-04T11:57:02Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T11:57:02Z",
+          "completed_at": "2026-10-04T11:58:14Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T11:58:14Z",
+          "completed_at": "2026-10-04T11:58:37Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T11:58:37Z",
+          "completed_at": "2026-10-04T11:58:39Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T11:58:39Z",
+          "completed_at": "2026-10-04T12:01:21Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T12:01:21Z",
+          "completed_at": "2026-10-04T12:01:21Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T12:01:21Z",
+          "completed_at": "2026-10-04T12:01:24Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-04T12:01:24Z",
+          "completed_at": "2026-10-04T12:01:24Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T12:01:24Z",
+          "completed_at": "2026-10-04T12:07:34Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T12:07:34Z",
+          "completed_at": "2026-10-04T12:07:36Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T12:07:36Z",
+          "completed_at": "2026-10-04T12:17:50Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:17:50Z",
+          "completed_at": "2026-10-04T12:17:51Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:17:51Z",
+          "completed_at": "2026-10-04T12:17:53Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:17:53Z",
+          "completed_at": "2026-10-04T12:17:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:17:53Z",
+          "completed_at": "2026-10-04T12:17:58Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:17:58Z",
+          "completed_at": "2026-10-04T12:17:58Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426403421",
+      "labels": [
+        "windows-11-arm"
+      ],
+      "runner_id": 1000375656,
+      "runner_name": "GitHub Actions 1000375656",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111426403450,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf8eg",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426403450",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426403450",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T12:08:27Z",
+      "completed_at": "2026-10-04T12:14:37Z",
+      "name": "unsigned native validation (node22-win-x64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T12:08:28Z",
+          "completed_at": "2026-10-04T12:08:29Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T12:08:29Z",
+          "completed_at": "2026-10-04T12:09:10Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T12:09:10Z",
+          "completed_at": "2026-10-04T12:09:41Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T12:09:41Z",
+          "completed_at": "2026-10-04T12:09:41Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T12:09:41Z",
+          "completed_at": "2026-10-04T12:09:57Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T12:09:57Z",
+          "completed_at": "2026-10-04T12:09:57Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T12:09:57Z",
+          "completed_at": "2026-10-04T12:09:59Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-04T12:09:59Z",
+          "completed_at": "2026-10-04T12:09:59Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T12:09:59Z",
+          "completed_at": "2026-10-04T12:13:01Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T12:13:01Z",
+          "completed_at": "2026-10-04T12:13:02Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T12:13:02Z",
+          "completed_at": "2026-10-04T12:14:31Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:14:31Z",
+          "completed_at": "2026-10-04T12:14:32Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:14:32Z",
+          "completed_at": "2026-10-04T12:14:33Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:14:33Z",
+          "completed_at": "2026-10-04T12:14:33Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:14:33Z",
+          "completed_at": "2026-10-04T12:14:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:14:35Z",
+          "completed_at": "2026-10-04T12:14:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426403450",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000375691,
+      "runner_name": "GitHub Actions 1000375691",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111426403469,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf8jQ",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426403469",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426403469",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T11:44:50Z",
+      "completed_at": "2026-10-04T12:06:30Z",
+      "name": "unsigned native validation (node22-macos-x64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T11:44:52Z",
+          "completed_at": "2026-10-04T11:44:53Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T11:44:53Z",
+          "completed_at": "2026-10-04T11:46:27Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T11:46:27Z",
+          "completed_at": "2026-10-04T11:47:14Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T11:47:14Z",
+          "completed_at": "2026-10-04T11:47:14Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T11:47:14Z",
+          "completed_at": "2026-10-04T11:47:42Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T11:47:42Z",
+          "completed_at": "2026-10-04T11:47:42Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T11:47:42Z",
+          "completed_at": "2026-10-04T11:47:45Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-04T11:47:45Z",
+          "completed_at": "2026-10-04T11:47:45Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T11:47:45Z",
+          "completed_at": "2026-10-04T11:53:30Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T11:53:30Z",
+          "completed_at": "2026-10-04T11:53:31Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T11:53:31Z",
+          "completed_at": "2026-10-04T12:06:18Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:06:18Z",
+          "completed_at": "2026-10-04T12:06:21Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:06:21Z",
+          "completed_at": "2026-10-04T12:06:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:06:23Z",
+          "completed_at": "2026-10-04T12:06:24Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:06:24Z",
+          "completed_at": "2026-10-04T12:06:25Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:06:25Z",
+          "completed_at": "2026-10-04T12:06:27Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426403469",
+      "labels": [
+        "macos-15-intel"
+      ],
+      "runner_id": 1000375620,
+      "runner_name": "GitHub Actions 1000375620",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111426403481,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf8mQ",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426403481",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426403481",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T11:59:36Z",
+      "completed_at": "2026-10-04T12:04:44Z",
+      "name": "unsigned native validation (node22-linux-x64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T11:59:36Z",
+          "completed_at": "2026-10-04T11:59:38Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T11:59:38Z",
+          "completed_at": "2026-10-04T12:00:05Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T12:00:05Z",
+          "completed_at": "2026-10-04T12:00:15Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T12:00:15Z",
+          "completed_at": "2026-10-04T12:00:15Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T12:00:15Z",
+          "completed_at": "2026-10-04T12:00:21Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T12:00:21Z",
+          "completed_at": "2026-10-04T12:00:21Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T12:00:21Z",
+          "completed_at": "2026-10-04T12:00:21Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-04T12:00:21Z",
+          "completed_at": "2026-10-04T12:00:22Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T12:00:22Z",
+          "completed_at": "2026-10-04T12:01:51Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T12:01:51Z",
+          "completed_at": "2026-10-04T12:01:51Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T12:01:51Z",
+          "completed_at": "2026-10-04T12:04:40Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:04:40Z",
+          "completed_at": "2026-10-04T12:04:40Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:04:40Z",
+          "completed_at": "2026-10-04T12:04:41Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:04:41Z",
+          "completed_at": "2026-10-04T12:04:41Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:04:41Z",
+          "completed_at": "2026-10-04T12:04:41Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:04:41Z",
+          "completed_at": "2026-10-04T12:04:41Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426403481",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000375659,
+      "runner_name": "GitHub Actions 1000375659",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111426404059,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8Yf-2w",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111426404059",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111426404059",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T11:29:41Z",
+      "started_at": "2026-10-04T12:01:04Z",
+      "completed_at": "2026-10-04T12:09:34Z",
+      "name": "unsigned native validation (node22-macos-arm64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T12:01:05Z",
+          "completed_at": "2026-10-04T12:01:06Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T12:01:06Z",
+          "completed_at": "2026-10-04T12:01:51Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T12:01:51Z",
+          "completed_at": "2026-10-04T12:02:14Z"
+        },
+        {
+          "name": "Verify exact source and matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T12:02:14Z",
+          "completed_at": "2026-10-04T12:02:16Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T12:02:16Z",
+          "completed_at": "2026-10-04T12:02:30Z"
+        },
+        {
+          "name": "Create validation-only update key",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-04T12:02:30Z",
+          "completed_at": "2026-10-04T12:02:30Z"
+        },
+        {
+          "name": "Require a published pkg base binary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-04T12:02:30Z",
+          "completed_at": "2026-10-04T12:02:32Z"
+        },
+        {
+          "name": "Build fixed Linux process supervision asset",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-04T12:02:32Z",
+          "completed_at": "2026-10-04T12:02:32Z"
+        },
+        {
+          "name": "Build standalone CLI on its matching native host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-04T12:02:32Z",
+          "completed_at": "2026-10-04T12:05:07Z"
+        },
+        {
+          "name": "Execute binary version and status on the matching host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-04T12:05:07Z",
+          "completed_at": "2026-10-04T12:05:07Z"
+        },
+        {
+          "name": "Run native installer and updater transaction regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-04T12:05:07Z",
+          "completed_at": "2026-10-04T12:09:26Z"
+        },
+        {
+          "name": "Write content-free exact-SHA validation evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-04T12:09:26Z",
+          "completed_at": "2026-10-04T12:09:26Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-04T12:09:26Z",
+          "completed_at": "2026-10-04T12:09:28Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-04T12:09:28Z",
+          "completed_at": "2026-10-04T12:09:29Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-04T12:09:29Z",
+          "completed_at": "2026-10-04T12:09:29Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-04T12:09:29Z",
+          "completed_at": "2026-10-04T12:09:30Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111426404059",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000375660,
+      "runner_name": "GitHub Actions 1000375660",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 111434318721,
+      "run_id": 37198920226,
+      "workflow_name": "CLI Native Validation",
+      "head_branch": "feature/updater-journal-fix-20261004",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37198920226",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAZ8gDDgQ",
+      "head_sha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/111434318721",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226/job/111434318721",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-04T12:18:01Z",
+      "started_at": "2026-10-04T12:27:25Z",
+      "completed_at": "2026-10-04T12:27:31Z",
+      "name": "Aggregate six-target native validation evidence",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-04T12:27:26Z",
+          "completed_at": "2026-10-04T12:27:27Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-04T12:27:27Z",
+          "completed_at": "2026-10-04T12:27:28Z"
+        },
+        {
+          "name": "Verify exact six-target evidence set",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-04T12:27:28Z",
+          "completed_at": "2026-10-04T12:27:28Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-04T12:27:28Z",
+          "completed_at": "2026-10-04T12:27:29Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-04T12:27:30Z",
+          "completed_at": "2026-10-04T12:27:30Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/111434318721",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000375737,
+      "runner_name": "GitHub Actions 1000375737",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

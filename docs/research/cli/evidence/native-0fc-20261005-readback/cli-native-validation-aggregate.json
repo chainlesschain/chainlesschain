@@ -1,0 +1,163 @@
+{
+  "schema": "chainlesschain.cli-native-validation-aggregate.v1",
+  "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "targets": [
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-linux-arm64",
+      "platform": "linux",
+      "arch": "arm64",
+      "expectedPlatform": "linux",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 170227371,
+        "sha256": "16837e604cf75868e9504bdbc530ff53a518133274cde8e30fa89dbb60e4109d",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-linux-x64",
+      "platform": "linux",
+      "arch": "x64",
+      "expectedPlatform": "linux",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 175620091,
+        "sha256": "2f2513f00b49054450c8765c5bcb6406ac46c74b7537b0c6f14f804b30da65d3",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-macos-arm64",
+      "platform": "darwin",
+      "arch": "arm64",
+      "expectedPlatform": "darwin",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 162588032,
+        "sha256": "e41b24044ca84117e60193f9d36a965bad9acacaa6560d491d24a7322fa2f6f5",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-macos-x64",
+      "platform": "darwin",
+      "arch": "x64",
+      "expectedPlatform": "darwin",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 165007600,
+        "sha256": "70d1ab13ebe35250c2a7c7c23b82600477ef5d4b914fe6cf3025d9df883f71e1",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-win-arm64",
+      "platform": "win32",
+      "arch": "arm64",
+      "expectedPlatform": "win32",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 153675553,
+        "sha256": "fb5a6294f53331f4525cd1324dcec1b08c496de600db148988f0bd7204666440",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-win-x64",
+      "platform": "win32",
+      "arch": "x64",
+      "expectedPlatform": "win32",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 158414318,
+        "sha256": "b548a3a31b9acfb2a836c6c7cb5e454b34321bfb5973722ebe94152910e91cf7",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    }
+  ],
+  "releaseEligible": false
+}

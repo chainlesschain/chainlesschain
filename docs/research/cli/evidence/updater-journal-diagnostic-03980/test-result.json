@@ -1,0 +1,15 @@
+{
+  "status": 0,
+  "signal": null,
+  "startedAt": "2026-10-04T11:40:47.841Z",
+  "elapsedMs": 41322,
+  "originalTestNames": [
+    "transfers the real lock only after a sidecar readiness handshake",
+    "commits the canonical binary and alias with lineage/result persistence",
+    "rolls the canonical binary and alias back after verification fails",
+    "restores prior backup and lineage generations after verification fails",
+    "commits an independent rescue without consuming its canonical backup"
+  ],
+  "testSelection": "entire-updater-file",
+  "releaseEligible": false
+}

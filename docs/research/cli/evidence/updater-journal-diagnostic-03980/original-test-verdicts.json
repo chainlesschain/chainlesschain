@@ -1,0 +1,347 @@
+[
+  {
+    "fullName": "scheduleReplace – argument guards rejects missing newExePath",
+    "status": "passed",
+    "duration": 3.326000000000022
+  },
+  {
+    "fullName": "scheduleReplace – argument guards rejects missing targetExePath",
+    "status": "passed",
+    "duration": 0.45810000000005857
+  },
+  {
+    "fullName": "scheduleReplace – argument guards rejects newExePath that does not exist",
+    "status": "passed",
+    "duration": 1.3740999999999985
+  },
+  {
+    "fullName": "scheduleReplace – argument guards requires the verified staging file to be a target sibling",
+    "status": "passed",
+    "duration": 5.334800000000087
+  },
+  {
+    "fullName": "scheduleReplace – argument guards requires an explicit lowercase downloader-bound SHA-256",
+    "status": "passed",
+    "duration": 4.038900000000012
+  },
+  {
+    "fullName": "scheduleReplace – argument guards does not treat an arbitrary standalone cc.exe as a managed alias",
+    "status": "passed",
+    "duration": 3.057600000000093
+  },
+  {
+    "fullName": "rollbackLastKnownGood restores through staging without overwriting the previous backup",
+    "status": "passed",
+    "duration": 93.04930000000013
+  },
+  {
+    "fullName": "rollbackLastKnownGood retains rescue snapshots until the committed journal is retired",
+    "status": "passed",
+    "duration": 75.33590000000004
+  },
+  {
+    "fullName": "rollbackLastKnownGood restores the pre-rescue target when the rescued binary fails verification",
+    "status": "passed",
+    "duration": 85.14010000000007
+  },
+  {
+    "fullName": "rollbackLastKnownGood refuses a stale lineage that does not describe the active target",
+    "status": "passed",
+    "duration": 19.549800000000005
+  },
+  {
+    "fullName": "rollbackLastKnownGood preserves an independent pre-rescue snapshot if restoration itself fails",
+    "status": "passed",
+    "duration": 70.60699999999997
+  },
+  {
+    "fullName": "rollbackLastKnownGood passes the readiness handshake through a Windows rescue transaction",
+    "status": "passed",
+    "duration": 39.14359999999988
+  },
+  {
+    "fullName": "rollbackLastKnownGood fails clearly when no backup exists",
+    "status": "passed",
+    "duration": 0.4774999999999636
+  },
+  {
+    "fullName": "scheduleReplace – dryRun returns a plan and does not touch the filesystem",
+    "status": "passed",
+    "duration": 10.679900000000089
+  },
+  {
+    "fullName": "scheduleReplace – dryRun dryRun respects the forced platform",
+    "status": "passed",
+    "duration": 9.516300000000001
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch renames new → target atomically",
+    "status": "passed",
+    "duration": 73.58379999999988
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch retains update snapshots until the committed journal is retired",
+    "status": "passed",
+    "duration": 74.43770000000018
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch keeps descriptor identity fields as bigint while hashing",
+    "status": "passed",
+    "duration": 71.35580000000004
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch quarantines stale backup/lineage on a fresh apply generation",
+    "status": "passed",
+    "duration": 77.5507
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch binds the commit to the expected staging SHA-256",
+    "status": "passed",
+    "duration": 27.255099999999857
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch leaves the old target and staging file intact when backup creation fails",
+    "status": "passed",
+    "duration": 34.3443000000002
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch preserves the old target and prior rollback generation when the commit rename fails",
+    "status": "passed",
+    "duration": 83.72790000000032
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch stops before the canonical commit when its lock pathname is replaced",
+    "status": "passed",
+    "duration": 55.6242000000002
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch rolls back when the committed pathname no longer has the accepted hash",
+    "status": "passed",
+    "duration": 64.54309999999987
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch restart=true spawns the new exe detached after rename",
+    "status": "passed",
+    "duration": 67.12350000000015
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch consumes asynchronous POSIX restart spawn errors",
+    "status": "passed",
+    "duration": 68.41989999999987
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch chmod +x is applied before rename (exec bit survives)",
+    "status": "passed",
+    "duration": 67.44309999999996
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch restores the last-known-good binary when post-switch verification fails",
+    "status": "passed",
+    "duration": 63.422399999999925
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch rolls back when the verification process throws",
+    "status": "passed",
+    "duration": 61.07499999999982
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch preserves the transaction rescue snapshot when rollback fails",
+    "status": "passed",
+    "duration": 64.94579999999996
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch keeps a successfully committed binary when only restart fails",
+    "status": "passed",
+    "duration": 67.74539999999979
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch does not enter the transaction while another updater holds the lock",
+    "status": "passed",
+    "duration": 10.592200000000048
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch blocks another update after a consumed rollback-failed result",
+    "status": "passed",
+    "duration": 10.988299999999981
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch fails closed on a symlink staging executable",
+    "status": "passed",
+    "duration": 4.715599999999995
+  },
+  {
+    "fullName": "scheduleReplace – POSIX branch fails closed on a symlink or junction in the transaction ancestor chain",
+    "status": "passed",
+    "duration": 6.266700000000128
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) writes a .cmd sidecar and spawns cmd.exe detached",
+    "status": "passed",
+    "duration": 38.90049999999974
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) keeps the transferred lock so a second Windows apply fails closed",
+    "status": "passed",
+    "duration": 41.853200000000015
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) isolates stale backup/lineage before scheduling a fresh Windows apply",
+    "status": "passed",
+    "duration": 39.39229999999998
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) canonicalizes cc.exe and carries alias pre-state into the sidecar",
+    "status": "passed",
+    "duration": 35.704699999999775
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) releases the lock and removes the sidecar when spawn throws",
+    "status": "passed",
+    "duration": 32.677700000000186
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) keeps a fail-closed lock when the sidecar safety handshake never arrives",
+    "status": "passed",
+    "duration": 28.794800000000123
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) attaches the sidecar error listener before the readiness wait",
+    "status": "passed",
+    "duration": 30.979699999999866
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) uses the bounded production readiness budget on loaded Windows hosts",
+    "status": "passed",
+    "duration": 29.004199999999855
+  },
+  {
+    "fullName": "scheduleReplace – Windows branch (sidecar cmd) transfers the real lock only after a sidecar readiness handshake",
+    "status": "passed",
+    "duration": 8870.3894
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) emits a cmd that waits on PARENT_PID, moves, and self-deletes",
+    "status": "passed",
+    "duration": 8.309799999999086
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) emits a `start` line when restart=true",
+    "status": "passed",
+    "duration": 5.879100000000108
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) each invocation produces a unique sidecar path",
+    "status": "passed",
+    "duration": 10.4929000000011
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) rejects cmd metacharacters that could expand into commands",
+    "status": "passed",
+    "duration": 3.8845000000001164
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) accepts an 8.3 TEMP alias while publishing through its canonical root",
+    "status": "passed",
+    "duration": 9.259500000000116
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) rejects a reparse point retained from the raw TEMP spelling",
+    "status": "passed",
+    "duration": 552.3298000000013
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) commits the canonical binary and alias with lineage/result persistence",
+    "status": "passed",
+    "duration": 7036.2264
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) rolls the canonical binary and alias back after verification fails",
+    "status": "passed",
+    "duration": 5124.4385
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) restores prior backup and lineage generations after verification fails",
+    "status": "passed",
+    "duration": 5604.5825
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) commits an independent rescue without consuming its canonical backup",
+    "status": "passed",
+    "duration": 6776.2864000000045
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) does not mutate or release a lock after sidecar ownership is replaced",
+    "status": "passed",
+    "duration": 271.0144
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) rejects a candidate mutated after scheduling and before sidecar commit",
+    "status": "passed",
+    "duration": 1079.8902000000016
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) fails closed when a sidecar path ancestor is a junction",
+    "status": "passed",
+    "duration": 556.5584000000017
+  },
+  {
+    "fullName": "writeWindowsSidecar (cmd body) ApplyError is a typed Error with a code",
+    "status": "passed",
+    "duration": 0.43449999999575084
+  },
+  {
+    "fullName": "native sidecar result reporting recovers an interrupted POSIX generation to its exact pre-state",
+    "status": "passed",
+    "duration": 57.4320000000007
+  },
+  {
+    "fullName": "native sidecar result reporting recovers an interrupted POSIX rescue without consuming its backup",
+    "status": "passed",
+    "duration": 41.754500000002736
+  },
+  {
+    "fullName": "native sidecar result reporting finishes a durably committed POSIX generation without rolling it back",
+    "status": "passed",
+    "duration": 26.11869999999908
+  },
+  {
+    "fullName": "native sidecar result reporting fails closed without mutating a generation when its journal is corrupt",
+    "status": "passed",
+    "duration": 4.164700000001176
+  },
+  {
+    "fullName": "native sidecar result reporting schedules Windows recovery behind the current process and retains its takeover lock",
+    "status": "passed",
+    "duration": 36.582299999994575
+  },
+  {
+    "fullName": "native sidecar result reporting refuses Windows recovery while the journal owner is still live",
+    "status": "passed",
+    "duration": 6.2546000000002095
+  },
+  {
+    "fullName": "native sidecar result reporting rejects a raw Windows recovery TEMP junction and closes its takeover lock",
+    "status": "passed",
+    "duration": 18.008300000001327
+  },
+  {
+    "fullName": "native sidecar result reporting recovers a Windows generation only after the scheduling CLI exits",
+    "status": "passed",
+    "duration": 1217.0039000000033
+  },
+  {
+    "fullName": "native sidecar result reporting atomically consumes a valid pending result and retains diagnostics",
+    "status": "passed",
+    "duration": 5.769200000002456
+  },
+  {
+    "fullName": "native sidecar result reporting reports and archives a detached sidecar failure",
+    "status": "passed",
+    "duration": 4.953799999995681
+  },
+  {
+    "fullName": "native sidecar result reporting leaves an invalid result pending and reports that it could not be consumed",
+    "status": "passed",
+    "duration": 4.796200000004319
+  }
+]

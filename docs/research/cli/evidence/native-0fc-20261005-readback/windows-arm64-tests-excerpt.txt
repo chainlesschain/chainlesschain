@@ -1,0 +1,15 @@
+2026-10-04T12:07:36.2315325Z   packages/cli/__tests__/unit/native-installers-transaction.test.js \
+2026-10-04T12:07:36.2315808Z   packages/cli/__tests__/unit/packer-pack-update-applier.test.js \
+2026-10-04T12:07:36.2316301Z   packages/cli/__tests__/unit/native-release-manifest.test.js; do
+2026-10-04T12:14:58.1621995Z  ✓ packages/cli/__tests__/unit/native-installers-transaction.test.js (71 tests | 53 skipped) 440372ms
+2026-10-04T12:14:58.1707447Z  Test Files  1 passed (1)
+2026-10-04T12:14:58.1708449Z       Tests  18 passed | 53 skipped (71)
+2026-10-04T12:14:58.1710720Z    Duration  440.86s (transform 85ms, setup 0ms, import 175ms, tests 440.37s, environment 0ms)
+2026-10-04T12:17:49.2212836Z  ✓ packages/cli/__tests__/unit/packer-pack-update-applier.test.js (69 tests) 168635ms
+2026-10-04T12:17:49.2272566Z  Test Files  1 passed (1)
+2026-10-04T12:17:49.2273244Z       Tests  69 passed (69)
+2026-10-04T12:17:49.2275273Z    Duration  170.07s (transform 825ms, setup 0ms, import 1.12s, tests 168.64s, environment 0ms)
+2026-10-04T12:17:50.6958535Z  ✓ packages/cli/__tests__/unit/native-release-manifest.test.js (3 tests) 42ms
+2026-10-04T12:17:50.6995662Z  Test Files  1 passed (1)
+2026-10-04T12:17:50.6996317Z       Tests  3 passed (3)
+2026-10-04T12:17:50.6999377Z    Duration  459ms (transform 54ms, setup 0ms, import 107ms, tests 42ms, environment 0ms)

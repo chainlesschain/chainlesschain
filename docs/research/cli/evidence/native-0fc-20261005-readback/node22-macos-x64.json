@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.cli-native-validation.v1",
+  "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+  "version": "0.166.86",
+  "target": "node22-macos-x64",
+  "platform": "darwin",
+  "arch": "x64",
+  "expectedPlatform": "darwin",
+  "expectedArch": "x64",
+  "binary": {
+    "size": 165007600,
+    "sha256": "70d1ab13ebe35250c2a7c7c23b82600477ef5d4b914fe6cf3025d9df883f71e1",
+    "executedOnMatchingHost": true,
+    "commandProbe": "status --json"
+  },
+  "transactionTests": [
+    "native-installers-transaction",
+    "packer-pack-update-applier",
+    "native-release-manifest"
+  ],
+  "signed": false,
+  "releaseEligible": false,
+  "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+}

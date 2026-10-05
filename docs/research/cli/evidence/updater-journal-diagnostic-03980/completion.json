@@ -1,0 +1,28 @@
+{
+  "sourceSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "sourceCleanAfter": true,
+  "sourceHashesAfter": {
+    "packages/cli/src/lib/packer/pack-update-applier.js": "e4262f4a4c5fada921a4c1778c5325a1340163a07d2e4417e1ba22371f94b827",
+    "packages/cli/src/lib/packer/native-update-state.js": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+    "packages/cli/__tests__/unit/packer-pack-update-applier.test.js": "36041df91639cd5630ddb1d4951abd633c671feb41b0f6c408d87f997466378b",
+    "packages/cli/__tests__/unit/native-installers-transaction.test.js": "7ba229d9e2f031bc18ed08d9c131ba265af0305f6b6c04fd16637c7bc543460c",
+    "packages/cli/install/install.ps1": "26a9536a89bed2405e399ea637a02c7ee01ad111ffadea9b3c317d5eac5628a8",
+    "packages/cli/install/install.sh": "685be23b057cc216a6808c1a286046ed550ff2aa1c5cef2851d71c51218859cd",
+    "packages/cli/bin/chainlesschain.js": "32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+  },
+  "observationComplete": true,
+  "updaterRan": true,
+  "observers": [
+    "4168-1.observer-done",
+    "4168-2.observer-done",
+    "4168-3.observer-done",
+    "4168-4.observer-done",
+    "4168-5.observer-done",
+    "4168-6.observer-done",
+    "4168-7.observer-done",
+    "4168-8.observer-done",
+    "4168-9.observer-done",
+    "9984-1.observer-done"
+  ],
+  "releaseEligible": false
+}
