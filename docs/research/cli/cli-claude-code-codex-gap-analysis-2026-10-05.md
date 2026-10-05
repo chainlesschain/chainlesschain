@@ -1,6 +1,6 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
-> **最新续做**：增加显式 `cc agent controlled-host`，接通预 provision 的 Linux 持久权限域；补齐双 IDE 可复用诊断入口和三系统 workflow，并在 WSL1 / Node 22.12.0 补验官方 MCP stdio/HTTP。具体测试和边界见[实施记录第 12 节](../cli-ide-gap-implementation-2026-10-05.md#12-跨平台诊断入口与-linux-命令接线)。Windows/macOS durable 后端仍缺实现，正式 36+9 样本与人工验收未被诊断结果替代。
+> **最新续做**：显式 Linux `agent controlled-host`、IDE prepare/finish 与双宿主驱动已接通。准确工程提交 `f289a08844` 的官方 MCP stdio/HTTP/GET-SSE 三系统 CI 和双 IDE 六宿主矩阵全部通过，原始协议、UI 与退出证据已归档。IDE 诊断允许有界回收并核验进程消失，逐平台退出方式见[实施记录第 13 节](../cli-ide-gap-implementation-2026-10-05.md#13-真实矩阵反馈与退出生命周期)。候选 CLI `0.166.89`、VS Code `0.37.134`、JetBrains `0.4.152` 尚未发布。正式 36+9 样本保持 `NOT_RUN`；账号账单、公开安装、人工验收及 Windows/macOS durable 后端仍开放。
 
 > **本次续做**：在 `4f12030641` 之后补齐 IDE 任务的 prepare/finish 执行器、完整基线/diff 与 reviewed setup/check 回执接线，接入双 IDE 面板采集驱动，并完成官方 MCP stdio/HTTP 的本地真实进程补验。最新验证、尚缺的实际环境与验收项见[实施记录第 11 节](../cli-ide-gap-implementation-2026-10-05.md#11-实际宿主采集与验收执行接线)。下列原始审计及前几轮发布记录保留其各自时点含义。
 

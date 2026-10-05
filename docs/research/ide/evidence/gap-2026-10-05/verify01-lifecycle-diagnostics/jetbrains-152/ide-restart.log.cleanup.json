@@ -1,0 +1,58 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 18908,
+      "parentPid": 9416,
+      "name": "cmd.exe",
+      "created": "639267925464339670"
+    },
+    {
+      "pid": 18384,
+      "parentPid": 18908,
+      "name": "java.exe",
+      "created": "639267925464677610"
+    },
+    {
+      "pid": 21392,
+      "parentPid": 18384,
+      "name": "java.exe",
+      "created": "639267925479252200"
+    },
+    {
+      "pid": 216,
+      "parentPid": 21392,
+      "name": "java.exe",
+      "created": "639267925797475990"
+    },
+    {
+      "pid": 21800,
+      "parentPid": 216,
+      "name": "conhost.exe",
+      "created": "639267925797611660"
+    },
+    {
+      "pid": 15768,
+      "parentPid": 216,
+      "name": "fsnotifier.exe",
+      "created": "639267925811424490"
+    },
+    {
+      "pid": 2320,
+      "parentPid": 15768,
+      "name": "conhost.exe",
+      "created": "639267925811743020"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

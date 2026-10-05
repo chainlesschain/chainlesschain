@@ -1,0 +1,108 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 18252,
+      "parentPid": 12252,
+      "name": "cmd.exe",
+      "created": "639267913641487360"
+    },
+    {
+      "pid": 23568,
+      "parentPid": 18252,
+      "name": "java.exe",
+      "created": "639267913641837250"
+    },
+    {
+      "pid": 19656,
+      "parentPid": 23568,
+      "name": "java.exe",
+      "created": "639267913656634180"
+    },
+    {
+      "pid": 23068,
+      "parentPid": 19656,
+      "name": "java.exe",
+      "created": "639267913988629220"
+    },
+    {
+      "pid": 4364,
+      "parentPid": 23068,
+      "name": "conhost.exe",
+      "created": "639267913988770050"
+    },
+    {
+      "pid": 11156,
+      "parentPid": 23068,
+      "name": "fsnotifier.exe",
+      "created": "639267914008066230"
+    },
+    {
+      "pid": 9592,
+      "parentPid": 11156,
+      "name": "conhost.exe",
+      "created": "639267914009576750"
+    },
+    {
+      "pid": 15248,
+      "parentPid": 23068,
+      "name": "wsl.exe",
+      "created": "639267914074099690"
+    },
+    {
+      "pid": 5480,
+      "parentPid": 15248,
+      "name": "conhost.exe",
+      "created": "639267914075393810"
+    },
+    {
+      "pid": 22816,
+      "parentPid": 15248,
+      "name": "wsl.exe",
+      "created": "639267914082483690"
+    },
+    {
+      "pid": 22676,
+      "parentPid": 22816,
+      "name": "init",
+      "created": "639267914090355560"
+    },
+    {
+      "pid": 12928,
+      "parentPid": 22676,
+      "name": "init",
+      "created": "639267914094112430"
+    },
+    {
+      "pid": 13208,
+      "parentPid": 22816,
+      "name": "wslhost.exe",
+      "created": "639267914094737490"
+    },
+    {
+      "pid": 22428,
+      "parentPid": 13208,
+      "name": "conhost.exe",
+      "created": "639267914095692960"
+    }
+  ],
+  "taskkill": {
+    "status": 128,
+    "signal": null,
+    "stdout": "�ɹ�: ����ֹ PID 22428 (���� PID 13208 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 13208 (���� PID 22816 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 9592 (���� PID 11156 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 5480 (���� PID 15248 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 22816 (���� PID 15248 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 4364 (���� PID 23068 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 11156 (���� PID 23068 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 15248 (���� PID 23068 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 23068 (���� PID 19656 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 19656 (���� PID 23568 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 23568 (���� PID 18252 �ӽ���)�Ľ��̡�\r\n�ɹ�: ����ֹ PID 18252 (���� PID 12252 �ӽ���)�Ľ��̡�\r\n",
+    "stderr": "����: �޷���ֹ PID 12928 (���� PID 22676 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\r\r\n����: �޷���ֹ PID 22676 (���� PID 22816 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\r\r\n",
+    "displayEncoding": "utf8-lossy",
+    "stdoutBase64": "s8m5pjog0tHW1da5IFBJRCAyMjQyOCAoyvTT2iBQSUQgMTMyMDgg19O9+LPMKbXEvfizzKGjDQqzybmmOiDS0dbV1rkgUElEIDEzMjA4ICjK9NPaIFBJRCAyMjgxNiDX0734s8wptcS9+LPMoaMNCrPJuaY6INLR1tXWuSBQSUQgOTU5MiAoyvTT2iBQSUQgMTExNTYg19O9+LPMKbXEvfizzKGjDQqzybmmOiDS0dbV1rkgUElEIDU0ODAgKMr009ogUElEIDE1MjQ4INfTvfizzCm1xL34s8yhow0Ks8m5pjog0tHW1da5IFBJRCAyMjgxNiAoyvTT2iBQSUQgMTUyNDgg19O9+LPMKbXEvfizzKGjDQqzybmmOiDS0dbV1rkgUElEIDQzNjQgKMr009ogUElEIDIzMDY4INfTvfizzCm1xL34s8yhow0Ks8m5pjog0tHW1da5IFBJRCAxMTE1NiAoyvTT2iBQSUQgMjMwNjgg19O9+LPMKbXEvfizzKGjDQqzybmmOiDS0dbV1rkgUElEIDE1MjQ4ICjK9NPaIFBJRCAyMzA2OCDX0734s8wptcS9+LPMoaMNCrPJuaY6INLR1tXWuSBQSUQgMjMwNjggKMr009ogUElEIDE5NjU2INfTvfizzCm1xL34s8yhow0Ks8m5pjog0tHW1da5IFBJRCAxOTY1NiAoyvTT2iBQSUQgMjM1Njgg19O9+LPMKbXEvfizzKGjDQqzybmmOiDS0dbV1rkgUElEIDIzNTY4ICjK9NPaIFBJRCAxODI1MiDX0734s8wptcS9+LPMoaMNCrPJuaY6INLR1tXWuSBQSUQgMTgyNTIgKMr009ogUElEIDEyMjUyINfTvfizzCm1xL34s8yhow0K",
+    "stderrBase64": "tO3O8zogzt63qNbV1rkgUElEIDEyOTI4ICjK9NPaIFBJRCAyMjY3NiDX0734s8wptcS9+LPMoaMNCtSt0vI6IL7cvvi3w87KoaMNDQq07c7zOiDO3reo1tXWuSBQSUQgMjI2NzYgKMr009ogUElEIDIyODE2INfTvfizzCm1xL34s8yhow0K1K3S8jogvty++LfDzsqhow0NCg=="
+  },
+  "confirmed": false,
+  "remaining": [
+    {
+      "pid": 22676,
+      "parentPid": 22816,
+      "name": "init",
+      "created": "639267914090355560"
+    }
+  ],
+  "error": "Windows process identities survived tree termination (taskkill 128): 22676; ����: �޷���ֹ PID 12928 (���� PID 22676 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�\r\r\n����: �޷���ֹ PID 22676 (���� PID 22816 �ӽ���)�Ľ��̡�\r\nԭ��: �ܾ����ʡ�"
+}

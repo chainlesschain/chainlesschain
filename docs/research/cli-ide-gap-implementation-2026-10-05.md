@@ -1,6 +1,6 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
-> **当前续做**：第 11 节记录 prepare/finish、双 IDE 采集与官方 MCP stdio；第 12 节继续补齐可复用的跨平台诊断入口、三系统 workflow 和显式 Linux controlled-host CLI。下面各轮的分支、授权、源码摘要和发布叙述保留历史含义。当前正式 36+9 样本仍为 `NOT_RUN`。
+> **当前续做**：第 11、12 节记录 prepare/finish、双 IDE 采集、跨平台诊断和显式 Linux controlled-host；第 13 节记录准确工程提交 `f289a08844` 的 MCP 三系统、真实 IDE 六宿主矩阵全部通过及退出生命周期修复。下面各轮的分支、授权、源码摘要和发布叙述保留历史含义。当前候选未发布，正式 36+9 样本仍为 `NOT_RUN`。
 
 > 对应：[CLI 审计](./cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[IDE 审计](./ide/ide-claude-code-codex-gap-analysis-2026-10-05.md)。本表记录后续实现，不覆盖原审计快照，也不把局部测试升级为发布或真实模型验收。
 >
@@ -12,24 +12,24 @@
 
 “工程完成”指实现及所列局部回归完成。真实 provider、完整 Actions 矩阵、实际 IDE 和人工验收分别列出，不共用通过标记。
 
-| ID                           | 本轮交付                                                                                                                         | 尚需的证据或范围                                                                                                                              |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同   | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                                               |
-| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                    | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                                             |
-| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                    | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                                                 |
-| VERIFY-02                    | 冻结 CLI suite、36 项 setup/check、42 个反例与证据导入；续接双 IDE prepare/finish、全量基线/diff 和真实 UI driver，见第 11 节    | Linux Docker pack 整包运行、独立人工审阅及正式 provider 样本仍开放；native 三系统验收不能由容器替代，36+9 仍 NOT_RUN                          |
-| PLATFORM-02                  | 支持投影及历史 native 六目标 unsigned 验证；新增显式 `agent controlled-host` 接通预 provision Linux 权限域，见第 12 节 | Windows/macOS durable 存储、网络撤销与崩溃恢复后端仍缺实现；默认 CLI 不自动注册；unsigned 历史回执不等于本轮发布准入 |
-| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                      | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                                   |
-| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执     | `320301e6e7` 的真实 Linux x64/arm64 专项已通过，见第 8 节；旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine，不扩大为同 UID 对抗隔离 |
-| PERF-02                      | 校准器增加两模型 × 中文/代码/emoji/工具 schema 覆盖合同，逐请求去重和缺失项报告；冻结采样矩阵                                    | 无新付费 usage 样本；事实保真、任务成功率和估算器校准尚未完成，不凭 fixture 调整 bytes/4                                                      |
-| MCP-02                       | 固定官方 server-everything 2026.8.31 + SDK 1.32.0，Windows 与 WSL1 Linux 真实 HTTP/stdio 完成 tool/prompt/resource；丢失响应不重放 | 本次源码完整三系统矩阵、服务端 GET push、外部账号/OAuth 仍待验证，见第 11、12 节 |
-| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                           | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                                |
-| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                         | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                                     |
-| IDE-ONBOARD-02               | JetBrains resolver、onboarding、手动更新复用严格首行 CLI 版本身份，失败时清除旧缓存                                              | 真实全新 IDE 中 gcc/PATH/managed fallback 安装旅程仍待采集                                                                                    |
-| IDE-COLD-02                  | JetBrains 有界初始化改为 120 秒；区分初始化超时、保存输入超时和进程失败；超时取消本次提交，迟到 init 不补发                      | 已有实际 30 秒延迟 pure-class 回归；不是实际 IDE 冷启动延迟统计                                                                               |
-| VERIFY-IDE-02                | 双 IDE writer、真实 UI 与同 profile 重启 driver；可复用跨平台诊断入口、证据归档及三系统 workflow，见第 11、12 节 | 新入口 Windows 双 IDE 已通过；准确提交的三系统矩阵、provider、9 次公开安装、真人听测、8h/24h 与获批 SLO 仍需实际证据 |
-| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                    | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                                                 |
-| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                         | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                                              |
+| ID                           | 本轮交付                                                                                                                       | 尚需的证据或范围                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同 | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                                               |
+| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                  | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                                             |
+| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                  | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                                                 |
+| VERIFY-02                    | 冻结 CLI suite、36 项 setup/check、42 个反例与证据导入；续接双 IDE prepare/finish、全量基线/diff 和真实 UI driver，见第 11 节  | Linux Docker pack 整包运行、独立人工审阅及正式 provider 样本仍开放；native 三系统验收不能由容器替代，36+9 仍 NOT_RUN                          |
+| PLATFORM-02                  | 支持投影及历史 native 六目标 unsigned 验证；新增显式 `agent controlled-host` 接通预 provision Linux 权限域，见第 12 节         | Windows/macOS durable 存储、网络撤销与崩溃恢复后端仍缺实现；默认 CLI 不自动注册；unsigned 历史回执不等于本轮发布准入                          |
+| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                    | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                                   |
+| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执   | `320301e6e7` 的真实 Linux x64/arm64 专项已通过，见第 8 节；旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine，不扩大为同 UID 对抗隔离 |
+| PERF-02                      | 校准器增加两模型 × 中文/代码/emoji/工具 schema 覆盖合同，逐请求去重和缺失项报告；冻结采样矩阵                                  | 无新付费 usage 样本；事实保真、任务成功率和估算器校准尚未完成，不凭 fixture 调整 bytes/4                                                      |
+| MCP-02                       | `f289a08844` 的官方 stdio/HTTP、响应丢失恢复及 GET/SSE 周期推送三系统 CI 全部通过，见第 13 节                                  | 外部账号/OAuth 仍未验证；参考服务器的真实进程测试不等于外部服务账号验收                                                                       |
+| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                         | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                                |
+| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                       | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                                     |
+| IDE-ONBOARD-02               | JetBrains resolver、onboarding、手动更新复用严格首行 CLI 版本身份，失败时清除旧缓存                                            | 真实全新 IDE 中 gcc/PATH/managed fallback 安装旅程仍待采集                                                                                    |
+| IDE-COLD-02                  | JetBrains 有界初始化改为 120 秒；区分初始化超时、保存输入超时和进程失败；超时取消本次提交，迟到 init 不补发                    | 已有实际 30 秒延迟 pure-class 回归；不是实际 IDE 冷启动延迟统计                                                                               |
+| VERIFY-IDE-02                | 双 IDE 真实采集/重启 driver、跨平台诊断与严格退出确认；`f289a08844` 的六宿主两阶段矩阵全部通过，见第 13 节                     | provider、公开安装、真人听测、8h/24h 与获批 SLO 仍需实际证据；确定性 peer 和 IntelliJ 最低 API 诊断不计正式样本                               |
+| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                  | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                                                 |
+| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                       | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                                              |
 
 ## 2. 模型与计费合同
 
@@ -223,3 +223,43 @@ Windows 相关四文件 **43 项通过、3 项 Linux 专用跳过**。WSL1 / Nod
 官方 MCP server-everything 2026.8.31 / SDK 1.32.0 在 WSL1 Linux x64、Node 22.12.0 完成[真实 stdio 与 HTTP 回执](./cli/evidence/gap-2026-10-05/mcp-reference-stdio-wsl1-workspace.json)：tool/prompt/resource 通过，响应丢失后保持 unknown outcome、自动重放为 0。该环境不是完整 Linux Docker 宿主。Docker Desktop 启动后仍返回 daemon HTTP 500，现有 Ubuntu 为 WSL1；未转换发行版或更改虚拟化配置。
 
 正式冻结预算为任务 **$72** 加首次运行 **$27**，合计上限 **$99**；本轮没有调用付费 provider。36+9 正式样本、公开安装与账单、全部 review pack 实际执行和独立人工签核、真人听测与长时观察仍开放。Linux-only review pack 不能直接用于 Windows/macOS native 验收；这些状态不随工程诊断通过改变。新测试与实际 CI 结果分别记录，不复用旧源码摘要冒充新提交验证。
+
+## 13. 真实矩阵反馈与退出生命周期
+
+本轮工作在 `feature/cli-ide-gap-capture-20261005`，对应 [draft PR #405](https://github.com/chainlesschain/chainlesschain/pull/405)。此前工程提交为 `3b51c51bf1` 与 `32fcd3b20f`。以下区分准确提交的 CI、后续工作区修复及正式验收，不把已失败的尝试覆盖为成功。
+
+### 13.1 官方 MCP 三系统闭环
+
+`32fcd3b20f5c7840026336bf4d1ded6e0898d2b7` 的 [MCP Reference Interoperability #37292293347](https://github.com/chainlesschain/chainlesschain/actions/runs/37292293347) 三个 job 全部成功：Linux x64、Windows x64、macOS arm64，均为 Node 22.12.0。锁定官方 server-everything 2026.8.31 / SDK 1.32.0，真实 HTTP 与官方 stdio 入口完成 tool/prompt/resource、disconnect 和 worker exit 0；注入响应丢失后保留 unknown outcome，自动重放为 0。
+
+原始三份回执与 artifact 元数据见 [CI 回读](./cli/evidence/gap-2026-10-05/mcp-reference-ci-32f/readback.json)。各回执显式绑定干净提交和源码字节。此处关闭的是该提交的 stdio/HTTP 三系统矩阵；GET/SSE 服务端推送、外部账号与 OAuth 未由该次结果覆盖，也不构成新候选发布门。
+
+后续 `f289a08844132538571e254c7d9ec9e4bf2b0fdd` 增加真实 GET/SSE：透传官方 GET 流，经公开 `resources/subscribe` 和 `toggle-subscriber-updates` 启动官方五秒资源更新计时器。要求工具 POST 已返回后，周期通知仍分别出现在独立 GET 原始帧和生产客户端 `resource-updated` 事件；再真实 unsubscribe 并关闭计时器。未改官方服务端或生产客户端。[Windows / Node 22.22.2](./cli/evidence/gap-2026-10-05/mcp-reference-get-sse-windows-workspace.json) 与 [WSL1 / Node 22.12.0](./cli/evidence/gap-2026-10-05/mcp-reference-get-sse-wsl-workspace.json) 本地回执均通过，相关协议/elicitation 回归 **20 项通过**。随后 [MCP CI #37295879127](https://github.com/chainlesschain/chainlesschain/actions/runs/37295879127) 的 Linux x64、Windows x64、macOS arm64 三个 job 全部通过；[完整原始回执](./cli/evidence/gap-2026-10-05/mcp-reference-ci-f289/readback.json)均绑定干净 `f289a08844`，逐项包含 GET 200、两条通知、POST 返回后周期事件、unsubscribe 与计时器关闭。外部账号/OAuth 仍开放。
+
+### 13.2 宿主矩阵发现的真实问题
+
+[VERIFY01 Host Diagnostics #37292293399](https://github.com/chainlesschain/chainlesschain/actions/runs/37292293399) 同一提交的 Linux、Windows 双 IDE 四个 job 成功，两个 macOS job 失败。VS Code macOS 已安装 VSIX，但系统长临时目录使主进程 socket 超过 103 字节，实际 `listen EINVAL`；诊断现复用仓库既有 `makeFreshRunRoot` 短路径并取 realpath，保留采集目录无符号链接约束。JetBrains macOS 在前置进程测试失败，尚未进入 IDE：退出期间 `kill(-pgid, 0)` 返回 `EPERM`。现将它保留为“可能仍存在”，继续有界观察，仅 `ESRCH` 确认消失；持续 `EPERM` 仍失败，未放宽清理。
+
+Windows 本地进一步发现 IntelliJ 启动探测 WSL 的链 `java → wsl → wsl → init`：直接 `taskkill /T /F` 返回 128，已记录创建身份的 `init` 在确认期限内仍存活。最初怀疑历史读取子命令，但进程创建时间与新增进程名否定了该归因；独立等待真实 history child close 后仍能复现，失败材料继续保留。未关闭发行版、修改虚拟化设置或把最终自行退出倒算成当时清理成功。
+
+诊断现先记录 Windows OS 进程身份，调用 Remote Robot 请求 IDE 保存并正常退出，再确认根与全部已知后代消失；请求成功本身不证明退出。请求挂起会中止，根仍存在时可退回原强杀；根已退出但后代仍存活则拒绝通过。POSIX 记录进程组、实际信号及确认结果。`taskkill` 输出保存 Base64 原始字节，显示文本注明 UTF-8 有损解码，避免丢失中文系统的 OEM 输出。历史读取另有开始/真实 close 的关联 ID，按同一任务 deadline 等待，正式 provider driver 不依赖 fixture trace。
+
+### 13.3 候选版本与验证边界
+
+PR 的 publish-staleness 门发现 VS Code 源码变更未递增版本。候选已同步为 CLI `0.166.89`、VS Code `0.37.134`、JetBrains `0.4.152`，双 IDE 推荐版本、lockfile、README 和 bundled changelog 同步；这是候选准备，未发布或合并。版本更新后的 VS Code unit **244 项通过**，CLI changelog 三文件 **10 项通过**，JetBrains 版本/Doctor/协议采集 **17 项通过**并完成生产 Java/Kotlin 编译。
+
+四文件诊断 harness 在 Windows **25 项通过、3 项 POSIX 专项跳过**，WSL1 **24 项通过、4 项 Windows 专项跳过**。覆盖正常退出、虚假退出 ACK、挂起请求、根先退且后代存活，以及持续/短暂 `EPERM`；随后目标 session 过滤新增一例，drain 六项与 owner-exit 回执一项在两系统分别通过，和前述统计重叠，不相加。
+
+最终本地 Windows 的实际 VS Code `1.132.0 + 0.37.134` 与 IntelliJ `2024.2 + 0.4.152` 两阶段均通过；各有 9 条原始协议和 6 项 UI 操作。JetBrains 初始/重启两阶段均正常退出，实际 Gradle owner exit `0/null`，已知进程身份全部消失，`taskkill:null`。重启时空标签的历史查询 exit 1 单独保留，目标 session 历史查询必须成功，且所有启动的查询均须实际 close；不创建假会话消除错误。关闭诊断的 Gradle configuration cache 后正常结束构建也通过。原始成功/失败材料、源码摘要与范围见[七次尝试回读](./ide/evidence/gap-2026-10-05/verify01-lifecycle-diagnostics/readback.json)。本地 Node 22.22.2 和最低 API 宿主不等于冻结正式样本环境。
+
+最终工程提交为 `f289a08844132538571e254c7d9ec9e4bf2b0fdd`，publish-staleness 门本地扫描 18 个包、0 个违规；已推送 PR #405。该提交的 MCP 三系统矩阵及 [IDE 矩阵 #37295879088](https://github.com/chainlesschain/chainlesschain/actions/runs/37295879088) 全部通过：IDE 包装 job 和六个宿主 job 均成功。六宿主均为 Node 22.12.0，各验证 9 条原始协议、唯一输入、6 项 UI 操作和重启恢复，三个 VS Code job 使用同一 VSIX 字节摘要。原始回执、artifact 身份及逐文件摘要见[六宿主 CI 回读](./ide/evidence/gap-2026-10-05/verify01-ci-f289/readback.json)。
+
+| CI 平台（均 x64） | VS Code 1.132.0 / 0.37.134 | IntelliJ 2024.2 / 0.4.152 | JetBrains 初始退出                                                            | JetBrains 重启退出                          |
+| ----------------- | -------------------------- | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| Linux             | 通过                       | 通过                      | graceful ACK 后有界 SIGTERM，owner exit 143，进程组消失已确认                 | 自然退出 0，无回收信号，进程组消失已确认    |
+| Windows           | 通过                       | 通过                      | graceful ACK 后有界 taskkill，taskkill exit 0、owner exit 1，已知身份全部消失 | 自然退出 0，taskkill:null，已知身份全部消失 |
+| macOS Intel       | 通过                       | 通过                      | graceful ACK 后有界 SIGTERM，owner exit 143，进程组消失已确认                 | 自然退出 0，无回收信号，进程组消失已确认    |
+
+CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与已 drain 的 CLI 协议 exit 0 分别记录，不宣称六宿主都自然退出。本地 Windows 两阶段正常退出的证据仅适用于该本地尝试。上述 CI 使用确定性 peer，IntelliJ 2024.2 是最低 API 诊断宿主，不等于冻结的正式 2025.2 环境、公开安装验收或 provider 实测。专项矩阵通过也不替代 CLI CI、CLI Strict Sandbox 等准确发布提交的完整门。
+
+当前仍需独立完成：正式 36+9 provider/首次安装样本、账号与账单、Linux Docker review pack 整包执行及人工签核、Windows/macOS native reviewed 验收与 durable 后端实现、真人辅助技术听测、8h/24h 观察及获批性能 SLO。完整跨机器云 resume 仍为需求条件项。上述项目没有被 fixture、Astra 代码审查或局部 CI 标为完成。

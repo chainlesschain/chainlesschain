@@ -1,0 +1,40 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:42:47.453086370Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:42:48.307123165Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:42:53.764445872Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:42:54.023318962Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  },
+  {
+    "action": "reload",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:44:00.059004826Z"
+  },
+  {
+    "action": "restored-result",
+    "sampleId": "verify-03",
+    "sessionId": "panel-1791196966862-0543a9",
+    "at": "2026-10-05T10:44:00.741689202Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  }
+]

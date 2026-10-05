@@ -1,0 +1,157 @@
+[
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 1,
+    "at": "2026-10-05T10:26:15.115Z",
+    "direction": "output",
+    "event": {
+      "type": "system",
+      "subtype": "init",
+      "protocol_version": 1,
+      "provider": "ollama",
+      "model": "deterministic-host-peer",
+      "session_id": "panel-6abfe895-9a5b-498c-acc7-1daccf01d214",
+      "permission_mode": "acceptEdits",
+      "resumed_messages": 0,
+      "slash_commands": [
+        "compact",
+        "context",
+        "cost",
+        "doctor"
+      ],
+      "input_receipts": {
+        "version": 1
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 2,
+    "at": "2026-10-05T10:26:15.129Z",
+    "direction": "input",
+    "event": {
+      "type": "user",
+      "text": "journey:history-A",
+      "images": [],
+      "client_message_id": "3f639a9b-885e-4304-b941-04247a2bc187"
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 3,
+    "at": "2026-10-05T10:26:15.190Z",
+    "direction": "output",
+    "event": {
+      "type": "system",
+      "subtype": "input_accepted",
+      "session_id": "panel-6abfe895-9a5b-498c-acc7-1daccf01d214",
+      "client_message_id": "3f639a9b-885e-4304-b941-04247a2bc187",
+      "receipt": {
+        "sessionId": "panel-6abfe895-9a5b-498c-acc7-1daccf01d214",
+        "clientMessageId": "3f639a9b-885e-4304-b941-04247a2bc187",
+        "inputDigest": "83512892f934dc1141d432a9b8e1826fe99b061c2592c4a76dbb389d737cbe1d",
+        "eventHash": "744cc1a07b7349eab2903c747c15eec189109ef2d28d524d6209718514671861",
+        "duplicate": false
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 4,
+    "at": "2026-10-05T10:26:15.197Z",
+    "direction": "output",
+    "event": {
+      "type": "stream_event",
+      "event": {
+        "delta": {
+          "type": "text_delta",
+          "text": "checking history fixture\n"
+        }
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 5,
+    "at": "2026-10-05T10:26:15.197Z",
+    "direction": "output",
+    "event": {
+      "type": "tool_use",
+      "tool": "read_file",
+      "args": {
+        "path": "fixture.txt"
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 6,
+    "at": "2026-10-05T10:26:15.197Z",
+    "direction": "output",
+    "event": {
+      "type": "tool_result",
+      "tool": "read_file",
+      "result": "fixture tool diagnostic"
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 7,
+    "at": "2026-10-05T10:26:20.200Z",
+    "direction": "output",
+    "event": {
+      "type": "stream_event",
+      "event": {
+        "delta": {
+          "type": "text_delta",
+          "text": "canonical answer A"
+        }
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 8,
+    "at": "2026-10-05T10:26:20.265Z",
+    "direction": "output",
+    "event": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "turn": 1,
+      "result": "canonical answer A",
+      "usage": {
+        "input_tokens": 32,
+        "output_tokens": 12
+      },
+      "session_id": "panel-6abfe895-9a5b-498c-acc7-1daccf01d214",
+      "transcript_refs": {
+        "schema": "chainlesschain.session-transcript-references/v1",
+        "sessionId": "panel-6abfe895-9a5b-498c-acc7-1daccf01d214",
+        "assistantEventId": "5896c8b9bb82b7c6088be8290cb9b3cd37e1816aa44c36eafab1a9945b5d2267",
+        "userEventId": "744cc1a07b7349eab2903c747c15eec189109ef2d28d524d6209718514671861",
+        "clientMessageId": "3f639a9b-885e-4304-b941-04247a2bc187"
+      }
+    }
+  },
+  {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "976e4e60-54ec-42f9-9675-2968a43a0fff",
+    "sequence": 9,
+    "at": "2026-10-05T10:26:21.085Z",
+    "direction": "exit",
+    "event": {
+      "code": 0,
+      "signal": null,
+      "stdoutDrained": true
+    }
+  }
+]

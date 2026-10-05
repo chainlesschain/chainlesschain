@@ -1,0 +1,58 @@
+{
+  "observedAt": "2026-10-05T10:44:00.732668067Z",
+  "processId": "4499",
+  "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-K4c53I/IC-2024.2/config_runIdeForUiTests",
+  "id": "34ccd299-454d-4c86-a5cf-2bbbf0db064c",
+  "sessionId": "panel-1791196966862-0543a9",
+  "tabs": [
+    {
+      "id": "ba930531-6a09-4985-9e8a-6c486ca57398",
+      "index": 0,
+      "selected": false
+    },
+    {
+      "id": "34ccd299-454d-4c86-a5cf-2bbbf0db064c",
+      "index": 1,
+      "selected": true
+    },
+    {
+      "id": "596751fa-0b24-4452-9a96-e183dc9c6292",
+      "index": 2,
+      "selected": false
+    }
+  ],
+  "inputText": "",
+  "editable": true,
+  "sendInFlight": false,
+  "childRunning": false,
+  "childProcessId": "",
+  "childProcessIds": [],
+  "turnActive": false,
+  "interruptPending": false,
+  "receiptReady": false,
+  "draftStatus": "Saved input restored for editing; it has not been sent",
+  "historyStatus": " Saved messages 1–2 of 2",
+  "binaryChoice": "cc",
+  "text": "ℹ 1 saved input(s); review acceptance before intentionally resending.\n\nMessage 1, user (saved)\njourney:history-A\n\nMessage 2, assistant (saved)\ncanonical answer A\n",
+  "visible": true,
+  "savedRows": [
+    {
+      "id": "panel-1791196966862-0543a9:d2d78d760b53e3e6527b67cdfe8999405ba6b2c3e75cf599c81ddc0cb1b0fcc1:0",
+      "text": "\nMessage 1, user (saved)\njourney:history-A\n",
+      "bodyText": "journey:history-A",
+      "start": 70,
+      "sourceText": "journey:history-A",
+      "role": "user",
+      "truncated": false
+    },
+    {
+      "id": "panel-1791196966862-0543a9:2c04728590605a0a936ab0524ba22834a84bd3cdd60b8243757fb9c1369465bd:0",
+      "text": "\nMessage 2, assistant (saved)\ncanonical answer A\n",
+      "bodyText": "canonical answer A",
+      "start": 113,
+      "sourceText": "canonical answer A",
+      "role": "assistant",
+      "truncated": false
+    }
+  ]
+}

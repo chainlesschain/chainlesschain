@@ -1,0 +1,16 @@
+{
+  "sampleId": "verify-02",
+  "prompt": "journey:history-A",
+  "provider": "ollama",
+  "model": "deterministic-host-peer",
+  "permissionMode": "acceptEdits",
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.133",
+  "deadline": 1791195003369,
+  "workspace": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/workspace",
+  "captureDir": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/captureDir",
+  "profileHome": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/profileHome",
+  "userDataDir": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/userDataDir",
+  "extensionsDir": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/extensionsDir",
+  "canonical": "/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-vscode-8hpqFi/canonical"
+}

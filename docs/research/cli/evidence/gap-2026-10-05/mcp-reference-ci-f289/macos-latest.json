@@ -1,0 +1,89 @@
+{
+  "schema": "chainlesschain.mcp-reference-interop/v1",
+  "status": "passed",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v22.12.0",
+  "upstream": {
+    "name": "@modelcontextprotocol/server-everything",
+    "version": "2026.8.31",
+    "sdkVersion": "1.32.0",
+    "packageJsonSha256": "7100d08c9cf478cf4b642cfb0da81ae2e330ff4d5b2dd420dd5d26ef47b59e2f",
+    "serverEntrySha256": "64d7ceb80fbbec767cfa695d5aefa9a41d5df75636d023ba566d7b63c958c402",
+    "subscriptionImplementationSha256": "057acb816d70abe3ec3e63b4c44c7a28978a6fff17391894c42589134a4f9730",
+    "pushTriggerToolSha256": "c2d030abb59c229b7ee5ec09979d05cfac707677a12509937930f5467970fabf"
+  },
+  "realServerProcess": true,
+  "transport": "official-sdk-streamable-http-with-loopback-test-host",
+  "fault": "proxy-injected HTTP 404 after a real server tool response",
+  "serverPushAssessed": true,
+  "serverPush": {
+    "transport": "GET text/event-stream",
+    "trigger": "official resources/subscribe + toggle-subscriber-updates",
+    "upstreamBehavior": "official server's simulated resource update timer; no copied server implementation",
+    "uri": "demo://resource/dynamic/text/1",
+    "getStatus": 200,
+    "sessionIdSha256": "ee116bd9f351fea7b1e8600ad940923e9c61e4cb50d2ff061e7ed4e50c837fbc",
+    "wireNotifications": [
+      {
+        "method": "notifications/resources/updated",
+        "params": {
+          "uri": "demo://resource/dynamic/text/1"
+        },
+        "jsonrpc": "2.0"
+      },
+      {
+        "method": "notifications/resources/updated",
+        "params": {
+          "uri": "demo://resource/dynamic/text/1"
+        },
+        "jsonrpc": "2.0"
+      }
+    ],
+    "clientNotifications": 2,
+    "periodicAfterToolResponse": true,
+    "periodicElapsedMs": 5006.1775,
+    "unsubscribeCompleted": true,
+    "updateTimerStopped": true
+  },
+  "stdioAssessed": true,
+  "externalAccountAssessed": false,
+  "checks": {
+    "tool": true,
+    "prompt": true,
+    "resource": true,
+    "connectionRecovered": true,
+    "unknownOutcomePreserved": true,
+    "automaticToolReplays": 0,
+    "forwardedTools": 5,
+    "initializations": 2,
+    "injectedFailures": 1
+  },
+  "stdio": {
+    "status": "passed",
+    "transport": "official-server-stdio-entry",
+    "sdkVersion": "1.32.0",
+    "entrySha256": "26eb2809baf531c3a54300e3af15bfdceb7b4de50e785ab8f2f4acf02cbce1fd",
+    "transportSha256": "cf2e1a4fe437d847c510ac72d693c696fdcac7e2f7bd8f5b825d2acb48a33dc0",
+    "checks": {
+      "tool": true,
+      "prompt": true,
+      "resource": true,
+      "disconnectCompleted": true
+    },
+    "workerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "source": {
+    "commit": "f289a08844132538571e254c7d9ec9e4bf2b0fdd",
+    "clean": true,
+    "files": {
+      "../src/harness/mcp-client.js": "3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "./mcp-reference-interop.mjs": "f5d4863f5ef957b3bef8f4177f817b540d24f9fde66cbb891f79ca314af348c5",
+      "./mcp-reference-server-worker.mjs": "68dae08ff346ed74161cb033d1791b7cf98a3c1ac499c71e9f821a266e6eb1a8",
+      "./mcp-reference-stdio-worker.mjs": "ea57cd516566871ba88350f017f8b8df216b62185a5efd45d3de0fda84b61e5e"
+    }
+  }
+}

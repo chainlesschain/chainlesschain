@@ -1,0 +1,8 @@
+{
+  "hostVersion": "1.132.0",
+  "vsixDigest": "sha256:d05f597d48470c5dcef41a306631178a2039a6cf174d515562132b6d13ca1e11",
+  "stdout": "Installing extensions...\nExtension 'verify01.vsix' was successfully installed.\n",
+  "stderr": "(node:10319) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.\n(Use `Code --trace-deprecation ...` to show where the warning was created)\n",
+  "completedAt": "2026-10-05T10:00:06.583Z",
+  "installationVerified": false
+}

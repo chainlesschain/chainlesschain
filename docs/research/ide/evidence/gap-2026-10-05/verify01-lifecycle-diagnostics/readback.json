@@ -1,0 +1,554 @@
+{
+  "schema": "chainlesschain.verify01-lifecycle-workspace/v1",
+  "recordedAt": "2026-10-05T10:24:56.527Z",
+  "source": {
+    "commit": "f289a08844132538571e254c7d9ec9e4bf2b0fdd",
+    "documentationDirty": true,
+    "files": {
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:f337f34ff794ebdd8a6568c3241c203ffe2f783d388688be4be0cddbe0b3cf37",
+      "scripts/lib/verify01-diagnostic-evidence.mjs": "sha256:94f1c7c885559ebc9c32cd6acc2c77c41075bd167412aefb05e7e63191c12283",
+      "scripts/lib/verify01-diagnostic-command-drain.mjs": "sha256:60a9dca437121b5a9930a1bc498308093082e37c3e35546860de11b072f8b0ba",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:e701d71ff06c4afe0a90c292f9411e7f07e7f6312e18cc0247faacd69d468f75",
+      "packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs": "sha256:cbe579e96b87033f48e5ada4a96b73ffb9ab628ed34cb25da9490f349d8c688f",
+      "tests/fixtures/ide-roadmap/canonical-transcript-peer.mjs": "sha256:6d049b54483a2b8b56a33626ac6bd6202fdd00701416baafd5f623ef2a969929"
+    }
+  },
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "observationsCreated": false,
+    "releaseEligible": false
+  },
+  "attempts": [
+    {
+      "name": "jetbrains-identity-failed",
+      "host": "jetbrains",
+      "passed": false,
+      "detail": "Strict OS identity confirmation rejected surviving descendants; historical attempt before process-name capture.",
+      "artifacts": {
+        "canonical-environment.json": {
+          "digest": "sha256:4fa4a3edd7a904c2fc942b04aff4fd2ec337d7d8d1e92dafb83094edbf3556ec",
+          "bytes": 173
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:d992c312675ee38828dd5d261fd97c493597e7735927f87ba597969f2dcd9908",
+          "bytes": 2075
+        },
+        "diagnostic-scope.json": {
+          "digest": "sha256:cb09603362dbb798f6afe8bc658c2cadcf54e39d7bd66caf19090ddbfef5f71c",
+          "bytes": 342
+        },
+        "fake-cli-protocol.jsonl": {
+          "digest": "sha256:88f93aca56b5b19d4ee87368553ecc0597c3717a6d3eeac029f3d6272c6aa516",
+          "bytes": 4669
+        },
+        "fake-cli-state.json": {
+          "digest": "sha256:b971ccf7d4106edf6998b4cc0cacf38193ad3e74c4306b12d27822ec482bcee2",
+          "bytes": 46
+        },
+        "ide-initial.log.cleanup.json": {
+          "digest": "sha256:eefe518bc715e8643a2f3614c5e57160a1916c12ba48fe13cc81076cbe43f7b4",
+          "bytes": 3420
+        },
+        "capture/action-1.json": {
+          "digest": "sha256:ca0e43a1c8244c64c7510405db5d7241c1fad2f00e1d3b96ae40610c2b0e87dc",
+          "bytes": 139
+        },
+        "capture/action-2.json": {
+          "digest": "sha256:9f9e6341b5468c2b25a6f603719c6898cf88f09d3019dfcca7c226ed9f62933a",
+          "bytes": 147
+        },
+        "capture/action-3.json": {
+          "digest": "sha256:24fbc6d412a4441c4f1afb91174400b0848393f0a2c09e1e2944c840944b8f60",
+          "bytes": 143
+        },
+        "capture/action-4.json": {
+          "digest": "sha256:996f2e1ecbaffcc3a733591d4abfbae6dfa6b22a6aa4cd0b85168eebfdfc51db",
+          "bytes": 238
+        },
+        "capture/protocol-8c6bc2ed-d812-4a49-a96a-6814b33b82ac.jsonl": {
+          "digest": "sha256:fddc7db2d18d4db8fd3779dd24febf640b3cd21f42d53babec68af5a8aedc0e8",
+          "bytes": 3382
+        },
+        "capture/protocol.json": {
+          "digest": "sha256:3410f7b611855773045e943194078065eeb85c47f74e5f78f8ebd8f9c9d425c1",
+          "bytes": 4438
+        },
+        "capture/restart-state.json": {
+          "digest": "sha256:6b86b26cce6059002cc603d708cd308d1df1e2b52d04294cd763552f397872f9",
+          "bytes": 3113
+        },
+        "capture/ui-initial.json": {
+          "digest": "sha256:310c75dbb3694ad4f8f9dffc60a8e6c654cf5503deeacbc6b9e63edadddd96c0",
+          "bytes": 724
+        }
+      }
+    },
+    {
+      "name": "jetbrains-drained-failed",
+      "host": "jetbrains",
+      "passed": false,
+      "detail": "History child exited successfully, but IDE WSL init descendant survived forced cleanup.",
+      "artifacts": {
+        "canonical-environment.json": {
+          "digest": "sha256:2e6afb0bc5625bf5004d03925c52d35aea6595d66743497186a52521f0eb8baa",
+          "bytes": 173
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:a5fdd0a6d7807bcc9dee9c3f0257ed9077a233c6565ddc786ab2e07945f26fc1",
+          "bytes": 2173
+        },
+        "diagnostic-scope.json": {
+          "digest": "sha256:77a1809adc059090712e82b8cd27c406fc880cc635bb5a9f52c509ed05ee6413",
+          "bytes": 342
+        },
+        "fake-cli-protocol.jsonl": {
+          "digest": "sha256:8ae16ac080de68bef7ff2623e6ec4c0bf968ee2088e58f01e04b73d0f4716c01",
+          "bytes": 4961
+        },
+        "fake-cli-state.json": {
+          "digest": "sha256:adfb204e54b13d99ca53b82ae0fd8fc65bf000ee874859f90daf891d2e05a9ec",
+          "bytes": 46
+        },
+        "ide-initial.log.cleanup.json": {
+          "digest": "sha256:5f403068657a9fd235c1e8cbb5c008999f5da4b968cf32bef8a7201956b83a8e",
+          "bytes": 4997
+        },
+        "capture/action-1.json": {
+          "digest": "sha256:eb6a9062e99134014e0ab61a53a8513ad51b19453a2de1879df65fdb233a9ce5",
+          "bytes": 139
+        },
+        "capture/action-2.json": {
+          "digest": "sha256:76be889ee8464ec9ff71671a4dd885513897129f4e937fb06dacd4c39bcba88d",
+          "bytes": 147
+        },
+        "capture/action-3.json": {
+          "digest": "sha256:2a47bc76632d2870f31e3b58458b6e17f2492f7c25cc3fb2d458d2de2ad0f0d2",
+          "bytes": 143
+        },
+        "capture/action-4.json": {
+          "digest": "sha256:33546dc5cd200383887abd1bc9a617da48e2dd6d9eb98634c41d5018b43bbafa",
+          "bytes": 238
+        },
+        "capture/protocol-9b5c068f-524f-46e8-a818-d4e41f4c665c.jsonl": {
+          "digest": "sha256:7fcf0309b47c8cf1b42f20658cc43e91ae29a875c6bce86f1e338408271c9499",
+          "bytes": 3379
+        },
+        "capture/protocol.json": {
+          "digest": "sha256:ce97fd17a88fa107e0cb785dd7dba3b0414f8873ab045411fdaae2670010f4e1",
+          "bytes": 4435
+        },
+        "capture/restart-state.json": {
+          "digest": "sha256:849a35eb17e5b52f9f57ac2b1dc5ef2572eaf037dba695a6822e84f580cb4f2d",
+          "bytes": 3111
+        },
+        "capture/ui-initial.json": {
+          "digest": "sha256:f9b8dcbfadb51013a5f8eb8e61bfa252f5f4e7f95846cb72bdb413539ec2e430",
+          "bytes": 724
+        }
+      },
+      "sourceFiles": {
+        "scripts/lib/verify01-diagnostic-process.mjs": "d49c91497cf11c787e67d0b0cd30242865f1e6a793dc8ba48bd2c37bc3551383",
+        "scripts/lib/verify01-diagnostic-command-drain.mjs": "b0c10c6561b8bfa03c4b227ec3ca62da3bcd4808a2aa7086f71462ec7746a61a",
+        "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "a506bcaf1addf92d5484e133091c70a27b9eaa4cbac2de6045b1109a6f26595e",
+        "tests/fixtures/ide-roadmap/canonical-transcript-peer.mjs": "6d049b54483a2b8b56a33626ac6bd6202fdd00701416baafd5f623ef2a969929"
+      }
+    },
+    {
+      "name": "jetbrains-graceful-query-failed",
+      "host": "jetbrains",
+      "passed": false,
+      "detail": "Both GUI phases and natural tree cleanup completed; diagnostic incorrectly rejected the unrelated unused-tab query exit 1. Gradle natural exit also exposed configuration-cache incompatibility.",
+      "artifacts": {
+        "canonical-environment.json": {
+          "digest": "sha256:6de11b55013134f62a94ee3b93456d418a112b8f4ac2aa15bf766bef8cb88ecb",
+          "bytes": 173
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:edd44173d5cca15c097f57428d250dbba6a265b5e61c76c2d7ae7735242f4006",
+          "bytes": 964
+        },
+        "diagnostic-scope.json": {
+          "digest": "sha256:2eb89e3dcbff87e7bc104e58f671d5dd5114765fe769c2d8138a98ecac5abcb3",
+          "bytes": 342
+        },
+        "fake-cli-protocol.jsonl": {
+          "digest": "sha256:404f8d3eb2348515793c7c124057e818296c35b94a5c6491c121acb95033a742",
+          "bytes": 7101
+        },
+        "fake-cli-state.json": {
+          "digest": "sha256:1e1cab77ed768a48b778997b71c9b3f366c6b3f456691b427dfc6b2482e05d1d",
+          "bytes": 46
+        },
+        "ide-initial.log.cleanup.json": {
+          "digest": "sha256:931af20353a99a36e4c4925481446a0ff4a44f7bbcc4d6ee21d2937710375e85",
+          "bytes": 1679
+        },
+        "ide-restart.log.cleanup.json": {
+          "digest": "sha256:f037e10e336f0565b069ead95f44ac734a3b3ea394b4dbdc173386eff5efab7b",
+          "bytes": 1060
+        },
+        "ide-initial.log": {
+          "digest": "sha256:d21b871af778e9e4f9eef849048283297ba825391dfa489add3adb1cf9630a5e",
+          "bytes": 13535
+        },
+        "ide-restart.log": {
+          "digest": "sha256:1c57e431555872e5099412494069847c3f49a97724b7c2e92f188f383e93dcbc",
+          "bytes": 19378
+        },
+        "capture/action-1.json": {
+          "digest": "sha256:049ec06838cc9e9da689c2fdb7a964abc4cd5b57ba8416cc4069949d72d18d56",
+          "bytes": 139
+        },
+        "capture/action-2.json": {
+          "digest": "sha256:a85611e09e50f7ef82dde5b500c6097635b32c21582f9602742dcfc4eb86cfe7",
+          "bytes": 144
+        },
+        "capture/action-3.json": {
+          "digest": "sha256:adc107ae495cd9077bc5e8e04df49df01f4e2669ef03cebac3e0a386196b9d63",
+          "bytes": 143
+        },
+        "capture/action-4.json": {
+          "digest": "sha256:e1ef6dcd69e6a1bfa8ec21b9698196815768be9cc53baa40abb71968f291f45e",
+          "bytes": 238
+        },
+        "capture/action-5.json": {
+          "digest": "sha256:381fd5188a2d5ee633727a4fabdfa1b1d1a80af0795fd0578142fadbcef533f3",
+          "bytes": 136
+        },
+        "capture/action-6.json": {
+          "digest": "sha256:6de64c8a637831da0ff7cc5d5bf5ff9dcecede7ec36d5f0495257945b75ce4f7",
+          "bytes": 241
+        },
+        "capture/protocol-ef4e173f-674d-45be-a796-8d3d2da11154.jsonl": {
+          "digest": "sha256:575261d6f73d93a534a90d141bae7bfa65024f2b2742b9bb3cda98607a6653dd",
+          "bytes": 3376
+        },
+        "capture/protocol.json": {
+          "digest": "sha256:955c93c3cdb3a4ec4b3de2d9100c43c7e2b3e676a6635997e0fdac9e012163d0",
+          "bytes": 4432
+        },
+        "capture/restart-state.json": {
+          "digest": "sha256:2f8e12974f38894bfba4a6545aa4aced876015f61e0b94b17a5c3a7b6f981772",
+          "bytes": 3112
+        },
+        "capture/restored-snapshot.json": {
+          "digest": "sha256:d10df3592c08fe5bba4daeda545a19b4f873ddee2a57f71f8919687b996e1ce0",
+          "bytes": 1927
+        },
+        "capture/ui-initial.json": {
+          "digest": "sha256:752acbae675b7ef72c5ecda620a148061fff35f850ad98bde6e4f5cbd6a4c138",
+          "bytes": 721
+        },
+        "capture/ui.json": {
+          "digest": "sha256:b83dceffd282da9f733360dc7c994fab4033658f94c5027bc8838e720d6f7209",
+          "bytes": 1126
+        }
+      },
+      "sourceFiles": {
+        "scripts/lib/verify01-diagnostic-process.mjs": "7e1ae1914d6aa9d108adfb6b80ccdc1721f572462c74b62710f990fa356d7b44",
+        "scripts/lib/verify01-diagnostic-command-drain.mjs": "b0c10c6561b8bfa03c4b227ec3ca62da3bcd4808a2aa7086f71462ec7746a61a",
+        "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "40bea3c12007329bb3b5ecbb53d4d068cbf5524e80dc691a1da101e186070efa",
+        "packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs": "cbe579e96b87033f48e5ada4a96b73ffb9ab628ed34cb25da9490f349d8c688f",
+        "tests/fixtures/ide-roadmap/canonical-transcript-peer.mjs": "6d049b54483a2b8b56a33626ac6bd6202fdd00701416baafd5f623ef2a969929"
+      }
+    },
+    {
+      "name": "macos-vscode-32f-failed",
+      "host": "vscode",
+      "passed": false,
+      "detail": "Actual VS Code socket exceeded the macOS 103-byte path budget; host exited 1 before UI capture.",
+      "artifacts": {
+        "diagnostic-config.json": {
+          "digest": "sha256:6b951bee22fa82607ee37b0a7791a567a4d8bcace88c44622583d9ac900a3e97",
+          "bytes": 934
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:d2eaf837fbf2a551f5574f66f5577233ea0c87851fa6f2a11a7d18cc3755aa0c",
+          "bytes": 505
+        },
+        "host.log": {
+          "digest": "sha256:8c4f26838b924d6b6cb1aac9ff510d1324348c37790816660fb68266a7fa566c",
+          "bytes": 7724
+        },
+        "captureDir/launcher-config.json": {
+          "digest": "sha256:c9eaf2342748de6616ffcad90b6372e1be3e3d7e3a9201f91be7bc0238d982d3",
+          "bytes": 935
+        },
+        "captureDir/vscode-install.json": {
+          "digest": "sha256:9d52971c8cbe31903c455933b1e2e28fa2fee1e5785088b35d0a68c19e22c91f",
+          "bytes": 616
+        }
+      }
+    },
+    {
+      "name": "ci-windows-jetbrains-32f",
+      "host": "jetbrains",
+      "passed": true,
+      "detail": "Clean-source Windows CI run 37292293399 at 32fcd3b20f5c7840026336bf4d1ded6e0898d2b7.",
+      "artifacts": {
+        "canonical-environment.json": {
+          "digest": "sha256:7f0f070d0fdaa91946729fe16f75d944a270a6386be99ccc0963d85122a03f69",
+          "bytes": 175
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:9c1f692ff0ca0a0b6aa0500d38e0a58f5b696f3ce003bd7c070cbc6cb87d016d",
+          "bytes": 7460
+        },
+        "diagnostic-scope.json": {
+          "digest": "sha256:1e7770c9dc236811815b1aabdaf5202dfeff811f0e16e67ac9e7c439566ffcae",
+          "bytes": 382
+        },
+        "fake-cli-protocol.jsonl": {
+          "digest": "sha256:dfa203f78c421aae4bb7a6d38def0d97f8cebd10ac8cf8a49b55d216798a40da",
+          "bytes": 6187
+        },
+        "fake-cli-state.json": {
+          "digest": "sha256:e2c68b78f2b6b2d5e32c6a66f186c9aa9de2d86d7fdd14bb6515ca66ee62e9ab",
+          "bytes": 46
+        },
+        "ide-initial.log.cleanup.json": {
+          "digest": "sha256:98f28ad8c0c07bd7bbe255449a05e17c8ca8163ef5364c14bd9271bb56c93fc7",
+          "bytes": 1467
+        },
+        "ide-restart.log.cleanup.json": {
+          "digest": "sha256:11cd5b2fd956b188fbd4f1513c4b86df26e192fa6b6506576f139be9dd547c13",
+          "bytes": 1471
+        },
+        "capture/action-1.json": {
+          "digest": "sha256:9e684089d73a75323a36f172e25411d22fda319302f662f149ff974b0c8b5903",
+          "bytes": 139
+        },
+        "capture/action-2.json": {
+          "digest": "sha256:5814069945180e454e27d5c39f0ebda7de952e04f3a1c3adb6040c6f55bbfc14",
+          "bytes": 144
+        },
+        "capture/action-3.json": {
+          "digest": "sha256:3bcc89ba850262b86e45837ee5b24d2665fc622c16efdafac8826e2e7e74d0f4",
+          "bytes": 143
+        },
+        "capture/action-4.json": {
+          "digest": "sha256:b53eed1ab5d9f8c34220c94b4dc1a83712e35820c5cb76bca2741b2b66317b9f",
+          "bytes": 238
+        },
+        "capture/action-5.json": {
+          "digest": "sha256:7e96fa9aed2818bb6847d2eb241de1ebcc91f2a8ac7f09b494bc5788bc73ca4d",
+          "bytes": 139
+        },
+        "capture/action-6.json": {
+          "digest": "sha256:1c19b840076cde632052390a4ff97c092116be263f557bf8b4b9f0335508637d",
+          "bytes": 241
+        },
+        "capture/protocol-0d16336d-360e-4122-b269-78b98d41db82.jsonl": {
+          "digest": "sha256:cd7f7c8da2b1b21d7a15d25efd100e80fd1ed7ec5075741a630e77b0e007a76b",
+          "bytes": 3382
+        },
+        "capture/protocol.json": {
+          "digest": "sha256:4cc831a65c4b674fb2e3a261d39cc133337c385e1105aaeee681f19a4ed959d8",
+          "bytes": 4438
+        },
+        "capture/restart-state.json": {
+          "digest": "sha256:48dc4f097c2a506a08cd589f6e302989b355bc0c75fcbd62635ba55624cd3d67",
+          "bytes": 3137
+        },
+        "capture/restored-snapshot.json": {
+          "digest": "sha256:e6901d722cad3394922993e79c3b9b3e0d30916282015db8d524cad15d9b5ee7",
+          "bytes": 1940
+        },
+        "capture/ui-initial.json": {
+          "digest": "sha256:812fa1fa6f7490bc1506024c722df9f35f480baaa3ddbc915cc306124cd0134d",
+          "bytes": 721
+        },
+        "capture/ui.json": {
+          "digest": "sha256:ff9afee25295ce2d2538dc84e290049817cd07918fd5402dac185950f37fdf5f",
+          "bytes": 1129
+        }
+      }
+    },
+    {
+      "name": "vscode-134",
+      "host": "vscode",
+      "passed": true,
+      "detail": "Windows actual local VSIX 0.37.134 on host 1.132.0; canonical short temporary path.",
+      "artifacts": {
+        "diagnostic-config.json": {
+          "digest": "sha256:2bd5983f35a41c2a647173325dce1f9886c49d9dbda503305bf803379b914e02",
+          "bytes": 754
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:d7d944f8b17b768c8e0234947f24573a9196ae7833c4ed384fadce2a154fd500",
+          "bytes": 9407
+        },
+        "fixture-cli-protocol.jsonl": {
+          "digest": "sha256:62add6b18703a5be0cbd94a549a4355657265896b214f7684ab9499c651923a0",
+          "bytes": 5910
+        },
+        "fixture-cli-state.json": {
+          "digest": "sha256:50bb8af618156ee716224d1028a1b332fcdd0da9a00c3c77474888c4a2d6e50f",
+          "bytes": 62
+        },
+        "captureDir/92a7c44e-b81f-462e-aa80-1443f17fc0df.ndjson": {
+          "digest": "sha256:fdb82d152e0f26b47302bb7e84bcf0938aa87234898aa6ae88ad36510bd21320",
+          "bytes": 3420
+        },
+        "captureDir/launcher-config.json": {
+          "digest": "sha256:17630a9e1a1be0aa3a8487b29501d4d8032bbf35f92d1e90ce071bd5696a734e",
+          "bytes": 755
+        },
+        "captureDir/protocol.json": {
+          "digest": "sha256:83d5166a92bd485d7a4212c995a3e8ba28f69bb48100b3a3fb15c34e5a5e8cee",
+          "bytes": 4484
+        },
+        "captureDir/terminal.json": {
+          "digest": "sha256:4fd7529479e9a1495ee62d1620b05af99139e695027dc3222af341c134780b94",
+          "bytes": 723
+        },
+        "captureDir/ui.json": {
+          "digest": "sha256:774f1f12586b512f733d4067223ca3bd400ad084a0c2dfc4e44bdfb878f5a575",
+          "bytes": 1192
+        },
+        "captureDir/ui.ndjson": {
+          "digest": "sha256:a5dc78a2589c611a6e66a21c8fa74a31225d8eac1bc0898c6de2f6c3a75cf6c4",
+          "bytes": 997
+        },
+        "captureDir/vscode-initial.json": {
+          "digest": "sha256:913b9ac1b875209b46615546e777a9af56ede3df71e67cefb9ff21ab2158f825",
+          "bytes": 4305
+        },
+        "captureDir/vscode-install.json": {
+          "digest": "sha256:6c63f5bcd05194ccd618f2677b73f11b80a8d345902f97fe9a05526ece48a975",
+          "bytes": 637
+        },
+        "captureDir/vscode-restart.json": {
+          "digest": "sha256:90b9cfd7e06e9723ce2529c050a2336c9a1f93713d220db5733e2d408b953e7e",
+          "bytes": 2891
+        }
+      },
+      "sourceFiles": {
+        "scripts/lib/verify01-diagnostic-process.mjs": "7e1ae1914d6aa9d108adfb6b80ccdc1721f572462c74b62710f990fa356d7b44",
+        "scripts/lib/verify01-diagnostic-command-drain.mjs": "b0c10c6561b8bfa03c4b227ec3ca62da3bcd4808a2aa7086f71462ec7746a61a",
+        "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "40bea3c12007329bb3b5ecbb53d4d068cbf5524e80dc691a1da101e186070efa",
+        "packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs": "cbe579e96b87033f48e5ada4a96b73ffb9ab628ed34cb25da9490f349d8c688f",
+        "tests/fixtures/ide-roadmap/canonical-transcript-peer.mjs": "6d049b54483a2b8b56a33626ac6bd6202fdd00701416baafd5f623ef2a969929"
+      }
+    },
+    {
+      "name": "jetbrains-152",
+      "host": "jetbrains",
+      "passed": true,
+      "detail": "Windows actual local plugin 0.4.152 on host 2024.2; natural exit and target-scoped history drain.",
+      "artifacts": {
+        "canonical-environment.json": {
+          "digest": "sha256:d5ef39d2104d70c1f5bec1ae6b354c054f09ca6f24b444d2a13a151dc241d9f9",
+          "bytes": 173
+        },
+        "diagnostic-result.json": {
+          "digest": "sha256:672ca1751bf42cf60b7a345ba891f44ceabf08427e836aa84c0998c74912b7bd",
+          "bytes": 7890
+        },
+        "diagnostic-scope.json": {
+          "digest": "sha256:85b9ce79684443a105686ab0dd15bd1cb017ee2d1344fe098fa955eb7bf8543f",
+          "bytes": 342
+        },
+        "fake-cli-protocol.jsonl": {
+          "digest": "sha256:e4f9ced31435fa2894421602441a06489d70c230a4e7774b01d3410514465417",
+          "bytes": 7101
+        },
+        "fake-cli-state.json": {
+          "digest": "sha256:e0326e1a0a3c56cda484461451ab5e713aa8b498b582b65c160d93545a886e4f",
+          "bytes": 46
+        },
+        "ide-initial.log.cleanup.json": {
+          "digest": "sha256:b82a5e067cf02617a74bc026fa76213fae194edb54307682e32d4af58f63e55f",
+          "bytes": 1980
+        },
+        "ide-restart.log.cleanup.json": {
+          "digest": "sha256:3f799f4c3697c6e3cf4bdd7ff0974b3c34461bf079f4c2b036f6884fa671d1ed",
+          "bytes": 1113
+        },
+        "capture/action-1.json": {
+          "digest": "sha256:4d6f25deeb8b5d04e4614afea74f05fbfaeeb166300a365d7f583c4d8ddd8625",
+          "bytes": 139
+        },
+        "capture/action-2.json": {
+          "digest": "sha256:582b6e253f95b29831716e80bfc850d5912cfc10bb354dd42b31da19d2eca7d8",
+          "bytes": 147
+        },
+        "capture/action-3.json": {
+          "digest": "sha256:9ebcdc4bf9dd82f3e60cdaaed5626448d4895c7eae11e51a87a3f8936e587bcb",
+          "bytes": 143
+        },
+        "capture/action-4.json": {
+          "digest": "sha256:d2d05bf37d47a19e8bbae691aa50e4015243d91ec606872d8e2fe7852091372e",
+          "bytes": 238
+        },
+        "capture/action-5.json": {
+          "digest": "sha256:561c580a1140ab99598bf065848f9756b02a0f4d0c12e879948a5a8d56074588",
+          "bytes": 139
+        },
+        "capture/action-6.json": {
+          "digest": "sha256:a8c0df93f874753ef06249cee16553da4d05f0f694c4df45c71e0edd1df54faa",
+          "bytes": 241
+        },
+        "capture/protocol-632d9144-d5a5-4518-a482-e1e2ab95b85f.jsonl": {
+          "digest": "sha256:4247003fb5bdd6e392550b6d3834cdec7848b1bdce6c6029861ac8489d85fde9",
+          "bytes": 3376
+        },
+        "capture/protocol.json": {
+          "digest": "sha256:d1f0031556c722878cdb351da5e1838de24103f65aaef3cffc00f5f000173729",
+          "bytes": 4432
+        },
+        "capture/restart-state.json": {
+          "digest": "sha256:41d7bd82f44d90cf2ead073895b0c252ef5215d1db6cfcf7e59912d456043a6c",
+          "bytes": 3116
+        },
+        "capture/restored-snapshot.json": {
+          "digest": "sha256:a69ab08be23758034ecaa15c52b089c11f7f51e8f5071253456dff186c3aaf14",
+          "bytes": 1926
+        },
+        "capture/ui-initial.json": {
+          "digest": "sha256:69b865b47740f42cdb5ec1af908d622bb1e3cd6baa935131f8ce27daffa231da",
+          "bytes": 724
+        },
+        "capture/ui.json": {
+          "digest": "sha256:32bace699cab61e25c70ea62c9c12c0820794cb8659741e17a0ce6092d8640b1",
+          "bytes": 1132
+        }
+      }
+    }
+  ],
+  "validation": {
+    "windowsHarness": {
+      "passed": 25,
+      "skipped": 3,
+      "tests": 28
+    },
+    "wslHarness": {
+      "passed": 24,
+      "skipped": 4,
+      "tests": 28
+    },
+    "finalCommandDrain": {
+      "windowsPassed": 6,
+      "linuxPassed": 6
+    },
+    "ownerExitReceipt": {
+      "windowsPassed": 1,
+      "linuxPassed": 1
+    },
+    "vscodeUnit": {
+      "passed": 244
+    },
+    "jetbrainsCore": {
+      "passed": 17
+    },
+    "cliChangelog": {
+      "passed": 10
+    },
+    "canonicalFixture": {
+      "windowsPassed": 5,
+      "linuxPassed": 5
+    },
+    "notes": "Final target-scoped drain adds one case to the earlier 28-case harness; focused 6-case follow-up and owner-exit tests run after that harness. Counts overlap and must not be summed."
+  }
+}

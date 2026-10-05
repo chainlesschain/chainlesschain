@@ -1,0 +1,22 @@
+{
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-jetbrains-1YpRIb",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "sourceCommit": null,
+  "hostVersion": "2024.2",
+  "passed": false,
+  "pluginVersion": "0.4.152",
+  "pluginDigest": "sha256:89cd5ff9835a286301a1198b3e1fb503b81cde486b4cd1bf2d30ea4389dd4442",
+  "canonicalCommandDrain": {
+    "initial": {
+      "started": 1,
+      "completed": 1
+    }
+  },
+  "error": "Error: Canonical diagnostic command failed: 1/null\n    at waitForCanonicalCommands (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-command-drain.mjs:51:17)\n    at main (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:214:29)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+}
