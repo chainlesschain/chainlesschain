@@ -36,7 +36,8 @@ jobs:
           node-version: "22.12.0"
       - uses: ./.github/actions/setup-node-deps
       - name: Install locked reference server and SDK
-        run: npm ci --prefix packages/cli/scripts/interop/mcp-reference --ignore-scripts --no-audit --no-fund
+        working-directory: packages/cli/scripts/interop/mcp-reference
+        run: npm ci --ignore-scripts --no-audit --no-fund --workspaces=false
       - name: Exercise real server with explicit response-loss injection
         shell: bash
         run: >-
