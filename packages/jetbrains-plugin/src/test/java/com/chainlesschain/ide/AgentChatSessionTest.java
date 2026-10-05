@@ -20,6 +20,43 @@ import org.junit.jupiter.api.Test;
  */
 class AgentChatSessionTest {
 
+    @Test
+    void capturesIndependentProtocolSnapshotsAndDrainedExit() throws Exception {
+        BlockingQueue<Map<String, Object>> records = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> events = new LinkedBlockingQueue<>();
+        AgentChatSession.Options options = new AgentChatSession.Options();
+        options.baseCommandOverride = List.of(
+                java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("java.class.path"), QueuedAgent.class.getName());
+        options.onProtocolRecord = records::add;
+        options.onEvent = events::add;
+        AgentChatSession session = new AgentChatSession(options);
+        try {
+            session.start();
+            Map<String, Object> input = new java.util.LinkedHashMap<>();
+            input.put("type", "user");
+            input.put("text", "capture original");
+            assertTrue(session.sendEvent(input));
+            input.put("text", "later mutation");
+            assertEquals("system", events.poll(10, TimeUnit.SECONDS).get("type"));
+            session.end();
+            Map<String, Object> attempted = records.poll(10, TimeUnit.SECONDS);
+            Map<String, Object> output = records.poll(10, TimeUnit.SECONDS);
+            Map<String, Object> exit = records.poll(10, TimeUnit.SECONDS);
+            assertEquals("input", attempted.get("direction"));
+            assertEquals("capture original", ((Map<?, ?>) attempted.get("event")).get("text"));
+            assertEquals("output", output.get("direction"));
+            assertEquals("exit", exit.get("direction"));
+            assertEquals(attempted.get("generation"), exit.get("generation"));
+            assertEquals(1L, attempted.get("sequence"));
+            assertEquals(2L, output.get("sequence"));
+            assertEquals(3L, exit.get("sequence"));
+            assertEquals(true, ((Map<?, ?>) exit.get("event")).get("stdoutDrained"));
+        } finally {
+            session.stopAndWait().get(10, TimeUnit.SECONDS);
+        }
+    }
+
     /** Real pipe peer: keep user turns pending until the test releases them. */
     public static final class QueuedAgent {
         public static void main(String[] args) throws Exception {

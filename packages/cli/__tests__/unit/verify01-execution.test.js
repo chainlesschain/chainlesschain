@@ -99,7 +99,7 @@ function fixture() {
   for (const task of catalog.tasks) {
     const setup = Buffer.from("console.log('offline setup');");
     const check = Buffer.from(
-      `import fs from 'node:fs'; import path from 'node:path'; const pass = fs.readFileSync(path.join(process.argv[1], ${JSON.stringify(task.expectedFiles[0])}), 'utf8') === 'accepted'; console.log(JSON.stringify({pass, detail: 'independent byte assertion'}));`,
+      `import fs from 'node:fs'; import path from 'node:path'; const pass = fs.readFileSync(path.join(process.argv[1], ${JSON.stringify(task.expectedFiles[0])}), 'utf8') === 'accepted'; const deadline=Number(process.argv[2]); if (!Number.isFinite(deadline) || deadline <= Date.now()) throw new Error('missing outer deadline'); console.log(JSON.stringify({pass, detail: 'independent byte assertion', deadline}));`,
     );
     fs.writeFileSync(join(reviewRoot, `${task.id}-setup.js`), setup);
     fs.writeFileSync(join(reviewRoot, `${task.id}-check.js`), check);
@@ -250,6 +250,9 @@ describe("review-gated frozen eval execution", () => {
     const receipt = tasks.verification.receipts[0];
     expect(receipt.setup.exitCode).toBe(0);
     expect(receipt.check.stdout).toContain("independent byte assertion");
+    expect(JSON.parse(receipt.check.stdout).deadline).toBeGreaterThan(
+      Date.now(),
+    );
     expect(receipt.diff).toHaveLength(1);
     expect(
       Buffer.from(receipt.diff[0].after.bytesBase64, "base64").toString(),

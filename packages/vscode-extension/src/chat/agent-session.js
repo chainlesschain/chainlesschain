@@ -17,6 +17,7 @@
  * a fake child process.
  */
 const { spawn } = require("child_process");
+const { randomUUID } = require("node:crypto");
 const { hardenedEnv } = require("../hardened-env");
 const { stopAgentProcess } = require("./stop-agent-process");
 // Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
@@ -32,6 +33,7 @@ class AgentChatSession {
    *   cwd       working directory for the agent (workspace root)
    *   env       environment for the child (include the bridge port/token!)
    *   onEvent   (evt:object) => void       parsed NDJSON event
+   *   onProtocolRecord (record:object) => void   optional acceptance observer
    *   onStderr  (line:string) => void      raw stderr lines (tool trace, logs)
    *   onExit    ({code,signal}) => void
    *   deps      { spawn? } test seam
@@ -43,6 +45,8 @@ class AgentChatSession {
     this._decode = null;
     this._stderrBuf = "";
     this._stopPromise = null;
+    this._protocolGeneration = randomUUID();
+    this._protocolSequence = 0;
   }
 
   get running() {
@@ -57,6 +61,8 @@ class AgentChatSession {
   start() {
     if (this.child) return this;
     this._stopPromise = null;
+    this._protocolGeneration = randomUUID();
+    this._protocolSequence = 0;
     const command = this.opts.command || "cc";
     const args = buildAgentArgs({ extraArgs: this.opts.args || [] });
     this.child = this._deps.spawn(command, args, {
@@ -111,6 +117,11 @@ class AgentChatSession {
         }
       }
       const child = this.child;
+      this._recordProtocol("exit", {
+        code,
+        signal: signal || null,
+        stdoutDrained: true,
+      });
       this.child = null;
       if (typeof this.opts.onExit === "function") {
         try {
@@ -139,6 +150,7 @@ class AgentChatSession {
   }
 
   _emit(evt) {
+    this._recordProtocol("output", evt);
     if (typeof this.opts.onEvent === "function") {
       try {
         this.opts.onEvent(evt);
@@ -148,10 +160,32 @@ class AgentChatSession {
     }
   }
 
+  /** Opt-in raw protocol observer for actual host acceptance drivers. No file
+   * is written by the session, and observer failure cannot authorize a send.
+   */
+  _recordProtocol(direction, event) {
+    if (typeof this.opts.onProtocolRecord !== "function") return;
+    const sequence = ++this._protocolSequence;
+    try {
+      this.opts.onProtocolRecord({
+        schema: "chainlesschain.ide-protocol-record/v1",
+        generation: this._protocolGeneration,
+        sequence,
+        at: new Date().toISOString(),
+        direction,
+        event: JSON.parse(JSON.stringify(event)),
+      });
+    } catch {
+      // Missing records leave a sequence gap. The acceptance importer rejects
+      // incomplete captures instead of treating observer success as delivery.
+    }
+  }
+
   /** Send one raw NDJSON event (user turn / plan control / …). */
   sendEvent(obj) {
     if (!this.running || !obj || typeof obj !== "object") return false;
     try {
+      this._recordProtocol("input", obj);
       this.child.stdin.write(JSON.stringify(obj) + "\n");
       return true;
     } catch {

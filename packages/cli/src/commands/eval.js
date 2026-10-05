@@ -14,6 +14,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
+import { verifyAgentTerminal } from "../lib/eval/stream-terminal.js";
 import { persistVerify01Receipts } from "../lib/eval/verify01-execution.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 import {
@@ -48,57 +49,6 @@ function appendHistory(file, record) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This file is src/commands/eval.js → the CLI entry is bin/chainlesschain.js.
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
-
-function verifyAgentTerminal(output) {
-  try {
-    const events = output
-      .split(/\r?\n/u)
-      .filter((line) => line.trim())
-      .map((line) => JSON.parse(line));
-    const results = events.filter((event) => event?.type === "result");
-    const terminal = results[0];
-    const usage = terminal?.usage;
-    const normalizedUsage =
-      usage &&
-      [
-        usage.input_tokens,
-        usage.output_tokens,
-        usage.cache_read_input_tokens,
-        usage.cache_creation_input_tokens,
-      ].every((value) => Number.isSafeInteger(value) && value >= 0)
-        ? {
-            inputTokens: usage.input_tokens,
-            outputTokens: usage.output_tokens,
-            cacheReadInputTokens: usage.cache_read_input_tokens,
-            cacheCreationInputTokens: usage.cache_creation_input_tokens,
-          }
-        : null;
-    return {
-      terminalVerified:
-        results.length === 1 &&
-        events.at(-1) === terminal &&
-        terminal.subtype === "success" &&
-        terminal.is_error === false &&
-        !events.some((event) => event?.type === "error"),
-      observedFallback: events.some((event) =>
-        ["provider_fallback", "model_fallback"].includes(event?.subtype),
-      ),
-      usage: normalizedUsage,
-      totalCostUsd:
-        Number.isFinite(terminal?.total_cost_usd) &&
-        terminal.total_cost_usd >= 0
-          ? terminal.total_cost_usd
-          : null,
-    };
-  } catch {
-    return {
-      terminalVerified: false,
-      observedFallback: null,
-      usage: null,
-      totalCostUsd: null,
-    };
-  }
-}
 
 /**
  * Kill an agent child AND its tool grandchildren. A bare child.kill("SIGTERM")
@@ -542,9 +492,8 @@ export function registerEvalCommand(program, { logger } = {}) {
         }
       }
       try {
-        const { exportTelemetryRecorder } = await import(
-          "../lib/observability/index.js"
-        );
+        const { exportTelemetryRecorder } =
+          await import("../lib/observability/index.js");
         exportTelemetryRecorder(recorder);
       } catch {
         // Collector export is best-effort and never changes evaluation gates.

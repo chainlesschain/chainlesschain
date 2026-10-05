@@ -22,7 +22,7 @@ assert.match(report, /DEGRADED \(可降级运行\)/);
 assert.match(report, /Workspace trust: restricted/);
 assert.match(report, /Workspace: C:\\workspace/);
 assert.match(report, /127\.0\.0\.1:43123/);
-assert.match(report, /Recommended CLI: 0\.166\.87/);
+assert.match(report, /Recommended CLI: 0\.166\.88/);
 assert.match(report, /Agent session: not observed/);
 assert.match(report, /effective unconfirmed/);
 const degraded = formatBridgeReport({

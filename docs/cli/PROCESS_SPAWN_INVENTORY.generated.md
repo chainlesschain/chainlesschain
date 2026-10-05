@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 651 (runtime: 309, tooling: 307, test: 35).
+Total matches: 654 (runtime: 309, tooling: 310, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unreviewed: 0.
 
 ## Policy
@@ -43,8 +43,8 @@ Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/src/commands/checkpoint-managed.js` | 338 | `brokered` | call targets ProcessExecutionBroker | `proc = broker.spawn(command, args, {` |
 | `packages/cli/src/commands/config.js` | 40 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/config.js` | 99 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.spawnSync(file, [...editorArgs, configPath], {` |
-| `packages/cli/src/commands/eval.js` | 115 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
-| `packages/cli/src/commands/eval.js` | 171 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(process.execPath, args, {` |
+| `packages/cli/src/commands/eval.js` | 65 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
+| `packages/cli/src/commands/eval.js` | 121 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/loop.js` | 87 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(cmd, args, {` |
 | `packages/cli/src/commands/mcp.js` | 1031 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(command, args, {` |
 | `packages/cli/src/commands/memory.js` | 57 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
@@ -637,6 +637,9 @@ Runtime audit: brokered: 217, audited-exemption: 42, non-executable: 50, unrevie
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 249 | `return execFileSync("git", ["show", `${headSha}:${repoPath}`], {` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 359 | `execFileSync(` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 775 | `execFileSync(process.execPath, ["--expose-gc", SCRIPT_PATH], {` |
+| `packages/cli/scripts/verify01-review-pack.mjs` | 9 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-review-pack.mjs` | 65 | `execFileSync(` |
+| `packages/cli/scripts/verify01-review-runtime.mjs` | 7 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/vitest-parent-diagnostic.cjs` | 12 | `const cp = require("node:child_process");` |
 | `packages/cli/scripts/vitest-worker-diagnostic.cjs` | 6 | `const childProcess = require("node:child_process");` |
 

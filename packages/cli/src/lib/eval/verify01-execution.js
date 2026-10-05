@@ -328,7 +328,13 @@ function reviewedProcess(bytes, directory, reviewRoot, kind, timeout) {
   // operator code; their digest is not an independent-review attestation.
   const result = executionBroker.spawnSync(
     process.execPath,
-    ["--input-type=module", "--eval", bytes.toString("utf8"), directory],
+    [
+      "--input-type=module",
+      "--eval",
+      bytes.toString("utf8"),
+      directory,
+      String(Date.now() + timeout),
+    ],
     {
       cwd: reviewRoot,
       encoding: "utf8",

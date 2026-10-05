@@ -10,11 +10,11 @@ import org.junit.jupiter.api.Test;
 class CliVersionCheckTest {
 
     @Test void installedIdentityRejectsCompilerAndErrorBanners() {
-        for (String raw : new String[] {"cc (GCC) 12.2.0", "Apple clang version 17.0.0", "error\n0.166.87", "", "command not found"}) {
+        for (String raw : new String[] {"cc (GCC) 12.2.0", "Apple clang version 17.0.0", "error\n0.166.88", "", "command not found"}) {
             assertNull(CliVersionCheck.installedVersion(raw));
             assertNull(CliVersionCheck.updateNotice(raw, "99.0.0"));
         }
-        assertEquals("0.166.87", CliVersionCheck.installedVersion("\n v0.166.87\n"));
+        assertEquals("0.166.88", CliVersionCheck.installedVersion("\n v0.166.88\n"));
     }
 
     @Test
@@ -57,10 +57,10 @@ class CliVersionCheckTest {
 
     @Test
     void recommendedReleaseIsTheOfflineUpgradeFloor() {
-        assertEquals("0.166.87", CliVersionCheck.RECOMMENDED_CLI_VERSION);
-        assertEquals("0.166.87", CliVersionCheck.preferredUpgradeTarget(null));
-        assertEquals("0.166.87", CliVersionCheck.preferredUpgradeTarget("0.166.27"));
-        assertEquals("0.166.87", CliVersionCheck.preferredUpgradeTarget("0.166.34"));
+        assertEquals("0.166.88", CliVersionCheck.RECOMMENDED_CLI_VERSION);
+        assertEquals("0.166.88", CliVersionCheck.preferredUpgradeTarget(null));
+        assertEquals("0.166.88", CliVersionCheck.preferredUpgradeTarget("0.166.27"));
+        assertEquals("0.166.88", CliVersionCheck.preferredUpgradeTarget("0.166.34"));
 
         String notice = CliVersionCheck.updateNotice(
                 "0.166.27", CliVersionCheck.RECOMMENDED_CLI_VERSION);

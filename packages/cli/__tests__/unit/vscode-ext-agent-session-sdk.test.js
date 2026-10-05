@@ -49,6 +49,71 @@ function startSession(extraArgs = []) {
 
 const tick = () => new Promise((r) => setImmediate(r));
 
+describe("opt-in actual-host protocol capture", () => {
+  it("uses a fresh generation when a closed session object starts another child", () => {
+    const children = [fakeChild(), fakeChild()];
+    const records = [];
+    const session = new AgentChatSession({
+      deps: { spawn: () => children.shift() },
+      onProtocolRecord: (row) => records.push(row),
+    }).start();
+    session.child.emit("close", 0, null);
+    session.start();
+    session.child.emit("close", 0, null);
+    expect(records.map((row) => row.sequence)).toEqual([1, 1]);
+    expect(records[0].generation).not.toBe(records[1].generation);
+  });
+  it("records attempted input before responses and drains the final line before exit", () => {
+    const child = fakeChild();
+    const records = [];
+    const session = new AgentChatSession({
+      deps: { spawn: () => child },
+      onProtocolRecord: (row) => records.push(row),
+    }).start();
+    const input = {
+      type: "user",
+      text: "hello",
+      client_message_id: "m-1",
+      llm: { model: "selected" },
+    };
+    expect(session.sendEvent(input)).toBe(true);
+    input.llm.model = "later mutation";
+    child.stdout.write(
+      '{"type":"result","subtype":"success","is_error":false}',
+    );
+    child.emit("close", 0, null);
+    expect(records.map((row) => row.direction)).toEqual([
+      "input",
+      "output",
+      "exit",
+    ]);
+    expect(records.map((row) => row.sequence)).toEqual([1, 2, 3]);
+    expect(new Set(records.map((row) => row.generation)).size).toBe(1);
+    expect(records[0].event.llm.model).toBe("selected");
+    expect(records[2].event).toEqual({
+      code: 0,
+      signal: null,
+      stdoutDrained: true,
+    });
+  });
+  it("observer failure neither authorizes input nor crashes the pump, and leaves a detectable gap", () => {
+    const child = fakeChild();
+    const records = [];
+    const session = new AgentChatSession({
+      deps: { spawn: () => child },
+      onProtocolRecord: (row) => {
+        if (row.sequence === 1) throw new Error("capture disk failed");
+        records.push(row);
+      },
+    }).start();
+    expect(session.sendEvent({ type: "user", text: "hello" })).toBe(true);
+    child.stdout.write('{"type":"result"}\n');
+    child.emit("close", 1, null);
+    expect(records.map((row) => row.sequence)).toEqual([2, 3]);
+    expect(session.sendEvent({ type: "user", text: "closed" })).toBe(false);
+  });
+});
+
 describe("AgentChatSession uses the SDK protocol argv", () => {
   it("vendors the permission decision capability", () => {
     expect(PROTOCOL_FEATURES).toEqual([

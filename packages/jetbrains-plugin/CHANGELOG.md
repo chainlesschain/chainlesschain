@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.151] - Capture optional raw session evidence (2026-10-05)
+
+- Add an optional protocol observer for input attempts, output and drained process
+  exits, with session generations and ordered records for evaluation import.
+- Keep observation disabled by default; ordinary chat does not create capture files.
+- Recommend CLI `0.166.88`, which validates host evidence and explicit failures
+  through the existing Eval/outcome contracts. Real GUI/provider acceptance remains open.
+
 ## [0.4.150] - Preserve slow-start drafts and diagnose capabilities (2026-10-05)
 
 - Give initialization a bounded 120-second window and preserve the draft after

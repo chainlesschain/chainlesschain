@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.88: reviewed acceptance packs and host evidence import
+
+- Generate byte-pinned setup/check scripts for all 36 frozen tasks, including
+  behavior mutants, bounded Linux Docker execution and raw acceptance receipts.
+- Import IDE and first-run evidence through existing Eval/outcome contracts,
+  requiring input acceptance, terminal state, drained exit and complete file diffs.
+  Explicit failures stay failures; missing cost and identity attestation stay unknown.
+- Pair VS Code `0.37.133` and JetBrains `0.4.151` with CLI `0.166.88` for optional
+  ordered protocol capture. Full container, GUI, provider and billing acceptance
+  remain open; the frozen 36+9 samples remain `NOT_RUN`.
+
 ### Added - cc CLI 0.166.87: October model contracts and indexed memory queries
 
 - Add exact GPT-6.1 Sol and Claude Sonnet 5.5 profiles, model-specific cache

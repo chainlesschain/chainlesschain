@@ -69,6 +69,8 @@ public final class AgentChatSession {
         /** Extra environment (put the bridge port/token here). */
         public Map<String, String> extraEnv = new LinkedHashMap<>();
         public EventListener onEvent;
+        /** Optional actual-host acceptance observer; never writes files or grants permissions. */
+        public EventListener onProtocolRecord;
         public LineListener onStderr;
         public ExitListener onExit;
         /** Confirmed model configuration at spawn; negative means unmanaged. */
@@ -82,6 +84,8 @@ public final class AgentChatSession {
     }
 
     private final Options opts;
+    private final String protocolGeneration = java.util.UUID.randomUUID().toString();
+    private long protocolSequence;
     private volatile Process child;
     private volatile BufferedWriter stdin;
     private final Object lifecycleLock = new Object();
@@ -413,7 +417,7 @@ public final class AgentChatSession {
         termination = new ProcessTreeTermination(proc);
         stdin = new BufferedWriter(
                 new OutputStreamWriter(proc.getOutputStream(), StandardCharsets.UTF_8));
-        pump("cc-chat-stdout", proc.getInputStream(), new LineListener() {
+        final Thread stdoutPump = pump("cc-chat-stdout", proc.getInputStream(), new LineListener() {
             @Override
             public void onLine(String line) {
                 emit(parseEventLine(line));
@@ -436,6 +440,16 @@ public final class AgentChatSession {
             public void run() {
                 try {
                     int code = proc.waitFor();
+                    // Process exit can race the final stdout line. Acceptance
+                    // never calls an undrained capture a verified terminal.
+                    if (opts.onProtocolRecord != null) {
+                        stdoutPump.join(2000);
+                        Map<String, Object> exit = MiniJson.obj();
+                        exit.put("code", code);
+                        exit.put("signal", null);
+                        exit.put("stdoutDrained", !stdoutPump.isAlive());
+                        recordProtocol("exit", exit);
+                    }
                     // Retain the process handle for the explicit stop barrier.
                     // A dead wrapper alone does not prove its descendants exited.
                     // Only surface an exit the user didn't trigger — a deliberate
@@ -469,6 +483,7 @@ public final class AgentChatSession {
     }
 
     private void emit(Map<String, Object> evt) {
+        recordProtocol("output", evt);
         if (stopped) return;
         if (evt != null && (AgentStreamEventType.RESULT.getWireValue().equals(evt.get("type"))
                 // The CLI answers a plan continuation that cannot start with
@@ -486,8 +501,26 @@ public final class AgentChatSession {
         }
     }
 
+    private synchronized void recordProtocol(String direction, Map<String, Object> event) {
+        if (opts.onProtocolRecord == null || event == null) return;
+        long sequence = ++protocolSequence;
+        try {
+            Map<String, Object> record = MiniJson.obj();
+            record.put("schema", "chainlesschain.ide-protocol-record/v1");
+            record.put("generation", protocolGeneration);
+            record.put("sequence", sequence);
+            record.put("at", java.time.Instant.now().toString());
+            record.put("direction", direction);
+            record.put("event", MiniJson.parse(MiniJson.stringify(event)));
+            opts.onProtocolRecord.onEvent(record);
+        } catch (Throwable ignored) {
+            // The importer detects dropped sequence numbers. Observation
+            // cannot alter the protocol or imply input acceptance.
+        }
+    }
+
     /** One reader thread per stream; EOF/teardown races must not throw. */
-    private void pump(String name, InputStream in, final LineListener onLine) {
+    private Thread pump(String name, InputStream in, final LineListener onLine) {
         final BufferedReader reader =
                 new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         Thread t = new Thread(new Runnable() {
@@ -506,6 +539,7 @@ public final class AgentChatSession {
         }, name);
         t.setDaemon(true);
         t.start();
+        return t;
     }
 
     /** Send one raw NDJSON event (user turn / interrupt / approval / …). */
@@ -528,6 +562,7 @@ public final class AgentChatSession {
         if (AgentStreamEventType.USER.getWireValue().equals(type) || planContinuation || correction)
             pendingTurns.incrementAndGet();
         try {
+            recordProtocol("input", event);
             writer.write(MiniJson.stringify(event));
             writer.write("\n");
             writer.flush();
