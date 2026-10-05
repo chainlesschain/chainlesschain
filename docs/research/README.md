@@ -17,6 +17,7 @@
 
 ## 其他研究
 
+- [ChainlessChain 对照 Palantir 的能力差距与优化建议](./palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md)：结合官方平台文档、12 个相关 GitHub 仓库及当前源码，区分局部复现、架构建议与真实业务验收。
 - [Deep Agents Deploy 落地速查](./DEEP_AGENTS_DEPLOY_QUICK_REF_ZH.md)
 - [OpenClaw 浏览器控制分析](./OPENCLAW_BROWSER_CONTROL_ANALYSIS.md)
 

@@ -1,0 +1,160 @@
+{
+  "schema": "chainlesschain.palantir-gap-audit/v1",
+  "auditDate": "2026-10-06",
+  "timezone": "Asia/Shanghai",
+  "localBaseline": "c630b646589a9923711992a8d358cd9f83bd4f9c",
+  "localWorkingTreeAtStart": "clean",
+  "method": {
+    "repositorySelection": "GitHub organization pushed list and repository search; 12 relevant repositories selected, not an exhaustive organization audit",
+    "remoteRead": "README passages in all 12 selected repositories; source review of osdk-ts ActionDefinition/applyAction and Dialogue retry/concurrency limiter",
+    "platformRead": "Palantir official Ontology, Action types, Data Lineage, AIP Markings, AIP Evals, Workshop and Apollo documentation",
+    "probeScope": "Production functions with in-memory storage and logger dependencies; no Electron, IPC, network, real credentials or model calls",
+    "notExecuted": [
+      "Foundry/AIP service calls",
+      "real connector requests",
+      "Electron/IPC journeys",
+      "paid models",
+      "product regression suite",
+      "publishing"
+    ]
+  },
+  "remoteSnapshots": {
+    "osdk-ts": {
+      "committed_at": "2026-10-05T17:05:08Z",
+      "sha": "90da45384efe5511167b3842002d74856955da34"
+    },
+    "foundry-platform-typescript": {
+      "committed_at": "2026-09-30T15:50:29Z",
+      "sha": "4320149c31bcbcc2d176564d9259e343d9702d2b"
+    },
+    "foundry-platform-python": {
+      "committed_at": "2026-09-25T20:07:07Z",
+      "sha": "ec852badbdaeca5479b1880fd890d9717d2d8615"
+    },
+    "conjure": {
+      "committed_at": "2026-10-05T14:13:08Z",
+      "sha": "b9a43622b8d87815451343d08915cfb05f550e72"
+    },
+    "dialogue": {
+      "committed_at": "2026-10-05T16:15:32Z",
+      "sha": "43e804c27c25a1e35e6ed0c4ab413dfaf1a13bbc"
+    },
+    "safe-logging": {
+      "committed_at": "2026-10-05T16:26:47Z",
+      "sha": "78166ae6f7fdc4bce16941fb1f189dc74dc56f13"
+    },
+    "tracing-java": {
+      "committed_at": "2026-10-05T13:44:55Z",
+      "sha": "34aad9843a1a854e0f597a25a635570a75ddd41d"
+    },
+    "gradle-baseline": {
+      "committed_at": "2026-10-05T10:36:29Z",
+      "sha": "2cff8f94a0704eb979bcd10dcecc9ae4e7701fdd"
+    },
+    "gradle-consistent-versions": {
+      "committed_at": "2026-10-05T13:36:15Z",
+      "sha": "0b97028d7769822d46b5554a4ec6ad362424697f"
+    },
+    "policy-bot": {
+      "committed_at": "2026-10-02T13:14:46Z",
+      "sha": "c130390c87e5569a6819f87c9b4c631944c1b346"
+    },
+    "blueprint": {
+      "committed_at": "2026-10-02T15:16:38Z",
+      "sha": "51cd1ff7545954d6a1e27320449754d58bf37216"
+    },
+    "aip-community-registry": {
+      "committed_at": "2026-09-11T18:45:01Z",
+      "sha": "290499c785b3738130a988e34159cb340253cb84"
+    }
+  },
+  "remoteSourcePaths": {
+    "osdk-ts": [
+      "README.md",
+      "packages/api/src/ontology/ActionDefinition.ts",
+      "packages/client/src/actions/applyAction.ts",
+      "packages/api/package.json"
+    ],
+    "dialogue": [
+      "README.md",
+      "dialogue-core/src/main/java/com/palantir/dialogue/core/RetryingChannel.java",
+      "dialogue-core/src/main/java/com/palantir/dialogue/core/CautiousIncreaseAggressiveDecreaseConcurrencyLimiter.java"
+    ]
+  },
+  "licenseNotes": {
+    "osdk-ts": "GitHub repository API returned no detected license; sampled @osdk/api package.json and reviewed source headers explicitly state Apache-2.0. Other files/packages not exhaustively checked.",
+    "foundry-platform-typescript": "GitHub repository API returned no detected license; package-level license not verified during this audit."
+  },
+  "archivedRepositoryMetadata": {
+    "tslint": {
+      "archived": true
+    },
+    "atlasdb": {
+      "archived": true
+    }
+  },
+  "probes": {
+    "schema": "chainlesschain.palantir-gap-probes/v1",
+    "baseline": "c630b646589a9923711992a8d358cd9f83bd4f9c",
+    "nodeVersion": "v22.22.2",
+    "scope": "Production functions with in-memory storage and logger dependencies; no Electron, IPC, network, real credentials or model calls",
+    "desktopAutomation": {
+      "status": "completed",
+      "stepStatus": "completed",
+      "output": {},
+      "connectorRegistered": false,
+      "persistedLogWrites": 1
+    },
+    "lowCodeConnection": {
+      "success": true,
+      "dataSourceId": "probe-source",
+      "type": "rest",
+      "latency": 53,
+      "endpoint": "https://invalid.example.invalid",
+      "networkCalled": false
+    },
+    "auditSanitization": {
+      "topTokenRedacted": true,
+      "nestedTokenRedacted": false,
+      "authorizationRedacted": false
+    },
+    "ragSameIdUpdate": {
+      "first": {
+        "indexed": 1,
+        "skipped": 0,
+        "errors": []
+      },
+      "second": {
+        "indexed": 0,
+        "skipped": 1,
+        "errors": []
+      },
+      "retainedContent": "version-one",
+      "totalIndexWrites": 1
+    }
+  },
+  "confirmedStaticFindings": [
+    {
+      "path": "packages/cli/src/lib/automation-engine.js",
+      "line": 1247,
+      "claim": "The reviewed generic executeFlow calls _simulateNodeOutput for each node; it also has durable execution records, deduplication and authority preflight."
+    },
+    {
+      "path": "desktop-app-vue/src/main/enterprise/scim-sync.js",
+      "line": 133,
+      "claim": "syncProvider explicitly simulates synchronization, creates a success log and completes without provider HTTP calls."
+    },
+    {
+      "path": "desktop-app-vue/src/main/enterprise/low-code/app-builder.js",
+      "line": 281,
+      "claim": "publish updates stored app status; the reviewed method has no artifact deployment or runtime health checks."
+    }
+  ],
+  "inferredArchitectureWork": [
+    "Versioned domain object/link/action contracts",
+    "Source-to-derived-result lineage and deletion propagation",
+    "Unified object access and model egress policy",
+    "Business outcome evaluation and multi-client action receipts"
+  ],
+  "limits": "Probes validate isolated production functions with injected storage/logger dependencies; they do not establish production exploitability, usage rates, global feature absence, or product superiority."
+}
