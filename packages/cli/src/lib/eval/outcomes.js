@@ -132,9 +132,14 @@ function summarize(rows) {
 /** Read-only measurement. Declarations and local Eval files are not attestations. */
 export function buildOutcomeReport(
   { plan, history, observations = [], maintenance = null },
-  { now = Date.now(), expectedPlanDigest } = {},
+  { now = Date.now(), expectedPlanDigest, expectedExecutionCommit } = {},
 ) {
   const samples = validateOutcomePlan(plan);
+  const executionCommit = expectedExecutionCommit ?? plan.commitSha;
+  assert(
+    /^[a-f0-9]{40}$/u.test(executionCommit),
+    "invalid execution source SHA",
+  );
   assert(Number.isFinite(now), "invalid report time");
   const planDigest = outcomeDigest(plan);
   assert(
@@ -182,10 +187,12 @@ export function buildOutcomeReport(
       else reasons.push(`missing_or_invalid_${key}`);
     }
     const observedAt = epoch(observation.observedAt);
-    if (!(
-      observedAt <= Math.min(now, epoch(plan.window.end)) &&
-      observedAt - (row.elapsedMs ?? 0) >= epoch(plan.window.start)
-    ))
+    if (
+      !(
+        observedAt <= Math.min(now, epoch(plan.window.end)) &&
+        observedAt - (row.elapsedMs ?? 0) >= epoch(plan.window.start)
+      )
+    )
       reasons.push("observation_outside_window");
     const run = runs.get(observation.runId);
     const stoppedBeforeTask =
@@ -210,13 +217,15 @@ export function buildOutcomeReport(
         Math.max(1, now - epoch(plan.window.start)),
       ).filter((reason) => reason !== "execution_not_successful");
       reasons.push(...integrity);
-      if (run.label !== plan.commitSha) reasons.push("commit_mismatch");
+      if (run.label !== executionCommit) reasons.push("commit_mismatch");
       if (outcomeDigest(run.comparison) !== sample.comparisonDigest)
         reasons.push("comparison_mismatch");
-      if (!(
-        epoch(run.ranAt) >= epoch(plan.window.start) &&
-        epoch(run.ranAt) <= epoch(plan.window.end)
-      ))
+      if (
+        !(
+          epoch(run.ranAt) >= epoch(plan.window.start) &&
+          epoch(run.ranAt) <= epoch(plan.window.end)
+        )
+      )
         reasons.push("run_outside_window");
     }
     const result = run?.results?.find((item) => item?.id === sample.taskId);
@@ -310,6 +319,7 @@ export function buildOutcomeReport(
     improvementVerdict: "NOT_EVALUATED",
     planDigest,
     commitSha: plan.commitSha,
+    executionCommitSha: executionCommit,
     currency: plan.currency,
     window: plan.window,
     task: summarize(tasks),

@@ -27,6 +27,38 @@ afterEach(() => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 describe("eval process Broker contract", () => {
+  it("forwards frozen task isolation and cost limits without inventing a terminal", async () => {
+    const child = new EventEmitter();
+    child.pid = 42;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+    _deps.spawn = vi.fn(() => child);
+    const pending = makeHeadlessRunAgent({
+      ephemeral: true,
+      sandboxMode: "workspace-write",
+    })({ prompt: "fixture", cwd: dir, costBudgetUsd: 2 });
+    child.emit("close", 0, null);
+    expect(await pending).toMatchObject({
+      ok: false,
+      executionEvidence: { terminalVerified: false },
+      totalCostUsd: null,
+    });
+    const args = _deps.spawn.mock.calls[0][1];
+    expect(
+      args.slice(
+        args.indexOf("--sandbox-mode"),
+        args.indexOf("--sandbox-mode") + 2,
+      ),
+    ).toEqual(["--sandbox-mode", "workspace-write"]);
+    expect(
+      args.slice(
+        args.indexOf("--max-budget-usd"),
+        args.indexOf("--max-budget-usd") + 2,
+      ),
+    ).toEqual(["--max-budget-usd", "2"]);
+    expect(args).toContain("--ephemeral");
+  });
   it.each([
     [
       "success",

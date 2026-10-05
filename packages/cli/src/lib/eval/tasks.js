@@ -12,6 +12,7 @@
 import fs from "fs";
 import path from "path";
 import executionBroker from "../process-execution-broker/index.js";
+import { loadVerify01Suite, VERIFY01_SUITES } from "./verify01-execution.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -634,8 +635,12 @@ export const BUILTIN_TASKS = [
   },
 ];
 
-/** Look up a suite by name (only "builtin" for now). */
-export function getSuite(name = "builtin") {
+/** Frozen project suites require explicit plan/reviewer/checkout bindings. */
+export function getSuite(name = "builtin", options = {}) {
   if (name === "builtin" || !name) return BUILTIN_TASKS;
-  throw new Error(`unknown eval suite: "${name}" (available: builtin)`);
+  if (VERIFY01_SUITES.includes(name))
+    return loadVerify01Suite(options.verify01);
+  throw new Error(
+    `unknown eval suite: "${name}" (available: builtin, ${VERIFY01_SUITES.join(", ")})`,
+  );
 }

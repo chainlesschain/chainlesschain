@@ -1,0 +1,85 @@
+name: Process Ownership Recovery
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/__tests__/unit/process-ownership*.test.js"
+      - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
+      - ".github/workflows/process-ownership-recovery.yml"
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/__tests__/unit/process-ownership*.test.js"
+      - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
+      - ".github/workflows/process-ownership-recovery.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: process-recovery-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kernel-recovery:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Build the exact-source native launch supervisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          node packages/cli/scripts/build-linux-subreaper.mjs --out packages/cli/src/assets/linux-subreaper --commit "$EXPECTED_COMMIT"
+      - name: Exercise owner death and recovery in a real delegated cgroup v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          # systemd owns lifecycle cleanup of this isolated service. Delegate
+          # gives the ordinary runner UID its own subtree; global cgroup file
+          # permissions are not changed and the tests do not run as root.
+          sudo systemd-run --quiet --wait --pipe --collect \
+            --unit "cc-recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --property=Delegate=yes \
+            --uid="$(id -u)" --gid="$(id -g)" \
+            --working-directory="$GITHUB_WORKSPACE/packages/cli" \
+            --setenv="PATH=$PATH" --setenv="HOME=$HOME" --setenv="CI=true" \
+            --setenv="RECOVERY_ARTIFACT=$RUNNER_TEMP/process-recovery.json" \
+            --setenv="CHAINLESSCHAIN_CGROUP_RECOVERY_EVIDENCE=$RUNNER_TEMP/process-recovery-evidence.json" \
+            --setenv="EXPECTED_COMMIT=$EXPECTED_COMMIT" \
+            /usr/bin/bash -euo pipefail -c '
+              group_path=$(awk -F: '\''$1 == "0" { print $3 }'\'' /proc/self/cgroup)
+              test -n "$group_path"
+              export CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP_ROOT="/sys/fs/cgroup$group_path"
+              export CHAINLESSCHAIN_REQUIRE_CGROUP_RECOVERY_TEST=1
+              test -w "$CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP_ROOT/cgroup.procs"
+              node ../../node_modules/vitest/vitest.mjs run \
+                __tests__/integration/process-ownership-cgroup-recovery.test.js \
+                --reporter=default --reporter=json --outputFile="$RECOVERY_ARTIFACT"
+            '
+      - name: Retain exact-source kernel recovery results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: process-recovery-${{ matrix.runner }}-${{ env.EXPECTED_COMMIT }}
+          path: |
+            ${{ runner.temp }}/process-recovery.json
+            ${{ runner.temp }}/process-recovery-evidence.json
+          if-no-files-found: error
+          retention-days: 90

@@ -53,6 +53,7 @@ import {
   getProcessOwnershipStatus,
   observeProcessOwnership,
   prepareProcessOwnership,
+  recoverProcessOwnership,
 } from "./process-ownership-quarantine.js";
 import {
   MACOS_MCP_LAUNCHER_INPUTS,
@@ -4525,6 +4526,10 @@ class ProcessExecutionBroker extends EventEmitter {
     return getProcessOwnershipStatus();
   }
 
+  recoverProcessOwnership(executionId, options) {
+    return recoverProcessOwnership(executionId, options);
+  }
+
   listWorkspaceTransactions(options = {}) {
     return this._workspaceTransactionManager(
       options.stateDir,
@@ -4873,6 +4878,9 @@ class ProcessExecutionBroker extends EventEmitter {
               cwd: path.resolve(optsForSpawn.cwd || cwd),
               env: optsForSpawn.env || process.env,
               graceMs: request.graceMs,
+              ...(ownershipLease?.beforeLaunch
+                ? { beforeLaunch: ownershipLease.beforeLaunch }
+                : {}),
               helper,
             },
             {

@@ -20,11 +20,13 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import crypto from "crypto";
+import { performance } from "node:perf_hooks";
 
 export const _deps = {
   mkdtempSync: fs.mkdtempSync,
   rmSync: fs.rmSync,
   now: () => Date.now(),
+  monotonicNow: () => performance.now(),
 };
 
 /**
@@ -100,6 +102,26 @@ export async function runEvalSuite(tasks, opts = {}) {
   const recorder = opts.recorder || null;
   for (const task of tasks) {
     const started = _deps.now();
+    const deadline =
+      task?.totalTimeoutMs === undefined
+        ? null
+        : _deps.monotonicNow() + task.totalTimeoutMs;
+    let phase = "setup";
+    const budget = {
+      remainingMs(stage = phase) {
+        if (deadline === null) return task.timeoutMs;
+        const remaining = Math.floor(deadline - _deps.monotonicNow());
+        if (remaining <= 0) {
+          const error = new Error(
+            `task total time budget exhausted during ${stage}`,
+          );
+          error.code = "EVAL_TOTAL_TIMEOUT";
+          error.phase = stage;
+          throw error;
+        }
+        return remaining;
+      },
+    };
     let dir = null;
     const rec = {
       id: task?.id || "(unnamed)",
@@ -132,17 +154,24 @@ export async function runEvalSuite(tasks, opts = {}) {
       }
       dir = _deps.mkdtempSync(path.join(base, `cc-eval-${task.id}-`));
       if (typeof task.setup === "function") {
-        await task.setup(dir);
+        await task.setup(dir, budget);
       }
       // Baseline AFTER setup, BEFORE the agent — so the diff is exactly the
       // agent's edits (not the task's starting files).
-      const before = snapshotWorkspace(dir);
+      phase = "baseline";
+      const capture = task.snapshotWorkspace || snapshotWorkspace;
+      const before = capture(dir, budget, "baseline");
+      budget.remainingMs();
       let agentResult;
+      phase = "agent";
       try {
         agentResult = await runAgent({
           prompt: task.prompt,
           cwd: dir,
-          timeoutMs: task.timeoutMs,
+          timeoutMs: budget.remainingMs(),
+          ...(task.costBudgetUsd === undefined
+            ? {}
+            : { costBudgetUsd: task.costBudgetUsd }),
         });
       } catch (agentErr) {
         // An agent crash is a task failure, not a harness failure — record it
@@ -159,6 +188,8 @@ export async function runEvalSuite(tasks, opts = {}) {
       rec.totalCostUsd = Number.isFinite(agentResult?.totalCostUsd)
         ? agentResult.totalCostUsd
         : null;
+      task.recordExecution?.(agentResult);
+      budget.remainingMs();
       if (agentResult?.evaluationMetrics !== undefined) {
         rec.evaluationMetrics = agentResult.evaluationMetrics;
       }
@@ -169,7 +200,12 @@ export async function runEvalSuite(tasks, opts = {}) {
       // workspace themselves). `unrelatedChanges` = files touched outside the
       // task's declared legitimate surface; null when the task doesn't declare
       // `expectedFiles` (→ excluded from the suite's 无关改动率).
-      const changed = diffSnapshots(before, snapshotWorkspace(dir));
+      phase = "after-snapshot";
+      const changed = diffSnapshots(
+        before,
+        capture(dir, budget, "after-snapshot"),
+      );
+      budget.remainingMs();
       rec.changedFiles = changed;
       if (Array.isArray(task.expectedFiles)) {
         const expected = new Set(
@@ -179,7 +215,9 @@ export async function runEvalSuite(tasks, opts = {}) {
       } else {
         rec.unrelatedChanges = null; // not measured
       }
-      const verdict = await task.check(dir, agentResult);
+      phase = "check";
+      const verdict = await task.check(dir, agentResult, budget);
+      budget.remainingMs();
       rec.artifactCheckPassed = verdict?.pass === true;
       // A useful artifact survives a provider/transport failure, but it is not
       // evidence that the Agent completed the task successfully.
@@ -188,6 +226,12 @@ export async function runEvalSuite(tasks, opts = {}) {
     } catch (err) {
       // A harness-level error (bad task def / setup threw) — mark failed.
       rec.error = rec.error || err.message;
+      rec.failurePhase = err.phase || phase;
+      task.recordFailure?.({
+        phase: rec.failurePhase,
+        code: err.code || null,
+        error: err.message,
+      });
       rec.pass = false;
     } finally {
       rec.ms = _deps.now() - started;

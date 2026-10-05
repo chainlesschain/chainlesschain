@@ -97,6 +97,84 @@ afterEach(() => {
 });
 
 describe("Eval command strict evidence", () => {
+  it("keeps the declared CLI source SHA separate from the actual project SHA and preserves raw receipts", async () => {
+    const tasks = [{ id: "a" }];
+    tasks.verification = {
+      projectCommit: "a".repeat(40),
+      comparison: records()[0].comparison,
+      population: { tasks: 36, firstRuns: 9 },
+      productionAttested: false,
+      requiredSandboxMode: "workspace-write",
+      receipts: [{ sampleId: "a", output: "offline fixture only" }],
+    };
+    _deps.getSuite = vi.fn(() => tasks);
+    const history = path.join(dir, "frozen.jsonl");
+    await run([
+      "--suite",
+      "verify01-plan-2026-10-04",
+      "--dry-run",
+      "--json",
+      "--label",
+      "b".repeat(40),
+      "--history",
+      history,
+      "--evidence-dir",
+      path.join(dir, "evidence"),
+      "--plan-dir",
+      "plan",
+      "--plan-digest",
+      digest,
+      "--review",
+      "review.json",
+      "--review-digest",
+      digest,
+      "--review-root",
+      "review-root",
+      "--project-root",
+      "project",
+      "--samples",
+      "a",
+    ]);
+    expect(_deps.getSuite).toHaveBeenCalledWith(
+      "verify01-plan-2026-10-04",
+      expect.objectContaining({
+        verify01: expect.objectContaining({
+          planDir: "plan",
+          reviewDigest: digest,
+          projectRoot: "project",
+          sampleIds: "a",
+        }),
+      }),
+    );
+    expect(_deps.runEvalSuite.mock.calls[0][1].keepWorkspaces).toBe(true);
+    const saved = JSON.parse(fs.readFileSync(history, "utf8"));
+    expect(saved.label).toBe("b".repeat(40));
+    expect(saved.verification.executionSource).toMatchObject({
+      declaredCommit: "b".repeat(40),
+      identityVerified: false,
+    });
+    expect(saved.verification).toMatchObject({
+      executionStatus: "DRY_RUN",
+      observationsCreated: false,
+      population: { tasks: 36, firstRuns: 9 },
+    });
+    expect(saved.verification.receipts).toBeUndefined();
+    expect(
+      JSON.parse(fs.readFileSync(saved.verification.artifacts[0].path, "utf8"))
+        .output,
+    ).toBe("offline fixture only");
+    _deps.runEvalSuite.mockClear();
+    await run([
+      "--suite",
+      "verify01-project-36",
+      "--label",
+      "spoofed",
+      "--evidence-dir",
+      path.join(dir, "evidence"),
+    ]);
+    expect(process.exitCode).toBe(1);
+    expect(_deps.runEvalSuite).not.toHaveBeenCalled();
+  });
   it("retains diagnostic single-run behavior while strict exits nonzero", async () => {
     const history = path.join(dir, "history.jsonl");
     fs.writeFileSync(history, JSON.stringify(records()[0]) + "\n");

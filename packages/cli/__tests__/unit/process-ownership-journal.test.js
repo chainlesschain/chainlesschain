@@ -66,6 +66,30 @@ describe.skipIf(process.platform !== "linux")(
       expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);
     });
 
+    it("rejects an oversized v2 publication before replacing the readable authority", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      const file = path.join(directory, "journal.json");
+      const before = fs.readFileSync(file);
+      const id = randomUUID();
+      expect(() =>
+        owner.prepare(id, {
+          schema: "chainlesschain.process-recovery-cgroup/v1",
+          root: "/" + "x".repeat(1024 * 1024),
+          name: `cc-owner-${id}`,
+          bootId: randomUUID(),
+          dev: "1",
+          ino: "2",
+          rootdev: "1",
+          rootino: "3",
+        }),
+      ).toThrow(/unavailable/);
+      expect(fs.readFileSync(file)).toEqual(before);
+      expect(
+        new ProcessOwnershipJournal(directory).inspect().pendingExecutionIds,
+      ).toEqual([]);
+    });
+
     it.each([
       "json",
       "schema",

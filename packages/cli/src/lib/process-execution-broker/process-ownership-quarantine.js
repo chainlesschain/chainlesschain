@@ -1,6 +1,7 @@
 import path from "node:path";
 import { getMachineSecurityAnchorDir } from "../paths.js";
 import { ProcessOwnershipJournal } from "./process-ownership-journal.js";
+import { prepareRecoveryCgroup } from "./process-recovery-cgroup.js";
 
 // Shared by every Broker in this JS runtime. A new Broker, different cwd or
 // cleared audit history cannot turn a lost process owner into cleanup evidence.
@@ -18,7 +19,60 @@ function durableJournal() {
 }
 
 export function prepareProcessOwnership(executionId) {
-  return durableJournal()?.prepare(executionId) ?? null;
+  const authority = durableJournal();
+  if (!authority) return null;
+  const group = prepareRecoveryCgroup(
+    executionId,
+    process.env.CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP_ROOT,
+  );
+  if (!group) return authority.prepare(executionId);
+  let lease;
+  try {
+    lease = authority.prepare(executionId, group.identity);
+  } catch (error) {
+    group.close({ remove: true });
+    throw error;
+  }
+  let settled = false,
+    retained = false;
+  return Object.freeze({
+    beforeLaunch: (proc) => group.attachBeforeLaunch(proc),
+    settle() {
+      if (settled) return;
+      if (retained)
+        throw new Error("Retained recovery group requires explicit recovery");
+      try {
+        group.confirmEmpty();
+        lease.settle();
+      } catch (error) {
+        retained = true;
+        lease.retain();
+        group.close();
+        throw error;
+      }
+      settled = true;
+      try {
+        group.close({ remove: true });
+      } catch {
+        group.close();
+      }
+    },
+    retain() {
+      if (settled || retained) return;
+      retained = true;
+      lease.retain();
+      group.close();
+    },
+  });
+}
+
+export async function recoverProcessOwnership(executionId, options) {
+  const authority = durableJournal();
+  if (!authority)
+    throw new Error("Kernel process ownership recovery requires Linux");
+  const receipt = await authority.recover(executionId, options);
+  unresolvedOwners.delete(executionId);
+  return receipt;
 }
 
 export const PROCESS_OWNERSHIP_UNCONFIRMED =
@@ -73,6 +127,7 @@ export function getProcessOwnershipStatus() {
       !!durable &&
       [...unresolvedOwners.values()].every((owner) => owner.durable),
     restartSafe: false,
+    recoverableExecutionIds: durable?.recoverableExecutionIds || [],
   };
 }
 

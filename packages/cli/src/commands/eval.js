@@ -14,6 +14,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
+import { persistVerify01Receipts } from "../lib/eval/verify01-execution.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 import {
   TelemetryRecorder,
@@ -142,7 +143,7 @@ function killAgentTree(child) {
  * workspace. acceptEdits lets it write files without an interactive prompt.
  */
 function makeHeadlessRunAgent(opts = {}) {
-  return function runAgent({ prompt, cwd, timeoutMs }) {
+  return function runAgent({ prompt, cwd, timeoutMs, costBudgetUsd }) {
     return new Promise((resolve) => {
       let args;
       if (opts._argv) {
@@ -163,6 +164,9 @@ function makeHeadlessRunAgent(opts = {}) {
         if (opts.model) args.push("--model", opts.model);
         if (opts.provider) args.push("--provider", opts.provider);
         if (opts.ephemeral === true) args.push("--ephemeral");
+        if (opts.sandboxMode) args.push("--sandbox-mode", opts.sandboxMode);
+        if (Number.isFinite(costBudgetUsd) && costBudgetUsd >= 0)
+          args.push("--max-budget-usd", String(costBudgetUsd));
       }
       const child = _deps.spawn(process.execPath, args, {
         cwd,
@@ -272,6 +276,26 @@ export function registerEvalCommand(program, { logger } = {}) {
       "Run the reliability eval suite (self-checking coding tasks) and report the task-success rate",
     )
     .option("--suite <name>", "Suite to run", "builtin")
+    .option("--plan-dir <directory>", "Frozen VERIFY-01 plan bundle")
+    .option("--plan-digest <digest>", "Externally pinned frozen plan digest")
+    .option("--review <file>", "Independent setup/check review configuration")
+    .option("--review-digest <digest>", "Review digest pinned before execution")
+    .option(
+      "--review-root <directory>",
+      "Trusted evaluator source root outside the task project",
+    )
+    .option(
+      "--project-root <directory>",
+      "Actual checkout of the frozen project commit",
+    )
+    .option(
+      "--samples <ids>",
+      "Selected frozen sample IDs; unselected samples remain missing",
+    )
+    .option(
+      "--evidence-dir <directory>",
+      "Keep frozen-suite raw process output and complete diffs outside compact Eval history",
+    )
     .option("--model <model>", "Model for the agent runs")
     .option("--provider <provider>", "Provider for the agent runs")
     .option("--json", "Output the summary as JSON")
@@ -381,21 +405,54 @@ export function registerEvalCommand(program, { logger } = {}) {
       let tasks;
       let comparison;
       try {
-        tasks = _deps.getSuite(options.suite);
-        comparison = createEvalComparison({
-          suite: options.suite,
-          corpusDigest: evalDigest(
-            fs.readFileSync(new URL("../lib/eval/tasks.js", import.meta.url)),
-          ),
-          provider: options.provider,
-          model: options.model,
-          context: options.comparisonContext
-            ? readComparisonContext(options.comparisonContext, {
-                provider: options.provider,
-                model: options.model,
-              })
-            : null,
+        tasks = _deps.getSuite(options.suite, {
+          verify01: {
+            planDir: options.planDir,
+            planDigest: options.planDigest,
+            reviewFile: options.review,
+            reviewDigest: options.reviewDigest,
+            reviewRoot: options.reviewRoot,
+            projectRoot: options.projectRoot,
+            sampleIds: options.samples,
+            provider: options.provider,
+            model: options.model,
+          },
         });
+        if (tasks.verification && !/^[a-f0-9]{40}$/u.test(options.label || ""))
+          throw new Error(
+            "frozen suite requires --label <40-character tested CLI source SHA>; this differs from the task project checkout SHA",
+          );
+        if (tasks.verification)
+          tasks.verification.executionSource = {
+            declaredCommit: options.label,
+            identityVerified: false,
+            declarationOnly: true,
+            entryDigest: evalDigest(fs.readFileSync(BIN)),
+          };
+        if (tasks.verification && !options.evidenceDir)
+          throw new Error(
+            "frozen suite requires --evidence-dir to retain raw execution material",
+          );
+        if (tasks.verification && options.comparisonContext)
+          throw new Error(
+            "frozen suite comparison is bound by its plan; --comparison-context cannot override it",
+          );
+        comparison =
+          tasks.verification?.comparison ||
+          createEvalComparison({
+            suite: options.suite,
+            corpusDigest: evalDigest(
+              fs.readFileSync(new URL("../lib/eval/tasks.js", import.meta.url)),
+            ),
+            provider: options.provider,
+            model: options.model,
+            context: options.comparisonContext
+              ? readComparisonContext(options.comparisonContext, {
+                  provider: options.provider,
+                  model: options.model,
+                })
+              : null,
+          });
       } catch (err) {
         log.error ? log.error(err.message) : console.error(err.message);
         process.exitCode = 1;
@@ -406,6 +463,12 @@ export function registerEvalCommand(program, { logger } = {}) {
         : makeHeadlessRunAgent({
             model: options.model,
             provider: options.provider,
+            ...(tasks.verification
+              ? {
+                  ephemeral: true,
+                  sandboxMode: tasks.verification.requiredSandboxMode,
+                }
+              : {}),
           });
 
       // OTel-shaped telemetry for the run (per-task span + failure class).
@@ -414,7 +477,7 @@ export function registerEvalCommand(program, { logger } = {}) {
       const summary = await _deps.runEvalSuite(tasks, {
         runAgent,
         recorder,
-        keepWorkspaces: options.keep === true,
+        keepWorkspaces: options.keep === true || Boolean(tasks.verification),
         onResult: options.json
           ? undefined
           : (r) =>
@@ -432,6 +495,40 @@ export function registerEvalCommand(program, { logger } = {}) {
         dryRun: options.dryRun === true,
         label: options.label || null,
       });
+      if (tasks.verification) {
+        try {
+          record.verification = {
+            ...persistVerify01Receipts(
+              tasks.verification,
+              options.evidenceDir,
+              record.runId,
+            ),
+            executionStatus: options.dryRun ? "DRY_RUN" : "ATTEMPTED",
+            // Execution material for the existing collector, not an observation
+            // or an independent acceptance of the frozen population.
+            observationsCreated: false,
+            collectionReady:
+              options.dryRun !== true &&
+              record.results.every(
+                (result) =>
+                  result.executionEvidence?.terminalVerified === true &&
+                  result.executionEvidence.protocol ===
+                    EVAL_EXECUTION_PROTOCOL &&
+                  result.executionEvidence.observedFallback === false &&
+                  Number.isFinite(result.totalCostUsd) &&
+                  result.totalCostUsd >= 0 &&
+                  Array.isArray(result.unrelatedChanges) &&
+                  result.unrelatedChanges.length === 0,
+              ),
+          };
+        } catch (error) {
+          (log.error || console.error)(
+            `frozen evidence persistence failed: ${error.message}`,
+          );
+          process.exitCode = 1;
+          return;
+        }
+      }
 
       if (options.otlp) {
         try {
@@ -445,8 +542,9 @@ export function registerEvalCommand(program, { logger } = {}) {
         }
       }
       try {
-        const { exportTelemetryRecorder } =
-          await import("../lib/observability/index.js");
+        const { exportTelemetryRecorder } = await import(
+          "../lib/observability/index.js"
+        );
         exportTelemetryRecorder(recorder);
       } catch {
         // Collector export is best-effort and never changes evaluation gates.
@@ -485,6 +583,8 @@ export function registerEvalCommand(program, { logger } = {}) {
       // Non-zero exit when not every task passed — usable as a CI gate.
       if (summary.total === 0 || summary.passed < summary.total)
         process.exitCode = 1;
+      else if (record.verification && !record.verification.collectionReady)
+        process.exitCode = 2;
     });
   return program;
 }

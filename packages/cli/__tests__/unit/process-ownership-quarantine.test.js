@@ -12,8 +12,9 @@ function child(pid = 456) {
 
 describe("Broker process ownership quarantine", () => {
   it("does not confuse spawn or ordinary signal errors with lost tree ownership", async () => {
-    const ledger =
-      await import("../../src/lib/process-execution-broker/process-ownership-quarantine.js");
+    const ledger = await import(
+      "../../src/lib/process-execution-broker/process-ownership-quarantine.js"
+    );
     const proc = child();
     ledger.observeProcessOwnership(proc, "owned");
     proc.emit("error", new Error("signal failed"));
@@ -28,10 +29,12 @@ describe("Broker process ownership quarantine", () => {
   });
 
   it("fences every process API before native launch, including new Brokers and reentry", async () => {
-    const ledger =
-      await import("../../src/lib/process-execution-broker/process-ownership-quarantine.js");
-    const { default: broker } =
-      await import("../../src/lib/process-execution-broker/index.js");
+    const ledger = await import(
+      "../../src/lib/process-execution-broker/process-ownership-quarantine.js"
+    );
+    const { default: broker } = await import(
+      "../../src/lib/process-execution-broker/index.js"
+    );
     const proc = child();
     const native = vi.fn(() => {
       throw new Error("native launch must not run");
@@ -87,6 +90,7 @@ describe("Broker process ownership quarantine", () => {
       recoveryRequired: true,
       durable: false,
       restartSafe: false,
+      recoverableExecutionIds: [],
     });
     snapshot.unresolvedExecutionIds.length = 0;
     proc.emit("close", 0);

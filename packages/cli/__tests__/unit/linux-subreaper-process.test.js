@@ -12,7 +12,7 @@ const options = {
   env: {},
   helperPath: path.resolve("supervisor"),
 };
-function create(facade = false) {
+function create(facade = false, extra = {}, inspect = () => {}) {
   const channel = new EventEmitter();
   channel.writable = true;
   channel.destroyed = false;
@@ -25,6 +25,7 @@ function create(facade = false) {
   child.pid = 456;
   child.stdio = [null, null, null, channel];
   const native = { platform: "linux", spawn: vi.fn(() => child) };
+  inspect({ child, channel });
   return {
     child,
     channel,
@@ -32,7 +33,7 @@ function create(facade = false) {
     owner: (facade ? spawnLinuxSubreaperChild : spawnLinuxSubreaper)(
       "node",
       [],
-      options,
+      { ...options, ...extra },
       native,
     ),
   };
@@ -41,6 +42,44 @@ const messages =
   '{"type":"started","pid":123}\n{"type":"target-exit","code":0,"signal":0,"spawnErrno":0}\n{"type":"cleanup","confirmed":true,"rootReaped":true,"reaped":2}\n';
 
 describe("Linux subreaper control contract", () => {
+  it("attaches the blocked supervisor before transmitting the target launch frame", async () => {
+    let fixture;
+    const hook = vi.fn((child) => {
+      expect(child).toBe(fixture.child);
+      expect(fixture.channel.write).not.toHaveBeenCalled();
+    });
+    const { child, channel, owner } = create(
+      false,
+      { beforeLaunch: hook },
+      (value) => {
+        fixture = value;
+      },
+    );
+    expect(hook).toHaveBeenCalledOnce();
+    expect(channel.write).toHaveBeenCalledOnce();
+    channel.emit("data", Buffer.from(messages));
+    child.emit("close", 0, null);
+    await owner.completion;
+  });
+  it("closes the blocked control channel without launching the target when attachment fails", () => {
+    let fixture;
+    expect(() =>
+      create(
+        false,
+        {
+          beforeLaunch() {
+            throw new Error("attach denied");
+          },
+        },
+        (value) => {
+          fixture = value;
+        },
+      ),
+    ).toThrow("attach denied");
+    expect(fixture.channel.write).not.toHaveBeenCalled();
+    expect(fixture.channel.destroyed).toBe(true);
+    fixture.child.emit("close", 1, null);
+  });
   it("requires ordered kernel cleanup and successful supervisor close", async () => {
     const { owner, child, channel } = create();
     channel.emit("data", Buffer.from(messages));

@@ -96,10 +96,22 @@ export function spawnLinuxSubreaper(command, args, options, native) {
     if (
       Object.keys(options).some(
         (key) =>
-          !["cwd", "env", "graceMs", "helperPath", "helper"].includes(key),
+          ![
+            "cwd",
+            "env",
+            "graceMs",
+            "helperPath",
+            "helper",
+            "beforeLaunch",
+          ].includes(key),
       )
     )
       throw new TypeError("Unsupported Linux subreaper option");
+    if (
+      options.beforeLaunch !== undefined &&
+      typeof options.beforeLaunch !== "function"
+    )
+      throw new TypeError("Invalid trusted before-launch hook");
     launch = encodeLinuxSubreaperLaunch(command, args, options);
     child = native.spawn(helper ? "/proc/self/fd/4" : options.helperPath, [], {
       cwd: options.cwd,
@@ -249,7 +261,17 @@ export function spawnLinuxSubreaper(command, args, options, native) {
       });
     });
   });
-  control.write(launch);
+  try {
+    const result = options.beforeLaunch?.(child);
+    if (result && typeof result.then === "function")
+      throw new TypeError("Before-launch hook must be synchronous");
+    control.write(launch);
+  } catch (error) {
+    // No launch frame was sent. Closing the private control channel releases
+    // the blocked supervisor without executing the target.
+    control.destroy();
+    throw error;
+  }
   return Object.freeze({ child, terminate, completion });
 }
 

@@ -101,6 +101,7 @@ function fixture() {
     },
   );
   const collected = {
+    sourceCommit: frozen.plan.commitSha,
     sampleIds: [sample.id],
     history: { runs: [run], issues: [] },
     observations: [
@@ -149,6 +150,28 @@ function earlyStopFixture() {
   ];
   return f;
 }
+
+describe("separate tested-source binding", () => {
+  it("retains the frozen project SHA while validating an independently pinned product SHA", () => {
+    const f = fixture();
+    f.run.label = f.collected.sourceCommit = "b".repeat(40);
+    const report = validateVerify01Collection(
+      f.frozen,
+      f.preparation,
+      f.collected,
+    );
+    expect(report.projectCommit).toBe(f.frozen.plan.commitSha);
+    expect(report.executionCommitSha).toBe("b".repeat(40));
+    expect(report.executionSource.identityVerified).toBe(false);
+    expect(report.rows.find((row) => row.observed).reasons).not.toContain(
+      "commit_mismatch",
+    );
+    delete f.collected.sourceCommit;
+    expect(() =>
+      validateVerify01Collection(f.frozen, f.preparation, f.collected),
+    ).toThrow(/tested source SHA/);
+  });
+});
 
 describe("VERIFY-01 read-only preparation and collection", () => {
   it.each([

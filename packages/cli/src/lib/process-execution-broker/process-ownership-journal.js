@@ -4,11 +4,17 @@ import { randomUUID } from "node:crypto";
 import { withFileLock } from "../with-file-lock.js";
 import { writeSecurityStore } from "../durable-security-store.js";
 import { ensurePrivateDirectory } from "../secure-fs.js";
+import { performance } from "node:perf_hooks";
+import {
+  openRecoveryCgroup,
+  validateRecoveryCgroup,
+} from "./process-recovery-cgroup.js";
 
 export const PROCESS_OWNERSHIP_PENDING = "BROKER_PROCESS_OWNERSHIP_PENDING";
 export const PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE =
   "BROKER_PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE";
 const SCHEMA = "chainlesschain.process-ownership-journal/v1";
+const RECOVERY_SCHEMA = "chainlesschain.process-ownership-journal/v2";
 const MAX_BYTES = 1024 * 1024;
 const MAX_PENDING = 1024;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
@@ -27,8 +33,12 @@ function unavailable(cause) {
 function validate(state) {
   if (
     !state ||
-    Object.keys(state).sort().join() !== "pending,schema" ||
-    state.schema !== SCHEMA ||
+    !(
+      (state.schema === SCHEMA &&
+        Object.keys(state).sort().join() === "pending,schema") ||
+      (state.schema === RECOVERY_SCHEMA &&
+        Object.keys(state).sort().join() === "pending,recoveries,schema")
+    ) ||
     !Array.isArray(state.pending) ||
     state.pending.length > MAX_PENDING
   )
@@ -37,7 +47,12 @@ function validate(state) {
   for (const entry of state.pending) {
     if (
       !entry ||
-      Object.keys(entry).sort().join() !== "executionId,ownerPid,token" ||
+      ![
+        "executionId,ownerPid,token",
+        ...(state.schema === RECOVERY_SCHEMA
+          ? ["executionId,ownerPid,recovery,token"]
+          : []),
+      ].includes(Object.keys(entry).sort().join()) ||
       !UUID.test(entry.executionId) ||
       !UUID.test(entry.token) ||
       !Number.isSafeInteger(entry.ownerPid) ||
@@ -45,7 +60,30 @@ function validate(state) {
       ids.has(entry.executionId)
     )
       throw new Error("Invalid ownership journal entry");
+    if (Object.hasOwn(entry, "recovery"))
+      validateRecoveryCgroup(entry.recovery, entry.executionId);
     ids.add(entry.executionId);
+  }
+  if (state.schema === RECOVERY_SCHEMA) {
+    if (
+      !Array.isArray(state.recoveries) ||
+      state.recoveries.length > MAX_PENDING
+    )
+      throw new Error("Invalid recovery audit inventory");
+    for (const receipt of state.recoveries) {
+      if (
+        !receipt ||
+        Object.keys(receipt).sort().join() !==
+          "completedAt,executionId,group,killIssued,populated,token" ||
+        !UUID.test(receipt.executionId) ||
+        !UUID.test(receipt.token) ||
+        receipt.killIssued !== true ||
+        receipt.populated !== false ||
+        !Number.isFinite(Date.parse(receipt.completedAt))
+      )
+        throw new Error("Invalid recovery audit receipt");
+      validateRecoveryCgroup(receipt.group, receipt.executionId);
+    }
   }
   return state;
 }
@@ -211,6 +249,13 @@ export class ProcessOwnershipJournal {
     }
   }
 
+  #write(file, state, label = "Process ownership") {
+    validate(state);
+    if (Buffer.byteLength(`${JSON.stringify(state, null, 2)}\n`) > MAX_BYTES)
+      throw new Error("Ownership journal byte capacity is exhausted");
+    writeSecurityStore(file, label, state);
+  }
+
   assertAvailable() {
     if (this.#fault) throw this.#fault;
     this.#withDirectory(false, (file) => this.#assertState(this.#read(file)));
@@ -222,6 +267,9 @@ export class ProcessOwnershipJournal {
       const state = this.#read(file);
       return {
         pendingExecutionIds: state.pending.map((entry) => entry.executionId),
+        recoverableExecutionIds: state.pending
+          .filter((entry) => entry.recovery)
+          .map((entry) => entry.executionId),
         blocked: state.pending.some(
           (entry) => this.#local.get(entry.executionId)?.token !== entry.token,
         ),
@@ -229,24 +277,34 @@ export class ProcessOwnershipJournal {
     });
   }
 
-  prepare(executionId) {
+  prepare(executionId, recovery = null) {
     if (!UUID.test(executionId))
       throw new TypeError("Invalid ownership execution id");
     if (this.#fault) throw this.#fault;
-    const entry = { executionId, ownerPid: process.pid, token: randomUUID() };
+    if (recovery) validateRecoveryCgroup(recovery, executionId);
+    const entry = {
+      executionId,
+      ownerPid: process.pid,
+      token: randomUUID(),
+      ...(recovery ? { recovery: { ...recovery } } : {}),
+    };
     this.#withDirectory(true, (file) =>
       withFileLock(
         file,
         () => {
           const state = this.#read(file);
           this.#assertState(state);
+          if (recovery && state.schema === SCHEMA) {
+            state.schema = RECOVERY_SCHEMA;
+            state.recoveries = [];
+          }
           if (
             state.pending.length >= MAX_PENDING ||
             state.pending.some((item) => item.executionId === executionId)
           )
             throw new Error("Ownership journal admission limit");
           state.pending.push(entry);
-          writeSecurityStore(file, "Process ownership", state);
+          this.#write(file, state);
           this.#initialized = true;
           this.#local.set(executionId, entry);
         },
@@ -284,7 +342,7 @@ export class ProcessOwnershipJournal {
               state.pending = state.pending.filter(
                 (item) => item.executionId !== executionId,
               );
-              writeSecurityStore(file, "Process ownership", state);
+              this.#write(file, state);
               this.#local.delete(executionId);
               settled = true;
             },
@@ -293,5 +351,108 @@ export class ProcessOwnershipJournal {
         );
       },
     });
+  }
+
+  /** Explicitly cancel an orphaned, identity-bound cgroup. Old PID-only records
+   * remain quarantined. Neither process death nor age is a cleanup authority.
+   */
+  async recover(executionId, { timeoutMs = 5000, pollMs = 10 } = {}) {
+    if (
+      !UUID.test(executionId) ||
+      !Number.isSafeInteger(timeoutMs) ||
+      timeoutMs < 1 ||
+      timeoutMs > 30000 ||
+      !Number.isSafeInteger(pollMs) ||
+      pollMs < 1 ||
+      pollMs > 1000
+    )
+      throw new TypeError("Invalid process recovery request");
+    if (this.#fault) throw this.#fault;
+    if (this.#local.has(executionId))
+      throw unavailable(
+        new Error(
+          "A locally owned live launch must use its normal cancellation fence",
+        ),
+      );
+    const entry = this.#withDirectory(false, (file) => {
+      const state = this.#read(file);
+      const found = state.pending.find(
+        (item) => item.executionId === executionId,
+      );
+      if (!found?.recovery) {
+        const error = new Error(
+          "This pending execution has no recoverable kernel group identity",
+        );
+        error.code = PROCESS_OWNERSHIP_PENDING;
+        error.recoveryRequired = true;
+        throw error;
+      }
+      if (state.recoveries.length >= MAX_PENDING)
+        throw new Error("Recovery audit capacity is exhausted");
+      return { ...found, recovery: { ...found.recovery } };
+    });
+    const group = openRecoveryCgroup(entry.recovery, executionId);
+    let settled = false;
+    try {
+      group.kill();
+      const deadline = performance.now() + timeoutMs;
+      while (group.populated()) {
+        if (performance.now() >= deadline) {
+          const error = new Error(
+            "Recovered process group has not reached its empty kernel fence",
+          );
+          error.code = PROCESS_OWNERSHIP_PENDING;
+          error.recoveryRequired = true;
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, pollMs));
+      }
+      const receipt = {
+        executionId,
+        token: entry.token,
+        group: entry.recovery,
+        killIssued: true,
+        populated: false,
+        completedAt: new Date().toISOString(),
+      };
+      this.#withDirectory(false, (file) =>
+        withFileLock(
+          file,
+          () => {
+            const state = this.#read(file);
+            const current = state.pending.find(
+              (item) => item.executionId === executionId,
+            );
+            if (
+              !current ||
+              current.token !== entry.token ||
+              JSON.stringify(current.recovery) !==
+                JSON.stringify(entry.recovery)
+            )
+              throw new Error("Ownership recovery lost its original record");
+            if (state.recoveries.length >= MAX_PENDING)
+              throw new Error("Recovery audit capacity is exhausted");
+            // Check the kernel fence again while committing the durable receipt.
+            group.confirmEmpty();
+            state.pending = state.pending.filter(
+              (item) => item.executionId !== executionId,
+            );
+            state.recoveries.push(receipt);
+            this.#write(file, state, "Process ownership recovery");
+            settled = true;
+          },
+          { failIfUnavailable: true, timeoutMs: 2000 },
+        ),
+      );
+      return { ...receipt, cleanupConfirmed: true, executionResumed: false };
+    } finally {
+      // Publish settlement before removing the empty group. If journal IO
+      // fails, its kernel identity remains available for a safe retry.
+      try {
+        group.close({ remove: settled });
+      } catch {
+        group.close(); /* Empty directory leftovers never certify a run. */
+      }
+    }
   }
 }
