@@ -5,6 +5,8 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
+Public Marketplace **0.4.151** at `7db17a12e1` recommends public CLI **0.166.88**. Candidate **0.4.152@feda6d1eee** adds raw protocol/UI capture, fresh CLI command and version-prefix discovery and onboarding diagnostics. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. Diagnostic results bind source commit, dirty state and key-file SHA-256; controlled peers are not public installation or provider acceptance. [Release guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
 [Approval mode confirmation and agent replacement](docs/APPROVAL_MODE_LIFECYCLE.md)

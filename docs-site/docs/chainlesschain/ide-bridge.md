@@ -1,10 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **更新 2026-10-05 | 公开 Open VSX `0.37.131` / JetBrains `0.4.149`**
+> **更新 2026-10-05 | 公开 Open VSX `0.37.133` / JetBrains `0.4.151`**
 >
-> CLI `0.166.86` 与两个公开 IDE 来自 `8458a0a502`，均推荐 CLI `0.166.86`；源码 `0.166.87/0.37.132/0.4.150` 为候选。Microsoft Marketplace 未发行；当前使用方式见[IDE 指南](./ide-plugin)。
+> 公开 CLI `0.166.88` 与两个 IDE 来自 `7db17a12e1`，均推荐 CLI `0.166.88`；源码 `0.166.89/0.37.134/0.4.152@feda6d1eee` 尚未发行。Microsoft Marketplace 未发行；日常操作见[IDE 指南](./ide-plugin)。
 >
-> 公开 VS Code 包含长回复选区/滚动保持与图片草稿页面实例隔离，结束后再格式化；`48fd92562a` 的图片解码预算和两端文件快照尚未进入商店。CLI 执行、消息、handoff、Skill mutation 和 knowledge merge 的 authority 仍由 CLI/可信宿主裁决。发布后 Linux 持久权限宿主须管理员显式配置，跨进程/Worker 100 ms 轮询不构成即时停止或分布式 quorum。精确提交门见[发布指南](/chainlesschain/agent-platform-release)，实现证据见[共享状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。
+> 公开版已包含图片解码预算、有界快照、实际会话能力诊断与慢初始化草稿保护。后续源码另增加原始协议/UI 采集与 JetBrains CLI 身份诊断。CLI/可信宿主持有执行、handoff、Skill 与 knowledge merge 权限；显式 Linux 持久权限宿主需管理员配置，跨进程/Worker 100 ms 轮询不构成即时停止。发布证据见[升级指南](./agent-platform-release)。
 
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -281,17 +281,17 @@ VS Code 扩展同理：`mcp-http-server.js` / `lockfile.js` / `ide-tools.js` 纯
 
 IDE 桥接共 **58+ 专项测试**，全部可在**无编辑器宿主**下运行：
 
-| 测试文件                          | 数量 | 覆盖                                                                                                                                             |
-| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                       |
-| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                       |
-| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                 |
+| 测试文件                          | 数量 | 覆盖                                                                                                                                            |
+| --------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                      |
+| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                      |
+| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                |
 | `vscode-ext-ide-bridge.test.js`   | 13   | **真 CLI MCPClient 驱动扩展 server**（initialize→tools/list→tools/call 全 4 工具 + 鉴权拒绝 + openDiff 阻塞回传）+ lockfile↔Phase-0 reader 往返 |
-| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                 |
-| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                 |
-| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                           |
-| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                              |
-| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                   |
+| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                |
+| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                |
+| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                          |
+| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                             |
+| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                  |
 
 ### 跨语言 interop 实证（JetBrains）
 

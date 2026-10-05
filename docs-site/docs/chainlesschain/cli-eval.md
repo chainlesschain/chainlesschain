@@ -1,8 +1,8 @@
 # 可靠性评测 — 任务成功率 + 趋势回归门（`cc eval`）
 
-## 2026-10-05 源码候选：冻结项目评估
+## 2026-10-05 公开版：冻结项目评估
 
-CLI `0.166.87` 源码接入 `--suite verify01`。当前可安装版见[发布指南](./agent-platform-release)；下方 Phase 7 数量与生产状态是历史范围，不能用于证明 VERIFY-01 已验收。
+公开 CLI `0.166.88` 已接入 `--suite verify01`。当前可安装版见[发布指南](./agent-platform-release)；下方 Phase 7 数量与生产状态是历史范围，不能用于证明 VERIFY-01 已验收。
 
 执行需要冻结 plan、外部固定的 plan/review 摘要、准确项目 checkout 和项目外的可信 review root。独立审阅 setup/check 后才执行；使用已配置且获授权的模型，费用和任务预算由冻结合同限制。
 
@@ -18,6 +18,12 @@ cc eval --suite verify01 \
 `--samples <ids>` 选择冻结样本；未选择项仍为 missing，不缩小 36 个项目任务与 9 个安装样本的固定分母。原始输出和完整 diff 保存在 evidence directory，退出/超时或检查失败保留失败证据。只读采集适配器读取已有 history，不替代执行；dry-run 不证明真实模型、IDE GUI 或账单验收。
 
 普通 `--trend` 提供诊断趋势；`--trend --strict --history <file>` 还要求完整、可比较且未过期的执行证据，旧历史不能通过。`--max-age-hours` 默认 168；`--comparison-context` 是操作者声明的模型修订与环境摘要，不构成生产身份认证。完整合同和未完成项见[最新设计](/design/agent-runtime-update-2026-10-05)。
+
+## 后续源码：宿主采集与验收包
+
+源码候选 `0.166.89@feda6d1eee` 增加任务 prepare/finish、只读导入器及双 IDE 的真实 UI/原始协议采集。操作者先固定 plan/review 摘要与准确项目/CLI SHA，在项目外保存证据；执行 setup 后从实际 IDE 完成任务，再运行 reviewed check 收尾。首次安装需另存安装、发现、认证、首条输入与首次成功回执。完整参数和两阶段操作见[宿主采集说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/verify01-plan-2026-10-04/HOST_CAPTURE_README.md)。这些源码工具不作为当前 npm 安装命令承诺。
+
+六个真实 IDE 宿主诊断已通过，但使用受控 peer；新增 Docker 六分片 CI 尚未取得整包成功。36+9 正式样本仍为 `NOT_RUN`，费用缺失保留 `null`，失败和 missing 不从分母删除。诊断不替代真实 provider、独立人工签核、真人听测或 8h/24h 观察。
 
 > **版本: Phase 7 (可靠性评测 / OTel) 核心落地 · 2026-07-04 | 状态: ✅ 生产就绪 | 8 客观任务类别 + OTel 遥测 + 发布趋势报告/回归门 | 39 测试（含 3 CLI 集成）**
 >
