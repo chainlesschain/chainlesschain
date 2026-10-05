@@ -4,9 +4,9 @@
 
 > 两套记忆与会话上下文、压缩之间的关系，以及模块 108 已完成设计但尚未完成跨端切换的边界，见[上下文与记忆](./context-memory.md)。
 
-## 2026-10-05 源码候选：canonical 记忆分页
+## 2026-10-05 公开版：canonical 记忆分页
 
-CLI `0.166.87` 源码新增 `memory show --page` 与 `--cursor`；当前公开安装版本见[发布与升级指南](./agent-platform-release)。分页要求 canonical memory mode，默认 legacy/shadow 模式会拒绝该操作，不会自动切换或迁移。
+公开 CLI `0.166.88` 已包含 `memory show --page` 与 `--cursor`；当前公开安装版本见[发布与升级指南](./agent-platform-release)。分页要求 canonical memory mode，默认 legacy/shadow 模式会拒绝该操作，不会自动切换或迁移。
 
 ```bash
 # 首次读取；从返回 JSON 中保存 nextCursor

@@ -6,6 +6,8 @@ MCP bridge.
 
 ## Current release
 
+Public Open VSX **0.37.133** at `7db17a12e1` recommends public CLI **0.166.88** and includes observed-session Doctor diagnostics and slow-initialization draft protection. Microsoft Marketplace remains unpublished; stock VS Code can install the Open VSX VSIX. Source `0.37.134@feda6d1eee` is a later candidate with opt-in protocol/UI capture, outside that public artifact. [Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+
 > Candidate extension `0.37.134` pairs with `chainlesschain@0.166.89`.
 > IDE publication requires this exact commit to pass its release gates.
 

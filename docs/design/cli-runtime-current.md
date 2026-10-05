@@ -1,6 +1,6 @@
 # CLI Runtime 当前架构与实现
 
-> 2026-10-05 核对：公开 CLI **0.166.86**、Open VSX **0.37.131**、JetBrains **0.4.149** 同属发行提交 `8458a0a502`，两端 IDE 推荐 CLI `0.166.86`。源码基线 `main@85f2f14aa1` 为 CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 记忆分页、评估执行、进程恢复及 IDE 诊断见[最新设计](agent-runtime-update-2026-10-05.md)。历史六目标 unsigned native 复验已通过，不等于签名候选发行；真实 PM/成本与自动晋升仍 HOLD。下方带日期内容保留历史范围。
+> 2026-10-05 核对：公开 CLI **0.166.88**、Open VSX **0.37.133**、JetBrains **0.4.151** 同属发行提交 `7db17a12e1`，两端 IDE 推荐 CLI `0.166.88`。最新已提交源码基线 `main@feda6d1eee` 为 CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 记忆分页、评估执行、进程恢复及 IDE 诊断见[最新设计](agent-runtime-update-2026-10-05.md)。历史六目标 unsigned native 复验已通过，不等于签名候选发行；真实 PM/成本与自动晋升仍 HOLD。下方带日期内容保留历史范围。
 
 > 更新时间：2026-09-15。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.56`，绑定不可变 tag `v-npm-0-166-56` 的精确 SHA `d55de4810e35f9ef686ec108c71d311c9b3d2b10`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.103`、JetBrains Marketplace 为 `0.4.124`；同一 IDE 提交 `ac0e61b3cd` 的两条发布门成功。
 

@@ -2,28 +2,28 @@
 
 ## October 5, 2026 release and source review
 
-Reviewed source `main@85f2f14aa1` and public channels. CLI **0.166.86**, Open VSX **0.37.131**, and JetBrains **0.4.149** share release SHA `8458a0a502`; both published IDEs recommend CLI `0.166.86`. Source CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** remain unpublished candidates.
+Public CLI **0.166.88**, Open VSX **0.37.133**, and JetBrains Marketplace **0.4.151** share exact release SHA `7db17a12e1`; both IDEs recommend CLI `0.166.88`. Reviewed source `main@feda6d1eee` contains unpublished candidates CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152**. Desktop and mobile retain independent **v5.0.3.138** releases.
 
-| Component               | Public version          | Source and pairing                             |
-| ----------------------- | ----------------------- | ---------------------------------------------- |
-| npm CLI                 | **0.166.86**            | `v-npm-0-166-86` → `8458a0a502`                |
-| VS Code / VSCodium      | **Open VSX 0.37.131**   | `8458a0a502`; recommends CLI `0.166.86`        |
-| JetBrains               | **Marketplace 0.4.149** | Approved and listed; recommends CLI `0.166.86` |
-| Desktop / Android / iOS | **v5.0.3.138**          | Independent product release                    |
+| Component               | Public version          | Source and pairing                         |
+| ----------------------- | ----------------------- | ------------------------------------------ |
+| npm CLI                 | **0.166.88**            | `v-npm-0-166-88` → `7db17a12e1`            |
+| VS Code / VSCodium      | **Open VSX 0.37.133**   | Recommends CLI `0.166.88`                  |
+| JetBrains               | **Marketplace 0.4.151** | Publicly listed; recommends CLI `0.166.88` |
+| Desktop / Android / iOS | **v5.0.3.138**          | Independent product release                |
 
 ```bash
-npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
 cc --version
 ```
 
-Restart the IDE chat host after upgrading. Exact release SHA `8458a0a502` passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37227574239) (67 successful / 1 skipped), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37227577487) (5/5), and [IDE gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37227580870) (18 successful / 1 expected skip). [npm OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296), [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37252575170), and [JetBrains upload](https://github.com/chainlesschain/chainlesschain/actions/runs/37252574613) succeeded. All 13 child npm packages were rechecked; Context/Memory Kernel is `0.1.6`. CLI/VSIX public readback succeeded. JetBrains is now approved and listed; its public ZIP version and recommended CLI were verified, without claiming byte identity with the uploaded ZIP.
+Restart the IDE chat host after upgrading. The exact release passed complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478), [IDE gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37279774086), and [ARM64 host gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37279869315). [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303) and both IDE publications succeeded after child-package verification and public CLI readback. Failed attempts and official same-SHA retries remain in the [release evidence](docs/research/cli/evidence/gap-2026-10-05/release-0.166.88/README.md).
 
-- **Public 0.166.86** includes bounded canonical Memory v2 shards, exact-ID deletion, explicit Linux durable-permission host wiring, image decoding budgets, and Windows long-path snapshot fixes. Default shadow mode does not migrate; the Linux host requires administrator provisioning.
-- **Published IDEs** preserve selection and reading position, isolate image drafts by page execution, and use bounded attachment snapshots. The JetBrains diagnostics submission race fix is public. Restored attachments require an explicit send.
-- **Source 0.166.87** adds indexed memory queries and snapshot-bound pagination, frozen VERIFY-01 execution, Doctor reports based on observed session capabilities, slow-initialization draft preservation, and Linux cgroup2 ownership recovery. New source needs its own complete release gates.
-- **Validation scope**: historical `0fc6e7a0c2` passed [six-target unsigned native validation](https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226), including Windows ARM64. This does not establish a signed native candidate release. [cgroup2 recovery](https://github.com/chainlesschain/chainlesschain/actions/runs/37258234311) at `320301e6e7` passed two tests each on Linux x64/arm64.
+- **Public CLI** includes bounded canonical Memory v2 shards, exact-ID deletion, indexed queries and snapshot-bound pagination, reviewed VERIFY-01 execution, and Linux cgroup2 recovery. Default shadow does not migrate; durable Linux permissions require administrator provisioning.
+- **Published IDEs** diagnose observed session capabilities and preserve text/attachment drafts through slow initialization. Handshake waits at most 120 seconds; restored attachments require an explicit send.
+- **Post-release source** adds dual-IDE protocol/UI capture, prepare/finish evidence, an explicit Linux controlled-host entry, and JetBrains CLI identity/onboarding diagnostics with source commit, dirty state, and file digests. These changes are outside public packages.
+- **Engineering evidence** at `f289a08844` passed three-OS reference MCP and six real IDE hosts. Controlled peers verify capture wiring, not real-provider or public first-install acceptance. Real Docker review-pack CI is added but full-pack acceptance has not passed.
 
-Cross-process/Worker permission revocation uses 100 ms polling and receiver stop receipts after successful cleanup. Ordinary CLI runs do not register durable Linux domains automatically. Real PM outcomes, full costs, human accessibility acceptance, and automatic active Skill promotion remain HOLD. See the [CLI README](packages/cli/README.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), and [current design](docs/design/agent-runtime-update-2026-10-05.md). Dated sections below retain their historical scope.
+Formal 36+9 samples remain `NOT_RUN`; billing, human accessibility, and long-duration SLO acceptance remain open, and automatic active Skill promotion stays HOLD. Historical unsigned native validation is not signed candidate publication. See the [CLI README](packages/cli/README.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), and [current design](docs/design/agent-runtime-update-2026-10-05.md). Dated sections below retain historical scope.
 
 ## October 2, 2026 release and source review (historical)
 
@@ -47,7 +47,7 @@ Reviewed at `main@2bfaea2fa9`: strict read-only settings observations and explic
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
@@ -1654,14 +1654,14 @@ Legal sign-off received 2026-05-03 unblocks Q-COMP-3 (domestic consortium chain 
 
 Closes every doable item from cross-chain bridge §11 + federation governance v0.2 §11 (chain anchoring blocked by Q-COMP-3, real RPC adapters need major desktop work — both kept):
 
-| Wave                                                 | Module                                  | Notes                                                                                                                                                                                                                                                           |
+| Wave | Module | Notes |
 | ---------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation trust (v0.3 #1)              | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate`                                                                   |
-| **A2** Independent third-party auditor (v0.3 #3)     | same lib                                | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary                         | --json]` |
-| **B1** Multi-hop bridge (bridge §11 #3)              | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch (bridge §11 #4)               | same                                    | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                                   |
-| **B3** SLA Manager integration (bridge §11 #6)       | same                                    | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla`                                                                                                     |
-| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab                    | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana                                                                          |
+| **A1** Cross-federation trust (v0.3 #1) | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate` |
+| **A2** Independent third-party auditor (v0.3 #3) | same lib | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary                         | --json]` |
+| **B1** Multi-hop bridge (bridge §11 #3) | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch (bridge §11 #4) | same | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
+| **B3** SLA Manager integration (bridge §11 #6) | same | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla` |
+| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana |
 
 **Test totals**: core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 green**.
 
@@ -1766,15 +1766,15 @@ Implementation stays opt-in: `cc mtc federation` governance events only write to
 
 Two new design documents (closing §12 known-limit items #2 / #6) plus a new `cc crosschain mtc-*` subcommand surface that lets existing bridge / swap / send paths opt-in to MTC envelope writes:
 
-| Module                             | Notes                                                                                                                                                                                                                                                          |
+| Module | Notes |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design — Federation governance v1  | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
-| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship)                     |
-| CLI lib                            | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`)                                        |
-| 4 new subcommands                  | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                                                                |
-| `--mtc` opt-in flag                | `cc crosschain bridge                                                                                                                                                                                                                                          | swap | send --mtc`writes one staging op on success;`cc crosschain mtc-batch`closes staging into per-chain-pair batches (landmark + envelopes persisted to`batches/<pair>-<seq>/`) |
-| Bug fix                            | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB                                                                                 |
-| core-mtc                           | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit)                                                                                                                                                                         |
+| Design — Federation governance v1 | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
+| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship) |
+| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`) |
+| 4 new subcommands | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
+| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                                                                          | swap | send --mtc`writes one staging op on success;`cc crosschain mtc-batch`closes staging into per-chain-pair batches (landmark + envelopes persisted to`batches/<pair>-<seq>/`) |
+| Bug fix | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB |
+| core-mtc | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit) |
 
 **Test totals**: lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + existing cross-chain 83 = **342 tests green** across unit / integration / e2e plus cross-process independent verification.
 

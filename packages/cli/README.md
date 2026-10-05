@@ -4,35 +4,33 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Current release and source (2026-10-05)
 
-Public npm `latest` is **chainlesschain@0.166.86**, from `v-npm-0-166-86` at `8458a0a502`. Open VSX **0.37.131** and JetBrains Marketplace **0.4.149** are public and both recommend CLI **0.166.86**. CLI CI, the complete Strict Sandbox matrix, IDE gates, npm OIDC publication, and public artifact readback passed for that release. Context/Memory Kernel **0.1.6** and all 13 child npm package versions were rechecked. See the [release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+Public npm `latest` is **chainlesschain@0.166.88**, tagged `v-npm-0-166-88` at `7db17a12e1`. Public Open VSX **0.37.133** and JetBrains **0.4.151** both recommend CLI **0.166.88**. The exact release passed complete CLI CI, Strict Sandbox, IDE and ARM64 host gates, npm OIDC publication, and public artifact readback. All 13 child npm packages were verified first. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
-Public `0.166.86` includes bounded canonical Memory v2 storage and exact-ID deletion, explicit Linux durable-permission host wiring, bounded image snapshots and decoding budgets, Windows long-path staging, and the updater journal loading fix. Default shadow mode does not migrate memory. The Linux permission host requires administrator provisioning; cross-process/Worker revocation uses 100 ms polling and stop receipts follow successful cleanup. Ordinary CLI runs do not enable the host automatically.
+Source `main@feda6d1eee` contains unpublished CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152**. It adds raw IDE protocol/UI capture, prepare/finish evidence, an explicit Linux controlled-host entry, and JetBrains identity diagnostics with source provenance. Six real IDE host diagnostics and three-OS reference MCP passed at `f289a08844`; controlled peers do not establish formal provider results. Docker full-pack acceptance remains open.
 
-Source baseline `85f2f14aa1` is CLI **0.166.87**, paired with VS Code **0.37.132** / JetBrains **0.4.150**, and remains unpublished. It adds indexed memory queries and pagination, frozen VERIFY-01 execution, observed-session Doctor diagnostics, slow initialization draft protection, and Linux cgroup2 ownership recovery. Uncommitted workspace review/capture tooling is development work and supplies no release authority.
+### Memory pagination (public 0.166.88)
 
-### Memory pagination (source 0.166.87)
-
-Requires canonical memory mode; legacy/shadow listing rejects paging. After backing up and arranging the supported canonical cutover, run:
+Requires canonical memory mode; legacy/shadow rejects paging and does not migrate automatically. Back up and arrange the supported canonical cutover first.
 
 ```bash
 cc memory show --page --category work --limit 20 --json
 cc memory show --cursor "<nextCursor>" --category work --limit 20 --json
 ```
 
-The page contains `entries` and `nextCursor` (`null` at the end). Keep the same category and limit; writes, changed filters, or a different store invalidate the cursor with `CONTEXT_MEMORY_CURSOR_INVALID`. Restart from page one. Ordinary `show --json` still returns an array. New indexed v2 descriptors are rejected by older readers; stop older writers and use a compatible snapshot for downgrade. See [memory usage](https://docs.chainlesschain.com/chainlesschain/cli-memory.html).
+Pages contain `entries` and `nextCursor` (`null` at the end). Keep category and limit unchanged. Writes, changed filters, or a different store cause `CONTEXT_MEMORY_CURSOR_INVALID`; restart from page one. Ordinary `show --json` returns an array. Older readers reject indexed v2 descriptors; stop old writers and use a compatible snapshot for downgrade. [Memory usage](https://docs.chainlesschain.com/chainlesschain/cli-memory.html).
 
-### Reviewed project evaluation (source 0.166.87)
+### Reviewed project evaluation (public 0.166.88)
 
-`cc eval --suite verify01` requires pinned plan/review digests, an exact project checkout, and an independently reviewed setup/check bundle outside the task project. `--samples` does not shrink the fixed 36 project tasks plus 9 installation samples: unselected samples stay missing. Raw process output and complete diffs are retained with `--evidence-dir`. Collection of existing history is not a real-model or GUI run. `--trend --strict` requires complete, comparable, recent evidence; dry-run and legacy history cannot pass that gate. See [evaluation commands](https://docs.chainlesschain.com/chainlesschain/cli-eval.html).
+`cc eval --suite verify01` requires pinned plan/review digests, an exact project checkout, and independently reviewed setup/check scripts outside the project. `--samples` keeps the fixed 36+9 denominator; unselected samples remain missing. Raw output and full diffs are retained with `--evidence-dir`. `--trend --strict` requires complete, comparable, recent evidence. Formal samples are still `NOT_RUN`; capture/import, fixtures, and dry runs are not formal observations. [Evaluation guide](https://docs.chainlesschain.com/chainlesschain/cli-eval.html).
 
 ### Recovery and acceptance scope
 
-Historical six-target unsigned native validation at `0fc6e7a0c2` passed, including Windows ARM64; no signed candidate native release is claimed. Real delegated cgroup2 recovery at `320301e6e7` passed Linux x64/arm64 tests, cleans identified survivors before new admission, and never replays the original command. Identity drift or persistence failure keeps admission closed. This does not establish Windows/macOS durable recovery or hostile same-UID containment. Real PM outcomes, full billing evidence, human accessibility acceptance, and automatic active Skill promotion remain HOLD. [Current runtime design](https://design.chainlesschain.com/agent-runtime-update-2026-10-05.html).
+Explicit Linux durable permissions require administrator provisioning. Cross-process/Worker revocation polls every 100 ms; stop receipts follow successful cleanup. Identified cgroup2 survivors are cleaned before new admission, without replaying the original command. Identity drift or persistence failure keeps admission closed. Windows/macOS durable recovery, formal billing, human accessibility, and long-duration SLOs remain open; automatic active Skill promotion stays HOLD. Historical six-target unsigned native validation is not signed candidate publication. [Current design](https://design.chainlesschain.com/agent-runtime-update-2026-10-05.html).
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

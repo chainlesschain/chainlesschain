@@ -1,6 +1,6 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
-> **当前续做**：第 11、12 节记录 prepare/finish、双 IDE 采集、跨平台诊断和显式 Linux controlled-host；第 13 节记录准确工程提交 `f289a08844` 的 MCP 三系统、真实 IDE 六宿主矩阵全部通过及退出生命周期修复。下面各轮的分支、授权、源码摘要和发布叙述保留历史含义。当前候选未发布，正式 36+9 样本仍为 `NOT_RUN`。
+> **2026-10-05 最新合并状态**：`feda6d1eee` 已合并后续宿主采集、Docker 诊断、JetBrains CLI 发现与源码溯源。公开 CLI `0.166.88` / Open VSX `0.37.133` / JetBrains `0.4.151` 仍来自 `7db17a12e1`；源码 `0.166.89/0.37.134/0.4.152` 尚未公开。`f289a08844` 的 MCP 三系统与 IDE 六宿主专项通过；Docker 六分片首次实际运行失败，整包成功仍开放。正式 36+9 为 `NOT_RUN`。下方各轮保留当时范围，当前设计见[运行时增量](../design/agent-runtime-update-2026-10-05.md)。
 
 > 对应：[CLI 审计](./cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[IDE 审计](./ide/ide-claude-code-codex-gap-analysis-2026-10-05.md)。本表记录后续实现，不覆盖原审计快照，也不把局部测试升级为发布或真实模型验收。
 >

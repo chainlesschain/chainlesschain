@@ -1,52 +1,54 @@
-# Agent Platform 0.166.86 发布与升级指南
+# Agent Platform 0.166.88 发布与升级指南
 
-> 核对日期：2026-10-05；源码基线 `85f2f14aa1`，公开 CLI 与两个 IDE 来源 `8458a0a502`。后续旧版本段落保留历史时点。
+> 核对日期：2026-10-05；已提交源码 `main@feda6d1eee`，公开 CLI 与两端 IDE 的准确发行提交为 `7db17a12e1`。旧版本段落保留历史时点。
 
 ## 概述
 
-本指南说明可安装版本、升级步骤、已发布行为与源码候选边界。桌面与移动端保持独立产品发行。
+本指南说明公开安装版本、升级步骤与后续源码候选。桌面和移动端保持独立产品发行。
 
 ## 当前公开版本
 
 | 组件                    | 当前公开版本            | 来源与配对                        |
 | ----------------------- | ----------------------- | --------------------------------- |
-| npm CLI                 | **0.166.86**            | `v-npm-0-166-86` → `8458a0a502`   |
-| VS Code / VSCodium      | **Open VSX 0.37.131**   | `8458a0a502`；推荐 CLI `0.166.86` |
-| JetBrains               | **Marketplace 0.4.149** | 已批准并上架；推荐 CLI `0.166.86` |
+| npm CLI                 | **0.166.88**            | `v-npm-0-166-88` → `7db17a12e1`   |
+| VS Code / VSCodium      | **Open VSX 0.37.133**   | `7db17a12e1`；推荐 CLI `0.166.88` |
+| JetBrains               | **Marketplace 0.4.151** | 已公开上架；推荐 CLI `0.166.88`   |
 | Desktop / Android / iOS | **v5.0.3.138**          | 独立产品发行                      |
 
-精确发行提交 `8458a0a502` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37227574239)（67 成功 / 1 跳过）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37227577487)（5/5）及 [IDE 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37227580870)（18 成功 / 1 预期跳过）通过；[npm OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37252575170)与 [JetBrains 上传](https://github.com/chainlesschain/chainlesschain/actions/runs/37252574613)成功。13 个子 npm 包已按依赖顺序完成公开制品与安装复查；Context/Memory Kernel 为 `0.1.6`。CLI/VSIX 公开回读成功；JetBrains 后续商店 API 已批准并列出，公开 ZIP 版本与推荐 CLI 已核验，不将商店 ZIP 与上传 ZIP 宣称为字节一致。
+精确发行提交 `7db17a12e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954)（最终 attempt 3，67 成功 / 1 条件跳过）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478)（5/5）、[IDE 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37279774086)及 [IDE ARM64 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37279869315)通过。[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923667)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923696)成功；先核验 13 个子 npm 包，再发布 CLI，公开回读后才发布 IDE。失败和同 SHA 官方重跑均保留在[发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/gap-2026-10-05/release-0.166.88/README.md)中。
 
-Microsoft Marketplace 未发行；官方 VS Code 用户从 Open VSX 下载 VSIX，使用“从 VSIX 安装”。JetBrains `0.4.149` 已批准并公开上架，不再是待审核状态。
+Microsoft Marketplace 未发行；官方 VS Code 可从 Open VSX 下载 VSIX 后使用“从 VSIX 安装”。JetBrains `0.4.151` 已公开上架。
 
-## 0.166.86 升级步骤
+## 0.166.88 升级步骤
 
 ```bash
-npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
 cc --version
 ```
 
-确认版本后重启 IDE 聊天宿主，再安装 Open VSX `0.37.131` 或 JetBrains Marketplace `0.4.149`。两个公开插件均推荐 CLI `0.166.86`。
+重启 IDE 聊天宿主，再安装 Open VSX `0.37.133` 或 JetBrains Marketplace `0.4.151`；两端均推荐 CLI `0.166.88`。canonical Memory v2 有界分片、准确 ID 点读删除和索引分页均已公开。默认 shadow 不迁移；升级前备份并停止旧 writer，旧 reader 会拒绝带索引的新 descriptor，降级需兼容快照。分页用法见[记忆指南](./cli-memory)。
 
-canonical Memory v2 将数据保存在有界分片：单文件上限 64 MiB，活动 bucket 合计上限 1 GiB。旧 v1 客户端拒绝 v2；默认 shadow 不迁移。升级前备份，停止旧 writer；降级需要兼容快照。准确 ID 删除使用点读，不要求扫描全量记忆。
+## IDE 图片、会话诊断与慢初始化
 
-## IDE 图片、长回复与诊断
+公开版保持长回复选区和阅读位置，使用有界附件快照与图片解码预算，包含 Windows 长路径暂存修复。恢复文本与附件后检查状态，再手动发送。图片 ACK 与当前页面实例绑定。
 
-公开版保持长回复选区和阅读位置；图片 save/restore/discard 与 ACK 绑定每次页面执行，旧页面不能覆盖新草稿。恢复文本与附件后检查状态，再手动发送。
+Doctor 依据实际会话能力区分 confirmed 和 degraded/unconfirmed；静态配置或版本匹配不能替代会话观察。初始化超过 30 秒时继续等待，最多 120 秒；超时保留草稿、取消本次发送，迟到 init 不补发。详细操作见[IDE 指南](./ide-plugin)。
 
-Open VSX `0.37.131` 与 JetBrains `0.4.149` 纳入有界文件快照、图片身份核对及相关解码预算；Windows 长路径图片暂存已修复。JetBrains debounce/flush 重复提交诊断的竞态修复已进入公开版。真实宿主证据不承诺固定帧率或全局 SLO。
+## 显式 Linux 权限宿主与恢复
 
-## 显式 Linux 权限宿主
+公开 CLI 的持久权限宿主须管理员配置私有持久域、固定描述符及官方 writer，普通 CLI 不默认开启，Windows/macOS 不提供等价持久 API。官方同进程写口同步锁存撤销；跨进程/Worker 为 100 ms 轮询，清理成功后才发停止回执。恢复原规则不能复活旧许可，任意外部编辑与敌对同 UID 回滚没有同等保证。
 
-公开 CLI 包含显式 `permission-authority-host` API，需管理员先配置项目与可写根以外的私有持久域、固定启动描述符和官方 writer。普通 CLI 不默认启用，Windows/macOS 拒绝该持久 API。
+Linux cgroup2 恢复重验 boot/inode/所有权，清理已确认遗留进程后才准入，不重放原命令。身份漂移或持久化失败继续拒绝；管理员配置见[受控宿主说明](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md)。
 
-官方同进程写口同步锁存撤销，恢复原规则不能复活旧许可；跨进程/Worker 每 100 ms 轮询，调度可能延迟。writer 成功不证明所有接收方已停止；停止回执等待代理和会话成功清理，并绑定 receiver/session/policyVersion。任意外部编辑、非协作 ABA、敌对同 UID 回滚与全部 legacy callback 不在保证内。管理员要求见[受控宿主指南](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md)。
+## 后续源码候选与工程验证
 
-## 最新源码候选与验证边界
+已提交源码 `feda6d1eee` 的 CLI `0.166.89` / VS Code `0.37.134` / JetBrains `0.4.152` 尚未公开。新增双 IDE 原始协议/UI 采集、prepare/finish 证据和显式 Linux controlled-host 入口；JetBrains 新增 CLI 身份校验与首次配置诊断，诊断结果记录源码 SHA、dirty 状态及关键文件摘要。安装继续使用上表公开版本。
 
-CLI `0.166.87` / VS Code `0.37.132` / JetBrains `0.4.150` 尚未公开，安装继续使用上表版本。候选增加记忆索引和游标分页、VERIFY-01 执行、实际会话能力 Doctor 与慢初始化草稿保护、Linux cgroup2 恢复。见[记忆用法](./cli-memory)、[评估命令](./cli-eval)和[最新设计](/design/agent-runtime-update-2026-10-05)。
+`f289a08844` 的 [MCP 三系统矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37295879127)与[双 IDE 六宿主矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37295879088)通过，覆盖真实官方 MCP GET/SSE 通知与实际 IDE 操作/重启。IDE 诊断使用受控协议 peer，不等于公开首次安装或真实 provider 样本。Docker review pack CI 已新增，但整包执行尚未通过；最新设计见[运行时增量](/design/agent-runtime-update-2026-10-05)。
 
-历史 `0fc6e7a0c2` 的[六平台 unsigned native 验证](https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226)全部通过，包括 Windows ARM64；不能转为当前候选 signed native 发行。`320301e6e7` 的[真实 cgroup2 专项](https://github.com/chainlesschain/chainlesschain/actions/runs/37258234311)在 Linux x64/arm64 各通过 2 项，只覆盖该提交与显式 delegated cgroup2 范围。此前失败仍保留历史证据。真实 PM、完整账单、GUI 与真人辅助技术验收、自动晋升保持 HOLD。
+## 验收边界
+
+冻结 36+9 正式 provider/首次安装样本仍为 `NOT_RUN`，实际账号、完整账单、独立人工签核、NVDA/VoiceOver/Orca 真人听测及 8h/24h SLO 仍开放。历史六目标 unsigned native 验证不等于签名候选发行；自动 active Skill 晋升保持 HOLD。
 
 ## 0.166.84 历史：作用域权限同步撤销
 
@@ -82,7 +84,7 @@ Issue 查询、artifact 下载和保存日志解析统一计入调查预算。�
 | Skill 决策边界 | 请求/响应各限 256 KiB；未知模型用量不产生建议，恢复同一会话也阻断后续决策调用         |
 | 会话与宿主恢复 | CLI/IDE 分页读取已提交历史并恢复草稿；Stop 与重启后重新对齐权威记录，后台进程清理有界 |
 
-上述范围按提交记录描述，不代表每个中间版本都完成 npm 发行。当前安装请使用已核验的 `0.166.86`。逐槽签名 PM 回执对账已进入公开 CLI 源码，但仅校验提交给接口的回执；完整启动覆盖、真实收益与总成本仍未认证。离线操作见 [PM 效果评测指南](./pm-effect-evaluation)，实现与限制见[增量设计](/design/agent-runtime-update-2026-09-26)。
+上述范围按提交记录描述，不代表每个中间版本都完成 npm 发行。当前安装请使用已核验的 `0.166.88`。逐槽签名 PM 回执对账已进入公开 CLI 源码，但仅校验提交给接口的回执；完整启动覆盖、真实收益与总成本仍未认证。离线操作见 [PM 效果评测指南](./pm-effect-evaluation)，实现与限制见[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 ## v5.0.3.138 桌面与移动端产品发行
 
@@ -217,7 +219,7 @@ REPL / headless / stream / AgentRuntime
 
 ## 历史公开组合（2026-09-09）
 
-下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.86，IDE 与其他组件的商店版本需按各自发布渠道核对。
+下表保留 0.166.38 发布时点记录；当前 CLI 安装使用 0.166.88，IDE 与其他组件的商店版本需按各自发布渠道核对。
 
 | 组件                  | 公开版本   | 获取渠道              |
 | --------------------- | ---------- | --------------------- |
@@ -278,7 +280,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.88 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -289,12 +291,12 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.88 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.86`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.88`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
@@ -336,16 +338,16 @@ python -m pip install chainlesschain-agent-sdk==0.2.9
 
 ## 测试覆盖
 
-当前公开 CLI `0.166.86@8458a0a502` 的精确提交 CI/Strict 与 npm 发布成功；发布后主线修复须重新通过其自己的完整矩阵：
+当前公开 CLI `0.166.88@7db17a12e1` 的精确提交 CI/Strict 与 npm 发布成功；发布后主线修复须重新通过其自己的完整矩阵：
 
 | 门禁                 | GitHub Actions / 公共渠道                                                                | 状态                                              |
 | -------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| CLI CI               | [37227574239](https://github.com/chainlesschain/chainlesschain/actions/runs/37227574239) | Linux/Windows/macOS 全部配置任务成功              |
-| Strict Sandbox       | [37227577487](https://github.com/chainlesschain/chainlesschain/actions/runs/37227577487) | Linux x64/ARM64、Windows、macOS 15/latest 成功    |
-| npm 精确发布         | [37250637296](https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296) | 精确 SHA 门禁、OIDC 发布及公共回读成功            |
-| npm 公共 registry    | latest、0.166.86、integrity                                                              | latest、版本与 integrity 已回读                   |
-| VS Code 宿主与发布   | [37252575170](https://github.com/chainlesschain/chainlesschain/actions/runs/37252575170) | 成功；Open VSX 0.37.131 已公开，推荐 CLI 0.166.86 |
-| JetBrains 宿主与商店 | [37252574613](https://github.com/chainlesschain/chainlesschain/actions/runs/37252574613) | 成功；0.4.149 批准并公开，推荐 CLI 0.166.86       |
+| CLI CI               | [37279746954](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954) | Linux/Windows/macOS 全部配置任务成功              |
+| Strict Sandbox       | [37279746478](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478) | Linux x64/ARM64、Windows、macOS 15/latest 成功    |
+| npm 精确发布         | [37290065303](https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303) | 精确 SHA 门禁、OIDC 发布及公共回读成功            |
+| npm 公共 registry    | latest、0.166.88、integrity                                                              | latest、版本与 integrity 已回读                   |
+| VS Code 宿主与发布   | [37291923667](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923667) | 成功；Open VSX 0.37.133 已公开，推荐 CLI 0.166.88 |
+| JetBrains 宿主与商店 | [37291923696](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923696) | 成功；0.4.151 批准并公开，推荐 CLI 0.166.88       |
 
 CLI/npm、VSIX、JetBrains ZIP 与 Desktop/native 保持独立发行身份。公开 registry 带有 provenance 元数据，但本次回读不替代发布流程中的精确字节及签名验证。
 
@@ -358,19 +360,19 @@ CLI/npm、VSIX、JetBrains ZIP 与 Desktop/native 保持独立发行身份。公
 
 ## 故障排查
 
-**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.86`，再运行 `cc agent --capabilities`。
+**`unknown command 'agent'`**：这通常是旧版公共安装与 Session Core 导出不匹配。升级到 `0.166.88`，再运行 `cc agent --capabilities`。
 
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.86 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.88 --registry https://registry.npmjs.org
 ```
 
-**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.131` VSIX。
+**官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.133` VSIX。
 
-**JetBrains 版本过旧**：Marketplace 当前公开 `0.4.149`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
+**JetBrains 版本过旧**：Marketplace 当前公开 `0.4.151`；若本机搜索仍显示旧版，刷新插件列表并确认 IDE 版本至少为 2024.2。
 
-**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.86`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
+**普通启动仍检查 Docker**：确认 `cc --version` 为 `0.166.88`，再检查 CLI flag、settings 或 managed policy 是否显式选择容器隔离。
 
 **Workbench/Knowledge 提示 trusted deployment host required**：当前进程未接入部署治理宿主。保持失败闭合，由管理员配置 identity/policy/ledger/KMS authority；不要回退到本地直写。
 
