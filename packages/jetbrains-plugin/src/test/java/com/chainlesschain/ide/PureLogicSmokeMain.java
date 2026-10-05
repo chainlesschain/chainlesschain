@@ -1179,7 +1179,25 @@ public final class PureLogicSmokeMain {
         check(up.contains("connect intellij:51234"), "status passthrough");
         check(up.contains("reason: workspace-match"), "doctor passthrough");
         check(up.contains("endpoint injected: yes"), "jetbrains passthrough");
-        check(up.contains("READY (可运行)"), "single ready verdict");
+        check(up.contains("DEGRADED (可降级运行)"), "unobserved capabilities degrade");
+        check(up.contains("Agent session: not observed"), "missing session is visible");
+        check(up.contains("Input acceptance receipts: not observed"), "missing receipts are visible");
+        String ready = IdeDoctor.formatReport(51234,
+                "connect intellij:51234", "reason: workspace-match",
+                "endpoint injected: yes",
+                RuntimeCompatibility.evaluate(
+                        "0.162.190",
+                        RuntimeCompatibility.MIN_CLI_VERSION,
+                        51234,
+                        null,
+                        new RuntimeCompatibility.AgentRuntime(
+                                "running", true, "default", "default", "effective")),
+                "0.4.69",
+                "2024.3");
+        check(ready.contains("READY (可运行)"), "confirmed capabilities are ready");
+        check(ready.contains("Input acceptance receipts: supported"), "confirmed receipts are visible");
+        check(ready.contains("requested default, effective default (effective)"),
+                "effective approval mode is visible");
         String down = IdeDoctor.formatReport(
                 -1, "", null, "  ",
                 RuntimeCompatibility.evaluate(
