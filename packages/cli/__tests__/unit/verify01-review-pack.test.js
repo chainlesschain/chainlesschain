@@ -61,6 +61,8 @@ describe("operator acceptance pack", () => {
       control: path.resolve("control"),
       containerName: "bounded",
       imageId: "sha256:" + "a".repeat(64),
+      uid: 1001,
+      gid: 1001,
       timeoutMs: 50000,
       command: ["node", "test.js"],
     });
@@ -160,7 +162,12 @@ describe("operator acceptance pack", () => {
       containerName: "test-run",
       command: ["node", "test.js"],
       imageId: "sha256:" + "a".repeat(64),
+      uid: 1001,
+      gid: 1001,
     });
+    expect(
+      args.slice(args.indexOf("--user"), args.indexOf("--user") + 2),
+    ).toEqual(["--user", "1001:1001"]);
     expect(args).toContain("none");
     expect(args).toContain("--read-only");
     expect(args).toContain("ALL");
@@ -172,6 +179,49 @@ describe("operator acceptance pack", () => {
     );
     expect(args).not.toContain("--env-file");
     expect(args).not.toContain("--privileged");
+  });
+  it("requires a numeric operator identity without widening container capabilities", () => {
+    const options = {
+      workspace: path.resolve("workspace"),
+      control: path.resolve("control"),
+      containerName: "operator-owned",
+      command: ["node", "--version"],
+      imageId: "sha256:" + "a".repeat(64),
+      uid: 1001,
+      gid: 1001,
+    };
+    for (const identity of [
+      undefined,
+      -1,
+      0xffffffff,
+      1.5,
+      "root",
+      "1001:0",
+      NaN,
+    ]) {
+      expect(() => reviewDockerArgs({ ...options, uid: identity })).toThrow(
+        /numeric UID/,
+      );
+      expect(() => reviewDockerArgs({ ...options, gid: identity })).toThrow(
+        /numeric UID/,
+      );
+    }
+    const setup = reviewDockerArgs({ ...options, setup: true });
+    const check = reviewDockerArgs(options);
+    for (const args of [setup, check]) {
+      expect(args[args.indexOf("--user") + 1]).toBe("1001:1001");
+      expect(args[args.indexOf("--cap-drop") + 1]).toBe("ALL");
+      expect(args).toContain("--read-only");
+      expect(args).toContain("no-new-privileges");
+      expect(args).not.toContain("--cap-add");
+    }
+    expect(setup.find((arg) => arg.includes("target=/workspace"))).not.toMatch(
+      /readonly/,
+    );
+    expect(check.find((arg) => arg.includes("target=/workspace"))).toMatch(
+      /readonly$/,
+    );
+    expect(check[check.indexOf("--network") + 1]).toBe("none");
   });
   it("requires one non-equivalent mutation match and preserves surrounding code", () => {
     expect(

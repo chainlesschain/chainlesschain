@@ -67,11 +67,20 @@ export function reviewDockerArgs({
   setup = false,
   command,
   imageId,
+  uid,
+  gid,
   timeoutMs = MAX_STAGE_MS,
 }) {
   requireCondition(
     /^sha256:[a-f0-9]{64}$/u.test(imageId || ""),
     "acceptance requires an externally pinned Docker image ID",
+  );
+  requireCondition(
+    [uid, gid].every(
+      (value) =>
+        Number.isSafeInteger(value) && value >= 0 && value < 0xffffffff,
+    ),
+    "acceptance requires the Linux operator's numeric UID and GID",
   );
   requireCondition(
     path.isAbsolute(workspace) && path.isAbsolute(control),
@@ -91,6 +100,10 @@ export function reviewDockerArgs({
     "run",
     "--rm",
     "--init",
+    // With all capabilities dropped, container root cannot write private
+    // runner-owned bind mounts. Keep the operator's actual file identity.
+    "--user",
+    `${uid}:${gid}`,
     "--name",
     containerName,
     "--network",
@@ -267,6 +280,8 @@ function controller(workspace, spec, execute = spawnSync, externalDeadline) {
         setup,
         command,
         imageId: spec.imageId,
+        uid: process.getuid(),
+        gid: process.getgid(),
         timeoutMs,
       }),
       {
@@ -457,6 +472,7 @@ export function runReviewStage(
     isolation: "docker",
     imageReference: REVIEW_IMAGE,
     imageId: spec.imageId,
+    operator: { uid: process.getuid(), gid: process.getgid() },
     tests: [],
     mutations: [],
     executions: runner.executions,
