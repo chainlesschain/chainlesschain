@@ -1,0 +1,382 @@
+{
+  "schema": "chainlesschain.cli-native-validation-readback/v2",
+  "observedAt": "2026-10-05T02:49:57.448Z",
+  "status": "six-targets-passed",
+  "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+  "run": {
+    "id": 37198920226,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37198920226",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 111426403346,
+      "name": "unsigned native validation (node22-linux-arm64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111426403421,
+      "name": "unsigned native validation (node22-win-arm64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111426403450,
+      "name": "unsigned native validation (node22-win-x64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111426403469,
+      "name": "unsigned native validation (node22-macos-x64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111426403481,
+      "name": "unsigned native validation (node22-linux-x64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111426404059,
+      "name": "unsigned native validation (node22-macos-arm64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111434318721,
+      "name": "Aggregate six-target native validation evidence",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "targets": [
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-linux-arm64",
+      "platform": "linux",
+      "arch": "arm64",
+      "expectedPlatform": "linux",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 170227371,
+        "sha256": "16837e604cf75868e9504bdbc530ff53a518133274cde8e30fa89dbb60e4109d",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-linux-x64",
+      "platform": "linux",
+      "arch": "x64",
+      "expectedPlatform": "linux",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 175620091,
+        "sha256": "2f2513f00b49054450c8765c5bcb6406ac46c74b7537b0c6f14f804b30da65d3",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-macos-arm64",
+      "platform": "darwin",
+      "arch": "arm64",
+      "expectedPlatform": "darwin",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 162588032,
+        "sha256": "e41b24044ca84117e60193f9d36a965bad9acacaa6560d491d24a7322fa2f6f5",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-macos-x64",
+      "platform": "darwin",
+      "arch": "x64",
+      "expectedPlatform": "darwin",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 165007600,
+        "sha256": "70d1ab13ebe35250c2a7c7c23b82600477ef5d4b914fe6cf3025d9df883f71e1",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-win-arm64",
+      "platform": "win32",
+      "arch": "arm64",
+      "expectedPlatform": "win32",
+      "expectedArch": "arm64",
+      "binary": {
+        "size": 153675553,
+        "sha256": "fb5a6294f53331f4525cd1324dcec1b08c496de600db148988f0bd7204666440",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    },
+    {
+      "schema": "chainlesschain.cli-native-validation.v1",
+      "exactSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "expectedSha": "0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "tree": "08d641fc71e5fd77dbfd58f22ad681fc481545cb",
+      "version": "0.166.86",
+      "target": "node22-win-x64",
+      "platform": "win32",
+      "arch": "x64",
+      "expectedPlatform": "win32",
+      "expectedArch": "x64",
+      "binary": {
+        "size": 158414318,
+        "sha256": "b548a3a31b9acfb2a836c6c7cb5e454b34321bfb5973722ebe94152910e91cf7",
+        "executedOnMatchingHost": true,
+        "commandProbe": "status --json"
+      },
+      "transactionTests": [
+        "native-installers-transaction",
+        "packer-pack-update-applier",
+        "native-release-manifest"
+      ],
+      "signed": false,
+      "releaseEligible": false,
+      "boundary": "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow"
+    }
+  ],
+  "artifactReceipts": [
+    {
+      "id": 11303435983,
+      "name": "cli-native-validation-node22-win-arm64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:9a4f0c4f7703993828103ec653e99487dd677bdcd6fb86c02a5af31d8126f715",
+      "file": "node22-win-arm64.json",
+      "bytes": 888,
+      "sha256": "6a25990636b09191e358514bf2ed86bcce70c1e135dbe28b305c4e2d2776934c"
+    },
+    {
+      "id": 11303041032,
+      "name": "cli-native-validation-node22-macos-arm64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:17a6a9ad8741e4c500e42d6ba41335ebfa2a1ebcf17366676d430b315a4453bb",
+      "file": "node22-macos-arm64.json",
+      "bytes": 892,
+      "sha256": "a9b3c64af87679874eddc0049f19281301cd9419f82142b7506316d05803a84f"
+    },
+    {
+      "id": 11302931968,
+      "name": "cli-native-validation-node22-win-x64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:387359f99e1edcb14c9f395d15bd76b8d8e6c766d17f2882310492613b04da5d",
+      "file": "node22-win-x64.json",
+      "bytes": 882,
+      "sha256": "68beda627f9c61c52e857b8e6ec1f9f0faefea952ea64d71d11361f30fd0e7fb"
+    },
+    {
+      "id": 11302913326,
+      "name": "cli-native-validation-aggregate-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:35e3d8bf27448bd828983f7d09a928d9b760c257c834e11632e75f92908721ba",
+      "file": "cli-native-validation-aggregate.json",
+      "bytes": 6125,
+      "sha256": "6cdb684090d69f8ac386771ba0edbfafbced3814684378349a320be12b250c62"
+    },
+    {
+      "id": 11302589602,
+      "name": "cli-native-validation-node22-linux-x64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:ae3a5bcc890a6c6e84263b335039c1fe091c71ee4834bdab40fd814c0addb65c",
+      "file": "node22-linux-x64.json",
+      "bytes": 884,
+      "sha256": "5b2a1d816039736daca12dee83094b044216cf0969a2f30fd653ee5084a6244e"
+    },
+    {
+      "id": 11302448343,
+      "name": "cli-native-validation-node22-macos-x64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:39cdb60b638d949e0896f96ec2d93ecb9dd2f44075a6859aaf574e10c65b65da",
+      "file": "node22-macos-x64.json",
+      "bytes": 886,
+      "sha256": "7f24307a5865fcf77d579d6937678d73255b37ce9a9cffb318d1284ddaa597ff"
+    },
+    {
+      "id": 11301629778,
+      "name": "cli-native-validation-node22-linux-arm64-0fc6e7a0c24db14975408a1cdf40ad0eba6f25ca",
+      "actionsZipDigest": "sha256:f68c101ceeac56b1b78516f11c1711dc0538b360dbc1f19a498eb2e2b5f256d6",
+      "file": "node22-linux-arm64.json",
+      "bytes": 890,
+      "sha256": "2f9e295ba15baac611bb5c79d951a7fe2bd1e52c142775f6e342ecca678a7ee6"
+    }
+  ],
+  "windowsArm64": {
+    "job": 111426403421,
+    "updaterTestsPassed": 69,
+    "updaterTestsFailed": 0,
+    "originalDeadlinesRetained": true,
+    "capturedLogSha256": "4c4c4c5011614176bd8cd96c0f030d94936ee59ab3f7ed515058a4f5d47bd92a",
+    "archivedExcerptSha256": "84f9d31c1cd1a17ca0a841cdf7524982fc326a9b5fbc16df91c1b3c90841109a",
+    "excerptNormalization": "Selected original log lines, ANSI display escapes and trailing horizontal whitespace removed; captured log hash retains original bytes"
+  },
+  "relatedSourceComparison": {
+    "sha": "66db4bce8a5bd2967b800c698c6ffb0101b808af",
+    "files": [
+      {
+        "file": "packages/cli/src/lib/packer/pack-update-applier.js",
+        "validatedCommitSha256": "5f1b43663e4c54a912e14a5e8ae87ca2d9e4b3968ef85a7dd43ea20a9dcd3a93",
+        "relatedCommitSha256": "5f1b43663e4c54a912e14a5e8ae87ca2d9e4b3968ef85a7dd43ea20a9dcd3a93",
+        "identical": true
+      },
+      {
+        "file": "packages/cli/src/lib/packer/native-update-state.js",
+        "validatedCommitSha256": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+        "relatedCommitSha256": "ae60d6952904fa84d975a65b2f4a51ade6d21f0ddb740b384ae6040daa51ebee",
+        "identical": true
+      },
+      {
+        "file": "packages/cli/__tests__/unit/packer-pack-update-applier.test.js",
+        "validatedCommitSha256": "24035e12926104f8d0a716a8cc0abaaafaedb2913a7267adf546ea9d312fbc00",
+        "relatedCommitSha256": "24035e12926104f8d0a716a8cc0abaaafaedb2913a7267adf546ea9d312fbc00",
+        "identical": true
+      },
+      {
+        "file": "packages/cli/__tests__/unit/native-installers-transaction.test.js",
+        "validatedCommitSha256": "7ba229d9e2f031bc18ed08d9c131ba265af0305f6b6c04fd16637c7bc543460c",
+        "relatedCommitSha256": "7ba229d9e2f031bc18ed08d9c131ba265af0305f6b6c04fd16637c7bc543460c",
+        "identical": true
+      },
+      {
+        "file": "packages/cli/install/install.ps1",
+        "validatedCommitSha256": "e1f0cecd420633f13bb45ac10e2213b7a1303924cd2dd571b3d1c8d07edc2970",
+        "relatedCommitSha256": "e1f0cecd420633f13bb45ac10e2213b7a1303924cd2dd571b3d1c8d07edc2970",
+        "identical": true
+      },
+      {
+        "file": "packages/cli/install/install.sh",
+        "validatedCommitSha256": "685be23b057cc216a6808c1a286046ed550ff2aa1c5cef2851d71c51218859cd",
+        "relatedCommitSha256": "685be23b057cc216a6808c1a286046ed550ff2aa1c5cef2851d71c51218859cd",
+        "identical": true
+      }
+    ],
+    "boundary": "Byte equality for these files does not transfer whole-workflow validation to a different source commit"
+  },
+  "releaseEligible": false,
+  "signed": false,
+  "evidenceDirectory": "native-0fc-20261005-readback",
+  "files": [
+    {
+      "name": "cli-native-validation-aggregate.json",
+      "bytes": 6125,
+      "sha256": "6cdb684090d69f8ac386771ba0edbfafbced3814684378349a320be12b250c62"
+    },
+    {
+      "name": "node22-linux-arm64.json",
+      "bytes": 890,
+      "sha256": "2f9e295ba15baac611bb5c79d951a7fe2bd1e52c142775f6e342ecca678a7ee6"
+    },
+    {
+      "name": "node22-linux-x64.json",
+      "bytes": 884,
+      "sha256": "5b2a1d816039736daca12dee83094b044216cf0969a2f30fd653ee5084a6244e"
+    },
+    {
+      "name": "node22-macos-arm64.json",
+      "bytes": 892,
+      "sha256": "a9b3c64af87679874eddc0049f19281301cd9419f82142b7506316d05803a84f"
+    },
+    {
+      "name": "node22-macos-x64.json",
+      "bytes": 886,
+      "sha256": "7f24307a5865fcf77d579d6937678d73255b37ce9a9cffb318d1284ddaa597ff"
+    },
+    {
+      "name": "node22-win-arm64.json",
+      "bytes": 888,
+      "sha256": "6a25990636b09191e358514bf2ed86bcce70c1e135dbe28b305c4e2d2776934c"
+    },
+    {
+      "name": "node22-win-x64.json",
+      "bytes": 882,
+      "sha256": "68beda627f9c61c52e857b8e6ec1f9f0faefea952ea64d71d11361f30fd0e7fb"
+    },
+    {
+      "name": "windows-arm64-tests-excerpt.txt",
+      "bytes": 1364,
+      "sha256": "84f9d31c1cd1a17ca0a841cdf7524982fc326a9b5fbc16df91c1b3c90841109a"
+    },
+    {
+      "name": "workflow-jobs.json",
+      "bytes": 35420,
+      "sha256": "fbd1e5803b7ae01966dae4654f04a59bdd8236f4581106e48ef4c1fca5fd1b24"
+    },
+    {
+      "name": "workflow-run.json",
+      "bytes": 14526,
+      "sha256": "bdbe37777fad36301623e3392311fb1e26a417c7127b705e395244ab96b5b554"
+    }
+  ],
+  "limitations": [
+    "Unsigned standalone validation only; no native signing, notarization, publication, or public binary readback",
+    "Historical success does not establish a unique cause for intermittent PowerShell latency",
+    "All results apply only to this exact validated commit"
+  ]
+}
