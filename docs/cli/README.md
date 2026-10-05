@@ -2,7 +2,7 @@
 
 [返回文档中心](../README.md)
 
-2026-10-04 当前公开版本为 CLI `0.166.85`、Open VSX `0.37.130`；JetBrains 公开 `0.4.146` 的商店制品仍推荐 CLI `0.166.84`，`0.4.149` 为源码候选。升级与发布边界见[发布与升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)，精确门禁见[运行时增量设计](../design/agent-runtime-update-2026-09-26.md)。发布后的[Linux 受控权限宿主](./NET02_CONTROLLED_HOST.md)需管理员显式配置，尚未进入上述 npm 发行。
+2026-10-05 核对：公开 CLI **0.166.86**、Open VSX **0.37.131**、JetBrains **0.4.149** 同属发行提交 `8458a0a502`，两端 IDE 推荐 CLI `0.166.86`。源码基线 `main@85f2f14aa1` 为 CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 升级见[发布与升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)，分页、评估与恢复合同见[最新设计](../design/agent-runtime-update-2026-10-05.md)。[Linux 受控权限宿主](./NET02_CONTROLLED_HOST.md)已进入 0.166.86，但仍需管理员显式配置。
 
 从[安装指南](../guides/CLI_INSTALLATION_GUIDE.md)和[命令索引](./CLI_COMMANDS_REFERENCE.md)开始；完整命令清单见[自动生成的 CLI 参考](./CLI_REFERENCE.generated.md)。
 

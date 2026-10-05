@@ -184,12 +184,16 @@ export default defineConfig({
           collapsed: false,
           items: [
             {
-              text: "0.166.76 发布、升级与证据边界 ⭐NEW",
+              text: "CLI 当前发布、升级与证据边界",
               link: "/chainlesschain/agent-platform-release",
             },
             {
               text: "PM 效果评测与证据核验",
               link: "/chainlesschain/pm-effect-evaluation",
+            },
+            {
+              text: "2026-10-05 CLI/IDE 运行时设计",
+              link: "/design/agent-runtime-update-2026-10-05",
             },
             {
               text: "2026-09-26 运行时增量设计",

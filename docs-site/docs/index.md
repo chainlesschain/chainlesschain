@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.85 | Open VSX 0.37.130 | 桌面与移动端"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.86 | Open VSX 0.37.131 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.85
+    title: Agent Platform 0.166.86
     details: 恢复 Issue/CI 调查，在压缩、重启和任务交接中保留失败断言、源码位置与测试结论；Linux Docker 域名出站仍需显式配置。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.130 与 JetBrains 0.4.146 均已公开，Open VSX 推荐 CLI 0.166.85，JetBrains 商店制品仍推荐 0.166.84。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: VS Code 0.37.131 与 JetBrains 0.4.149 均已公开，两端均推荐 CLI 0.166.86。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.130 与 JetBrains 0.4.146 均已公开，分别推荐 CLI 0.166.85 / 0.166.84；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.131 与 JetBrains 0.4.149 均已公开，分别推荐 CLI 0.166.86 / 0.166.84；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -60,10 +60,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.85@84f204db94；精确 CI/Strict（含 Linux ARM64）和 npm 发布成功；68/68 CLI CI 与五个 Strict 作业通过。
+    details: npm latest 为 CLI 0.166.86@84f204db94；精确 CI/Strict（含 Linux ARM64）和 npm 发布成功；68/68 CLI CI 与五个 Strict 作业通过。
 ---
 
-> **2026-10-04 当前核对**：源码基线 `main@443a745962`；公开 CLI `0.166.85` 与 Open VSX `0.37.130` 均来自 `84f204db94`，VSIX 推荐 CLI `0.166.85`；JetBrains 公开 `0.4.146@d93c9c9766` 仍推荐 `0.166.84`。最新源码候选为 CLI `0.166.86` / VS Code `0.37.131` / JetBrains `0.4.149`，冻结候选 `b2aa3aba08` 待自身完整门和公开回读，不能沿用旧成功。发布后源码加入显式 Linux 持久权限宿主、图片解码预算、分片记忆与 Windows 长路径修复。100K formal 仅闭合已测容量，不证明全局 SLO；跨进程/Worker 权限为 100 ms 轮询及清理成功后的接收方回执，普通 CLI 不默认启用。Windows ARM64 native 失败证据保持，无签名 native 发行。独立产品 v5.0.3.138，真实 PM/成本与自动晋升仍 HOLD。 详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
+> **2026-10-04 当前核对**：源码基线 `main@443a745962`；公开 CLI `0.166.86` 与 Open VSX `0.37.131` 均来自 `84f204db94`，VSIX 推荐 CLI `0.166.86`；JetBrains 公开 `0.4.149@d93c9c9766` 仍推荐 `0.166.84`。最新源码候选为 CLI `0.166.86` / VS Code `0.37.131` / JetBrains `0.4.149`，冻结候选 `b2aa3aba08` 待自身完整门和公开回读，不能沿用旧成功。发布后源码加入显式 Linux 持久权限宿主、图片解码预算、分片记忆与 Windows 长路径修复。100K formal 仅闭合已测容量，不证明全局 SLO；跨进程/Worker 权限为 100 ms 轮询及清理成功后的接收方回执，普通 CLI 不默认启用。Windows ARM64 native 失败证据保持，无签名 native 发行。独立产品 v5.0.3.138，真实 PM/成本与自动晋升仍 HOLD。 详见[发布与升级指南](/chainlesschain/agent-platform-release)和[增量设计](/design/agent-runtime-update-2026-09-26)。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

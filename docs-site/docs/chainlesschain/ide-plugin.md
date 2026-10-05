@@ -1,26 +1,26 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前渠道状态（2026-10-04）**：CLI **0.166.85** 与 Open VSX **0.37.130** 已公开，来源 `84f204db94`；公开 JetBrains **0.4.146** 来源 `d93c9c9766`，商店制品仍推荐 CLI `0.166.84`，源码候选 `0.4.149` 未发布。Microsoft Marketplace 未发行。
+> 2026-10-05 核对：公开 CLI **0.166.86**、Open VSX **0.37.131**、JetBrains **0.4.149** 同属发行提交 `8458a0a502`，两端 IDE 推荐 CLI `0.166.86`。源码基线 `main@85f2f14aa1` 为 CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 Microsoft Marketplace 未发行。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.130`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.146`。执行 `npm i -g chainlesschain@0.166.85 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。各渠道的精确发布门与配对见[发布与升级指南](/chainlesschain/agent-platform-release)。
+从 Open VSX 安装 `0.37.131`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.149`。执行 `npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。两个公开插件均推荐 `0.166.86`，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
 
-## Open VSX 0.37.130：图片草稿恢复
+## 图片草稿、长回复与诊断
 
-粘贴或拖入图片后，等待宿主验证与保存确认。图片状态和文本状态分别核对；文本保存成功不会隐藏附件失败。验证错误时移除附件或更换符合限制的图片，再保存。
+粘贴或拖入图片后等待宿主验证与保存确认，分别检查文本和附件状态；验证失败时移除附件或换用符合限制的文件。切换会话、Reload Webviews 或重启后，确认恢复内容，再手动发送。恢复不会自动提交，旧页面或迟到 ACK 不能覆盖新页面草稿。
 
-切换会话、重载 Webview 或重启 IDE 后，确认恢复的文本与附件再手动发送；不会自动提交恢复图片。保存及 ACK 绑定每次页面执行，退休页面或迟到的图片准备不能覆盖新页面草稿。丢弃空草稿先提交 manifest 移除，再清理图片。草稿是可恢复输入，执行与审批状态仍来自 CLI 权威记录。
+公开版使用有界文件快照、图片文件身份核对与解码预算，包含 Windows 长路径暂存修复；JetBrains 诊断 debounce/flush 重复提交的竞态修复已公开。长回复保持选区与向上阅读位置，结束后格式化，有选区时延后格式化。
 
-## Open VSX 0.37.130：长回复显示
+## 源码候选：Doctor 与慢初始化
 
-生成期间按有界文本节点追加正文，保持选区与向上滚动的阅读位置；回到末尾后可恢复跟随。回复结束后统一格式化 Markdown 和代码按钮；仍有选区时延后格式化。真实三系统宿主证据不承诺固定帧率、完成时延或全局 SLO。历史 `0.37.127` 候选已由后续公开版承接，不能继续写成当前未发布版本。
+VS Code `0.37.132` / JetBrains `0.4.150` 新增基于实际会话能力的诊断：先检查版本和推荐 CLI，再区分 confirmed 与 degraded/unconfirmed。尚无会话观察时，静态配置不能证明功能实际可用；启动聊天宿主后重跑 Diagnose Bridge，检查报告中的会话能力和故障原因。
 
-## 发布后的源码与权限范围
+初始化超过 30 秒时继续等待，最多 120 秒；期限内握手完成才按当前会话提交。超时保留文本与附件草稿并取消本次提交，迟到 init 不补发。升级 CLI 后重启宿主；仍未就绪时保留草稿并查看诊断，不因候选代码存在就假定商店版本已包含该修复。见[最新设计](/design/agent-runtime-update-2026-10-05)。
 
-JetBrains `0.4.147` 的发布测试发现诊断 debounce/flush 重复提交而停止；`0.4.148` 为修复候选，本机通过不等于商店发行。`48fd92562a` 的源码增加预览前 PNG/JPEG/GIF/WebP 帧/像素预算和两端有界文件快照，尚未进入当前 VSIX/ZIP。
+## 权限与评估边界
 
-公开 CLI 保留同进程官方 settings/scoped 变更的同步撤销，恢复规则不会复活旧 Shell 许可。发布后的显式 Linux 宿主 API 需管理员配置，跨进程/Worker 为 100 ms 轮询，并在清理成功后发接收方停止回执；普通 CLI 不自动开启，Windows/macOS 与任意外部编辑没有同等保证。IDE 不持有路由或执行 authority。详见[增量设计](/design/agent-runtime-update-2026-09-26)和[实施证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide-gap-implementation-2026-09-27.md)。
+IDE 读取 CLI 投影并提交审阅决定，不持有 CLI writer、Skill 路由、评估或发布权限。公开 CLI 的显式 Linux 持久权限宿主需管理员配置；跨进程/Worker 为 100 ms 轮询，清理成功后才发接收方停止回执。普通 CLI 不自动开启；Windows/macOS 与任意外部编辑没有同等保证。下方带版本与日期的功能记录保留历史范围。
 
 ## 概述
 
@@ -58,8 +58,8 @@ VS Code / VSCodium 扩展 `0.37.118` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.84 --registry https://registry.npmjs.org # Node ≥ 22.12.0
-cc --version                # 建议 ≥ 0.162.157
+npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org # Node ≥ 22.12.0
+cc --version                # 本次核验版本 0.166.86
 cc ide --help               # 确认有 ide 子命令
 ```
 
@@ -68,7 +68,7 @@ cc ide --help               # 确认有 ide 子命令
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.126 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.126/file/chainlesschain.chainlesschain-ide-0.37.126.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.131 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -77,10 +77,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.146`，已批准并列出，推荐 CLI `0.166.84`。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.149`，已批准并列出，推荐 CLI `0.166.86`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 Open VSX `0.37.126` 与 JetBrains `0.4.146` 均已公开，内置推荐 CLI `0.166.84`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
+当前 Open VSX `0.37.131` 与 JetBrains `0.4.149` 均已公开，内置推荐 CLI `0.166.86`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
 
 ### 3. 配置大模型（首次）
 

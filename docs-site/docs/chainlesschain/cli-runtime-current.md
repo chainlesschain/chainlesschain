@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.166.84）
+# CLI Runtime 当前实现与源码候选
 
-> **2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。参见[发布指南](./agent-platform-release)、[PM 效果评测](./pm-effect-evaluation)和[增量设计](/design/agent-runtime-update-2026-09-26)。下文旧版本段落保留历史行为与证据。
+> 2026-10-05 核对：公开 CLI **0.166.86**、Open VSX **0.37.131**、JetBrains **0.4.149** 同属发行提交 `8458a0a502`，两端 IDE 推荐 CLI `0.166.86`。源码基线 `main@85f2f14aa1` 为 CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 记忆分页、评估执行、进程恢复及 IDE 诊断见[最新设计](/design/agent-runtime-update-2026-10-05)。历史六目标 unsigned native 复验已通过，不等于签名候选发行；真实 PM/成本与自动晋升仍 HOLD。下方带日期内容保留历史范围。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 
@@ -48,29 +48,26 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 
 ## 安装版本怎么选
 
-| 用途                    | 版本                                             | 说明                                                                                              |
-| ----------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用     | CLI `0.166.77`                                   | `v-npm-0-166-77@8d97c58153` 的三系统 CLI CI、Strict Sandbox、OIDC/provenance 和公共安装回读均成功 |
-| npm `latest`            | `0.166.77`                                       | 2026-09-27 从官方 registry 回读                                                                   |
-| Agent SDK / Protocol    | TS `0.2.11` / Python `0.2.9` / Protocol `0.1.11` | 各自保持独立发行身份                                                                              |
-| IDE 工作台              | Open VSX `0.37.118` / JetBrains `0.4.138`        | Open VSX 推荐 CLI `0.166.77`；JetBrains 内置推荐仍为 `0.166.76`，`0.4.139` 已上传待公开           |
-| JetBrains 新版          | `0.4.138`                                        | 发布工作流成功，尚待公共列表回读                                                                  |
-| Desktop / Android / iOS | `v5.0.3.138@eb48ffa311`                          | 独立产品发行；iOS ad-hoc IPA 仅限已授权设备                                                       |
-
-生产安装建议显式固定：
+| 用途                      | 版本                                                      | 说明                                                  |
+| ------------------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| 日常稳定使用 / npm latest | CLI `0.166.86`                                            | `v-npm-0-166-86@8458a0a502`；完整发行门与公开回读通过 |
+| Agent SDK / Protocol      | TS `0.2.12` / Python `0.2.9` / Protocol `0.1.12`          | 保持独立版本                                          |
+| IDE 工作台                | Open VSX `0.37.131` / JetBrains `0.4.149`                 | 已公开，均推荐 CLI `0.166.86`                         |
+| 源码候选                  | CLI `0.166.87` / VS Code `0.37.132` / JetBrains `0.4.150` | 未公开，不沿用旧发行的门禁                            |
+| Desktop / Android / iOS   | `v5.0.3.138@eb48ffa311`                                   | 独立产品发行；iOS ad-hoc IPA 仅限已授权设备           |
 
 ```bash
-npm i -g chainlesschain@0.166.77 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
 ```
 
-旧版用户可升级到 `0.166.77`。SDK、Protocol、IDE 与 CLI 独立安装和发版；完整门禁、商店状态和限制见[发布与升级指南](./agent-platform-release)。
+确认版本后重启 IDE 聊天宿主。完整门禁、商店状态和限制见[发布与升级指南](./agent-platform-release)。记忆分页、冻结评估、实际会话 Doctor 与进程恢复是源码候选增量，见[最新设计](/design/agent-runtime-update-2026-10-05)。
 
 ## 核心特性
 
 - `cc serve --app-server`：默认启动 stdio JSON-RPC 产品集成入口；加 `--app-server-websocket` 可显式使用固定路径/子协议、强 token/TLS 与慢消费者断路的实验网络传输。
 - Agent Kernel：`agent`、`exec`、SDK stream、WebSocket、UI 与 App Server 复用模型/工具循环、权限、沙箱、预算、中断和有界 cleanup。
 - `cc team graph inspect|diff|eval`：只读 GraphRun 投影、时间旅行、阻塞根因、差异和 CI 阈值门；敏感正文默认不输出。
-- Agent Protocol `0.1.9` / SDK TS `0.2.9`、Python `0.2.8`：canonical Schema 生成 TypeScript、Python、Kotlin、Swift 的 Agent stream payload union 与严格 validator；知识撤销 prepare/publish、Context/Memory 与 App Server 有界消息已进入公开组合。
+- Agent Protocol `0.1.12` / SDK TS `0.2.12`、Python `0.2.9`：canonical Schema 生成 TypeScript、Python、Kotlin、Swift 的 Agent stream payload union 与严格 validator；知识撤销 prepare/publish、Context/Memory 与 App Server 有界消息已进入公开组合。
 - Desktop / VS Code App Server pilot：默认关闭，只开放固定 Thread/Turn 操作；Desktop 经 Process Broker 启动，审批 UI 未接入前一律 canonical decline。
 - 跨端 causal conformance：协议、TS/Python SDK、CLI、Desktop、VS Code 与 JetBrains 对同一并行工具交错 fixture 保持因果顺序、审批 binding 与终态投影一致。
 - 有界 transport：legacy WS、Desktop MCP、浏览器控制、P2P、权限弹窗、媒体桥与 U-Key 签名已补数量/字节 admission；`0.166.15` 继续承接全局/per-agent cap 与 timeout，并以真实 Playwright UI replay 验证审阅后的 observe/click/type/select/assert 词汇和 network escape 拒绝。
@@ -386,7 +383,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.92`，JetBrains Marketplace 当前公开 `0.4.119`。生产建议搭配 CLI `0.166.38`：
+Open VSX 当前公开 VS Code `0.37.131`，JetBrains Marketplace 当前公开 `0.4.149`。两端推荐 CLI `0.166.86`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -396,7 +393,7 @@ Open VSX 当前公开 VS Code `0.37.92`，JetBrains Marketplace 当前公开 `0.
 - TeamMailbox 健康投影只显示计数、最旧消息年龄、dead-letter 数量和有界状态；subject/body/digest、consumer key、失败原因、凭据及 attempt binding 均被排除，malformed/oversize/duplicate 可选字段失败闭合。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.92` 与 JetBrains `0.4.119` 已公开消费 Schema 生成的 Agent event 类型，并延续 TeamMailbox 健康、durable workflow/Artifact recovery、Context/Side-effect/Automation Center、安全 Remote Control、跨会话消息、Focus View 与 browser evidence。两端推荐 CLI `0.166.38`；VS Code 验证模型设置写回，JetBrains 还避免在 UI 线程准备 plan review editor。
+- VS Code `0.37.131` 与 JetBrains `0.4.149` 已公开消费 Schema 生成的 Agent event 类型，并延续 TeamMailbox 健康、durable workflow/Artifact recovery、Context/Side-effect/Automation Center、安全 Remote Control、跨会话消息、Focus View 与 browser evidence。两端推荐 CLI `0.166.86`；VS Code 验证模型设置写回，JetBrains 还避免在 UI 线程准备 plan review editor。
 
 ## 托管回滚与 Agent Team 边界
 

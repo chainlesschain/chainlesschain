@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.85 | Open VSX 0.37.130 | JetBrains 0.4.146"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.86 | Open VSX 0.37.131 | JetBrains 0.4.149"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.85
-    details: 公开 CLI 增加耐久状态上限与有界打包；后续源码接入显式 Linux 持久权限宿主，跨进程为轮询，普通 CLI 不默认开启。
+    title: Agent Platform 0.166.86
+    details: 公开 CLI 纳入有界分片记忆、显式 Linux 持久权限宿主和图片安全修复；0.166.87 源码增加索引分页、冻结评估与进程恢复。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
     title: IDE 任务记录与新会话交接
@@ -45,7 +45,7 @@ features:
 
   - icon: 🧠
     title: Context/Memory Kernel
-    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；Kernel 0.1.0 已公开，产品面仍按各自 writer/cutover 证据判断
+    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；Kernel 0.1.6 已公开，产品面仍按各自 writer/cutover 证据判断
     link: /modules/m108-context-memory-kernel
 
   - icon: 🔐
@@ -65,7 +65,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-10-04 当前核对**：源码基线 `main@443a745962`；公开 CLI `0.166.85` 与 Open VSX `0.37.130` 均来自 `84f204db94`，VSIX 推荐 CLI `0.166.85`；JetBrains 公开 `0.4.146@d93c9c9766` 仍推荐 `0.166.84`。最新源码候选为 CLI `0.166.86` / VS Code `0.37.131` / JetBrains `0.4.149`，冻结候选 `b2aa3aba08` 待自身完整门和公开回读，不能沿用旧成功。发布后源码加入显式 Linux 持久权限宿主、图片解码预算、分片记忆与 Windows 长路径修复。100K formal 仅闭合已测容量，不证明全局 SLO；跨进程/Worker 权限为 100 ms 轮询及清理成功后的接收方回执，普通 CLI 不默认启用。Windows ARM64 native 失败证据保持，无签名 native 发行。独立产品 v5.0.3.138，真实 PM/成本与自动晋升仍 HOLD。 详见[增量设计](/agent-runtime-update-2026-09-26)。
+> **2026-10-04 当前核对**：源码基线 `main@443a745962`；公开 CLI `0.166.86` 与 Open VSX `0.37.131` 均来自 `84f204db94`，VSIX 推荐 CLI `0.166.86`；JetBrains 公开 `0.4.149@d93c9c9766` 仍推荐 `0.166.84`。最新源码候选为 CLI `0.166.86` / VS Code `0.37.131` / JetBrains `0.4.149`，冻结候选 `b2aa3aba08` 待自身完整门和公开回读，不能沿用旧成功。发布后源码加入显式 Linux 持久权限宿主、图片解码预算、分片记忆与 Windows 长路径修复。100K formal 仅闭合已测容量，不证明全局 SLO；跨进程/Worker 权限为 100 ms 轮询及清理成功后的接收方回执，普通 CLI 不默认启用。Windows ARM64 native 失败证据保持，无签名 native 发行。独立产品 v5.0.3.138，真实 PM/成本与自动晋升仍 HOLD。 详见[增量设计](/agent-runtime-update-2026-09-26)。
 
 > **2026-09-28 历史核对**：npm CLI `0.166.78@3400318446`、Open VSX `0.37.119` 与 JetBrains Marketplace `0.4.140` 均已公开。CLI 增加分页会话历史与恢复、草稿边界及后台进程清理；逐槽签名 PM 回执对账已进入本版源码。主线 `c2ff6d036e` 随后修正 IDE 清单配对。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 

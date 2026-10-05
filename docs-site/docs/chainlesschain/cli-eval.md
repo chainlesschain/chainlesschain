@@ -1,5 +1,24 @@
 # 可靠性评测 — 任务成功率 + 趋势回归门（`cc eval`）
 
+## 2026-10-05 源码候选：冻结项目评估
+
+CLI `0.166.87` 源码接入 `--suite verify01`。当前可安装版见[发布指南](./agent-platform-release)；下方 Phase 7 数量与生产状态是历史范围，不能用于证明 VERIFY-01 已验收。
+
+执行需要冻结 plan、外部固定的 plan/review 摘要、准确项目 checkout 和项目外的可信 review root。独立审阅 setup/check 后才执行；使用已配置且获授权的模型，费用和任务预算由冻结合同限制。
+
+```bash
+cc eval --suite verify01 \
+  --plan-dir "<frozen-plan-directory>" --plan-digest "<pinned-plan-digest>" \
+  --review "<review.json>" --review-digest "<pinned-review-digest>" \
+  --review-root "<trusted-review-root>" --project-root "<exact-project-checkout>" \
+  --provider "<configured-provider>" --model "<authorized-model>" \
+  --evidence-dir "<raw-evidence-directory>" --history "<history.jsonl>" --json
+```
+
+`--samples <ids>` 选择冻结样本；未选择项仍为 missing，不缩小 36 个项目任务与 9 个安装样本的固定分母。原始输出和完整 diff 保存在 evidence directory，退出/超时或检查失败保留失败证据。只读采集适配器读取已有 history，不替代执行；dry-run 不证明真实模型、IDE GUI 或账单验收。
+
+普通 `--trend` 提供诊断趋势；`--trend --strict --history <file>` 还要求完整、可比较且未过期的执行证据，旧历史不能通过。`--max-age-hours` 默认 168；`--comparison-context` 是操作者声明的模型修订与环境摘要，不构成生产身份认证。完整合同和未完成项见[最新设计](/design/agent-runtime-update-2026-10-05)。
+
 > **版本: Phase 7 (可靠性评测 / OTel) 核心落地 · 2026-07-04 | 状态: ✅ 生产就绪 | 8 客观任务类别 + OTel 遥测 + 发布趋势报告/回归门 | 39 测试（含 3 CLI 集成）**
 >
 > `cc eval` 用一套**自校验**的编码任务衡量 agent 的真实任务成功率——不是「有没有同名命令」，而是「给定起始代码，agent 改完后能不能通过一个**客观**检查（真跑脚本 / 真 import 校验 / exploit 探针）」。配套的 `--history` + `--trend` 把历次运行画成趋势并在回归时**退出码 1**，可直接接入发布流水线做质量门。

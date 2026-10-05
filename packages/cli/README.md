@@ -1,27 +1,38 @@
 # chainlesschain CLI
 
-> Public npm `latest` is `chainlesschain@0.166.84` (2026-10-02), released from
-> `d93c9c9766` after 68/68 CLI CI jobs, five Strict Sandbox jobs, OIDC publication,
-> and public tarball byte readback passed. Open VSX `0.37.126` and JetBrains
-> `0.4.146` are public and recommend this CLI. Official settings/scoped permission
-> writes revoke stale shell permits before persistence in the same process/module
-> instance; restoring rules cannot revive them. Cross-process/Worker immediate
-> notifications and arbitrary external edits remain incomplete. Explicit Linux
-> settings-authority transaction APIs are not wired into default admission or
-> the official settings writer. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-> **0.166.77 发布说明**：决策模型 HTTP 请求和响应各限制为 256 KiB；模型用量未知时不会生成 Skill 建议，同一耐久会话的后续决策调用也会被阻断。[发布与升级](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html) · [决策层设计](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/114-jev-decision-layer-design.md)。决策模式仍默认关闭，不授予 Skill 执行权限；自动 active Skill 晋升保持 HOLD。
+## Current release and source (2026-10-05)
 
-Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com) — a decentralized personal AI management system with hardware-level security.
+Public npm `latest` is **chainlesschain@0.166.86**, from `v-npm-0-166-86` at `8458a0a502`. Open VSX **0.37.131** and JetBrains Marketplace **0.4.149** are public and both recommend CLI **0.166.86**. CLI CI, the complete Strict Sandbox matrix, IDE gates, npm OIDC publication, and public artifact readback passed for that release. Context/Memory Kernel **0.1.6** and all 13 child npm package versions were rechecked. See the [release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
-> The `0.166.80` release is from immutable tag `v-npm-0-166-80` at
-> `dd6b131837`. The current `0.166.81` source is a candidate and has not been
-> published.
+Public `0.166.86` includes bounded canonical Memory v2 storage and exact-ID deletion, explicit Linux durable-permission host wiring, bounded image snapshots and decoding budgets, Windows long-path staging, and the updater journal loading fix. Default shadow mode does not migrate memory. The Linux permission host requires administrator provisioning; cross-process/Worker revocation uses 100 ms polling and stop receipts follow successful cleanup. Ordinary CLI runs do not enable the host automatically.
+
+Source baseline `85f2f14aa1` is CLI **0.166.87**, paired with VS Code **0.37.132** / JetBrains **0.4.150**, and remains unpublished. It adds indexed memory queries and pagination, frozen VERIFY-01 execution, observed-session Doctor diagnostics, slow initialization draft protection, and Linux cgroup2 ownership recovery. Uncommitted workspace review/capture tooling is development work and supplies no release authority.
+
+### Memory pagination (source 0.166.87)
+
+Requires canonical memory mode; legacy/shadow listing rejects paging. After backing up and arranging the supported canonical cutover, run:
+
+```bash
+cc memory show --page --category work --limit 20 --json
+cc memory show --cursor "<nextCursor>" --category work --limit 20 --json
+```
+
+The page contains `entries` and `nextCursor` (`null` at the end). Keep the same category and limit; writes, changed filters, or a different store invalidate the cursor with `CONTEXT_MEMORY_CURSOR_INVALID`. Restart from page one. Ordinary `show --json` still returns an array. New indexed v2 descriptors are rejected by older readers; stop older writers and use a compatible snapshot for downgrade. See [memory usage](https://docs.chainlesschain.com/chainlesschain/cli-memory.html).
+
+### Reviewed project evaluation (source 0.166.87)
+
+`cc eval --suite verify01` requires pinned plan/review digests, an exact project checkout, and an independently reviewed setup/check bundle outside the task project. `--samples` does not shrink the fixed 36 project tasks plus 9 installation samples: unselected samples stay missing. Raw process output and complete diffs are retained with `--evidence-dir`. Collection of existing history is not a real-model or GUI run. `--trend --strict` requires complete, comparable, recent evidence; dry-run and legacy history cannot pass that gate. See [evaluation commands](https://docs.chainlesschain.com/chainlesschain/cli-eval.html).
+
+### Recovery and acceptance scope
+
+Historical six-target unsigned native validation at `0fc6e7a0c2` passed, including Windows ARM64; no signed candidate native release is claimed. Real delegated cgroup2 recovery at `320301e6e7` passed Linux x64/arm64 tests, cleans identified survivors before new admission, and never replays the original command. Identity drift or persistence failure keeps admission closed. This does not establish Windows/macOS durable recovery or hostile same-UID containment. Real PM outcomes, full billing evidence, human accessibility acceptance, and automatic active Skill promotion remain HOLD. [Current runtime design](https://design.chainlesschain.com/agent-runtime-update-2026-10-05.html).
 
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.81
+npm install -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

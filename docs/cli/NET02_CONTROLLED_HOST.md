@@ -1,5 +1,8 @@
 # NET-02 Linux controlled-host permission authority
 
+As of 2026-10-05, the explicit host API is included in public CLI
+`0.166.86@8458a0a502`; administrator provisioning is still required.
+
 The source entry `chainlesschain/src/runtime/permission-authority-host.js`
 (added after the public npm `0.166.85@84f204db94` release)
 connects durable authority to settings writers, scoped permission writers,

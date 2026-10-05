@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现核对（公开 0.166.56 / IDE 0.37.103 + 0.4.124）
+# CLI Runtime 当前架构与实现
 
-> **2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。参见[运行时增量设计](agent-runtime-update-2026-09-26.md)。
+> 2026-10-05 核对：公开 CLI **0.166.86**、Open VSX **0.37.131**、JetBrains **0.4.149** 同属发行提交 `8458a0a502`，两端 IDE 推荐 CLI `0.166.86`。源码基线 `main@85f2f14aa1` 为 CLI **0.166.87** / VS Code **0.37.132** / JetBrains **0.4.150** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 记忆分页、评估执行、进程恢复及 IDE 诊断见[最新设计](agent-runtime-update-2026-10-05.md)。历史六目标 unsigned native 复验已通过，不等于签名候选发行；真实 PM/成本与自动晋升仍 HOLD。下方带日期内容保留历史范围。
 
 > 更新时间：2026-09-15。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.56`，绑定不可变 tag `v-npm-0-166-56` 的精确 SHA `d55de4810e35f9ef686ec108c71d311c9b3d2b10`。该 SHA 的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.103`、JetBrains Marketplace 为 `0.4.124`；同一 IDE 提交 `ac0e61b3cd` 的两条发布门成功。
 

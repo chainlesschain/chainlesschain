@@ -1,16 +1,16 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-09-14）：产品 v5.0.3.137 / Agent Platform CLI 0.166.47（生产推荐与 npm latest，精确发布 SHA `3138626213`）| Agent SDK TS/Python 0.2.9/0.2.8 | Agent Protocol 0.1.9 | Session Core 0.3.12 | Node.js ≥ 22.12.0。当前版交付 Evolution/Wiki 重验、原生 Responses、延后问题、插件评测、后台会话分页与非阻塞心跳；Open VSX 0.37.97 与 JetBrains 0.4.123 已公开配对。**
+> **2026-10-05 当前版本**：公开 CLI `0.166.86@8458a0a502`；Open VSX `0.37.131` / JetBrains `0.4.149` 均推荐 CLI `0.166.86`。SDK TS/Python `0.2.12/0.2.9`、Protocol `0.1.12`、Session Core `0.3.14`、Context/Memory Kernel `0.1.6` 独立发行，Node.js ≥ 22.12.0。源码 `0.166.87/0.37.132/0.4.150` 为候选，新增索引分页、冻结评估与进程恢复。见[发布指南](./agent-platform-release)与[最新设计](/design/agent-runtime-update-2026-10-05)。
 
 ## 概述
 
-ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，提供 175 个命令覆盖 AI 对话、笔记管理、DID 身份、加密解密、多智能体协作等全部核心功能。通过 `npm install -g` 即可全平台安装，支持 Agent 模式、四层技能系统和完整的系统生命周期管理。
+ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，提供命令覆盖 AI 对话、笔记管理、DID 身份、加密解密、多智能体协作等全部核心功能。通过 `npm install -g` 即可全平台安装，支持 Agent 模式、四层技能系统和完整的系统生命周期管理。
 
 ## 核心特性
 
-- 📦 **纯 JS 轻量包**: 约 2MB，无原生依赖，全平台 `npm install -g` 即装即用
-- 🤖 **175 个命令**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、IDE 桥接（cc ide）、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server、Web管理界面等
-- 🧠 **Agent 模式**: Claude Code 风格代理会话，10 工具 + 146 技能 + Plan Mode + /cowork
+- 📦 **npm 安装**: 使用官方 registry 安装 CLI；native 制品与桌面安装包保持独立发行
+- 🤖 **命令体系**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、IDE 桥接（cc ide）、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server、Web管理界面等
+- 🧠 **Agent 模式**: Claude Code 风格代理会话，工具调用、Skill、Plan Mode 与 /cowork
 - 🎯 **多层技能系统**: 4 层优先级（bundled < marketplace < managed < workspace），自定义技能管理
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - 📨 **TeamMailbox v3**: 真实 `cc team --agent` 子进程可使用私有 `team_send|receive|ack|followup`，支持至少一次投递、幂等、稳定 consumer 和 dead-letter
@@ -18,7 +18,7 @@ ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，�
 - 🌐 **有界网页读取**: 大网页只下载一次并保存进程私有快照，使用 `snapshotId` / `nextOffset` 分块续读；长文本关键词检索返回位置、上下文和续读游标
 - 📈 **Graph 观测门禁**: `cc team graph inspect|diff|eval` 提供只读时间旅行、根因分析和 CI 阈值门；Task Graph、动态 Agent Tree 与 Artifact/Trace 投影保持不同语义
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
-- 🧪 **30,000+ 测试通过**: 跨桌面 / CLI / web-panel / core packages 共 6 层测试矩阵
+- 🧪 **准确提交的发布门**: Linux/Windows/macOS CLI CI、Strict Sandbox、IDE 门与公开制品回读，结果绑定各自提交
 
 ## 系统架构
 
@@ -142,7 +142,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.47
+npm install -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
 chainlesschain setup
 chainlesschain start
 ```
@@ -159,10 +159,10 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.38
+npm install -g chainlesschain@0.166.86 --registry https://registry.npmjs.org
 ```
 
-安装后提供 3 个等价命令：
+安装后提供 4 个等价命令：
 
 | 命令             | 说明                                     |
 | ---------------- | ---------------------------------------- |

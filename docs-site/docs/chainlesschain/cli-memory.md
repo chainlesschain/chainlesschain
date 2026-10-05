@@ -4,6 +4,21 @@
 
 > 两套记忆与会话上下文、压缩之间的关系，以及模块 108 已完成设计但尚未完成跨端切换的边界，见[上下文与记忆](./context-memory.md)。
 
+## 2026-10-05 源码候选：canonical 记忆分页
+
+CLI `0.166.87` 源码新增 `memory show --page` 与 `--cursor`；当前公开安装版本见[发布与升级指南](./agent-platform-release)。分页要求 canonical memory mode，默认 legacy/shadow 模式会拒绝该操作，不会自动切换或迁移。
+
+```bash
+# 首次读取；从返回 JSON 中保存 nextCursor
+cc memory show --page --category work --limit 20 --json
+# 使用同一个 category 和 limit，传入上次返回的完整游标
+cc memory show --cursor "<nextCursor>" --category work --limit 20 --json
+```
+
+分页 JSON 返回 `entries` 与 `nextCursor`，最后一页的游标为 `null`。不使用分页选项时，`show --json` 保持条目数组格式。读取期间发生写入、切换存储或修改过滤条件会使旧游标失效；遇到 `CONTEXT_MEMORY_CURSOR_INVALID`，从第一页重新读取。游标是续读位置，不授予读取权限。
+
+canonical Memory v2 的派生索引先过滤再取 limit，缺失或损坏时从已验证权威分片重建。旧 v2 升级保留正文、revision 和审计，但旧 reader 会拒绝新 descriptor；升级前备份并停止旧 writer，降级需兼容快照。Windows 本地 100K 测量不代表跨平台性能保证，见[最新设计](/design/agent-runtime-update-2026-10-05)。下方数据库/scoped 分层说明适用于 legacy 模式；canonical 模式由 Context/Memory Kernel 统一处理已接入命令。
+
 ## 核心特性
 
 - 🧠 **双轨记忆系统** — 传统数据库记忆（长期笔记）与 scoped memory（Agent 运行时）并行运作
