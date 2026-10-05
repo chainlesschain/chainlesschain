@@ -18,7 +18,6 @@ import {
   createFlow,
   deleteFlow,
   ensureAutomationTables,
-  executeFlow,
   getExecution,
   getFlow,
   getAutomationSchedulerMigration,
@@ -112,6 +111,33 @@ describe("scheduler-kernel automation adapter", () => {
 
   function executionAuthority(f, flow) {
     return automationExecutionAuthoritySnapshot(f.db, flow);
+  }
+
+  function recordCommittedExecution(f, flow, executionId, overrides = {}) {
+    // Model durable connector evidence, never the engine's simulated output.
+    f.db
+      .prepare(
+        `INSERT INTO auto_executions
+      (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
+       duration_ms, error, test_mode, started_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        executionId,
+        flow.id,
+        TRIGGER_TYPE.SCHEDULE,
+        "{}",
+        JSON.stringify(
+          overrides.outputData || { externalReceipt: "slack-message-1" },
+        ),
+        EXECUTION_STATUS.SUCCESS,
+        JSON.stringify(overrides.stepsLog || []),
+        1,
+        null,
+        0,
+        new Date(f.now).toISOString(),
+        new Date(f.now).toISOString(),
+      );
   }
 
   it("uses a sql.js compatibility handle's canonical database path", () => {
@@ -250,9 +276,9 @@ describe("scheduler-kernel automation adapter", () => {
     });
     expect(resumed.occurrence.id).toBe(occurrence.id);
     await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
-      status: "succeeded",
+      status: "dead_letter",
       occurrence: { id: occurrence.id, attempt: 1 },
-      result: { id: automationSchedulerExecutionId(occurrence.id) },
+      error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
     expect(
@@ -1053,7 +1079,7 @@ describe("scheduler-kernel automation adapter", () => {
     expect(getAutomationSchedulerMigration(f.db, flow.id)).toBeNull();
   });
 
-  it("runs one catch-up occurrence and records durable automation history", async () => {
+  it("records unsupported execution durably without connector effects or automatic retries", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
     const bridge = new AutomationSchedulerBridge({
@@ -1068,19 +1094,24 @@ describe("scheduler-kernel automation adapter", () => {
     expect(first).toHaveLength(1);
     expect(first[0]).toMatchObject({
       flow: flow.id,
-      result: { status: "succeeded" },
+      result: {
+        status: "dead_letter",
+        error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
+      },
     });
     const executions = listExecutions(f.db, { flowId: flow.id });
     expect(executions).toHaveLength(1);
     expect(executions[0]).toMatchObject({
-      status: EXECUTION_STATUS.SUCCESS,
+      status: EXECUTION_STATUS.UNSUPPORTED,
       triggerType: TRIGGER_TYPE.SCHEDULE,
+      stepsLog: [],
+      outputData: { executed: false },
     });
     expect(
       f.schedulerStore.db
         .prepare("SELECT status, units FROM scheduler_authority_reservations")
         .get(),
-    ).toEqual({ status: "succeeded", units: 1 });
+    ).toEqual({ status: "failed", units: 1 });
 
     await expect(bridge.runDue()).resolves.toEqual([]);
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
@@ -1102,14 +1133,14 @@ describe("scheduler-kernel automation adapter", () => {
           log: (line) => output.push(line),
         },
       ),
-    ).resolves.toBe(0);
+    ).resolves.toBe(1);
     const summary = JSON.parse(output.join("\n"));
     expect(summary).toMatchObject({
       due: 1,
       executions: [
         {
           flow: flow.id,
-          status: "succeeded",
+          status: "dead_letter",
           recovered: false,
         },
       ],
@@ -1203,10 +1234,7 @@ describe("scheduler-kernel automation adapter", () => {
     const flow = activeScheduledFlow(f);
     const occurrence = enqueue(f, flow);
     const executionId = automationSchedulerExecutionId(occurrence.id);
-    executeFlow(f.db, flow.id, {
-      triggerType: TRIGGER_TYPE.SCHEDULE,
-      executionId,
-    });
+    recordCommittedExecution(f, flow, executionId);
     const runtime = new SchedulerRuntime({
       store: f.schedulerStore,
       adapters: [createAutomationSchedulerAdapter({ db: f.db })],
@@ -1221,6 +1249,41 @@ describe("scheduler-kernel automation adapter", () => {
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
   });
+
+  it.each(["output", "step"])(
+    "refuses to recover historical simulated success from %s evidence",
+    async (source) => {
+      const f = fixture();
+      const flow = activeScheduledFlow(f);
+      const occurrence = enqueue(f, flow);
+      const executionId = automationSchedulerExecutionId(occurrence.id);
+      recordCommittedExecution(
+        f,
+        flow,
+        executionId,
+        source === "output"
+          ? { outputData: { simulated: true } }
+          : { stepsLog: [{ output: { simulated: true } }] },
+      );
+      const runtime = new SchedulerRuntime({
+        store: f.schedulerStore,
+        adapters: [createAutomationSchedulerAdapter({ db: f.db })],
+        authorize: authorizeAutomationOccurrence,
+        ownerId: "automation-historical-simulation",
+        leaseMs: 10_000,
+      });
+      await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject(
+        {
+          status: "dead_letter",
+          error: { code: "AUTOMATION_EXECUTION_SIMULATED" },
+        },
+      );
+      expect(getExecution(f.db, executionId).status).toBe(
+        EXECUTION_STATUS.SIMULATED,
+      );
+      expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
+    },
+  );
 
   it("dead-letters a start-only execution as outcome unknown", async () => {
     const f = fixture();
@@ -1266,80 +1329,96 @@ describe("scheduler-kernel automation adapter", () => {
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
   });
 
-  it("removes only the bound running evidence before one adjudicated retry", async () => {
-    const f = fixture();
-    const flow = activeScheduledFlow(f);
-    const occurrence = enqueue(f, flow);
-    const executionId = automationSchedulerExecutionId(occurrence.id);
-    f.db
-      .prepare(
-        `INSERT INTO auto_executions
+  it.each(["confirmed_applied", "confirmed_not_applied"])(
+    "preserves bound unknown-outcome adjudication: %s",
+    async (decision) => {
+      const f = fixture();
+      const flow = activeScheduledFlow(f);
+      const occurrence = enqueue(f, flow);
+      const executionId = automationSchedulerExecutionId(occurrence.id);
+      f.db
+        .prepare(
+          `INSERT INTO auto_executions
          (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
           duration_ms, error, test_mode, started_at, completed_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        executionId,
-        flow.id,
-        TRIGGER_TYPE.SCHEDULE,
-        "{}",
-        null,
-        EXECUTION_STATUS.RUNNING,
-        "[]",
-        0,
-        null,
-        0,
-        new Date(f.now).toISOString(),
-        null,
-      );
-    const firstRuntime = new SchedulerRuntime({
-      store: f.schedulerStore,
-      adapters: [createAutomationSchedulerAdapter({ db: f.db })],
-      authorize: authorizeAutomationOccurrence,
-      ownerId: "automation-fail-close-owner",
-      leaseMs: 10_000,
-    });
-    await firstRuntime.runOccurrence(occurrence.id);
-    const candidate = f.schedulerStore.getAdjudicationCase(occurrence.id);
-    f.schedulerStore.adjudicateOccurrence({
-      occurrenceId: occurrence.id,
-      decision: "confirmed_not_applied",
-      expectedEvidenceDigest: candidate.evidenceDigest,
-      expectedAttempt: candidate.attempt,
-      expectedFence: candidate.fence,
-      reasonDigest: `sha256:${"2".repeat(64)}`,
-      operatorDigest: `sha256:${"9".repeat(64)}`,
-    });
-    const recovered = new SchedulerRuntime({
-      store: f.schedulerStore,
-      adapters: [createAutomationSchedulerAdapter({ db: f.db })],
-      authorize: authorizeAutomationOccurrence,
-      ownerId: "automation-adjudication-owner",
-      leaseMs: 10_000,
-    });
-    await expect(recovered.runOccurrence(occurrence.id)).resolves.toMatchObject(
-      {
-        status: "succeeded",
-        result: { id: executionId, status: EXECUTION_STATUS.SUCCESS },
-      },
-    );
-    const adjudicatedExecutions = listExecutions(f.db, { flowId: flow.id });
-    expect(adjudicatedExecutions).toHaveLength(2);
-    expect(adjudicatedExecutions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: executionId,
-          status: EXECUTION_STATUS.SUCCESS,
-        }),
-        expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
-      ]),
-    );
-    expect(
-      f.schedulerStore.getOccurrenceAdjudication(occurrence.id),
-    ).toMatchObject({
-      status: "applied",
-    });
-  });
+        )
+        .run(
+          executionId,
+          flow.id,
+          TRIGGER_TYPE.SCHEDULE,
+          "{}",
+          null,
+          EXECUTION_STATUS.RUNNING,
+          "[]",
+          0,
+          null,
+          0,
+          new Date(f.now).toISOString(),
+          null,
+        );
+      const firstRuntime = new SchedulerRuntime({
+        store: f.schedulerStore,
+        adapters: [createAutomationSchedulerAdapter({ db: f.db })],
+        authorize: authorizeAutomationOccurrence,
+        ownerId: "automation-fail-close-owner",
+        leaseMs: 10_000,
+      });
+      await firstRuntime.runOccurrence(occurrence.id);
+      const candidate = f.schedulerStore.getAdjudicationCase(occurrence.id);
+      f.schedulerStore.adjudicateOccurrence({
+        occurrenceId: occurrence.id,
+        decision,
+        expectedEvidenceDigest: candidate.evidenceDigest,
+        expectedAttempt: candidate.attempt,
+        expectedFence: candidate.fence,
+        reasonDigest: `sha256:${"2".repeat(64)}`,
+        operatorDigest: `sha256:${"9".repeat(64)}`,
+      });
+      const recovered = new SchedulerRuntime({
+        store: f.schedulerStore,
+        adapters: [createAutomationSchedulerAdapter({ db: f.db })],
+        authorize: authorizeAutomationOccurrence,
+        ownerId: "automation-adjudication-owner",
+        leaseMs: 10_000,
+      });
+      if (decision === "confirmed_applied") {
+        await expect(
+          recovered.runOccurrence(occurrence.id),
+        ).resolves.toMatchObject({
+          status: "succeeded",
+          result: { executionId, status: "adjudicated-applied" },
+        });
+        expect(getExecution(f.db, executionId).status).toBe(
+          EXECUTION_STATUS.SUCCESS,
+        );
+        expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
+      } else {
+        await expect(
+          recovered.runOccurrence(occurrence.id),
+        ).resolves.toMatchObject({
+          status: "dead_letter",
+          error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
+        });
+        const adjudicatedExecutions = listExecutions(f.db, { flowId: flow.id });
+        expect(adjudicatedExecutions).toHaveLength(2);
+        expect(adjudicatedExecutions).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: executionId,
+              status: EXECUTION_STATUS.UNSUPPORTED,
+            }),
+            expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
+          ]),
+        );
+      }
+      expect(
+        f.schedulerStore.getOccurrenceAdjudication(occurrence.id),
+      ).toMatchObject({
+        status: "applied",
+      });
+    },
+  );
 
   it("rejects a tampered authority envelope before adapter execution", async () => {
     const f = fixture();
@@ -1419,15 +1498,14 @@ describe("scheduler-kernel automation adapter", () => {
     await expect(
       retryRuntime.runOccurrence(occurrence.id),
     ).resolves.toMatchObject({
-      status: "succeeded",
-      result: { id: automationSchedulerExecutionId(occurrence.id) },
+      status: "dead_letter",
+      error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
     });
     expect(listAutomationExecutionIncidents(f.db, { flowId: flow.id })).toEqual(
       [
         expect.objectContaining({
           runId: automationSchedulerExecutionId(occurrence.id),
-          status: "resolved",
-          resolutionCode: "EXECUTION_SUCCEEDED",
+          status: "open",
         }),
       ],
     );
@@ -1494,7 +1572,12 @@ describe("scheduler-kernel automation adapter", () => {
     });
 
     await expect(bridge.runDue()).resolves.toMatchObject([
-      { result: { status: "succeeded" } },
+      {
+        result: {
+          status: "dead_letter",
+          error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
+        },
+      },
     ]);
     f.now += 60_000;
     await expect(bridge.runDue()).resolves.toMatchObject([

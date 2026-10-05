@@ -168,7 +168,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
     ).toThrow(/scope is required/u);
   });
 
-  it("dispatches one matching channel event through a durable occurrence", async () => {
+  it("records a matching event as unsupported without pretending connector execution succeeded", async () => {
     const f = fixture();
     const { flow } = activeEventDefinition(f, {
       origins: ["webhook"],
@@ -192,16 +192,21 @@ describe("scheduler-kernel automation channel event adapter", () => {
         {
           flowId: flow.id,
           deduplicated: false,
-          result: { status: "succeeded" },
+          result: {
+            status: "dead_letter",
+            error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
+          },
         },
       ],
     });
     const executions = listExecutions(f.db, { flowId: flow.id });
     expect(executions).toHaveLength(1);
     expect(executions[0]).toMatchObject({
-      status: EXECUTION_STATUS.SUCCESS,
+      status: EXECUTION_STATUS.UNSUPPORTED,
       triggerType: TRIGGER_TYPE.EVENT,
       inputData: { event },
+      stepsLog: [],
+      outputData: { executed: false },
     });
   });
 
@@ -232,7 +237,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
     expect(summary).toMatchObject({
       eventId: "event-command-1",
       matched: 1,
-      executions: [{ flowId: flow.id, status: "succeeded" }],
+      executions: [{ flowId: flow.id, status: "dead_letter" }],
     });
     expect(JSON.parse(output.join("\n"))).toMatchObject({
       eventId: "event-command-1",
@@ -256,7 +261,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
     expect(first.results[0].occurrenceId).toBe(replay.results[0].occurrenceId);
     expect(replay.results[0]).toMatchObject({
       deduplicated: true,
-      result: { status: "succeeded", alreadySettled: true },
+      result: { status: "dead_letter", alreadySettled: true },
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
 
@@ -338,32 +343,175 @@ describe("scheduler-kernel automation channel event adapter", () => {
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
   });
 
-  it("recovers committed success and dead-letters start-only evidence", async () => {
-    const f = fixture();
-    const first = activeEventDefinition(f);
-    const firstOccurrence = enqueue(
-      f,
-      first.flow,
-      first.trigger,
-      channelEvent(f),
-    );
-    const firstExecutionId = automationEventExecutionId(firstOccurrence.id);
-    f.db
-      .prepare(
-        `INSERT INTO auto_executions
+  it.each(["confirmed_applied", "confirmed_not_applied"])(
+    "recovers committed success and adjudicates start-only evidence: %s",
+    async (decision) => {
+      const f = fixture();
+      const first = activeEventDefinition(f);
+      const firstOccurrence = enqueue(
+        f,
+        first.flow,
+        first.trigger,
+        channelEvent(f),
+      );
+      const firstExecutionId = automationEventExecutionId(firstOccurrence.id);
+      f.db
+        .prepare(
+          `INSERT INTO auto_executions
          (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
           duration_ms, error, test_mode, started_at, completed_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          firstExecutionId,
+          first.flow.id,
+          TRIGGER_TYPE.EVENT,
+          "{}",
+          JSON.stringify({ externalReceipt: "slack-message-1" }),
+          EXECUTION_STATUS.SUCCESS,
+          "[]",
+          0,
+          null,
+          0,
+          new Date(f.now).toISOString(),
+          new Date(f.now).toISOString(),
+        );
+      const runtime = new SchedulerRuntime({
+        store: f.schedulerStore,
+        adapters: [createAutomationEventAdapter({ db: f.db })],
+        authorize: authorizeAutomationEventOccurrence,
+        ownerId: "automation-event-recovery",
+        leaseMs: 10_000,
+      });
+      await expect(
+        runtime.runOccurrence(firstOccurrence.id),
+      ).resolves.toMatchObject({
+        status: "succeeded",
+        result: { id: firstExecutionId },
+      });
+
+      const second = activeEventDefinition(f);
+      const secondEvent = channelEvent(f, { id: "event-2" });
+      const secondOccurrence = enqueue(
+        f,
+        second.flow,
+        second.trigger,
+        secondEvent,
+      );
+      const secondExecutionId = automationEventExecutionId(secondOccurrence.id);
+      f.db
+        .prepare(
+          `INSERT INTO auto_executions
+         (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
+          duration_ms, error, test_mode, started_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          secondExecutionId,
+          second.flow.id,
+          TRIGGER_TYPE.EVENT,
+          "{}",
+          null,
+          EXECUTION_STATUS.RUNNING,
+          "[]",
+          0,
+          null,
+          0,
+          new Date(f.now).toISOString(),
+          null,
+        );
+      await expect(
+        runtime.runOccurrence(secondOccurrence.id),
+      ).resolves.toMatchObject({
+        status: "dead_letter",
+        error: { code: "AUTOMATION_EVENT_OUTCOME_UNKNOWN" },
+      });
+      expect(getExecution(f.db, secondExecutionId)).toMatchObject({
+        status: EXECUTION_STATUS.RUNNING,
+      });
+
+      const candidate = f.schedulerStore.getAdjudicationCase(
+        secondOccurrence.id,
+      );
+      f.schedulerStore.adjudicateOccurrence({
+        occurrenceId: secondOccurrence.id,
+        decision,
+        expectedEvidenceDigest: candidate.evidenceDigest,
+        expectedAttempt: candidate.attempt,
+        expectedFence: candidate.fence,
+        reasonDigest: `sha256:${"4".repeat(64)}`,
+        operatorDigest: `sha256:${"9".repeat(64)}`,
+      });
+      if (decision === "confirmed_applied") {
+        await expect(
+          runtime.runOccurrence(secondOccurrence.id),
+        ).resolves.toMatchObject({
+          status: "succeeded",
+          result: {
+            executionId: secondExecutionId,
+            status: "adjudicated-applied",
+          },
+        });
+        expect(getExecution(f.db, secondExecutionId).status).toBe(
+          EXECUTION_STATUS.SUCCESS,
+        );
+        expect(listExecutions(f.db, { flowId: second.flow.id })).toHaveLength(
+          1,
+        );
+      } else {
+        await expect(
+          runtime.runOccurrence(secondOccurrence.id),
+        ).resolves.toMatchObject({
+          status: "dead_letter",
+          error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
+        });
+        expect(getExecution(f.db, secondExecutionId)).toMatchObject({
+          status: EXECUTION_STATUS.UNSUPPORTED,
+        });
+        expect(listExecutions(f.db, { flowId: second.flow.id })).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: secondExecutionId,
+              status: EXECUTION_STATUS.UNSUPPORTED,
+            }),
+            expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
+          ]),
+        );
+      }
+      expect(
+        f.schedulerStore.getOccurrenceAdjudication(secondOccurrence.id),
+      ).toMatchObject({ status: "applied" });
+    },
+  );
+
+  it("derives stable trigger and execution identities", () => {
+    const f = fixture();
+    const event = channelEvent(f);
+    expect(automationEventTriggerKey(event)).toMatch(/^channel:[0-9a-f]{64}$/u);
+    expect(automationChannelEventDigest(event)).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("refuses historical simulated success as durable event completion", async () => {
+    const f = fixture();
+    const { flow, trigger } = activeEventDefinition(f);
+    const occurrence = enqueue(f, flow, trigger, channelEvent(f));
+    const executionId = automationEventExecutionId(occurrence.id);
+    f.db
+      .prepare(
+        `INSERT INTO auto_executions
+      (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
+       duration_ms, error, test_mode, started_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        firstExecutionId,
-        first.flow.id,
+        executionId,
+        flow.id,
         TRIGGER_TYPE.EVENT,
         "{}",
-        "{}",
+        '{"simulated":true}',
         EXECUTION_STATUS.SUCCESS,
         "[]",
-        0,
+        1,
         null,
         0,
         new Date(f.now).toISOString(),
@@ -373,94 +521,17 @@ describe("scheduler-kernel automation channel event adapter", () => {
       store: f.schedulerStore,
       adapters: [createAutomationEventAdapter({ db: f.db })],
       authorize: authorizeAutomationEventOccurrence,
-      ownerId: "automation-event-recovery",
+      ownerId: "automation-event-historical-simulation",
       leaseMs: 10_000,
     });
-    await expect(
-      runtime.runOccurrence(firstOccurrence.id),
-    ).resolves.toMatchObject({
-      status: "succeeded",
-      result: { id: firstExecutionId },
-    });
-
-    const second = activeEventDefinition(f);
-    const secondEvent = channelEvent(f, { id: "event-2" });
-    const secondOccurrence = enqueue(
-      f,
-      second.flow,
-      second.trigger,
-      secondEvent,
-    );
-    const secondExecutionId = automationEventExecutionId(secondOccurrence.id);
-    f.db
-      .prepare(
-        `INSERT INTO auto_executions
-         (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
-          duration_ms, error, test_mode, started_at, completed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        secondExecutionId,
-        second.flow.id,
-        TRIGGER_TYPE.EVENT,
-        "{}",
-        null,
-        EXECUTION_STATUS.RUNNING,
-        "[]",
-        0,
-        null,
-        0,
-        new Date(f.now).toISOString(),
-        null,
-      );
-    await expect(
-      runtime.runOccurrence(secondOccurrence.id),
-    ).resolves.toMatchObject({
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
       status: "dead_letter",
-      error: { code: "AUTOMATION_EVENT_OUTCOME_UNKNOWN" },
+      error: { code: "AUTOMATION_EXECUTION_SIMULATED" },
     });
-    expect(getExecution(f.db, secondExecutionId)).toMatchObject({
-      status: EXECUTION_STATUS.RUNNING,
-    });
-
-    const candidate = f.schedulerStore.getAdjudicationCase(secondOccurrence.id);
-    f.schedulerStore.adjudicateOccurrence({
-      occurrenceId: secondOccurrence.id,
-      decision: "confirmed_not_applied",
-      expectedEvidenceDigest: candidate.evidenceDigest,
-      expectedAttempt: candidate.attempt,
-      expectedFence: candidate.fence,
-      reasonDigest: `sha256:${"4".repeat(64)}`,
-      operatorDigest: `sha256:${"9".repeat(64)}`,
-    });
-    await expect(
-      runtime.runOccurrence(secondOccurrence.id),
-    ).resolves.toMatchObject({
-      status: "succeeded",
-      result: { id: secondExecutionId, status: EXECUTION_STATUS.SUCCESS },
-    });
-    expect(getExecution(f.db, secondExecutionId)).toMatchObject({
-      status: EXECUTION_STATUS.SUCCESS,
-    });
-    expect(listExecutions(f.db, { flowId: second.flow.id })).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: secondExecutionId,
-          status: EXECUTION_STATUS.SUCCESS,
-        }),
-        expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
-      ]),
+    expect(getExecution(f.db, executionId).status).toBe(
+      EXECUTION_STATUS.SIMULATED,
     );
-    expect(
-      f.schedulerStore.getOccurrenceAdjudication(secondOccurrence.id),
-    ).toMatchObject({ status: "applied" });
-  });
-
-  it("derives stable trigger and execution identities", () => {
-    const f = fixture();
-    const event = channelEvent(f);
-    expect(automationEventTriggerKey(event)).toMatch(/^channel:[0-9a-f]{64}$/u);
-    expect(automationChannelEventDigest(event)).toMatch(/^[0-9a-f]{64}$/u);
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
   });
 
   it("denies a scoped channel event when live connector authority is revoked", async () => {
@@ -521,15 +592,14 @@ describe("scheduler-kernel automation channel event adapter", () => {
     await expect(
       retryRuntime.runOccurrence(incident.occurrenceId),
     ).resolves.toMatchObject({
-      status: "succeeded",
-      result: { id: incident.runId },
+      status: "dead_letter",
+      error: { code: "AUTOMATION_EXECUTION_UNSUPPORTED" },
     });
     expect(listAutomationExecutionIncidents(f.db, { flowId: flow.id })).toEqual(
       [
         expect.objectContaining({
           runId: incident.runId,
-          status: "resolved",
-          resolutionCode: "EXECUTION_SUCCEEDED",
+          status: "open",
         }),
       ],
     );

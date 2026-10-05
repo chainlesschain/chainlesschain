@@ -576,7 +576,7 @@ function existingExecutionResult(db, occurrence, expectedFlow, now) {
   }
   if (execution.status !== EXECUTION_STATUS.SUCCESS) {
     throw eventError(
-      "AUTOMATION_EVENT_EXECUTION_FAILED",
+      executionFailureCode(execution.status),
       `automation event execution did not succeed: ${execution.id}`,
       { executionId: execution.id, status: execution.status },
     );
@@ -585,6 +585,14 @@ function existingExecutionResult(db, occurrence, expectedFlow, now) {
     now,
   });
   return execution;
+}
+
+function executionFailureCode(status) {
+  if (status === EXECUTION_STATUS.UNSUPPORTED)
+    return "AUTOMATION_EXECUTION_UNSUPPORTED";
+  if (status === EXECUTION_STATUS.SIMULATED)
+    return "AUTOMATION_EXECUTION_SIMULATED";
+  return "AUTOMATION_EVENT_EXECUTION_FAILED";
 }
 
 export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
@@ -729,9 +737,13 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
       }
       if (execution.status !== EXECUTION_STATUS.SUCCESS) {
         throw eventError(
-          "AUTOMATION_EVENT_EXECUTION_FAILED",
+          executionFailureCode(execution.status),
           `automation event execution failed: ${execution.id}`,
-          { executionId: execution.id, error: execution.error },
+          {
+            executionId: execution.id,
+            status: execution.status,
+            error: execution.error,
+          },
         );
       }
       resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {

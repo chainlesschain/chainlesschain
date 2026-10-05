@@ -163,6 +163,9 @@ class AppBuilder extends EventEmitter {
           this._apps.set(row.id, {
             ...row,
             design: JSON.parse(row.design || "{}"),
+            // Older versions used "published" for a local design flag.
+            status:
+              row.status === "published" ? "design-published" : row.status,
           });
         } catch (rowErr) {
           logger.warn(
@@ -220,7 +223,7 @@ class AppBuilder extends EventEmitter {
             name: row.name,
             type: row.type,
             config: JSON.parse(row.config || "{}"),
-            status: row.status || "active",
+            status: "configured",
           });
         } catch (rowErr) {
           logger.warn(
@@ -259,6 +262,7 @@ class AppBuilder extends EventEmitter {
     }
     app.design = design;
     app.version++;
+    app.status = "draft";
     this._persistApp(app);
     this._saveVersion(appId, app.version, design);
     this.emit("lowcode:design-saved", { appId, version: app.version });
@@ -273,8 +277,10 @@ class AppBuilder extends EventEmitter {
     return {
       appId,
       design: app.design,
-      previewUrl: `preview://${appId}`,
+      previewUrl: null,
       platform: app.platform,
+      status: "design-preview",
+      deployed: false,
     };
   }
 
@@ -283,10 +289,22 @@ class AppBuilder extends EventEmitter {
     if (!app) {
       throw new Error("App not found");
     }
-    app.status = "published";
-    this._persistApp(app);
-    this.emit("lowcode:app-published", { appId, version: app.version });
-    return { appId, status: "published", version: app.version };
+    const previousStatus = app.status;
+    app.status = "design-published";
+    if (!this._persistApp(app)) {
+      app.status = previousStatus;
+      throw new Error("Design publication could not be persisted");
+    }
+    const result = {
+      appId,
+      status: app.status,
+      version: app.version,
+      publicationKind: "design",
+      deployed: false,
+      runtimeStatus: "unsupported",
+    };
+    this.emit("lowcode:design-published", result);
+    return result;
   }
 
   listComponents() {
@@ -295,14 +313,14 @@ class AppBuilder extends EventEmitter {
 
   addDataSource(appId, name, type, config) {
     const id = `ds-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const ds = { id, app_id: appId, name, type, config, status: "active" };
+    const ds = { id, app_id: appId, name, type, config, status: "configured" };
     this._dataSources.set(id, ds);
     try {
       this.db
         .prepare(
-          "INSERT INTO lowcode_datasources (id, app_id, name, type, config) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO lowcode_datasources (id, app_id, name, type, config, status) VALUES (?, ?, ?, ?, ?, ?)",
         )
-        .run(id, appId, name, type, JSON.stringify(config));
+        .run(id, appId, name, type, JSON.stringify(config), ds.status);
     } catch (error) {
       logger.error("[AppBuilder] DataSource persist failed:", error.message);
     }
@@ -312,13 +330,21 @@ class AppBuilder extends EventEmitter {
   testConnection(dataSourceId) {
     const ds = this._dataSources.get(dataSourceId);
     if (!ds) {
-      return { success: false, error: "DataSource not found" };
+      return {
+        success: false,
+        status: "not-found",
+        probed: false,
+        error: "DataSource not found",
+      };
     }
     return {
-      success: true,
+      success: false,
+      status: "unsupported",
+      configured: true,
+      probed: false,
       dataSourceId,
       type: ds.type,
-      latency: Math.floor(Math.random() * 100),
+      error: "Connection probing is not available for this data source",
     };
   }
 
@@ -338,6 +364,7 @@ class AppBuilder extends EventEmitter {
     }
     app.design = target.snapshot;
     app.version = version;
+    app.status = "draft";
     this._persistApp(app);
     return { appId, restoredVersion: version };
   }
@@ -368,8 +395,10 @@ class AppBuilder extends EventEmitter {
           app.version,
           app.platform,
         );
+      return true;
     } catch (error) {
       logger.error("[AppBuilder] App persist failed:", error.message);
+      return false;
     }
   }
 

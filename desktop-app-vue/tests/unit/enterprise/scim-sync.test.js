@@ -4,21 +4,21 @@
  * Coverage: Connector registration, sync operations, status, history, close
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // ============================================================
 // Mocks
 // ============================================================
 
-vi.mock('../../../src/main/utils/logger.js', () => ({
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+vi.mock("../../../src/main/utils/logger.js", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'test-uuid-' + Math.random().toString(36).substr(2, 9))
+vi.mock("uuid", () => ({
+  v4: vi.fn(() => "test-uuid-" + Math.random().toString(36).substr(2, 9)),
 }));
 
-describe('SCIMSync', () => {
+describe("SCIMSync", () => {
   let SCIMSync, SYNC_PROVIDERS, SYNC_STATUS;
   let sync;
   let mockDb;
@@ -33,10 +33,10 @@ describe('SCIMSync', () => {
         prepare: vi.fn(() => ({
           run: vi.fn(),
           get: vi.fn(() => null),
-          all: vi.fn(() => [])
-        }))
+          all: vi.fn(() => []),
+        })),
       },
-      saveToFile: vi.fn()
+      saveToFile: vi.fn(),
     };
 
     mockScimServer = {
@@ -44,7 +44,7 @@ describe('SCIMSync', () => {
       listUsers: vi.fn(() => ({ Resources: [] })),
     };
 
-    const mod = await import('../../../src/main/enterprise/scim-sync.js');
+    const mod = await import("../../../src/main/enterprise/scim-sync.js");
     SCIMSync = mod.SCIMSync;
     SYNC_PROVIDERS = mod.SYNC_PROVIDERS;
     SYNC_STATUS = mod.SYNC_STATUS;
@@ -60,8 +60,8 @@ describe('SCIMSync', () => {
   // Constructor
   // ============================================================
 
-  describe('constructor', () => {
-    it('should set initial state', () => {
+  describe("constructor", () => {
+    it("should set initial state", () => {
       expect(sync.database).toBe(mockDb);
       expect(sync.scimServer).toBe(mockScimServer);
       expect(sync.initialized).toBe(false);
@@ -74,20 +74,20 @@ describe('SCIMSync', () => {
   // initialize
   // ============================================================
 
-  describe('initialize()', () => {
-    it('should set initialized to true', async () => {
+  describe("initialize()", () => {
+    it("should set initialized to true", async () => {
       await sync.initialize();
       expect(sync.initialized).toBe(true);
     });
 
-    it('should create interval when autoSync is enabled', async () => {
+    it("should create interval when autoSync is enabled", async () => {
       vi.useFakeTimers();
       await sync.initialize({ autoSync: true, syncIntervalMs: 1000 });
       expect(sync._syncInterval).not.toBeNull();
       vi.useRealTimers();
     });
 
-    it('should not create interval without autoSync', async () => {
+    it("should not create interval without autoSync", async () => {
       await sync.initialize();
       expect(sync._syncInterval).toBeNull();
     });
@@ -97,33 +97,42 @@ describe('SCIMSync', () => {
   // registerConnector
   // ============================================================
 
-  describe('registerConnector()', () => {
-    it('should throw on missing endpoint', () => {
-      expect(() => sync.registerConnector('okta', {})).toThrow('Connector endpoint is required');
+  describe("registerConnector()", () => {
+    it("should throw on missing endpoint", () => {
+      expect(() => sync.registerConnector("okta", {})).toThrow(
+        "Connector endpoint is required",
+      );
     });
 
-    it('should store connector successfully', () => {
-      const result = sync.registerConnector('okta', { endpoint: 'https://okta.example.com/scim' });
+    it("should store connector successfully", () => {
+      const result = sync.registerConnector("okta", {
+        endpoint: "https://okta.example.com/scim",
+      });
       expect(result.success).toBe(true);
-      expect(result.provider).toBe('okta');
+      expect(result.provider).toBe("okta");
     });
 
-    it('should emit connector:registered event', () => {
+    it("should emit connector:registered event", () => {
       const spy = vi.fn();
-      sync.on('connector:registered', spy);
+      sync.on("connector:registered", spy);
 
-      sync.registerConnector('azure', { endpoint: 'https://azure.example.com/scim' });
-      expect(spy).toHaveBeenCalledWith({ provider: 'azure' });
+      sync.registerConnector("azure", {
+        endpoint: "https://azure.example.com/scim",
+      });
+      expect(spy).toHaveBeenCalledWith({ provider: "azure" });
     });
 
-    it('should store connector with default enabled=true', () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
+    it("should store connector with default enabled=true", () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
       const connectors = sync.getConnectors();
       expect(connectors[0].enabled).toBe(true);
     });
 
-    it('should store connector with enabled=false when specified', () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com', enabled: false });
+    it("should store connector with enabled=false when specified", () => {
+      sync.registerConnector("okta", {
+        endpoint: "https://okta.example.com",
+        enabled: false,
+      });
       const connectors = sync.getConnectors();
       expect(connectors[0].enabled).toBe(false);
     });
@@ -133,17 +142,20 @@ describe('SCIMSync', () => {
   // getConnectors
   // ============================================================
 
-  describe('getConnectors()', () => {
-    it('should return sanitized connector list (no token)', () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com', token: 'secret-token-123' });
+  describe("getConnectors()", () => {
+    it("should return sanitized connector list (no token)", () => {
+      sync.registerConnector("okta", {
+        endpoint: "https://okta.example.com",
+        token: "secret-token-123",
+      });
       const list = sync.getConnectors();
       expect(list).toHaveLength(1);
-      expect(list[0].provider).toBe('okta');
-      expect(list[0].endpoint).toBe('https://okta.example.com');
-      expect(list[0]).not.toHaveProperty('token');
+      expect(list[0].provider).toBe("okta");
+      expect(list[0].endpoint).toBe("https://okta.example.com");
+      expect(list[0]).not.toHaveProperty("token");
     });
 
-    it('should return empty array when no connectors', () => {
+    it("should return empty array when no connectors", () => {
       expect(sync.getConnectors()).toEqual([]);
     });
   });
@@ -152,54 +164,81 @@ describe('SCIMSync', () => {
   // syncProvider
   // ============================================================
 
-  describe('syncProvider()', () => {
-    it('should throw for unknown connector', async () => {
-      await expect(sync.syncProvider('unknown')).rejects.toThrow('Connector not found: unknown');
+  describe("syncProvider()", () => {
+    it("should throw for unknown connector", async () => {
+      await expect(sync.syncProvider("unknown")).rejects.toThrow(
+        "Connector not found: unknown",
+      );
     });
 
-    it('should throw for disabled connector', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com', enabled: false });
-      await expect(sync.syncProvider('okta')).rejects.toThrow('Connector disabled: okta');
+    it("should throw for disabled connector", async () => {
+      sync.registerConnector("okta", {
+        endpoint: "https://okta.example.com",
+        enabled: false,
+      });
+      await expect(sync.syncProvider("okta")).rejects.toThrow(
+        "Connector disabled: okta",
+      );
     });
 
-    it('should return sync result with timestamps', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
+    it("reports an unsupported attempt without pretending to synchronize", async () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
 
-      const result = await sync.syncProvider('okta');
-      expect(result.provider).toBe('okta');
-      expect(result.startedAt).toBeDefined();
-      expect(result.completedAt).toBeDefined();
+      const result = await sync.syncProvider("okta");
+      expect(result.provider).toBe("okta");
+      expect(result).toMatchObject({
+        success: false,
+        status: "unsupported",
+        executed: false,
+      });
+      expect(result.attemptedAt).toBeDefined();
+      expect(result).not.toHaveProperty("completedAt");
+      expect(mockScimServer.createUser).not.toHaveBeenCalled();
       expect(result.created).toBe(0);
       expect(result.updated).toBe(0);
     });
 
-    it('should log sync to DB', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      await sync.syncProvider('okta');
+    it("should log sync to DB", async () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
+      await sync.syncProvider("okta");
 
-      expect(mockDb.db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO scim_sync_log'));
+      expect(mockDb.db.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("INSERT INTO scim_sync_log"),
+      );
       expect(mockDb.saveToFile).toHaveBeenCalled();
+      const statement = mockDb.db.prepare.mock.results[0].value;
+      expect(statement.run.mock.calls[0][5]).toBe("unsupported");
     });
 
-    it('should update sync status to COMPLETED', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      await sync.syncProvider('okta');
+    it("does not advance successful-sync timestamps or counters", async () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
+      await sync.syncProvider("okta");
 
-      expect(sync._syncStatus).toBe(SYNC_STATUS.COMPLETED);
-      expect(sync._lastSyncAt).not.toBeNull();
+      expect(sync._syncStatus).toBe(SYNC_STATUS.UNSUPPORTED);
+      expect(sync._lastSyncAt).toBeNull();
+      expect(sync.getConnectors()[0]).toMatchObject({
+        lastSync: null,
+        syncCount: 0,
+        syncSupported: false,
+      });
     });
 
-    it('should emit sync:started and sync:completed events', async () => {
+    it("emits unsupported without emitting real synchronization events", async () => {
       const startSpy = vi.fn();
       const completeSpy = vi.fn();
-      sync.on('sync:started', startSpy);
-      sync.on('sync:completed', completeSpy);
+      const unsupportedSpy = vi.fn();
+      sync.on("sync:started", startSpy);
+      sync.on("sync:completed", completeSpy);
+      sync.on("sync:unsupported", unsupportedSpy);
 
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      await sync.syncProvider('okta');
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
+      await sync.syncProvider("okta");
 
-      expect(startSpy).toHaveBeenCalledWith({ provider: 'okta' });
-      expect(completeSpy).toHaveBeenCalledWith(expect.objectContaining({ provider: 'okta' }));
+      expect(startSpy).not.toHaveBeenCalled();
+      expect(completeSpy).not.toHaveBeenCalled();
+      expect(unsupportedSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: "okta", status: "unsupported" }),
+      );
     });
   });
 
@@ -207,21 +246,30 @@ describe('SCIMSync', () => {
   // syncAll
   // ============================================================
 
-  describe('syncAll()', () => {
-    it('should sync all enabled connectors', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      sync.registerConnector('azure', { endpoint: 'https://azure.example.com' });
-      sync.registerConnector('disabled', { endpoint: 'https://disabled.example.com', enabled: false });
+  describe("syncAll()", () => {
+    it("should sync all enabled connectors", async () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
+      sync.registerConnector("azure", {
+        endpoint: "https://azure.example.com",
+      });
+      sync.registerConnector("disabled", {
+        endpoint: "https://disabled.example.com",
+        enabled: false,
+      });
 
       const result = await sync.syncAll();
       expect(result.results).toHaveLength(2);
-      expect(result.syncedAt).toBeDefined();
+      expect(result.syncedAt).toBeNull();
+      expect(result).toMatchObject({ success: false, status: "unsupported" });
+      expect(
+        result.results.every((entry) => entry.status === "unsupported"),
+      ).toBe(true);
     });
 
-    it('should handle errors gracefully in syncAll', async () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
+    it("should handle errors gracefully in syncAll", async () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
       // Override syncProvider to throw, simulating a failure
-      sync.syncProvider = vi.fn().mockRejectedValue(new Error('Sync failed'));
+      sync.syncProvider = vi.fn().mockRejectedValue(new Error("Sync failed"));
 
       const result = await sync.syncAll();
       // Should have an error result but not throw
@@ -234,8 +282,8 @@ describe('SCIMSync', () => {
   // getStatus
   // ============================================================
 
-  describe('getStatus()', () => {
-    it('should return current status', () => {
+  describe("getStatus()", () => {
+    it("should return current status", () => {
       const status = sync.getStatus();
       expect(status.status).toBe(SYNC_STATUS.IDLE);
       expect(status.lastSyncAt).toBeNull();
@@ -243,9 +291,12 @@ describe('SCIMSync', () => {
       expect(status.enabledConnectors).toBe(0);
     });
 
-    it('should reflect registered connectors', () => {
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      sync.registerConnector('azure', { endpoint: 'https://azure.example.com', enabled: false });
+    it("should reflect registered connectors", () => {
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
+      sync.registerConnector("azure", {
+        endpoint: "https://azure.example.com",
+        enabled: false,
+      });
 
       const status = sync.getStatus();
       expect(status.connectorCount).toBe(2);
@@ -257,27 +308,71 @@ describe('SCIMSync', () => {
   // getSyncHistory
   // ============================================================
 
-  describe('getSyncHistory()', () => {
-    it('should query DB for sync log', async () => {
-      const mockRows = [{ id: 'log1', operation: 'sync', provider: 'okta' }];
+  describe("getSyncHistory()", () => {
+    it.each([{}, { provider: "okta" }])(
+      "marks old outbound success unverified without altering inbound or stored history: %j",
+      async (options) => {
+        const rows = [
+          {
+            id: "outbound",
+            operation: "sync",
+            provider: "okta",
+            status: "success",
+          },
+          {
+            id: "inbound",
+            operation: "create",
+            provider: "okta",
+            status: "success",
+          },
+          {
+            id: "current",
+            operation: "sync",
+            provider: "okta",
+            status: "unsupported",
+          },
+        ];
+        const run = vi.fn();
+        mockDb.db.prepare = vi.fn(() => ({ all: () => rows, run }));
+        const history = await sync.getSyncHistory(options);
+        expect(history[0]).toMatchObject({
+          status: "legacy-unverified",
+          recordedStatus: "success",
+        });
+        expect(history[1]).toEqual(rows[1]);
+        expect(history[2]).toEqual(rows[2]);
+        expect(rows[0].status).toBe("success");
+        expect(run).not.toHaveBeenCalled();
+        expect(mockDb.saveToFile).not.toHaveBeenCalled();
+      },
+    );
+
+    it("should query DB for sync log", async () => {
+      const mockRows = [{ id: "log1", operation: "sync", provider: "okta" }];
       mockDb.db.prepare = vi.fn(() => ({
-        all: vi.fn(() => mockRows), get: vi.fn(() => null), run: vi.fn()
+        all: vi.fn(() => mockRows),
+        get: vi.fn(() => null),
+        run: vi.fn(),
       }));
 
       const history = await sync.getSyncHistory();
       expect(history).toEqual(mockRows);
     });
 
-    it('should filter by provider when specified', async () => {
+    it("should filter by provider when specified", async () => {
       mockDb.db.prepare = vi.fn(() => ({
-        all: vi.fn(() => []), get: vi.fn(() => null), run: vi.fn()
+        all: vi.fn(() => []),
+        get: vi.fn(() => null),
+        run: vi.fn(),
       }));
 
-      await sync.getSyncHistory({ provider: 'okta' });
-      expect(mockDb.db.prepare).toHaveBeenCalledWith(expect.stringContaining('WHERE provider = ?'));
+      await sync.getSyncHistory({ provider: "okta" });
+      expect(mockDb.db.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("WHERE provider = ?"),
+      );
     });
 
-    it('should return empty array when no database', async () => {
+    it("should return empty array when no database", async () => {
       const s = new SCIMSync(null, null);
       const history = await s.getSyncHistory();
       expect(history).toEqual([]);
@@ -288,11 +383,11 @@ describe('SCIMSync', () => {
   // close
   // ============================================================
 
-  describe('close()', () => {
-    it('should clear interval and connectors', async () => {
+  describe("close()", () => {
+    it("should clear interval and connectors", async () => {
       vi.useFakeTimers();
       await sync.initialize({ autoSync: true, syncIntervalMs: 60000 });
-      sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
+      sync.registerConnector("okta", { endpoint: "https://okta.example.com" });
 
       await sync.close();
 
@@ -307,19 +402,19 @@ describe('SCIMSync', () => {
   // Constants
   // ============================================================
 
-  describe('constants', () => {
-    it('SYNC_PROVIDERS should have AZURE_AD, OKTA, ONELOGIN, CUSTOM', () => {
-      expect(SYNC_PROVIDERS.AZURE_AD).toBe('azure_ad');
-      expect(SYNC_PROVIDERS.OKTA).toBe('okta');
-      expect(SYNC_PROVIDERS.ONELOGIN).toBe('onelogin');
-      expect(SYNC_PROVIDERS.CUSTOM).toBe('custom');
+  describe("constants", () => {
+    it("SYNC_PROVIDERS should have AZURE_AD, OKTA, ONELOGIN, CUSTOM", () => {
+      expect(SYNC_PROVIDERS.AZURE_AD).toBe("azure_ad");
+      expect(SYNC_PROVIDERS.OKTA).toBe("okta");
+      expect(SYNC_PROVIDERS.ONELOGIN).toBe("onelogin");
+      expect(SYNC_PROVIDERS.CUSTOM).toBe("custom");
     });
 
-    it('SYNC_STATUS should have IDLE, RUNNING, COMPLETED, FAILED', () => {
-      expect(SYNC_STATUS.IDLE).toBe('idle');
-      expect(SYNC_STATUS.RUNNING).toBe('running');
-      expect(SYNC_STATUS.COMPLETED).toBe('completed');
-      expect(SYNC_STATUS.FAILED).toBe('failed');
+    it("SYNC_STATUS should have IDLE, RUNNING, COMPLETED, FAILED", () => {
+      expect(SYNC_STATUS.IDLE).toBe("idle");
+      expect(SYNC_STATUS.RUNNING).toBe("running");
+      expect(SYNC_STATUS.COMPLETED).toBe("completed");
+      expect(SYNC_STATUS.FAILED).toBe("failed");
     });
   });
 });

@@ -1,0 +1,118 @@
+{
+  "schema": "chainlesschain.palantir-implementation-validation/v1",
+  "date": "2026-10-06",
+  "baseline": "02e1318aae747f977b8d3cb9372acc3a1d84d303",
+  "branch": "feature/palantir-capability-hardening",
+  "state": "uncommitted-working-tree",
+  "platform": "Windows",
+  "nodeVersion": "v22.22.2",
+  "vitestVersion": "4.1.10",
+  "testRuns": {
+    "cli": {
+      "cwd": "packages/cli",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/unit/audit-logger.test.js",
+        "__tests__/unit/audit-sanitization.test.js",
+        "__tests__/unit/automation-capability-commands.test.js",
+        "__tests__/unit/automation-center-incidents.test.js",
+        "__tests__/unit/automation-center-runtime.test.js",
+        "__tests__/unit/automation-center.test.js",
+        "__tests__/unit/automation-engine.test.js",
+        "__tests__/unit/automation-execution-authority.test.js",
+        "__tests__/unit/automation-execution-history.test.js",
+        "__tests__/unit/automation-execution-incident.test.js",
+        "__tests__/unit/scheduler-kernel-automation-adapter.test.js",
+        "__tests__/unit/scheduler-kernel-automation-event-adapter.test.js",
+        "__tests__/unit/sql-like.test.js",
+        "__tests__/unit/vscode-ext-automation-center.test.js",
+        "__tests__/unit/lib/audit-logger-v2.test.js",
+        "__tests__/unit/lib/automation-engine-v2.test.js"
+      ],
+      "passed": 404,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "runner": "node ../node_modules/vitest/vitest.mjs run --config vitest.enterprise-capabilities.config.mjs",
+      "files": [
+        "tests/unit/enterprise/capability-ipc.test.js",
+        "tests/unit/enterprise/scim-ipc.test.js",
+        "tests/unit/enterprise/scim-sync.test.js",
+        "src/main/enterprise/automation/__tests__/automation-engine.test.js",
+        "src/main/enterprise/low-code/__tests__/app-builder.test.js"
+      ],
+      "passed": 95,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true
+    },
+    "pdh": {
+      "cwd": "packages/personal-data-hub",
+      "runner": "node ../../node_modules/vitest/vitest.mjs run",
+      "files": [
+        "__tests__/bridges-cc-kg.test.js",
+        "__tests__/bridges-cc-rag.test.js",
+        "__tests__/kg-derive.test.js",
+        "__tests__/rag-derive.test.js"
+      ],
+      "passed": 60,
+      "failed": 0,
+      "skippedWithinSelectedFiles": 0,
+      "success": true
+    }
+  },
+  "totals": {
+    "files": 25,
+    "failed": 0,
+    "passed": 559
+  },
+  "checks": {
+    "commandManifest": "passed",
+    "prettier": "passed",
+    "shellCompletions": "passed",
+    "diffWhitespace": "passed",
+    "commandHelpIndex": "passed"
+  },
+  "limitations": [
+    "Selective local regression only; no full OS release matrix.",
+    "Native SQLCipher vault-dependent PDH files excluded by existing configuration; not verified.",
+    "Desktop uses Node environment and Electron mocks; no renderer or complete IDE host journey.",
+    "No real SaaS/IdP connector, external business pilot, persistent derivation retry queue, or release delivered."
+  ],
+  "sourceSha256": {
+    "desktop-app-vue/package.json": "904b96db7ab1ada270d1fd81d36c36ba412f15702586802a1d11d901669ea863",
+    "desktop-app-vue/src/main/enterprise/automation/__tests__/automation-engine.test.js": "e31e18465b83c22bc00938d7866794b1e5134d51ab8b6a89cccbb302cb584c50",
+    "desktop-app-vue/src/main/enterprise/automation/automation-engine.js": "b6a9053009d949b89302dcf0e5bc814abd7e4a088f56796fa780c34c5b2be468",
+    "desktop-app-vue/src/main/enterprise/automation/automation-ipc.js": "a7bba8d7f7d58297eed5ff76e1cedf360cbf0934d77811f0aac121eb90975a4f",
+    "desktop-app-vue/src/main/enterprise/low-code/__tests__/app-builder.test.js": "032427f64bf491aa6f3d62473ac472eaf804f65879617e2ee5d8d3ba71dceedf",
+    "desktop-app-vue/src/main/enterprise/low-code/app-builder.js": "ab8b07dd85b844c58247bd553346ac0b04752ab244c6b604e00d602f25192724",
+    "desktop-app-vue/src/main/enterprise/low-code/low-code-ipc.js": "75ed91f7d07703d4bfd0dde8825f997aa57d815903246eb71b25a6930aa84c8f",
+    "desktop-app-vue/src/main/enterprise/scim-ipc.js": "1118b6beb17f3659974087d2ccce2ec3a54603218b584a57eb4fe18a5364c723",
+    "desktop-app-vue/src/main/enterprise/scim-sync.js": "8d04b556d90fe12d3ac0fa172c6edcb8413972fd3d36ba6337d77eb9d0889466",
+    "desktop-app-vue/src/renderer/pages/enterprise/SCIMIntegrationPage.vue": "66c2c4897871c979d749c421b22dbaa872cf185aa21d5729007230aae53c9a03",
+    "desktop-app-vue/tests/unit/enterprise/capability-ipc.test.js": "6bc4850019fb20d57a499cdc1ee18caea76712e623d4c139d9c4b280155f702a",
+    "desktop-app-vue/tests/unit/enterprise/scim-ipc.test.js": "5f2e8a6ba19aba096f15fff03fc563f507bd6c23a66db4dff4496b40386542ea",
+    "desktop-app-vue/tests/unit/enterprise/scim-sync.test.js": "c2837f7428ff0bcc69fdc8d3a7d22577556445df4635996740e9ed82c2c4a127",
+    "desktop-app-vue/vitest.enterprise-capabilities.config.mjs": "93549c7677be91a484f1622d6415c80d24f5ee9dbc56800aa577084f527ba9a0",
+    "packages/cli/__tests__/unit/audit-sanitization.test.js": "fcdd3326acdb75d6b0604b8c86296d54c7631c573a89c3d97fc60b73b9a713f1",
+    "packages/cli/__tests__/unit/automation-capability-commands.test.js": "89705bdd10f43e06f1d87ad03558b17a09725683fc461fe8b354b50deb4588ec",
+    "packages/cli/__tests__/unit/automation-center.test.js": "80822d3cb2523b8f7738e6fd449eaff5c2d16f6e1bb831553f0a8e03fc95fdcc",
+    "packages/cli/__tests__/unit/automation-engine.test.js": "5b708caa3f970b1fa5a512b18190557cfc9b3d4e3aba6a11d2477415367a5fc8",
+    "packages/cli/__tests__/unit/automation-execution-history.test.js": "af49838e58579d012a552141be57bb436752afc131e99c8fd0a0b2c1990b1894",
+    "packages/cli/__tests__/unit/scheduler-kernel-automation-adapter.test.js": "f8081dc9a752a4a1d875567e730d3d67a818ae94f52ddb11c89ae60177c40081",
+    "packages/cli/__tests__/unit/scheduler-kernel-automation-event-adapter.test.js": "0bc4c073bf28b099921e0ccddee6349aeef8f8725cf785b2bac7d920fd2b999e",
+    "packages/cli/src/command-help-index.json": "472e85d0a5f7ddc3e73ed8c92cb0133ae96115e5ffe8f8949db69e51d280bdf9",
+    "packages/cli/src/commands/automation.js": "2f0b75042d13e7bcd4cb58682d18ee82258254fbcfb43c92ab8a1ad7e8492d12",
+    "packages/cli/src/lib/audit-logger.js": "9c79a9ff9b6a91eb1e167e21c3ad8ff5307e5e0e4f463bec8a1d6cf0c6bf8d2a",
+    "packages/cli/src/lib/audit-sanitizer.js": "6b010e330aa549d0dd33ef223c7a2e356374e037e6b1ff71c1eaa91db255812d",
+    "packages/cli/src/lib/automation-center.js": "f92f190bb51a477dd786c3f14532983b63002179bb85785f07f762b06bf7f50c",
+    "packages/cli/src/lib/automation-engine.js": "b555f846fbef0dc2f9b07dff430d9d70d89130e81252ca35afff0115dba5bec0",
+    "packages/cli/src/lib/scheduler-kernel/automation-adapter.js": "bd7f32fb014eacc22bbdabaf733abf766f1c9204ce75c420d309cafb04c49c05",
+    "packages/cli/src/lib/scheduler-kernel/automation-event-adapter.js": "18cfcf092526d16c729585fc1facb9a52d7abf9fd34dbfd474042b53a2a88124",
+    "packages/personal-data-hub/__tests__/bridges-cc-rag.test.js": "e15da402400cddce209f038e947a2fee6e5e47378dfb48a1b225b4f8138b9501",
+    "packages/personal-data-hub/lib/bridges/cc-rag-sink.js": "7c25831cc6128ad4e444bba97604b02577b6cad102f272ec56acce0cfef4dba3"
+  }
+}

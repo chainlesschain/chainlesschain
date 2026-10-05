@@ -1,6 +1,7 @@
 "use strict";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { BM25Search } from "../../cli/src/lib/bm25-search.js";
 
 const { CcRagSink } = require("../lib/bridges/cc-rag-sink");
 
@@ -11,6 +12,10 @@ function makeFakeBm25() {
     docs,
     addDocument(doc) {
       docs.push({ ...doc });
+    },
+    removeDocument(id) {
+      const index = docs.findIndex((entry) => entry.id === id);
+      if (index !== -1) docs.splice(index, 1);
     },
   };
 }
@@ -48,8 +53,14 @@ describe("CcRagSink.write", () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({ bm25 });
     const r = await sink.write([
-      doc("evt-1", "妈妈生日蛋白粉 +288.50 CNY", "event", { subtype: "order", adapter: "taobao" }),
-      doc("evt-2", "按摩仪 给妈妈", "event", { subtype: "order", adapter: "taobao" }),
+      doc("evt-1", "妈妈生日蛋白粉 +288.50 CNY", "event", {
+        subtype: "order",
+        adapter: "taobao",
+      }),
+      doc("evt-2", "按摩仪 给妈妈", "event", {
+        subtype: "order",
+        adapter: "taobao",
+      }),
     ]);
     expect(r.indexed).toBe(2);
     expect(r.skipped).toBe(0);
@@ -71,26 +82,93 @@ describe("CcRagSink.write", () => {
   it("metadata.title overrides subtype/type", async () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({ bm25 });
-    await sink.write([doc("x", "body", "event", { title: "custom title", subtype: "order" })]);
+    await sink.write([
+      doc("x", "body", "event", { title: "custom title", subtype: "order" }),
+    ]);
     expect(bm25.docs[0].title).toBe("custom title");
   });
 
-  it("dedupes by id within the sink lifetime", async () => {
+  it("replaces changed content for the same ID without duplicating the document", async () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({ bm25 });
     await sink.write([doc("evt-1", "text v1")]);
     const r = await sink.write([doc("evt-1", "text v2")]);
-    expect(r.indexed).toBe(0);
-    expect(r.skipped).toBe(1);
+    expect(r.indexed).toBe(1);
+    expect(r.skipped).toBe(0);
     expect(bm25.docs.length).toBe(1);
-    expect(bm25.docs[0].content).toBe("text v1"); // first write wins
+    expect(bm25.docs[0].content).toBe("text v2");
+  });
+
+  it("deduplicates unchanged content regardless of metadata key order", async () => {
+    const bm25 = makeFakeBm25();
+    const add = vi.spyOn(bm25, "addDocument");
+    const index = vi.fn(async () => {});
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    await sink.write([
+      doc("a", "body", "event", { title: "title", adapter: "mail" }),
+    ]);
+    const result = await sink.write([
+      doc("a", "body", "event", { adapter: "mail", title: "title" }),
+    ]);
+    expect(result).toEqual({ indexed: 0, skipped: 1, errors: [] });
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(index).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates metadata-only revisions and both search indexes", async () => {
+    const bm25 = makeFakeBm25();
+    const index = vi.fn(async () => {});
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    await sink.write([doc("a", "body", "event", { title: "old title" })]);
+    await sink.write([doc("a", "body", "event", { title: "new title" })]);
+    expect(bm25.docs).toHaveLength(1);
+    expect(bm25.docs[0].title).toBe("new title");
+    expect(index).toHaveBeenLastCalledWith([
+      doc("a", "body", "event", { title: "new title" }),
+    ]);
+  });
+
+  it("removes obsolete terms and keeps real BM25 document frequencies correct", async () => {
+    const bm25 = new BM25Search({ language: "en" });
+    bm25.addDocument({ id: "a", content: "obsolete" });
+    const sink = new CcRagSink({ bm25 });
+    await sink.write([doc("a", "original")]);
+    await sink.write([doc("a", "replacement")]);
+    expect(bm25.totalDocs).toBe(1);
+    expect(bm25.df.has("obsolete")).toBe(false);
+    expect(bm25.df.has("original")).toBe(false);
+    expect(bm25.df.get("replacement")).toBe(1);
+    expect(bm25.search("original")).toEqual([]);
+    expect(bm25.search("replacement")[0].id).toBe("a");
+  });
+
+  it("reports unsupported updates for add-only BM25 adapters", async () => {
+    const addDocument = vi.fn();
+    const sink = new CcRagSink({ bm25: { addDocument } });
+    await sink.write([doc("a", "old")]);
+    const result = await sink.write([doc("a", "new")]);
+    expect(result.indexed).toBe(0);
+    expect(result.skipped).toBe(0);
+    expect(result.errors[0].error).toContain("removeDocument");
+    expect(addDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses an unsafe retry after an add-only adapter throws with unknown outcome", async () => {
+    const addDocument = vi.fn(() => {
+      throw new Error("unknown outcome");
+    });
+    const sink = new CcRagSink({ bm25: { addDocument } });
+    await sink.write([doc("a", "body")]);
+    const retry = await sink.write([doc("a", "body")]);
+    expect(retry.errors[0].error).toContain("retries require removeDocument");
+    expect(addDocument).toHaveBeenCalledTimes(1);
   });
 
   it("skips empty / malformed docs", async () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({ bm25 });
     const r = await sink.write([
-      doc("a", ""),                              // empty text
+      doc("a", ""), // empty text
       doc("b", "real text"),
       { id: "c" /* missing text */ },
       null,
@@ -110,7 +188,11 @@ describe("CcRagSink.write", () => {
         },
       },
     });
-    const r = await sink.write([doc("evt-1", "a"), doc("evt-2", "b"), doc("evt-3", "c")]);
+    const r = await sink.write([
+      doc("evt-1", "a"),
+      doc("evt-2", "b"),
+      doc("evt-3", "c"),
+    ]);
     expect(r.indexed).toBe(2);
     expect(r.errors.length).toBe(1);
     expect(r.errors[0].id).toBe("evt-2");
@@ -121,7 +203,11 @@ describe("CcRagSink.write", () => {
     const vectorCalls = [];
     const sink = new CcRagSink({
       bm25,
-      vector: { index: async (docs) => { vectorCalls.push(docs); } },
+      vector: {
+        index: async (docs) => {
+          vectorCalls.push(docs);
+        },
+      },
     });
     const r = await sink.write([doc("a", "alpha"), doc("b", "beta")]);
     expect(r.indexed).toBe(2);
@@ -133,7 +219,11 @@ describe("CcRagSink.write", () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({
       bm25,
-      vector: { index: async () => { throw new Error("qdrant down"); } },
+      vector: {
+        index: async () => {
+          throw new Error("qdrant down");
+        },
+      },
     });
     const r = await sink.write([doc("a", "alpha")]);
     expect(r.indexed).toBe(1);
@@ -142,11 +232,143 @@ describe("CcRagSink.write", () => {
     expect(r.errors[0].phase).toBe("vector");
   });
 
+  it("retries a failed vector batch without repeating successful BM25 writes", async () => {
+    const bm25 = makeFakeBm25();
+    const add = vi.spyOn(bm25, "addDocument");
+    const index = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockResolvedValue(undefined);
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    const batch = [doc("a", "alpha"), doc("b", "beta")];
+    await sink.write(batch);
+    expect(await sink.write(batch)).toEqual({
+      indexed: 0,
+      skipped: 0,
+      errors: [],
+    });
+    expect(add).toHaveBeenCalledTimes(2);
+    expect(index).toHaveBeenCalledTimes(2);
+    expect(await sink.write(batch)).toEqual({
+      indexed: 0,
+      skipped: 2,
+      errors: [],
+    });
+  });
+
+  it("retries BM25 independently after a partial mutation without duplicating vector writes", async () => {
+    const bm25 = makeFakeBm25();
+    const originalAdd = bm25.addDocument;
+    bm25.addDocument = vi
+      .fn()
+      .mockImplementationOnce((entry) => {
+        originalAdd(entry);
+        throw new Error("failed after mutation");
+      })
+      .mockImplementation(originalAdd);
+    const index = vi.fn(async () => {});
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    expect((await sink.write([doc("a", "alpha")])).errors[0].phase).toBe(
+      "bm25",
+    );
+    expect(await sink.write([doc("a", "alpha")])).toEqual({
+      indexed: 1,
+      skipped: 0,
+      errors: [],
+    });
+    expect(bm25.docs).toHaveLength(1);
+    expect(index).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalidates the last vector acknowledgement when an update partially writes then rejects", async () => {
+    const index = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("uncertain outcome"))
+      .mockResolvedValue(undefined);
+    const sink = new CcRagSink({ bm25: makeFakeBm25(), vector: { index } });
+    await sink.write([doc("a", "original")]);
+    await sink.write([doc("a", "changed")]);
+    await sink.write([doc("a", "original")]);
+    expect(index).toHaveBeenCalledTimes(3);
+    expect(index).toHaveBeenLastCalledWith([doc("a", "original")]);
+  });
+
+  it("writes only the final revision for duplicate IDs in a vector batch", async () => {
+    const bm25 = makeFakeBm25();
+    const index = vi.fn(async () => {});
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    await sink.write([doc("a", "old"), doc("a", "new")]);
+    expect(bm25.docs).toHaveLength(1);
+    expect(bm25.docs[0].content).toBe("new");
+    expect(index).toHaveBeenCalledExactlyOnceWith([doc("a", "new")]);
+    await sink.write([doc("a", "other"), doc("a", "new")]);
+    expect(index).toHaveBeenCalledTimes(1);
+  });
+
+  it("serializes concurrent writes through vector completion so the latest content wins", async () => {
+    let release;
+    let notifyStarted;
+    const started = new Promise((resolve) => {
+      notifyStarted = resolve;
+    });
+    const blocked = new Promise((resolve) => {
+      release = resolve;
+    });
+    const vectorDocs = new Map();
+    const index = vi.fn(async (batch) => {
+      if (batch[0].text === "old") {
+        notifyStarted();
+        await blocked;
+      }
+      for (const entry of batch) vectorDocs.set(entry.id, entry.text);
+    });
+    const bm25 = makeFakeBm25();
+    const sink = new CcRagSink({ bm25, vector: { index } });
+    const first = sink.write([doc("a", "old")]);
+    await started;
+    const second = sink.write([doc("a", "new")]);
+    const duplicate = sink.write([doc("a", "new")]);
+    release();
+    const results = await Promise.all([first, second, duplicate]);
+    expect(results[2]).toEqual({ indexed: 0, skipped: 1, errors: [] });
+    expect(bm25.docs).toHaveLength(1);
+    expect(bm25.docs[0].content).toBe("new");
+    expect(vectorDocs.get("a")).toBe("new");
+    expect(index).toHaveBeenCalledTimes(2);
+  });
+
+  it("isolates transform failures and rejects an identity-changing transform", async () => {
+    const bm25 = makeFakeBm25();
+    const sink = new CcRagSink({
+      bm25,
+      transformDoc: (entry) => {
+        if (entry.id === "bad") throw new Error("invalid transformation");
+        return {
+          id: entry.id === "renamed" ? "wrong" : entry.id,
+          content: entry.text,
+        };
+      },
+    });
+    const result = await sink.write([
+      doc("bad", "bad"),
+      doc("renamed", "bad"),
+      doc("good", "good"),
+    ]);
+    expect(result.indexed).toBe(1);
+    expect(result.errors.map((error) => error.id)).toEqual(["bad", "renamed"]);
+    expect(bm25.docs[0].id).toBe("good");
+  });
+
   it("transformDoc hook lets caller rewrite the doc shape", async () => {
     const bm25 = makeFakeBm25();
     const sink = new CcRagSink({
       bm25,
-      transformDoc: (d) => ({ id: d.id, title: "OVERRIDE", content: d.text.toUpperCase() }),
+      transformDoc: (d) => ({
+        id: d.id,
+        title: "OVERRIDE",
+        content: d.text.toUpperCase(),
+      }),
     });
     await sink.write([doc("a", "hello")]);
     expect(bm25.docs[0].title).toBe("OVERRIDE");

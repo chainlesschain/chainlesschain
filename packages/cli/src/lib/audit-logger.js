@@ -6,6 +6,7 @@
 import crypto from "crypto";
 import { safeJsonParse } from "./safe-json.js";
 import { escapeLike } from "./sql-like.js";
+import { sanitizeAuditDetails } from "./audit-sanitizer.js";
 
 /**
  * Event types for audit logging.
@@ -112,29 +113,15 @@ export function assessRisk(eventType, operation, details) {
  * Sanitize sensitive data from log details.
  */
 export function sanitizeDetails(details) {
-  if (!details || typeof details !== "object") return details;
+  return sanitizeAuditDetails(details);
+}
 
-  const sanitized = { ...details };
-  const sensitiveKeys = [
-    "password",
-    "secret",
-    "secretKey",
-    "secret_key",
-    "privateKey",
-    "private_key",
-    "token",
-    "apiKey",
-    "api_key",
-    "mnemonic",
-  ];
-
-  for (const key of sensitiveKeys) {
-    if (sanitized[key]) {
-      sanitized[key] = "[REDACTED]";
-    }
-  }
-
-  return sanitized;
+function sanitizeErrorMessage(value) {
+  const sanitized = sanitizeDetails(value);
+  if (sanitized == null) return null;
+  return typeof sanitized === "object"
+    ? JSON.stringify(sanitized)
+    : String(sanitized);
 }
 
 /**
@@ -146,8 +133,7 @@ export function logEvent(db, event) {
   const id = crypto.randomUUID();
   const sanitized = sanitizeDetails(event.details);
   const risk =
-    event.riskLevel ||
-    assessRisk(event.eventType, event.operation, event.details);
+    event.riskLevel || assessRisk(event.eventType, event.operation, sanitized);
 
   db.prepare(
     `INSERT INTO audit_log (id, event_type, operation, actor, target, details, risk_level, ip_address, user_agent, success, error_message)
@@ -158,12 +144,12 @@ export function logEvent(db, event) {
     event.operation || "unknown",
     event.actor || null,
     event.target || null,
-    sanitized ? JSON.stringify(sanitized) : null,
+    sanitized == null ? null : JSON.stringify(sanitized),
     risk,
     event.ipAddress || null,
     event.userAgent || null,
     event.success !== false ? 1 : 0,
-    event.errorMessage || null,
+    sanitizeErrorMessage(event.errorMessage),
   );
 
   return { id, riskLevel: risk, createdAt: new Date().toISOString() };
@@ -516,7 +502,8 @@ export function logEventV2(
   if (_logStatesV2.has(logId)) {
     throw new Error(`Log already registered: ${logId}`);
   }
-  const risk = riskLevel || assessRisk(eventType, operation, details);
+  const sanitized = sanitizeDetails(details);
+  const risk = riskLevel || assessRisk(eventType, operation, sanitized);
   if (!RISK_LEVELS_V2.includes(risk)) {
     throw new Error(`Invalid riskLevel: ${risk}`);
   }
@@ -527,12 +514,12 @@ export function logEventV2(
     operation,
     actor: actor || null,
     target: target || null,
-    details: sanitizeDetails(details) || null,
+    details: sanitized ?? null,
     riskLevel: risk,
     ipAddress: ipAddress || null,
     userAgent: userAgent || null,
     success: success !== false,
-    errorMessage: errorMessage || null,
+    errorMessage: sanitizeErrorMessage(errorMessage),
     status: LOG_STATUS_V2.ACTIVE,
     integrityStatus: INTEGRITY_STATUS_V2.UNVERIFIED,
     prevHash: _lastChainHash,

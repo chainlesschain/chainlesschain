@@ -107,6 +107,20 @@ function _dbFromCtx(cmd) {
   return null;
 }
 
+function reportExecution(execution) {
+  const message = `Execution ${execution.id} → ${execution.status}`;
+  if (execution.status === EXECUTION_STATUS.SUCCESS) {
+    logger.success(message);
+  } else if (execution.status === EXECUTION_STATUS.SIMULATED) {
+    logger.log(`${message} (simulation only; no external actions applied)`);
+  } else {
+    logger.error(
+      `${message}: ${execution.error || "execution did not succeed"}`,
+    );
+    process.exitCode = 1;
+  }
+}
+
 async function readBoundedJsonStdin(options, maximum = 80 * 1024) {
   if (options?.jsonStdin !== true) {
     throw new Error("--json-stdin is required for routine definitions");
@@ -665,8 +679,18 @@ function _wire(root) {
           action,
           expectedRevision: opts.expectedRevision,
         });
-        if (opts.json) console.log(JSON.stringify(result, null, 2));
-        else logger.success(`${flowId} ${action} completed`);
+        if (opts.json) {
+          console.log(JSON.stringify(result, null, 2));
+          if (
+            [EXECUTION_STATUS.FAILED, EXECUTION_STATUS.UNSUPPORTED].includes(
+              result.result?.status,
+            )
+          ) {
+            process.exitCode = 1;
+          }
+        } else if (result.result?.id && result.result?.flowId) {
+          reportExecution(result.result);
+        } else logger.success(`${flowId} ${action} completed`);
       } catch (e) {
         logger.error(e.message);
         process.exitCode = 1;
@@ -1033,14 +1057,17 @@ function _wire(root) {
 
   root
     .command("fire-trigger <triggerId>")
-    .description("Simulate trigger firing (executes flow)")
+    .description("Fire a trigger; use --test for simulation")
     .option("-i, --input <json>", "Input data as JSON")
+    .option("--test", "Simulate only; no external actions are applied")
     .action(async (triggerId, opts, cmd) => {
       const db = _dbFromCtx(cmd);
       try {
         const input = parseJsonOption(opts.input, "--input") || {};
-        const exec = fireTrigger(db, triggerId, input);
-        logger.success(`Fired trigger → exec ${chalk.cyan(exec.id)}`);
+        const exec = fireTrigger(db, triggerId, input, {
+          testMode: Boolean(opts.test),
+        });
+        reportExecution(exec);
         logger.log(`  status:   ${exec.status}`);
         logger.log(`  duration: ${exec.durationMs}ms`);
         logger.log(`  steps:    ${exec.stepsLog.length}`);
@@ -1095,9 +1122,9 @@ function _wire(root) {
 
   root
     .command("execute <flowId>")
-    .description("Manually execute a flow (simulated)")
+    .description("Execute a flow; use --test for simulation")
     .option("-i, --input <json>", "Input data as JSON")
-    .option("--test", "Test mode (marks execution as test)")
+    .option("--test", "Simulate only; no external actions are applied")
     .action(async (flowId, opts, cmd) => {
       const db = _dbFromCtx(cmd);
       try {
@@ -1106,7 +1133,7 @@ function _wire(root) {
           inputData: input,
           testMode: Boolean(opts.test),
         });
-        logger.success(`Execution ${chalk.cyan(exec.id)} → ${exec.status}`);
+        reportExecution(exec);
         logger.log(`  duration: ${exec.durationMs}ms`);
         logger.log(`  steps:    ${exec.stepsLog.length}`);
         if (exec.error) logger.log(chalk.red(`  error: ${exec.error}`));

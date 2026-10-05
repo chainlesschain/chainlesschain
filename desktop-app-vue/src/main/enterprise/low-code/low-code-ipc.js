@@ -16,8 +16,7 @@ const { logger } = require("../../utils/logger.js");
  * @param {Object} [deps.ipcMain] - Optional injected ipcMain (for testing)
  */
 function registerLowCodeIPC({ appBuilder, ipcMain: injectedIpcMain } = {}) {
-  const electron = require("electron");
-  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
   let registeredCount = 0;
 
@@ -118,7 +117,7 @@ function registerLowCodeIPC({ appBuilder, ipcMain: injectedIpcMain } = {}) {
         return { success: false, error: "Not available" };
       }
       const data = appBuilder.testConnection(dataSourceId);
-      return { success: true, data };
+      return { success: data.success === true, data, error: data.error };
     } catch (err) {
       return { success: false, error: err.message };
     }

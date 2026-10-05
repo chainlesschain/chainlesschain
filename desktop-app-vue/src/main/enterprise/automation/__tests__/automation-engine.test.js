@@ -89,7 +89,7 @@ describe("AutomationEngine", () => {
   });
 
   // ── executeFlow ──────────────────────────────────────────────────────────
-  it("should execute a flow with steps", async () => {
+  it("refuses live catalog actions without claiming execution", async () => {
     await engine.initialize(db);
     const flow = engine.createFlow({
       name: "Exec Flow",
@@ -99,8 +99,16 @@ describe("AutomationEngine", () => {
       ],
     });
     const result = await engine.executeFlow(flow.id, { message: "hello" });
-    expect(result.status).toBe("completed");
+    expect(result.status).toBe("unsupported");
+    expect(result.success).toBe(false);
+    expect(result.executed).toBe(false);
     expect(result.results).toHaveLength(2);
+    expect(
+      result.results.every(
+        (step) => step.status === "unsupported" && !step.executed,
+      ),
+    ).toBe(true);
+    expect(engine.getExecutionLogs(flow.id)[0].status).toBe("unsupported");
     expect(result.duration).toBeDefined();
   });
 
@@ -111,15 +119,57 @@ describe("AutomationEngine", () => {
     );
   });
 
-  it("should emit automation:flow-executed event", async () => {
+  it("labels explicit simulations in results, persisted logs and events", async () => {
     await engine.initialize(db);
-    const flow = engine.createFlow({ name: "Test", steps: [] });
+    const flow = engine.createFlow({
+      name: "Test",
+      steps: [{ connector: "github", action: "create-issue" }],
+    });
     const listener = vi.fn();
     engine.on("automation:flow-executed", listener);
-    await engine.executeFlow(flow.id);
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ flowId: flow.id }),
+    const simulatedListener = vi.fn();
+    engine.on("automation:flow-simulated", simulatedListener);
+    const result = await engine.executeFlow(
+      flow.id,
+      {},
+      { mode: "simulation" },
     );
+    expect(result).toMatchObject({
+      status: "simulated",
+      mode: "simulation",
+      executed: false,
+      success: false,
+    });
+    expect(result.results[0]).toMatchObject({
+      status: "simulated",
+      simulated: true,
+      executed: false,
+    });
+    expect(listener).not.toHaveBeenCalled();
+    expect(simulatedListener).toHaveBeenCalledWith(result);
+    expect(engine.getExecutionLogs(flow.id)[0].status).toBe("simulated");
+    expect(
+      db._prep.run.mock.calls.some((args) => args[2] === "simulated"),
+    ).toBe(true);
+  });
+
+  it("does not treat an unknown connector or empty flow as live success", async () => {
+    await engine.initialize(db);
+    for (const steps of [[], [{ connector: "missing", action: "missing" }]]) {
+      const flow = engine.createFlow({ steps });
+      expect(await engine.executeFlow(flow.id)).toMatchObject({
+        status: "unsupported",
+        executed: false,
+      });
+    }
+  });
+
+  it("rejects misspelled modes instead of falling back to simulation", async () => {
+    await engine.initialize(db);
+    const flow = engine.createFlow({});
+    await expect(
+      engine.executeFlow(flow.id, {}, { mode: "simluation" }),
+    ).rejects.toThrow("Execution mode");
   });
 
   // ── listConnectors ───────────────────────────────────────────────────────
@@ -127,6 +177,13 @@ describe("AutomationEngine", () => {
     await engine.initialize(db);
     const connectors = engine.listConnectors();
     expect(connectors.length).toBe(12);
+    expect(
+      connectors.every(
+        (c) =>
+          c.liveSupported === false &&
+          c.executionCapability === "simulation-only",
+      ),
+    ).toBe(true);
   });
 
   it("should filter connectors by category", async () => {
@@ -229,6 +286,16 @@ describe("AutomationEngine", () => {
     expect(logs).toHaveLength(1);
     expect(logs[0].id).toBe("log-1");
     expect(logs[0].input).toEqual({ a: 1 }); // JSON parsed back to object
+    expect(logs[0]).toMatchObject({
+      status: "legacy-unverified",
+      recordedStatus: "completed",
+    });
+    expect(logRow.status).toBe("completed");
+    expect(
+      restoreDb.prepare.mock.calls.every(
+        ([sql]) => !/UPDATE|INSERT|DELETE/.test(sql),
+      ),
+    ).toBe(true);
   });
 
   // ── importTemplate ───────────────────────────────────────────────────────

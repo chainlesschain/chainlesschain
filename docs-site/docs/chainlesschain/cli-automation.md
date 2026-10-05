@@ -1,26 +1,28 @@
 # 工作流自动化引擎 CLI（Phase 96）
 
-> `chainlesschain automation`（别名 `auto`）— SaaS 连接器 + 触发器 + DAG 工作流编排。
+> `chainlesschain automation`（别名 `auto`）— 连接器目录、触发器配置与工作流治理。
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
 >
-> **版本边界（2026-08-14）**：`0.163.8` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event、双 IDE Automation Center、scheduler outcome-unknown 裁决、五域迁移/回滚，以及 exact-fence runtime pause/resume 与 incident retry/cancel 均已进入公开安装契约。
+> **历史版本记录（2026-08-14）**：原文记录 `0.163.8` 当时为 npm `latest`。下文相关版本说明保留为历史记录，不代表当前 latest，也不证明 SaaS 连接器已实现。
+>
+> **当前源码能力（2026-10-06，尚未随本次修改发布）**：默认 `execute` 返回 `unsupported`，不调用 SaaS；显式 `execute --test` 返回 `simulated`。连接器名称和动作是目录定义。持久调度、权限预算、去重、暂停/恢复与人工裁决已有实现，但不代表对应业务动作已执行。
 
 ---
 
 ## 概述
 
 Automation Engine 是面向非开发者的工作流自动化平台（区别于 `workflow` 的开发流水线）。
-内置 12 个 SaaS 连接器（Gmail/Slack/GitHub/Jira/Notion/Trello/Discord/Teams/
-Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 五种触发方式。
+内置 12 个 SaaS 连接器目录项（Gmail/Slack/GitHub/Jira/Notion/Trello/Discord/Teams/
+Airtable/Figma/Linear/Confluence）与触发器配置。当前执行器可显式模拟 DAG，尚未接入真实 SaaS 执行后端。
 
 ---
 
 ## 核心特性
 
-- **12 个 SaaS 连接器** — Gmail / Slack / GitHub / Jira / Notion / Trello / Discord / Teams / Airtable / Figma / Linear / Confluence
+- **12 个 SaaS 连接器目录项** — 用于定义流程与动作，目录存在不表示已连通或能够执行
 - **5 种触发器** — webhook（HTTP 回调）、schedule（cron）、email（邮件入站）、form（表单提交）、manual（手动）
-- **DAG 拓扑排序执行** — 支持条件分支、并行节点、步骤级超时
+- **DAG 模拟** — 拓扑排序与节点模拟输出；`--test` 不验证外部效果、真实并行或服务响应
 - **生命周期管理** — `draft → active → paused → archived`；`activate/pause/archive/delete` 状态机
 - **模板共享** — 导出/导入自定义模板，`share --public` 公开
 - **执行日志** — 每次执行记录步骤级详情、输入输出、错误堆栈
@@ -54,7 +56,7 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 └──────────────────────────────────────────────────────┘
 ```
 
-数据流：`create` flow → `add-trigger` → `activate` → 触发器触发 → DAG 执行 → 写 `executions` → `logs`。
+数据流：`create` flow → 配置触发器/权限 → 请求执行 → 记录 `unsupported`，或显式 `--test` 记录 `simulated` → `logs`。
 
 ---
 
@@ -76,14 +78,14 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 
 ## 性能指标
 
-| 指标                         | 典型值                                    |
-| ---------------------------- | ----------------------------------------- |
-| 创建工作流                   | < 20 ms                                   |
-| 添加触发器                   | < 15 ms                                   |
-| DAG 拓扑排序（20 节点）      | < 10 ms                                   |
-| 手动 execute（含连接器调用） | 依赖外部服务                              |
-| V2 createExecV2 dispatch     | < 50 ms                                   |
-| V2 cap (default)             | per-owner 20 active / per-auto 10 running |
+| 指标                           | 典型值                                    |
+| ------------------------------ | ----------------------------------------- |
+| 创建工作流                     | < 20 ms                                   |
+| 添加触发器                     | < 15 ms                                   |
+| DAG 拓扑排序（20 节点）        | < 10 ms                                   |
+| 手动 execute（真实 SaaS 调用） | 当前 unsupported，未测量                  |
+| V2 createExecV2 dispatch       | < 50 ms                                   |
+| V2 cap (default)               | per-owner 20 active / per-auto 10 running |
 
 ---
 
@@ -94,19 +96,19 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 `automation-execution-incident.test.js`、`scheduler-runtime-control-capabilities.test.js`
 与 `scheduler-reliability-soak.test.js` 覆盖。
 
-覆盖范围包括 flow CRUD、trigger 创建/enable/disable/fire、串行/并行/条件执行、
+覆盖范围包括 flow CRUD、trigger 创建/enable/disable/fire、节点模拟、
 模板 import/export、`activate/pause/archive` 状态机、V2 cap/idle/stuck、
 checkpoint pause/resume、stale fence/revision/capability 拒绝、incident 幂等 requeue、
-manual incident retry 拒绝和敏感证据不越过 IDE 投影边界。
+manual incident retry 拒绝和敏感证据不越过 IDE 投影边界。本次新增模拟/未支持状态、历史模拟记录不得恢复为成功、确定执行与未知结果裁决的回归；这些本地测试不替代发布门禁或真实 SaaS 验证。
 
 ---
 
 ## 安全考虑
 
-1. **连接器凭证隔离** — 每个连接器凭证单独加密存储，按 flow 授权访问
+1. **连接器配置** — 真实执行后端尚未接入；配置中不要写入明文凭证
 2. **Webhook 签名** — 入站 webhook 建议配置 HMAC 签名验证 payload 完整性
 3. **cron 频率限制** — schedule 触发器后端强制最小间隔，防止滥用
-4. **步骤失败重试** — 指数退避重试，避免外部服务过载
+4. **失败处理** — unsupported/simulated 不结算为真实成功；未知副作用结果禁止自动重放
 5. **审计日志** — 所有 activate/pause/archive/delete 操作写入审计链
 6. **失败闭合的无人值守权限** — 缺少 creator、`automation:execute`、连接器权限、预算或共享 scheduler policy 时拒绝运行；重试复用原 reservation
 7. **作用域事件去重** — `dispatch-channel-event` 要求稳定 source event id，仅接受 webhook/Telegram origin，并在 durable scope check 后触发匹配 flow
@@ -124,15 +126,15 @@ manual incident retry 拒绝和敏感证据不越过 IDE 投影边界。
 **Q: 定时任务未按计划触发?**
 
 1. 验证 cron 表达式语法（`auto schedule <id> --cron` 传入后会解析）
-2. 确认已安装 `chainlesschain@0.163.8`，再运行 `chainlesschain auto run-scheduled --json`
+2. 检查已安装版本，再运行 `chainlesschain auto run-scheduled --json` 查看调度状态
 3. 确认 flow 状态为 `active`；`draft/paused/archived` 不会被 scheduler 入队
 4. V2 下检查是否被 `auto-pause-idle` 自动暂停
 
-**Q: 连接器调用失败?**
+**Q: 为什么返回 unsupported 或 simulated?**
 
-1. 先运行连接器自带的 health check（通过 `execute` 单步测试）
-2. 检查凭证是否过期（OAuth token refresh）
-3. 查看 `logs --limit 10 --json` 的响应状态码
+1. 当前 SaaS 执行器未接入，默认请求返回 `unsupported`；更换凭证不会改变此能力边界
+2. 使用 `execute <flow-id> --test` 显式模拟，结果为 `simulated`，不代表邮件或消息已发送
+3. `run-scheduled` / channel event 的未支持执行进入非自动重试的 `dead_letter`；历史模拟输出也不能作为恢复成功证据
 
 ---
 
@@ -173,8 +175,8 @@ chainlesschain auto run-scheduled
 chainlesschain auto run-scheduled --json
 chainlesschain auto run-scheduled --lease-ms 60000
 
-# 4. 手动测试
-chainlesschain auto execute $fid --input '{"subject":"test"}'
+# 4. 显式模拟（不调用 SaaS，状态 simulated）
+chainlesschain auto execute $fid --test --input '{"subject":"test"}'
 chainlesschain auto logs $fid --limit 5
 
 # 5. 全局统计
@@ -186,7 +188,7 @@ chainlesschain auto stats --json
 ## 连接器与触发器目录
 
 ```bash
-chainlesschain auto connectors      # 列出 12 个 SaaS 连接器
+chainlesschain auto connectors      # 列出 12 个连接器目录项，不是连通性检查
 chainlesschain auto trigger-types   # 列出触发器类型
 chainlesschain auto statuses        # 列出工作流状态
 chainlesschain auto config          # 查看配置常量
@@ -243,6 +245,8 @@ chainlesschain auto dispatch-channel-event \
 ```
 
 `execution-preflight` 同时展示 principal、每个连接器权限以及剩余 run/action-step 配额。它通过不代表未来永久可用；实际执行仍会再次读取 live revocation、flow budget 与共享 scheduler policy revision。
+
+权限预检通过也不代表连接器执行能力可用。当前 schedule/event 默认执行仍为 `unsupported`；预算与治理检查不会把模拟结果转为真实成功。
 
 ## Automation Center 与 IDE
 
@@ -336,8 +340,11 @@ chainlesschain auto fire-trigger <trigger-id> --payload '{"key":"value"}'
 `run-scheduled` 使用 occurrence 派生的确定性 execution id。若同一 occurrence 已有成功 execution evidence，只补齐 scheduler settlement；若只有 `running`、非成功终态或副作用后持久化结果未知，则失败闭合，不自动重跑连接器。该约束不等于外部 SaaS 的全局 exactly-once。
 
 ```bash
-# 手动执行工作流
+# 请求真实执行：当前返回 unsupported，CLI 非零退出
 chainlesschain auto execute <flow-id> --input '{"data":"test"}'
+
+# 显式模拟：返回 simulated，不产生外部效果
+chainlesschain auto execute <flow-id> --test --input '{"data":"test"}'
 
 # 查看执行详情
 chainlesschain auto exec-show <execution-id>
@@ -346,6 +353,8 @@ chainlesschain auto exec-show <execution-id>
 chainlesschain auto logs <flow-id>
 chainlesschain auto logs <flow-id> --limit 50 --json
 ```
+
+`simulated` 与 `unsupported` 分别记录在执行历史中。旧记录如果携带模拟输出，即使原始状态为 `success`，当前源码也按 `simulated` 展示和处理。只有可验证的非模拟成功证据或人工 `confirmed_applied` 裁决才能完成成功结算。
 
 ---
 

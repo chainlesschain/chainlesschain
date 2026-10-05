@@ -137,7 +137,11 @@ class AutomationEngine extends EventEmitter {
       },
     ];
     for (const c of connectors) {
-      this._connectors.set(c.id, c);
+      this._connectors.set(c.id, {
+        ...c,
+        executionCapability: "simulation-only",
+        liveSupported: false,
+      });
     }
   }
 
@@ -182,7 +186,14 @@ class AutomationEngine extends EventEmitter {
           this._executionLogs.push({
             id: row.id,
             flowId: row.flow_id,
-            status: row.status,
+            // Earlier versions persisted the metadata-only simulator as
+            // completed. Preserve the stored evidence without presenting it
+            // as proof that a connector action was actually applied.
+            status:
+              row.status === "completed" ? "legacy-unverified" : row.status,
+            ...(row.status === "completed"
+              ? { recordedStatus: row.status }
+              : {}),
             input: JSON.parse(row.input ?? "null"),
             output: JSON.parse(row.output ?? "null"),
             duration: row.duration,
@@ -220,29 +231,59 @@ class AutomationEngine extends EventEmitter {
     return { id, name: flow.name, status: flow.status };
   }
 
-  async executeFlow(flowId, input = {}) {
+  async executeFlow(flowId, input = {}, options = {}) {
     const flow = this._flows.get(flowId);
     if (!flow) {
       throw new Error("Flow not found");
+    }
+    const mode = options.mode || "live";
+    if (!["live", "simulation"].includes(mode)) {
+      throw new Error("Execution mode must be live or simulation");
     }
     const startTime = Date.now();
     const logId = `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const results = [];
     try {
+      // Connector entries describe the editor catalog. No governed live
+      // executor is installed here, so never turn a requested action into a
+      // fabricated success (including an empty flow).
+      const simulated = mode === "simulation";
+      const status = simulated ? "simulated" : "unsupported";
+      const reason = simulated
+        ? "Simulation only; no connector actions were executed"
+        : "Live connector execution is not available";
       for (const step of flow.steps) {
         const stepResult = {
           stepId: step.id || `step-${results.length}`,
           connector: step.connector,
           action: step.action,
-          status: "completed",
+          status,
+          mode,
+          executed: false,
+          simulated,
           output: {},
         };
         results.push(stepResult);
       }
       const duration = Date.now() - startTime;
-      this._logExecution(logId, flowId, "completed", input, results, duration);
-      this.emit("automation:flow-executed", { flowId, duration });
-      return { logId, flowId, status: "completed", results, duration };
+      const result = {
+        logId,
+        flowId,
+        status,
+        mode,
+        success: false,
+        executed: false,
+        simulated,
+        reason,
+        results,
+        duration,
+      };
+      this._logExecution(logId, flowId, status, input, results, duration);
+      this.emit(
+        simulated ? "automation:flow-simulated" : "automation:flow-unsupported",
+        result,
+      );
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       this._logExecution(
@@ -284,6 +325,9 @@ class AutomationEngine extends EventEmitter {
       flowId,
       steps: flow.steps.length,
       dryRun: true,
+      status: "simulated",
+      mode: "simulation",
+      executed: false,
       estimatedDuration: flow.steps.length * 1000,
     };
   }

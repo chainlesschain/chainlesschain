@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive } from "vue";
 
-const electronAPI = (window as any).electronAPI || (window as any).electron?.ipcRenderer;
+const electronAPI =
+  (window as any).electronAPI || (window as any).electron?.ipcRenderer;
 function invoke(channel: string, ...args: any[]) {
-  if (electronAPI?.invoke) {return electronAPI.invoke(channel, ...args);}
-  return Promise.reject(new Error('IPC not available'));
+  if (electronAPI?.invoke) {
+    return electronAPI.invoke(channel, ...args);
+  }
+  return Promise.reject(new Error("IPC not available"));
 }
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-const activeTab = ref('status');
+const activeTab = ref("status");
 
 const status = reactive({
-  status: 'idle',
+  status: "idle",
   lastSyncAt: null as number | null,
   connectorCount: 0,
   enabledConnectors: 0,
+  syncSupported: false,
   recentHistory: [] as any[],
 });
 
@@ -24,23 +28,23 @@ const users = ref<any[]>([]);
 const totalUsers = ref(0);
 
 const connectorForm = reactive({
-  provider: 'azure_ad',
-  endpoint: '',
-  token: '',
-  tenantId: '',
+  provider: "azure_ad",
+  endpoint: "",
+  token: "",
+  tenantId: "",
 });
 
 const providerOptions = [
-  { label: 'Azure AD', value: 'azure_ad' },
-  { label: 'Okta', value: 'okta' },
-  { label: 'OneLogin', value: 'onelogin' },
-  { label: 'Custom', value: 'custom' },
+  { label: "Azure AD", value: "azure_ad" },
+  { label: "Okta", value: "okta" },
+  { label: "OneLogin", value: "onelogin" },
+  { label: "Custom", value: "custom" },
 ];
 
 async function fetchStatus() {
   loading.value = true;
   try {
-    const result = await invoke('scim:get-status');
+    const result = await invoke("scim:get-status");
     if (result?.success) {
       Object.assign(status, result);
     }
@@ -53,7 +57,7 @@ async function fetchStatus() {
 
 async function fetchConnectors() {
   try {
-    const result = await invoke('scim:get-connectors');
+    const result = await invoke("scim:get-connectors");
     if (result?.success) {
       connectors.value = result.connectors || [];
     }
@@ -65,7 +69,7 @@ async function fetchConnectors() {
 async function fetchUsers() {
   loading.value = true;
   try {
-    const result = await invoke('scim:list-users', {});
+    const result = await invoke("scim:list-users", {});
     if (result?.success) {
       users.value = result.Resources || [];
       totalUsers.value = result.totalResults || 0;
@@ -81,7 +85,7 @@ async function handleRegisterConnector() {
   loading.value = true;
   error.value = null;
   try {
-    await invoke('scim:register-connector', {
+    const result = await invoke("scim:register-connector", {
       provider: connectorForm.provider,
       config: {
         endpoint: connectorForm.endpoint,
@@ -89,6 +93,9 @@ async function handleRegisterConnector() {
         tenantId: connectorForm.tenantId,
       },
     });
+    if (!result?.success) {
+      throw new Error(result?.error || "Connector registration failed");
+    }
     await fetchConnectors();
     await fetchStatus();
   } catch (err: any) {
@@ -100,9 +107,13 @@ async function handleRegisterConnector() {
 
 async function handleSync(provider: string) {
   loading.value = true;
+  error.value = null;
   try {
-    await invoke('scim:sync-provider', { provider });
+    const result = await invoke("scim:sync-provider", { provider });
     await fetchStatus();
+    if (!result?.success) {
+      error.value = result?.error || "Synchronization did not complete";
+    }
   } catch (err: any) {
     error.value = err.message;
   } finally {
@@ -122,35 +133,38 @@ onMounted(async () => {
       title="SCIM Integration"
       sub-title="SCIM 2.0 user and group synchronization"
     />
+    <a-alert
+      v-if="!status.syncSupported"
+      type="info"
+      show-icon
+      message="Outbound provider synchronization is not available"
+      description="Connector settings can be saved. Incoming SCIM user provisioning remains available."
+      style="margin-bottom: 16px"
+    />
 
     <a-tabs v-model:active-key="activeTab">
-      <a-tab-pane
-        key="status"
-        tab="Sync Status"
-      >
+      <a-tab-pane key="status" tab="Sync Status">
         <a-row :gutter="16">
           <a-col :span="6">
-            <a-statistic
-              title="Status"
-              :value="status.status"
-            />
+            <a-statistic title="Status" :value="status.status" />
+          </a-col>
+          <a-col :span="6">
+            <a-statistic title="Connectors" :value="status.connectorCount" />
           </a-col>
           <a-col :span="6">
             <a-statistic
-              title="Connectors"
-              :value="status.connectorCount"
-            />
-          </a-col>
-          <a-col :span="6">
-            <a-statistic
-              title="Active"
+              title="Enabled Configurations"
               :value="status.enabledConnectors"
             />
           </a-col>
           <a-col :span="6">
             <a-statistic
               title="Last Sync"
-              :value="status.lastSyncAt ? new Date(status.lastSyncAt).toLocaleString() : 'Never'"
+              :value="
+                status.lastSyncAt
+                  ? new Date(status.lastSyncAt).toLocaleString()
+                  : 'Never'
+              "
             />
           </a-col>
         </a-row>
@@ -175,14 +189,8 @@ onMounted(async () => {
         </a-card>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="connectors"
-        tab="Connectors"
-      >
-        <a-card
-          title="Register Connector"
-          :bordered="false"
-        >
+      <a-tab-pane key="connectors" tab="Connectors">
+        <a-card title="Register Connector" :bordered="false">
           <a-form layout="vertical">
             <a-row :gutter="16">
               <a-col :span="6">
@@ -224,10 +232,7 @@ onMounted(async () => {
           </a-form>
         </a-card>
 
-        <a-list
-          :data-source="connectors"
-          style="margin-top: 16px"
-        >
+        <a-list :data-source="connectors" style="margin-top: 16px">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta
@@ -235,8 +240,8 @@ onMounted(async () => {
                 :description="item.endpoint"
               >
                 <template #avatar>
-                  <a-tag :color="item.enabled ? 'green' : 'red'">
-                    {{ item.enabled ? 'Active' : 'Disabled' }}
+                  <a-tag :color="item.enabled ? 'blue' : 'red'">
+                    {{ item.enabled ? "Configured" : "Disabled" }}
                   </a-tag>
                 </template>
               </a-list-item-meta>
@@ -245,6 +250,7 @@ onMounted(async () => {
                   size="small"
                   type="primary"
                   :loading="loading"
+                  :disabled="!item.syncSupported || !item.enabled"
                   @click="handleSync(item.provider)"
                 >
                   Sync
@@ -255,21 +261,19 @@ onMounted(async () => {
         </a-list>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="users"
-        tab="Provisioned Users"
-      >
-        <a-button
-          style="margin-bottom: 16px"
-          @click="fetchUsers"
-        >
+      <a-tab-pane key="users" tab="Provisioned Users">
+        <a-button style="margin-bottom: 16px" @click="fetchUsers">
           Load Users
         </a-button>
         <a-table
           :data-source="users"
           :columns="[
             { title: 'Username', dataIndex: 'userName', key: 'userName' },
-            { title: 'Display Name', dataIndex: 'displayName', key: 'displayName' },
+            {
+              title: 'Display Name',
+              dataIndex: 'displayName',
+              key: 'displayName',
+            },
             { title: 'Active', dataIndex: 'active', key: 'active' },
           ]"
           :loading="loading"

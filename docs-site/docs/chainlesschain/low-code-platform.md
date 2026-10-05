@@ -1,19 +1,21 @@
 # 低代码/无代码平台
 
-> **版本: v4.5.0 | 状态: ✅ 生产就绪 | 10 IPC Handlers | 2 数据库表 | Phase 93**
+> **Phase 93 设计模块 | 当前：设计持久化、版本管理与数据源配置**
+>
+> **源码能力校正（2026-10-06，本次修改未发布）**：此前 `v4.5.0 / 生产就绪` 为历史文档标记。数据源注册返回 `configured`，连通性探测返回 `unsupported / probed: false`；发布仅保存设计状态 `design-published`，返回 `deployed: false`。当前没有应用运行时部署或健康检查。
 
-ChainlessChain 低代码/无代码平台提供可视化应用构建能力，支持拖拽式设计器、15 种内置组件（表单/表格/图表/仪表盘）、多种数据连接器（REST/GraphQL/Database/CSV）、应用发布与版本管理，以及多设备响应式布局，让非开发人员也能快速构建业务应用。
+ChainlessChain 低代码模块提供应用设计、组件目录、设计保存、版本回滚与数据源配置。发布操作用于标记已发布的设计，不生成可访问的业务应用服务。
 
 ## 概述
 
-低代码/无代码平台提供拖拽式可视化应用构建器，内置 15 种组件（表单/表格/图表/仪表盘等）和 4 种数据连接器（REST/GraphQL/Database/CSV），支持一键发布、版本回滚和 Desktop/Tablet/Mobile 三端响应式布局。系统通过 10 个 IPC 接口和 2 张数据表，让非开发人员也能快速构建和管理业务应用。
+设计器、数据源配置及版本快照可用于组织应用定义。REST/GraphQL/Database/CSV 类型描述配置用途；当前尚未接入真实数据查询或连通性探测。下文布局、运行时访问控制等配置保留为设计参考，不应据此判断应用已经部署。
 
 ## 核心特性
 
 - 🎨 **可视化应用构建器**: 拖拽式设计器，所见即所得，支持画布自由布局和栅格布局
 - 🧩 **15 种内置组件**: Form、Input、Select、Table、Chart（Line/Bar/Pie）、Dashboard、Card、Modal、Tabs、List、Image、Button、Text、Container、Divider
-- 🔌 **数据连接器**: REST API、GraphQL、SQLite/PostgreSQL 数据库直连、CSV/Excel 文件导入
-- 🚀 **应用发布与版本管理**: 一键发布，支持版本回滚，发布历史完整追溯
+- 🔌 **数据源配置**: 保存 REST/GraphQL/Database/CSV 类型与配置；不返回虚构连通性或延迟
+- 🚀 **设计发布与版本管理**: 保存 `design-published` 状态并支持设计版本回滚；未部署运行时
 - 📱 **多设备响应式**: 自动适配 Desktop、Tablet、Mobile 三种屏幕尺寸
 
 ## 系统架构
@@ -118,29 +120,27 @@ const result = await window.electron.ipcRenderer.invoke("lowcode:save-design", {
 ## 预览应用
 
 ```javascript
-const result = await window.electron.ipcRenderer.invoke("lowcode:preview", {
-  appId: "app-20260310-001",
-  device: "desktop", // desktop | tablet | mobile
-  mockData: false,
-});
-// { success: true, previewUrl: "http://localhost:5173/preview/app-20260310-001", device: "desktop" }
+const result = await window.electron.ipcRenderer.invoke(
+  "lowcode:preview",
+  "app-20260310-001",
+);
+// { success: true, data: { appId: "app-20260310-001", design: {...},
+//   status: "design-preview", deployed: false, ... } }
 ```
 
-## 发布应用
+## 发布设计
+
+此操作必须成功保存设计状态才返回成功。它不生成部署地址；旧 `published` 记录在加载时按 `design-published` 处理。
 
 ```javascript
-const result = await window.electron.ipcRenderer.invoke("lowcode:publish", {
-  appId: "app-20260310-001",
-  version: "1.0.0",
-  releaseNotes: "首次发布：客户列表、状态分布图、搜索过滤",
-  access: "organization", // private | organization | public
-});
+const result = await window.electron.ipcRenderer.invoke(
+  "lowcode:publish",
+  "app-20260310-001",
+);
 // {
 //   success: true,
-//   publishId: "pub-001",
-//   version: "1.0.0",
-//   accessUrl: "/apps/app-20260310-001",
-//   publishedAt: 1710200000000
+//   data: { appId: "app-20260310-001", status: "design-published", version: 1,
+//     publicationKind: "design", deployed: false, runtimeStatus: "unsupported" }
 // }
 ```
 
@@ -185,7 +185,7 @@ const result = await window.electron.ipcRenderer.invoke(
     refreshInterval: 60000,
   },
 );
-// { success: true, datasourceId: "ds-customers", status: "connected", recordCount: 1523 }
+// { success: true, data: { id: "ds-...", status: "configured", type: "rest", ... } }
 ```
 
 ## 测试数据源连接
@@ -193,19 +193,11 @@ const result = await window.electron.ipcRenderer.invoke(
 ```javascript
 const result = await window.electron.ipcRenderer.invoke(
   "lowcode:test-connection",
-  {
-    type: "database",
-    config: {
-      dialect: "postgresql",
-      host: "localhost",
-      port: 5432,
-      database: "customers_db",
-      username: "readonly",
-      password: "***",
-    },
-  },
+  "ds-...", // 使用 add-datasource 返回的 data.id
 );
-// { success: true, connected: true, latency: 23, tables: ["customers", "orders", "products"] }
+// { success: false, data: { success: false, status: "unsupported", configured: true,
+//     probed: false, dataSourceId: "ds-...", type: "rest", error: "..." }, error: "..." }
+// 未注册的 ID 返回 data.status: "not-found"；两种情况都没有发起网络探测
 ```
 
 ## 获取版本列表
@@ -213,16 +205,12 @@ const result = await window.electron.ipcRenderer.invoke(
 ```javascript
 const result = await window.electron.ipcRenderer.invoke(
   "lowcode:get-versions",
-  {
-    appId: "app-20260310-001",
-  },
+  "app-20260310-001",
 );
 // {
 //   success: true,
-//   versions: [
-//     { version: "1.0.0", publishedAt: 1710200000000, releaseNotes: "首次发布", status: "active" },
-//     { version: "0.1.0-draft", savedAt: 1710100500000, status: "draft" }
-//   ]
+//   data: [ { id: "ver-...", appId: "app-20260310-001", version: 2, snapshot: {...} }, ... ]
+//   // 这是设计快照历史，不是部署历史
 // }
 ```
 
@@ -251,18 +239,18 @@ const result = await window.electron.ipcRenderer.invoke("lowcode:export", {
 
 ### 低代码平台操作（10 个）
 
-| 通道                      | 功能         | 说明                             |
-| ------------------------- | ------------ | -------------------------------- |
-| `lowcode:create-app`      | 创建应用     | 支持 5 种模板快速创建            |
-| `lowcode:save-design`     | 保存设计     | 保存页面布局和组件配置           |
-| `lowcode:preview`         | 预览应用     | Desktop/Tablet/Mobile 三端预览   |
-| `lowcode:publish`         | 发布应用     | 一键发布，支持访问权限控制       |
-| `lowcode:list-components` | 获取组件列表 | 15 种内置组件分类检索            |
-| `lowcode:add-datasource`  | 添加数据源   | REST/GraphQL/Database/CSV 连接器 |
-| `lowcode:test-connection` | 测试连接     | 验证数据源连接状态和延迟         |
-| `lowcode:get-versions`    | 获取版本列表 | 应用发布历史和版本记录           |
-| `lowcode:rollback`        | 回滚版本     | 回滚到指定历史版本               |
-| `lowcode:export`          | 导出应用     | JSON/ZIP/HTML 格式导出           |
+| 通道                      | 功能           | 说明                                                  |
+| ------------------------- | -------------- | ----------------------------------------------------- |
+| `lowcode:create-app`      | 创建应用       | 支持 5 种模板快速创建                                 |
+| `lowcode:save-design`     | 保存设计       | 保存页面布局和组件配置                                |
+| `lowcode:preview`         | 预览应用       | Desktop/Tablet/Mobile 三端预览                        |
+| `lowcode:publish`         | 发布设计       | 参数为 appId 字符串；保存设计状态，deployed=false     |
+| `lowcode:list-components` | 获取组件列表   | 15 种内置组件分类检索                                 |
+| `lowcode:add-datasource`  | 添加数据源配置 | 返回 configured，未验证连通性                         |
+| `lowcode:test-connection` | 查询探测能力   | 参数为 dataSourceId；当前 unsupported，不返回实测延迟 |
+| `lowcode:get-versions`    | 获取版本列表   | 应用发布历史和版本记录                                |
+| `lowcode:rollback`        | 回滚版本       | 回滚到指定历史版本                                    |
+| `lowcode:export`          | 导出应用       | JSON/ZIP/HTML 格式导出                                |
 
 ## 数据库 Schema
 
@@ -283,7 +271,7 @@ CREATE TABLE IF NOT EXISTS lowcode_apps (
   template TEXT,                       -- blank | crm | dashboard | form | kanban
   design TEXT NOT NULL,                -- JSON: 完整页面和组件布局
   version TEXT DEFAULT '0.1.0',
-  status TEXT DEFAULT 'draft',         -- draft | published | archived
+  status TEXT DEFAULT 'draft',         -- draft | design-published | archived
   access TEXT DEFAULT 'private',       -- private | organization | public
   theme TEXT,                          -- JSON: 主题配置
   responsive INTEGER DEFAULT 1,
@@ -305,7 +293,7 @@ CREATE TABLE IF NOT EXISTS lowcode_datasources (
   type TEXT NOT NULL,                  -- rest | graphql | database | csv
   config TEXT NOT NULL,                -- JSON: 连接配置（加密存储）
   refresh_interval INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'connected',     -- connected | disconnected | error
+  status TEXT DEFAULT 'configured',    -- 配置已登记，不代表已连接
   record_count INTEGER DEFAULT 0,
   last_synced_at INTEGER,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
@@ -351,25 +339,27 @@ CREATE INDEX IF NOT EXISTS idx_lowcode_ds_type ON lowcode_datasources(type);
 
 ## 故障排除
 
-| 问题             | 解决方案                                |
-| ---------------- | --------------------------------------- |
-| 数据源连接失败   | 使用 test-connection 检查网络和凭证配置 |
-| 组件拖拽无响应   | 检查浏览器兼容性，确保启用硬件加速      |
-| 发布后页面空白   | 确认数据源已配置且状态为 connected      |
-| 响应式布局异常   | 检查组件 position 配置，避免重叠        |
-| 版本回滚数据丢失 | 回滚仅影响设计，数据源数据不受影响      |
+| 问题               | 解决方案                                              |
+| ------------------ | ----------------------------------------------------- |
+| 数据源探测不可用   | 当前返回 unsupported / probed=false，未验证网络或凭证 |
+| 组件拖拽无响应     | 检查浏览器兼容性，确保启用硬件加速                    |
+| 发布后没有运行地址 | 当前仅发布设计，deployed=false；运行时部署尚未实现    |
+| 响应式布局异常     | 检查组件 position 配置，避免重叠                      |
+| 版本回滚数据丢失   | 回滚仅影响设计，数据源数据不受影响                    |
 
 ## 关键文件
 
-| 文件                                         | 职责                                 |
-| -------------------------------------------- | ------------------------------------ |
-| `src/main/enterprise/low-code-platform.js`   | 低代码引擎核心，应用 CRUD 与发布逻辑 |
-| `src/main/enterprise/low-code-components.js` | 15 种内置组件注册与属性校验          |
-| `src/main/enterprise/low-code-datasource.js` | REST/GraphQL/Database/CSV 数据连接器 |
-| `src/renderer/stores/lowCode.ts`             | Pinia 状态管理                       |
-| `src/renderer/pages/LowCodeDesigner.vue`     | 可视化拖拽设计器页面                 |
+| 文件                                          | 职责                                 |
+| --------------------------------------------- | ------------------------------------ |
+| `src/main/enterprise/low-code/app-builder.js` | 应用设计、数据源配置与设计发布       |
+| `src/main/enterprise/low-code-components.js`  | 15 种内置组件注册与属性校验          |
+| `src/main/enterprise/low-code-datasource.js`  | REST/GraphQL/Database/CSV 数据连接器 |
+| `src/renderer/stores/lowCode.ts`              | Pinia 状态管理                       |
+| `src/renderer/pages/LowCodeDesigner.vue`      | 可视化拖拽设计器页面                 |
 
 ## 故障排查
+
+当前能力请先检查 `status`、`probed` 与 `deployed`。下面关于真实 API、数据库连接和运行页面的故障示例保留为接入目标参考，不表示现有模块已经执行这些操作。
 
 ### 常见问题
 
@@ -414,6 +404,8 @@ chainlesschain lowcode rollback --app-id <id> --snapshot <version>
 ```
 
 ## 配置参考
+
+下面的连通性、部署、访问控制选项为原设计配置。当前发布接口仅接受 appId，保存设计发布状态；运行时网络和部署选项尚不生效。
 
 完整的低代码平台配置项（`.chainlesschain/config.json`）：
 
@@ -467,22 +459,26 @@ const lowCodeConfig = {
 
 ## 性能指标
 
-| 操作                                     | 目标     | 实际   | 状态    |
-| ---------------------------------------- | -------- | ------ | ------- |
-| 创建应用（`lowcode:create-app`，含模板） | < 500 ms | 180 ms | ✅ 达标 |
-| 保存设计（50 个组件页面）                | < 300 ms | 95 ms  | ✅ 达标 |
-| 加载组件列表（15 种）                    | < 100 ms | 22 ms  | ✅ 达标 |
-| 数据源连通性测试（REST）                 | < 3 s    | 0.8 s  | ✅ 达标 |
-| 数据源连通性测试（PostgreSQL）           | < 2 s    | 0.5 s  | ✅ 达标 |
-| 应用预览启动（Desktop 模式）             | < 2 s    | 1.1 s  | ✅ 达标 |
-| 应用发布（含版本快照写入）               | < 1 s    | 350 ms | ✅ 达标 |
-| 版本回滚（恢复设计 JSON）                | < 500 ms | 140 ms | ✅ 达标 |
-| 导出应用（JSON 格式，50 组件）           | < 1 s    | 280 ms | ✅ 达标 |
-| 获取版本历史列表（50 版本）              | < 100 ms | 30 ms  | ✅ 达标 |
+以下保留历史设计指标；本次未复测。真实连通性和运行时部署尚未实现，不能沿用旧文档数值宣称实测通过。
+
+| 操作                                     | 目标     | 实际   | 状态           |
+| ---------------------------------------- | -------- | ------ | -------------- |
+| 创建应用（`lowcode:create-app`，含模板） | < 500 ms | 180 ms | ✅ 达标        |
+| 保存设计（50 个组件页面）                | < 300 ms | 95 ms  | ✅ 达标        |
+| 加载组件列表（15 种）                    | < 100 ms | 22 ms  | ✅ 达标        |
+| 数据源连通性测试（REST）                 | < 3 s    | 未测量 | unsupported    |
+| 数据源连通性测试（PostgreSQL）           | < 2 s    | 未测量 | unsupported    |
+| 应用预览启动（Desktop 模式）             | < 2 s    | 1.1 s  | ✅ 达标        |
+| 设计发布状态保存                         | < 1 s    | 未复测 | 不含运行时部署 |
+| 版本回滚（恢复设计 JSON）                | < 500 ms | 140 ms | ✅ 达标        |
+| 导出应用（JSON 格式，50 组件）           | < 1 s    | 280 ms | ✅ 达标        |
+| 获取版本历史列表（50 版本）              | < 100 ms | 30 ms  | ✅ 达标        |
 
 ---
 
 ## 测试覆盖率
+
+以下为历史设计测试清单，不作为真实连接器或部署验证。当前状态回归位于 `src/main/enterprise/low-code/__tests__/app-builder.test.js`，覆盖 configured、未探测、设计发布、持久化失败及旧状态加载。
 
 | 测试文件                                               | 覆盖场景                                                                   |
 | ------------------------------------------------------ | -------------------------------------------------------------------------- |
@@ -506,6 +502,8 @@ const lowCodeConfig = {
 - **网络访问控制**: REST/GraphQL 数据源的 URL 应限制为可信域名，防止 SSRF（服务端请求伪造）攻击
 
 ### 应用访问控制
+
+以下是未来运行时的访问控制要求。当前 `design-published` 不创建可访问服务或执行下述运行时权限策略。
 
 - **发布权限**: 应用发布支持三级访问控制（`private`/`organization`/`public`），默认 `private` 仅创建者可见
 - **数据隔离**: 不同应用的数据源相互隔离，跨应用数据访问需要显式授权
@@ -533,12 +531,12 @@ const lowCodeConfig = {
 # 2. 配置表格组件的数据源
 # IPC: lowcode:add-datasource { appId, type: "rest", config: { url: "https://api.example.com/customers" } }
 
-# 3. 测试数据源连接是否正常
-# IPC: lowcode:test-connection { type: "rest", config: { url: "..." } }
+# 3. 查询探测能力（当前 unsupported / probed=false）
+# IPC: lowcode:test-connection "<data-source-id>"
 
-# 4. 预览应用 → 确认无误后发布
-# IPC: lowcode:preview { appId, device: "desktop" }
-# IPC: lowcode:publish { appId, version: "1.0.0", access: "organization" }
+# 4. 预览设计 → 发布设计（不部署运行时）
+# IPC: lowcode:preview "<app-id>"
+# IPC: lowcode:publish "<app-id>"
 ```
 
 ### 组件配置要点
@@ -549,11 +547,11 @@ const lowCodeConfig = {
 
 ### 数据源连接排查
 
-| 现象              | 排查步骤                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 渲染失败/页面空白 | 1. 确认组件绑定的 `dataSource` ID 存在且状态为 `connected` 2. 检查 API 返回的字段名与组件 `columns` 配置是否匹配 3. 使用浏览器开发者工具查看控制台错误 |
-| 数据源连接错误    | 1. 使用 `lowcode:test-connection` 单独测试连接 2. 检查 URL、凭证、网络代理配置 3. 数据库类型确认端口和防火墙设置                                       |
-| REST 数据源返回空 | 确认 `pagination` 配置与 API 分页参数一致（`pageParam`/`sizeParam`），检查 `Authorization` 头是否有效                                                  |
+| 现象                   | 排查步骤                                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| 发布后没有业务页面     | 检查 `deployed`；当前为 false，仅保存设计，不能从发布成功推断应用可访问                               |
+| 数据源状态 unsupported | 探测尚未接入；configured 仅表示已注册配置。当前返回不包含实测延迟                                     |
+| REST 数据源返回空      | 确认 `pagination` 配置与 API 分页参数一致（`pageParam`/`sizeParam`），检查 `Authorization` 头是否有效 |
 
 ## 相关文档
 

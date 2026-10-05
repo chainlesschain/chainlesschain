@@ -48,9 +48,17 @@ describe("automation-engine (Phase 96)", () => {
       );
     });
 
-    it("exposes 4 execution statuses", () => {
+    it("distinguishes simulation and unsupported execution statuses", () => {
       expect(Object.values(EXECUTION_STATUS).sort()).toEqual(
-        ["cancelled", "failed", "running", "success"].sort(),
+        [
+          "cancelled",
+          "failed",
+          "running",
+          "success",
+          "simulated",
+          "unsupported",
+          "legacy-unverified",
+        ].sort(),
       );
     });
 
@@ -436,6 +444,91 @@ describe("automation-engine (Phase 96)", () => {
 
   // ─── Execution ────────────────────────────────────────────
   describe("executeFlow", () => {
+    it("does not label old empty success records as verified live execution", () => {
+      const flow = createFlow(db, { name: "empty" });
+      const result = executeFlow(db, flow.id);
+      const row = db.data.get("auto_executions")[0];
+      row.status = "success";
+      row.output_data = null;
+      row.error = null;
+      expect(getExecution(db, result.id)).toMatchObject({
+        status: "legacy-unverified",
+        mode: "unverified",
+        recordedStatus: "success",
+      });
+      row.error = JSON.stringify({
+        authority: "scheduler-adjudication",
+        decision: "confirmed_applied",
+        requestId: "reviewed",
+      });
+      expect(getExecution(db, result.id).status).toBe("success");
+    });
+
+    it("records unsupported live execution without generating a simulated resource", () => {
+      const flow = importTemplate(db, "github-issue-to-slack");
+      const result = executeFlow(db, flow.id);
+      expect(result).toMatchObject({
+        status: "unsupported",
+        mode: "live",
+        testMode: false,
+        stepsLog: [],
+        outputData: {
+          executed: false,
+          code: "AUTOMATION_EXECUTION_UNSUPPORTED",
+        },
+      });
+      expect(getExecution(db, result.id)).toEqual(result);
+      expect(JSON.stringify(result)).not.toContain("resourceId");
+      expect(getConnector("slack").executionCapability).toMatchObject({
+        live: false,
+        simulation: true,
+      });
+    });
+
+    it("rejects ambiguous truthy test-mode flags before persisting a run", () => {
+      const flow = createFlow(db, { name: "test" });
+      expect(() => executeFlow(db, flow.id, { testMode: "false" })).toThrow(
+        /boolean/,
+      );
+      expect(listExecutions(db)).toEqual([]);
+    });
+
+    it("binds execution ids to simulation versus live requests", () => {
+      const flow = createFlow(db, { name: "test" });
+      executeFlow(db, flow.id, { executionId: "mode-bound", testMode: true });
+      expect(() =>
+        executeFlow(db, flow.id, { executionId: "mode-bound" }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "AUTOMATION_EXECUTION_BINDING_MISMATCH",
+        }),
+      );
+      expect(listExecutions(db)).toHaveLength(1);
+    });
+
+    it("projects historical simulator successes honestly in history, filters and statistics", () => {
+      const flow = importTemplate(db, "github-issue-to-slack");
+      const simulated = executeFlow(db, flow.id, { testMode: true });
+      const row = db.data
+        .get("auto_executions")
+        .find((entry) => entry.id === simulated.id);
+      row.status = "success";
+      row.test_mode = 0;
+      expect(getExecution(db, simulated.id)).toMatchObject({
+        status: "simulated",
+        recordedStatus: "success",
+        mode: "simulation",
+      });
+      expect(listExecutions(db, { status: "success" })).toEqual([]);
+      expect(
+        listExecutions(db, { status: "simulated", limit: 1 }),
+      ).toHaveLength(1);
+      expect(getStats(db).executions).toMatchObject({
+        successRate: 0,
+        byStatus: { simulated: 1, success: 0 },
+      });
+    });
+
     it("rejects an undeclared runtime boundary before creating an execution", () => {
       const f = createFlow(db, {
         name: "boundary-denied",
@@ -467,7 +560,7 @@ describe("automation-engine (Phase 96)", () => {
       expect(listExecutions(db, { flowId: f.id })).toHaveLength(0);
     });
 
-    it("executes a single-node flow and logs step", () => {
+    it("simulates a single-node flow only in explicit test mode", () => {
       const f = createFlow(db, {
         name: "one",
         nodes: [
@@ -479,8 +572,12 @@ describe("automation-engine (Phase 96)", () => {
           },
         ],
       });
-      const exec = executeFlow(db, f.id, { inputData: { foo: "bar" } });
-      expect(exec.status).toBe("success");
+      const exec = executeFlow(db, f.id, {
+        inputData: { foo: "bar" },
+        testMode: true,
+      });
+      expect(exec.status).toBe("simulated");
+      expect(exec.mode).toBe("simulation");
       expect(exec.stepsLog.length).toBe(1);
       expect(exec.stepsLog[0].nodeId).toBe("n1");
       expect(exec.stepsLog[0].connector).toBe("slack");
@@ -514,8 +611,9 @@ describe("automation-engine (Phase 96)", () => {
           { from: "n2", to: "n3" },
         ],
       });
-      const exec = executeFlow(db, f.id);
+      const exec = executeFlow(db, f.id, { testMode: true });
       expect(exec.stepsLog.map((s) => s.nodeId)).toEqual(["n1", "n2", "n3"]);
+      expect(exec.stepsLog.every((s) => s.status === "simulated")).toBe(true);
     });
 
     it("handles condition node with true branch", () => {
@@ -525,7 +623,10 @@ describe("automation-engine (Phase 96)", () => {
           { id: "n1", type: "condition", expression: "ctx.errorRate > 0.05" },
         ],
       });
-      const exec = executeFlow(db, f.id, { inputData: { errorRate: 0.1 } });
+      const exec = executeFlow(db, f.id, {
+        inputData: { errorRate: 0.1 },
+        testMode: true,
+      });
       expect(exec.stepsLog[0].output.branch).toBe("true");
     });
 
@@ -536,7 +637,10 @@ describe("automation-engine (Phase 96)", () => {
           { id: "n1", type: "condition", expression: "ctx.errorRate > 0.05" },
         ],
       });
-      const exec = executeFlow(db, f.id, { inputData: { errorRate: 0.01 } });
+      const exec = executeFlow(db, f.id, {
+        inputData: { errorRate: 0.01 },
+        testMode: true,
+      });
       expect(exec.stepsLog[0].output.branch).toBe("false");
     });
 
@@ -678,8 +782,8 @@ describe("automation-engine (Phase 96)", () => {
           { from: "n2", to: "n3" },
         ],
       });
-      const exec = executeFlow(db, f.id);
-      expect(exec.status).toBe("success");
+      const exec = executeFlow(db, f.id, { testMode: true });
+      expect(exec.status).toBe("simulated");
       expect(exec.stepsLog.length).toBe(3);
     });
   });
@@ -703,7 +807,8 @@ describe("automation-engine (Phase 96)", () => {
         config: { url: "https://a" },
       });
       const exec = fireTrigger(db, t.id, { source: "hook" });
-      expect(exec.status).toBe("success");
+      expect(exec.status).toBe("unsupported");
+      expect(exec.stepsLog).toEqual([]);
       expect(exec.triggerType).toBe("webhook");
       expect(getTrigger(db, t.id).triggerCount).toBe(1);
       expect(getTrigger(db, t.id).lastTriggeredAt).toBeTruthy();
@@ -822,7 +927,8 @@ describe("automation-engine (Phase 96)", () => {
         ],
       });
       executeFlow(db, f.id);
-      expect(listExecutions(db, { status: "success" }).length).toBe(1);
+      expect(listExecutions(db, { status: "unsupported" }).length).toBe(1);
+      expect(listExecutions(db, { status: "success" }).length).toBe(0);
       expect(listExecutions(db, { status: "failed" }).length).toBe(0);
     });
 
@@ -852,7 +958,7 @@ describe("automation-engine (Phase 96)", () => {
       expect(s.flows.byStatus.archived).toBe(1);
     });
 
-    it("computes execution success rate", () => {
+    it("does not count unsupported or simulated executions as live successes", () => {
       const f = createFlow(db, {
         name: "t",
         nodes: [
@@ -865,11 +971,13 @@ describe("automation-engine (Phase 96)", () => {
         ],
       });
       executeFlow(db, f.id);
-      executeFlow(db, f.id);
+      executeFlow(db, f.id, { testMode: true });
       const s = getStats(db);
       expect(s.executions.total).toBe(2);
-      expect(s.executions.successRate).toBe(1.0);
-      expect(s.executions.byStatus.success).toBe(2);
+      expect(s.executions.successRate).toBe(0);
+      expect(s.executions.byStatus.success).toBe(0);
+      expect(s.executions.byStatus.unsupported).toBe(1);
+      expect(s.executions.byStatus.simulated).toBe(1);
     });
 
     it("aggregates triggers by type", () => {
@@ -892,8 +1000,13 @@ describe("automation-engine (Phase 96)", () => {
         type: "condition",
         config: { expression: "ctx.errorRate > 0.05" },
       });
-      const exec = fireTrigger(db, t.id, { errorRate: 0.12 });
-      expect(exec.status).toBe("success");
+      const exec = fireTrigger(
+        db,
+        t.id,
+        { errorRate: 0.12 },
+        { testMode: true },
+      );
+      expect(exec.status).toBe("simulated");
       expect(exec.stepsLog.length).toBe(3);
       // First step is condition node; it should have evaluated true
       expect(exec.stepsLog[0].output.branch).toBe("true");

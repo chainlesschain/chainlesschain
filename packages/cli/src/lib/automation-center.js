@@ -18,6 +18,7 @@ import {
   buildAutomationCenterRuntimeProjection,
 } from "./automation-center-runtime.js";
 import {
+  AUTOMATION_EXECUTION_CAPABILITY,
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
@@ -117,6 +118,7 @@ function projectExecution(execution) {
   return {
     id: execution.id,
     status: execution.status,
+    mode: execution.mode,
     triggerType: execution.triggerType || null,
     durationMs: Number(execution.durationMs) || 0,
     startedAt: execution.startedAt || null,
@@ -213,6 +215,7 @@ function projectFlow(db, flow, { historyLimit, now }) {
     history,
     incidents,
     security,
+    executionCapability: AUTOMATION_EXECUTION_CAPABILITY,
   };
   const revision = digest(content);
   const active = flow.status === FLOW_STATUS.ACTIVE;
@@ -225,21 +228,28 @@ function projectFlow(db, flow, { historyLimit, now }) {
     actions: [
       action(
         "run_now",
-        active && security.ready,
+        active && security.ready && AUTOMATION_EXECUTION_CAPABILITY.live,
         !active
           ? "flow is not active"
-          : "permission or budget preflight denied",
+          : !security.ready
+            ? "permission or budget preflight denied"
+            : AUTOMATION_EXECUTION_CAPABILITY.reason,
         flow.id,
         revision,
       ),
       action(
         "retry_failed",
-        active && latestFailed && security.ready,
+        active &&
+          latestFailed &&
+          security.ready &&
+          AUTOMATION_EXECUTION_CAPABILITY.live,
         !active
           ? "flow is not active"
           : !latestFailed
             ? "latest run did not fail"
-            : "permission or budget preflight denied",
+            : !security.ready
+              ? "permission or budget preflight denied"
+              : AUTOMATION_EXECUTION_CAPABILITY.reason,
         flow.id,
         revision,
       ),

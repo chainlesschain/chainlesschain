@@ -19,8 +19,7 @@ function registerAutomationIPC({
   automationEngine,
   ipcMain: injectedIpcMain,
 } = {}) {
-  const electron = require("electron");
-  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
   let registeredCount = 0;
 
@@ -52,13 +51,20 @@ function registerAutomationIPC({
     }
   });
 
-  safeHandle("automation:execute", async (_event, { flowId, input }) => {
+  safeHandle("automation:execute", async (_event, { flowId, input, mode }) => {
     try {
       if (!automationEngine) {
         return { success: false, error: "Not available" };
       }
-      const data = await automationEngine.executeFlow(flowId, input || {});
-      return { success: true, data };
+      const data = await automationEngine.executeFlow(flowId, input || {}, {
+        mode,
+      });
+      return {
+        success: data.success === true,
+        data,
+        status: data.status,
+        error: data.reason,
+      };
     } catch (err) {
       return { success: false, error: err.message };
     }

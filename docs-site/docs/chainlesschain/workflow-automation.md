@@ -1,21 +1,23 @@
 # 工作流自动化引擎
 
-> **Phase 96 | v4.5.0 | 状态: ✅ 生产就绪 | 10 IPC Handlers | 3 数据库表**
+> **Phase 96 设计模块 | 10 IPC Handlers | 当前：流程配置与显式模拟**
+>
+> **源码能力校正（2026-10-06，本次修改未发布）**：此前 `v4.5.0 / 生产就绪` 为历史文档标记，不能作为真实 SaaS 执行的证明。桌面 `automation:execute` 默认返回 `unsupported`；指定 `mode: "simulation"` 返回 `simulated`。两者均为 `executed: false`。以下触发器、Pipeline 与连接器配置结构用于设计参考，实际能力以返回状态为准。
 
-ChainlessChain 工作流自动化引擎提供类 Zapier/n8n 的可视化工作流编排能力，内置 12 种主流 SaaS 连接器，支持 Webhook/定时/事件/条件四种触发模式，以及数据转换、过滤、聚合的完整 Pipeline 处理链。通过工作流市场实现模板共享与复用。
+ChainlessChain 工作流自动化模块提供流程定义、连接器目录、模板和执行记录。当前桌面模块未接入真实 SaaS 执行后端，目录中的 Gmail、Slack、GitHub 等动作不会发起外部调用。
 
 ## 概述
 
-工作流自动化引擎是 ChainlessChain 的 SaaS 集成与任务编排平台，类似 Zapier/n8n 的可视化工作流编排。内置 Gmail、Slack、GitHub、Jira 等 12 种连接器，支持 Webhook 实时触发、Cron 定时调度、事件驱动和条件触发四种模式，通过 Transform/Filter/Aggregate Pipeline 处理链实现数据流转，并提供工作流市场支持模板共享与一键部署。
+可保存工作流与触发器配置并预览模拟结果。桌面 `scheduleFlow` 保存调度元数据；CLI 的持久调度与权限治理另见 [工作流自动化 CLI](/chainlesschain/cli-automation)。流程存在、触发器已配置或模拟完成均不表示外部业务动作完成。
 
 ## 核心特性
 
-- 🔌 **12 种内置连接器**: Gmail / Slack / GitHub / Jira / Notion / Confluence / Trello / Asana / Linear / Discord / Telegram / Webhook，覆盖主流办公与开发场景
-- ⚡ **四种触发模式**: Webhook 实时触发、Cron 定时调度、事件驱动（IPC/系统事件）、条件触发（指标阈值）
-- 🔄 **Pipeline 处理链**: Transform（数据映射/格式转换）→ Filter（条件过滤）→ Aggregate（分组聚合），支持自定义 JavaScript 表达式
-- 🏪 **工作流市场**: 模板导入/导出、社区共享、一键部署，降低工作流创建门槛
+- 🔌 **连接器目录**: 展示可用于流程定义的 SaaS 名称、动作与分类
+- ⚡ **触发器配置**: 保存触发条件；接入真实来源和调度运行时需另行验证
+- 🔄 **Pipeline 设计结构**: 可描述 Transform/Filter/Aggregate；当前模拟不执行外部动作
+- 🏪 **模板管理**: 导入与共享流程定义
 - 📊 **执行日志与统计**: 完整的执行历史、错误追踪、性能统计，支持调试与优化
-- 🧪 **沙盒测试**: 工作流上线前可进行沙盒测试，验证连接器配置与数据流转
+- 🧪 **显式模拟**: 返回 `simulated`，不验证 SaaS 认证、连通性或业务结果
 
 ## 系统架构
 
@@ -50,13 +52,10 @@ ChainlessChain 工作流自动化引擎提供类 Zapier/n8n 的可视化工作�
 
 ## 关键文件
 
-| 文件                                                                   | 职责                  |
-| ---------------------------------------------------------------------- | --------------------- |
-| `desktop-app-vue/src/main/enterprise/automation/workflow-engine.js`    | 工作流执行引擎        |
-| `desktop-app-vue/src/main/enterprise/automation/connector-registry.js` | 12 种 SaaS 连接器注册 |
-| `desktop-app-vue/src/main/enterprise/automation/trigger-manager.js`    | 触发器管理 (4 种模式) |
-| `desktop-app-vue/src/main/enterprise/automation/pipeline-processor.js` | Pipeline 处理链       |
-| `desktop-app-vue/src/main/enterprise/automation/automation-ipc.js`     | IPC 处理器 (10 个)    |
+| 文件                                                                  | 职责                                 |
+| --------------------------------------------------------------------- | ------------------------------------ |
+| `desktop-app-vue/src/main/enterprise/automation/automation-engine.js` | 流程、连接器目录、显式模拟及执行日志 |
+| `desktop-app-vue/src/main/enterprise/automation/automation-ipc.js`    | IPC 处理器 (10 个)                   |
 
 ## 相关文档
 
@@ -135,7 +134,7 @@ const flow = await window.electron.ipcRenderer.invoke(
 ## 执行工作流
 
 ```javascript
-// 手动触发执行（用于测试或一次性任务）
+// 请求真实执行；当前执行器不支持真实 SaaS 调用
 const execution = await window.electron.ipcRenderer.invoke(
   "automation:execute",
   {
@@ -149,7 +148,19 @@ const execution = await window.electron.ipcRenderer.invoke(
     },
   },
 );
-// execution = { executionId: "exec-001", status: "completed", duration: 1230, steps: [...] }
+// execution = { success: false, status: "unsupported",
+//   data: { logId: "log-...", status: "unsupported", mode: "live", executed: false, results: [...] }, ... }
+
+// 显式模拟：data.status 为 simulated，data.executed 为 false
+const simulation = await window.electron.ipcRenderer.invoke(
+  "automation:execute",
+  {
+    flowId: "flow-001",
+    input: {},
+    mode: "simulation",
+  },
+);
+// success 仍为 false：该字段不表示真实业务动作成功
 ```
 
 ## 查看连接器列表
@@ -191,7 +202,7 @@ const testResult = await window.electron.ipcRenderer.invoke(
   "automation:test-flow",
   {
     flowId: "flow-001",
-    mockData: {
+    testInput: {
       pull_request: {
         title: "test PR",
         user: { login: "tester" },
@@ -200,7 +211,10 @@ const testResult = await window.electron.ipcRenderer.invoke(
     },
   },
 );
-// testResult = { success: true, steps: [{ id: "transform-1", output: {...}, duration: 5 }, ...], warnings: [] }
+// testResult = { success: true,
+//   data: { flowId: "flow-001", steps: 3, dryRun: true, status: "simulated",
+//     mode: "simulation", executed: false, estimatedDuration: 3000 } }
+// 外层 success 仅表示成功生成预览；不证明步骤已执行或连接器已验证
 ```
 
 ## 执行日志
@@ -308,18 +322,18 @@ const stats = await window.electron.ipcRenderer.invoke("automation:get-stats");
 
 ### automation_executions
 
-| 字段         | 类型    | 说明                             |
-| ------------ | ------- | -------------------------------- |
-| id           | TEXT PK | 执行 ID                          |
-| flow_id      | TEXT FK | 关联工作流 ID                    |
-| status       | TEXT    | pending/running/completed/failed |
-| input        | JSON    | 输入数据                         |
-| output       | JSON    | 输出数据                         |
-| error        | TEXT    | 错误信息                         |
-| duration     | INTEGER | 执行时长（ms）                   |
-| step_results | JSON    | 各步骤执行结果                   |
-| started_at   | INTEGER | 开始时间戳                       |
-| completed_at | INTEGER | 完成时间戳                       |
+| 字段         | 类型    | 说明                                                      |
+| ------------ | ------- | --------------------------------------------------------- |
+| id           | TEXT PK | 执行 ID                                                   |
+| flow_id      | TEXT FK | 关联工作流 ID                                             |
+| status       | TEXT    | simulated/unsupported/failed；旧 completed 不证明外部效果 |
+| input        | JSON    | 输入数据                                                  |
+| output       | JSON    | 输出数据                                                  |
+| error        | TEXT    | 错误信息                                                  |
+| duration     | INTEGER | 执行时长（ms）                                            |
+| step_results | JSON    | 各步骤执行结果                                            |
+| started_at   | INTEGER | 开始时间戳                                                |
+| completed_at | INTEGER | 完成时间戳                                                |
 
 ### automation_templates
 
@@ -377,6 +391,8 @@ const stats = await window.electron.ipcRenderer.invoke("automation:get-stats");
 ---
 
 ## 故障排查
+
+当前真实执行返回 `unsupported` 时，原因是执行后端尚未接入。下面的 OAuth、外部超时等条目保留为后续接入设计参考，不能通过更换凭证或增加重试解除 unsupported。
 
 | 问题               | 原因分析                                        | 解决方案                                                                                       |
 | ------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -509,6 +525,8 @@ const aggregateStep = {
 
 ## 性能指标
 
+以下为历史设计文档的指标表，未在本次修改中重新测量，不能作为真实 SaaS 执行、Webhook 接入或调度精度的验证证据。当前桌面调用仅生成模拟或未支持结果。
+
 | 操作                                          | 目标        | 实际        | 状态 |
 | --------------------------------------------- | ----------- | ----------- | ---- |
 | 工作流创建 (`automation:create-flow`)         | < 50ms      | 28ms        | ✅   |
@@ -528,6 +546,8 @@ const aggregateStep = {
 
 ## 测试覆盖率
 
+以下为历史设计测试清单；连接器认证、真实 Pipeline 和 SaaS 效果未因此获得验证。当前执行状态回归以 `src/main/enterprise/automation/__tests__/automation-engine.test.js` 为准，覆盖默认 unsupported、显式 simulated 与无外部执行结果。
+
 | 测试文件                                                                         | 覆盖范围                                       |
 | -------------------------------------------------------------------------------- | ---------------------------------------------- |
 | ✅ `desktop-app-vue/tests/unit/enterprise/automation/workflow-engine.test.js`    | 工作流引擎核心逻辑、生命周期状态机、重试策略   |
@@ -545,15 +565,17 @@ const aggregateStep = {
 
 ### 连接器凭证安全
 
+本节是接入真实执行器时的安全要求；当前连接器目录不提供 OAuth 自动刷新或真实调用保证。
+
 - **凭证加密存储**: 所有连接器的 API Key、OAuth Token 等凭证通过 SQLCipher 加密存储，切勿在工作流定义的 `config` 中硬编码明文密码
 - **最小权限原则**: 为每个连接器配置最小必要权限（如 GitHub 仅授予 `repo:read` 而非全部权限），降低凭证泄露的影响范围
-- **Token 自动轮换**: OAuth Token 过期后系统自动使用 Refresh Token 刷新，无需人工干预
+- **Token 自动轮换目标**: 真实连接器接入后需单独实现并验证刷新流程
 
 ### 执行安全
 
 - **沙盒测试**: 工作流上线前务必使用 `automation:test-flow` 在沙盒环境中测试，沙盒模式下连接器调用不会影响外部系统
 - **表达式沙箱**: Transform/Filter 步骤中的 JavaScript 表达式在受限沙箱中执行，禁止访问文件系统、网络和 Node.js 原生模块
-- **重试限制**: 失败步骤的自动重试受 `maxRetries`（默认 3 次）和指数退避策略控制，防止无限重试导致外部 API 过载
+- **重试限制**: 当前 unsupported 不应反复重试；存在未知副作用的记录须先核验结果
 
 ### Webhook 安全
 
@@ -578,7 +600,7 @@ const aggregateStep = {
 
 # 2. 沙盒测试（不影响外部系统）
 # IPC: automation:test-flow { flowId: "flow-001", mockData: { pull_request: { title: "test", ... } } }
-# → success: true, 所有步骤通过
+# → data.status: "simulated", data.executed: false；仅生成预览
 
 # 3. 添加触发器并激活
 # IPC: automation:add-trigger { flowId: "flow-001", trigger: { type: "webhook", ... } }
@@ -586,7 +608,7 @@ const aggregateStep = {
 
 ### 连接器配置要点
 
-- **OAuth 连接器**（Gmail/Slack/GitHub）: 需在对应平台创建 OAuth App，将 Token 配置到 `.chainlesschain/config.json`，Token 过期后系统自动刷新
+- **OAuth 连接器**（Gmail/Slack/GitHub）: 当前仅有目录定义；配置 Token 不会启用真实调用或自动刷新
 - **Webhook 连接器**: 配置 `secret` 用于签名验证，确认接收端口从外网可达（或使用 ngrok 转发）
 - **数据库连接器**: 使用只读账号连接，避免工作流误操作修改源数据
 

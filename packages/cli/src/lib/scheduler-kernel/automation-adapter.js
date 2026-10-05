@@ -779,7 +779,7 @@ function existingExecutionResult(db, occurrence, expected, now) {
   }
   if (execution.status !== EXECUTION_STATUS.SUCCESS) {
     throw automationError(
-      "AUTOMATION_SCHEDULER_EXECUTION_FAILED",
+      executionFailureCode(execution.status),
       `Automation execution did not succeed: ${execution.id}`,
       { executionId: execution.id, status: execution.status },
     );
@@ -788,6 +788,14 @@ function existingExecutionResult(db, occurrence, expected, now) {
     now,
   });
   return execution;
+}
+
+function executionFailureCode(status) {
+  if (status === EXECUTION_STATUS.UNSUPPORTED)
+    return "AUTOMATION_EXECUTION_UNSUPPORTED";
+  if (status === EXECUTION_STATUS.SIMULATED)
+    return "AUTOMATION_EXECUTION_SIMULATED";
+  return "AUTOMATION_SCHEDULER_EXECUTION_FAILED";
 }
 
 export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
@@ -930,9 +938,13 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
       }
       if (execution.status !== EXECUTION_STATUS.SUCCESS) {
         throw automationError(
-          "AUTOMATION_SCHEDULER_EXECUTION_FAILED",
+          executionFailureCode(execution.status),
           `Automation execution failed: ${execution.id}`,
-          { executionId: execution.id, error: execution.error },
+          {
+            executionId: execution.id,
+            status: execution.status,
+            error: execution.error,
+          },
         );
       }
       resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {

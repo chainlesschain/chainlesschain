@@ -20,6 +20,7 @@ import {
   getFlow,
   updateFlowStatus,
   FLOW_STATUS,
+  AUTOMATION_EXECUTION_CAPABILITY,
 } from "../../src/lib/automation-engine.js";
 import { setAutomationExecutionBudget } from "../../src/lib/automation-execution-authority.js";
 import {
@@ -194,8 +195,9 @@ describe("Automation Center projection", () => {
     expect(
       flow.actions.find((action) => action.id === "run_now"),
     ).toMatchObject({
-      available: true,
-      preview: { executor: "cli", mutates: true },
+      available: false,
+      reason: AUTOMATION_EXECUTION_CAPABILITY.reason,
+      preview: null,
     });
     expect(flow.actions.map((action) => action.id)).toEqual([
       "run_now",
@@ -454,13 +456,37 @@ describe("Automation Center projection", () => {
       expect.objectContaining({ code: "AUTOMATION_CENTER_STALE" }),
     );
 
-    const run = runAutomationCenterAction(f.db, {
-      flowId: f.flowId,
-      action: "run_now",
-      expectedRevision: flow.revision,
-      now: () => now,
+    expect(() =>
+      runAutomationCenterAction(f.db, {
+        flowId: f.flowId,
+        action: "run_now",
+        expectedRevision: "sha256:stale",
+        now: () => now,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "AUTOMATION_CENTER_STALE" }),
+    );
+    expect(() =>
+      runAutomationCenterAction(f.db, {
+        flowId: f.flowId,
+        action: "run_now",
+        expectedRevision: flow.revision,
+        now: () => now,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_CENTER_ACTION_UNAVAILABLE",
+        message: AUTOMATION_EXECUTION_CAPABILITY.reason,
+      }),
+    );
+    expect(f.db.prepare("SELECT * FROM auto_executions").all()).toEqual([]);
+    expect(
+      f.db.prepare("SELECT * FROM auto_execution_budget_reservations").all(),
+    ).toEqual([]);
+    expect(projection(f).items[0].security.budget).toMatchObject({
+      remainingRuns: 3,
+      remainingActionSteps: 3,
     });
-    expect(run.result.status).toBe("success");
 
     flow = projection(f).items[0];
     runAutomationCenterAction(f.db, {
@@ -532,8 +558,12 @@ describe("Automation Center projection", () => {
     expect(f.db.inTransaction).toBe(false);
   });
 
-  it("only offers retry for the latest failed run and binds it to that run", () => {
+  it("requires both a latest failed run and live capability before retry", () => {
     const f = fixture();
+    const initial = projection(f).items[0];
+    expect(
+      initial.actions.find((action) => action.id === "retry_failed"),
+    ).toMatchObject({ available: false, reason: "latest run did not fail" });
     const failedId = "exec-failed-center";
     f.db
       .prepare(
@@ -559,15 +589,40 @@ describe("Automation Center projection", () => {
     const flow = projection(f).items[0];
     expect(
       flow.actions.find((action) => action.id === "retry_failed"),
-    ).toMatchObject({ available: true });
-    const retried = runAutomationCenterAction(f.db, {
-      flowId: f.flowId,
-      action: "retry_failed",
-      expectedRevision: flow.revision,
-      now: () => now,
+    ).toMatchObject({
+      available: false,
+      preview: null,
+      reason: AUTOMATION_EXECUTION_CAPABILITY.reason,
     });
-    expect(retried.retryOf).toBe(failedId);
-    expect(retried.result.inputData).toEqual({ ticket: "INC-42" });
+    expect(() =>
+      runAutomationCenterAction(f.db, {
+        flowId: f.flowId,
+        action: "retry_failed",
+        expectedRevision: initial.revision,
+        now: () => now,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "AUTOMATION_CENTER_STALE" }),
+    );
+    expect(() =>
+      runAutomationCenterAction(f.db, {
+        flowId: f.flowId,
+        action: "retry_failed",
+        expectedRevision: flow.revision,
+        now: () => now,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_CENTER_ACTION_UNAVAILABLE",
+        message: AUTOMATION_EXECUTION_CAPABILITY.reason,
+      }),
+    );
+    expect(
+      f.db.prepare("SELECT id, input_data FROM auto_executions").all(),
+    ).toEqual([{ id: failedId, input_data: '{"ticket":"INC-42"}' }]);
+    expect(
+      f.db.prepare("SELECT * FROM auto_execution_budget_reservations").all(),
+    ).toEqual([]);
   });
 
   it("keeps revisions stable across generatedAt-only changes", () => {

@@ -126,7 +126,11 @@ describe("AppBuilder", () => {
     const app = builder.createApp({ name: "Preview Test" });
     const preview = builder.preview(app.id);
     expect(preview.appId).toBe(app.id);
-    expect(preview.previewUrl).toContain(app.id);
+    expect(preview.previewUrl).toBeNull();
+    expect(preview).toMatchObject({
+      status: "design-preview",
+      deployed: false,
+    });
   });
 
   it("should throw for preview of unknown app", async () => {
@@ -135,20 +139,81 @@ describe("AppBuilder", () => {
   });
 
   // ── publish ──────────────────────────────────────────────────────────────
-  it("should publish an app", async () => {
+  it("publishes the design without claiming runtime deployment", async () => {
     await builder.initialize(db);
     const app = builder.createApp({ name: "Publish Test" });
     const result = builder.publish(app.id);
-    expect(result.status).toBe("published");
+    expect(result).toMatchObject({
+      status: "design-published",
+      publicationKind: "design",
+      deployed: false,
+      runtimeStatus: "unsupported",
+    });
+    expect(builder.exportApp(app.id).status).toBe("design-published");
+    builder.saveDesign(app.id, { pages: ["changed"] });
+    expect(builder.exportApp(app.id).status).toBe("draft");
   });
 
-  it("should emit lowcode:app-published event", async () => {
+  it("emits a design publication event instead of a runtime publication event", async () => {
     await builder.initialize(db);
     const app = builder.createApp({ name: "Test" });
     const listener = vi.fn();
-    builder.on("lowcode:app-published", listener);
+    builder.on("lowcode:design-published", listener);
+    const deployedListener = vi.fn();
+    builder.on("lowcode:app-published", deployedListener);
     builder.publish(app.id);
     expect(listener).toHaveBeenCalled();
+    expect(deployedListener).not.toHaveBeenCalled();
+  });
+
+  it("does not claim design publication when persistence fails", async () => {
+    await builder.initialize(db);
+    const app = builder.createApp({ name: "Failed publish" });
+    db._prep.run.mockImplementation(() => {
+      throw new Error("disk full");
+    });
+    const published = vi.fn();
+    builder.on("lowcode:design-published", published);
+    expect(() => builder.publish(app.id)).toThrow("could not be persisted");
+    expect(builder.exportApp(app.id).status).toBe("draft");
+    expect(published).not.toHaveBeenCalled();
+  });
+
+  it("normalizes legacy design publication and datasource states on restart", async () => {
+    db.prepare.mockImplementation((sql) => ({
+      all: () =>
+        sql === "SELECT * FROM lowcode_apps"
+          ? [
+              {
+                id: "legacy",
+                name: "Legacy",
+                status: "published",
+                design: "{}",
+              },
+            ]
+          : sql === "SELECT * FROM lowcode_datasources"
+            ? [
+                {
+                  id: "source",
+                  app_id: "legacy",
+                  type: "rest",
+                  status: "active",
+                  config: "{}",
+                },
+              ]
+            : [],
+      run: vi.fn(),
+    }));
+    await builder.initialize(db);
+    expect(builder.exportApp("legacy")).toMatchObject({
+      status: "design-published",
+      dataSources: [{ status: "configured" }],
+    });
+    expect(builder.testConnection("source")).toMatchObject({
+      success: false,
+      status: "unsupported",
+      probed: false,
+    });
   });
 
   // ── listComponents ───────────────────────────────────────────────────────
@@ -173,12 +238,21 @@ describe("AppBuilder", () => {
   });
 
   // ── testConnection ───────────────────────────────────────────────────────
-  it("should test connection for existing data source", async () => {
+  it("reports unsupported probing even when a data source is configured", async () => {
     await builder.initialize(db);
     const app = builder.createApp({ name: "Test" });
-    const ds = builder.addDataSource(app.id, "DB", "mysql", {});
+    const ds = builder.addDataSource(app.id, "DB", "mysql", {
+      url: "https://invalid.example.invalid",
+    });
     const result = builder.testConnection(ds.id);
-    expect(result.success).toBe(true);
+    expect(result).toMatchObject({
+      success: false,
+      configured: true,
+      status: "unsupported",
+      probed: false,
+    });
+    expect(result).not.toHaveProperty("latency");
+    expect(ds.status).toBe("configured");
     expect(result.type).toBe("mysql");
   });
 

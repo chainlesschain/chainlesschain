@@ -1,10 +1,8 @@
 /**
  * SCIM Sync Engine
  *
- * Incremental sync with Azure AD, Okta, and OneLogin:
- * - Full and incremental sync modes
- * - Connector registry for multiple providers
- * - Conflict resolution
+ * Outbound provider configuration and sync capability reporting.
+ * Provider transports are not implemented; inbound SCIM is handled by SCIMServer.
  *
  * @module enterprise/scim-sync
  * @version 1.1.0
@@ -30,6 +28,7 @@ const SYNC_STATUS = {
   RUNNING: "running",
   COMPLETED: "completed",
   FAILED: "failed",
+  UNSUPPORTED: "unsupported",
 };
 
 // ============================================================
@@ -90,7 +89,12 @@ class SCIMSync extends EventEmitter {
 
       this.emit("connector:registered", { provider });
       logger.info("[SCIMSync] Registered connector:", provider);
-      return { success: true, provider };
+      return {
+        success: true,
+        provider,
+        status: "configured",
+        syncSupported: false,
+      };
     } catch (error) {
       logger.error("[SCIMSync] Register connector failed:", error);
       throw error;
@@ -108,6 +112,8 @@ class SCIMSync extends EventEmitter {
       enabled: c.enabled,
       lastSync: c.lastSync,
       syncCount: c.syncCount,
+      status: "configured",
+      syncSupported: false,
     }));
   }
 
@@ -126,19 +132,19 @@ class SCIMSync extends EventEmitter {
         throw new Error(`Connector disabled: ${provider}`);
       }
 
-      this._syncStatus = SYNC_STATUS.RUNNING;
-      this.emit("sync:started", { provider });
-
-      // In production, this would make HTTP requests to the provider's SCIM endpoint
-      // For now, simulate sync with the connector configuration
+      // Configuration does not establish a provider transport. Record the
+      // unsupported attempt without claiming a successful zero-change sync.
       const result = {
         provider,
+        success: false,
+        status: SYNC_STATUS.UNSUPPORTED,
+        executed: false,
+        error: "Outbound SCIM synchronization is not available",
         created: 0,
         updated: 0,
         deactivated: 0,
         errors: 0,
-        startedAt: Date.now(),
-        completedAt: null,
+        attemptedAt: Date.now(),
       };
 
       // Log sync attempt
@@ -153,7 +159,7 @@ class SCIMSync extends EventEmitter {
             "User",
             null,
             provider,
-            "success",
+            result.status,
             JSON.stringify(result),
             Date.now(),
           );
@@ -162,13 +168,8 @@ class SCIMSync extends EventEmitter {
         // Expected error, ignore
       }
 
-      result.completedAt = Date.now();
-      connector.lastSync = result.completedAt;
-      connector.syncCount++;
-
-      this._syncStatus = SYNC_STATUS.COMPLETED;
-      this._lastSyncAt = result.completedAt;
-      this.emit("sync:completed", result);
+      this._syncStatus = SYNC_STATUS.UNSUPPORTED;
+      this.emit("sync:unsupported", result);
 
       return result;
     } catch (error) {
@@ -193,10 +194,25 @@ class SCIMSync extends EventEmitter {
         const result = await this.syncProvider(provider);
         results.push(result);
       } catch (error) {
-        results.push({ provider, error: error.message });
+        results.push({
+          provider,
+          success: false,
+          status: SYNC_STATUS.FAILED,
+          error: error.message,
+        });
       }
     }
-    return { results, syncedAt: Date.now() };
+    return {
+      results,
+      success: false,
+      status: results.some((result) => result.status === SYNC_STATUS.FAILED)
+        ? SYNC_STATUS.FAILED
+        : results.length
+          ? SYNC_STATUS.UNSUPPORTED
+          : SYNC_STATUS.IDLE,
+      attemptedAt: Date.now(),
+      syncedAt: this._lastSyncAt,
+    };
   }
 
   /**
@@ -207,6 +223,7 @@ class SCIMSync extends EventEmitter {
     return {
       status: this._syncStatus,
       lastSyncAt: this._lastSyncAt,
+      syncSupported: false,
       connectorCount: this._connectors.size,
       enabledConnectors: Array.from(this._connectors.values()).filter(
         (c) => c.enabled,
@@ -228,17 +245,25 @@ class SCIMSync extends EventEmitter {
       const limit = options.limit || 50;
       const provider = options.provider;
 
-      if (provider) {
-        return this.database.db
-          .prepare(
-            "SELECT * FROM scim_sync_log WHERE provider = ? ORDER BY created_at DESC LIMIT ?",
-          )
-          .all(provider, limit);
-      }
-
-      return this.database.db
-        .prepare("SELECT * FROM scim_sync_log ORDER BY created_at DESC LIMIT ?")
-        .all(limit);
+      const rows = provider
+        ? this.database.db
+            .prepare(
+              "SELECT * FROM scim_sync_log WHERE provider = ? ORDER BY created_at DESC LIMIT ?",
+            )
+            .all(provider, limit)
+        : this.database.db
+            .prepare(
+              "SELECT * FROM scim_sync_log ORDER BY created_at DESC LIMIT ?",
+            )
+            .all(limit);
+      // The old outbound sync path logged success without a provider call.
+      // Only normalize that operation for display; inbound provisioning and
+      // the original stored audit rows keep their recorded evidence.
+      return rows.map((row) =>
+        row.operation === "sync" && row.status === "success"
+          ? { ...row, status: "legacy-unverified", recordedStatus: row.status }
+          : row,
+      );
     } catch (error) {
       logger.error("[SCIMSync] Get sync history failed:", error);
       return [];

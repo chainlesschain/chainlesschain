@@ -27,6 +27,16 @@ export const EXECUTION_STATUS = Object.freeze({
   SUCCESS: "success",
   FAILED: "failed",
   CANCELLED: "cancelled",
+  SIMULATED: "simulated",
+  UNSUPPORTED: "unsupported",
+  UNVERIFIED: "legacy-unverified",
+});
+
+export const AUTOMATION_EXECUTION_CAPABILITY = Object.freeze({
+  live: false,
+  simulation: true,
+  reason:
+    "Connector catalog only; live automation execution is not implemented",
 });
 
 export const TRIGGER_TYPE = Object.freeze({
@@ -125,12 +135,22 @@ export const CONNECTOR_CATALOG = Object.freeze([
 const CONNECTOR_INDEX = new Map(CONNECTOR_CATALOG.map((c) => [c.id, c]));
 
 export function listConnectors() {
-  return CONNECTOR_CATALOG.map((c) => ({ ...c, actions: [...c.actions] }));
+  return CONNECTOR_CATALOG.map((c) => ({
+    ...c,
+    actions: [...c.actions],
+    executionCapability: AUTOMATION_EXECUTION_CAPABILITY,
+  }));
 }
 
 export function getConnector(id) {
   const c = CONNECTOR_INDEX.get(id);
-  return c ? { ...c, actions: [...c.actions] } : null;
+  return c
+    ? {
+        ...c,
+        actions: [...c.actions],
+        executionCapability: AUTOMATION_EXECUTION_CAPABILITY,
+      }
+    : null;
 }
 
 /* ── Built-in flow templates ───────────────────────────────── */
@@ -462,14 +482,42 @@ function _rowToFlow(row) {
 
 function _rowToExecution(row) {
   if (!row) return null;
+  const outputData = _parseJSON(row.output_data, null);
+  const stepsLog = _parseJSON(row.steps_log, []);
+  const simulated =
+    row.test_mode === 1 ||
+    outputData?.simulated === true ||
+    stepsLog.some((step) => step.output?.simulated === true);
+  const adjudication = _parseJSON(row.error, null);
+  const confirmedApplied =
+    adjudication?.authority === "scheduler-adjudication" &&
+    adjudication?.decision === "confirmed_applied";
+  const legacyControlOnly =
+    row.status === EXECUTION_STATUS.SUCCESS &&
+    !confirmedApplied &&
+    stepsLog.every((step) => step.nodeType && step.nodeType !== "action") &&
+    (outputData == null ||
+      outputData.parallel === true ||
+      outputData.loop === true ||
+      (typeof outputData.branch === "string" && "expression" in outputData));
+  // Old releases persisted simulator results as success. Do not recover those
+  // rows as evidence that an external action was applied.
+  const status =
+    row.status === EXECUTION_STATUS.SUCCESS && simulated
+      ? EXECUTION_STATUS.SIMULATED
+      : legacyControlOnly
+        ? EXECUTION_STATUS.UNVERIFIED
+        : row.status;
   return {
     id: row.id,
     flowId: row.flow_id,
     triggerType: row.trigger_type,
     inputData: _parseJSON(row.input_data, null),
-    outputData: _parseJSON(row.output_data, null),
-    status: row.status,
-    stepsLog: _parseJSON(row.steps_log, []),
+    outputData,
+    status,
+    ...(status !== row.status ? { recordedStatus: row.status } : {}),
+    mode: simulated ? "simulation" : legacyControlOnly ? "unverified" : "live",
+    stepsLog,
     durationMs: row.duration_ms || 0,
     error: row.error || null,
     testMode: row.test_mode === 1,
@@ -1161,13 +1209,20 @@ export function executeFlow(db, flowId, options = {}) {
     executionAuthority = null,
     assertRuntimeBoundary = null,
   } = options;
+  if (typeof testMode !== "boolean") {
+    throw new TypeError("testMode must be a boolean");
+  }
   const execId =
     executionId === undefined
       ? _genId("exec")
       : _normalizeExecutionId(executionId);
   const existing = getExecution(db, execId);
   if (existing) {
-    return _resolveExistingExecution(existing, { flowId, triggerType });
+    return _resolveExistingExecution(existing, {
+      flowId,
+      triggerType,
+      testMode,
+    });
   }
   // Validate every declared action boundary before creating an execution row
   // or invoking the first effect. The per-node assertion below remains as the
@@ -1210,20 +1265,34 @@ export function executeFlow(db, flowId, options = {}) {
     // the winner from durable evidence instead of running the flow twice.
     const concurrent = getExecution(db, execId);
     if (!concurrent) throw error;
-    return _resolveExistingExecution(concurrent, { flowId, triggerType });
+    return _resolveExistingExecution(concurrent, {
+      flowId,
+      triggerType,
+      testMode,
+    });
   }
 
   const stepsLog = [];
-  let finalStatus = EXECUTION_STATUS.SUCCESS;
+  let finalStatus = testMode
+    ? EXECUTION_STATUS.SIMULATED
+    : EXECUTION_STATUS.UNSUPPORTED;
   let finalError = null;
   let outputData = null;
 
   try {
     const ordered = _topoOrder(flow.nodes, flow.edges);
+    if (!testMode) {
+      finalError = AUTOMATION_EXECUTION_CAPABILITY.reason;
+      outputData = {
+        executed: false,
+        code: "AUTOMATION_EXECUTION_UNSUPPORTED",
+        capability: AUTOMATION_EXECUTION_CAPABILITY,
+      };
+    }
     const stepInputs = new Map();
     stepInputs.set("__initial__", inputData);
 
-    for (const node of ordered) {
+    for (const node of testMode ? ordered : []) {
       const stepStart = Date.now();
       const parentEdges = flow.edges.filter((e) => e.to === node.id);
       let merged;
@@ -1251,7 +1320,7 @@ export function executeFlow(db, flowId, options = {}) {
         nodeType: node.type || "action",
         connector: node.connector || null,
         action: node.action || null,
-        status: "success",
+        status: EXECUTION_STATUS.SIMULATED,
         durationMs: Date.now() - stepStart,
         output,
       });
@@ -1389,8 +1458,15 @@ function _normalizeExecutionId(value) {
   return value;
 }
 
-function _resolveExistingExecution(existing, { flowId, triggerType }) {
-  if (existing.flowId !== flowId || existing.triggerType !== triggerType) {
+function _resolveExistingExecution(
+  existing,
+  { flowId, triggerType, testMode },
+) {
+  if (
+    existing.flowId !== flowId ||
+    existing.triggerType !== triggerType ||
+    existing.testMode !== testMode
+  ) {
     const error = new Error(
       `Execution id is already bound to another automation request: ${existing.id}`,
     );
@@ -1407,7 +1483,7 @@ function _resolveExistingExecution(existing, { flowId, triggerType }) {
   return existing;
 }
 
-export function fireTrigger(db, triggerId, inputData = {}) {
+export function fireTrigger(db, triggerId, inputData = {}, options = {}) {
   const trig = getTrigger(db, triggerId);
   if (!trig) throw new Error(`Trigger not found: ${triggerId}`);
   if (!trig.enabled) throw new Error(`Trigger disabled: ${triggerId}`);
@@ -1434,6 +1510,7 @@ export function fireTrigger(db, triggerId, inputData = {}) {
   return executeFlow(db, trig.flowId, {
     inputData,
     triggerType: trig.type,
+    testMode: options.testMode ?? false,
   });
 }
 
@@ -1445,31 +1522,64 @@ export function getExecution(db, execId) {
 
 export function listExecutions(db, filters = {}) {
   const { flowId, status, limit = 50 } = filters;
-  let rows;
-  if (flowId && status) {
-    rows = db
-      .prepare(
-        `SELECT * FROM auto_executions WHERE flow_id = ? AND status = ? ORDER BY started_at DESC LIMIT ?`,
-      )
-      .all(flowId, status, limit);
-  } else if (flowId) {
-    rows = db
-      .prepare(
-        `SELECT * FROM auto_executions WHERE flow_id = ? ORDER BY started_at DESC LIMIT ?`,
-      )
-      .all(flowId, limit);
-  } else if (status) {
-    rows = db
-      .prepare(
-        `SELECT * FROM auto_executions WHERE status = ? ORDER BY started_at DESC LIMIT ?`,
-      )
-      .all(status, limit);
-  } else {
-    rows = db
-      .prepare(`SELECT * FROM auto_executions ORDER BY started_at DESC LIMIT ?`)
-      .all(limit);
+  if (!Number.isSafeInteger(limit) || limit < 0) {
+    throw new RangeError(
+      "Execution history limit must be a non-negative integer",
+    );
   }
-  return rows.map(_rowToExecution);
+  if (limit === 0) return [];
+
+  const clauses = [];
+  const params = [];
+  if (flowId) {
+    clauses.push("flow_id = ?");
+    params.push(flowId);
+  }
+  const needsLegacyProjection = [
+    EXECUTION_STATUS.SUCCESS,
+    EXECUTION_STATUS.SIMULATED,
+    EXECUTION_STATUS.UNVERIFIED,
+  ].includes(status);
+  if (status) {
+    if (needsLegacyProjection && status !== EXECUTION_STATUS.SUCCESS) {
+      clauses.push("status IN (?, ?)");
+      params.push(status, EXECUTION_STATUS.SUCCESS);
+    } else {
+      clauses.push("status = ?");
+      params.push(status);
+    }
+  }
+  const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
+  if (!needsLegacyProjection) {
+    return db
+      .prepare(
+        `SELECT * FROM auto_executions${where} ORDER BY started_at DESC LIMIT ?`,
+      )
+      .all(...params, limit)
+      .map(_rowToExecution);
+  }
+
+  // A stored success can project to simulated/unverified. Scan only candidate
+  // statuses in bounded pages and stop once the caller's normalized limit is
+  // met, instead of loading all execution payloads into memory. The id tie
+  // breaker keeps page boundaries stable when timestamps are identical.
+  const pageSize = 128;
+  const statement = db.prepare(
+    `SELECT * FROM auto_executions${where} ORDER BY started_at DESC, id DESC LIMIT ? OFFSET ?`,
+  );
+  const executions = [];
+  let offset = 0;
+  while (executions.length < limit) {
+    const rows = statement.all(...params, pageSize, offset);
+    for (const row of rows) {
+      const execution = _rowToExecution(row);
+      if (execution.status === status) executions.push(execution);
+      if (executions.length === limit) return executions;
+    }
+    if (rows.length < pageSize) break;
+    offset += rows.length;
+  }
+  return executions;
 }
 
 /* ── Stats ─────────────────────────────────────────────────── */
@@ -1477,7 +1587,7 @@ export function listExecutions(db, filters = {}) {
 export function getStats(db) {
   const flowsByStatus = {};
   for (const status of Object.values(FLOW_STATUS)) flowsByStatus[status] = 0;
-  for (const row of db.data?.get("auto_flows") || []) {
+  for (const row of db.prepare("SELECT * FROM auto_flows").all()) {
     flowsByStatus[row.status] = (flowsByStatus[row.status] || 0) + 1;
   }
 
@@ -1486,15 +1596,16 @@ export function getStats(db) {
     execByStatus[status] = 0;
   let totalDuration = 0;
   let execCount = 0;
-  for (const row of db.data?.get("auto_executions") || []) {
-    execByStatus[row.status] = (execByStatus[row.status] || 0) + 1;
+  for (const row of db.prepare("SELECT * FROM auto_executions").all()) {
+    const { status } = _rowToExecution(row);
+    execByStatus[status] = (execByStatus[status] || 0) + 1;
     totalDuration += row.duration_ms || 0;
     execCount++;
   }
 
   const triggersByType = {};
   for (const type of Object.values(TRIGGER_TYPE)) triggersByType[type] = 0;
-  for (const row of db.data?.get("auto_triggers") || []) {
+  for (const row of db.prepare("SELECT * FROM auto_triggers").all()) {
     triggersByType[row.type] = (triggersByType[row.type] || 0) + 1;
   }
 
@@ -1528,6 +1639,7 @@ export function getStats(db) {
 
 export function getConfig() {
   return {
+    executionCapability: AUTOMATION_EXECUTION_CAPABILITY,
     connectors: CONNECTOR_CATALOG.length,
     templates: FLOW_TEMPLATES.length,
     flowStatuses: Object.values(FLOW_STATUS),
