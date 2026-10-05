@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.152] - Wire real panel capture and restart diagnostics (2026-10-05)
+
+- Connect opt-in protocol capture to ConversationView and preserve explicit null
+  fields in raw records. Ordinary sessions keep capture disabled.
+- Add real Swing initial/restart drivers and portable diagnostic archives with
+  bounded process cleanup. Recommend CLI `0.166.89`.
+
 ## [0.4.151] - Capture optional raw session evidence (2026-10-05)
 
 - Add an optional protocol observer for input attempts, output and drained process

@@ -4,6 +4,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
 export async function canonicalTranscriptPeer(root, trace) {
   if (!root || !isAbsolute(root) || !existsSync(root))
@@ -36,9 +37,11 @@ export async function canonicalTranscriptPeer(root, trace) {
         (!argv.includes("--history") && !argv.includes("--input-receipt"))
       )
         return false;
+      const commandId = randomUUID();
       trace({
         direction: "command",
         command: "canonical-session-show",
+        commandId,
         args: argv,
       });
       const cli = fileURLToPath(
@@ -49,11 +52,18 @@ export async function canonicalTranscriptPeer(root, trace) {
         windowsHide: true,
         stdio: ["ignore", "inherit", "inherit"],
       });
-      const code = await new Promise((done, reject) => {
+      const result = await new Promise((done, reject) => {
         processChild.once("error", reject);
-        processChild.once("close", (status) => done(status));
+        processChild.once("close", (code, signal) => done({ code, signal }));
       });
-      process.exitCode = code === 0 ? 0 : 1;
+      trace({
+        direction: "command",
+        command: "canonical-session-show-complete",
+        commandId,
+        processId: processChild.pid,
+        ...result,
+      });
+      process.exitCode = result.code === 0 && result.signal === null ? 0 : 1;
       return true;
     },
     start(sessionId) {

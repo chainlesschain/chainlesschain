@@ -70,6 +70,7 @@ jobs:
         run: >-
           node --test scripts/__tests__/verify01-diagnostic-process.test.mjs
           scripts/__tests__/verify01-diagnostic-evidence.test.mjs
+          scripts/__tests__/verify01-diagnostic-command-drain.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
       - name: Install Linux virtual display
         if: runner.os == 'Linux'

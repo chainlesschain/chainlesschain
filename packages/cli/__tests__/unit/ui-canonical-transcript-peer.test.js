@@ -61,6 +61,25 @@ function harness() {
         windowsHide: true,
       });
       expect(result.status, result.stderr).toBe(0);
+      const trace = readFileSync(env.CC_UI_FIXTURE_TRACE, "utf8")
+        .trim()
+        .split(/\r?\n/u)
+        .map((line) => JSON.parse(line));
+      const started = trace.findLast(
+        (record) => record.command === "canonical-session-show",
+      );
+      const completed = trace.find(
+        (record) =>
+          record.command === "canonical-session-show-complete" &&
+          record.commandId === started?.commandId,
+      );
+      expect(started?.commandId).toMatch(/^[\w-]+$/u);
+      expect(completed).toMatchObject({
+        code: 0,
+        signal: null,
+        processInstanceId: started.processInstanceId,
+      });
+      expect(completed.processId).toBeGreaterThan(0);
       return JSON.parse(result.stdout);
     },
     peer: (sid) => {

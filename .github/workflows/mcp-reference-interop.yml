@@ -38,7 +38,7 @@ jobs:
       - name: Install locked reference server and SDK
         working-directory: packages/cli/scripts/interop/mcp-reference
         run: npm ci --ignore-scripts --no-audit --no-fund --workspaces=false
-      - name: Exercise official stdio and HTTP with response-loss injection
+      - name: Exercise official stdio, HTTP recovery, and real GET/SSE resource push
         shell: bash
         run: >-
           node packages/cli/scripts/mcp-reference-interop.mjs

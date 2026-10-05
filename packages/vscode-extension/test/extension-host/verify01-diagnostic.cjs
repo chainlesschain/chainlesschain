@@ -5,11 +5,11 @@
 // VERIFY-01 observation or provider-quality/installation attestation.
 const fs = require("node:fs");
 const path = require("node:path");
-const os = require("node:os");
 const { createHash } = require("node:crypto");
 const { parseArgs } = require("node:util");
 const { spawn } = require("node:child_process");
 const { createFixtureCli } = require("./cdp-journey.cjs");
+const { makeFreshRunRoot } = require("./run.cjs");
 
 async function settleDiagnosticLauncher(handle, deadline, cleanupMs = 20000) {
   const { withinDeadline, stopOwned } =
@@ -78,11 +78,10 @@ async function main(argv = process.argv.slice(2)) {
   const digest = (file) =>
     `sha256:${createHash("sha256").update(fs.readFileSync(file)).digest("hex")}`;
   const vsixDigest = digest(vsix);
-  // macOS tmpdir may traverse /var -> /private/var. Keep the capture writer's
-  // existing no-symlink contract by supplying the canonical directory.
-  const root = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify01-vscode-")),
-  );
+  // Reuse the host runner's short macOS root: os.tmpdir() can exceed the
+  // 103-byte Unix socket limit once VS Code adds its profile/socket suffix.
+  // Resolve /tmp -> /private/tmp for the writer's no-symlink contract.
+  const root = fs.realpathSync(makeFreshRunRoot());
   const repo = path.resolve(__dirname, "../../../..");
   const fixture = createFixtureCli(root, repo);
   const dirs = Object.fromEntries(

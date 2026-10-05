@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.89: IDE capture journeys and controlled Linux entry
+
+- Prepare and finish frozen IDE tasks with byte-pinned baselines, complete diffs,
+  a shared deadline and real protocol/UI evidence from both IDE hosts.
+- Add explicit `agent controlled-host` for pre-provisioned Linux permission domains;
+  configuration checks do not claim backend execution or provision new authority.
+- Pair VS Code `0.37.134` and JetBrains `0.4.152` with CLI `0.166.89` for
+  opt-in panel capture, deterministic initial/restart diagnostics and retained
+  process-cleanup evidence. Add official MCP stdio interoperability checks.
+
 ### Added - cc CLI 0.166.88: reviewed acceptance packs and host evidence import
 
 - Generate byte-pinned setup/check scripts for all 36 frozen tasks, including

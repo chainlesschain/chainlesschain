@@ -23,9 +23,33 @@ import {
   verifyDiagnosticCapture,
 } from "../../../scripts/lib/verify01-diagnostic-evidence.mjs";
 import { createHash } from "node:crypto";
+import {
+  canonicalTraceOffset,
+  waitForCanonicalCommands,
+} from "../../../scripts/lib/verify01-diagnostic-command-drain.mjs";
 
 const pkg = path.resolve(import.meta.dirname, "..");
 const robotUrl = "http://127.0.0.1:8082";
+
+async function requestIdeExit({ signal }) {
+  const response = await fetch(`${robotUrl}/js/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+    body: JSON.stringify({
+      runInEdt: false,
+      script:
+        "importClass(com.intellij.openapi.application.ApplicationManager); importClass(java.lang.Runnable); const app=ApplicationManager.getApplication(); app.invokeLater(new Runnable({run:function(){app.exit(Packages.com.intellij.openapi.application.ex.ApplicationEx.EXIT_CONFIRMED | Packages.com.intellij.openapi.application.ex.ApplicationEx.SAVE);}}));",
+    }),
+  });
+  if (!response.ok)
+    throw new Error(`IDE exit request returned HTTP ${response.status}`);
+  const body = await response.json();
+  if (body.exception)
+    throw new Error(
+      `IDE exit request failed: ${body.message || "Remote Robot exception"}`,
+    );
+}
 
 async function robotReady() {
   try {
@@ -120,6 +144,10 @@ export async function main(argv = process.argv.slice(2)) {
     );
   const base = [
     "--no-daemon",
+    // IntelliJ Gradle 2.1 tasks still access Task.project during execution.
+    // A natural IDE exit exposes that incompatibility when Gradle saves its
+    // configuration cache; keep this isolated diagnostic uncached.
+    "--no-configuration-cache",
     "--console=plain",
     `-PuiJourneyRunId=${path.basename(root)}`,
     `-PhostIdeVersion=${values["ide-version"]}`,
@@ -162,7 +190,9 @@ export async function main(argv = process.argv.slice(2)) {
       `-Dui.verify01.deadlineMs=${deadline}`,
       "-Dui.verify01.permissionMode=acceptEdits",
     ];
+    const traceFile = path.join(root, "fake-cli-protocol.jsonl");
     for (const phase of ["initial", "restart"]) {
+      const traceOffset = canonicalTraceOffset(traceFile);
       console.log(`Starting ${phase} actual IDE`);
       active = launch(["runIdeForUiTests", ...params], `ide-${phase}`);
       try {
@@ -182,11 +212,33 @@ export async function main(argv = process.argv.slice(2)) {
           deadline,
           `${phase} UI capture`,
         );
+        // Returning to the tab can start a real CLI history read after the
+        // rendered result is visible. Let that short command close normally
+        // before requesting IDE shutdown.
+        const drain = await waitForCanonicalCommands(traceFile, {
+          offset: traceOffset,
+          deadline,
+          // Restoring unused tabs also probes missing canonical sessions.
+          // Drain all children; require successful history for this task and
+          // retain unrelated query failures without inventing empty sessions.
+          requiredSessionId: JSON.parse(
+            fs.readFileSync(
+              path.join(dirs.capture, "restart-state.json"),
+              "utf8",
+            ),
+          ).sessionId,
+        });
+        result.canonicalCommandDrain ??= {};
+        result.canonicalCommandDrain[phase] = drain;
       } finally {
-        await stopOwned(active, { requireRunningOwner: true });
+        await stopOwned(active, {
+          requireRunningOwner: true,
+          gracefulStop: requestIdeExit,
+          gracefulDeadline: Math.min(deadline, Date.now() + 30000),
+        });
         active = null;
       }
-      const shutdown = Date.now() + 30000;
+      const shutdown = Math.min(deadline, Date.now() + 30000);
       while (await robotReady()) {
         if (Date.now() >= shutdown)
           throw new Error("Robot endpoint did not stop");

@@ -102,6 +102,15 @@ test("owned cleanup terminates an actual descendant process", async (t) => {
     assert.deepEqual(evidence.remaining, []);
     assert.equal(typeof evidence.taskkill.stdout, "string");
     assert.equal(typeof evidence.taskkill.stderr, "string");
+    assert.equal(evidence.taskkill.displayEncoding, "utf8-lossy");
+    for (const stream of ["stdout", "stderr"]) {
+      assert.equal(
+        Buffer.from(evidence.taskkill[`${stream}Base64`], "base64").toString(
+          "utf8",
+        ),
+        evidence.taskkill[stream],
+      );
+    }
   }
   // POSIX may briefly retain an orphan zombie until the OS reaper runs.
   let alive = true;
@@ -174,6 +183,84 @@ test(
     assert.equal(handle.cleanupConfirmed, true);
     // A later finally must not signal a numeric group ID after releasing it.
     await stopOwned(handle, { requireRunningOwner: true });
+  },
+);
+
+test(
+  "POSIX transient EPERM probe retains ownership until actual disappearance",
+  { skip: process.platform === "win32", timeout: 15000 },
+  async (t) => {
+    const directory = root(t);
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", "setInterval(()=>{},1000)"],
+      { logFile: path.join(directory, "probe-denied.log") },
+    );
+    const nativeKill = process.kill;
+    let denied = false;
+    process.kill = function (pid, signal) {
+      if (pid === -handle.child.pid && signal === 0 && !denied) {
+        denied = true;
+        throw Object.assign(new Error("transient denied group probe"), {
+          code: "EPERM",
+        });
+      }
+      return nativeKill.call(process, pid, signal);
+    };
+    try {
+      await stopOwned(handle);
+      assert.equal(denied, true);
+      assert.equal(handle.cleanupConfirmed, true);
+      assert.throws(() => nativeKill(-handle.child.pid, 0), { code: "ESRCH" });
+    } finally {
+      process.kill = nativeKill;
+      if (!handle.closed) handle.child.kill("SIGKILL");
+      await handle.done;
+    }
+  },
+);
+
+test(
+  "POSIX persistent EPERM probes cannot fabricate cleanup confirmation",
+  { skip: process.platform === "win32", timeout: 25000 },
+  async (t) => {
+    const directory = root(t);
+    const readyFile = path.join(directory, "ready");
+    const handle = launchLogged(
+      process.execPath,
+      [
+        "-e",
+        "process.on('SIGTERM',()=>{});require('node:fs').writeFileSync(process.argv[1],'ready');setInterval(()=>{},1000)",
+        readyFile,
+      ],
+      { logFile: path.join(directory, "probe-persistent.log") },
+    );
+    while (!fs.existsSync(readyFile)) await delay(25);
+    const nativeKill = process.kill;
+    process.kill = function (pid, signal) {
+      if (pid === -handle.child.pid && signal === 0)
+        throw Object.assign(new Error("persistent denied group probe"), {
+          code: "EPERM",
+        });
+      return nativeKill.call(process, pid, signal);
+    };
+    try {
+      await assert.rejects(stopOwned(handle), {
+        code: "CC_DIAGNOSTIC_CLEANUP_UNCONFIRMED",
+      });
+      assert.notEqual(handle.cleanupConfirmed, true);
+      const evidence = JSON.parse(
+        fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"),
+      );
+      assert.equal(evidence.confirmed, false);
+      assert.deepEqual(evidence.signals, ["SIGTERM", "SIGKILL"]);
+      assert.match(evidence.error, /still exists/u);
+      assert.throws(() => nativeKill(-handle.child.pid, 0), { code: "ESRCH" });
+    } finally {
+      process.kill = nativeKill;
+      if (!handle.closed) handle.child.kill("SIGKILL");
+      await handle.done;
+    }
   },
 );
 
@@ -289,5 +376,162 @@ test(
       "batch",
     );
     assert.equal(fs.readFileSync(logFile, "utf8").trim(), "hello world");
+  },
+);
+
+test(
+  "graceful request waits for an actual child tree to exit normally",
+  { timeout: 30000 },
+  async (t) => {
+    const directory = root(t);
+    const stopFile = path.join(directory, "stop");
+    const pidFile = path.join(directory, "child.pid");
+    const descendant = `const fs=require('node:fs');setInterval(()=>{if(fs.existsSync(process.argv[1]))process.exit(0)},25);`;
+    const leader = `const cp=require('node:child_process'),fs=require('node:fs');const c=cp.spawn(process.execPath,['-e',process.argv[3],process.argv[1]],{windowsHide:true,stdio:'ignore'});fs.writeFileSync(process.argv[2],String(c.pid));c.once('exit',()=>process.exit(0));`;
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", leader, stopFile, pidFile, descendant],
+      { logFile: path.join(directory, "graceful.log") },
+    );
+    t.after(() => stopOwned(handle));
+    while (!fs.existsSync(pidFile)) await delay(25);
+    const pid = Number(fs.readFileSync(pidFile, "utf8"));
+    await stopOwned(handle, {
+      requireRunningOwner: true,
+      gracefulDeadline: Date.now() + 15000,
+      gracefulStop: async () => {
+        fs.writeFileSync(stopFile, "stop");
+      },
+    });
+    assert.deepEqual(await handle.done, { code: 0, signal: null });
+    assert.equal(handle.cleanupConfirmed, true);
+    assert.equal(handle.cleanupEvidence.graceful.acknowledged, true);
+    const saved = JSON.parse(
+      fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"),
+    );
+    assert.equal(saved.confirmed, true);
+    assert.equal(saved.graceful.acknowledged, true);
+    assert.deepEqual(saved.ownerExit, { code: 0, signal: null });
+    if (process.platform !== "win32") {
+      assert.equal(saved.groupPid, handle.child.pid);
+      assert.deepEqual(saved.signals, []);
+    }
+    if (process.platform === "win32")
+      assert.equal(handle.cleanupEvidence.taskkill, null);
+    assert.throws(() => process.kill(pid, 0), { code: "ESRCH" });
+  },
+);
+
+test(
+  "an acknowledged graceful request is not proof of exit and falls back to termination",
+  { timeout: 30000 },
+  async (t) => {
+    const directory = root(t);
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", "setInterval(()=>{},1000)"],
+      { logFile: path.join(directory, "no-exit.log") },
+    );
+    t.after(() => stopOwned(handle));
+    await stopOwned(handle, {
+      requireRunningOwner: true,
+      gracefulDeadline:
+        Date.now() + (process.platform === "win32" ? 6000 : 150),
+      gracefulStop: async () => {},
+    });
+    assert.equal(handle.cleanupEvidence.graceful.acknowledged, true);
+    assert.equal(handle.cleanupConfirmed, true);
+    assert.notDeepEqual(await handle.done, { code: 0, signal: null });
+    if (process.platform === "win32")
+      assert.ok(handle.cleanupEvidence.taskkill);
+    assert.throws(() => process.kill(handle.child.pid, 0), { code: "ESRCH" });
+  },
+);
+
+test(
+  "a hanging graceful request is bounded and aborted before fallback cleanup",
+  { timeout: 30000 },
+  async (t) => {
+    const directory = root(t);
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", "setInterval(()=>{},1000)"],
+      { logFile: path.join(directory, "hung-request.log") },
+    );
+    t.after(() => stopOwned(handle));
+    let aborted = false;
+    await stopOwned(handle, {
+      requireRunningOwner: true,
+      gracefulDeadline:
+        Date.now() + (process.platform === "win32" ? 6000 : 150),
+      gracefulStop: ({ signal }) => {
+        signal.addEventListener("abort", () => {
+          aborted = true;
+        });
+        return new Promise(() => {});
+      },
+    });
+    assert.equal(aborted, true);
+    assert.match(handle.cleanupEvidence.graceful.error, /deadline exceeded/u);
+    assert.equal(handle.cleanupConfirmed, true);
+    assert.throws(() => process.kill(handle.child.pid, 0), { code: "ESRCH" });
+  },
+);
+
+test(
+  "Windows graceful owner exit cannot confirm a surviving detached descendant",
+  { skip: process.platform !== "win32", timeout: 30000 },
+  async (t) => {
+    const directory = root(t);
+    const stopFile = path.join(directory, "stop-child");
+    const exitFile = path.join(directory, "exit-owner");
+    const pidFile = path.join(directory, "child.pid");
+    const descendant = `const fs=require('node:fs');setInterval(()=>{if(fs.existsSync(process.argv[1]))process.exit(0)},25);setTimeout(()=>process.exit(0),25000);`;
+    const leader = `const cp=require('node:child_process'),fs=require('node:fs');const c=cp.spawn(process.execPath,['-e',process.argv[4],process.argv[1]],{windowsHide:true,detached:true,stdio:'ignore'});fs.writeFileSync(process.argv[3],String(c.pid));setInterval(()=>{if(fs.existsSync(process.argv[2]))process.exit(0)},25);`;
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", leader, stopFile, exitFile, pidFile, descendant],
+      { logFile: path.join(directory, "orphan-graceful.log") },
+    );
+    let pid;
+    try {
+      while (!fs.existsSync(pidFile)) await delay(25);
+      pid = Number(fs.readFileSync(pidFile, "utf8"));
+      await assert.rejects(
+        stopOwned(handle, {
+          requireRunningOwner: true,
+          gracefulDeadline: Date.now() + 6000,
+          gracefulStop: async () => {
+            fs.writeFileSync(exitFile, "exit");
+          },
+        }),
+        { code: "CC_DIAGNOSTIC_CLEANUP_UNCONFIRMED" },
+      );
+      assert.equal(handle.cleanupEvidence.confirmed, false);
+      assert.equal(handle.cleanupEvidence.taskkill, null);
+      assert.ok(
+        handle.cleanupEvidence.remaining.some((entry) => entry.pid === pid),
+      );
+      process.kill(pid, 0);
+    } finally {
+      fs.writeFileSync(stopFile, "stop");
+      fs.writeFileSync(exitFile, "exit");
+      await withinDeadline(
+        handle.done,
+        Date.now() + 5000,
+        "fixture owner exit",
+      );
+      const deadline = Date.now() + 5000;
+      while (pid) {
+        try {
+          process.kill(pid, 0);
+        } catch (error) {
+          assert.equal(error.code, "ESRCH");
+          break;
+        }
+        assert.ok(Date.now() < deadline, "fixture descendant did not exit");
+        await delay(25);
+      }
+    }
   },
 );
