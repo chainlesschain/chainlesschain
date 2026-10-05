@@ -1,16 +1,46 @@
 # VERIFY-01 宿主与首次安装原始证据导入
 
-本说明对应未提交工作区的 `packages/cli/scripts/verify01-host-import.mjs`。命令只读取已有材料，校验并输出既有 Eval history、observations 和 outcome report；不运行 IDE、模型、setup/check，不自动保存正式样本。本轮没有真实采集数据，36+9 保持 `NOT_RUN`。以下 JSON/代码均为格式说明，含占位值，不能作为 observations。
+`packages/cli/scripts/verify01-host-import.mjs` 只读取已有材料，校验并输出既有 Eval history、observations 和 outcome report。新增 `verify01-host-capture.mjs` 负责宿主任务的准备与收尾：执行受摘要锁定的 setup/check、保存完整工作区前后变更、组装已有真实宿主记录。实际 UI 操作由下述双 IDE driver 完成。工具输出不自动保存到正式样本目录；36+9 的状态以实际 observations 为准。以下占位值及合同测试数据不能作为正式样本。
 
 ## 真实采集前的准备
 
 使用冻结计划指定的 OS/架构、Node 22.12.0、IDE、provider/model、模式和项目 SHA，按任务新建隔离工作区。在工作区之外审阅、锁定并执行 setup/check；Linux Docker pack 的用法与开放项见 [COLLECTION_README](./COLLECTION_README.md)。Windows/macOS native review 不能由 Linux 容器代替。保存公开安装来源、产物版本/字节摘要、实际 runtime 和被测 CLI 源码 SHA，计划中的身份声明不能当作实际来源证明。
 
-双 IDE 会话核心提供可选 `onProtocolRecord(record)`。VS Code 受控 host driver 可通过已有 `ChatViewProvider` 的 `deps.createSession(cfg)` 为真实 `AgentChatSession` 注入 observer；JetBrains 的 `Options.onProtocolRecord` 位于 pure core，实际 `ConversationView`/GUI driver 注入尚未完成。接口默认不启用、不写文件、不提供生产采集设置。driver 必须另行保存原始记录并实际操作 UI，不能将 core fixture 或 CLI headless 冒充宿主旅程。
+双 IDE 会话核心提供可选 `onProtocolRecord(record)`，现在均已接入实际面板。VS Code 需要显式宿主 relay token 与 `CHAINLESSCHAIN_VERIFY01_CAPTURE_DIR`；JetBrains 需要 IDE JVM 的 `chainlesschain.verify01.captureRoot`。正常启动不记录协议。目录须由操作者控制并位于任务工作区之外；原始记录可能包含任务正文、工具输出和模型输出。driver 另行操作实际 UI；core fixture 或 CLI headless 不代表宿主旅程。
 
 每题使用一个新会话，保留 init、唯一 user 输入、真实接受回执、唯一终态和退出。当前导入合同不能合并多 user turn 或多个重试会话来挑选成功；重试与人工修复须如实另留首次尝试证据和汇总计数。输入、回执或终态存在序号缺口、旧 generation、重复/外国 session、override、历史 worklog 或附件时拒绝。本计划 prompt 不含附件。
 
 双 IDE 为持久 stream 会话；终态后应由受控 driver 优雅 `end()`，保存实际 exit 0，不能以 `stop()`/强杀并归一化 code 0 代替。VS Code close 在 flush 后记录 exit；Java observer 路径有界等待 stdout 泵，未 drain 不准入。
+
+## 准备、真实 UI 操作与收尾
+
+`verify01-host-capture.mjs --help` 列出完整参数。两个阶段都需要外部锁定的 plan/review 摘要与被测 CLI 源码 SHA。`prepare` 还需要冻结 Git checkout、全新任务工作区、全新 capture 目录和实际 OS 声明。它检查当前进程的 platform/arch/Node 与冻结目标一致，再从 Git blobs 创建工作区，执行 reviewed setup。未跟踪文件和开发机凭据不进入 checkout。
+
+```text
+node packages/cli/scripts/verify01-host-capture.mjs --stage prepare --plan-dir <plan目录> --plan-digest <锁定摘要> --review <review.json> --review-digest <锁定摘要> --review-root <review目录> --source-sha <被测CLI源码SHA> --sample <sampleId> --project-root <冻结Git checkout> --workspace <全新任务目录> --capture-root <全新证据目录> --os <冻结OS>
+```
+
+输出包括 `host-state.json` 路径及需独立保管的 `stateDigest`、准确 prompt 文件和全任务 deadline。基线正文保存为摘要锁定的独立 blobs，索引分片；依赖保留流式指纹，不复制正文。任何准备失败都保留实际 setup/失败材料；同一路径不允许重做并覆盖首次尝试。
+
+VS Code 使用 `packages/vscode-extension/test/extension-host/verify01-run.cjs`。将准备结果中的 sample、prompt、workspace、captureRoot、provider/model/mode、deadline 和 host 填入 launcher config；对应键为 `sampleId/prompt/workspace/captureDir/provider/model/permissionMode/deadline/hostVersion`，另指定实际 `extensionVersion` 及隔离的 `profileHome/userDataDir/extensionsDir`。CLI/账户须预先配置在该隔离环境。先用 `@vscode/test-electron` 将准确宿主版本准备到 `packages/vscode-extension/.vscode-test`；计时任务拒绝缺失缓存，因为下载器的 idle timeout 无法保证任务总 deadline。启动命令要求 config 与 VSIX 的独立字节摘要；`--confirm-live` 表示有意执行所配置的真实 CLI。此脚本不生成模型账号、不自动替换成 fixture。
+
+```text
+node packages/vscode-extension/test/extension-host/verify01-run.cjs --config <launcher.json> --config-digest <sha256字节摘要> --vsix <实际VSIX> --vsix-digest <sha256字节摘要> --confirm-live
+```
+
+launcher 安装指定 VSIX、启动 initial 阶段，然后在相同 profile 中重开实际宿主完成 restart 阶段。driver 先通过正常 composer 选择冻结审批模式，再发送题目并核对实际 init；成功结果同时核对会话身份、canonical 原文及实际渲染文本。真实 `ExtensionContext.globalStorageUri` 必须在指定 profile 中，重启必须为新进程且无新 agent/input。Markdown 源文本与 DOM 文本分别保存，避免将格式字符差异当成恢复失败。明确错误只保存实际完成的动作前缀。原始 `protocol.json` 和 `ui.json` 均来自采集过程。
+
+JetBrains 复用 `runIdeForUiTests` / `uiSmokeTest`，参数与两阶段步骤见 [JetBrains README](../../../../packages/jetbrains-plugin/README.md#verify01-task-capture-operator-initiated)。必须使用同一任务工作区、隔离 home、IDE sandbox 和全任务 deadline。Gradle 的本地插件安装不是 Marketplace 安装证明。
+
+仅诊断驱动接线时，可在 `packages/vscode-extension` 执行 `npm run test:verify01-diagnostic -- --vsix <本地VSIX> --host-version <已缓存版本> --extension-version <实际插件版本>`。该入口始终显式配置仓库的确定性协议 peer，在全新系统临时目录中运行真实安装的 VS Code，并保留子进程日志、实际 UI/协议和诊断结果；不调用模型，不输出正式 observations。它与上面的实际 provider 采集命令用途不同。
+
+完成实际 UI 阶段后执行收尾。首次安装样本还需 `--first-run` 指向下述五阶段的真实回执描述；安装早停继续使用只读导入器，不生成不存在的任务执行。
+
+```text
+node packages/cli/scripts/verify01-host-capture.mjs --stage finish --plan-dir <plan目录> --plan-digest <锁定摘要> --review <review.json> --review-digest <锁定摘要> --review-root <review目录> --source-sha <被测CLI源码SHA> --state <host-state.json> --state-digest <准备阶段锁定摘要>
+```
+
+收尾扫描所有文件，拒绝未审阅路径和依赖变化，并保留完整 diff；它执行确切 reviewed check 字节，保存 stdout/stderr/退出状态，再通过既有 host-import 合同。成功组装输出 `capture.json`、其摘要及 `host-import.json`；费用缺失仍为 null，缺样本仍返回退出码 2。现有 Linux Docker review pack 继续只支持 Linux；本工具不会将其转换成 Windows/macOS native review，也不替代独立人工审阅、公开安装来源、真实账户或账单证明。
 
 ## Capture manifest 与附件
 
@@ -87,3 +117,16 @@ node packages/cli/scripts/verify01-host-import.mjs --plan-dir docs/research/cli/
 退出 1 为无效材料；退出 2 为仍缺完整基线。stdout 的 `history.runs` 使用既有 Eval schema，`observations` 使用既有 outcome schema，合并多样本后继续交给 `verify01-collection.mjs` 与 `task-outcome-report.mjs`。不同首次旅程不可复用同一 run/task；不允许将成功 retry覆盖失败首次尝试。没有正式材料时不要导入测试 fixture。
 
 `identityVerified/installationVerified/billingVerified/productionAttested` 始终为 false。原始 evidence 的真实性、人工验收、准确候选 CI、模型账户/账单和维护窗口各有独立证据要求；导入成功不表示整体基线完整、改善 PASS 或发布准入。
+
+## 无账号宿主驱动诊断
+
+正式样本之前，可单独检查真实 IDE 的采集、切换标签和重启恢复。以下入口始终配置确定性本地 peer，不生成正式 observations，不评估 provider 或公开安装：
+
+```sh
+node packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs --vsix /absolute/candidate.vsix --host-version 1.132.0 --extension-version 0.37.133 --artifact-dir /absolute/new-vscode-evidence
+node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs --ide-version 2024.2 --artifact-dir /absolute/new-jetbrains-evidence
+```
+
+VS Code 需先在 `packages/vscode-extension/.vscode-test` 准备指定版本；JetBrains 需 JDK 21，构建准备有独立 30 分钟上限。Linux 无桌面时使用 `xvfb-run`。两个入口都在系统临时目录创建隔离环境，归档目录必须不存在；归档保存原始协议、UI 和失败日志，不复制 IDE profile 的 socket/锁文件。JetBrains 两阶段共用 12 分钟绝对 deadline，VS Code 共用 10 分钟；采集校验拒绝丢失显式 null、多个 generation、不连续序号、重复输入及不完整的 UI 恢复动作。
+
+`VERIFY01 Host Diagnostics` workflow 使用 Node 22.12.0，分别执行 Linux、Windows、macOS 双 IDE 六个诊断 job。代码接入与 workflow 实际通过是不同状态；准确提交和 job 结果须另行记录。此诊断 IntelliJ 2024.2 是最低 API 宿主，不替代冻结样本指定的 IntelliJ 2025.2。

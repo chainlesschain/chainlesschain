@@ -692,6 +692,17 @@ class ChatViewProvider {
     });
   }
 
+  endCapturedSession(id) {
+    if (!this._hostDomToken) throw new Error("host capture is disabled");
+    const conversation = this._convs.get(id);
+    if (!conversation?.session?.running)
+      throw new Error("captured session is not running");
+    if (conversation.turnActive)
+      throw new Error("captured turn is still running");
+    conversation.session.end();
+    return { ending: true, sessionId: conversation.sessionId };
+  }
+
   runHostDomCommand(request) {
     if (!this._hostDomToken) {
       return Promise.reject(new Error("host DOM relay is disabled"));

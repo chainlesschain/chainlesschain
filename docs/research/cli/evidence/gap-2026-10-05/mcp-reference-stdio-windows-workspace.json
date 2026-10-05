@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.mcp-reference-interop/v1",
+  "status": "passed",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "upstream": {
+    "name": "@modelcontextprotocol/server-everything",
+    "version": "2026.8.31",
+    "sdkVersion": "1.32.0",
+    "packageJsonSha256": "7100d08c9cf478cf4b642cfb0da81ae2e330ff4d5b2dd420dd5d26ef47b59e2f",
+    "serverEntrySha256": "64d7ceb80fbbec767cfa695d5aefa9a41d5df75636d023ba566d7b63c958c402"
+  },
+  "realServerProcess": true,
+  "transport": "official-sdk-streamable-http-with-loopback-test-host",
+  "fault": "proxy-injected HTTP 404 after a real server tool response",
+  "serverPushAssessed": false,
+  "stdioAssessed": true,
+  "externalAccountAssessed": false,
+  "checks": {
+    "tool": true,
+    "prompt": true,
+    "resource": true,
+    "connectionRecovered": true,
+    "unknownOutcomePreserved": true,
+    "automaticToolReplays": 0,
+    "forwardedTools": 3,
+    "initializations": 2,
+    "injectedFailures": 1
+  },
+  "stdio": {
+    "status": "passed",
+    "transport": "official-server-stdio-entry",
+    "sdkVersion": "1.32.0",
+    "entrySha256": "26eb2809baf531c3a54300e3af15bfdceb7b4de50e785ab8f2f4acf02cbce1fd",
+    "transportSha256": "cf2e1a4fe437d847c510ac72d693c696fdcac7e2f7bd8f5b825d2acb48a33dc0",
+    "checks": {
+      "tool": true,
+      "prompt": true,
+      "resource": true,
+      "disconnectCompleted": true
+    },
+    "workerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "source": {
+    "commit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+    "clean": false,
+    "files": {
+      "../src/harness/mcp-client.js": "3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "./mcp-reference-interop.mjs": "55688d11cd8f5faff1abef89632a33777660d3c9e64ae2ac4231128e3976eba2",
+      "./mcp-reference-server-worker.mjs": "68dae08ff346ed74161cb033d1791b7cf98a3c1ac499c71e9f821a266e6eb1a8",
+      "./mcp-reference-stdio-worker.mjs": "ea57cd516566871ba88350f017f8b8df216b62185a5efd45d3de0fda84b61e5e"
+    }
+  }
+}

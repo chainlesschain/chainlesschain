@@ -1,0 +1,16 @@
+{
+  "sampleId": "verify-02",
+  "prompt": "journey:history-A",
+  "provider": "ollama",
+  "model": "deterministic-host-peer",
+  "permissionMode": "acceptEdits",
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.133",
+  "deadline": 1791192333082,
+  "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\workspace",
+  "captureDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\captureDir",
+  "profileHome": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\profileHome",
+  "userDataDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\userDataDir",
+  "extensionsDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\extensionsDir",
+  "canonical": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-vscode-ftTLa7\\canonical"
+}

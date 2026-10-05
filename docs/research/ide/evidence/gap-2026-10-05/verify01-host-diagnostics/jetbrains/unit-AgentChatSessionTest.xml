@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.AgentChatSessionTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-05T07:46:20" hostname="DESKTOP-MTMV2RE" time="1.36">
+  <properties/>
+  <testcase name="looksLikeCcVersionRejectsCompilerAndShellBanners()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.02"/>
+  <testcase name="sendsHistoricalReferenceWithoutResumingOldSession()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.421"/>
+  <testcase name="posixCaptureKeepsTheShellLessArgumentVector()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.001"/>
+  <testcase name="capturesIndependentProtocolSnapshotsAndDrainedExit()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.444"/>
+  <testcase name="windowsCaptureFailsClosedOnCmdExpansionOrLineBreaks()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.001"/>
+  <testcase name="allTabsSeeNewConfigurationButQueuedTurnsFinishBeforeReload()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.445"/>
+  <testcase name="chooseBinaryFallsThroughAShadowedCcToChainlesschain()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.001"/>
+  <testcase name="windowsCapturePreservesJsonAsOneExactArgument()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.001"/>
+  <testcase name="chooseBinaryYieldsNullWhenNoCandidateResolves()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.002"/>
+  <testcase name="setConfiguredBinaryTrimsSurroundingWhitespace()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.002"/>
+  <testcase name="looksLikeCcVersionAcceptsBareSemver()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.002"/>
+  <testcase name="blankOrNullClearsTheOverride()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.003"/>
+  <testcase name="chooseBinaryPicksAHealthyCc()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.001"/>
+  <testcase name="configuredBinaryOverrideWinsInResolveBinary()" classname="com.chainlesschain.ide.AgentChatSessionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

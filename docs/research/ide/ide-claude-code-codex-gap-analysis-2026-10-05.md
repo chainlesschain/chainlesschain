@@ -1,5 +1,9 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **最新续做**：将 JetBrains 临时诊断脚本整理为跨平台仓库入口；双 IDE 增加独占归档、原始协议/UI 深比较及六个三系统 workflow job。Windows 上两个新入口的实际初始运行和重启恢复均已通过，失败尝试也保留；workflow 接入与实际矩阵通过分别记录。详见[实施记录第 12 节](../cli-ide-gap-implementation-2026-10-05.md#12-跨平台诊断入口与-linux-命令接线)。正式模型、公开安装、真人听测和长时观察继续保留独立验收要求。
+
+> **本次续做**：VS Code 和 JetBrains 的实际面板均已接入显式原始协议采集，并增加提交、标签切换、终态显示和重启恢复的两阶段 GUI driver；CLI 工具负责准备、完整变更扫描与验收组装。Windows 上双 IDE 的真实宿主两阶段诊断均已通过，使用确定性本地 peer；正式模型样本仍为 `NOT_RUN`。最新验证及正式样本边界见[实施记录第 11 节](../cli-ide-gap-implementation-2026-10-05.md#11-实际宿主采集与验收执行接线)。下列原始审计及前几轮发布记录保留其各自时点含义。
+
 > **后续实施（2026-10-05）**：IDE-READY-02、IDE-ONBOARD-02、IDE-COLD-02 及共享模型修复已落地；实现、测试及真实宿主验收边界见[本期实施状态与证据](../cli-ide-gap-implementation-2026-10-05.md)。以下正文保留原审计快照，所述缺陷与行号指原代码基线。后续工作按用户要求在 `main` 进行。
 
 > **本轮工作区补充**：双 IDE `AgentChatSession` 支持可选原始协议观察，新的只读导入器核对输入接受回执、真实终态、退出、tab/reload 操作记录和完整文件变更，并接入既有 Eval/outcome。接口与合同测试已经补齐；真实 GUI driver、公开安装、provider/账单、真人听测和长时观察仍须另行验收。详见[实施记录第 9 节](../cli-ide-gap-implementation-2026-10-05.md#9-本轮验收工程补充)。36+9 仍为 `NOT_RUN`；用户最新已授权提交发布，候选及准确提交验证见实施记录第 10 节；正式验收状态不因发布改变。

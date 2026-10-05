@@ -1,0 +1,190 @@
+{
+  "schema": "chainlesschain.verify01-portable-workspace/v1",
+  "recordedAt": "2026-10-05T09:25:18.953Z",
+  "source": {
+    "baseCommit": "7db17a12e15cc92cd7d84f8087141a9521cec5c3",
+    "dirty": true,
+    "files": {
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:8f589208ff20e25e7d8960f85098dcabce9efaf814be827dba3119c4f6fe94f7",
+      "scripts/lib/verify01-diagnostic-evidence.mjs": "sha256:94f1c7c885559ebc9c32cd6acc2c77c41075bd167412aefb05e7e63191c12283",
+      "scripts/__tests__/verify01-diagnostic-process.test.mjs": "sha256:3054634d64fa64b4ac70767f65d5cd0d7eec4e2f450d777ca2d0e043013cdd0c",
+      "scripts/__tests__/verify01-diagnostic-evidence.test.mjs": "sha256:409037317734f38c178b20faea10595fba9a2e655ff663d5655f26c360ea85a6",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:574acd8bd9317acd0022c1eea32b7ba943a1569720f2428f298a2fcb65096fef",
+      "packages/vscode-extension/test/extension-host/verify01-diagnostic.cjs": "sha256:f8613f344ef85c07b0ca5524366e7383a9d190da99cae1739a1c774541d2d799",
+      ".github/workflows/verify01-host-diagnostics.yml": "sha256:96c338d0a854b0dd23fc02ad3531eb985b30dd01c2fba00e633038765205b556",
+      "packages/cli/src/commands/agent-controlled-host.js": "sha256:211df99c890040a1cb6f3a04942661845e4a4b80871f56a5a697549a55528ce3",
+      "packages/cli/src/commands/agent.js": "sha256:84d1e7a4cd353f214f9894069eb94d7ae4c64b2a2f7f9084177dee40eb57971e",
+      "packages/cli/__tests__/unit/agent-controlled-host.test.js": "sha256:124e077733a7d1413b3d2a0178a0af903ffdbd2f321ce223cbaf6bc4197a3899",
+      "packages/cli/src/command-help-index.json": "sha256:26259efb416a37974efb00c4297ac75dbef7813833d9d795beb80622727874b6"
+    }
+  },
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "observationsCreated": false,
+    "dockerAssessed": false,
+    "macosGuiAssessed": false,
+    "githubMatrixAssessed": false,
+    "releaseEligible": false
+  },
+  "hosts": {
+    "vscode": {
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.22.2",
+      "root": ".work/verify01-portable-vscode-2",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "artifacts": {
+        "diagnostic-result.json": {
+          "digest": "sha256:8dd84cc64dfca2d008b4ef8bce7c48a018b85ee7101b48c093fcf82b187e4961",
+          "bytes": 9452
+        },
+        "bdab7776-448e-4729-8582-48c71ba6adb1.ndjson": {
+          "digest": "sha256:3210161babe3889742d0dd6194d2f52916615f90d39e62e4f3f8de8f82a0ae47",
+          "bytes": 3420
+        },
+        "launcher-config.json": {
+          "digest": "sha256:bf8ffd20cef97c6a8eba760ddcea941286a56304bb92f64caa89b44bb6b5b6aa",
+          "bytes": 845
+        },
+        "protocol.json": {
+          "digest": "sha256:a9e3c9dd172a061e031ae808014cfa6dca3a25f5b948e6de24634d63bf7f352c",
+          "bytes": 4484
+        },
+        "terminal.json": {
+          "digest": "sha256:aaeb605083ca6612c27d3e89d63b09f4ca8d91daed487b1908907623aecffbbf",
+          "bytes": 723
+        },
+        "ui.json": {
+          "digest": "sha256:22489528e97b2ea1ef558477e31a405aad51dfdfbbe4aee01c031208dbdd7d69",
+          "bytes": 1192
+        },
+        "ui.ndjson": {
+          "digest": "sha256:c160ddacc2a23c9fd04dd9e5d82cba4cb8f496be02eeb24cb97d863f35d2be0e",
+          "bytes": 997
+        },
+        "vscode-initial.json": {
+          "digest": "sha256:16e40b93539659654a7b28259f18eb6924c99475be66a7c0d9aca08d19261dda",
+          "bytes": 4350
+        },
+        "vscode-install.json": {
+          "digest": "sha256:fd1735f348e53a0b04e3f5b6cb4296b342a05b6ab6afa387630351d6c6f42ea1",
+          "bytes": 633
+        },
+        "vscode-restart.json": {
+          "digest": "sha256:5ab60b860ad03c5b7f3186fcb8703863e607429c1ab6feddba844efda9346112",
+          "bytes": 2891
+        }
+      }
+    },
+    "jetbrains": {
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.22.2",
+      "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-jetbrains-QhJElE",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "artifacts": {
+        "diagnostic-result.json": {
+          "digest": "sha256:9f7a72e96a7a074c1f620cedca3d5c13e0b15d25635e0994f4f2d62b8553bf34",
+          "bytes": 7387
+        },
+        "action-1.json": {
+          "digest": "sha256:cceacd8440d99e9140ad6b7c14badc093992d3fb7329a8313c0087ed8a97f7bb",
+          "bytes": 139
+        },
+        "action-2.json": {
+          "digest": "sha256:a3154b20c5feb72f2e1c577fc8ccf6ec460efcb070bc772c09ca70193c793cc4",
+          "bytes": 147
+        },
+        "action-3.json": {
+          "digest": "sha256:0f32e931ee6437f74efacbf4c8ebae3c349758558112aca9d5fd056fb29bd200",
+          "bytes": 140
+        },
+        "action-4.json": {
+          "digest": "sha256:80dc05e21dba155bb0764c0a2c92939b84ec8d6af123b94db268ecea7cb21c55",
+          "bytes": 235
+        },
+        "action-5.json": {
+          "digest": "sha256:c71669871ecf913e865b4cedbe8283ffa23e7f8a97aef69c8e2f3d19da06ad4c",
+          "bytes": 139
+        },
+        "action-6.json": {
+          "digest": "sha256:2b8ee55aabee22fe28be01ad97ccc437690f7a941007e560c33be8721f0abbd5",
+          "bytes": 241
+        },
+        "protocol-9f429f3c-def9-4631-b9c1-3a4d7c39a0a0.jsonl": {
+          "digest": "sha256:65190e40e154e17de7170d33c192988e7c43793a819a855ab6fcf3ddc4bf949e",
+          "bytes": 3382
+        },
+        "protocol.json": {
+          "digest": "sha256:96a6ef38986aaed6f1b544599e35d64ebfd380c9a90ee6f5e74b690ff03c3f09",
+          "bytes": 4438
+        },
+        "restart-state.json": {
+          "digest": "sha256:547acfc2ab085535b946ebd30a8bfe8acc69d917a74e82307ab3c755c1325e5e",
+          "bytes": 3117
+        },
+        "restored-snapshot.json": {
+          "digest": "sha256:087dd6b937fbd5d16eeb3720b950e16c65e4c70d3b95a2aa0a80c2e656ffd8f6",
+          "bytes": 1927
+        },
+        "ui-initial.json": {
+          "digest": "sha256:e444ee029e97e7093e5fa88bdc3734b3f197947f5944274e479717448fcc1826",
+          "bytes": 718
+        },
+        "ui.json": {
+          "digest": "sha256:306af83403621ac8755418287d920ef9df603809a2d2b27e63181ece473c2135",
+          "bytes": 1126
+        }
+      }
+    }
+  },
+  "validation": {
+    "windowsHarness": {
+      "passed": 11,
+      "failed": 0,
+      "receipt": "verify01-portable-windows.tap.txt"
+    },
+    "linuxHarness": {
+      "environment": "WSL1 Linux 4.4.0-19041-Microsoft, x64, Node v22.12.0",
+      "passed": 10,
+      "skipped": 1,
+      "skip": "actual Windows batch process"
+    },
+    "controlledHost": {
+      "linuxPassed": 15,
+      "receipt": "controlled-host-linux-workspace.json",
+      "relatedLinuxPermissionRuntimePassed": 2,
+      "linuxAuthorityDomainAggregatePassed": 1,
+      "windowsRelatedPassed": 43,
+      "windowsLinuxOnlySkipped": 3
+    },
+    "mcp": {
+      "receipt": "mcp-reference-stdio-wsl1-workspace.json",
+      "environment": "WSL1 Linux x64, Node v22.12.0",
+      "passed": true
+    },
+    "controlled-host-linux-workspace.json": {
+      "digest": "sha256:74fcb5f9a5146af760d1a7d361e294a249fe47f71c9e80e3616e17ab04b3ea5a"
+    },
+    "mcp-reference-stdio-wsl1-workspace.json": {
+      "digest": "sha256:83a018fa64fc283eba948525764c1a0b3c5f9ad83da449a312b7f3599fb669ac"
+    },
+    "verify01-portable-windows.tap.txt": {
+      "digest": "sha256:a99e15388143e692afe08acef16a716bf1ab8dd64c0fce5181a8aec5eb01b520"
+    }
+  },
+  "failedAttempts": [
+    {
+      "path": "docs\\research\\ide\\evidence\\gap-2026-10-05\\verify01-portable-diagnostics\\vscode-first-attempt-failed.json",
+      "digest": "sha256:44e50989c45e2020d625a0072a78bcbea79313b1f988585870290f542ed6f1d2",
+      "cause": "Post-capture checker counted ui.ndjson as a protocol generation; fixed by independently comparing raw UI log with ui.json. Real initial/restart drivers had exited 0; failed receipt retained."
+    },
+    {
+      "scope": "Linux controlled-host test",
+      "cause": "Vitest transformed writer and native CommonJS reader used different branded WeakMaps; test now uses the existing official writer in an actual child process. Production brand checks retained."
+    }
+  ]
+}

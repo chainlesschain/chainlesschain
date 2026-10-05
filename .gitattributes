@@ -46,3 +46,7 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+
+# Captured host evidence is byte-digest bound, including native CRLF/log spaces.
+docs/research/ide/evidence/gap-2026-10-05/verify01-host-diagnostics/** -text -whitespace
+docs/research/ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/** -text -whitespace

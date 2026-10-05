@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { execFileSync, fork } from "node:child_process";
+import { execFileSync, fork, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import http from "node:http";
 import { Readable } from "node:stream";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { MCPClient } from "../src/harness/mcp-client.js";
+import { terminateOwnedProcessTree } from "../src/lib/process-tree-termination.js";
 
 export const REFERENCE_VERSION = "2026.8.31";
 const sha = (data) => createHash("sha256").update(data).digest("hex");
@@ -25,6 +27,71 @@ async function bounded(promise, ms = 30_000) {
     ]);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function runStdioReferenceInterop(root, minimalEnv) {
+  // A fresh home keeps trust/lifecycle state out of the user's real profile.
+  // Retain it on failure for diagnosis; no tokens or provider config are copied.
+  const isolatedHome = mkdtempSync(join(tmpdir(), "cc-mcp-reference-"));
+  const child = fork(
+    fileURLToPath(new URL("./mcp-reference-stdio-worker.mjs", import.meta.url)),
+    [root],
+    {
+      env: {
+        ...minimalEnv,
+        HOME: isolatedHome,
+        USERPROFILE: isolatedHome,
+        APPDATA: isolatedHome,
+        LOCALAPPDATA: isolatedHome,
+        XDG_CONFIG_HOME: isolatedHome,
+        XDG_STATE_HOME: isolatedHome,
+        CC_MCP_EXECUTABLE_TRUST: "1",
+        CC_MCP_EXECUTABLE_TRUST_STORE: join(isolatedHome, "trust.json"),
+        CC_MCP_EXECUTABLE_TRUST_WITNESS: join(isolatedHome, "witness.json"),
+      },
+      execArgv: [],
+      stdio: ["ignore", "ignore", "pipe", "ipc"],
+      windowsHide: true,
+      detached: process.platform !== "win32",
+    },
+  );
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr = (stderr + chunk).slice(-2000);
+  });
+  const closed = new Promise((yes) =>
+    child.once("exit", (code, signal) => yes({ code, signal })),
+  );
+  try {
+    const result = await bounded(
+      new Promise((yes, no) => {
+        child.once("message", yes);
+        child.once("error", no);
+        child.once("exit", () =>
+          no(new Error(`stdio probe exited before report: ${stderr}`)),
+        );
+      }),
+      75000,
+    );
+    const exit = await bounded(closed, 10000);
+    assert.equal(result.status, "passed", `${result.stage}: ${result.error}`);
+    assert.equal(exit.code, 0, stderr);
+    assert.equal(exit.signal, null);
+    return { ...result, workerExit: exit };
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) {
+      const cleanup = await terminateOwnedProcessTree(child, {
+        spawnSync,
+        graceMs: 100,
+        cleanupTimeoutMs: 5000,
+      });
+      assert.ok(
+        cleanup.confirmed,
+        "stdio probe process tree cleanup not confirmed",
+      );
+      await bounded(closed, 10000);
+    }
   }
 }
 
@@ -262,6 +329,13 @@ export async function runReferenceInterop({ serverRoot }) {
     }
   }
   if (failed) throw failed;
+  try {
+    report.stdio = await runStdioReferenceInterop(root, env);
+    report.stdioAssessed = true;
+  } catch (error) {
+    error.probeStage ||= "stdio-reference-process";
+    throw error;
+  }
   return report;
 }
 
@@ -308,6 +382,7 @@ if (
         "../src/harness/mcp-client.js",
         "./mcp-reference-interop.mjs",
         "./mcp-reference-server-worker.mjs",
+        "./mcp-reference-stdio-worker.mjs",
       ].map((name) => [
         name,
         sha(readFileSync(new URL(name, import.meta.url))),

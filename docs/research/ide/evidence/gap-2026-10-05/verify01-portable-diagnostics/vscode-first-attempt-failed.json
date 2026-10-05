@@ -1,0 +1,19 @@
+{
+  "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+  "passed": false,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.133",
+  "vsixDigest": "sha256:16520a2d910f91717ea5ee9f8cdbfdbc2ac6ccf453fcca98e472af122bebb535",
+  "providerAssessed": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "sourceCommit": null,
+  "error": "AssertionError [ERR_ASSERTION]: exactly one raw task generation required\n\n2 !== 1\n\n    at verifyDiagnosticCapture (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-evidence.mjs:14:10)\n    at main (C:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\verify01-diagnostic.cjs:148:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+}

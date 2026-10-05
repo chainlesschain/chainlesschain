@@ -8,10 +8,14 @@ function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand(DRIVER_COMMAND, async () => {
       try {
+        if (process.env.CHAINLESSCHAIN_VERIFY01_CONFIG) {
+          return await require("./verify01.cjs").run(context);
+        }
         return await require("./smoke.cjs").run();
       } finally {
         if (
-          process.env.CC_UI_CONVERSATION_RECOVERY === "1" &&
+          (process.env.CC_UI_CONVERSATION_RECOVERY === "1" ||
+            process.env.CHAINLESSCHAIN_VERIFY01_CONFIG) &&
           /^[a-f0-9]{64}$/u.test(
             process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN || "",
           )

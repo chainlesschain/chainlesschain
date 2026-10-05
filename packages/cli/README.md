@@ -2672,8 +2672,13 @@ Full reference: https://docs.chainlesschain.com/chainlesschain/cli.html
 Trusted embeddings can explicitly provision and reopen durable settings and
 scoped permissions through `chainlesschain/src/runtime/permission-authority-host.js`.
 The host exposes pinned headless/streaming runtime entry points and official
-settings/scoped writers. This opt-in Linux API does not enable automatic CLI
-registration. See the [administrator setup and failure/stop-receipt contract](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md).
+settings/scoped writers. `cc agent controlled-host --launch <absolute-json>
+--context <id> --sandbox-settings <absolute-json> --check` explicitly reopens a
+pre-provisioned binding from its registered workspace. `--check` validates
+identity/configuration without probing Docker or calling a model; `--prompt`
+runs one task with fixed `dontAsk` after sandbox preflight. This opt-in Linux
+entry does not enable automatic registration or Windows/macOS durable support.
+See the [administrator setup and failure/stop-receipt contract](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/NET02_CONTROLLED_HOST.md).
 
 ## License
 

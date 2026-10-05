@@ -19,6 +19,15 @@ export const VERIFY01_SUITES = [
 const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
 const MAX_DIFF_BYTES = 32 * 1024 * 1024;
 
+// Host drivers use the same checkout, complete scan, dependency boundary and
+// pinned evaluator processes as the CLI executor; no second diff contract.
+export {
+  materializeCheckout as materializeVerify01Checkout,
+  snapshot as snapshotVerify01Workspace,
+  diff as diffVerify01Workspace,
+  reviewedProcess as runVerify01ReviewedProcess,
+};
+
 function git(directory, args, options = {}) {
   return executionBroker.execFileSync("git", ["-C", directory, ...args], {
     encoding: "utf8",

@@ -1,5 +1,9 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **最新续做**：增加显式 `cc agent controlled-host`，接通预 provision 的 Linux 持久权限域；补齐双 IDE 可复用诊断入口和三系统 workflow，并在 WSL1 / Node 22.12.0 补验官方 MCP stdio/HTTP。具体测试和边界见[实施记录第 12 节](../cli-ide-gap-implementation-2026-10-05.md#12-跨平台诊断入口与-linux-命令接线)。Windows/macOS durable 后端仍缺实现，正式 36+9 样本与人工验收未被诊断结果替代。
+
+> **本次续做**：在 `4f12030641` 之后补齐 IDE 任务的 prepare/finish 执行器、完整基线/diff 与 reviewed setup/check 回执接线，接入双 IDE 面板采集驱动，并完成官方 MCP stdio/HTTP 的本地真实进程补验。最新验证、尚缺的实际环境与验收项见[实施记录第 11 节](../cli-ide-gap-implementation-2026-10-05.md#11-实际宿主采集与验收执行接线)。下列原始审计及前几轮发布记录保留其各自时点含义。
+
 > **后续实施（2026-10-05）**：模型合同与目录审查、Memory 查询索引、Codex 0.160.0 协议探针、MCP 参考服务端互操作及 IDE 修复已落地；其余执行接线、真实验收与平台边界见[本期实施状态与证据](../cli-ide-gap-implementation-2026-10-05.md)。以下正文保留原审计快照，“当前缺失”与行号均指原基线，不能视作实施后的现状。按用户要求，后续修改已转到 `main`。
 
 > **本轮工作区补充**：增加覆盖全部 36 题的 setup/check 生成器（72 个自包含脚本、42 个源码行为反例）、双 IDE 原始协议观察接口及首次安装/宿主证据只读导入器。工程验证和限制见[实施记录第 9 节](../cli-ide-gap-implementation-2026-10-05.md#9-本轮验收工程补充)。当前仍无正式任务 observations，36+9 保持 `NOT_RUN`。native 六目标 unsigned 验证已有独立历史回执，不能再将 Windows ARM64 描述为始终未通过，详见实施记录。用户最新已授权提交发布，候选及准确提交验证见实施记录第 10 节；正式验收状态不因发布改变。

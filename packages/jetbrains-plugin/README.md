@@ -394,3 +394,68 @@ The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sectio
 
 </details>
 <!-- chainlesschain-public-ide-capabilities:end -->
+
+### VERIFY01 task capture (operator initiated)
+
+`ConversationView` can observe its real CLI protocol when the IDE JVM is launched with
+`-Dchainlesschain.verify01.captureRoot=<absolute existing directory>`. Ordinary launches
+do not record protocol. The directory must be outside the task workspace. Each session
+writes exclusive `protocol-<generation>.jsonl`; a write failure invalidates the capture
+and emits a `capture-error-*` marker where possible. These records can contain task
+content and tool results; choose an operator-controlled directory.
+
+The existing `runIdeForUiTests` / `uiSmokeTest` tasks now support a single real task using
+these **explicit** system properties on both Gradle invocations:
+
+| Property                     | Value                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `ui.verify01.captureRoot`    | Fresh existing evidence directory, absolute and outside the task checkout                                |
+| `ui.verify01.workspace`      | Prepared frozen task checkout; the launcher does not add `hello.txt`                                     |
+| `ui.verify01.home`           | Existing isolated home with the authorized CLI configuration in `.chainlesschain`                        |
+| `ui.verify01.sampleId`       | Frozen sample ID, such as `verify-03`                                                                    |
+| `ui.verify01.promptFile`     | Absolute UTF-8 file containing the exact frozen prompt                                                   |
+| `ui.verify01.deadlineMs`     | Required absolute Unix epoch milliseconds; same deadline across both phases, at most 1200000 ms ahead    |
+| `ui.verify01.permissionMode` | Required frozen mode; selected using the normal composer `/auto`, `/normal` or `/bypass` before the task |
+| `ui.journey.phase`           | `initial`, then `restart`                                                                                |
+
+Keep the same `-PuiJourneyRunId=<unique-run-id>`, host version, project, home and IDE
+sandbox across both phases. Start `runIdeForUiTests`, then run `uiSmokeTest` against its
+loopback Robot server. The initial phase uses native composer/tab controls, saves raw
+protocol plus the observed UI steps, closes the real child's stdin, and waits for its
+actual drained exit. After `restart-state.json` is written and Save All completes,
+close/reopen the IDE using the same launch arguments; invoke `uiSmokeTest` with phase
+`restart`. The restart phase requires a different IDE process and the same profile,
+session, canonical assistant text and rendered text. It never submits another prompt.
+An explicit model error preserves only the observed UI prefix in `ui.json`; there is
+no fabricated reload or success. Driver failures leave `driver-failure-*.json` and
+the completed `action-*.json` observations.
+
+This path uses the configured real CLI and may incur provider charges when deliberately
+run. It does not select an account, approve a task budget, authenticate a public install,
+or execute the separately reviewed setup/check. The packaged plugin installed by the
+Gradle sandbox is a local artifact, not proof of a Marketplace installation. The outer
+operator still must bind host/package/source identity, run setup/check, scan full diffs,
+enforce the task-wide deadline across both phases, and generate the capture manifest for
+`verify01-host-import.mjs`. Compilation and deterministic core tests do not constitute a
+real GUI/provider or formal 36+9 result.
+
+For a **keyless engineering diagnostic** on Windows, Linux or macOS, use:
+
+```sh
+node scripts/verify01-diagnostic.mjs --ide-version 2024.2 --artifact-dir build/reports/verify01-new-attempt
+```
+
+Use JDK 21 and Node >=22.12.0; on headless Linux prefix the command with
+`xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"`. The runner
+builds/installs the local plugin, creates an isolated fixture CLI and canonical store,
+then opens the real IDE twice with the same profile. Preparation has a 30-minute bound;
+both task phases share a 12-minute deadline. It refuses an occupied Robot port or an
+existing artifact directory, records failures, and waits for owned process cleanup.
+`CC_JETBRAINS_GRADLE_EXECUTABLE` and `CC_JETBRAINS_IDE_LOCAL_PATH` can select an
+existing Gradle/IDE installation. IDE profiles remain in the reported temporary
+location; the archive contains capture files and logs, excluding profile sockets.
+
+The repository's `VERIFY01 Host Diagnostics` workflow drives this entry and the VS Code
+equivalent on Linux, Windows and macOS with Node 22.12.0. Its results are deterministic
+host-driver diagnostics, with `formalSample:false` and `providerAssessed:false`.
+They do not change the frozen model/first-install samples or prove a public installation.

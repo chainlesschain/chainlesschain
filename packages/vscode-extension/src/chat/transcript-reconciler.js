@@ -105,6 +105,10 @@ function createTranscriptReconciler({ document, log, create, write }) {
   document.addEventListener("selectionchange", selectionChanged);
   return {
     apply,
+    renderedSource(element) {
+      const source = rendered.get(element);
+      return source ? { ...source } : null;
+    },
     remember(element, row) {
       // A newer live event invalidates any deferred older host projection.
       pending = null;

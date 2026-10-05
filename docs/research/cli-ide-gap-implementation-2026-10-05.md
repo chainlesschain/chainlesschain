@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **当前续做**：第 11 节记录 prepare/finish、双 IDE 采集与官方 MCP stdio；第 12 节继续补齐可复用的跨平台诊断入口、三系统 workflow 和显式 Linux controlled-host CLI。下面各轮的分支、授权、源码摘要和发布叙述保留历史含义。当前正式 36+9 样本仍为 `NOT_RUN`。
+
 > 对应：[CLI 审计](./cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[IDE 审计](./ide/ide-claude-code-codex-gap-analysis-2026-10-05.md)。本表记录后续实现，不覆盖原审计快照，也不把局部测试升级为发布或真实模型验收。
 >
 > 实施从 `8458a0a5027d1a844e382f8ad5624894745d1ef1` 开始。已完成的独立提交于 `0ad8af152ea80903a1315e6acfe7f65bdbf64e70` 合并到 `main`，保留此前 `66db4bce8a` 的发行证据文档。用户要求后续直接在主分支修改；本轮没有发布 npm/IDE 包、修改生产模型默认值或调用付费 provider。
@@ -10,24 +12,24 @@
 
 “工程完成”指实现及所列局部回归完成。真实 provider、完整 Actions 矩阵、实际 IDE 和人工验收分别列出，不共用通过标记。
 
-| ID                           | 本轮交付                                                                                                                       | 尚需的证据或范围                                                                                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同 | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                                               |
-| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                  | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                                             |
-| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                  | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                                                 |
-| VERIFY-02                    | 冻结 CLI suite、隔离工作区与完整回执；新增 36 项 setup/check 生成器、42 个行为反例和 IDE/首次安装只读导入，见第 9 节           | Linux Docker pack 尚未实际整包运行，独立人工审阅、真实 GUI driver 与付费样本仍开放；native 三系统验收不能由容器替代，36+9 仍 NOT_RUN          |
-| PLATFORM-02                  | OS/架构/引擎/stdio/权限来源/持久撤销支持投影；历史 `0fc6e7a0c2` 的 native 六目标 unsigned 验证已通过，含 Windows ARM64         | 默认 CLI 不因此获得 durable host；Windows/macOS durable 后端与正式入口交付仍开放；unsigned 历史回执不等于签名发布或本轮准确提交准入           |
-| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                    | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                                   |
-| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执   | `320301e6e7` 的真实 Linux x64/arm64 专项已通过，见第 8 节；旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine，不扩大为同 UID 对抗隔离 |
-| PERF-02                      | 校准器增加两模型 × 中文/代码/emoji/工具 schema 覆盖合同，逐请求去重和缺失项报告；冻结采样矩阵                                  | 无新付费 usage 样本；事实保真、任务成功率和估算器校准尚未完成，不凭 fixture 调整 bytes/4                                                      |
-| MCP-02                       | 固定官方 server-everything 2026.8.31 + SDK 1.32.0，真实进程完成 tool/prompt/resource 及工具响应丢失后的恢复                    | 只覆盖所列 Streamable HTTP 路径；服务端 GET push、stdio、外部账号/OAuth 不在本次证据内                                                        |
-| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                         | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                                |
-| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                       | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                                     |
-| IDE-ONBOARD-02               | JetBrains resolver、onboarding、手动更新复用严格首行 CLI 版本身份，失败时清除旧缓存                                            | 真实全新 IDE 中 gcc/PATH/managed fallback 安装旅程仍待采集                                                                                    |
-| IDE-COLD-02                  | JetBrains 有界初始化改为 120 秒；区分初始化超时、保存输入超时和进程失败；超时取消本次提交，迟到 init 不补发                    | 已有实际 30 秒延迟 pure-class 回归；不是实际 IDE 冷启动延迟统计                                                                               |
-| VERIFY-IDE-02                | 复用冻结计划与 Eval/outcome；双 IDE 可选协议观察及原始回执导入校验，拒绝 CLI 冒充 IDE、断流或陈旧结果，见第 9 节               | 实际 GUI driver 与双 IDE 任务、9 次公开安装、NVDA/VoiceOver/Orca 听测、8h/24h、批准后的 SLO 均未完成                                          |
-| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                  | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                                                 |
-| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                       | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                                              |
+| ID                           | 本轮交付                                                                                                                         | 尚需的证据或范围                                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同   | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                                               |
+| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                    | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                                             |
+| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                    | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                                                 |
+| VERIFY-02                    | 冻结 CLI suite、36 项 setup/check、42 个反例与证据导入；续接双 IDE prepare/finish、全量基线/diff 和真实 UI driver，见第 11 节    | Linux Docker pack 整包运行、独立人工审阅及正式 provider 样本仍开放；native 三系统验收不能由容器替代，36+9 仍 NOT_RUN                          |
+| PLATFORM-02                  | 支持投影及历史 native 六目标 unsigned 验证；新增显式 `agent controlled-host` 接通预 provision Linux 权限域，见第 12 节 | Windows/macOS durable 存储、网络撤销与崩溃恢复后端仍缺实现；默认 CLI 不自动注册；unsigned 历史回执不等于本轮发布准入 |
+| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                      | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                                   |
+| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执     | `320301e6e7` 的真实 Linux x64/arm64 专项已通过，见第 8 节；旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine，不扩大为同 UID 对抗隔离 |
+| PERF-02                      | 校准器增加两模型 × 中文/代码/emoji/工具 schema 覆盖合同，逐请求去重和缺失项报告；冻结采样矩阵                                    | 无新付费 usage 样本；事实保真、任务成功率和估算器校准尚未完成，不凭 fixture 调整 bytes/4                                                      |
+| MCP-02                       | 固定官方 server-everything 2026.8.31 + SDK 1.32.0，Windows 与 WSL1 Linux 真实 HTTP/stdio 完成 tool/prompt/resource；丢失响应不重放 | 本次源码完整三系统矩阵、服务端 GET push、外部账号/OAuth 仍待验证，见第 11、12 节 |
+| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                           | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                                |
+| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                         | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                                     |
+| IDE-ONBOARD-02               | JetBrains resolver、onboarding、手动更新复用严格首行 CLI 版本身份，失败时清除旧缓存                                              | 真实全新 IDE 中 gcc/PATH/managed fallback 安装旅程仍待采集                                                                                    |
+| IDE-COLD-02                  | JetBrains 有界初始化改为 120 秒；区分初始化超时、保存输入超时和进程失败；超时取消本次提交，迟到 init 不补发                      | 已有实际 30 秒延迟 pure-class 回归；不是实际 IDE 冷启动延迟统计                                                                               |
+| VERIFY-IDE-02                | 双 IDE writer、真实 UI 与同 profile 重启 driver；可复用跨平台诊断入口、证据归档及三系统 workflow，见第 11、12 节 | 新入口 Windows 双 IDE 已通过；准确提交的三系统矩阵、provider、9 次公开安装、真人听测、8h/24h 与获批 SLO 仍需实际证据 |
+| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                    | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                                                 |
+| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                         | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                                              |
 
 ## 2. 模型与计费合同
 
@@ -100,7 +102,7 @@ cgroup 路径显式由受控宿主通过 `CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP
 ## 7. 尚未关闭的验收
 
 1. 获授权的模型/账号/费用额度与真实 usage/账单；明确模型服务身份，网关与官方端点分开。
-2. 36 项验收器的完整执行及独立人工审阅、真实 GUI driver、任务与首次安装执行；固定分母不得删除缺失或失败样本。
+2. 36 项验收器的完整执行及独立人工审阅、双 IDE 驱动的三系统实测、正式任务与首次安装执行；固定分母不得删除缺失或失败样本。驱动工程接线见第 11 节。
 3. Windows/macOS durable host、准确候选提交的 signed native 发布门，以及外部 Agent 逐请求治理证据；历史 unsigned 六目标验证已通过，见第 9 节。
 4. 真人 NVDA/VoiceOver/Orca 听测、实际 8h/24h 观察、维护工时与批准后的性能 SLO。
 5. CLOUD-02 完整云端连续工作的需求与验收范围；现有 self-hosted handoff 不自动升级为完整 resume。
@@ -159,3 +161,65 @@ VS Code 234 项通过；JetBrains 28 项与生产 Java/Kotlin 编译通过。本
 候选仍须取得准确源码提交的 CLI CI、CLI Strict Sandbox 三系统完整矩阵及 IDE 发布门；全部通过后由 immutable tag 触发 OIDC 发布 CLI，公开回读成功后再发布双 IDE。当前本段是发布准备记录，不是成功回执；准确 SHA、工作流链接及公开制品结果将在完成后追加。发布不关闭第 7、9 节所列真实验收，36+9 仍为 `NOT_RUN`。
 
 首次候选 `4f120306418207ba3c06d6d1a9726f0d1c437cba` 的 [Linux unit shard 3/4](https://github.com/chainlesschain/chainlesschain/actions/runs/37278010296/job/111659302382) 在 changelog artifact parity 单项失败：版本和根 CHANGELOG 已升级，但提交的 `src/data/changelog.json` 仍是旧版本。该 job 419 个文件、9,212 项通过，1 项失败，13 项跳过。已用正式生成器补齐 bundled changelog，相关 3 文件 17 项本地通过；该失败 SHA 不发标签，新修复提交须重新取得完整矩阵。
+
+## 11. 实际宿主采集与验收执行接线
+
+本节续做开始于 `4f12030641`，工作分支为 `feature/cli-ide-gap-capture-20261005`；验证期间 HEAD 含已单独提交的 bundled changelog 修复 `7db17a12e1`，本节新增实现仍为工作区变更。此前“真实 GUI driver 尚未接入”的工程缺口现已补充实现；正式 provider/公开安装/人工验收仍逐项保留证据要求。第 8、10 节的发布授权与候选记录属于此前工作，本节不将它们作为新源码的发布回执。
+
+### 11.1 完整的宿主任务准备与收尾
+
+新增 `verify01-host-capture.mjs` 和 `src/lib/eval/verify01-host-capture.js`，复用 CLI 执行器的 Git blob checkout、全文件扫描、依赖流式指纹、完整 diff 和确切 reviewed 进程执行。prepare 核对真实 platform/arch/Node、冻结任务及外部 review 摘要，创建新工作区并执行 setup；before 正文置于任务目录之外，使用分片索引和逐正文摘要锁定。finish 使用同一个任务 deadline，读取实际 driver 的 `protocol.json/ui.json`，扫描全部变更、拒绝依赖与未审阅路径变动、执行 check，再调用现有 host-import 生成 Eval/outcome 材料。
+
+不覆盖首次尝试目录，不把失败重跑抹去；实际 check 退出状态、stdout/stderr、全量 diff 和缺失费用都保留。正式样本目录不会自动写入。现有 Linux Docker review pack 仍拒绝 Windows/macOS；为这些平台运行任务需要独立的 native review。操作说明见[宿主采集说明](./cli/verify01-plan-2026-10-04/HOST_CAPTURE_README.md)。
+
+### 11.2 双 IDE 面板与两阶段 UI driver
+
+VS Code 只有在显式 relay token 和采集目录同时存在时才注入协议 writer，记录真实会话 generation、输入尝试、输出和 drain 后退出；正常启动不开启采集。独立 driver 操作 composer/tab 控件，绑定 session、canonical 原文和实际 DOM 文本；launcher 使用指定 VSIX、隔离 profile 和同一任务 deadline。终态后关闭 stdin，使用真实退出回执；重启阶段恢复同一 profile 中的结果且不重发输入。
+
+JetBrains 的 `ConversationView` 注入默认禁用的 `Verify01ProtocolCapture`；Remote Robot driver 保存原始协议与实际 UI 操作，初始阶段结束后由同一 sandbox 重开 IDE。恢复要求新 IDE 进程、相同 profile/session、相同 canonical 和渲染文本。显式错误保留实际完成的 UI 前缀。Gradle 支持既有冻结工作区和隔离 home；本地 Gradle 插件安装不作为 Marketplace 安装证据。
+
+### 11.3 官方 MCP stdio 补验
+
+扩展既有 `mcp-reference-interop.mjs` 和三系统专项 workflow，新增隔离 stdio worker，直接启动锁定的官方 `dist/index.js stdio`；不复制或替换服务端实现。worker 使用独立临时 home/trust/lifecycle 状态及最小环境，不继承 provider 凭据，显式授权仅绑定该参考进程。实际调用 echo、simple-prompt 和动态资源，等待 MCP disconnect 及 worker exit 0；异常退出执行本次进程树清理。
+
+Windows x64、Node 22.22.2 的[实际参考服务端回执](./cli/evidence/gap-2026-10-05/mcp-reference-stdio-windows-workspace.json)已通过，包含入口/transport/源码字节摘要，显式 `source.clean:false`。原 HTTP 响应丢失场景也通过：上游真实完成工具后注入 404，恢复连接、保留 unknown outcome，自动重放次数为 0。服务端 GET push、外部 OAuth/账号和本次准确提交的完整三系统矩阵不在此回执内。
+
+### 11.4 本地验证与未关闭项
+
+CLI 三文件 **51 项通过**，覆盖实际临时 Git 仓库、未跟踪文件排除、真实 setup/check 子进程、完整正文 diff、依赖或未审阅修改拒绝、前置正文/状态篡改、耗尽 deadline、失败 check、未知费用和陈旧任务目录。VS Code 全部 unit **241 项通过**，最终采集/relay/初始化子集 **36 项通过**（与全量重叠，不相加）；writer 使用真实 Node 管道验证连续记录与 drain 后退出。JetBrains core **17 项通过**，最终 Gradle 命令复用有效测试缓存；Temurin 21.0.12.1+1 生产 Java/Kotlin 与修改后的 Remote Robot 驱动编译成功。
+
+Windows x64 的真实 VS Code **1.132.0 + 已安装本地 VSIX 0.37.133** 两阶段旅程已通过。实际面板选择 `acceptEdits`，唯一输入获得接受回执，完成 6 项 UI 动作，子进程实际 drain 后 exit 0，新 Extension Host 复用真实 profile 恢复同 session/canonical/DOM 文本且不启动新 agent。原始材料在 [VS Code 诊断目录](./ide/evidence/gap-2026-10-05/verify01-host-diagnostics/vscode/diagnostic-result.json)，源码摘要和局部测试汇总见[本轮工作区回执](./cli/evidence/gap-2026-10-05/verify01-host-workspace-validation.json)。可用 `test:verify01-diagnostic` 复跑；运行始终显式使用确定性本地 peer，不是正式 provider 题目、公开安装认证或真实模型质量测量。
+
+Windows x64 的真实 **IntelliJ Community IC-242.20224.300 + 本地插件 0.4.151** 两阶段旅程也已通过，实际 IDE 使用 JBR 21.0.3+13-b509.4。新 IDE 进程保留同一 profile/tab/session/savedRowId，唯一输入、实际 drain 后 exit 0、6 项 UI 动作齐全；重启前后原始协议摘要不变且无运行 child。见 [JetBrains 诊断材料](./ide/evidence/gap-2026-10-05/verify01-host-diagnostics/jetbrains/diagnostic-result.json)。该次为确定性纯文本 peer；历史渲染标题/后缀按精确结构核对并单独保留，正文逐字比较，不能外推到所有 Markdown 渲染或真实模型质量。
+
+真实宿主诊断发现并修复了 Windows 路径盘符大小写误拒、JetBrains Robot 泛型返回值的错误类型推断以及历史标题混入正文比较的问题。最终证据检查还发现 Gson 默认省略协议中的显式 null，现已保留并以深相等断言核对汇总与原始 JSONL；另一次测试夹具因 canonical 目录在仓库内被正确拒绝，已移动到系统临时目录，没有放宽原保护。失败迭代保留在回执中。当前源码格式、定向 lint、spawn inventory 检查通过；局部结果不替代准确提交的完整 Actions 矩阵。
+
+仍需真实证据的项目：36+9 正式 provider/首次安装样本及账单、全部 review pack 实际运行与独立人工签核、三系统实际宿主矩阵、NVDA/VoiceOver/Orca 真人听测、8h/24h 观察与获批 SLO。Windows/macOS durable host 和外部 Agent 逐请求治理仍未扩大支持；CLOUD-02 的完整跨机器 resume 继续为需求条件项。正式任务 `NOT_RUN` 不因驱动代码或 fixture 回归通过而改变。
+
+## 12. 跨平台诊断入口与 Linux 命令接线
+
+### 12.1 可复用的双 IDE 诊断
+
+将先前仅在 `.work` 中的 Windows JetBrains 脚本整理为仓库内 `packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs`。支持 Windows batch 安全参数、POSIX 进程组、限时构建准备、共享任务 deadline、实际子进程退出确认、Robot 端口占用拒绝和失败材料保存。使用现有 fixture CLI 与生产 canonical store，明确不调用模型。VS Code 入口增加相同的独占归档与独立证据核对；归档保留协议/UI/日志，不复制 IDE profile 的 socket/锁文件。
+
+新增 `VERIFY01 Host Diagnostics` workflow，Node 22.12.0 下覆盖 Linux、Windows、macOS 的 VS Code 1.132.0 与 IntelliJ 2024.2 六个真实宿主诊断 job；VS Code 三平台使用同一打包 job 的 VSIX。该 workflow 不发布制品、不使用模型凭据，也不将 fixture 写入冻结样本。IntelliJ 2024.2 用于最低 API 宿主诊断，不能替代正式样本的 2025.2。
+
+Windows 的新 JetBrains 入口已通过实际初始运行与重启恢复；VS Code 新归档入口也已通过，两者均为 9 条原始协议、唯一输入、6 项 UI 动作、drain 后 exit 0。首次 VS Code 后置检查把 `ui.ndjson` 误计为第二个协议 generation；现将其作为 UI 原始日志与 `ui.json` 深比较，保留首次失败和新尝试，不改写失败回执。进程/归档测试 Windows **11 项通过**；WSL1 + Node 22.12.0 **10 项通过、1 项 Windows 专项跳过**，包括实际父子进程超时清理。跨平台 launcher 的实现和本地两系统检查不等于三系统 GUI 矩阵已经通过。
+
+源码与原始材料摘要见[本轮诊断回执](./cli/evidence/gap-2026-10-05/verify01-portable-workspace-validation.json)；[VS Code](./ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/vscode/diagnostic-result.json)与[JetBrains](./ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/jetbrains/diagnostic-result.json)各自保留真实材料。该回执显式绑定 dirty 工作区，不是发布门。
+
+提交前复审进一步收紧诊断清理：VS Code 增加独立外层 deadline、IPC 取消与同进程组清理；POSIX 确认整个组消失，Windows 长运行 IDE 的 owner 若先退出则拒绝确认清理。新增真实“leader 已退出、后代忽略 TERM”及外层不响应取消的反例。最终 harness 在 Windows **15 项通过、1 项 POSIX 专项跳过**，WSL1 **14 项通过、2 项 Windows 专项跳过**；上段 GUI 回执保留加固前源码摘要，新的 GUI/CI 验证须另行绑定，不覆盖旧回执。macOS 临时目录使用 realpath 保留协议 writer 的无符号链接约束。原始归档在 `.gitattributes` 中禁止换行归一化，保护字节摘要。
+
+### 12.2 显式 Linux controlled-host
+
+新增 `cc agent controlled-host`，必须提供预先 provision 的绝对 launch descriptor、context 和 docker-egress settings；当前工作区必须与既有权限域身份一致。`--check` 只报告身份及配置，显式 `backendAvailabilityProbed:false/backendExecutionVerified:false`；`--prompt` 固定 `dontAsk`，先检查沙箱可用性，再读取显式凭据并调用既有 headless runner，所有已打开的 host 均在退出时关闭。入口不自动 provision、补造丢失 ledger 或接受父命令的权限绕过参数。操作说明见 [NET02 controlled-host](../cli/NET02_CONTROLLED_HOST.md)。
+
+Windows/macOS 的 durable host 仍有真实实现缺口：现权限域依赖 Linux 固定 dirfd、`/proc/self/fd` 与持久提交；Docker egress 依赖本地 Unix daemon 和同宿主 UDS；崩溃后恢复依赖 Linux cgroup 内核身份。Windows 当前为匿名 Job/AppContainer，未实现 WFP 持久后端；macOS 为静态 Seatbelt/单次 MCP launcher。不能删除平台检查或把已有单次清理视为持久撤销。本次新增入口只扩大显式 Linux 产品接线。
+
+Windows 相关四文件 **43 项通过、3 项 Linux 专用跳过**。WSL1 / Node 22.12.0 的[新入口 15 项实测](./cli/evidence/gap-2026-10-05/controlled-host-linux-workspace.json)全部通过；既有 permission runtime **2 项**与 authority domain 真实子进程/worker/崩溃恢复聚合测试 **1 项**也通过。首次 Linux 测试因 Vitest 转换实例与原生 CommonJS 的 WeakMap 品牌不相同而拒绝 writer；现使用既有官方 writer 的真实子进程验证 revision 更新，未修改生产品牌校验。此项验证权限来源及动态更新，不证明 Docker 后端运行。
+
+### 12.3 验收边界
+
+官方 MCP server-everything 2026.8.31 / SDK 1.32.0 在 WSL1 Linux x64、Node 22.12.0 完成[真实 stdio 与 HTTP 回执](./cli/evidence/gap-2026-10-05/mcp-reference-stdio-wsl1-workspace.json)：tool/prompt/resource 通过，响应丢失后保持 unknown outcome、自动重放为 0。该环境不是完整 Linux Docker 宿主。Docker Desktop 启动后仍返回 daemon HTTP 500，现有 Ubuntu 为 WSL1；未转换发行版或更改虚拟化配置。
+
+正式冻结预算为任务 **$72** 加首次运行 **$27**，合计上限 **$99**；本轮没有调用付费 provider。36+9 正式样本、公开安装与账单、全部 review pack 实际执行和独立人工签核、真人听测与长时观察仍开放。Linux-only review pack 不能直接用于 Windows/macOS native 验收；这些状态不随工程诊断通过改变。新测试与实际 CI 结果分别记录，不复用旧源码摘要冒充新提交验证。

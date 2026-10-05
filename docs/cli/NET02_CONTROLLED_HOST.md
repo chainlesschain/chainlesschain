@@ -56,6 +56,60 @@ or a substitute for a trusted launch channel.
 
 ## Reopen, run, and write from a separate process
 
+The current source adds an explicit one-shot CLI entry. It does not change the
+default `agent` launch or provision an authority. Run from the exact workspace
+registered in the descriptor; keep the descriptor and sandbox settings in
+trusted host storage. Both JSON inputs must be absolute regular files, bounded
+to 1 MiB. Windows/macOS reject this entry before reading these files.
+
+Save Docker egress settings such as the following to
+`/srv/cc-host/app-sandbox.json`, replacing both placeholder digests with actual
+approved image digests:
+
+```json
+{
+  "engine": "docker-egress",
+  "image": "node@sha256:<approved-target-image-digest>",
+  "relayImage": "node@sha256:<approved-relay-image-digest>",
+  "network": { "allowedDomains": ["example.com"] }
+}
+```
+
+```sh
+cd /srv/work/app
+cc agent controlled-host --launch /srv/cc-host/app-launch.json \
+  --context app --sandbox-settings /srv/cc-host/app-sandbox.json --check
+
+cc agent controlled-host --launch /srv/cc-host/app-launch.json \
+  --context app --sandbox-settings /srv/cc-host/app-sandbox.json \
+  --prompt 'Inspect this project' --provider ollama --model qwen2.5:7b \
+  --base-url http://127.0.0.1:11434 --output-format json
+```
+
+`--check` reports validated authority identity and configuration only. Its
+`backendAvailabilityProbed` and `backendExecutionVerified` are both `false`;
+`configured` is not evidence that Docker, an image, or a network request worked.
+A task probes Docker availability before credential resolution or a model
+request; actual container/UDS admission still validates the execution path when
+a shell tool runs. This entry accepts only the existing Linux x64/ARM64
+`docker-egress` contract: pinned images and explicit domain rules, no bypass
+commands or additional filesystem mounts. Shell network governance does not
+establish governance of the model provider connection.
+
+Tasks use fixed `dontAsk` permission mode, with the bound permission provider
+attached and official deny/ask rules enforced. There is no bypass flag. Put all
+options after `controlled-host`; parent `agent` flags are rejected. Registered
+MCP/IDE discovery and prompt slash/file expansion are disabled for this narrow
+entry. It supports one prompt, captured output, and 1–100 turns (default 10),
+not interactive input, background launch, or session resume. For a provider
+requiring credentials, `--api-key-env NAME` resolves that environment variable
+or its existing credential-broker reference; never put a key in the launch JSON.
+
+Host identity failure, missing state, failed preflight, or a runtime error closes
+the opened authority and exits unsuccessfully; no automatic enrollment, repair,
+or model retry is attempted by this entry. Use the API below for separately
+managed streaming runtimes and authorized writers.
+
 ```js
 import fs from "node:fs";
 import { openPermissionAuthorityHost } from "chainlesschain/src/runtime/permission-authority-host.js";

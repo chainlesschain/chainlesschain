@@ -1966,6 +1966,7 @@ final class ConversationView {
         pendingSessionSlashCommands.clear();
         pendingApprovalGrantCommands.clear();
         AgentChatSession.Options o = new AgentChatSession.Options();
+        o.onProtocolRecord = com.chainlesschain.ide.Verify01ProtocolCapture.configured(project.getBasePath());
         o.configurationRevision = configurationRevision;
         String basePath = project.getBasePath();
         if (basePath != null) o.cwd = new File(basePath);

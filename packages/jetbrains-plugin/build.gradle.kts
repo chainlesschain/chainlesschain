@@ -301,6 +301,9 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
     systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
     systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
+    for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace")) {
+        System.getProperty("ui.verify01.$name")?.let { systemProperty("ui.verify01.$name", it) }
+    }
     systemProperty("file.encoding", "UTF-8")
     maxParallelForks = 1 // one live IDE + one robot client, never parallelize
     outputs.upToDateWhen { false } // always re-drive the live IDE
@@ -317,6 +320,17 @@ runCatching {
         "uiTest-project/${uiJourneyRunId.get()}" else "uiTest-project")
     val uiTestHomeDir = layout.buildDirectory.dir(if (uiJourneyRunId.isPresent)
         "uiTest-home/${uiJourneyRunId.get()}" else "uiTest-home")
+    val verifyCaptureRoot = System.getProperty("ui.verify01.captureRoot", "")
+    val verifyProject = if (verifyCaptureRoot.isNotBlank()) file(requireNotNull(System.getProperty("ui.verify01.workspace")) {
+        "VERIFY01 requires an explicit prepared task workspace"
+    }).canonicalFile else null
+    val verifyHome = if (verifyCaptureRoot.isNotBlank()) file(requireNotNull(System.getProperty("ui.verify01.home")) {
+        "VERIFY01 requires an explicit isolated CLI home"
+    }).canonicalFile else null
+    if (verifyProject != null) require(verifyProject.isDirectory && verifyHome!!.isDirectory
+        && file(verifyCaptureRoot).isAbsolute && file(verifyCaptureRoot).isDirectory) {
+        "VERIFY01 workspace, home and absolute capture directory must already exist"
+    }
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
         // Compile/package once against the minimum supported 2024.2 API, then
         // launch that exact artifact in each declared real-host version. Newer
@@ -329,6 +343,11 @@ runCatching {
             version = hostIdeVersion
         }
         task {
+            if (verifyHome != null) {
+                environment("HOME", verifyHome.absolutePath)
+                environment("USERPROFILE", verifyHome.absolutePath)
+                environment("CHAINLESSCHAIN_HOME", verifyHome.resolve(".chainlesschain").absolutePath)
+            }
             jvmArgumentProviders += org.gradle.process.CommandLineArgumentProvider {
                 listOf(
                     "-Drobot-server.port=8082",
@@ -340,16 +359,20 @@ runCatching {
                     // Skip the project-trust modal for the sandbox project the
                     // smoke test drives (throwaway dir generated below).
                     "-Didea.trust.all.projects=true",
-                    "-Duser.home=${uiTestHomeDir.get().asFile.absolutePath}",
-                )
+                    "-Duser.home=${verifyHome?.absolutePath ?: uiTestHomeDir.get().asFile.absolutePath}",
+                ) + if (verifyCaptureRoot.isNotBlank()) listOf(
+                    "-Dchainlesschain.verify01.captureRoot=${file(verifyCaptureRoot).canonicalPath}"
+                ) else emptyList()
             }
             doFirst {
-                val dir = uiTestProjectDir.get().asFile
-                dir.mkdirs()
-                dir.resolve("hello.txt").writeText("ChainlessChain UI journey sandbox\n")
-                uiTestHomeDir.get().asFile.mkdirs()
+                if (verifyProject == null) {
+                    val dir = uiTestProjectDir.get().asFile
+                    dir.mkdirs()
+                    dir.resolve("hello.txt").writeText("ChainlessChain UI journey sandbox\n")
+                    uiTestHomeDir.get().asFile.mkdirs()
+                }
             }
-            args(uiTestProjectDir.get().asFile.absolutePath)
+            args(verifyProject?.absolutePath ?: uiTestProjectDir.get().asFile.absolutePath)
         }
         plugins {
             robotServerPlugin("0.11.23")

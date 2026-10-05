@@ -1,0 +1,131 @@
+name: VERIFY01 Host Diagnostics
+
+# Real installed IDEs with a deterministic, keyless peer. These checks do not
+# consume the 36+9 formal samples, attest public installation, or publish.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/vscode-extension/**"
+      - "packages/jetbrains-plugin/**"
+      - "packages/cli/src/**"
+      - "tests/fixtures/ide-roadmap/**"
+      - "scripts/lib/verify01-diagnostic-*.mjs"
+      - "scripts/__tests__/verify01-diagnostic-*.test.mjs"
+      - "package-lock.json"
+      - ".github/workflows/verify01-host-diagnostics.yml"
+  push:
+    branches: [main, "feature/cli-ide-gap-*"]
+    paths:
+      - "packages/vscode-extension/**"
+      - "packages/jetbrains-plugin/**"
+      - "packages/cli/src/**"
+      - "tests/fixtures/ide-roadmap/**"
+      - "scripts/lib/verify01-diagnostic-*.mjs"
+      - "scripts/__tests__/verify01-diagnostic-*.test.mjs"
+      - "package-lock.json"
+      - ".github/workflows/verify01-host-diagnostics.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  vscode-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Package exact source candidate
+        working-directory: packages/vscode-extension
+        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out verify01.vsix
+      - uses: actions/upload-artifact@v6
+        with:
+          name: verify01-vsix
+          path: packages/vscode-extension/verify01.vsix
+          if-no-files-found: error
+
+  host:
+    name: ${{ matrix.host }} (${{ matrix.os }})
+    needs: vscode-package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+        host: [vscode, jetbrains]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Install canonical store fixture dependencies
+        run: >-
+          npm ci --workspace packages/cli --include-workspace-root=false
+          --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Verify process deadlines and evidence rejection
+        run: >-
+          node --test scripts/__tests__/verify01-diagnostic-process.test.mjs
+          scripts/__tests__/verify01-diagnostic-evidence.test.mjs
+          packages/vscode-extension/test/verify01-diagnostic.test.cjs
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - uses: actions/download-artifact@v6
+        if: matrix.host == 'vscode'
+        with:
+          name: verify01-vsix
+          path: packages/vscode-extension
+      - name: Prepare exact VS Code outside task deadline
+        if: matrix.host == 'vscode'
+        working-directory: packages/vscode-extension
+        run: |
+          npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
+          node -e "require('@vscode/test-electron').downloadAndUnzipVSCode({version:'1.132.0',cachePath:require('node:path').resolve('.vscode-test')}).catch(e=>{console.error(e);process.exitCode=1})"
+      - name: Run VS Code initial/restart capture
+        if: matrix.host == 'vscode'
+        shell: bash
+        working-directory: packages/vscode-extension
+        run: |
+          extension_version=$(node -p "require('./package.json').version")
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node test/extension-host/verify01-diagnostic.cjs \
+            --vsix verify01.vsix --host-version 1.132.0 --extension-version "$extension_version" \
+            --artifact-dir ../../verify01-artifacts/vscode
+      - uses: actions/setup-java@v5
+        if: matrix.host == 'jetbrains'
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Prepare Gradle wrapper
+        if: matrix.host == 'jetbrains' && runner.os != 'Windows'
+        run: chmod +x packages/jetbrains-plugin/gradlew
+      - name: Run IntelliJ initial/restart capture
+        if: matrix.host == 'jetbrains'
+        shell: bash
+        run: |
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \
+            --ide-version 2024.2 --artifact-dir verify01-artifacts/jetbrains
+      - name: Preserve successful and failed attempts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-${{ matrix.host }}-${{ matrix.os }}-${{ github.run_attempt }}
+          path: |
+            verify01-artifacts/
+            packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+            packages/jetbrains-plugin/build/reports/ui-smoke/
+          include-hidden-files: true
+          if-no-files-found: warn
