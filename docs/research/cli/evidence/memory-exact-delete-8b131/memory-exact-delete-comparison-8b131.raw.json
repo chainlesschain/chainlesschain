@@ -1,0 +1,635 @@
+{
+  "schema": "chainlesschain.memory-exact-delete-local-comparison/v1",
+  "sourceCommit": "8b13129624d4b7fa5b122a4109151c574564448e",
+  "baselineCommit": "22c0e4036cd08f6a205539c88fcdec47081af544",
+  "recordedAt": "2026-10-04T18:57:07.746Z",
+  "sourceRoot": "C:\\code\\chainlesschain\\.work\\memory-delete-bench-8b131-isolated",
+  "scriptSha256": "de05ea3b3d1393238cac67e4509f72e75e36b6d2f05f6f66e8df7e573bdd05fb",
+  "sharedDependency": {
+    "root": "C:\\code\\chainlesschain\\packages\\context-memory-kernel",
+    "files": {
+      "LICENSE": "d412955f8037340de4473106e55e97be1d5af19a3e3d06b77a8e0b88ef3bdf6b",
+      "README.md": "53631fd0996ad9d4e62ed2cf2ef5b9e209425f13627f5350191e6129ef086379",
+      "fixtures\\cross-surface-projection-v1.tsv": "0c8f7e07c71c0c4661e77b222f7fc9673ebd45acdc97d2b36cc8b4d9234e50f4",
+      "fixtures\\lexical-retrieval-multilingual-v1.json": "40003410364d106ffd66ee5a62315ebcc3b0a542928e3cec8e16b7d52c63fab0",
+      "index.d.ts": "e08d8acfc0ee40776b4907aa47ec9f46a60b5442293644f55064cef0137507d9",
+      "index.mjs": "80f5c644fd54593513b90675c7c260fe5f82bd90edbcc5c69ae0990c6f35323e",
+      "inventory\\writers.v1.json": "c02623ab2ad2006d592fd7fb01abbd4c7e16a2622556f56485d2c9d762ea50e7",
+      "lib\\adapters.js": "feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be",
+      "lib\\authority.js": "a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d",
+      "lib\\canonical.js": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+      "lib\\compaction.js": "da6d2e9a43f5a414a36f346a0da697b72ad0fa36a8de72744f2c289fed0a78fb",
+      "lib\\conformance.js": "e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1",
+      "lib\\constants.js": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e",
+      "lib\\contracts.js": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "lib\\errors.js": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70",
+      "lib\\index.js": "3e98d01bfda73d460f900b0c425634a6a12fd28231047e27d759446e7da7e2b2",
+      "lib\\inventory.js": "61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff",
+      "lib\\memory-reducer.js": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "lib\\planner.js": "0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204",
+      "lib\\runtime.js": "fff4ea30d393f0a5bfbf0cf66d1848d7a47c11f45485b88a8d7b900207a553cf",
+      "lib\\schema-validator.js": "d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528",
+      "lib\\task-checkpoint.js": "6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13",
+      "package.json": "c82faeb7f053eb58f89e7098b836f6766c926b609a7b7cc9a6a065a74d024025",
+      "release\\required-evidence.v1.json": "47abfafec1694113aa833593c59c7ca80a9c75ac7462dd63d9a55d124234b109",
+      "schema\\context-memory-kernel.schema.json": "e438a7d88b64a1cd08bb3d498e879622660a22ebbbeaddedb6bbc55973bf05f7",
+      "scripts\\assemble-release-evidence.mjs": "4e3805339291537ea57bba8479a418e1ff569e7eaf4bdc52a9edc53ba047bbf3",
+      "scripts\\context-memory-benchmark.mjs": "4b2bda2500f0f32071a927091840be56894a4ffc32c8ebf02c5e3ade5bed32ce",
+      "scripts\\context-memory-soak.mjs": "2f3c714c627aca12de75c4df59aec085118b3b2bb8110fa3243854f463ef481a",
+      "scripts\\context-memory-writer-probe.mjs": "79f938ab35111f9a86507795415f9e5f6d3e7a1dfc4dca82cf60bcf9254128ac",
+      "scripts\\lexical-retrieval-eval.mjs": "0610ef678350bfda2988c4d6bc8b2c940ffe06fe86840dbcaf1af2c6ac599f87",
+      "scripts\\release-evidence.cjs": "e1a44344e81916e7ef597e3e82072c5b5b7a07712709e1a8d383c5b068d97334",
+      "scripts\\validate-inventory.mjs": "c04bf32466e63c15ef64d3b3e3f446c25b5e14b3251a538469c8737a236312c2",
+      "scripts\\validate-release-evidence.mjs": "c18893b23ed6dd6a948431bb0bf4160eb39bf855671cceb219e634a0364f12e5",
+      "test\\compaction.test.js": "766f9c5b431031b54c8be39cad13aa10d43f87bab8f332e799dacb7e17686fee",
+      "test\\conformance-fixture.test.js": "c7daf152e934c5cd95f207383ea3f8affd6fe4435d6858cb2da11795575dab88",
+      "test\\contracts-planner.test.js": "a7d34b44a3f3cdee3a7b82cdc01d66797a1a3d6b52b023dabd7061886bf94163",
+      "test\\desktop-surface-conformance.test.js": "d02bfb73f9024b0b6f433e1aabf1caccc02b531f16711e7361abce2f9f448918",
+      "test\\helpers.js": "0cd1148d4e17602a3fa3af4f81814bba6e74fc9632e4f51d54a3d11e9c21b42c",
+      "test\\inventory.test.js": "a0bd0c58e7da1f4660a49fe3a96e72b4cf4a149efdc36bdd503f535d36e22192",
+      "test\\lexical-retrieval-eval.test.js": "d5d8ca4fbd0193d189d5a1d8e841ecdcb9002f9024fa76496f29f4d44e17ea4d",
+      "test\\memory-authority.test.js": "e91132b04b3ba0297cd509cf469dcf1e6838b9464980b369d93cee829f01e716",
+      "test\\memory-lexical.test.js": "8e0cf921537e9d4561e0b94a9efa70f4331e41ca1f9ad558bf2190d236adad5a",
+      "test\\release-evidence.test.js": "23827b24af37ed90c5820522261d943628b40db4fe8dc4abb8a0569af5f59bc0",
+      "test\\schema.test.js": "b94b0fb4516ceb4b1f78e44fed4e7e4248fbae1ee8e917d76e07d10e2eb24c3d",
+      "test\\task-checkpoint.test.js": "baf66954d0bf8f651d8d979e53d2803ea2457afcc5c4ece3ab9b6ec3c783a401"
+    }
+  },
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "protocol": {
+    "tiers": [
+      1000,
+      10000,
+      100000
+    ],
+    "samples": 11,
+    "alternatingPairOrder": true,
+    "concurrent": false,
+    "coldPageCache": false,
+    "defaultCanonicalStageChanged": false,
+    "snapshotImported": true,
+    "purgePorts": [],
+    "excludes": [
+      "CLI process startup",
+      "legacy privacy-port cleanup",
+      "fixture setup",
+      "post-write audit verification"
+    ],
+    "performanceGate": false,
+    "productionQualified": false
+  },
+  "sourceBlobs": {
+    "packages/cli/src/lib/context-memory-kernel/memory-service.js": "b8281a0c227938cc56d087f39443bd09f8ad1d4a",
+    "packages/cli/src/lib/context-memory-kernel/runtime.js": "227542ac484866287fbb02be6b21f8dbb24451d5",
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "4e90c693f9052cc3c713a529ff512a1f3b9678a2",
+    "packages/cli/src/lib/context-memory-kernel/authority.js": "44e0477b58777caaaa74136cf4dcf8dcea274ce5",
+    "packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js": "1458b8088718947a67aa9cdaedcfe4a32910ffb2"
+  },
+  "baselineModule": {
+    "originalSha256": "2c2268118999e78459de7c1cb0a6b7202cd04d648de3c44bd6cf162f41fdd08e",
+    "relocatedSha256": "cbcc819133185ca9d332bf0334503b606333d1ae48d037d13649278f9db29710",
+    "onlyRelocation": "runtime import points at byte-identical candidate runtime; baseline service body retained"
+  },
+  "tiers": [
+    {
+      "recordCount": 1000,
+      "fixtureDigest": "sha256:33544ccc2e459307fb2040477db1a16c20b43cf9293d36d355f976c9856ffabf",
+      "originalAuditDigest": "sha256:2d163ef93df8b348d689dbe71548fe7b75eef526497c74139f721aab4b6db75a",
+      "setupMs": 1154.5226,
+      "variants": [
+        {
+          "name": "baseline",
+          "timingsMs": [
+            660.8164999999999,
+            625.9495999999999,
+            623.8096000000005,
+            629.0839999999998,
+            616.7144000000008,
+            622.4231,
+            615.5091000000002,
+            600.7682000000004,
+            609.5838999999996,
+            609.1976999999988,
+            610.4591999999993
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 600.768,
+            "p50Ms": 616.714,
+            "p95Ms": 660.816,
+            "p99Ms": 660.816,
+            "maxMs": 660.816
+          },
+          "calls": {
+            "read": 11,
+            "listRecords": 11,
+            "query": 11
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:57e7efb9e0b706de9b7164ff7553dd8c316c0bb2fb7ee5bef4cfbe119344002d"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:97c7f0f98c6bcbfba1cda41a2fc18113ecb19c0f686ba7d529cdb8e978ac1aa8"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:9f13c5baf3ef8c92c5e27188d3962daa59359b2a2fe11c3452fa125de1264d7f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:f0db641c0c719c4c9451c438524071e999f6efaec29dced7071684e2583671bf"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:d219140bbb88ce059941ec00229892d2d255c79ac80e2167d104267385dd968f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:91208a725adefade0b4903ea0b737cb454af1218704fed6dd0277c89a3e4339f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:ec9b486dec5066465d582d8ce9cea71fe5f82689b65529bc6198b9891403874f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:60423e175bd0f0c0f9decec98846984162f5dbdb7484ffb9e3777836b379310e"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:be6f8553c31eadc3ebb86c9c52e3d3174cfdea2de3c94728810455e3c13a5f23"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:1236844849b91a4aef4c00042921f12f3a0352dcbbc5d3ab458c4697295c56be"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:09b093ed02ba41d0cd652bc443fd68ec338f1b5a34efb7832cf77540c96efb73"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 1000,
+            "eventCount": 1022,
+            "storeRevision": 1044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 989
+          }
+        },
+        {
+          "name": "candidate",
+          "timingsMs": [
+            198.11159999999973,
+            211.42930000000024,
+            197.02509999999984,
+            190.58230000000003,
+            188.4970999999996,
+            193.01330000000053,
+            188.04399999999987,
+            193.3760000000011,
+            183.49599999999919,
+            193.32250000000022,
+            185.8137000000006
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 183.496,
+            "p50Ms": 193.013,
+            "p95Ms": 211.429,
+            "p99Ms": 211.429,
+            "maxMs": 211.429
+          },
+          "calls": {
+            "read": 22,
+            "listRecords": 0,
+            "query": 0
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:5f3d68e4cd202f93bc5a76b23f17903096267adf6545506232f9f1f503425174"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:308b8aabbeb9d16f1b24f4268bec028d97f8dd120255a251043e1d49155eb11f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:c0d460770207f30d1f0f494856a0c5e01ac1dbe404baea749403f37f902b8ea3"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:135fabe85111aca14eebd57f1753bd25d9385476790e80250a74c4eaeac02473"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:7d83986d5d74224b17663c73b0669f042bb5414decbf451fa78c4590a0846a22"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:7ef01ee55d890cb69ce26e2f6f2e0f488fb0481ef6964c88f924203c1ae6d4da"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:30c68e95fe54e4d5bb5b5aef7b7113b7ee0193e4d69f37c7a67cd59697d1ee4a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:acdb7ca74311c9f8b0dd4f0fd332614366a933b90c24e87886171ce61818aac0"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:790d62a39e576a47a968550f3532e51f42ecdb3395c4fa4c23e40cf8c61a419a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:3ff2231209afb6c3af5fbd2b1fdea48437b9124baec7ea89b61e08c2a3e6cb0a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:5a86f592d2a39184cff71e1ee820fad181bfbe43bba1d6ba5c98d0ead7b41f03"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 1000,
+            "eventCount": 1022,
+            "storeRevision": 1044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 989
+          }
+        }
+      ]
+    },
+    {
+      "recordCount": 10000,
+      "fixtureDigest": "sha256:becd86e2b81933eb27e33247f1523b79a5cf1bcb0618cb9608b3c6090cccbfbc",
+      "originalAuditDigest": "sha256:f147e443b4cc66fcf39a8f41ebf7dcac8e663c6d77cf50672d75503e9a8b8165",
+      "setupMs": 4438.379000000003,
+      "variants": [
+        {
+          "name": "baseline",
+          "timingsMs": [
+            1665.5529000000024,
+            1452.5773000000008,
+            1531.4657999999981,
+            1468.399400000002,
+            1505.0721000000012,
+            1518.9615999999987,
+            1494.5999999999985,
+            1562.4420000000027,
+            1446.6224000000002,
+            1492.7066000000013,
+            1470.9969999999958
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 1446.622,
+            "p50Ms": 1494.6,
+            "p95Ms": 1665.553,
+            "p99Ms": 1665.553,
+            "maxMs": 1665.553
+          },
+          "calls": {
+            "read": 11,
+            "listRecords": 11,
+            "query": 11
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:99539a996cd941f8830eeb5aefc23238852650631d3fb8b2706d1d1fc0163ce2"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:56cbebd2e5126870c21525c5675393c97e60a3c96cd6e2a7c410c291f65675c9"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:1607c6e472cf665c334f744f5f9cf3cd4500dd44fe5967cb70cac3ffefc75f64"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:d4bc00af8928cc195031899bad87f6074ffc39b7c61e79589bd298ae19485ff7"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:1dd3f41f6414efbd5866578ad70473162500ba90fd06b701db01729eb9053bfb"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:c998822ef46e3cba8e373bda2e97873b0ed6cc8b890f8bd2d10dce9202b5a697"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:e3d6d6e2eba0c55d4b88534b1a7d40b57a7be423d0720accd6f54197edb5256e"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:dd8d068bc2a7e6bbe99fb97080019f34fa0cd1616eccc350796a4a273370f75f"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:5cbeabb3e06d0cc662a5ca0f28d60fecb6081b33283f4c45a0716e1e67ed0c84"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:de5da00d59c23ff57285b30b872ff51d11b2274aa31b4f0f188b76f4c6f73a8a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:3a79717d0474467f7e31cbcebf46519f00c2c52a266d3dde6c752a2d1becd730"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 10000,
+            "eventCount": 10022,
+            "storeRevision": 10044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 9989
+          }
+        },
+        {
+          "name": "candidate",
+          "timingsMs": [
+            236.85580000000118,
+            231.97620000000097,
+            231.438900000001,
+            221.8175999999985,
+            224.07530000000042,
+            235.07050000000163,
+            221.15449999999691,
+            224.8122000000003,
+            218.63550000000032,
+            215.1818999999996,
+            223.0309000000052
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 215.182,
+            "p50Ms": 224.075,
+            "p95Ms": 236.856,
+            "p99Ms": 236.856,
+            "maxMs": 236.856
+          },
+          "calls": {
+            "read": 22,
+            "listRecords": 0,
+            "query": 0
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:c198cb936e27dbead1d816b2b84c0350af1033562e33c3383d8405421680550a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:8b9a0d2f555598668943702e0dba26fdb9e9fd6e87cb26f7feee747f2b2b5115"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:d7991303b05cc2db91d467412c62e5202e3914e305f32bc0bc353350665ec03c"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:480256822503bafe060e1177822220aaeb7790dd0dde55ffdf4afd4cca7c0dad"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:065ecd57f07313159ffdea825dfcc19fffd61645d71f52bd44f9fd941c9e7113"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:963e248ef2125f568b5dd501e24937fdf0aa51ef97d5573371b104db35ae319d"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:f4a315eb292b524e8168420e60d68869a8f6f690729d7376588e4f17785b101c"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:cc78c0b10ba8167659a2880e4dc57369160ed07d729a09301b64856349ecac05"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:8175e3e7c3ea3334e1ba5b69b877a3d52e54ddc50713feef5bb2570b57272004"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:822ed84728e1e78dbda82fd8512d7f35d404adf3ead839eb9317cf7f6b278d29"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:fabcf4c1829c0a885891718b9952324f8ddbec6f15c73e6a18623fbcbf33b854"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 10000,
+            "eventCount": 10022,
+            "storeRevision": 10044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 9989
+          }
+        }
+      ]
+    },
+    {
+      "recordCount": 100000,
+      "fixtureDigest": "sha256:b48e8ac3092c408531037f0147e73362e3a85a6cc48e6509fbcb516faa0246f6",
+      "originalAuditDigest": "sha256:0d85496412b8dc21dc5f1ccb685a30450376a86337a8822b9231fdecfd4dfb34",
+      "setupMs": 40798.57750000001,
+      "variants": [
+        {
+          "name": "baseline",
+          "timingsMs": [
+            11272.492299999998,
+            10814.949699999997,
+            10870.837899999999,
+            11124.486399999994,
+            10678.830300000001,
+            11106.616399999999,
+            11411.212800000008,
+            10675.923999999999,
+            10707.282099999982,
+            11075.864199999982,
+            10551.9571
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 10551.957,
+            "p50Ms": 10870.838,
+            "p95Ms": 11411.213,
+            "p99Ms": 11411.213,
+            "maxMs": 11411.213
+          },
+          "calls": {
+            "read": 11,
+            "listRecords": 11,
+            "query": 11
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:829f1dc474652584df5269c1ca125a4405e08a9bed3589196b015701e75f7a92"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:f7b3b5b8ea4e192edb04ef0c6697d5ce577cf8d64dc4dc20a17267bc80ef5151"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:4e86eb9a56773423062881d53a64bc595259246ae9adb52ef536df26cd361880"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:2a3a5faa242ebd0ec12540ac78debd3b7cf83e3b89bad9a22793f4fa2fd38d19"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:56f7d17891c2bc0a7a343b7def5ed47653b9727bcffb9e3cdc139ab8208cb897"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:1136a40aef7895bb0a53474eba21fa3ec59bc730991d1507265c6978242034ab"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:f2cb38da3df6a73d8fc1f9ca1e5157192e1cf52018b95b7cbecd809b58c29936"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:dcd0402b0a88ba47860aa2f442cebf2e8a4ce681a2af2837dd990c069a2cb6b7"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:7108eed91e59fbac296224d2a682196f2b46126d115c66efeb724697ed3e815a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:76ba2ab82c5d59b23f5c914dc6dfbb6945ddfe11135ac8da6bc97b33510ff3e3"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:e907ca651b55ac08353005d894dbddb8ae8811bda02bb832dcec6cd0d7806cc1"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 100000,
+            "eventCount": 100022,
+            "storeRevision": 100044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 99989
+          }
+        },
+        {
+          "name": "candidate",
+          "timingsMs": [
+            612.8013000000064,
+            628.392200000002,
+            647.777700000006,
+            614.8476999999984,
+            599.8524000000034,
+            615.312900000019,
+            609.4459999999963,
+            611.7878000000201,
+            614.6737000000139,
+            594.6199000000197,
+            612.0915000000095
+          ],
+          "summary": {
+            "samples": 11,
+            "minMs": 594.62,
+            "p50Ms": 612.801,
+            "p95Ms": 647.778,
+            "p99Ms": 647.778,
+            "maxMs": 647.778
+          },
+          "calls": {
+            "read": 22,
+            "listRecords": 0,
+            "query": 0
+          },
+          "deletionReceipts": [
+            {
+              "status": "purged",
+              "digest": "sha256:43c78688a0b49c22ca884b7c64727137e52ef4cab3215f03628dd35ec9332908"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:2bd1789d0e3d4d3c5483c8aa82f9e4f0a53c8494eee26ad23deb3d098cbf63aa"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:9ad89743f3c80125b43a17aa5481e452fb0332a7034513e4e29b091c6b88abe4"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:7ef3148101ebd94b1c3b095d42977f62611c83f138205c1430e8a619e46b6d2a"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:28030750219b10665b018da260a956911df1af2c0bc68033ec48bd334558a40e"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:52b680453f1511b0af75e1fcb383416de77bdd75362fd4c06d5ffd3cfea2b04e"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:f5b7f5063876a8f2a1d1b4b1a6a149809660992295297bc84386bcc31a3ed4bb"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:c557780f379ee1988c0ae97695eab2ac6b38fc8fae762300ae017e53b61d2843"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:a581ace6e4c26b7a185387ce8938724fec737482245d0d36ee09019f81d540e1"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:c1b999b75669e40dd6406503a9c4662cbe688370cb7a56da543c4a5354392877"
+            },
+            {
+              "status": "purged",
+              "digest": "sha256:666c55c2075c69799ecd92dbaad62d5bef748cc6d4431d28a2b41aea0413c674"
+            }
+          ],
+          "postWrite": {
+            "verified": true,
+            "recordCount": 100000,
+            "eventCount": 100022,
+            "storeRevision": 100044,
+            "reconciliationCount": 11,
+            "originalAuditPrefixVerified": true,
+            "selectedPurged": 11,
+            "untouchedActive": 99989
+          }
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-10-04T19:01:02.161Z",
+  "processPeakRssBytes": 1177178112,
+  "retainedFixtureDirectory": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-memory-delete-8b131-NhD624"
+}

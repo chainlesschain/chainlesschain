@@ -1,0 +1,17 @@
+2026-10-04T19:04:24.0779670Z  [32m✓[39m tests/unit/p2p/device-sync-manager-retry.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+
+2026-10-04T19:12:04.3551280Z [2m Test Files [22m [1m[32m1523 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (1532)[39m
+2026-10-04T19:12:04.3755940Z [2m      Tests [22m [1m[32m29748 passed[39m[22m[2m | [22m[33m472 skipped[39m[90m (30220)[39m
+2026-10-04T19:12:04.3756660Z [2m   Start at [22m 19:00:36
+2026-10-04T19:12:04.3783150Z [2m   Duration [22m 687.61s[2m (transform 25.16s, setup 131.53s, import 98.97s, tests 633.73s, environment 368.65s)[22m
+2026-10-04T19:12:04.3784550Z
+2026-10-04T19:12:04.6370100Z ##[group]Run node -e "const selector=process.env.SELECTOR_OUTCOME; const mode=process.env.SELECTOR_MODE; const fallback=process.env.FALLBACK_OUTCOME; const passed=selector==='success'||(selector==='failure'&&mode==='fail-closed'&&fallback==='success'); console.log('selector='+selector+', mode='+mode+', fallback='+fallback); if(!passed){console.error('Selected tests failed, or fail-closed fallback did not pass.'); process.exit(1)}"
+2026-10-04T19:12:04.6372440Z [36;1mnode -e "const selector=process.env.SELECTOR_OUTCOME; const mode=process.env.SELECTOR_MODE; const fallback=process.env.FALLBACK_OUTCOME; const passed=selector==='success'||(selector==='failure'&&mode==='fail-closed'&&fallback==='success'); console.log('selector='+selector+', mode='+mode+', fallback='+fallback); if(!passed){console.error('Selected tests failed, or fail-closed fallback did not pass.'); process.exit(1)}"[0m
+2026-10-04T19:12:04.6990870Z shell: /bin/bash -e {0}
+2026-10-04T19:12:04.6991060Z env:
+2026-10-04T19:12:04.6991310Z   SOURCE_SHA: 8458a0a5027d1a844e382f8ad5624894745d1ef1
+2026-10-04T19:12:04.6991560Z   SELECTOR_OUTCOME: failure
+2026-10-04T19:12:04.6991750Z   SELECTOR_MODE: fail-closed
+2026-10-04T19:12:04.6991930Z   FALLBACK_OUTCOME: success
+2026-10-04T19:12:04.6992100Z ##[endgroup]
+2026-10-04T19:12:04.7592850Z selector=failure, mode=fail-closed, fallback=success

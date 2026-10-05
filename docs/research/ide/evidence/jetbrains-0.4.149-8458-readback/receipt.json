@@ -1,0 +1,72 @@
+{
+  "schema": "chainlesschain.ide-cli-publication-prerequisite/v1",
+  "package": "chainlesschain",
+  "version": "0.166.86",
+  "cliSource": "https://registry.npmjs.org",
+  "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.86.tgz",
+  "integrity": "sha512-mVaAXOCa/0btsVhyn2f6JYYp3NuGnlTul0ENp8OtK61VBl3COioemMsT0h/SkSkzcwI4RZBfWKmbVlKNN6Nu8A==",
+  "children": [
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.6",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.6.tgz",
+      "integrity": "sha512-IKapApHfZTKKqcGMyhGrcxeOyOn3TYGk+0jdRPGNjjVWh0jxG2H9U2kydwUwqUj7LlnD7VtqaFmomDoKkqLpDQ=="
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.62",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.62.tgz",
+      "integrity": "sha512-Wha8fhzHchgTogWvCwW+rk5pPiYCuJsqzz4YLo3K1KUrDVJtm+/HMdMLA5LoUNztzz7n5cuGP3EMcgLJQeUqKw=="
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.14",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.14.tgz",
+      "integrity": "sha512-AHDj3P7+wQoTPm+rMKX2OIoFlkJ89wIrD4o4lTMqPcr49Bu1zix9JytKbejObQtCf052vL4nAeFVxIswYNwMpA=="
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+    }
+  ],
+  "protocolVersion": 1,
+  "verifiedAt": "2026-10-05T02:09:47.211Z"
+}

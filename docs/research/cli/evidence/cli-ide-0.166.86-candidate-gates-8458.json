@@ -1,0 +1,71 @@
+{
+  "verifiedAt": "2026-10-05T01:13:47.361Z",
+  "sourceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "snapshotObservedAt": "2026-10-05T01:12:41.776Z",
+  "gates": [
+    {
+      "id": 37225592254,
+      "name": "CI Tests",
+      "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37225592254",
+      "conclusion": "success",
+      "counts": {
+        "success": 14
+      },
+      "platforms": null
+    },
+    {
+      "id": 37227574239,
+      "name": "CLI CI",
+      "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37227574239",
+      "conclusion": "success",
+      "counts": {
+        "success": 67,
+        "skipped": 1
+      },
+      "platforms": ["linux", "macos", "windows"]
+    },
+    {
+      "id": 37227577487,
+      "name": "CLI Strict Sandbox",
+      "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37227577487",
+      "conclusion": "success",
+      "counts": {
+        "success": 5
+      },
+      "platforms": ["linux", "macos", "windows"]
+    },
+    {
+      "id": 37227580870,
+      "name": "IDE Extensions",
+      "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37227580870",
+      "conclusion": "success",
+      "counts": {
+        "success": 18,
+        "skipped": 1
+      },
+      "platforms": null
+    },
+    {
+      "id": 37227584294,
+      "name": "Context Memory Kernel CI",
+      "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37227584294",
+      "conclusion": "success",
+      "counts": {
+        "success": 3
+      },
+      "platforms": null
+    }
+  ],
+  "eligibleToStartOidcRelease": true,
+  "versions": {
+    "contextMemoryKernel": "0.1.6",
+    "cli": "0.166.86",
+    "vscode": "0.37.131",
+    "jetbrains": "0.4.149"
+  }
+}

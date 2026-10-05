@@ -1,0 +1,35 @@
+2026-10-04T18:20:57.7406940Z
+2026-10-04T18:20:57.7407970Z [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-04T18:20:57.7408390Z
+2026-10-04T18:20:57.7410040Z [41m[1m FAIL [22m[49m tests/unit/p2p/device-sync-manager-retry.test.js[2m > [22mDeviceSyncManager - 智能重试机制[2m > [22m指数退避重试[2m > [22m应该在重试成功后重置attempts计数器
+2026-10-04T18:20:57.7424670Z [31m[1mAssertionError[22m: expected 2 to be +0 // Object.is equality[39m
+2026-10-04T18:20:57.7425150Z
+2026-10-04T18:20:57.7425400Z [32m- Expected[39m
+2026-10-04T18:20:57.7425720Z [31m+ Received[39m
+2026-10-04T18:20:57.7426180Z
+2026-10-04T18:20:57.7426320Z [32m- 0[39m
+2026-10-04T18:20:57.7426580Z [31m+ 2[39m
+2026-10-04T18:20:57.7426720Z
+2026-10-04T18:20:57.7435770Z [36m [2m❯[22m tests/unit/p2p/device-sync-manager-retry.test.js:[2m584:31[22m[39m
+2026-10-04T18:20:57.7513060Z     [90m582|[39m       [90m// 验证attempts已重置为0（因为第3次成功了）[39m
+2026-10-04T18:20:57.7513340Z
+2026-10-04T18:20:57.7518810Z     [90m583|[39m       [35mconst[39m status [33m=[39m manager[33m.[39m[34mgetMessageStatus[39m(messageId)[33m;[39m
+2026-10-04T18:20:57.7519850Z     [90m584|[39m       [34mexpect[39m(status[33m.[39mattempts)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+2026-10-04T18:20:57.7520650Z     [90m   |[39m                               [31m^[39m
+2026-10-04T18:20:57.7524570Z     [90m585|[39m       [34mexpect[39m(status[33m.[39mstatus)[33m.[39m[34mtoBe[39m([33mMessageStatus[39m[33m.[39m[33mSENT[39m)[33m;[39m
+2026-10-04T18:20:57.7526170Z     [90m586|[39m     }[33m,[39m [34m10000[39m)[33m;[39m
+2026-10-04T18:20:57.7527100Z
+2026-10-04T18:20:57.7527660Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+2026-10-04T18:20:57.7527990Z
+2026-10-04T18:20:57.7567910Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1522 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (1532)[39m
+2026-10-04T18:20:57.7737710Z [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m29747 passed[39m[22m[2m | [22m[33m472 skipped[39m[90m (30220)[39m
+2026-10-04T18:20:57.7740040Z [2m   Start at [22m 18:04:39
+2026-10-04T18:20:57.7757860Z [2m   Duration [22m 978.69s[2m (transform 43.36s, setup 177.08s, import 167.91s, tests 883.98s, environment 528.46s)[22m
+2026-10-04T18:20:57.7758560Z
+2026-10-04T18:20:58.3049940Z ##[error]Process completed with exit code 1.
+2026-10-04T18:20:58.3256780Z ##[group]Run node -e "const selector=process.env.SELECTOR_OUTCOME; const mode=process.env.SELECTOR_MODE; const fallback=process.env.FALLBACK_OUTCOME; const passed=selector==='success'||(selector==='failure'&&mode==='fail-closed'&&fallback==='success'); console.log('selector='+selector+', mode='+mode+', fallback='+fallback); if(!passed){console.error('Selected tests failed, or fail-closed fallback did not pass.'); process.exit(1)}"
+2026-10-04T18:20:58.3261260Z [36;1mnode -e "const selector=process.env.SELECTOR_OUTCOME; const mode=process.env.SELECTOR_MODE; const fallback=process.env.FALLBACK_OUTCOME; const passed=selector==='success'||(selector==='failure'&&mode==='fail-closed'&&fallback==='success'); console.log('selector='+selector+', mode='+mode+', fallback='+fallback); if(!passed){console.error('Selected tests failed, or fail-closed fallback did not pass.'); process.exit(1)}"[0m
+2026-10-04T18:20:58.4130250Z shell: /bin/bash -e {0}
+2026-10-04T18:20:58.4130610Z env:
+2026-10-04T18:20:58.4131240Z   SOURCE_SHA: 8b13129624d4b7fa5b122a4109151c574564448e
+2026-10-04T18:20:58.4131660Z   SELECTOR_OUTCOME: failure

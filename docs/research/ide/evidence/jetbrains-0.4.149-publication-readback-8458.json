@@ -1,0 +1,98 @@
+{
+  "schema": "chainlesschain.jetbrains-publication-readback.v1",
+  "observedAt": "2026-10-05T02:16:11.909Z",
+  "sourceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "version": "0.4.149",
+  "recommendedCliVersion": "0.166.86",
+  "releaseTag": "ide-jetbrains-v0.4.149",
+  "workflow": {
+    "id": 37252574613,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37252574613",
+    "publishJob": 111586868930,
+    "marketplaceVerificationJob": 111588074937
+  },
+  "hostMatrix": {
+    "total": 6,
+    "successful": 6,
+    "operatingSystems": ["Linux", "Windows", "macOS"],
+    "ideVersions": ["2024.2", "2025.2"]
+  },
+  "uploadedSuccessfully": true,
+  "publiclyDownloadable": false,
+  "marketplace": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "pending",
+    "version": "0.4.149",
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "reason": "version-not-visible",
+    "attempts": 12
+  },
+  "independentPublicReadback": {
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "versionVisible": false,
+    "latestApprovedVersion": "0.4.146",
+    "receipt": "jetbrains-0.4.149-8458-readback/marketplace-updates.json"
+  },
+  "pluginArtifact": {
+    "name": "chainlesschain-ide-bridge-0.4.149.zip",
+    "bytes": 1505249,
+    "sha256": "b80d185e935dbce5bc096cd27244c2d90c3edd89f1ac548ee8cbfca0fa3d681b",
+    "actionsArchiveDigest": "sha256:e4c37359e83cbe7e63dc878aba2df244e7e05af2d0ac1cad52110b1fd565b1b0",
+    "actionsArtifactId": 11322251839,
+    "packagedId": "com.chainlesschain.ide",
+    "packagedVersion": "0.4.149",
+    "runtimeRecommendedCliConstant": "0.166.86",
+    "publicArchiveByteComparisonPerformed": false
+  },
+  "authorSigning": {
+    "performed": false,
+    "reason": "All three author signing secrets are absent; existing workflow skips signPlugin"
+  },
+  "evidenceDirectory": "jetbrains-0.4.149-8458-readback",
+  "files": [
+    {
+      "name": "artifact-readback.json",
+      "bytes": 1078,
+      "sha256": "f1e5384c919d5c28b15fd8d34acd39f2d2546430cc64548094b69163c49342f1"
+    },
+    {
+      "name": "marketplace-updates.json",
+      "bytes": 85263,
+      "sha256": "ca5ec2ab3a16ef22b4e62ba618c8ca83292579e336d048f43ca0256bc1f9ea8c"
+    },
+    {
+      "name": "marketplace-verifier-result.json",
+      "bytes": 257,
+      "sha256": "da26b84f8933b4044aa7332696f79c747ae5513e879e16f710086033840b8ddb"
+    },
+    {
+      "name": "publication-excerpt.txt",
+      "bytes": 925,
+      "sha256": "299df6a319f426fac205d3b83f03646cc13de861808eef8f3f1f3831b299b2b1"
+    },
+    {
+      "name": "receipt.json",
+      "bytes": 3505,
+      "sha256": "32a89058a8843517ae8958a498555ff10fe1a4d704a5a47c062c4b4685581522"
+    },
+    {
+      "name": "workflow-jobs.json",
+      "bytes": 76028,
+      "sha256": "3acfd73761ab0b622bd0a4cdd72e05dad70e5f658259d0e58e0a0aa143515c40"
+    },
+    {
+      "name": "workflow-run.json",
+      "bytes": 15043,
+      "sha256": "aa370ba4fea6a52859f83ab207a2a373b52361eb213e7c728c7d4a990d1791a1"
+    }
+  ],
+  "limitations": [
+    "Marketplace upload success and a healthy pending state do not prove approval, listing, or public ZIP availability",
+    "Marketplace-approved archive has not been downloaded or compared with the uploaded artifact",
+    "Does not complete real-provider tasks, human assistive-technology acceptance, native standalone release, or global performance SLO"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "measuredCommit": "8b13129624d4b7fa5b122a4109151c574564448e",
+  "releaseCommitWithIdenticalPackages": "736784f9994e71525c2c61026663995fe7ee199e",
+  "relatedReleaseCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "relatedReleaseSourceEquivalence": {
+    "packagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+    "identicalToMeasured": true,
+    "scope": "Identical packages Git tree only; actual measurement remains at measuredCommit and does not establish hosted release gates for the related commit"
+  },
+  "packagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+  "rawPath": "C:\\code\\chainlesschain\\.work\\memory-delete-bench-8b131-isolated\\.work\\memory-exact-delete-comparison-8b131.raw.json",
+  "rawSha256": "0006470d8ec807400e429449b9dbe70886d7c163ebd2fee93dad94184ca15b42",
+  "readbackAt": "2026-10-04T19:18:59.685Z",
+  "hardwareObservedAtReadback": {
+    "cpu": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz",
+    "logicalCpus": 8,
+    "totalMemoryBytes": 17050144768
+  },
+  "method": {
+    "realService": "CliCanonicalMemoryService.delete(memoryId), canonical_default, SegmentedMemoryPort, purgePorts=[]",
+    "baselineService": "Unmodified 22c0 service body with only runtime.js import relocation to the byte-identical candidate runtime",
+    "samples": "11 alternating baseline/candidate pairs at each tier; distinct full IDs selected from the same synthetic snapshot; fresh store for each variant/tier; all timings retained",
+    "quantiles": "nearest-rank; at n=11 p95/p99 equal max, not a statistical confidence bound",
+    "included": "ID resolution, actual kernel deletion transitions, two reconciliation-only commits, durable shard/manifest writes and returned deletion receipt",
+    "excluded": [
+      "CLI process startup",
+      "legacy privacy-port cleanup",
+      "fixture setup",
+      "post-write audit verification"
+    ],
+    "validation": "After timing, reopen each store; +4 revisions and +2 events per delete, original audit prefix digest, purged content, reconciliation count, untouched active count checked",
+    "limitations": [
+      "Windows x64 local host only",
+      "Warm OS page cache; no cache clearing or forced GC",
+      "One sequential Node process; no claim that external host load was controlled",
+      "No CLI startup or legacy privacy-port cleanup measurement",
+      "Synthetic fixture is a capacity comparison, not real project effectiveness",
+      "No target-hardware/global SLO or hosted-release-gate claim"
+    ]
+  },
+  "readbackChecksPassed": true,
+  "productionQualified": false,
+  "rows": [
+    {
+      "records": 1000,
+      "variant": "baseline",
+      "samples": 11,
+      "p50Ms": 616.714,
+      "p95Ms": 660.816,
+      "calls": {
+        "read": 11,
+        "listRecords": 11,
+        "query": 11
+      }
+    },
+    {
+      "records": 1000,
+      "variant": "candidate",
+      "samples": 11,
+      "p50Ms": 193.013,
+      "p95Ms": 211.429,
+      "calls": {
+        "read": 22,
+        "listRecords": 0,
+        "query": 0
+      }
+    },
+    {
+      "records": 10000,
+      "variant": "baseline",
+      "samples": 11,
+      "p50Ms": 1494.6,
+      "p95Ms": 1665.553,
+      "calls": {
+        "read": 11,
+        "listRecords": 11,
+        "query": 11
+      }
+    },
+    {
+      "records": 10000,
+      "variant": "candidate",
+      "samples": 11,
+      "p50Ms": 224.075,
+      "p95Ms": 236.856,
+      "calls": {
+        "read": 22,
+        "listRecords": 0,
+        "query": 0
+      }
+    },
+    {
+      "records": 100000,
+      "variant": "baseline",
+      "samples": 11,
+      "p50Ms": 10870.838,
+      "p95Ms": 11411.213,
+      "calls": {
+        "read": 11,
+        "listRecords": 11,
+        "query": 11
+      }
+    },
+    {
+      "records": 100000,
+      "variant": "candidate",
+      "samples": 11,
+      "p50Ms": 612.801,
+      "p95Ms": 647.778,
+      "calls": {
+        "read": 22,
+        "listRecords": 0,
+        "query": 0
+      }
+    }
+  ]
+}

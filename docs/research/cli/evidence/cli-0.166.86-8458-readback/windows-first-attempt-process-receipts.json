@@ -1,0 +1,25 @@
+[
+  {
+    "name": "version",
+    "args": [
+      "--version"
+    ],
+    "startedAt": "2026-10-05T01:43:55.898Z",
+    "endedAt": "2026-10-05T01:43:56.039Z",
+    "exitCode": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "name": "agent-capabilities",
+    "args": [
+      "agent",
+      "--capabilities"
+    ],
+    "startedAt": "2026-10-05T01:43:56.040Z",
+    "endedAt": "2026-10-05T01:43:56.404Z",
+    "exitCode": 1,
+    "signal": null,
+    "error": null
+  }
+]

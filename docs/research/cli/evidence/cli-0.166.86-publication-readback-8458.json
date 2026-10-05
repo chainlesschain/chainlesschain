@@ -1,0 +1,97 @@
+{
+  "schema": "chainlesschain.cli-npm-publication-readback.v1",
+  "verifiedAt": "2026-10-05T01:43:30.030Z",
+  "sourceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "version": "0.166.86",
+  "releaseTag": "v-npm-0-166-86",
+  "workflow": {
+    "id": 37250637296,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296"
+  },
+  "registry": "https://registry.npmjs.org",
+  "cli": {
+    "downloaded": true,
+    "immutableArchiveExactMatch": true,
+    "releaseArtifactContentVerifierPassed": true,
+    "bytes": 9182865,
+    "sha256": "cff9e51f3b7d89518f8e30d7284b96f4d83084ecd669c0a221c3915d9a85f880",
+    "sha512": "9956805ce09aff46edb158729f67fa258629dcdb869e54ee97410da7c3ad2bad55065dc23a2a1e98cb13d21fd291293373023845905f58a99b56528d37a36ef0"
+  },
+  "requiredChild": {
+    "name": "@chainlesschain/context-memory-kernel",
+    "version": "0.1.6",
+    "downloaded": true,
+    "candidateArchiveExactMatch": true,
+    "sha512": "20a6a90291df65328aa9c18cca11ab73178ec8e9f74d81a4fb48dd44f18d8e35568748f11b61fd536932770530a948fb2e59c3ed5b6a6859a8983a0a92a2e90d",
+    "provenanceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1"
+  },
+  "reusableChildren": 12,
+  "signedProvenance": {
+    "authoritativeVerifier": "GitHub Actions npm audit signatures --include-attestations",
+    "downloadedAndDigestBound": true,
+    "independentlyVerifiedRegistryArchiveHashes": true,
+    "localSignatureAuditRerun": false,
+    "cli": {
+      "schema": 1,
+      "verifiedAt": "2026-10-05T01:29:27.077Z",
+      "verifier": "npm audit signatures --include-attestations",
+      "package": "chainlesschain",
+      "version": "0.166.86",
+      "sha512": "9956805ce09aff46edb158729f67fa258629dcdb869e54ee97410da7c3ad2bad55065dc23a2a1e98cb13d21fd291293373023845905f58a99b56528d37a36ef0",
+      "repository": "https://github.com/chainlesschain/chainlesschain",
+      "workflow": ".github/workflows/npm-publish.yml",
+      "ref": "refs/tags/v-npm-0-166-86",
+      "commit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "builder": "https://github.com/actions/runner/github-hosted",
+      "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296/attempts/1",
+      "runId": 37250637296,
+      "attempt": 1,
+      "anchorMode": "exact-release",
+      "audit": {
+        "invalid": 0,
+        "missing": 0
+      }
+    },
+    "kernel": {
+      "schema": 1,
+      "verifiedAt": "2026-10-05T01:21:45.065Z",
+      "verifier": "npm audit signatures --include-attestations",
+      "package": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.6",
+      "sha512": "20a6a90291df65328aa9c18cca11ab73178ec8e9f74d81a4fb48dd44f18d8e35568748f11b61fd536932770530a948fb2e59c3ed5b6a6859a8983a0a92a2e90d",
+      "repository": "https://github.com/chainlesschain/chainlesschain",
+      "workflow": ".github/workflows/npm-publish.yml",
+      "ref": "refs/tags/v-npm-0-166-86",
+      "commit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "builder": "https://github.com/actions/runner/github-hosted",
+      "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296/attempts/1",
+      "runId": 37250637296,
+      "attempt": 1,
+      "anchorMode": "exact-release",
+      "audit": {
+        "invalid": 0,
+        "missing": 0
+      }
+    }
+  },
+  "evidenceDirectory": "cli-0.166.86-8458-readback",
+  "limitations": [
+    "Public archive/content readback and authoritative Actions attestations; does not complete real-provider task or billing acceptance",
+    "Signed native standalone releases are outside this npm publication"
+  ],
+  "independentPublicInstall": {
+    "receipt": "cli-0.166.86-8458-readback/windows-public-install.json",
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "installedCliVersion": "0.166.86",
+    "installedKernelVersion": "0.1.6",
+    "registryOnly": true,
+    "localOverrides": false,
+    "ignoreScripts": true,
+    "exactChildPinsValidated": 10,
+    "versionAndCapabilitiesExitZero": true,
+    "limitation": "Windows smoke with installation scripts disabled; native postinstall and real model requests remain outside this probe"
+  }
+}

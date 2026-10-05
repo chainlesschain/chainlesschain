@@ -1,0 +1,11 @@
+{
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "pending",
+  "version": "0.4.149",
+  "approve": null,
+  "listed": null,
+  "hidden": null,
+  "reason": "version-not-visible",
+  "attempts": 12
+}

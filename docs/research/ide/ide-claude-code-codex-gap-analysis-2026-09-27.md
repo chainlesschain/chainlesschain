@@ -1,6 +1,8 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-09-27）
 
-> 2026-10-05 后续：[准确 `22c0e4036c` 的矩阵回读](../cli/evidence/actions-gap-gates-22c0e4036c.json)为 CLI CI **68/68**、Strict **5/5**通过，IDE **17 成功 / 1 失败 / 1 发布后预期跳过**；Windows 原浏览器失败及全部三系统浏览器/六 JetBrains 宿主门均通过。新失败是 JetBrains 运行时推荐 CLI **0.166.85** 与发布配置 **0.166.86**失配，已对齐常量与现有测试，完整构建与兼容验证仍待新源码门。VERIFY-01 的只读准入校验不能代替双 IDE 实际任务、公开安装、账单或真人听测；见[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05完整矩阵回读与后续工程项)。
+> 2026-10-05 最新复验：推荐版本与 macOS 重试测试均已修复，准确 `8458a0a502` 的[完整发布门](../cli/evidence/cli-ide-0.166.86-candidate-gates-8458.json)全部通过，含 IDE **18 成功 / 1 发布后预期跳过**；macOS 完整 fallback [29,748 测试通过](../cli/evidence/p2p-retry-macos-repair-8458.json)。Kernel **0.1.6** 与 CLI **0.166.86** 已先行[OIDC 发布并完成公开字节回读](../cli/evidence/cli-0.166.86-publication-readback-8458.json)。同一提交的 VS Code **0.37.131** 已在 [Open VSX 公开可下载且 VSIX 字节回读通过](./evidence/vscode-0.37.131-publication-readback-8458.json)；JetBrains **0.4.149** [上传成功，待 Marketplace 审核／上架](./evidence/jetbrains-0.4.149-publication-readback-8458.json)，尚未公开可下载。Microsoft Marketplace 本轮未发布；真人听测、真实任务与全局性能 SLO 不据此关闭，详见[最新实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05macos-ci-修复删除测量与正式发行)。
+
+> 2026-10-05 先前复验（保留当时状态）：[准确 `22c0e4036c` 的矩阵回读](../cli/evidence/actions-gap-gates-22c0e4036c.json)为 CLI CI **68/68**、Strict **5/5**通过，IDE **17 成功 / 1 失败 / 1 发布后预期跳过**；Windows 原浏览器失败及全部三系统浏览器/六 JetBrains 宿主门均通过。新失败是 JetBrains 运行时推荐 CLI **0.166.85** 与发布配置 **0.166.86**失配，已对齐常量与现有测试，完整构建与兼容验证仍待新源码门。VERIFY-01 的只读准入校验不能代替双 IDE 实际任务、公开安装、账单或真人听测；见[实施记录](../cli-ide-gap-implementation-2026-09-27.md#2026-10-05完整矩阵回读与后续工程项)。
 
 > 2026-10-04 Actions 后续修复：[PR #404](https://github.com/chainlesschain/chainlesschain/pull/404)的准确 `22c0e4036c` 已通过 [Windows 浏览器 **157/157**、实际 codec/动画 Worker、Workbench 与两 origin 整项作业](./evidence/browser-windows-repair-22c0e4036c.json)，[ARM64 Docker **24/24**](../cli/evidence/net02-docker-arm64-22c0e4036c.json)亦通过。Windows Node 22.12.0 路径/句柄设备号 **0 / 742408122** 通过 BigInt 身份及读取前后额外句柄核对兼容，保留跨卷、纳秒修改、预算与清理检查。原 **132 通过 / 17 失败**及[诊断](../cli/evidence/actions-gap-repair-20261004.json)保留；[实施状态](../cli-ide-gap-implementation-2026-09-27.md#2026-10-04用户指定的-arm64--windows-actions-失败修复)继续区分指定作业通过、完整发布门及其他真实验收。
 
@@ -14,7 +16,7 @@
 
 ## 一、结论
 
-**最新发布阻断：** `b2aa3aba08` 的 Windows 浏览器作业在配置的 Node **22.12.0** 下出现图片 snapshot 身份拒绝和缺少 `happy-dom`，[准确失败回执](./evidence/browser-windows-failure-b2aa3aba08.json)记录 **109 通过 / 9 失败**、两组未加载 suite；实际 codec 步骤没有执行。依赖声明及身份差异继续修复，新版宿主恢复与完整发布门仍待验收。
+**2026-10-04 先前发布阻断（后续已修复）：** `b2aa3aba08` 的 Windows 浏览器作业在配置的 Node **22.12.0** 下出现图片 snapshot 身份拒绝和缺少 `happy-dom`，[准确失败回执](./evidence/browser-windows-failure-b2aa3aba08.json)记录 **109 通过 / 9 失败**、两组未加载 suite；实际 codec 步骤没有执行。依赖声明及身份差异继续修复，新版宿主恢复与完整发布门仍待验收。
 
 **本轮最新修复：** 新版真实图片旅程定位到 Windows 超长草稿路径的临时目录创建错误，保存失败发生于解码 Worker 启动前。`81a3f8b7a0` 整合原生路径前缀修复，包含实际超过 260 字符路径的完整写入及清理回归，相关 **56/56** 通过。旧候选 `832f6b7270` 因此继续推进；CLI **0.166.86** / VS Code **0.37.131** / JetBrains **0.4.149** 均须新准确提交完整验收后发布。此前 Workbench 性能失败仍保留，不能由路径修复推断其已解决。
 
@@ -32,7 +34,7 @@
 
 2026-10-03 后续实施已补入实际 VS Code 宿主流式测量，以及冻结归档合同下的真实 Volcengine 双轮压缩验收。性能优化和 JetBrains 原生宿主测量继续按准确提交验收，当前有效证据及未闭合范围统一记录于共享实施状态。
 
-以下三段保留 **2026-10-03 历史发布过程**；其中的市场版本与冻结候选不是当前状态，当前发行以本节开头的 0.37.130 / 0.166.85 回执为准。
+以下三段保留 **2026-10-03 历史发布过程**；其中的市场版本与冻结候选不是当前状态，当前发行以文首的 0.37.131 / 0.166.86 回执及 JetBrains 0.4.149 待审核状态为准。
 
 同日已归档准确 `96cbf6ba56` 的三系统 **18** 个真实宿主旅程，并完成设计、用户文档与官网部署。Strict Sandbox 与 IDE 矩阵通过，但 CLI CI 的 Windows worker 同提交重跑仍失败；后续诊断未复现，不能替代完整发布门。当时 VS Code **0.37.127** 为未发布候选，性能 SLO 与辅助技术验收仍开放。
 

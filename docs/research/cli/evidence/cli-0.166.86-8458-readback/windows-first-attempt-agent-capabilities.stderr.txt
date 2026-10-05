@@ -1,0 +1,1 @@
+error: CHAINLESSCHAIN_HOME must not be the current working directory, its worktree, or any nested/ancestor path

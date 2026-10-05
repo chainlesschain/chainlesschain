@@ -1,0 +1,9 @@
+2026-10-05T02:09:47.9512444Z ##[notice]CERTIFICATE_CHAIN is not configured.
+2026-10-05T02:09:47.9520404Z ##[notice]PRIVATE_KEY is not configured.
+2026-10-05T02:09:47.9521559Z ##[notice]PRIVATE_KEY_PASSWORD is not configured.
+2026-10-05T02:09:47.9524147Z ##[warning]Author signing secrets are not configured; signPlugin will be skipped, matching the existing Marketplace release path.
+2026-10-05T02:10:05.1641926Z > Task :signPlugin SKIPPED
+2026-10-05T02:10:07.3463254Z > Task :publishPlugin
+2026-10-05T02:10:07.3465140Z BUILD SUCCESSFUL in 19s
+2026-10-05T02:12:29.1756527Z {"channel":"jetbrains","endpoint":"https://plugins.jetbrains.com/api/plugins/32208/updates","status":"pending","version":"0.4.149","approve":null,"listed":null,"hidden":null,"reason":"version-not-visible","attempts":12}
+2026-10-05T02:12:29.1773695Z ##[warning]JetBrains Marketplace upload succeeded; version 0.4.149 is pending manual approval/listing.

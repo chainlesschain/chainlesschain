@@ -1,0 +1,220 @@
+{
+  "sourceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "auditedAt": "2026-10-04T18:42:47.688Z",
+  "mode": "read-only-release-preparation-not-a-release-gate",
+  "sourceArchiveCommit": "8b13129624d4b7fa5b122a4109151c574564448e",
+  "identicalPackagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+  "nonPackageReleaseFilesUnchangedFromArchive": [
+    "package-lock.json",
+    "CHANGELOG.md"
+  ],
+  "registryCliLatest": "0.166.85",
+  "registryKernelLatest": "0.1.5",
+  "mustPublish": [
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.6",
+      "reason": "exact CLI dependency pin; registry E404; tarball differs from 0.1.5 only in package.json version"
+    },
+    {
+      "name": "chainlesschain",
+      "version": "0.166.86",
+      "reason": "candidate version unavailable in npm; changes since published 0.166.85"
+    }
+  ],
+  "reusableChildArchiveCount": 12,
+  "additionalChildVersionBumpsRequired": [],
+  "manifests": [
+    {
+      "directory": "agent-protocol",
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "lockVersion": "0.1.12",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "agent-sdk",
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.12",
+      "lockVersion": "0.2.12",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "context-memory-kernel",
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.6",
+      "lockVersion": "0.1.6",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "core-env",
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "lockVersion": "0.1.2",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "core-mtc",
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "lockVersion": "0.2.3",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "core-multisig",
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "lockVersion": "0.1.4",
+      "internalDependencies": {
+        "@chainlesschain/core-mtc": "^0.2.0"
+      },
+      "lockAligned": true
+    },
+    {
+      "directory": "core-settlement",
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "lockVersion": "0.1.2",
+      "internalDependencies": {
+        "@chainlesschain/core-mtc": "^0.2.0"
+      },
+      "lockAligned": true
+    },
+    {
+      "directory": "shared-logger",
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "lockVersion": "0.1.1",
+      "internalDependencies": {
+        "@chainlesschain/core-env": "0.1.2"
+      },
+      "lockAligned": true
+    },
+    {
+      "directory": "core-config",
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "lockVersion": "0.1.2",
+      "internalDependencies": {
+        "@chainlesschain/core-env": "0.1.2"
+      },
+      "lockAligned": true
+    },
+    {
+      "directory": "core-db",
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "lockVersion": "0.1.5",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "core-infra",
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "lockVersion": "0.1.1",
+      "internalDependencies": {
+        "@chainlesschain/shared-logger": "0.1.1"
+      },
+      "lockAligned": true
+    },
+    {
+      "directory": "session-core",
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.14",
+      "lockVersion": "0.3.14",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "personal-data-hub",
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.62",
+      "lockVersion": "0.4.62",
+      "internalDependencies": {},
+      "lockAligned": true
+    },
+    {
+      "directory": "cli",
+      "name": "chainlesschain",
+      "version": "0.166.86",
+      "lockVersion": "0.166.86",
+      "internalDependencies": {
+        "@chainlesschain/context-memory-kernel": "0.1.6",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.62",
+        "@chainlesschain/session-core": "0.3.14",
+        "@chainlesschain/shared-logger": "0.1.1"
+      },
+      "lockAligned": true
+    }
+  ],
+  "releaseConditions": [
+    "CLI CI complete success on Linux Windows macOS for sourceCommit",
+    "CLI Strict Sandbox complete success on Linux Windows macOS for sourceCommit",
+    "GitHub Actions npm-publish.yml OIDC; no npm tokens or local publishing",
+    "publish context-memory-kernel 0.1.6 and verify public tarball/provenance before CLI",
+    "CLI public readback before IDE publication"
+  ],
+  "candidateReleaseNotes": {
+    "cli": "0.166.86",
+    "vscode": "0.37.131",
+    "jetbrains": "0.4.149"
+  },
+  "limitations": [
+    "Does not claim release gates passed; parent monitors current exact-SHA workflows.",
+    "No publication, tags, source edits, branch changes or commits performed.",
+    "Audit-installed Agent SDK dependencies and generated dist exist only in this .work audit directory."
+  ],
+  "previousAuditedCommit": "736784f9994e71525c2c61026663995fe7ee199e",
+  "archiveExtractedAt": "8b13129624d4b7fa5b122a4109151c574564448e",
+  "method": {
+    "updatedAt": "2026-10-04T19:25:43.321Z",
+    "summary": "Reuse the completed exact npm tarball byte comparison only after verifying identical packages Git tree, root package-lock.json blob and CHANGELOG.md blob across archive source, previous audit and current release source. No tarball comparison or publication rerun.",
+    "sourceEquivalence": [
+      {
+        "commit": "8b13129624d4b7fa5b122a4109151c574564448e",
+        "packagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+        "rootLockBlob": "abf888883e748215a5a51defcae94512e834dd9c",
+        "changelogBlob": "0a6347bd6f94bd596a5ef03d544b7ffa3befe074"
+      },
+      {
+        "commit": "736784f9994e71525c2c61026663995fe7ee199e",
+        "packagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+        "rootLockBlob": "abf888883e748215a5a51defcae94512e834dd9c",
+        "changelogBlob": "0a6347bd6f94bd596a5ef03d544b7ffa3befe074"
+      },
+      {
+        "commit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+        "packagesTree": "bce9601db3e9336c76095d4c1dc845ea00c17243",
+        "rootLockBlob": "abf888883e748215a5a51defcae94512e834dd9c",
+        "changelogBlob": "0a6347bd6f94bd596a5ef03d544b7ffa3befe074"
+      }
+    ],
+    "archiveComparison": "npm pack --ignore-scripts from the extracted Git archive; Agent SDK built only in the isolated .work copy; compare SHA-512 of all local and public immutable npm archives. All 12 reusable child archives match byte for byte.",
+    "pendingChild": "Only @chainlesschain/context-memory-kernel@0.1.6 remains unpublished among the 13 child candidates; it must be OIDC-published by npm-publish.yml and publicly verified before CLI 0.166.86. Other child versions require no bump.",
+    "trustedReuse": {
+      "packages": [
+        "@chainlesschain/agent-sdk@0.2.12",
+        "@chainlesschain/agent-protocol@0.1.12"
+      ],
+      "workflow": ".github/workflows/npm-publish.yml",
+      "tag": "refs/tags/v-npm-0-166-78",
+      "commit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "sdkTree": "d40af5f61cdc6c1b06e44e006098c89597acb429",
+      "protocolTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "proof": "Public SLSA payloads bind the workflow, tag, commit and archive SHA-512; GitHub tag API confirms the anchor commit. Full package Git trees match the current candidate. Cryptographic npm audit remains the authoritative release workflow step."
+    },
+    "releaseGateScope": "Only complete successful matrices attached to the latest sourceCommit authorize release. Previous SHA matrices do not substitute for current gates."
+  }
+}

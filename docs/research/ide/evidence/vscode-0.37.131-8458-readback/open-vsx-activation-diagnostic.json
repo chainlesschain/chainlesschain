@@ -1,0 +1,38 @@
+{
+  "observedAt": "2026-10-05T02:08:29.364Z",
+  "run": {
+    "id": 37252575170,
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37252575170"
+  },
+  "endpoint": {
+    "version": "0.37.131",
+    "downloadable": true,
+    "namespace": "chainlesschain",
+    "name": "chainlesschain-ide",
+    "aliases": [
+      "latest"
+    ],
+    "files": {
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.vsix",
+      "signature": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.sigzip",
+      "manifest": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/package.json",
+      "readme": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/readme.md",
+      "changelog": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/changelog.md",
+      "license": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/LICENSE.txt",
+      "icon": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/logo.png",
+      "vsixmanifest": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/extension.vsixmanifest",
+      "sha256": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.sha256",
+      "publicKey": "https://open-vsx.org/api/-/public-key/14ccb407-4e79-41ed-be5a-6d608325c45a"
+    }
+  },
+  "nonceStatus": "HTTP/1.1 200 OK",
+  "plainStatus": "HTTP/1.1 200 OK",
+  "plainVersion": "0.37.131",
+  "exactActivation404Attempts": 5,
+  "conclusion": "Transient marketplace activation/propagation delay resolved without source, workflow, version, or publication changes. Upload succeeded at 02:03:00Z; exact endpoint remained 404 for five attempts through 02:05:01Z; full listing and archive verification succeeded at 02:05:32Z. Both independent nonce and plain exact endpoints now return 200.",
+  "cacheQualification": "Successful responses have Cache-Control public,max-age=600, Age=0 and X-Cache MISS. This confirms a caching layer but does not prove that the earlier 404 was negatively cached; no earlier 404 response headers were captured here. Cannot distinguish origin activation lag from earlier cache propagation with available evidence.",
+  "changes": "Only diagnostic files under .work/astra-openvsx-0131; no publication or repository source changes."
+}

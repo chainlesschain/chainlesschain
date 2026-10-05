@@ -1,0 +1,162 @@
+{
+  "name": "chainlesschain-cli",
+  "version": "0.166.86",
+  "protocol_version": 1,
+  "min_protocol_version": 1,
+  "agent_tools": [
+    "read_file",
+    "write_file",
+    "delete_file",
+    "move_file",
+    "notebook_edit",
+    "edit_file",
+    "edit_file_hashed",
+    "run_shell",
+    "check_shell",
+    "git",
+    "search_files",
+    "code_intelligence",
+    "list_dir",
+    "run_skill",
+    "list_skills",
+    "run_code",
+    "spawn_sub_agent",
+    "web_fetch",
+    "web_search",
+    "todo_write",
+    "slash_command",
+    "ask_user_question",
+    "search_sessions",
+    "notify",
+    "schedule",
+    "publish_artifact",
+    "browser_state",
+    "browser_act"
+  ],
+  "permission_modes": [
+    "default",
+    "manual",
+    "auto",
+    "dontAsk",
+    "plan",
+    "acceptEdits",
+    "bypassPermissions"
+  ],
+  "output_formats": [
+    "text",
+    "json",
+    "stream-json"
+  ],
+  "input_formats": [
+    "text",
+    "stream-json"
+  ],
+  "exit_codes": {
+    "OK": 0,
+    "ERROR": 1,
+    "HOOK_BLOCKED": 2,
+    "MAX_TURNS": 3,
+    "MAX_BUDGET": 4,
+    "MODEL_ERROR": 5,
+    "CONFIG_ERROR": 6,
+    "INTERRUPT_SIGINT": 130,
+    "INTERRUPT_SIGTERM": 143
+  },
+  "features": {
+    "bare": true,
+    "safe_mode": true,
+    "ephemeral": true,
+    "background": true,
+    "worktree": true,
+    "checkpoint": true,
+    "json_schema_output": true,
+    "partial_messages": true,
+    "interactive_approvals": true,
+    "permission_prompt_tool": true,
+    "remote_control": true,
+    "event_seq": true,
+    "tool_use_id": true,
+    "permission_decision": true,
+    "trace_id": true,
+    "mcp": {
+      "config_file": true,
+      "registry": true,
+      "tool_search": true,
+      "oauth": true,
+      "managed_allowlist": true
+    },
+    "sandbox_engines": [
+      "docker",
+      "bubblewrap"
+    ]
+  },
+  "evolution_status": {
+    "schemaVersion": 1,
+    "manifestDigest": "141197b4b2958899",
+    "evidenceDigest": "sha256:ce95d3b56b3dfaee4f6104595383ec850e206253b29779cc90483bb052729c7f",
+    "capabilities": [
+      {
+        "id": "learning-synthesis",
+        "implemented": true,
+        "dependencies": [
+          "llm",
+          "candidate-registry",
+          "independent-evaluator"
+        ],
+        "gates": [
+          "candidate-only-output",
+          "artifact-persisted",
+          "eval-before-promotion"
+        ],
+        "mutationScope": "candidate-only",
+        "wired": false,
+        "verified": false,
+        "defaultEnabled": false,
+        "lastEvidence": null,
+        "state": "not-wired",
+        "evidenceDigest": "sha256:d872a63f52fe6709d00b996237eaea9c44e8bbc9bd37e31473b20402d32aa46e"
+      },
+      {
+        "id": "skill-improvement",
+        "implemented": true,
+        "dependencies": [
+          "candidate-registry",
+          "independent-evaluator"
+        ],
+        "gates": [
+          "candidate-only-output",
+          "active-write-denied",
+          "eval-before-promotion"
+        ],
+        "mutationScope": "candidate-only",
+        "wired": false,
+        "verified": false,
+        "defaultEnabled": false,
+        "lastEvidence": null,
+        "state": "not-wired",
+        "evidenceDigest": "sha256:d2f0c646c6b8eb7c3f67b4c33311099802fbc2fdbca382e9e40fb3a1ed8cdbec"
+      },
+      {
+        "id": "skill-candidate-registry",
+        "implemented": true,
+        "dependencies": [
+          "private-storage",
+          "hard-link-cas"
+        ],
+        "gates": [
+          "content-addressed-artifact",
+          "digest-bound-lineage",
+          "immutable-publication",
+          "path-and-symlink-defense"
+        ],
+        "mutationScope": "candidate-only",
+        "wired": false,
+        "verified": false,
+        "defaultEnabled": false,
+        "lastEvidence": null,
+        "state": "not-wired",
+        "evidenceDigest": "sha256:6dd119d6dcbb9de489a01d4b337bb4b671f50366dd1c1a945ce3eeb2a8eb8e91"
+      }
+    ]
+  }
+}

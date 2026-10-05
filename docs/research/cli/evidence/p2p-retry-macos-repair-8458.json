@@ -1,0 +1,85 @@
+{
+  "schema": "chainlesschain.p2p-retry-ci-repair.v1",
+  "observedAt": "2026-10-04T19:20:39.542Z",
+  "originalFailure": {
+    "runId": 37220897975,
+    "jobId": 111490913397,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37220897975/job/111490913397",
+    "sha": "8b13129624d4b7fa5b122a4109151c574564448e",
+    "jobName": "Unit Tests (macos-latest, 22.x)",
+    "conclusion": "failure",
+    "completedAt": "2026-10-04T18:21:03Z",
+    "assertion": "expected attempts 0; received 2",
+    "suiteCounts": {
+      "filesPassed": 1522,
+      "filesFailed": 1,
+      "filesSkipped": 9,
+      "testsPassed": 29747,
+      "testsFailed": 1,
+      "testsSkipped": 472
+    },
+    "capturedLogSha256": "b5c1add4ca096bfa638d2f36339d5f7db1f41d27893e6cc4b09e14e399df4fe5",
+    "excerptSha256": "d372936ebdfc1df66ef71d7ad0cba1da35f9214a5b1881c5022dc44e192de29c",
+    "capturedExcerptSha256": "fb7dcc18c3eb5a97a5a75eaaf2a908717faf2dfc584865236a8002c07012f697",
+    "excerptNormalization": "Archived excerpt removes trailing horizontal whitespace only; captured full log hash and captured excerpt hash retain the original bytes."
+  },
+  "fix": {
+    "sha": "736784f9994e71525c2c61026663995fe7ee199e",
+    "file": "desktop-app-vue/tests/unit/p2p/device-sync-manager-retry.test.js",
+    "beforeBlob": "b72cbf86657c8c91f050510076307522d369b4fe",
+    "afterBlob": "0efff977b4c53ca7add377ff7744dfad7c124cfa",
+    "productionCodeChanged": false,
+    "scope": "This file defines its own RetryEnabledSyncManager fixture; these assertions do not establish production DeviceSyncManager behavior.",
+    "cause": "Fixed wall-clock waits do not guarantee completion of nested async retries under hosted macOS load.",
+    "changes": [
+      "Advance fake timers at the 200ms and 400ms backoff boundaries",
+      "Hold the third send pending, assert attempts=3/PENDING, then await the success event after persistence",
+      "Retain attempts=0/SENT and maxRetries/DLQ assertions and original test timeout",
+      "Check persisted zero attempts and absence of leftover retries",
+      "Advance the max-retry case at the 100ms and 200ms boundaries"
+    ]
+  },
+  "localValidation": {
+    "command": "..\\node_modules\\.bin\\vitest.cmd run --config ..\\.work\\device-sync-retry-vitest.config.mjs tests/unit/p2p/device-sync-manager-retry.test.js --reporter=dot",
+    "workdir": "desktop-app-vue",
+    "filesPassed": 1,
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "durationMs": 817,
+    "limitation": "Local desktop Vite config could not load @vitejs/plugin-vue; same complete test file ran with a minimal Node Vitest config. GitHub Actions remains the authoritative hosted gate."
+  },
+  "hostedRevalidation": {
+    "runId": 37225592254,
+    "jobId": 111504534524,
+    "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+    "jobName": "Unit Tests (macos-latest, 22.x)",
+    "status": "completed",
+    "conclusion": "success",
+    "completedAt": "2026-10-04T19:12:09Z",
+    "selectorMode": "fail-closed; full stable fallback",
+    "filesPassed": 1523,
+    "filesSkipped": 9,
+    "testsPassed": 29748,
+    "testsSkipped": 472,
+    "testsFailed": 0,
+    "repairedFileTestsPassed": 12,
+    "capturedLogSha256": "c7cde6cdb55fcb28120f663a62e60bf9968fcc42aceee5aa3b5e809474efdb19",
+    "excerptSha256": "f4b14d86569850b22d9857aec989830348b330572be125a9e5039cb0207d0162",
+    "fullRunConclusionAtReadback": null,
+    "capturedExcerptSha256": "1468d35ed136e6988b5c5f6c517d5238983291df4d382c4aa3fce7f7b740e225",
+    "excerptNormalization": "Archived excerpt removes trailing horizontal whitespace only; captured full log hash and captured excerpt hash retain the original bytes.",
+    "fullRunFinalConclusion": "success",
+    "fullRunFinalCounts": {
+      "success": 14
+    },
+    "fullRunFinalObservedAt": "2026-10-05T01:12:41.776Z"
+  },
+  "supersededHostedRevalidation": {
+    "runId": 37225241859,
+    "jobId": 111503433888,
+    "sha": "736784f9994e71525c2c61026663995fe7ee199e",
+    "status": "completed",
+    "conclusion": "cancelled",
+    "reason": "Superseded main push; not used as release proof"
+  }
+}

@@ -1,0 +1,7 @@
+2026-10-05T02:03:00.0506239Z 🚀  Published chainlesschain.chainlesschain-ide v0.37.131
+2026-10-05T02:03:00.4282316Z [verify-ide-marketplace] exact activation attempt 1/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-05T02:03:30.6403001Z [verify-ide-marketplace] exact activation attempt 2/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-05T02:04:00.8635383Z [verify-ide-marketplace] exact activation attempt 3/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-05T02:04:31.0733610Z [verify-ide-marketplace] exact activation attempt 4/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-05T02:05:01.4500424Z [verify-ide-marketplace] exact activation attempt 5/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-05T02:05:32.8299173Z {"channel":"open-vsx","endpoint":"https://open-vsx.org/api/chainlesschain/chainlesschain-ide","status":"ready","version":"0.37.131","latest":"0.37.131","downloadable":true,"listed":true,"registryArchiveSha256":"7f22901c51ea61ec9b5741fe1fd36e52603d74f09e9ec860328d876b631355cc","localArchiveSha256":"7f22901c51ea61ec9b5741fe1fd36e52603d74f09e9ec860328d876b631355cc","contentSha256":"573b012c3bbbf9b8263db5458a00c794bdbaab84b5986ff99bbb375fb08a2cbe"}

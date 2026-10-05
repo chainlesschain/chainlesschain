@@ -1,0 +1,68 @@
+{
+  "schema": "chainlesschain.vscode-publication-readback.v1",
+  "verifiedAt": "2026-10-05T02:09:49.969Z",
+  "sourceCommit": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "version": "0.37.131",
+  "recommendedCliVersion": "0.166.86",
+  "releaseTag": "ide-vscode-v0.37.131",
+  "workflow": {
+    "id": 37252575170,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37252575170"
+  },
+  "channel": "Open VSX",
+  "publiclyDownloadable": true,
+  "publicDownloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.vsix",
+  "bytes": 707772,
+  "sha256": "7f22901c51ea61ec9b5741fe1fd36e52603d74f09e9ec860328d876b631355cc",
+  "sha512": "1b9c6364a333a7f5bb7c468e98e18266a14e366a64e0a295e8d468aeefa3d3c4c920b81dfc5535baa2cf2de2be4adf73ed7a8d2ef89c9efb517571123fd7b7b5",
+  "immutableCandidateByteMatch": true,
+  "releaseArtifactVerifierPassed": true,
+  "evidenceDirectory": "vscode-0.37.131-8458-readback",
+  "microsoftMarketplace": {
+    "publishedByThisRelease": false,
+    "reason": "VSCE_PAT is not configured; established primary release channel is Open VSX"
+  },
+  "limitations": [
+    "No claim of real-provider task effectiveness, human assistive-technology acceptance, or global performance SLO"
+  ],
+  "activationDelay": {
+    "resolved": true,
+    "uploadTime": "2026-10-05T02:03:00.0506239Z",
+    "listingVerifiedTime": "2026-10-05T02:05:32.8299173Z",
+    "initialExactEndpoint404Attempts": 5,
+    "qualification": "Available evidence cannot distinguish origin activation lag from earlier cache propagation"
+  },
+  "files": [
+    {
+      "name": "artifact-readback.json",
+      "bytes": 1232,
+      "sha256": "91c5e8e0e2d3c15095f1eee51aca8d33afba2cfa72af973d9743e6c00ba02ef5"
+    },
+    {
+      "name": "manifest.json",
+      "bytes": 714,
+      "sha256": "af89736362a1e482cb589560354f2fdd9282f2fbefeabf64082a2cc33f290257"
+    },
+    {
+      "name": "open-vsx-activation-diagnostic.json",
+      "bytes": 2624,
+      "sha256": "35884316c87534c85f6fed9f9a8ae3b3e893cf4ce4f237214682bf2384be5e42"
+    },
+    {
+      "name": "open-vsx-metadata.json",
+      "bytes": 10867,
+      "sha256": "792b7554933f580aaf17d441ab5fa35d9c7633185593e84ce7185fe85b2fc746"
+    },
+    {
+      "name": "publication-excerpt.txt",
+      "bytes": 1352,
+      "sha256": "d10e6db3e5b5507a8ca070f7ad315373ffaec61089e43e518d24ff376193fb51"
+    },
+    {
+      "name": "receipt.json",
+      "bytes": 3505,
+      "sha256": "4bd7cc389aa368ce16ee97c457255768026dab8c0f047207894d17065820b013"
+    }
+  ]
+}

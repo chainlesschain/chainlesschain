@@ -1,0 +1,93 @@
+{
+  "observedAt": "2026-10-05T01:41:57.982Z",
+  "sha": "8458a0a5027d1a844e382f8ad5624894745d1ef1",
+  "run": {
+    "id": 37250637296,
+    "name": "Publish CLI release to npm",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37250637296"
+  },
+  "artifacts": [
+    {
+      "id": 11321135626,
+      "name": "chainlesschain-npm-readback-8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "zipDigest": "sha256:8dc2ab3cf7b846dea9646cf000e28bc9901dc23ba069a14fa89148f967c0a4aa",
+      "files": [
+        {
+          "name": "chainlesschain-release.json",
+          "bytes": 2606,
+          "sha256": "dde24bad0eb91ce3e2de2ede51d6f0fc7555f063dcbf70e585630e45ae885c40"
+        },
+        {
+          "name": "chainlesschain-npm-provenance.json",
+          "bytes": 831,
+          "sha256": "d3273282276e6b969a769833706ac33f4fa84bc671b53010765392232c30e65d"
+        },
+        {
+          "name": "agent-protocol-npm-provenance.json",
+          "bytes": 1207,
+          "sha256": "da2cb1609e0f29304c0dab41257f0ac083ae024f1c4335d360c2dfd3b562b459"
+        },
+        {
+          "name": "agent-sdk-npm-provenance.json",
+          "bytes": 1197,
+          "sha256": "8a2031ad7d122da4674fce4df072151f9acd499485cdfaa126996468db41a2d5"
+        },
+        {
+          "name": "context-memory-kernel-npm-provenance.json",
+          "bytes": 851,
+          "sha256": "832ef0bab98767cc07d3245a01af12a6391988c1d0c3f1cf0e66ba272f9ceef8"
+        },
+        {
+          "name": "cli-public-child-install.json",
+          "bytes": 3282,
+          "sha256": "f34d06766e916ae7320af14fcb05dfbb8fb2dc527828b5b03ec24fb47b846b47"
+        },
+        {
+          "name": "children/chainlesschain-core-db-0.1.5.tgz",
+          "bytes": 10302,
+          "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+        },
+        {
+          "name": "children/chainlesschain-session-core-0.3.14.tgz",
+          "bytes": 67614,
+          "sha256": "cd84b8c21ec3d33711e185e6386a522884fd3098eef6176f245a5eb33bef4866"
+        }
+      ]
+    },
+    {
+      "id": 11320648509,
+      "name": "chainlesschain-npm-8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "zipDigest": "sha256:b9c8bc41712a45c6237daa8db63c53ce57f51efdd5baf1bf78d7b87f41bbbc64",
+      "files": [
+        {
+          "name": "chainlesschain-0.166.86.tgz",
+          "bytes": 9182865,
+          "sha256": "cff9e51f3b7d89518f8e30d7284b96f4d83084ecd669c0a221c3915d9a85f880"
+        },
+        {
+          "name": "chainlesschain-release.json",
+          "bytes": 2606,
+          "sha256": "dde24bad0eb91ce3e2de2ede51d6f0fc7555f063dcbf70e585630e45ae885c40"
+        },
+        {
+          "name": "chainlesschain-sbom.cdx.json",
+          "bytes": 656817,
+          "sha256": "9ce5a8f923a13dd74803fd9f11ea9c5795f6820a9fa519c180c5cb25306bf908"
+        }
+      ]
+    },
+    {
+      "id": 11320228045,
+      "name": "cli-release-gate-8458a0a5027d1a844e382f8ad5624894745d1ef1",
+      "zipDigest": "sha256:3a36c8c21037a5ccd27de8b83016f53d9f83abb7f91ef9a4760a19ada4e97ba9",
+      "files": [
+        {
+          "name": "cli-release-gate.json",
+          "bytes": 923,
+          "sha256": "7758392db59dca52a440cbe9e0e23e479d3407f7db09bd769997ba0dfd0462fe"
+        }
+      ]
+    }
+  ]
+}
