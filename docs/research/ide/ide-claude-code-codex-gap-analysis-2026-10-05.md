@@ -1,6 +1,6 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
-> **身份与 Actions 续做**：Windows IntelliJ 2024.2 / 插件 0.4.152 在同一 IDE 进程完成八阶段 CLI 身份旅程，包括错误显式路径、GCC、managed fallback、同路径替换及安装后无需重启恢复；手动更新失败提示也已实际验证，安全归档保留失败摘要及限定窗口截图。该回执使用本地命令 fixture 和源码字节溯源，不计正式公开安装或 provider 样本。Docker 权限、依赖及行为控制修复已提交 `main` 的 `49d36bc06e`，新六分片结果待回读。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，原审计快照与正式 36+9 边界保留。
+> **身份与 Actions 续做**：Windows IntelliJ 2024.2 / 插件 0.4.152 在同一 IDE 进程完成八阶段 CLI 身份旅程，包括错误显式路径、GCC、managed fallback、同路径替换及安装后无需重启恢复；手动更新失败提示也已实际验证，安全归档保留失败摘要及限定窗口截图。该回执使用本地命令 fixture 和源码字节溯源，不计正式公开安装或 provider 样本。`49d36bc06e` 的 Docker 第 3 分片确认 SQLite 与三题验收通过，仍暴露 DOM workspace 缺失和 verify-15 漏检；剩余排队分片已取消，失败证据保留，后续修复待完整验证。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，原审计快照与正式 36+9 边界保留。
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
 

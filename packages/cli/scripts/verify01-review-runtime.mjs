@@ -508,8 +508,11 @@ export function runReviewStage(
           "ci",
           "--workspace",
           "packages/cli",
-          // Frozen DOM tests depend on the root's locked happy-dom package.
-          "--include-workspace-root=true",
+          // In the frozen project happy-dom belongs to the desktop workspace,
+          // although its tests are imported by CLI/IDE acceptance modules.
+          "--workspace",
+          "desktop-app-vue",
+          "--include-workspace-root=false",
           "--legacy-peer-deps",
           "--ignore-scripts",
           "--no-audit",

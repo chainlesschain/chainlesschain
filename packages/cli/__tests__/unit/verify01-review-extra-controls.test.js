@@ -38,6 +38,26 @@ function copySource(root, relative) {
 }
 
 function isolateUnusedDependencies(root, taskId) {
+  if (taskId === "verify-15") {
+    for (const file of [
+      "project-root.cjs",
+      "permission-rules.cjs",
+      "durable-security-store.js",
+      "with-file-lock.js",
+      "settings-permission-authority.cjs",
+      "paths.js",
+    ])
+      copySource(root, `packages/cli/src/lib/${file}`);
+    // The test supplies an explicit state path and exercises the real durable
+    // store/lock. Persistent settings binding and default path lookup are idle.
+    return `
+import { vi } from "vitest";
+vi.mock("./packages/cli/src/lib/settings-permission-authority.cjs", () => ({ default: {} }));
+vi.mock("./packages/cli/src/lib/paths.js", () => ({
+  getMachineSecurityAnchorDir() { throw new Error("unexpected default authority path lookup"); },
+}));
+`;
+  }
   if (taskId === "verify-05") {
     for (const file of [
       "claude-code-bridge.js",
@@ -110,7 +130,13 @@ it("extra diagnostic controls pass real APIs and reject every specified behavior
       test: { include: ["*/control.test.js"], maxWorkers: 1, testTimeout: 10000 },
     };`,
     );
-    for (const taskId of ["verify-05", "verify-11", "verify-13", "verify-29"]) {
+    for (const taskId of [
+      "verify-05",
+      "verify-11",
+      "verify-13",
+      "verify-15",
+      "verify-29",
+    ]) {
       const spec = VERIFY01_REVIEW_SPECS.find(
         (entry) => entry.taskId === taskId,
       );
@@ -188,8 +214,8 @@ it("extra diagnostic controls pass real APIs and reject every specified behavior
       if (item.mutated)
         expect(failed[0].failureMessages.join("\n")).toMatch(/AssertionError/);
     }
-    expect(report.numFailedTests).toBe(6);
-    expect(report.numPassedTests).toBe(10);
+    expect(report.numFailedTests).toBe(7);
+    expect(report.numPassedTests).toBe(11);
     expect(result.status).toBe(1);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

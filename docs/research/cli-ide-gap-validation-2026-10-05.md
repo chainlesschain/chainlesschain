@@ -17,22 +17,30 @@ Node 官方镜像默认使用 root；验收器使用 `--cap-drop ALL`，该 root
 第二轮修复提交 `49d36bc06e65969b7f1dbf665e1ef585b84c4b81` 包含：
 
 - 官方 Node 22.12.0 bookworm 完整镜像，提供冻结权限测试调用的真实 Git；工作流仍按实际 image ID 固定容器。
-- CLI 与 root 的完整锁定依赖安装，补齐冻结 DOM 测试需要的 happy-dom。继续 `--ignore-scripts`，仅显式调用锁定的 SQLite prebuild installer；实际内存查询验证及原生文件字节摘要写入回执。WSL / Node 22.12.0 的独立安装与查询补验通过，该结果不代表本机 Docker 可用。
+- CLI 与 root 的锁定依赖安装，尝试补齐 DOM 依赖；随后实际 CI 证实冻结项目的 happy-dom 属于 `desktop-app-vue`，该安装范围不足。继续 `--ignore-scripts`，仅显式调用锁定的 SQLite prebuild installer；实际内存查询验证及原生文件字节摘要写入回执。WSL / Node 22.12.0 的独立安装与查询补验通过，该结果不代表本机 Docker 可用。
 - 精确识别 Vitest `rejects/resolves` 序列化为 Error 的断言失配，同时要求实际 matcher 栈。真实子进程的三种 Promise 断言分别接受，普通应用错误、加载异常、skip/空测试仍拒绝。
 - 保留基线完整执行，并为实际漏检的行为反例增加可执行控制。verify-07 的原基线在游标反例下进入同步死循环；该题候选使用有限次分页直接断言边界，基线仍在 setup/check 单独完整执行，两个原反例不变，未扩大 timeout。
 - 文档题使用明确短句要求缺失样本不得报告 PASS，仍运行真实 fingerprint 与空报告退出码检查。
 
 三个定向 Windows 测试文件 **21/21 通过**，格式、定向 ESLint 与 diff 检查通过；冻结主模块及原始反例的补充测试均通过，其中 headless approval 的完整冻结源码本地控制为正常实现通过、原 `pending.resolve(true)` 反例触发 AssertionError。主模块补验不替代完整 frozen Docker 环境。
 
-准确提交的[第二轮六分片运行 #37312209419](https://github.com/chainlesschain/chainlesschain/actions/runs/37312209419) 已触发，完整结果待回读；当前不能标记整包成功。
+准确提交的[第二轮运行 #37312209419](https://github.com/chainlesschain/chainlesschain/actions/runs/37312209419) 已完成第 3 分片，verify-03、09、21 通过；verify-15 未拒绝计数器耗尽反例，verify-27、33 因缺少 happy-dom 失败。按用户取消过期运行的要求，剩余五个排队分片已取消；该 run 最终为 `cancelled`，不提供完整矩阵成功证据。[原始失败 ZIP](./cli/evidence/gap-2026-10-05/verify01-docker-ci-49d/readback.json) 已与 GitHub artifact digest 核验一致。
 
-## 2. JetBrains 身份旅程
+后续修复将锁定安装范围改为 CLI 与 `desktop-app-vue` 两个 workspace，明确排除 root；冻结项目的依赖声明由 `git show` 核实。继续保持 `--ignore-scripts` 和显式 SQLite prebuild installer。verify-15 补充真实权限 store 的 add generation、revoke generation/revision 耗尽断言，验证拒绝操作且落盘字节不变；当前与冻结源码两轮补验均通过，18 个子测试分别为 11 正对照通过、7 原反例产生预期 AssertionError。实际 Docker 全包结果须等待新准确提交的六分片验证。
+
+## 2. JetBrains CI 就绪探针修复
+
+准确提交 `ad129eb3feee7a284d08d8ff460fe5642719382f` 的 [IDE Extensions #37313555158](https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158) 出现四个宿主失败：[Windows 2024.2](https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494785)、[Windows 2025.2](https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494855)、[Linux 2024.2](https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494705)、[Linux 2025.2](https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494796)。原始制品核验后确认共因为 `NativeTranscriptProbe.readyState` 反射读取已经移除的 `cachedVersionOut`，抛出 `NoSuchFieldException`；恢复与 Stop 的 initial 证据已写出，随后 native transcript 就绪测量失败。
+
+四份原始失败 JUnit XML 已[归档并核验摘要](./ide/evidence/gap-2026-10-05/ide-ci-ad129/readback.json)，未公开 ZIP 内未审截图。修复仅更新 UI 测试探针与 Robot 调度：在后台执行真实 CLI 身份探测，再在 EDT 读取界面状态并确认配置仍有效。保留 fixture 版本观察及全部就绪条件，不恢复生产缓存、不移除 native transcript 验证门。Java 编译、2 项探针回归与 49 项证据校验通过；CLI 的三个相关文件 21/21 通过。此项仍须以新准确提交的完整真实宿主矩阵验收。
+
+## 3. JetBrains 身份旅程
 
 真实 Windows IntelliJ 2024.2 / 插件 0.4.152 的同一 IDE 进程完成八阶段诊断：有效 CLI、显式错误路径且存在 managed fallback、修复显式路径、同路径替换为 GCC、PATH 上 GCC、四个命令别名均缺失、managed fallback、安装到 PATH 后无需重启恢复。两次手动更新也显示正确的身份失败原因。
 
 该诊断只使用本地命令 fixture，没有发送模型请求、运行 agent 任务或安装公开产品。[安全归档与回读](./ide/evidence/gap-2026-10-05/onboarding-identity-windows/readback.json) 包含 29 份原始文件，其中 10 张截图限定 IDE/对话框；前两次失败尝试的整桌面截图不公开，前三次失败原因和清理结果分别保留。最终回执绑定 `ae6adbe13c` 加 dirty 工作区及逐文件字节摘要，五份源码摘要与当前文件一致；不能将其描述为干净提交的 CI 或首次公开安装样本。实际 IDE 正常退出，Gradle owner exit 0、taskkill 未使用、已记录进程身份均已消失。
 
-## 3. 仍需独立完成的任务
+## 4. 仍需独立完成的任务
 
 | 项目                      | 当前证据与剩余条件                                                                                                     |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |

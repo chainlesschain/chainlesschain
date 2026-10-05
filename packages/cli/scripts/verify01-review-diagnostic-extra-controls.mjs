@@ -137,6 +137,43 @@ controlIt("image admission enforces the positive pixel budget boundary", () => {
 });
 `;
   }
+  if (taskId === "verify-15") {
+    return `
+import { it as controlIt, expect as controlExpect } from "vitest";
+import controlFs from "node:fs";
+import controlPath from "node:path";
+import { tmpdir as controlTmpdir } from "node:os";
+import { ScopedPermissionStore as ControlPermissionStore } from ${source};
+
+controlIt("exhausted permission counters reject mutations without changing durable state", () => {
+  const root = controlFs.mkdtempSync(controlPath.join(controlTmpdir(), "review-permission-counter-"));
+  try {
+    for (const scenario of ["add-generation", "revoke-generation", "revoke-revision"]) {
+      const cwd = controlPath.join(root, scenario, "workspace");
+      const filePath = controlPath.join(root, scenario, "security", "rules.json");
+      controlFs.mkdirSync(cwd, { recursive: true });
+      const store = new ControlPermissionStore({ cwd, filePath, now: () => 100 });
+      const rule = { decision: "allow", rule: "Read(./src/**)", expiresAt: 1000 };
+      const created = store.add(rule);
+      controlExpect(store.list().generation).toBe(1);
+      controlExpect(created.revision).toBe(1);
+      const state = JSON.parse(controlFs.readFileSync(filePath, "utf8"));
+      if (scenario === "revoke-revision") state.rules[0].revision = Number.MAX_SAFE_INTEGER;
+      else state.generation = Number.MAX_SAFE_INTEGER;
+      controlFs.writeFileSync(filePath, JSON.stringify(state));
+      const before = controlFs.readFileSync(filePath);
+      controlExpect(() => scenario === "add-generation"
+        ? store.add(rule)
+        : store.revoke({ id: created.id }))
+        .toThrowError(controlExpect.objectContaining({ code: "CC_SCOPED_PERMISSION_INVALID" }));
+      controlExpect(controlFs.readFileSync(filePath)).toEqual(before);
+    }
+  } finally {
+    controlFs.rmSync(root, { recursive: true, force: true });
+  }
+});
+`;
+  }
   if (taskId === "verify-19") {
     return `
 import { it as controlIt, expect as controlExpect } from "vitest";

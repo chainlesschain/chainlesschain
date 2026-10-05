@@ -1,0 +1,108 @@
+{
+  "schema": "chainlesschain.ide-ci-failure-readback/v1",
+  "runId": 37313555158,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158",
+  "sourceCommit": "ad129eb3feee7a284d08d8ff460fe5642719382f",
+  "recordedAt": "2026-10-05T14:08:19.465Z",
+  "rootCause": "Test-only native transcript readiness still reflects the removed ConversationView.cachedVersionOut field after CLI identity cache removal.",
+  "affected": [
+    {
+      "host": "windows-2024.2",
+      "jobId": 111782494785,
+      "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494785",
+      "artifactId": 11348668306,
+      "artifactApiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11348668306",
+      "zip": {
+        "digest": "sha256:da64d80bbc7f58353f53440ad22f950dc2c361981f188326e3fc37710647cda1",
+        "archived": false
+      },
+      "safeOriginalXml": {
+        "path": "windows-2024.2/ide-journey/canonical-Windows-2024.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "digest": "sha256:f2a13b451c87660060a45be813ac1d72970a5d3d5eccb1a818422699560928f9",
+        "bytes": 13984,
+        "archivedPath": "windows-2024.2.xml"
+      },
+      "failure": "com.intellij.remoterobot.client.IdeaSideException: Wrapped java.lang.NoSuchFieldException: cachedVersionOut",
+      "location": "NativeTranscriptProbe.readyState:77",
+      "canonicalInitialPassed": true
+    },
+    {
+      "host": "windows-2025.2",
+      "jobId": 111782494855,
+      "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494855",
+      "artifactId": 11348634534,
+      "artifactApiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11348634534",
+      "zip": {
+        "digest": "sha256:6c7669a9aa12736d71c09e15e52ec11ce06966ede39d996a7a6482705372ad89",
+        "archived": false
+      },
+      "safeOriginalXml": {
+        "path": "windows-2025.2/ide-journey/canonical-Windows-2025.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "digest": "sha256:65fbaab6ca3dc722f0db1aaf74b0893c858b9faff691ea5ec4694493bda2126d",
+        "bytes": 12114,
+        "archivedPath": "windows-2025.2.xml"
+      },
+      "failure": "com.intellij.remoterobot.client.IdeaSideException: Wrapped java.lang.NoSuchFieldException: cachedVersionOut",
+      "location": "NativeTranscriptProbe.readyState:77",
+      "canonicalInitialPassed": true
+    },
+    {
+      "host": "linux-2024.2",
+      "jobId": 111782494705,
+      "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494705",
+      "artifactId": 11349597767,
+      "artifactApiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11349597767",
+      "zip": {
+        "digest": "sha256:a9ff30a78ed68412ab8f56946f35489fe6ad666c8273190a3dba42c3a0dbef0d",
+        "archived": false
+      },
+      "safeOriginalXml": {
+        "path": "linux-2024.2/ide-journey/canonical-Linux-2024.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "digest": "sha256:0ca564c11e12522576a44270f43b4dbe48486aa2a7fd7a6fbeefdd7586c5b2b6",
+        "bytes": 13837,
+        "archivedPath": "linux-2024.2.xml"
+      },
+      "failure": "com.intellij.remoterobot.client.IdeaSideException: Wrapped java.lang.NoSuchFieldException: cachedVersionOut",
+      "location": "NativeTranscriptProbe.readyState:77",
+      "canonicalInitialPassed": true
+    },
+    {
+      "host": "linux-2025.2",
+      "jobId": 111782494796,
+      "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37313555158/job/111782494796",
+      "artifactId": 11349733197,
+      "artifactApiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11349733197",
+      "zip": {
+        "digest": "sha256:d6bb796aac390dfc27c8206a6d721913051598243d72c323bc6d361edbf66dd8",
+        "archived": false
+      },
+      "safeOriginalXml": {
+        "path": "linux-2025.2/ide-journey/canonical-Linux-2025.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "digest": "sha256:4d1ab8dbc4d7537964cc89b30ebceb0a5915a9b3f007aaba70fab58cb2946cf4",
+        "bytes": 11983,
+        "archivedPath": "linux-2025.2.xml"
+      },
+      "failure": "com.intellij.remoterobot.client.IdeaSideException: Wrapped java.lang.NoSuchFieldException: cachedVersionOut",
+      "location": "NativeTranscriptProbe.readyState:77",
+      "canonicalInitialPassed": true
+    }
+  ],
+  "archivePolicy": "Preserve the four original JUnit XML files unchanged; ZIP archives and unreviewed screenshots are not included.",
+  "fixValidation": {
+    "compileUiTestJava": "passed",
+    "NativeTranscriptProbeTest": {
+      "passed": 2,
+      "failed": 0
+    },
+    "nodeRecoveryAndNativeEvidenceTests": {
+      "passed": 49,
+      "failed": 0
+    },
+    "hostMatrix": "NOT_RUN_ON_FIXED_COMMIT"
+  },
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "releaseEligible": false
+  }
+}

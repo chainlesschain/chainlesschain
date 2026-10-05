@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "49d36bc06e65969b7f1dbf665e1ef585b84c4b81",
+  "runId": 37312209419,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37312209419",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "recordedAt": "2026-10-05T13:55:12.107Z",
+  "archives": [
+    {
+      "artifactId": 11345679909,
+      "name": "verify01-review-pack-3-49d36bc06e65969b7f1dbf665e1ef585b84c4b81",
+      "upstreamDigest": "sha256:99cf4f521413dbd2aeadcb52560170d110e5f2afc58109e319caa54a94638599",
+      "file": "shard-3.zip",
+      "digest": "sha256:99cf4f521413dbd2aeadcb52560170d110e5f2afc58109e319caa54a94638599",
+      "bytes": 564149
+    }
+  ],
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "independentHumanReview": false,
+    "releaseEligible": false
+  }
+}

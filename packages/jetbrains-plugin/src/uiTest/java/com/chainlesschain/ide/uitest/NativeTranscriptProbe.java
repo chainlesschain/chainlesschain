@@ -2,6 +2,7 @@ package com.chainlesschain.ide.uitest;
 
 import java.awt.GraphicsEnvironment;
 import java.awt.Point;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -12,7 +13,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
@@ -45,18 +49,67 @@ public final class NativeTranscriptProbe {
     private int runStart;
     private long previousTick;
 
-    public static void start(Object view, String destination, String token,
-                             String ideVersion, String ideBuild) throws Exception {
-        if (!SwingUtilities.isEventDispatchThread() || GraphicsEnvironment.isHeadless())
-            throw new IllegalStateException("A real non-headless IDE EDT is required");
-        Map<String, Object> readiness = readyState(view);
-        if (!Boolean.TRUE.equals(readiness.get("ready"))) throw new IllegalStateException("Transcript is not ready");
-        NativeTranscriptProbe probe = new NativeTranscriptProbe(read(view, "transcript"), Path.of(destination), token, ideVersion, ideBuild);
-        probe.report.put("readiness", readiness);
-        probe.beginCase();
+    public static Object activeView(Object frame, ClassLoader pluginLoader) throws Exception {
+        return onEdt(() -> {
+            Class<?> factory = Class.forName("com.chainlesschain.ide.intellij.ChatToolWindowFactory", true, pluginLoader);
+            Field registry = factory.getDeclaredField("REGISTRY");
+            registry.setAccessible(true);
+            Object project = frame.getClass().getMethod("getProject").invoke(frame);
+            Object panel = ((Map<?, ?>) registry.get(null)).get(project);
+            int index = ((JTabbedPane) read(panel, "tabs")).getSelectedIndex();
+            Object id = ((List<?>) read(panel, "tabIds")).get(index);
+            return ((Map<?, ?>) read(panel, "views")).get(id);
+        });
     }
 
-    public static String readiness(Object view) throws Exception { return json(readyState(view)); }
+    public static void start(Object view, String destination, String token,
+                             String ideVersion, String ideBuild) throws Exception {
+        if (GraphicsEnvironment.isHeadless())
+            throw new IllegalStateException("A real non-headless IDE is required");
+        Object identity = observeIdentity(view);
+        onEdt(() -> {
+            Map<String, Object> readiness = readyState(view, identity);
+            if (!Boolean.TRUE.equals(readiness.get("ready"))) throw new IllegalStateException("Transcript is not ready");
+            NativeTranscriptProbe probe = new NativeTranscriptProbe(read(view, "transcript"), Path.of(destination), token, ideVersion, ideBuild);
+            probe.report.put("readiness", readiness);
+            probe.beginCase();
+            return null;
+        });
+    }
+
+    public static String readiness(Object view) throws Exception {
+        Object identity = observeIdentity(view);
+        return json(onEdt(() -> readyState(view, identity)));
+    }
+
+    // The production view deliberately has no process-global version cache.
+    // Observe the actual configured command off the EDT, then verify its
+    // configuration revision together with the visible state on the EDT.
+    private static Object observeIdentity(Object view) throws Exception {
+        if (SwingUtilities.isEventDispatchThread())
+            throw new IllegalStateException("CLI identity must be observed off EDT");
+        ClassLoader loader = view.getClass().getClassLoader();
+        File cwd = onEdt(() -> {
+            Object project = read(view, "project");
+            Class<?> projectApi = Class.forName("com.intellij.openapi.project.Project", true, loader);
+            String basePath = (String) projectApi.getMethod("getBasePath").invoke(project);
+            return basePath == null ? null : new File(basePath);
+        });
+        Class<?> session = Class.forName("com.chainlesschain.ide.AgentChatSession", true, loader);
+        return session.getMethod("probeCliIdentity", File.class, long.class).invoke(null, cwd, 12000L);
+    }
+
+    private static <T> T onEdt(Callable<T> operation) throws Exception {
+        FutureTask<T> task = new FutureTask<>(operation);
+        SwingUtilities.invokeAndWait(task);
+        return task.get();
+    }
+
+    static boolean fixtureIdentityObserved(Object identity) throws Exception {
+        return Boolean.TRUE.equals(identity.getClass().getMethod("isCurrent").invoke(identity))
+                && String.valueOf(read(identity, "output")).trim().equals("0.999.0-ui-journey")
+                && read(identity, "version") != null;
+    }
 
     private static Object read(Object object, String name) throws Exception {
         Field field = object.getClass().getDeclaredField(name);
@@ -64,7 +117,7 @@ public final class NativeTranscriptProbe {
         return field.get(object);
     }
 
-    private static Map<String, Object> readyState(Object view) throws Exception {
+    private static Map<String, Object> readyState(Object view, Object identity) throws Exception {
         if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Readiness must be observed on EDT");
         Object transcript = read(view, "transcript"), drafts = read(view, "drafts"), history = read(view, "history"), conv = read(view, "conv");
         JTextPane pane = (JTextPane) read(transcript, "pane");
@@ -74,7 +127,7 @@ public final class NativeTranscriptProbe {
         String onboarding = (String) bundle.getMethod("message", String.class, Object[].class).invoke(null, "chat.noLlm", new Object[0]);
         Map<String, Object> state = new LinkedHashMap<>();
         state.put("initialProbesStarted", read(view, "initialProbesStarted"));
-        state.put("fixtureVersionObserved", String.valueOf(read(view, "cachedVersionOut")).trim().equals("0.999.0-ui-journey"));
+        state.put("fixtureVersionObserved", fixtureIdentityObserved(identity));
         state.put("onboardingObserved", pane.getDocument().getText(0, pane.getDocument().getLength()).contains(onboarding));
         state.put("draftReady", draftReady.invoke(drafts));
         state.put("inputEditable", ((javax.swing.JTextArea) read(view, "input")).isEditable());

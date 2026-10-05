@@ -24,18 +24,15 @@ final class NativeTranscriptJourney {
         String locate = """
             var pluginLoader = Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin(
                 Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginClassLoader();
-            function field(object, name) {
-                var f = object.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(object);
-            }
-            var factory = java.lang.Class.forName('com.chainlesschain.ide.intellij.ChatToolWindowFactory', true, pluginLoader);
-            var registry = factory.getDeclaredField('REGISTRY'); registry.setAccessible(true);
-            var panel = registry.get(null).get(component.getProject());
-            var index = field(panel,'tabs').getSelectedIndex();
-            var view = field(panel,'views').get(field(panel,'tabIds').get(index));
             var urls = java.lang.reflect.Array.newInstance(java.net.URL, 1);
             urls[0] = new java.net.URL(%s);
             var loader = new java.net.URLClassLoader(urls, java.lang.ClassLoader.getPlatformClassLoader());
             var probe = java.lang.Class.forName('com.chainlesschain.ide.uitest.NativeTranscriptProbe', true, loader);
+            var viewTypes = java.lang.reflect.Array.newInstance(java.lang.Class, 2);
+            viewTypes[0] = java.lang.Object; viewTypes[1] = java.lang.ClassLoader;
+            var viewArgs = java.lang.reflect.Array.newInstance(java.lang.Object, 2);
+            viewArgs[0] = component; viewArgs[1] = pluginLoader;
+            var view = probe.getMethod('activeView', viewTypes).invoke(null, viewArgs);
             """.formatted(json.toJson(location));
         long readyDeadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
         String previous = null;
@@ -50,7 +47,7 @@ final class NativeTranscriptJourney {
                 readyArgs[0] = view;
                 var result = String(probe.getMethod('readiness', readyTypes).invoke(null, readyArgs));
                 loader.close(); result;
-                """, true);
+                """, false); // CLI identity subprocess runs off EDT; the probe marshals UI reads onto EDT.
             String observed = String.valueOf(observation);
             var state = JsonParser.parseString(observed).getAsJsonObject();
             if (state.get("ready").getAsBoolean() && observed.equals(previous)) { ready = true; break; }
@@ -68,7 +65,7 @@ final class NativeTranscriptJourney {
             arguments[3] = String(info.getFullVersion()); arguments[4] = String(info.getBuild().asString());
             probe.getMethod('start', types).invoke(null, arguments);
             """.formatted(json.toJson(output.toString()), json.toJson(token));
-        frame.runJs(script, true);
+        frame.runJs(script, false); // Probe rechecks current CLI identity before starting its EDT timer.
         long deadline = System.nanoTime() + Duration.ofMinutes(5).toNanos();
         while (!Files.exists(output) && System.nanoTime() < deadline) Thread.sleep(200);
         assertTrue(Files.exists(output), "Native EDT probe did not produce a receipt");
