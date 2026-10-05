@@ -166,27 +166,40 @@ export function registerMemoryCommand(program) {
     .description("Show memory entries")
     .option("-n, --limit <n>", "Max entries", "20")
     .option("--category <cat>", "Filter by category")
+    .option("--page", "Return a page with a next-page cursor")
+    .option("--cursor <cursor>", "Continue a page using the same filters")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const service = await resolveCanonicalMemory(ctx);
         if (!ctx.db && !service.decision.canonical) {
-          logger.error("Database not available");
-          process.exit(1);
+          throw new Error("Database not available");
         }
-        const entries = service.decision.canonical
-          ? await service.list({
-              limit: Math.max(1, parseInt(options.limit) || 20),
-              category: options.category,
-            })
-          : listMemory(ctx.db.getDatabase(), {
-              limit: Math.max(1, parseInt(options.limit) || 20),
-              category: options.category,
-            });
+        const paged = Boolean(options.page || options.cursor !== undefined);
+        if (paged && !service.decision.canonical) {
+          throw new Error(
+            "Paged memory listing requires canonical memory mode",
+          );
+        }
+        if (options.cursor !== undefined && !options.cursor.trim()) {
+          throw new Error("Pagination cursor must not be empty");
+        }
+        const query = {
+          limit: Math.max(1, parseInt(options.limit) || 20),
+          category: options.category,
+        };
+        const page = paged
+          ? await service.listPage({ ...query, cursor: options.cursor })
+          : null;
+        const entries = page
+          ? page.entries
+          : service.decision.canonical
+            ? await service.list(query)
+            : listMemory(ctx.db.getDatabase(), query);
 
         if (options.json) {
-          console.log(JSON.stringify(entries, null, 2));
+          console.log(JSON.stringify(page || entries, null, 2));
         } else if (entries.length === 0) {
           logger.info("No memory entries. Use 'memory add' to create one.");
         } else {
@@ -206,11 +219,17 @@ export function registerMemoryCommand(program) {
             logger.log(`    ${chalk.gray(e.created_at)}`);
           }
         }
-
-        await shutdown();
+        if (!options.json && page?.nextCursor) {
+          logger.log(`Next page cursor: ${page.nextCursor}`);
+          logger.log(
+            "Use 'memory show --cursor <cursor>' with the same category and limit.",
+          );
+        }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
       }
     });
 
