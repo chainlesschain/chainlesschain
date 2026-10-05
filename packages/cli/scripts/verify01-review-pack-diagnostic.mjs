@@ -50,6 +50,27 @@ export function selectDiagnosticTasks(tasks, shard) {
 function diagnosticBehaviorControl(taskId, modulePath) {
   const source = (file) => JSON.stringify(modulePath(file));
   switch (taskId) {
+    case "verify-04":
+      return `
+import { mergeUsagePricingBucket } from ${source("packages/cli/src/lib/usage-pricing-context.js")};
+import { GPT6_PRICING_TERMS } from ${source("packages/cli/src/lib/model-context-catalog.js")};
+diagnosticIt("includes cache reads and cache creation at the request pricing threshold", () => {
+  const threshold = GPT6_PRICING_TERMS.longContext.threshold;
+  for (const cacheField of ["cacheReadTokens", "cacheCreationTokens"]) {
+    const entry = { provider: "openai", model: "gpt-6-sol" };
+    const usage = { inputTokens: threshold - 1, outputTokens: 1, [cacheField]: 1 };
+    mergeUsagePricingBucket(entry, usage);
+    diagnosticExpect(entry.pricingBuckets).toHaveLength(1);
+    diagnosticExpect(entry.pricingBuckets[0].requestInputTokens).toBe(threshold);
+    diagnosticExpect(entry.pricingBuckets[0][cacheField]).toBe(1);
+    mergeUsagePricingBucket(entry, { ...usage, [cacheField]: 2 });
+    diagnosticExpect(entry.pricingBuckets).toHaveLength(2);
+    diagnosticExpect(entry.pricingBuckets.map((bucket) => bucket.requestInputTokens)).toEqual([threshold, threshold + 1]);
+    diagnosticExpect(entry.pricingBuckets.map((bucket) => bucket[cacheField])).toEqual([1, 2]);
+    diagnosticExpect(entry.pricingBuckets.map((bucket) => bucket.calls)).toEqual([1, 1]);
+  }
+});
+`;
     case "verify-07":
       return `
 import { createSessionTranscriptHistoryProjection } from ${source("packages/cli/src/lib/session-transcript-history.js")};

@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.local-native-transcript-fix-source/v1",
+  "recordedAt": "2026-10-05T14:10:14.768Z",
+  "sourceCommit": "ad129eb3feee7a284d08d8ff460fe5642719382f",
+  "dirty": true,
+  "files": [
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbe.java",
+      "digest": "sha256:b2bb5230a1d19e2eedb898b42fa7802b50cf3335d0b6680813ab0fb71a1168de"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptJourney.java",
+      "digest": "sha256:9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest.java",
+      "digest": "sha256:3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273"
+    }
+  ],
+  "scope": "local Windows 2024.2 canonical recovery and native transcript diagnostic; not authoritative CI or provider evidence"
+}

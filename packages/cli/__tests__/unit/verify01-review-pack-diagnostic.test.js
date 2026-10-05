@@ -97,6 +97,7 @@ async function controlFailures(task, spec, source) {
 
 describe("real Docker review diagnostic admission", () => {
   it.each([
+    "verify-04",
     "verify-07",
     "verify-08",
     "verify-09",

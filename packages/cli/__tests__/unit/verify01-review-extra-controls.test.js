@@ -38,6 +38,17 @@ function copySource(root, relative) {
 }
 
 function isolateUnusedDependencies(root, taskId) {
+  if (taskId === "verify-27") {
+    copySource(
+      root,
+      "packages/vscode-extension/src/chat/question-draft-contract.js",
+    );
+    copySource(
+      root,
+      "packages/vscode-extension/src/vendor/elicitation-schema/index.js",
+    );
+    return "";
+  }
   if (taskId === "verify-15") {
     for (const file of [
       "project-root.cjs",
@@ -135,7 +146,9 @@ it("extra diagnostic controls pass real APIs and reject every specified behavior
       "verify-11",
       "verify-13",
       "verify-15",
+      "verify-27",
       "verify-29",
+      "verify-31",
     ]) {
       const spec = VERIFY01_REVIEW_SPECS.find(
         (entry) => entry.taskId === taskId,
@@ -214,8 +227,8 @@ it("extra diagnostic controls pass real APIs and reject every specified behavior
       if (item.mutated)
         expect(failed[0].failureMessages.join("\n")).toMatch(/AssertionError/);
     }
-    expect(report.numFailedTests).toBe(7);
-    expect(report.numPassedTests).toBe(11);
+    expect(report.numFailedTests).toBe(9);
+    expect(report.numPassedTests).toBe(13);
     expect(result.status).toBe(1);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

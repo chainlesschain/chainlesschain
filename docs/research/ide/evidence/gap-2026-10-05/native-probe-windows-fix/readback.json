@@ -1,0 +1,196 @@
+{
+  "schema": "chainlesschain.native-probe-windows-fix-supplementary/v1",
+  "recordedAt": "2026-10-05T14:19:03.618Z",
+  "classification": "supplementary-local-diagnostic",
+  "run": {
+    "startedAt": "2026-10-05T14:08:46.956Z",
+    "finishedAt": "2026-10-05T14:13:27.247Z",
+    "host": {
+      "name": "jetbrains",
+      "version": "2024.2",
+      "operatingSystem": "win32",
+      "architecture": "x64",
+      "transport": "local-ide-bridge"
+    },
+    "result": "passed",
+    "sourceAtStart": {
+      "commit": "ad129eb3feee7a284d08d8ff460fe5642719382f",
+      "dirty": true,
+      "recordedAt": "2026-10-05T14:10:14.768Z"
+    },
+    "driverRecordedReleaseCommit": "4f24f474b1c5ecc72fa2c812560e2f102fec0917"
+  },
+  "sourceComparisons": [
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbe.java",
+      "digest": "sha256:b2bb5230a1d19e2eedb898b42fa7802b50cf3335d0b6680813ab0fb71a1168de",
+      "matchesEndCommit": true,
+      "matchesCurrentWorkspace": true
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptJourney.java",
+      "digest": "sha256:9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb",
+      "matchesEndCommit": true,
+      "matchesCurrentWorkspace": true
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest.java",
+      "digest": "sha256:3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273",
+      "matchesEndCommit": true,
+      "matchesCurrentWorkspace": true
+    }
+  ],
+  "interpretation": [
+    "The local run started from ad129eb3feee7a284d08d8ff460fe5642719382f with uncommitted fixes.",
+    "Commit 4f24f474b1c5ecc72fa2c812560e2f102fec0917 was created during the run. The driver read HEAD at completion and therefore recorded that commit.",
+    "All three recorded UI test source digests match both the pre-recorded fix bytes and the final 4f24 commit bytes. This does not turn the run into a clean exact-commit CI result.",
+    "The original journey-evidence.json describes its full local artifact bundle. This minimal text archive intentionally contains only the files listed here; its omitted artifact paths are not represented as present.",
+    "Measurements validate native probe completion and preserve raw timing samples. Performance SLOs were not evaluated."
+  ],
+  "boundaries": {
+    "cleanCiEvidence": false,
+    "releaseGateSatisfied": false,
+    "formalTaskSamplesCreated": false,
+    "formalFirstRunSamplesCreated": false,
+    "providerAssessed": false,
+    "independentHumanReview": false,
+    "screenshotsIncluded": false,
+    "archivesIncluded": false
+  },
+  "verification": {
+    "recovery": {
+      "backgroundCompletion": true,
+      "distinctSavedRows": 6,
+      "independentDrafts": true,
+      "processRestart": true,
+      "automaticInputReplay": false,
+      "providerEvidence": "deterministic fixture",
+      "stopBeforeInit": true,
+      "cancelledDraftRecovered": true,
+      "stopAfterCancelledPreparation": true,
+      "firstStopPreservesChild": true
+    },
+    "nativeTranscript": {
+      "schema": "cc-jetbrains-native-transcript/v1",
+      "processId": "23324",
+      "ideVersion": "2024.2",
+      "ideBuild": "IC-242.20224.300",
+      "profile": "installed-plugin-native-swing",
+      "paintMode": "visible-region-paintImmediately",
+      "longTaskScope": "sampled-probe-edt-tasks",
+      "sloStatus": "not-evaluated",
+      "cases": [
+        {
+          "requestedChars": 10000,
+          "streamedChars": 10000,
+          "retainedChars": 10000,
+          "capApplied": false,
+          "sampledEdtTasks": 65,
+          "visibleRegionPaintRequests": 65,
+          "updateP95Ms": 0.8297,
+          "paintP95Ms": 3.3009,
+          "timerIntervalP95Ms": 32.1379,
+          "queueDelayP95Ms": 16.137900000000002,
+          "sampledLongTaskCount": 1,
+          "longestSampledTaskMs": 72.8077,
+          "finalizeUpdateMs": 41.2068,
+          "selectionPreserved": true,
+          "selectionViewportPreserved": true,
+          "userScrollPreserved": true,
+          "followedBeforeSelection": true,
+          "followedAfterResume": true,
+          "streamedPlainThenStyled": true,
+          "markdownParseCalls": null
+        },
+        {
+          "requestedChars": 100000,
+          "streamedChars": 100000,
+          "retainedChars": 100000,
+          "capApplied": false,
+          "sampledEdtTasks": 65,
+          "visibleRegionPaintRequests": 65,
+          "updateP95Ms": 1.0845,
+          "paintP95Ms": 3.7838,
+          "timerIntervalP95Ms": 32.0767,
+          "queueDelayP95Ms": 16.076700000000002,
+          "sampledLongTaskCount": 1,
+          "longestSampledTaskMs": 559.1962,
+          "finalizeUpdateMs": 244.9111,
+          "selectionPreserved": true,
+          "selectionViewportPreserved": true,
+          "userScrollPreserved": true,
+          "followedBeforeSelection": true,
+          "followedAfterResume": true,
+          "streamedPlainThenStyled": true,
+          "markdownParseCalls": null
+        },
+        {
+          "requestedChars": 200000,
+          "streamedChars": 200000,
+          "retainedChars": 199973,
+          "capApplied": true,
+          "sampledEdtTasks": 65,
+          "visibleRegionPaintRequests": 65,
+          "updateP95Ms": 1.0295,
+          "paintP95Ms": 2.7241,
+          "timerIntervalP95Ms": 31.9688,
+          "queueDelayP95Ms": 15.968800000000002,
+          "sampledLongTaskCount": 2,
+          "longestSampledTaskMs": 1148.1671,
+          "finalizeUpdateMs": 503.9582,
+          "selectionPreserved": true,
+          "selectionViewportPreserved": true,
+          "userScrollPreserved": true,
+          "followedBeforeSelection": true,
+          "followedAfterResume": true,
+          "streamedPlainThenStyled": true,
+          "markdownParseCalls": null
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "raw/journey-evidence.json",
+      "bytes": 15812,
+      "sha256": "sha256:de0a821465dedbe8e3c9f69c18e64f1a598dccf82767036cc9fd14922b3332c5",
+      "originalPath": ".work/ide-ad129-fixed-windows-2024.2/journey-evidence.json"
+    },
+    {
+      "path": "source-readback.json",
+      "bytes": 1004,
+      "sha256": "sha256:1aa120c48e136aed296bf51134289b025e2b81e35904fbf039f79a283703f38d",
+      "originalPath": ".work/ide-ad129-fixed-source.json"
+    },
+    {
+      "path": "raw/conversation-recovery-initial.json",
+      "bytes": 31528,
+      "sha256": "sha256:a697b8f22a37d0f51bd719e8635f1e5b96dfdd24cf28c81ce331a8260f113ea5",
+      "originalPath": "packages/jetbrains-plugin/build/reports/ui-host-driver/2024.2-1791209326956/conversation-recovery-initial.json"
+    },
+    {
+      "path": "raw/conversation-recovery-restart.json",
+      "bytes": 8352,
+      "sha256": "sha256:f00d32f352144c0840b9b5b9dbd5190ae6dfe09f0d69734e9dd7bc609131489b",
+      "originalPath": "packages/jetbrains-plugin/build/reports/ui-host-driver/2024.2-1791209326956/conversation-recovery-restart.json"
+    },
+    {
+      "path": "raw/conversation-recovery-host-phases.json",
+      "bytes": 3372,
+      "sha256": "sha256:904d77cf62399e5e15f346f0bfe3b6a1f189ac4606ec8167e9f335c51a1434e3",
+      "originalPath": "packages/jetbrains-plugin/build/reports/ui-host-driver/2024.2-1791209326956/conversation-recovery-host-phases.json"
+    },
+    {
+      "path": "raw/native-transcript-metrics.json",
+      "bytes": 32469,
+      "sha256": "sha256:2f4ded9fd5da8fa1d47d677cac2d6b147685a36b6962697ca5fc7f85f78ba346",
+      "originalPath": "packages/jetbrains-plugin/build/reports/ui-host-driver/2024.2-1791209326956/native-transcript-metrics.json"
+    },
+    {
+      "path": "raw/fake-cli-protocol.jsonl",
+      "bytes": 32159,
+      "sha256": "sha256:7eb5182aa8064916c5318616cfbd6371e6e25f83d465775b849c00482f0e672a",
+      "originalPath": "packages/jetbrains-plugin/build/reports/ui-host-driver/2024.2-1791209326956/fake-cli-protocol.jsonl"
+    }
+  ]
+}

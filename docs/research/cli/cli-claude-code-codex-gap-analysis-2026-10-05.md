@@ -1,6 +1,6 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
-> **Actions 修复续做**：`main` 的 `feda6d1eee` 已解决容器 UID/GID 写入权限；其六分片原始失败材料完整保留。后续 `49d36bc06e` 的第 3 分片确认 SQLite 与三题验收通过，但暴露 DOM workspace 缺失和 verify-15 反例漏检，剩余排队分片已按用户要求取消，原始失败材料保留。后续安装范围改为 CLI 与 `desktop-app-vue`；Windows 定向测试 21/21 通过，完整 Docker 结果仍待新准确提交验证。JetBrains 本地真实身份旅程已完成八阶段诊断并安全归档。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)；正式 36+9、账号账单及人工验收仍开放。
+> **Actions 修复续做**：`main` 的 Docker 权限与锁定依赖已修复；`4f24f474b1` 六分片完整回读为 33/36 通过，剩余 verify-04、27、31 的控制已补齐。CLI 集成测试发现的原始证据 EOL 属性冲突也已修复，精确源码校验器保持严格。合并后的本地定向测试 22/22、Git fixture 3/3 通过，新准确提交仍须完整验证。JetBrains 四个宿主的旧缓存探针异常已修复，Windows 完整恢复与重启补验通过；原始失败材料及本地溯源均保留。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)；正式 36+9、账号账单及人工验收仍开放。
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。
 

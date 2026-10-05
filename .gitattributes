@@ -48,17 +48,24 @@
 *.ps1 text eol=crlf
 
 # Captured host evidence is byte-digest bound, including native CRLF/log spaces.
-docs/research/ide/evidence/gap-2026-10-05/verify01-host-diagnostics/** -text -whitespace
-docs/research/ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/** -text -whitespace
-docs/research/ide/evidence/gap-2026-10-05/verify01-lifecycle-diagnostics/** -text -whitespace
-docs/research/ide/evidence/gap-2026-10-05/verify01-ci-f289/** -text -whitespace
-docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-32f/** -text -whitespace
-docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-f289/** -text -whitespace
+# Clear inherited eol too, including the CRLF rule for archived Windows scripts.
+docs/research/ide/evidence/gap-2026-10-05/verify01-host-diagnostics/** -text !eol -whitespace
+docs/research/ide/evidence/gap-2026-10-05/verify01-portable-diagnostics/** -text !eol -whitespace
+docs/research/ide/evidence/gap-2026-10-05/verify01-lifecycle-diagnostics/** -text !eol -whitespace
+docs/research/ide/evidence/gap-2026-10-05/verify01-ci-f289/** -text !eol -whitespace
+docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-32f/** -text !eol -whitespace
+docs/research/cli/evidence/gap-2026-10-05/mcp-reference-ci-f289/** -text !eol -whitespace
 
-docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows/** -text -whitespace
+docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows/** -text !eol -whitespace
 
-docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-feda/** -text -whitespace
+docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-feda/** -text !eol -whitespace
 
-docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-49d/** -text -whitespace
+docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-49d/** -text !eol -whitespace
 
-docs/research/ide/evidence/gap-2026-10-05/ide-ci-ad129/** -text -whitespace
+docs/research/ide/evidence/gap-2026-10-05/ide-ci-ad129/** -text !eol -whitespace
+
+docs/research/ide/evidence/gap-2026-10-05/native-probe-windows-fix/** -text !eol -whitespace
+
+docs/research/cli/evidence/gap-2026-10-05/verify01-docker-ci-4f24/** -text !eol -whitespace
+
+docs/research/cli/evidence/gap-2026-10-05/cli-integration-ci-4f24/** -text !eol -whitespace

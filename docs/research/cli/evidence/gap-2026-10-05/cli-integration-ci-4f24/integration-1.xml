@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="150" failures="1" errors="0" time="293.916468287">
+    <testsuite name="__tests__/integration/agent-optimization-workflow.test.js" timestamp="2026-10-05T14:26:21.026Z" hostname="runnervm8df0l" tests="23" failures="0" errors="0" skipped="0" time="0.805636458">
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags control Prompt Compressor strategies &gt; snipCompact only runs when CONTEXT_SNIP flag is enabled" time="0.006638959">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags control Prompt Compressor strategies &gt; contextCollapse only runs when CONTEXT_COLLAPSE flag is enabled" time="0.002432496">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags control Prompt Compressor strategies &gt; setFeature persists and affects subsequent feature() calls" time="0.001613168">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; JSONL Session Store with Prompt Compressor &gt; full session lifecycle: create → chat → compact → resume" time="0.11390315">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; JSONL Session Store with Prompt Compressor &gt; fork session preserves full history" time="0.098531049">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Background Task Manager lifecycle &gt; create → complete → cleanup workflow" time="0.004004175">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Background Task Manager lifecycle &gt; task:complete events fire correctly" time="0.001409548">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Background Task Manager lifecycle &gt; respects maxConcurrent limit" time="0.001901876">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags registry completeness &gt; lists all 6 known flags" time="0.002216173">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags registry completeness &gt; PROMPT_COMPRESSOR defaults to true" time="0.000809539">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature Flags registry completeness &gt; env var overrides config in integration context" time="0.000679908">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Token estimation cross-module &gt; estimates are consistent between estimateTokens and compressor" time="0.001265911">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; JSONL Session fork and rebuild consistency &gt; forked session rebuilds same messages as original" time="0.04128934">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; JSONL Session fork and rebuild consistency &gt; compact in forked session does not affect original" time="0.035569782">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature flags dynamically control compressor &gt; enabling both SNIP and COLLAPSE produces combined strategy" time="0.001112214">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Feature flags dynamically control compressor &gt; disabling flags mid-session changes compressor behavior" time="0.00088463">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Background Task event-driven workflow &gt; tracks multiple tasks through full lifecycle" time="0.001524793">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; JSONL Session stress test &gt; handles 100 rapid messages without data loss" time="0.482493421">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Null safety across modules &gt; PromptCompressor handles null input" time="0.000715174">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Null safety across modules &gt; PromptCompressor handles undefined input" time="0.000469375">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Null safety across modules &gt; readEvents returns empty for non-existent session" time="0.000668908">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Null safety across modules &gt; rebuildMessages returns empty for non-existent session" time="0.000601832">
+        </testcase>
+        <testcase classname="__tests__/integration/agent-optimization-workflow.test.js" name="Agent Optimization — Integration &gt; Null safety across modules &gt; forkSession returns null for empty source" time="0.000607673">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/background-stability-realspawn.test.js" timestamp="2026-10-05T14:26:21.033Z" hostname="runnervm8df0l" tests="4" failures="0" errors="0" skipped="0" time="8.009743605">
+        <testcase classname="__tests__/integration/background-stability-realspawn.test.js" name="4. process tree — workerPid vs agentPid semantics (real spawn) &gt; records BOTH pids, they diverge, and the watched pid is the worker&apos;s" time="2.079986707">
+        </testcase>
+        <testcase classname="__tests__/integration/background-stability-realspawn.test.js" name="6. needs-input phase — turn → idle → finalize (real spawn) &gt; persists phase/turnCount through idle, never flips the live session, and keeps a rename landed while idle" time="3.580780579">
+        </testcase>
+        <testcase classname="__tests__/integration/background-stability-realspawn.test.js" name="8. log tail — truncation while the worker is appending (real spawn) &gt; neither the appender nor the reader crashes, and the tail reads clean afterwards" time="1.689078016">
+        </testcase>
+        <testcase classname="__tests__/integration/background-stability-realspawn.test.js" name="P0-2 same-turn question round-trip (real worker/child IPC) &gt; replays after disconnect, answers once, and completes the same turn" time="0.656818822">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/batch-worktree.test.js" timestamp="2026-10-05T14:26:21.033Z" hostname="runnervm8df0l" tests="2" failures="0" errors="0" skipped="0" time="0.936010909">
+        <testcase classname="__tests__/integration/batch-worktree.test.js" name="cc batch — real worktree integration &gt; runs two independent units in real worktrees and merges both" time="0.502535631">
+        </testcase>
+        <testcase classname="__tests__/integration/batch-worktree.test.js" name="cc batch — real worktree integration &gt; reports a real merge conflict without clobbering base" time="0.430731085">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/cowork-workflow-runtime-command.test.js" timestamp="2026-10-05T14:26:21.034Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="0.716973059">
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; executes and reports one durable run through the production command path" time="0.374613157">
+        </testcase>
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; pauses at a safe point, authorizes resume by revision, and reuses settlement" time="0.075424626">
+        </testcase>
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; requires a bounded reconciliation file before an unknown effect can resume" time="0.059356435">
+        </testcase>
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; answers a durable stage input by request id and exact revision" time="0.068645592">
+        </testcase>
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; batch-recovers bound terminal checkpoint calls through the production command path" time="0.068724622">
+        </testcase>
+        <testcase classname="__tests__/integration/cowork-workflow-runtime-command.test.js" name="cowork durable workflow runtime commands &gt; accepts bounded parallel durable admission and rejects stale control revisions" time="0.067217231">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/crosschain-mtc-cli.test.js" timestamp="2026-10-05T14:26:21.035Z" hostname="runnervm8df0l" tests="23" failures="0" errors="0" skipped="0" time="9.089273876">
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-status &gt; reports defaults on a fresh dir" time="0.249641539">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-status &gt; text output includes opt-in hint when disabled" time="0.241143831">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-trust-anchor &gt; add → list → remove round-trip" time="1.071713307">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-trust-anchor &gt; list with no chain shows all chains" time="0.801347039">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-trust-anchor &gt; rejects unsupported chain" time="0.253309418">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-envelope + mtc-verify round-trip &gt; generates an envelope that round-trip verifies against its landmark" time="0.52576699">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-envelope + mtc-verify round-trip &gt; mtc-verify exits non-zero on tampered envelope" time="0.559911388">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; v0.2 multi-hop + gas-aware + sla &gt; mtc-gas-check returns close decision based on gas + staged count" time="0.245242784">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; v0.2 multi-hop + gas-aware + sla &gt; mtc-gas-check defers when current gas is high" time="0.243959179">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; v0.2 multi-hop + gas-aware + sla &gt; mtc-sla returns ok status on fresh dir" time="0.267216353">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; v0.2 multi-hop + gas-aware + sla &gt; mtc-multihop-build + mtc-multihop-verify round-trip" time="1.285146759">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; --help wiring &gt; crosschain --help lists mtc-* subcommands" time="0.065950512">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; --help wiring &gt; bridge --help shows --mtc flag" time="0.132211248">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; --help wiring &gt; swap --help shows --mtc flag" time="0.1349597">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; --help wiring &gt; send --help shows --mtc flag" time="0.14161389">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-serve --once &gt; runs one tick and exits when staging empty" time="0.276057659">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-serve --once &gt; closes staged ops on the single tick" time="0.39425103">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-batch &gt; returns NO_STAGED_OPS when staging empty" time="0.252171743">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-batch &gt; closes one batch per chain-pair from staged files" time="0.597399726">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; mtc-batch &gt; closed batch envelopes verify against landmark via mtc-verify" time="0.615794516">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; input file error handling &gt; mtc-envelope: missing --input file → clean error, exit 2, no stack" time="0.252228177">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; input file error handling &gt; mtc-envelope: malformed JSON --input → &apos;not valid JSON&apos;, exit 2" time="0.232708754">
+        </testcase>
+        <testcase classname="__tests__/integration/crosschain-mtc-cli.test.js" name="cc crosschain mtc-* — CLI integration &gt; input file error handling &gt; mtc-verify: missing envelope path → clean error, exit 2" time="0.245098076">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" timestamp="2026-10-05T14:26:21.038Z" hostname="runnervm8df0l" tests="12" failures="0" errors="0" skipped="0" time="183.743038627">
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 7: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="16.266167729">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:7,&quot;completed&quot;:10,&quot;totalMs&quot;:16243,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:933,&quot;signed-raw-run-retention&quot;:5202,&quot;positive-authenticated-wiki-commit&quot;:1700,&quot;positive-persisted-candidate&quot;:67,&quot;denied-reader-and-maintainer&quot;:7604,&quot;post-denial-fresh-wiki-and-proposer&quot;:219,&quot;unapproved-release-and-active-readback&quot;:279,&quot;final-persisted-bytes-and-canaries&quot;:127,&quot;final-authenticated-ledger-and-wiki&quot;:112}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 15: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.323610802">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:15,&quot;completed&quot;:10,&quot;totalMs&quot;:15303,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:630,&quot;signed-raw-run-retention&quot;:4890,&quot;positive-authenticated-wiki-commit&quot;:1615,&quot;positive-persisted-candidate&quot;:48,&quot;denied-reader-and-maintainer&quot;:7416,&quot;post-denial-fresh-wiki-and-proposer&quot;:206,&quot;unapproved-release-and-active-readback&quot;:267,&quot;final-persisted-bytes-and-canaries&quot;:123,&quot;final-authenticated-ledger-and-wiki&quot;:107}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 23: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.216703318">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:23,&quot;completed&quot;:10,&quot;totalMs&quot;:15198,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:602,&quot;signed-raw-run-retention&quot;:4872,&quot;positive-authenticated-wiki-commit&quot;:1619,&quot;positive-persisted-candidate&quot;:44,&quot;denied-reader-and-maintainer&quot;:7393,&quot;post-denial-fresh-wiki-and-proposer&quot;:201,&quot;unapproved-release-and-active-readback&quot;:252,&quot;final-persisted-bytes-and-canaries&quot;:110,&quot;final-authenticated-ledger-and-wiki&quot;:104}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 31: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.114749374">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:31,&quot;completed&quot;:10,&quot;totalMs&quot;:15096,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:574,&quot;signed-raw-run-retention&quot;:4808,&quot;positive-authenticated-wiki-commit&quot;:1592,&quot;positive-persisted-candidate&quot;:43,&quot;denied-reader-and-maintainer&quot;:7401,&quot;post-denial-fresh-wiki-and-proposer&quot;:202,&quot;unapproved-release-and-active-readback&quot;:255,&quot;final-persisted-bytes-and-canaries&quot;:111,&quot;final-authenticated-ledger-and-wiki&quot;:111}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 39: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.288822336">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:39,&quot;completed&quot;:10,&quot;totalMs&quot;:15270,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:606,&quot;signed-raw-run-retention&quot;:4899,&quot;positive-authenticated-wiki-commit&quot;:1646,&quot;positive-persisted-candidate&quot;:44,&quot;denied-reader-and-maintainer&quot;:7403,&quot;post-denial-fresh-wiki-and-proposer&quot;:200,&quot;unapproved-release-and-active-readback&quot;:255,&quot;final-persisted-bytes-and-canaries&quot;:113,&quot;final-authenticated-ledger-and-wiki&quot;:103}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 47: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="14.946371819">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:47,&quot;completed&quot;:10,&quot;totalMs&quot;:14926,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:583,&quot;signed-raw-run-retention&quot;:4716,&quot;positive-authenticated-wiki-commit&quot;:1570,&quot;positive-persisted-candidate&quot;:42,&quot;denied-reader-and-maintainer&quot;:7330,&quot;post-denial-fresh-wiki-and-proposer&quot;:208,&quot;unapproved-release-and-active-readback&quot;:262,&quot;final-persisted-bytes-and-canaries&quot;:107,&quot;final-authenticated-ledger-and-wiki&quot;:108}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 55: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.250650752">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:55,&quot;completed&quot;:10,&quot;totalMs&quot;:15230,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:589,&quot;signed-raw-run-retention&quot;:4839,&quot;positive-authenticated-wiki-commit&quot;:1633,&quot;positive-persisted-candidate&quot;:46,&quot;denied-reader-and-maintainer&quot;:7437,&quot;post-denial-fresh-wiki-and-proposer&quot;:205,&quot;unapproved-release-and-active-readback&quot;:260,&quot;final-persisted-bytes-and-canaries&quot;:113,&quot;final-authenticated-ledger-and-wiki&quot;:109}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 63: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.230534966">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:63,&quot;completed&quot;:10,&quot;totalMs&quot;:15210,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:597,&quot;signed-raw-run-retention&quot;:4847,&quot;positive-authenticated-wiki-commit&quot;:1596,&quot;positive-persisted-candidate&quot;:42,&quot;denied-reader-and-maintainer&quot;:7440,&quot;post-denial-fresh-wiki-and-proposer&quot;:209,&quot;unapproved-release-and-active-readback&quot;:257,&quot;final-persisted-bytes-and-canaries&quot;:109,&quot;final-authenticated-ledger-and-wiki&quot;:113}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 71: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.399571878">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:71,&quot;completed&quot;:10,&quot;totalMs&quot;:15380,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:613,&quot;signed-raw-run-retention&quot;:4939,&quot;positive-authenticated-wiki-commit&quot;:1623,&quot;positive-persisted-candidate&quot;:45,&quot;denied-reader-and-maintainer&quot;:7481,&quot;post-denial-fresh-wiki-and-proposer&quot;:204,&quot;unapproved-release-and-active-readback&quot;:254,&quot;final-persisted-bytes-and-canaries&quot;:116,&quot;final-authenticated-ledger-and-wiki&quot;:106}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 79: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.137961262">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:79,&quot;completed&quot;:10,&quot;totalMs&quot;:15119,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:589,&quot;signed-raw-run-retention&quot;:4805,&quot;positive-authenticated-wiki-commit&quot;:1605,&quot;positive-persisted-candidate&quot;:43,&quot;denied-reader-and-maintainer&quot;:7400,&quot;post-denial-fresh-wiki-and-proposer&quot;:201,&quot;unapproved-release-and-active-readback&quot;:261,&quot;final-persisted-bytes-and-canaries&quot;:108,&quot;final-authenticated-ledger-and-wiki&quot;:106}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 87: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.334947209">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:87,&quot;completed&quot;:10,&quot;totalMs&quot;:15315,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:586,&quot;signed-raw-run-retention&quot;:4944,&quot;positive-authenticated-wiki-commit&quot;:1627,&quot;positive-persisted-candidate&quot;:44,&quot;denied-reader-and-maintainer&quot;:7409,&quot;post-denial-fresh-wiki-and-proposer&quot;:234,&quot;unapproved-release-and-active-readback&quot;:253,&quot;final-persisted-bytes-and-canaries&quot;:113,&quot;final-authenticated-ledger-and-wiki&quot;:105}}
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-adversarial-wiki-journey-shard-7.test.js" name="1000 signed Raw-to-Wiki-to-Skill journeys: shard 7/8 &gt; batch 95: 10 unique attacks cannot contaminate persisted Wiki, candidates or active state" time="15.229609181">
+            <system-out>
+[adversarial-wiki-journey] {&quot;batch&quot;:95,&quot;completed&quot;:10,&quot;totalMs&quot;:15208,&quot;phasesMs&quot;:{&quot;setup-and-existing-active-baseline&quot;:576,&quot;signed-raw-run-retention&quot;:4835,&quot;positive-authenticated-wiki-commit&quot;:1608,&quot;positive-persisted-candidate&quot;:44,&quot;denied-reader-and-maintainer&quot;:7464,&quot;post-denial-fresh-wiki-and-proposer&quot;:199,&quot;unapproved-release-and-active-readback&quot;:256,&quot;final-persisted-bytes-and-canaries&quot;:118,&quot;final-authenticated-ledger-and-wiki&quot;:106}}
+
+            </system-out>
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/evolution-ledger-file-backend-process.test.js" timestamp="2026-10-05T14:26:21.043Z" hostname="runnervm8df0l" tests="1" failures="0" errors="0" skipped="0" time="0.434778312">
+        <testcase classname="__tests__/integration/evolution-ledger-file-backend-process.test.js" name="EvolutionLedger file backend process restart &gt; reopens across OS processes and rejects local reincarnation behind the witness" time="0.431776357">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/evolution-workbench-file-resources-security.test.js" timestamp="2026-10-05T14:26:21.043Z" hostname="runnervm8df0l" tests="1" failures="0" errors="0" skipped="0" time="0.109156271">
+        <testcase classname="__tests__/integration/evolution-workbench-file-resources-security.test.js" name="uses owner-only storage by default and independently inspects actual OS permissions" time="0.107127804">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/evolution-workbench-review-cross-process.test.js" timestamp="2026-10-05T14:26:21.044Z" hostname="runnervm8df0l" tests="3" failures="0" errors="0" skipped="0" time="8.619506246">
+        <testcase classname="__tests__/integration/evolution-workbench-review-cross-process.test.js" name="Workbench review real process recovery &gt; recovers after SIGKILL at prepared without duplicate decisions" time="2.504359047">
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-workbench-review-cross-process.test.js" name="Workbench review real process recovery &gt; recovers after SIGKILL at applied without duplicate decisions" time="2.507804743">
+        </testcase>
+        <testcase classname="__tests__/integration/evolution-workbench-review-cross-process.test.js" name="Workbench review real process recovery &gt; recovers after SIGKILL at first-committed without duplicate decisions" time="3.604917602">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/hub-export-import-events.integration.test.js" timestamp="2026-10-05T14:26:21.045Z" hostname="runnervm8df0l" tests="3" failures="0" errors="0" skipped="0" time="1.018855138">
+        <testcase classname="__tests__/integration/hub-export-import-events.integration.test.js" name="hub export-events/import-events — real vault round-trip &gt; exports all of A and imports losslessly into B" time="0.3533521">
+        </testcase>
+        <testcase classname="__tests__/integration/hub-export-import-events.integration.test.js" name="hub export-events/import-events — real vault round-trip &gt; re-import is idempotent (ON CONFLICT(id) upsert, no dup)" time="0.331668001">
+        </testcase>
+        <testcase classname="__tests__/integration/hub-export-import-events.integration.test.js" name="hub export-events/import-events — real vault round-trip &gt; paginates beyond one page" time="0.331377099">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/mtc-batch-skills-cli.test.js" timestamp="2026-10-05T14:26:21.045Z" hostname="runnervm8df0l" tests="3" failures="0" errors="0" skipped="0" time="1.551358634">
+        <testcase classname="__tests__/integration/mtc-batch-skills-cli.test.js" name="cc mtc batch-skills — local skill source &gt; produces landmark + envelopes from any locally discovered skills" time="0.411916886">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-batch-skills-cli.test.js" name="cc mtc batch-skills — local skill source &gt; --skill filter restricts batch to matching ids" time="0.79842485">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-batch-skills-cli.test.js" name="cc mtc batch-skills — local skill source &gt; fails when --skill matches no ids" time="0.327697596">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/mtc-federation-governance-trust-cli.test.js" timestamp="2026-10-05T14:26:21.046Z" hostname="runnervm8df0l" tests="15" failures="0" errors="0" skipped="0" time="8.118952707">
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; cross-trust-create writes a v1 anchor JSON" time="0.299726258">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; cross-trust-create rejects same host + trusted federation id" time="0.300489848">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; cross-trust-validate accepts a freshly-created anchor" time="0.588816732">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; cross-trust-validate flags expired anchor with non-zero exit" time="0.272040029">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; audit reports clean log with ok=true" time="0.667445637">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 cross-federation trust + audit &gt; audit --summary surface" time="0.654459689">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked) &gt; governance-anchor publishes a snapshot record to the chain store" time="0.625238963">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked) &gt; governance-verify-anchor passes for unmodified log" time="1.00650087">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked) &gt; governance-verify-anchor flags HASH_MISMATCH after new event added post-anchor" time="1.202052837">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked) &gt; governance-verify-anchor flags NO_ANCHOR_ON_CHAIN for a fed never anchored" time="0.246429597">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; v0.3 #2 on-chain governance anchor (Q-COMP-3 unlocked) &gt; repeated anchoring increments block_height" time="0.829755478">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; --help wiring &gt; federation --help lists all 8 governance subcommands" time="0.173681176">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; --help wiring &gt; governance-sync-stats reports defaults when no daemon has run" time="0.25267581">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; --help wiring &gt; governance-sync-stats reflects daemon ticks" time="0.813867676">
+        </testcase>
+        <testcase classname="__tests__/integration/mtc-federation-governance-trust-cli.test.js" name="cc mtc federation governance — trust + on-chain anchor + help &gt; --help wiring &gt; governance-sync-libp2p --help shows interval + verify + once flags" time="0.18186725">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/parity-shell-policy.test.js" timestamp="2026-10-05T14:26:21.048Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="0.163544528">
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; DENY: rm against a real file does not touch the filesystem" time="0.119158991">
+        </testcase>
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; DENY: network download command (curl) is blocked before execution" time="0.005849379">
+        </testcase>
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; REROUTE: `git status` is blocked with a hint to use the git tool" time="0.004882003">
+        </testcase>
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; DENY: PowerShell -EncodedCommand is blocked" time="0.005368652">
+        </testcase>
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; ALLOW (unclassified/WARN): `echo` runs and stdout is captured" time="0.025168543">
+        </testcase>
+        <testcase classname="__tests__/integration/parity-shell-policy.test.js" name="Phase 7 parity: Shell command policy gate &gt; platform sanity: echo is available" time="0.00064807">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/process-ownership-restart.test.js" timestamp="2026-10-05T14:26:21.050Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="7.050403946">
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through preparation-failure" time="0.309769448">
+        </testcase>
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through helper-failure" time="0.313281333">
+        </testcase>
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through before-native" time="0.693768357">
+        </testcase>
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through owner-crash" time="0.602685082">
+        </testcase>
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through supervisor-loss" time="4.525205366">
+        </testcase>
+        <testcase classname="__tests__/integration/process-ownership-restart.test.js" name="real Broker restart admission &gt; preserves durable ownership through confirmed-close" time="0.602811711">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/scheduler-kernel-soak.test.js" timestamp="2026-10-05T14:26:21.051Z" hostname="runnervm8df0l" tests="1" failures="0" errors="0" skipped="0" time="36.9034691">
+        <testcase classname="__tests__/integration/scheduler-kernel-soak.test.js" name="scheduler kernel soak coordinator &gt; proves the real two-worker kill, fencing, renewal, DST, backlog, and cleanup matrix" time="36.900612379">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/session-hooks-lifecycle.test.js" timestamp="2026-10-05T14:26:21.051Z" hostname="runnervm8df0l" tests="3" failures="0" errors="0" skipped="0" time="0.047880009">
+        <testcase classname="__tests__/integration/session-hooks-lifecycle.test.js" name="integration: session-hooks lifecycle (4 events) &gt; fires all four session events in order during a typical turn" time="0.030734594">
+        </testcase>
+        <testcase classname="__tests__/integration/session-hooks-lifecycle.test.js" name="integration: session-hooks lifecycle (4 events) &gt; multiple turns accumulate UserPromptSubmit + AssistantResponse counts" time="0.008543849">
+        </testcase>
+        <testcase classname="__tests__/integration/session-hooks-lifecycle.test.js" name="integration: session-hooks lifecycle (4 events) &gt; a broken hook does not break the turn (fire-and-forget)" time="0.005500378">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/skill-creator-handler.test.js" timestamp="2026-10-05T14:26:21.052Z" hostname="runnervm8df0l" tests="14" failures="0" errors="0" skipped="0" time="0.102396047">
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="list-templates integration &gt; returns 5 built-in templates with required fields" time="0.005776951">
+            <system-out>
+[2026-10-05T14:22:33.964Z] [INFO] [main] [SkillCreator] Action: list-templates, Name: 
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="list-templates integration &gt; get-template api-integration uses isolated host capabilities" time="0.001499195">
+            <system-out>
+[2026-10-05T14:22:33.968Z] [INFO] [main] [SkillCreator] Action: get-template, Name: api-integration
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="list-templates integration &gt; get-template file-processor uses isolated filesystem capability" time="0.000988243">
+            <system-out>
+[2026-10-05T14:22:33.969Z] [INFO] [main] [SkillCreator] Action: get-template, Name: file-processor
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; declares candidate-only behavior without filesystem write authority" time="0.000762432">
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; does not create a directory or mutate active bytes" time="0.005295133">
+            <system-out>
+[2026-10-05T14:22:33.973Z] [INFO] [main] [SkillCreator] Action: create, Name: stage-a-freeze-candidate-only
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; does not overwrite an existing active Skill" time="0.026830357">
+            <system-out>
+[2026-10-05T14:22:33.977Z] [INFO] [main] [SkillCreator] Action: create, Name: ultrathink
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; validate reports valid for existing builtin skill (code-review)" time="0.003466053">
+            <system-out>
+[2026-10-05T14:22:34.004Z] [INFO] [main] [SkillCreator] Action: validate, Name: code-review
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; validate reports issues for nonexistent skill" time="0.001948283">
+            <system-out>
+[2026-10-05T14:22:34.013Z] [INFO] [main] [SkillCreator] Action: validate, Name: skill-that-does-not-exist-xyz
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="candidate-only create + validate (branded filesystem authority) &gt; test action runs handler for existing skill (smart-search)" time="0.006664437">
+            <system-out>
+[2026-10-05T14:22:34.015Z] [INFO] [main] [SkillRegistry] SkillRegistry 已初始化
+[2026-10-05T14:22:34.016Z] [INFO] [main] [SkillRegistry] 技能已注册: Smart Search (smart-search)
+[2026-10-05T14:22:34.017Z] [INFO] [main] [SkillCreator] Action: test, Name: smart-search
+
+[2026-10-05T14:22:34.020Z] [INFO] [main] [SkillRegistry] 技能已注销: Smart Search (smart-search)
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="optimize quick (real builtin skills) &gt; optimize on existing skill returns suggestions or clean result" time="0.002404694">
+            <system-out>
+[2026-10-05T14:22:34.022Z] [INFO] [main] [SkillCreator] Action: optimize, Name: code-review
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="optimize quick (real builtin skills) &gt; optimize on smart-search returns current description" time="0.001583171">
+            <system-out>
+[2026-10-05T14:22:34.024Z] [INFO] [main] [SkillCreator] Action: optimize, Name: smart-search
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="optimize-description with mocked LLM (real builtin SKILL.md) &gt; returns a proposal while leaving active bytes and directory unchanged" time="0.023680394">
+            <system-out>
+[2026-10-05T14:22:34.026Z] [INFO] [main] [SkillCreator] Action: optimize-description, Name: code-review
+[2026-10-05T14:22:34.027Z] [INFO] [main] [SkillCreator] optimize-description: generating eval queries for &quot;code-review&quot;...
+[2026-10-05T14:22:34.029Z] [INFO] [main] [SkillCreator] eval queries: 20 total, 12 train / 8 test
+[2026-10-05T14:22:34.031Z] [INFO] [main] [SkillCreator] iteration 1/2...
+[2026-10-05T14:22:34.034Z] [INFO] [main] [SkillCreator] iteration 2/2...
+[2026-10-05T14:22:34.036Z] [INFO] [main] [SkillCreator] No improvement from LLM — stopping.
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="optimize-description with mocked LLM (real builtin SKILL.md) &gt; gracefully fails when LLM is unavailable (status=1)" time="0.002934081">
+            <system-out>
+[2026-10-05T14:22:34.050Z] [INFO] [main] [SkillCreator] Action: optimize-description, Name: smart-search
+[2026-10-05T14:22:34.051Z] [INFO] [main] [SkillCreator] optimize-description: generating eval queries for &quot;smart-search&quot;...
+
+            </system-out>
+        </testcase>
+        <testcase classname="__tests__/integration/skill-creator-handler.test.js" name="optimize-description with mocked LLM (real builtin SKILL.md) &gt; respects --iterations limit" time="0.006386398">
+            <system-out>
+[2026-10-05T14:22:34.053Z] [INFO] [main] [SkillCreator] Action: optimize-description, Name: code-review
+[2026-10-05T14:22:34.053Z] [INFO] [main] [SkillCreator] optimize-description: generating eval queries for &quot;code-review&quot;...
+[2026-10-05T14:22:34.053Z] [INFO] [main] [SkillCreator] eval queries: 20 total, 12 train / 8 test
+[2026-10-05T14:22:34.055Z] [INFO] [main] [SkillCreator] iteration 1/1...
+
+            </system-out>
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/team-distributed-soak.test.js" timestamp="2026-10-05T14:26:21.056Z" hostname="runnervm8df0l" tests="9" failures="1" errors="0" skipped="0" time="12.946191886">
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; rejects an exact-SHA report path inside the calling repository" time="0.126933935">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; rejects a canonical output alias that resolves into the repository" time="0.073566676">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; never overwrites an existing report output" time="0.055731349">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; accepts the committed blob&apos;s controlled CRLF worktree representation" time="0.085975325">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; succeeds against a clean exact-SHA controlled source fixture" time="0.09244307">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; rejects a clean filter before any status or diff can execute it" time="0.09370662">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; terminates the complete descendant tree on the timeout failure path" time="0.945388294">
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; proves every tracked source byte at the exact SHA" time="1.131870547">
+            <failure message="Error: exact-SHA controlled source verification failed: docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows/host-4/good.cmd: eol=crlf requires an explicit text attribute
+    at sourceVerificationError (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:560:17)
+    at verifyExactSourceTree (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:782:11)
+    at main (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2902:27)
+    at file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2922:26
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+: expected { status: 1, signal: null, …(4) } to match object { status: +0, signal: null }
+(4 matching properties omitted from actual)" type="AssertionError">
+AssertionError: Error: exact-SHA controlled source verification failed: docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows/host-4/good.cmd: eol=crlf requires an explicit text attribute
+    at sourceVerificationError (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:560:17)
+    at verifyExactSourceTree (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:782:11)
+    at main (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2902:27)
+    at file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2922:26
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+: expected { status: 1, signal: null, …(4) } to match object { status: +0, signal: null }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    &quot;signal&quot;: null,
+-   &quot;status&quot;: 0,
++   &quot;status&quot;: 1,
+  }
+
+ ❯ sourceVerificationError scripts/team-distributed-soak.mjs:560:17
+ ❯ verifyExactSourceTree scripts/team-distributed-soak.mjs:782:11
+ ❯ main scripts/team-distributed-soak.mjs:2902:27
+ ❯ scripts/team-distributed-soak.mjs:2922:26
+ ❯ __tests__/integration/team-distributed-soak.test.js:644:9
+            </failure>
+        </testcase>
+        <testcase classname="__tests__/integration/team-distributed-soak.test.js" name="distributed Agent Team production soak harness &gt; passes a real Git/checkpoint/DAG/crash/finalize round without a live model" time="10.337201169">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/team-merge-review-real-git.test.js" timestamp="2026-10-05T14:26:21.060Z" hostname="runnervm8df0l" tests="5" failures="0" errors="0" skipped="0" time="2.020635234">
+        <testcase classname="__tests__/integration/team-merge-review-real-git.test.js" name="team merge-review real Git transaction &gt; publishes a multi-branch file batch as one commit and rolls it back" time="0.896844376">
+        </testcase>
+        <testcase classname="__tests__/integration/team-merge-review-real-git.test.js" name="team merge-review real Git transaction &gt; applies one selected hunk and leaves an unselected hunk unchanged" time="0.405524097">
+        </testcase>
+        <testcase classname="__tests__/integration/team-merge-review-real-git.test.js" name="team merge-review real Git transaction &gt; reports an explained conflict without advancing the base branch" time="0.342445357">
+        </testcase>
+        <testcase classname="__tests__/integration/team-merge-review-real-git.test.js" name="team merge-review real Git transaction &gt; keeps rename and mode metadata behind whole-file selection" time="0.155508011">
+        </testcase>
+        <testcase classname="__tests__/integration/team-merge-review-real-git.test.js" name="team merge-review real Git transaction &gt; rejects active repository filters before any selected patch is applied" time="0.217269919">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/team-worktree-real-git.test.js" timestamp="2026-10-05T14:26:21.061Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="5.36710429">
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; propagates a stable multi-dependency commit baseline into a downstream task and resume" time="1.893657534">
+        </testcase>
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; requires adjudication when stable dependency composition conflicts" time="0.635608677">
+        </testcase>
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; rejects a recovered dependency binding after its branch ref drifts" time="1.030992483">
+        </testcase>
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; runs two independent tasks in isolated worktrees and merges both clean" time="0.882713178">
+        </testcase>
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; surfaces a conflict when two tasks change the same file (second doesn&apos;t merge)" time="0.6577807">
+        </testcase>
+        <testcase classname="__tests__/integration/team-worktree-real-git.test.js" name="cc team worktree (real git) &gt; refuses to merge a recovered run into a different checked-out branch" time="0.263473197">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/watchdog-reservation-concurrency.test.js" timestamp="2026-10-05T14:26:21.062Z" hostname="runnervm8df0l" tests="2" failures="0" errors="0" skipped="0" time="0.23636439">
+        <testcase classname="__tests__/integration/watchdog-reservation-concurrency.test.js" name="grants exactly one reservation across four real processes (expired=false)" time="0.119408778">
+        </testcase>
+        <testcase classname="__tests__/integration/watchdog-reservation-concurrency.test.js" name="grants exactly one reservation across four real processes (expired=true)" time="0.114835825">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/integration/wiki-pruning-dependencies-cross-process.test.js" timestamp="2026-10-05T14:26:21.062Z" hostname="runnervm8df0l" tests="2" failures="0" errors="0" skipped="0" time="5.925195015">
+        <testcase classname="__tests__/integration/wiki-pruning-dependencies-cross-process.test.js" name="Wiki dependency pruning real process recovery &gt; recovers dependency-commit up to the explicit KMS boundary" time="2.796777534">
+        </testcase>
+        <testcase classname="__tests__/integration/wiki-pruning-dependencies-cross-process.test.js" name="Wiki dependency pruning real process recovery &gt; recovers dependency-checkpoint up to the explicit KMS boundary" time="3.12596261">
+        </testcase>
+    </testsuite>
+</testsuites>

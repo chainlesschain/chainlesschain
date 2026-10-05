@@ -481,20 +481,36 @@ describe("distributed Agent Team production soak harness", () => {
     temporaryDirectories.push(directory);
     const repo = path.join(directory, "repo");
     fs.mkdirSync(repo);
+    const evidenceRoot =
+      "docs/research/ide/evidence/gap-2026-10-05/onboarding-identity-windows";
+    const rawAttributes = fs
+      .readFileSync(path.join(repositoryRoot, ".gitattributes"), "utf8")
+      .split(/\r?\n/u)
+      .find((line) => line.startsWith(`${evidenceRoot}/** `));
+    expect(rawAttributes).toBeTypeOf("string");
     fs.writeFileSync(
       path.join(repo, ".gitattributes"),
-      "* text eol=lf\n*.cmd text eol=crlf\n",
+      `* text eol=lf\n*.cmd text eol=crlf\n${rawAttributes}\n`,
     );
     fs.writeFileSync(path.join(repo, "source.js"), "export default 42;\n");
     fs.writeFileSync(path.join(repo, "run.cmd"), "@echo off\necho exact\n");
+    const rawEvidencePath = `${evidenceRoot}/host-4/good.cmd`;
+    const rawEvidence = Buffer.from("@echo off\r\necho captured\r\n");
+    fs.mkdirSync(path.dirname(path.join(repo, rawEvidencePath)), {
+      recursive: true,
+    });
+    fs.writeFileSync(path.join(repo, rawEvidencePath), rawEvidence);
     gitOutput(["init"], { cwd: repo });
     gitOutput(["config", "user.name", "Soak Exact Test"], { cwd: repo });
     gitOutput(["config", "user.email", "soak-exact@example.invalid"], {
       cwd: repo,
     });
-    gitOutput(["add", ".gitattributes", "source.js", "run.cmd"], {
-      cwd: repo,
-    });
+    gitOutput(
+      ["add", ".gitattributes", "source.js", "run.cmd", rawEvidencePath],
+      {
+        cwd: repo,
+      },
+    );
     gitOutput(["commit", "-m", "exact source fixture"], { cwd: repo });
     const expectedSha = gitOutput(["rev-parse", "HEAD"], {
       cwd: repo,
@@ -502,6 +518,14 @@ describe("distributed Agent Team production soak harness", () => {
     const cmdOid = gitOutput(["rev-parse", `${expectedSha}:run.cmd`], {
       cwd: repo,
     }).trim();
+    expect(
+      gitBytes(["show", `${expectedSha}:${rawEvidencePath}`], { cwd: repo }),
+    ).toEqual(rawEvidence);
+    expect(
+      gitOutput(["check-attr", "text", "eol", "--", rawEvidencePath], {
+        cwd: repo,
+      }),
+    ).toContain("eol: unspecified");
     const { crlfWorkingTreeBytes, verifyExactSourceTree } = await import(
       pathToFileURL(scriptPath).href
     );
@@ -525,7 +549,7 @@ describe("distributed Agent Team production soak harness", () => {
       matches: true,
       expectedSha,
       headSha: expectedSha,
-      trackedEntries: 3,
+      trackedEntries: 4,
       attributes: {
         committedMatchesWorktree: true,
         crlfEntries: 1,
@@ -538,6 +562,16 @@ describe("distributed Agent Team production soak harness", () => {
       },
       errors: [],
     });
+    // Byte-bound evidence is never normalized: even CRLF -> LF must fail.
+    fs.writeFileSync(
+      path.join(repo, rawEvidencePath),
+      rawEvidence.toString("utf8").replaceAll("\r\n", "\n"),
+    );
+    expect(() => verifyExactSourceTree(expectedSha, repo)).toThrow(
+      /exact-SHA controlled source verification failed/,
+    );
+    fs.writeFileSync(path.join(repo, rawEvidencePath), rawEvidence);
+    expect(verifyExactSourceTree(expectedSha, repo).matches).toBe(true);
   });
 
   it("rejects a clean filter before any status or diff can execute it", async () => {

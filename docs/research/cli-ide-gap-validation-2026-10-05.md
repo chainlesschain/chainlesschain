@@ -34,6 +34,16 @@ Node 官方镜像默认使用 root；验收器使用 `--cap-drop ALL`，该 root
 
 四份原始失败 JUnit XML 已[归档并核验摘要](./ide/evidence/gap-2026-10-05/ide-ci-ad129/readback.json)，未公开 ZIP 内未审截图。修复仅更新 UI 测试探针与 Robot 调度：在后台执行真实 CLI 身份探测，再在 EDT 读取界面状态并确认配置仍有效。保留 fixture 版本观察及全部就绪条件，不恢复生产缓存、不移除 native transcript 验证门。Java 编译、2 项探针回归与 49 项证据校验通过；CLI 的三个相关文件 21/21 通过。此项仍须以新准确提交的完整真实宿主矩阵验收。
 
+修复提交 `4f24f474b1c5ecc72fa2c812560e2f102fec0917` 已推送并触发 [IDE 宿主矩阵 #37322783550](https://github.com/chainlesschain/chainlesschain/actions/runs/37322783550) 与 [Docker 六分片 #37322783711](https://github.com/chainlesschain/chainlesschain/actions/runs/37322783711)。同一提交的 CLI Strict Sandbox **5/5 作业通过**；CLI CI 已发现下述集成失败，未满足发布门，未发布候选。
+
+该提交的 Docker 六分片已完整结束：36 题中 33 题通过，verify-04、27、31 失败，见[逐题回读](./cli/evidence/gap-2026-10-05/verify01-docker-ci-4f24/tasks-readback.json)；六份 ZIP 全部核验 GitHub 摘要。verify-04 未覆盖缓存 token 跨越长上下文阈值；verify-27 原测试在失配身份恢复时只抛普通应用 Error，缺少行为断言；verify-31 未检测读取失败后的句柄泄漏。后续为三题分别补充阈值、三种单独身份字段失配及 I/O 句柄生命周期控制，完整基线导入、冻结 42 个反例和严格 parser 均不变。当前与冻结模块补验通过，不能据此将失败 CI 改为成功。
+
+CLI CI 的 Linux integration 1/8 作业中 149 项通过、1 项失败，原因是归档 `good.cmd` 的 `-text` 覆盖仍继承通用 `eol=crlf`，与精确源码校验合同冲突。[原始失败日志与 XML](./cli/evidence/gap-2026-10-05/cli-integration-ci-4f24/readback.json) 已保留。修复对原始证据目录显式设置 `!eol`，不修改校验器；真实 Git fixture 补验确认原始 CRLF 字节通过、改为 LF 仍被拒绝。定向 3/3 通过；新提交仍须完整验证。
+
+上述三题及属性修复合并后，三个 CLI 定向文件 **22/22 通过**，Git fixture 定向 **3/3 通过**（其余六项未选中）；格式、定向 ESLint 和 diff 检查通过。这些本地结果仅作补充，不能替代新发布提交的全系统矩阵。
+
+本机 Windows 2024.2 的完整 canonical 旅程补验通过：恢复、Stop、原生 transcript 测量及真实 IDE 重启均完成。[最小文本证据包](./ide/evidence/gap-2026-10-05/native-probe-windows-fix/readback.json) 保留 7 份原始记录、全部字节摘要和三份测试源码摘要；不含截图或 ZIP。运行从 `ad129eb3fe` 加 dirty 修复开始，期间生成 `4f24f474b1`，driver 在结束时读取 HEAD；三份测试源码字节始终一致。该补验不属于干净准确提交 CI，也不满足正式样本、独立人工验收或性能 SLO。
+
 ## 3. JetBrains 身份旅程
 
 真实 Windows IntelliJ 2024.2 / 插件 0.4.152 的同一 IDE 进程完成八阶段诊断：有效 CLI、显式错误路径且存在 managed fallback、修复显式路径、同路径替换为 GCC、PATH 上 GCC、四个命令别名均缺失、managed fallback、安装到 PATH 后无需重启恢复。两次手动更新也显示正确的身份失败原因。

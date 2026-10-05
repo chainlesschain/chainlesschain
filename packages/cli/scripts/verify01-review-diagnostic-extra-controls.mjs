@@ -225,6 +225,52 @@ controlIt("cancelling a pending approval delivers denial to the blocked tool", a
 }, 15000);
 `;
   }
+  if (taskId === "verify-27") {
+    return `
+import { it as controlIt, expect as controlExpect } from "vitest";
+import { createRequire as controlCreateRequire } from "node:module";
+const { QuestionDrafts: ControlQuestionDrafts } =
+  controlCreateRequire(import.meta.url)(${source});
+
+controlIt("question recovery requires matching digest, session and request identities", async () => {
+  for (const mismatch of [null, "digest", "sessionId", "requestId"]) {
+    const conversation = {
+      id: "control-conversation", sessionId: "control-session",
+      draftKey: "control-draft-key", _sessionToken: {},
+      session: { running: true, sendEvent() { throw new Error("unexpected answer delivery"); } },
+    };
+    const messages = [];
+    let saved;
+    const drafts = new ControlQuestionDrafts({
+      store: { async view() { return { questions: [saved] }; } },
+      getConversation: (id) => id === conversation.id ? conversation : null,
+      post: (message) => messages.push(message),
+      refresh() {},
+    });
+    const question = drafts.register(conversation, {
+      kind: "question", id: "control-request", question: "Choose a target",
+      binding: {
+        sessionId: conversation.sessionId, turnId: "control-turn",
+        toolUseId: "control-tool", sequence: 1,
+      },
+    });
+    const fields = [{ key: "answer", value: "unfinished recovery text" }];
+    saved = {
+      id: "previous-live-instance", digest: question.questionKey,
+      sessionId: conversation.sessionId, requestId: question.id,
+      status: "draft", fields,
+    };
+    if (mismatch) saved[mismatch] = "different-identity";
+    await drafts.restore(question);
+    controlExpect(messages).toHaveLength(1);
+    controlExpect(messages[0]).toMatchObject({
+      kind: "questionDraftSnapshot", state: "draft",
+      fields: mismatch ? [] : fields,
+    });
+  }
+});
+`;
+  }
   if (taskId === "verify-29") {
     return `
 import { it as controlIt, expect as controlExpect } from "vitest";
@@ -262,6 +308,55 @@ controlIt("matching request IDs cannot authorize another session's mode ACK", ()
     modeStatus: "effective",
     policyRevision: event.permission_mode_state.policy_revision,
   });
+});
+`;
+  }
+  if (taskId === "verify-31") {
+    return `
+import { it as controlIt, expect as controlExpect } from "vitest";
+import { createRequire as controlCreateRequire } from "node:module";
+const { readImageSnapshot: controlReadSnapshot } =
+  controlCreateRequire(import.meta.url)(${source});
+
+controlIt("image snapshots close each acquired handle on failure and success", async () => {
+  for (const failure of ["read", "stat", "open", null]) {
+    const originalError = new Error("controlled snapshot " + failure + " failure");
+    const bytes = Buffer.from([1, 2, 3]);
+    // Match the fs stat API: the frozen reader requests number stats, while
+    // newer readers explicitly request bigint stats for filesystem identity.
+    const metadata = (options = {}) => options.bigint
+      ? { isFile: () => true, size: 3n, ino: 1n, dev: 1n, mtimeNs: 1n, ctimeNs: 1n }
+      : { isFile: () => true, size: 3, ino: 1, dev: 1, mtimeMs: 1, ctimeMs: 1 };
+    let opened = 0;
+    let closed = 0;
+    const handle = {
+      async stat(options) {
+        if (failure === "stat") throw originalError;
+        return metadata(options);
+      },
+      async read(buffer, offset, length, position) {
+        if (failure === "read") throw originalError;
+        return { bytesRead: bytes.copy(buffer, offset, position, position + length) };
+      },
+      async close() { closed++; },
+    };
+    const result = controlReadSnapshot("image.png", bytes.length, {
+      platform: "linux",
+      now: () => 0,
+      io: {
+        async lstat(file, options) { return metadata(options); },
+        async open() {
+          opened++;
+          if (failure === "open") throw originalError;
+          return handle;
+        },
+      },
+    });
+    if (failure) await controlExpect(result).rejects.toBe(originalError);
+    else controlExpect(await result).toEqual(bytes);
+    controlExpect(opened).toBe(1);
+    controlExpect(closed).toBe(failure === "open" ? 0 : 1);
+  }
 });
 `;
   }

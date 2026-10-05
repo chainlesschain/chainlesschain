@@ -1,0 +1,54 @@
+{
+  "schema": "chainlesschain.cli-integration-failure-readback/v1",
+  "recordedAt": "2026-10-05T14:34:22.259Z",
+  "runId": 37322784169,
+  "sourceCommit": "4f24f474b1c5ecc72fa2c812560e2f102fec0917",
+  "jobId": 111805805207,
+  "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37322784169/job/111805805207",
+  "jobLog": {
+    "path": "job-111805805207.log",
+    "sha256": "sha256:e895220a020f10318b937701be25bf07208775bd8f93558fba71746683c86c3a",
+    "archivedPath": "job-111805805207.log",
+    "bytes": 57682
+  },
+  "artifact": {
+    "id": 11351287902,
+    "path": "artifact-11351287902.zip",
+    "sha256": "sha256:f7d1f73cbe758a8587b56db005fabffb7e6690c43bae1fc3004733b5d16d96eb",
+    "apiUrl": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11351287902",
+    "archived": false
+  },
+  "junit": {
+    "path": "artifact/integration-1.xml",
+    "sha256": "sha256:129a35f7603423bc5e1f33abeefb1b4bff31109ffb50dc133f035fc08e195cb8",
+    "archivedPath": "integration-1.xml",
+    "bytes": 56965
+  },
+  "failure": {
+    "file": "packages/cli/__tests__/integration/team-distributed-soak.test.js",
+    "test": "proves every tracked source byte at the exact SHA",
+    "error": "onboarding-identity-windows/host-4/good.cmd: eol=crlf requires an explicit text attribute",
+    "classification": "deterministic repository Git attribute conflict, not infrastructure flake",
+    "counts": {
+      "passed": 149,
+      "failed": 1
+    }
+  },
+  "fix": {
+    "files": [
+      ".gitattributes",
+      "packages/cli/__tests__/integration/team-distributed-soak.test.js"
+    ],
+    "behavior": "Explicitly clear inherited eol for byte-bound raw evidence; exact-source verifier unchanged.",
+    "rawEvidenceRulesChecked": 11,
+    "focusedTests": {
+      "passed": 3,
+      "notSelected": 6
+    },
+    "fullCleanCheckoutGate": "NOT_RUN_ON_NEW_COMMIT"
+  },
+  "boundaries": {
+    "formalSample": false,
+    "releaseEligible": false
+  }
+}
