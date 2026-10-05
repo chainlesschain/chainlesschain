@@ -1,0 +1,108 @@
+{
+  "phases": [
+    {
+      "phase": "initial",
+      "attempt": 1,
+      "processId": 24598,
+      "startedAt": "2026-10-05T15:10:04.222Z",
+      "completedAt": "2026-10-05T15:12:07.766Z"
+    },
+    {
+      "phase": "restart",
+      "attempt": 1,
+      "processId": 27778,
+      "startedAt": "2026-10-05T15:12:10.509Z",
+      "completedAt": "2026-10-05T15:13:10.102Z"
+    }
+  ],
+  "recovery": {
+    "backgroundCompletion": true,
+    "distinctSavedRows": 6,
+    "independentDrafts": true,
+    "processRestart": true,
+    "automaticInputReplay": false,
+    "providerEvidence": "deterministic fixture",
+    "stopBeforeInit": true,
+    "cancelledDraftRecovered": true,
+    "stopAfterCancelledPreparation": true,
+    "firstStopPreservesChild": true
+  },
+  "nativeTranscript": {
+    "schema": "cc-jetbrains-native-transcript/v1",
+    "processId": "24938",
+    "ideVersion": "2024.2",
+    "ideBuild": "IC-242.20224.300",
+    "profile": "installed-plugin-native-swing",
+    "paintMode": "visible-region-paintImmediately",
+    "longTaskScope": "sampled-probe-edt-tasks",
+    "sloStatus": "not-evaluated",
+    "cases": [
+      {
+        "requestedChars": 10000,
+        "streamedChars": 10000,
+        "retainedChars": 10000,
+        "capApplied": false,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 0.792375,
+        "paintP95Ms": 7.949541,
+        "timerIntervalP95Ms": 140.836791,
+        "queueDelayP95Ms": 124.836791,
+        "sampledLongTaskCount": 0,
+        "longestSampledTaskMs": 43.6565,
+        "finalizeUpdateMs": 21.290791,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      },
+      {
+        "requestedChars": 100000,
+        "streamedChars": 100000,
+        "retainedChars": 100000,
+        "capApplied": false,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 1.981,
+        "paintP95Ms": 15.268375,
+        "timerIntervalP95Ms": 143.659792,
+        "queueDelayP95Ms": 127.65979200000001,
+        "sampledLongTaskCount": 2,
+        "longestSampledTaskMs": 465.042417,
+        "finalizeUpdateMs": 102.622291,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      },
+      {
+        "requestedChars": 200000,
+        "streamedChars": 200000,
+        "retainedChars": 199973,
+        "capApplied": true,
+        "sampledEdtTasks": 65,
+        "visibleRegionPaintRequests": 65,
+        "updateP95Ms": 1.776333,
+        "paintP95Ms": 12.314542,
+        "timerIntervalP95Ms": 142.846625,
+        "queueDelayP95Ms": 126.84662499999999,
+        "sampledLongTaskCount": 5,
+        "longestSampledTaskMs": 785.150875,
+        "finalizeUpdateMs": 317.023542,
+        "selectionPreserved": true,
+        "selectionViewportPreserved": true,
+        "userScrollPreserved": true,
+        "followedBeforeSelection": true,
+        "followedAfterResume": true,
+        "streamedPlainThenStyled": true,
+        "markdownParseCalls": null
+      }
+    ]
+  }
+}

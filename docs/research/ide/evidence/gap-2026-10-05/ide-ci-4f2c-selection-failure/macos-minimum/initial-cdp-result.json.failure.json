@@ -1,0 +1,10 @@
+{
+  "schema": "cc-ide-host-driver-failure/v1",
+  "phase": "initial",
+  "at": "2026-10-05T16:01:21.806Z",
+  "error": {
+    "name": "AssertionError",
+    "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n\tat verifyStreamingProfile (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:58:10)\n\tat call (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:88:7)\n\tat async Object.runStreamingProfiles (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:104:5)\n\tat async runDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/dom-relay-journey.cjs:465:7)\n\tat async revealChatAndRunDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:527:3)\n\tat async runJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:822:5)\n\tat async run (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:854:12)"
+  }
+}

@@ -1,0 +1,1078 @@
+{
+  "schema": "chainlesschain.ide-selection-host-failure-readback/v1",
+  "recordedAt": "2026-10-05T16:14:16.483Z",
+  "sourceCommit": "4f2c19281ca9b66576a3ef3d599dafa1fe67471c",
+  "runId": 37332999462,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462",
+  "run": {
+    "status": "queued",
+    "conclusion": null,
+    "requiredHostJobsFailed": true,
+    "overallPass": false,
+    "releaseEligible": false
+  },
+  "jobs": [
+    {
+      "id": 111850754043,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462/job/111850754043",
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "failure",
+      "visibleFrameProgress": [
+        {
+          "chars": 10000,
+          "stage": "waiting-visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 0.20000000001164153
+        },
+        {
+          "chars": 10000,
+          "stage": "visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 11.299999999988358
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 1,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 176.20000000001164
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 16,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 402.79999999998836
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 32,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 651.7999999999884
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 48,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 903.1000000000349
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1152.600000000035
+        },
+        {
+          "chars": 10000,
+          "stage": "finalizing",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1152.7000000000116
+        },
+        {
+          "chars": 10000,
+          "stage": "completed",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1198.2000000000116
+        }
+      ]
+    },
+    {
+      "id": 111850754054,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462/job/111850754054",
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "failure",
+      "visibleFrameProgress": [
+        {
+          "chars": 10000,
+          "stage": "waiting-visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 0.2000000000698492
+        },
+        {
+          "chars": 10000,
+          "stage": "visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 18.300000000046566
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 1,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 194.30000000004657
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 16,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 762.5999999999767
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 32,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1294.5999999999767
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 48,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1830.5
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 2361.9000000000233
+        },
+        {
+          "chars": 10000,
+          "stage": "finalizing",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 2362.0999999999767
+        },
+        {
+          "chars": 10000,
+          "stage": "completed",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 2422.4000000000233
+        },
+        {
+          "chars": 10000,
+          "stage": "waiting-visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 0.6000000000931323
+        },
+        {
+          "chars": 10000,
+          "stage": "visible",
+          "completedFrames": 0,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 12.400000000139698
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 1,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 85.80000000004657
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 16,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 1489
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 32,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 2649.2000000001863
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 48,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 3992.9000000001397
+        },
+        {
+          "chars": 10000,
+          "stage": "sampling",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 5051
+        },
+        {
+          "chars": 10000,
+          "stage": "finalizing",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 5051.100000000093
+        },
+        {
+          "chars": 10000,
+          "stage": "completed",
+          "completedFrames": 64,
+          "visibilityState": "visible",
+          "visible": true,
+          "elapsedMs": 5103.300000000047
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "profile": "windows-stable",
+      "host": {
+        "name": "vscode",
+        "version": "1.140.0",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "result": "failed",
+      "phase": "initial",
+      "error": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n\tat verifyStreamingProfile (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\streaming-profile.cjs:58:10)\n\tat call (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\streaming-profile.cjs:88:7)\n\tat async Object.runStreamingProfiles (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\streaming-profile.cjs:104:5)\n\tat async runDomRelayJourney (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\dom-relay-journey.cjs:465:7)\n\tat async revealChatAndRunDomRelayJourney (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:527:3)\n\tat async runJourney (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:822:5)\n\tat async run (d:\\a\\chainlesschain\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:854:12)"
+      },
+      "observedFailure": "The 10K warm-up sampled 64 visible frames, then the deferredWhileSelected assertion rejected the selection preparation/finalization result."
+    },
+    {
+      "profile": "macos-minimum",
+      "host": {
+        "name": "vscode",
+        "version": "1.85.2",
+        "operatingSystem": "darwin",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "result": "failed",
+      "phase": "initial",
+      "error": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n\tat verifyStreamingProfile (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:58:10)\n\tat call (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:88:7)\n\tat async Object.runStreamingProfiles (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:104:5)\n\tat async runDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/dom-relay-journey.cjs:465:7)\n\tat async revealChatAndRunDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:527:3)\n\tat async runJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:822:5)\n\tat async run (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:854:12)"
+      },
+      "observedFailure": "The 10K warm-up sampled 64 visible frames, then the deferredWhileSelected assertion rejected the selection preparation/finalization result."
+    },
+    {
+      "profile": "macos-stable",
+      "host": {
+        "name": "vscode",
+        "version": "1.140.0",
+        "operatingSystem": "darwin",
+        "architecture": "x64",
+        "transport": "local-ide-bridge+vscode-webview-message-dom"
+      },
+      "result": "failed",
+      "phase": "initial",
+      "error": {
+        "name": "AssertionError",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n\tat verifyStreamingProfile (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:58:10)\n\tat call (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:88:7)\n\tat async Object.runStreamingProfiles (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs:104:5)\n\tat async runDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/dom-relay-journey.cjs:465:7)\n\tat async revealChatAndRunDomRelayJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:527:3)\n\tat async runJourney (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:822:5)\n\tat async run (/Users/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/test/extension-host/driver/smoke.cjs:854:12)"
+      },
+      "observedFailure": "The 10K warm-up sampled 64 visible frames, then the deferredWhileSelected assertion rejected the selection preparation/finalization result."
+    }
+  ],
+  "assertionSource": {
+    "commit": "4f2c19281ca9b66576a3ef3d599dafa1fe67471c",
+    "path": "packages/vscode-extension/test/extension-host/driver/streaming-profile.cjs",
+    "sha256": "sha256:18008bf37c484e45f75ec8c6c12270ec0d55bffe76d3d0766de508181c2ff21a",
+    "line": 58,
+    "text": "assert.equal(value.deferredWhileSelected, true);"
+  },
+  "archives": [
+    {
+      "platform": "windows",
+      "artifactId": 11357290011,
+      "name": "vscode-windows-host-evidence-1",
+      "file": "vscode-windows-failure.zip",
+      "bytes": 815285,
+      "digest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+      "upstreamDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+      "rawZipPublic": false
+    },
+    {
+      "platform": "macos",
+      "artifactId": 11356747904,
+      "name": "vscode-macos-host-evidence-1",
+      "file": "vscode-macos-failure.zip",
+      "bytes": 1585449,
+      "digest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+      "upstreamDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+      "rawZipPublic": false
+    }
+  ],
+  "files": [
+    {
+      "name": "windows-stable/journey-evidence.json",
+      "sha256": "sha256:09218bbd5a5abfd17c997b9cb83fbae532261f86fc40ae78d740c4f4f7ef12eb",
+      "source": {
+        "artifactId": 11357290011,
+        "zipDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+        "entry": "windows-stable/journey-evidence.json",
+        "localOffset": 114010,
+        "compressedBytes": 1986,
+        "compressionMethod": 8
+      },
+      "bytes": 7714
+    },
+    {
+      "name": "windows-stable/streaming-profile-progress.jsonl",
+      "sha256": "sha256:c447476b75c273abafaed61882f7e3645c306213944c1ba27db1c7e1328ce343",
+      "source": {
+        "artifactId": 11357290011,
+        "zipDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+        "entry": "windows-stable/diagnostics/004-streaming-profile-progress.jsonl",
+        "localOffset": 3522,
+        "compressedBytes": 150,
+        "compressionMethod": 8
+      },
+      "bytes": 229
+    },
+    {
+      "name": "windows-stable/initial-cdp-result.json",
+      "sha256": "sha256:134f4f02c79e6d535a32bcfdd1b95ae8a761f90e21775c42da0d37b77f4b584b",
+      "source": {
+        "artifactId": 11357290011,
+        "zipDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+        "entry": "windows-stable/diagnostics/005-initial-cdp-result.json",
+        "localOffset": 3781,
+        "compressedBytes": 140,
+        "compressionMethod": 8
+      },
+      "bytes": 159
+    },
+    {
+      "name": "windows-stable/initial-cdp-result.json.failure.json",
+      "sha256": "sha256:2db04abd0b34dc418c82e720dd935ad3ce429d492eed17ee7a5588129e5dd64f",
+      "source": {
+        "artifactId": 11357290011,
+        "zipDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+        "entry": "windows-stable/diagnostics/006-initial-cdp-result.json.failure.json",
+        "localOffset": 4021,
+        "compressedBytes": 407,
+        "compressionMethod": 8
+      },
+      "bytes": 1382
+    },
+    {
+      "name": "windows-stable/multi-window-evidence.json",
+      "sha256": "sha256:b173a085e92fbfc5c64599d39d49e30aa96117885c24ccc2a99ff2b3ded7344a",
+      "source": {
+        "artifactId": 11357290011,
+        "zipDigest": "sha256:32332e04837b9db2a32ba2bd6933419c991ae5516733605a6de6a6e37061b6f8",
+        "entry": "windows-stable/diagnostics/008-multi-window-evidence.json",
+        "localOffset": 4866,
+        "compressedBytes": 272,
+        "compressionMethod": 8
+      },
+      "bytes": 401
+    },
+    {
+      "name": "windows/job-111850754043-failure-excerpt.log",
+      "sha256": "sha256:f79520c5625ed54d504b3c253a126ac7652ecabd2f2f368c6fe4c76114d0b8f3",
+      "source": {
+        "jobId": 111850754043,
+        "privateRawLog": "job-111850754043.log",
+        "rawBytes": 483316,
+        "rawSha256": "sha256:6ab733d42309f63b0c88a98f5455bcf52222cc2aec95d012a6c39fa353eb99ca",
+        "segments": [
+          {
+            "line": 2593,
+            "byteOffset": 359129,
+            "bytes": 45,
+            "sha256": "sha256:2bf0e3ea0be5f80f3cdda335a5dc076cfbd510267e61ffa5aa0d94ae37e07ba4"
+          },
+          {
+            "line": 2595,
+            "byteOffset": 359205,
+            "bytes": 175,
+            "sha256": "sha256:6a07e605ba60499fc3713d76ebc08b25f789e7e4ebbda52ed6ba3fdcf2e7aa2a"
+          },
+          {
+            "line": 2604,
+            "byteOffset": 360516,
+            "bytes": 45,
+            "sha256": "sha256:1207fac31667e97bebb0d3e5211d41daee4f448afaef21870d33846b7171d2ff"
+          },
+          {
+            "line": 2606,
+            "byteOffset": 360592,
+            "bytes": 175,
+            "sha256": "sha256:b28ee8902ce1efdd361820440f81c082069641294d408598ab565fb4dbb9adad"
+          },
+          {
+            "line": 2615,
+            "byteOffset": 361936,
+            "bytes": 45,
+            "sha256": "sha256:4cd31565fff31844a10f5e5a8a2088e9e5011f92fa0e99b3c7aa88eda9933378"
+          },
+          {
+            "line": 2617,
+            "byteOffset": 362012,
+            "bytes": 175,
+            "sha256": "sha256:a4798658a0b4fe89b53facb4e048e984772a3916dff688cf859ab06af988710f"
+          },
+          {
+            "line": 2811,
+            "byteOffset": 387100,
+            "bytes": 45,
+            "sha256": "sha256:e3bdf024c534f5f44c19f5d694fd69cd26690e376a1caa2efb344ec3b58602c7"
+          },
+          {
+            "line": 2815,
+            "byteOffset": 387339,
+            "bytes": 45,
+            "sha256": "sha256:8ba049ebb7dcd88c03e558e3ef0b15d053a6c13fdff43a98866ba325d17adc41"
+          },
+          {
+            "line": 2817,
+            "byteOffset": 387415,
+            "bytes": 175,
+            "sha256": "sha256:ffd7e41f111341cad0055517c1c8d79142984ccfc3f8fc16f09c3dc38b0c9550"
+          },
+          {
+            "line": 2842,
+            "byteOffset": 391184,
+            "bytes": 218,
+            "sha256": "sha256:2e8a76c82b6460473be91a8a3882855493d081257b596ceda67fdb202aa12b63"
+          },
+          {
+            "line": 2843,
+            "byteOffset": 391402,
+            "bytes": 209,
+            "sha256": "sha256:e23e4dcb3bb5883ad82ca583279e678567eb1654cad0b67f32ad48017fae7543"
+          },
+          {
+            "line": 2844,
+            "byteOffset": 391611,
+            "bytes": 210,
+            "sha256": "sha256:e14deeed25b0150db9ffc23fdf1ec993488f4a3e74967eb9480abfccfba474a6"
+          },
+          {
+            "line": 2845,
+            "byteOffset": 391821,
+            "bytes": 211,
+            "sha256": "sha256:26668a67214f3eceb43bafbaed95d425cb850246fc0f8e00aaa647865a9b8926"
+          },
+          {
+            "line": 2846,
+            "byteOffset": 392032,
+            "bytes": 210,
+            "sha256": "sha256:6d04b3af46f365cde64b54aef3fca705802ca54c49b4477907a3157fe357f4a1"
+          },
+          {
+            "line": 2847,
+            "byteOffset": 392242,
+            "bytes": 210,
+            "sha256": "sha256:c71b3fd37a7121e6fc1cd7c5b159e3aefb47308f26dfc087607156a01596475e"
+          },
+          {
+            "line": 2848,
+            "byteOffset": 392452,
+            "bytes": 210,
+            "sha256": "sha256:5574cde15b53c08359e1fb949a7d15ede7fc8570053e3223535850eec8b9deb8"
+          },
+          {
+            "line": 2849,
+            "byteOffset": 392662,
+            "bytes": 213,
+            "sha256": "sha256:f35195e258943105906e477f3dcd90a2e2f9bf4867b28a980ed832e8e26fefc9"
+          },
+          {
+            "line": 2850,
+            "byteOffset": 392875,
+            "bytes": 212,
+            "sha256": "sha256:d5024694ca753c950c3f1750b04085ed8fd4efd3f8e97e1fa23660a9d5aa70ca"
+          },
+          {
+            "line": 2853,
+            "byteOffset": 393243,
+            "bytes": 45,
+            "sha256": "sha256:8655f0b9d27f71e086f65b21b0c7c1496bad852b28ee4e60734838ce701dd59d"
+          },
+          {
+            "line": 2980,
+            "byteOffset": 410213,
+            "bytes": 45,
+            "sha256": "sha256:8307d354a9295c79738dd6cf9b447bf5dad1632c0a00826fba89ab6c28261842"
+          },
+          {
+            "line": 2982,
+            "byteOffset": 410289,
+            "bytes": 175,
+            "sha256": "sha256:42dd4979493465d7260edf5ddb2fb3772b226922cacf7691905972fa48239fdb"
+          },
+          {
+            "line": 2991,
+            "byteOffset": 411632,
+            "bytes": 45,
+            "sha256": "sha256:7cf25eb7b97b9756a181760a1d110f1b9c01e0a2bdb711cd6f0f915992668854"
+          },
+          {
+            "line": 2993,
+            "byteOffset": 411708,
+            "bytes": 175,
+            "sha256": "sha256:dbbda55cdf8f1c30e482ef6e2f6c221a3c023c27e9f53900161db23636d42e03"
+          },
+          {
+            "line": 3002,
+            "byteOffset": 413084,
+            "bytes": 45,
+            "sha256": "sha256:4d6b8fccb703c4bc2612a0981ed919061d62c45893687920662547b09e2ddc5f"
+          },
+          {
+            "line": 3004,
+            "byteOffset": 413160,
+            "bytes": 175,
+            "sha256": "sha256:e74cc5698f726dbed948aa54b3d0174d239d9cc45c28fb23b9fbf3b884d566f7"
+          },
+          {
+            "line": 3356,
+            "byteOffset": 478089,
+            "bytes": 241,
+            "sha256": "sha256:d72da8f94c985a2e0bcb9da5923a559f5e28d69c09eedd1c47cc51b82c4e3a03"
+          },
+          {
+            "line": 3358,
+            "byteOffset": 478361,
+            "bytes": 45,
+            "sha256": "sha256:85cf2154688eb2c6e4c946ac2f2503c6dce5975989d09a8180d1bccd4c489bf3"
+          },
+          {
+            "line": 3364,
+            "byteOffset": 479111,
+            "bytes": 75,
+            "sha256": "sha256:e529da1ede4d4ecf7bea22aa871d163dc61a0118b594b2de663177f9373cea0b"
+          }
+        ]
+      },
+      "bytes": 3894
+    },
+    {
+      "name": "macos-minimum/journey-evidence.json",
+      "sha256": "sha256:8cc6ad39aafed7257aac263219725f348232355c79a4fa76e24afd184b70dc9c",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-minimum/journey-evidence.json",
+        "localOffset": 81324,
+        "compressedBytes": 2054,
+        "compressionMethod": 8
+      },
+      "bytes": 8049
+    },
+    {
+      "name": "macos-minimum/streaming-profile-progress.jsonl",
+      "sha256": "sha256:364ea80d28001a2f61db813de63a10049b984594cdf5028d2bbd8773948c6d62",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-minimum/diagnostics/004-streaming-profile-progress.jsonl",
+        "localOffset": 3681,
+        "compressedBytes": 150,
+        "compressionMethod": 8
+      },
+      "bytes": 229
+    },
+    {
+      "name": "macos-minimum/initial-cdp-result.json",
+      "sha256": "sha256:ade1cc4ed86768e221d4d9baf9d5d5788a25a54f4e503fd3c528df219083f9c9",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-minimum/diagnostics/005-initial-cdp-result.json",
+        "localOffset": 3939,
+        "compressedBytes": 139,
+        "compressionMethod": 8
+      },
+      "bytes": 159
+    },
+    {
+      "name": "macos-minimum/initial-cdp-result.json.failure.json",
+      "sha256": "sha256:127650c602a682f41e39f341d5c29abc02b36b19ae61538cf74bba56d142865f",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-minimum/diagnostics/006-initial-cdp-result.json.failure.json",
+        "localOffset": 4177,
+        "compressedBytes": 413,
+        "compressionMethod": 8
+      },
+      "bytes": 1417
+    },
+    {
+      "name": "macos-minimum/multi-window-evidence.json",
+      "sha256": "sha256:03d6bcca75f8c7b5cfbbc453b9ac30b0fa807d5377e337c67c0981011ac898e2",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-minimum/diagnostics/008-multi-window-evidence.json",
+        "localOffset": 5001,
+        "compressedBytes": 272,
+        "compressionMethod": 8
+      },
+      "bytes": 403
+    },
+    {
+      "name": "macos-stable/journey-evidence.json",
+      "sha256": "sha256:e9e42b95fce2acfc06b2191b3b843a1126ceb756faf6d093a6615d6f9765daf1",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-stable/journey-evidence.json",
+        "localOffset": 881395,
+        "compressedBytes": 2057,
+        "compressionMethod": 8
+      },
+      "bytes": 8053
+    },
+    {
+      "name": "macos-stable/streaming-profile-progress.jsonl",
+      "sha256": "sha256:f1676b6df6dbab0a149e843bd5a033914f2c633f7fe2580a4c5ad0c069fc6492",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-stable/diagnostics/004-streaming-profile-progress.jsonl",
+        "localOffset": 784062,
+        "compressedBytes": 150,
+        "compressionMethod": 8
+      },
+      "bytes": 229
+    },
+    {
+      "name": "macos-stable/initial-cdp-result.json",
+      "sha256": "sha256:711cd59679bec55f15d427e6684d4d2dbb3b8958f6162ac260937011b86db5ef",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-stable/diagnostics/005-initial-cdp-result.json",
+        "localOffset": 784319,
+        "compressedBytes": 140,
+        "compressionMethod": 8
+      },
+      "bytes": 159
+    },
+    {
+      "name": "macos-stable/initial-cdp-result.json.failure.json",
+      "sha256": "sha256:d48c51a1f2126a8250031d344e6d7af027b8d9f85cdb574389bb48abd956d1f3",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-stable/diagnostics/006-initial-cdp-result.json.failure.json",
+        "localOffset": 784557,
+        "compressedBytes": 413,
+        "compressionMethod": 8
+      },
+      "bytes": 1417
+    },
+    {
+      "name": "macos-stable/multi-window-evidence.json",
+      "sha256": "sha256:7dd4aba357fd63074edc2d48315615f1049db460085a5a38058cfb20db19a693",
+      "source": {
+        "artifactId": 11356747904,
+        "zipDigest": "sha256:b9c6a237138f730f1343776ea62b802b6776e702844d0569349f567e88bbf25e",
+        "entry": "macos-stable/diagnostics/008-multi-window-evidence.json",
+        "localOffset": 785378,
+        "compressedBytes": 274,
+        "compressionMethod": 8
+      },
+      "bytes": 402
+    },
+    {
+      "name": "macos/job-111850754054-failure-excerpt.log",
+      "sha256": "sha256:0a75c2097ccde8e97412f451c60845a9072593b53e55b35b26d2bd30e32f5cb0",
+      "source": {
+        "jobId": 111850754054,
+        "privateRawLog": "job-111850754054.log",
+        "rawBytes": 787725,
+        "rawSha256": "sha256:8b95dbe08a7e89d2c512440a8d1a2589ec75952a8084fbecf41287b74792a7f0",
+        "segments": [
+          {
+            "line": 2845,
+            "byteOffset": 386809,
+            "bytes": 44,
+            "sha256": "sha256:bd2af00730334f4b7260d04c7c2f520caf2d46ac1dcc6a43b946a00c6ac58c05"
+          },
+          {
+            "line": 2849,
+            "byteOffset": 387180,
+            "bytes": 188,
+            "sha256": "sha256:84d7873e6366cf0449a3c456c194b3327df6e2eb927a4029a3274ed30b8bcd53"
+          },
+          {
+            "line": 2867,
+            "byteOffset": 389570,
+            "bytes": 44,
+            "sha256": "sha256:b0e2f1ed72812a28ad5823e144b4dc07e4b4b5132fe008ba64252871556410be"
+          },
+          {
+            "line": 2871,
+            "byteOffset": 389882,
+            "bytes": 188,
+            "sha256": "sha256:a769b960d24959312cabf45cf441e0be0db763237a8384a6249966f2de294d96"
+          },
+          {
+            "line": 2889,
+            "byteOffset": 392612,
+            "bytes": 44,
+            "sha256": "sha256:86864c93b79062941ca52b526f533981209fa27ce2ba2b932f7e0d4bafc1d6a1"
+          },
+          {
+            "line": 2893,
+            "byteOffset": 393154,
+            "bytes": 188,
+            "sha256": "sha256:eaf8616e626861600a0a9e549ede2878cb5901bfba588602718e5c69df3b35dc"
+          },
+          {
+            "line": 3052,
+            "byteOffset": 414269,
+            "bytes": 44,
+            "sha256": "sha256:075071e51c193e991f3bf5b334bc3e0d4504bd441c6db30fac8c194bf04620e7"
+          },
+          {
+            "line": 3056,
+            "byteOffset": 414504,
+            "bytes": 44,
+            "sha256": "sha256:8ed0140a81d7b6ff88ae5713693ab042e4d6ba3ca27695fb25419cd9f6a21a39"
+          },
+          {
+            "line": 3058,
+            "byteOffset": 414578,
+            "bytes": 188,
+            "sha256": "sha256:9520b02aa8c76ba244ad2f3d2743f5f814fb8dac231a281120d9423aabf41fbc"
+          },
+          {
+            "line": 3083,
+            "byteOffset": 418321,
+            "bytes": 216,
+            "sha256": "sha256:69b0285313fb4124b2e045324b36573b4ce5b403fecbcd2e14892feee09017cc"
+          },
+          {
+            "line": 3084,
+            "byteOffset": 418537,
+            "bytes": 208,
+            "sha256": "sha256:db96055bb8efc766f12a5858a36ce2041a1d99f4e015959ee01a8faf530ee0e4"
+          },
+          {
+            "line": 3085,
+            "byteOffset": 418745,
+            "bytes": 209,
+            "sha256": "sha256:e50d7de0fd6240ec7319577ee8dd180054da959f8e5647d6e5bd58f253f4995a"
+          },
+          {
+            "line": 3086,
+            "byteOffset": 418954,
+            "bytes": 209,
+            "sha256": "sha256:68bcfe8deb024da7af3e7edf8910a45ad9fbcceadc566c7b8c47fef7ed6dee14"
+          },
+          {
+            "line": 3087,
+            "byteOffset": 419163,
+            "bytes": 210,
+            "sha256": "sha256:f2042ab1243d831f364032883b0bc814cd81b9443296b687022a0b330fd3bc63"
+          },
+          {
+            "line": 3088,
+            "byteOffset": 419373,
+            "bytes": 198,
+            "sha256": "sha256:77d1987eb29dd5851685228bf09763186e7681693b493849fbd25178b3d5b4ba"
+          },
+          {
+            "line": 3089,
+            "byteOffset": 419571,
+            "bytes": 210,
+            "sha256": "sha256:89b894becd5d7dcbbd929d259747e4fe98e0ea1ea1e8ae54e089addef72ffd6d"
+          },
+          {
+            "line": 3090,
+            "byteOffset": 419781,
+            "bytes": 212,
+            "sha256": "sha256:b996f30cb4343a501d59cdcc2689ebca851e60ac66e118863a0aa94c3994e777"
+          },
+          {
+            "line": 3091,
+            "byteOffset": 419993,
+            "bytes": 211,
+            "sha256": "sha256:36c4d8308d8b6cddb91f6f0c950cf58a726f1e9361324e14b5735953e1f01a8d"
+          },
+          {
+            "line": 3094,
+            "byteOffset": 420358,
+            "bytes": 44,
+            "sha256": "sha256:70073b5fedbf4aabe604d86199062a80f4d3c1e35fcef15d65ce1da764aacd21"
+          },
+          {
+            "line": 3219,
+            "byteOffset": 436931,
+            "bytes": 44,
+            "sha256": "sha256:3e9a2bee8d6f589d5e348d07e05b837aaf3f61d704e6898d57585fae0a40a98e"
+          },
+          {
+            "line": 3221,
+            "byteOffset": 437005,
+            "bytes": 188,
+            "sha256": "sha256:969a5e15fcdf21e6a036f645ff293c09221e1a7c656f016837e44fef97b098a4"
+          },
+          {
+            "line": 3230,
+            "byteOffset": 438437,
+            "bytes": 44,
+            "sha256": "sha256:b5ce7bd9df6ee18f98cf650e4b42ef2aa7c5907236eca73898379f84c9f1eae4"
+          },
+          {
+            "line": 3232,
+            "byteOffset": 438511,
+            "bytes": 188,
+            "sha256": "sha256:50452a25e01929f776d6313e5dcc2b9a457829390acb84015edda0a03aa37f4f"
+          },
+          {
+            "line": 3241,
+            "byteOffset": 439976,
+            "bytes": 44,
+            "sha256": "sha256:1ae6f734b3e773825a78c5db73f98807adad5632fc7b4fd66949611b92b0084e"
+          },
+          {
+            "line": 3243,
+            "byteOffset": 440050,
+            "bytes": 188,
+            "sha256": "sha256:dbb4c8dd85fd8a674e0b50e673cb2eb51a7131ae0ca610aee6bf42d2931046eb"
+          },
+          {
+            "line": 3649,
+            "byteOffset": 508022,
+            "bytes": 240,
+            "sha256": "sha256:90146d6c9b65a0f21589f72c03a21e894fca6827fbb1bfc7d86b1ccfd153c8ec"
+          },
+          {
+            "line": 3651,
+            "byteOffset": 508292,
+            "bytes": 44,
+            "sha256": "sha256:132c71587959f1325864db00dcb69e1998771f102d832f6eabb1040d1dc191ef"
+          },
+          {
+            "line": 3656,
+            "byteOffset": 508801,
+            "bytes": 74,
+            "sha256": "sha256:fcc8e20fbdc06674e68d5cf396d0d3623c81fb4be82d1b2e3bfc9c235ff8db9b"
+          },
+          {
+            "line": 4557,
+            "byteOffset": 693223,
+            "bytes": 44,
+            "sha256": "sha256:e3ea82a50755db89f666a3b1ae2366346b51d5722427584c75afdb6137aea17d"
+          },
+          {
+            "line": 4559,
+            "byteOffset": 693297,
+            "bytes": 188,
+            "sha256": "sha256:bba32be5468a6ce4564205c5deed0aae2dfa44be33de62f6370de38c8fe92866"
+          },
+          {
+            "line": 4568,
+            "byteOffset": 694697,
+            "bytes": 44,
+            "sha256": "sha256:d8b430f771771ea6466c279ba0ee7b82e01fc342d4dce8d4d62a8ba1bd3d3b1e"
+          },
+          {
+            "line": 4570,
+            "byteOffset": 694771,
+            "bytes": 188,
+            "sha256": "sha256:dc9fe82a322b651938485ff18f4fd4276ab78a2fdf1a57518be3cce7709260f6"
+          },
+          {
+            "line": 4579,
+            "byteOffset": 696204,
+            "bytes": 44,
+            "sha256": "sha256:1746f39edc9119602dae763f59b6da0623feae1ad8aa1b038b2aeb7cd082f002"
+          },
+          {
+            "line": 4581,
+            "byteOffset": 696278,
+            "bytes": 188,
+            "sha256": "sha256:c124aa45948cec7c881e4b1dff471055f3f719ded20d19004571196238c97f2f"
+          },
+          {
+            "line": 4758,
+            "byteOffset": 719484,
+            "bytes": 44,
+            "sha256": "sha256:3a7fcf95bdc7595b59742de94ed1bf463fd5ee90813834ab035e051ff2cf31c9"
+          },
+          {
+            "line": 4762,
+            "byteOffset": 719719,
+            "bytes": 44,
+            "sha256": "sha256:65c828e06da8dad21a53d0ddf2b571922cb6a8e201528df8e582f30cc7175ac4"
+          },
+          {
+            "line": 4764,
+            "byteOffset": 719793,
+            "bytes": 188,
+            "sha256": "sha256:d087a3a9868c6a8d9761d71d3d916d493196140d63589afe8ffb8f09b8c6621a"
+          },
+          {
+            "line": 4786,
+            "byteOffset": 723203,
+            "bytes": 216,
+            "sha256": "sha256:7660ff800b2c6a016d760c2f7ffd9e76870cf03d1b75a672d166f736f51bb130"
+          },
+          {
+            "line": 4787,
+            "byteOffset": 723419,
+            "bytes": 208,
+            "sha256": "sha256:231cacd6f6345967487ee244e2022e586f87c200aa3ac909dab2ceb169ff311b"
+          },
+          {
+            "line": 4788,
+            "byteOffset": 723627,
+            "bytes": 208,
+            "sha256": "sha256:2321da66442ca5ad6109f21a768dca1b36a0f1fcf27f474ea7fb24a3c99e7a36"
+          },
+          {
+            "line": 4789,
+            "byteOffset": 723835,
+            "bytes": 196,
+            "sha256": "sha256:2b9b81ed46c8707361aad736764dfb09c17a73a8612cdc9af72aa8af5f15fccd"
+          },
+          {
+            "line": 4790,
+            "byteOffset": 724031,
+            "bytes": 210,
+            "sha256": "sha256:c86b9a7e92623321916dbc87cf21816f9a4069e53ae949c6021f951492bcd01d"
+          },
+          {
+            "line": 4791,
+            "byteOffset": 724241,
+            "bytes": 210,
+            "sha256": "sha256:1c1376bc2076f14da1fc06cd0a75e3a2a158e44ff407d536ea15c4977306913b"
+          },
+          {
+            "line": 4792,
+            "byteOffset": 724451,
+            "bytes": 196,
+            "sha256": "sha256:9380f94b48df1cd495e95ba9b13e2d7e81b8b2b54760f87459341267e0ca1bfe"
+          },
+          {
+            "line": 4793,
+            "byteOffset": 724647,
+            "bytes": 211,
+            "sha256": "sha256:a4e0f43edfa503552478aab73b97519dbb17d0e0ec008ed5244c8330c1b5f848"
+          },
+          {
+            "line": 4794,
+            "byteOffset": 724858,
+            "bytes": 210,
+            "sha256": "sha256:2069a56f67113b11cdcb56dbf8747a31391749dc3851bdb4a61dff7a0f5addaf"
+          },
+          {
+            "line": 4797,
+            "byteOffset": 725222,
+            "bytes": 44,
+            "sha256": "sha256:248abe303acd0880c7e26cff40c184b57732f70e282b65ee3b50e4c2cb983286"
+          },
+          {
+            "line": 4919,
+            "byteOffset": 741708,
+            "bytes": 44,
+            "sha256": "sha256:f6fa7d520aaf673925a845dba304beaf83b5079b556ef73ac54127dd7e3ff31d"
+          },
+          {
+            "line": 4921,
+            "byteOffset": 741782,
+            "bytes": 188,
+            "sha256": "sha256:f1d58bfbb4a4d349b215b23ac6b2b365c685910a754aaca72ec2605b048f733c"
+          },
+          {
+            "line": 4930,
+            "byteOffset": 743214,
+            "bytes": 44,
+            "sha256": "sha256:928100373303429e177664043268ed1cae6f7c03dd98d4b9081b7fad772d1ace"
+          },
+          {
+            "line": 4932,
+            "byteOffset": 743288,
+            "bytes": 188,
+            "sha256": "sha256:65cc8af608586c15087e06f05462f8bb3b25813767c8c714fbd4d537daf63999"
+          },
+          {
+            "line": 4941,
+            "byteOffset": 744753,
+            "bytes": 44,
+            "sha256": "sha256:76d441d98ee11e3c2db612ed055dea1df232c4012cf0ce83f0a801d81586b506"
+          },
+          {
+            "line": 4943,
+            "byteOffset": 744827,
+            "bytes": 188,
+            "sha256": "sha256:05772c564f2275af0f1729d32aaf8da1112802ff9e2effd46e208d7b2742376d"
+          },
+          {
+            "line": 5046,
+            "byteOffset": 782504,
+            "bytes": 240,
+            "sha256": "sha256:4b4b2962f3ca02a2113f1a2b4c77b5b6b1ee2197b680a0960437f8a020744d21"
+          },
+          {
+            "line": 5048,
+            "byteOffset": 782774,
+            "bytes": 44,
+            "sha256": "sha256:28a642527d55a345124da9b934e8b5cd8de18901a8689d1d9c7279dd2dda1c75"
+          },
+          {
+            "line": 5054,
+            "byteOffset": 783559,
+            "bytes": 74,
+            "sha256": "sha256:e71028a3138934051050c7f4d5fdb2a6904afcedd4221ac25330c656ac1f72d9"
+          }
+        ]
+      },
+      "bytes": 7888
+    }
+  ],
+  "observedFailure": "Windows stable and macOS stable/minimum sampled genuine visible frames and then failed deferredWhileSelected at the exact release source line 58. These required host failures mean the IDE run did not pass.",
+  "unknowns": [
+    "The source line 57 selectionStable check can pass when compared selection text is empty; these raw failure receipts do not independently measure the prepared DOM Range.",
+    "A completed frame sample does not establish an approved performance SLO.",
+    "No standalone process-exit receipt is inferred from job log lines or UI phase completion."
+  ],
+  "boundaries": {
+    "formalSample": false,
+    "providerAssessed": false,
+    "performanceSloApproved": false,
+    "subsetOnly": true,
+    "screenshotsArchived": false,
+    "rawProtocolArchived": false,
+    "rawZipPublic": false,
+    "jobLogsAreByteIndexedSafeExcerpts": true
+  }
+}

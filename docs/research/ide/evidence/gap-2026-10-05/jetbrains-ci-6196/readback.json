@@ -1,0 +1,1060 @@
+{
+  "schema": "chainlesschain.jetbrains-six-host-ci-readback/v1",
+  "recordedAt": "2026-10-05T15:37:47.966Z",
+  "sourceCommit": "6196cd065dca2afd55ca51ed53c8d95a196be223",
+  "run": {
+    "id": 37327110713,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "jetbrainsHostsPassed": 6,
+  "jetbrainsHostsExpected": 6,
+  "matrix": [
+    {
+      "cell": "Linux-2024.2",
+      "jobId": 111820926204,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926204",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:55:45Z",
+      "completedAt": "2026-10-05T15:07:28Z",
+      "artifact": {
+        "id": 11354071617,
+        "name": "jetbrains-Linux-2024.2-host-evidence-1",
+        "zipBytes": 3477940,
+        "githubDigest": "sha256:0fdbca392128a27eb194377e5736de92651d7cdade806ac482a5411d13f54eb6",
+        "verifiedDigest": "sha256:0fdbca392128a27eb194377e5736de92651d7cdade806ac482a5411d13f54eb6",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2024.2",
+          "operatingSystem": "linux",
+          "architecture": "x64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:9835b6f7c846c500be29eb135ca95c936d1331b4224f16b1c264a5434802e399",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 16979,
+          "startedAt": "2026-10-05T15:04:55.239Z",
+          "completedAt": "2026-10-05T15:06:23.108Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 18489,
+          "startedAt": "2026-10-05T15:06:23.616Z",
+          "completedAt": "2026-10-05T15:07:23.179Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "Linux-2024.2/canonical-environment.json",
+        "Linux-2024.2/conversation-recovery-host-phases.json",
+        "Linux-2024.2/conversation-recovery-initial.json",
+        "Linux-2024.2/conversation-recovery-restart.json",
+        "Linux-2024.2/native-transcript-metrics.json",
+        "Linux-2024.2/stop-continuation-observations.json",
+        "Linux-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "Linux-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "Linux-2024.2/journey-evidence.json"
+      ]
+    },
+    {
+      "cell": "Linux-2025.2",
+      "jobId": 111820926051,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926051",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:45:19Z",
+      "completedAt": "2026-10-05T14:57:07Z",
+      "artifact": {
+        "id": 11353825370,
+        "name": "jetbrains-Linux-2025.2-host-evidence-1",
+        "zipBytes": 3461716,
+        "githubDigest": "sha256:96b755b567408bd8d7aa2315c88cbfe7193cd10715d23df300361e8db726f010",
+        "verifiedDigest": "sha256:96b755b567408bd8d7aa2315c88cbfe7193cd10715d23df300361e8db726f010",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2025.2",
+          "operatingSystem": "linux",
+          "architecture": "x64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:dc05802e8b908dc0e8fe6a96d8c08bed2161719c920a346f214515abf8be7ba2",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 17121,
+          "startedAt": "2026-10-05T14:54:51.941Z",
+          "completedAt": "2026-10-05T14:56:14.778Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 18672,
+          "startedAt": "2026-10-05T14:56:15.283Z",
+          "completedAt": "2026-10-05T14:57:02.573Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "Linux-2025.2/canonical-environment.json",
+        "Linux-2025.2/conversation-recovery-host-phases.json",
+        "Linux-2025.2/conversation-recovery-initial.json",
+        "Linux-2025.2/conversation-recovery-restart.json",
+        "Linux-2025.2/native-transcript-metrics.json",
+        "Linux-2025.2/stop-continuation-observations.json",
+        "Linux-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "Linux-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "Linux-2025.2/journey-evidence.json"
+      ]
+    },
+    {
+      "cell": "macOS-2024.2",
+      "jobId": 111820926192,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926192",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:54:34Z",
+      "completedAt": "2026-10-05T15:13:23Z",
+      "artifact": {
+        "id": 11353553894,
+        "name": "jetbrains-macOS-2024.2-host-evidence-1",
+        "zipBytes": 3471241,
+        "githubDigest": "sha256:be7edda17790af7251a76abd5275f4640a635286f08313a9d9379695eb37b172",
+        "verifiedDigest": "sha256:be7edda17790af7251a76abd5275f4640a635286f08313a9d9379695eb37b172",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2024.2",
+          "operatingSystem": "darwin",
+          "architecture": "arm64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:ac2ecf9bb288e5a86457169e00eded894d5d421a65e6282ebec90a6a56753be4",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 24598,
+          "startedAt": "2026-10-05T15:10:04.222Z",
+          "completedAt": "2026-10-05T15:12:07.766Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 27778,
+          "startedAt": "2026-10-05T15:12:10.509Z",
+          "completedAt": "2026-10-05T15:13:10.102Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "macOS-2024.2/canonical-environment.json",
+        "macOS-2024.2/conversation-recovery-host-phases.json",
+        "macOS-2024.2/conversation-recovery-initial.json",
+        "macOS-2024.2/conversation-recovery-restart.json",
+        "macOS-2024.2/native-transcript-metrics.json",
+        "macOS-2024.2/stop-continuation-observations.json",
+        "macOS-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "macOS-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "macOS-2024.2/journey-evidence.json"
+      ]
+    },
+    {
+      "cell": "macOS-2025.2",
+      "jobId": 111820926127,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926127",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:52:30Z",
+      "completedAt": "2026-10-05T15:13:57Z",
+      "artifact": {
+        "id": 11354715540,
+        "name": "jetbrains-macOS-2025.2-host-evidence-1",
+        "zipBytes": 3505617,
+        "githubDigest": "sha256:d521714a5bdaa2eb056d627b2d2d1cf9204bb0d09b7c9ac286463c66ab1fa51a",
+        "verifiedDigest": "sha256:d521714a5bdaa2eb056d627b2d2d1cf9204bb0d09b7c9ac286463c66ab1fa51a",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2025.2",
+          "operatingSystem": "darwin",
+          "architecture": "arm64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:8a6b45981b7ce65220f2cd052cecda83e3ec09a5e443d134acd27a40a2110e3f",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 28966,
+          "startedAt": "2026-10-05T15:10:18.103Z",
+          "completedAt": "2026-10-05T15:12:35.003Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 32552,
+          "startedAt": "2026-10-05T15:12:37.024Z",
+          "completedAt": "2026-10-05T15:13:41.785Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "macOS-2025.2/canonical-environment.json",
+        "macOS-2025.2/conversation-recovery-host-phases.json",
+        "macOS-2025.2/conversation-recovery-initial.json",
+        "macOS-2025.2/conversation-recovery-restart.json",
+        "macOS-2025.2/native-transcript-metrics.json",
+        "macOS-2025.2/stop-continuation-observations.json",
+        "macOS-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "macOS-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "macOS-2025.2/journey-evidence.json"
+      ]
+    },
+    {
+      "cell": "Windows-2024.2",
+      "jobId": 111820926547,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926547",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:48:24Z",
+      "completedAt": "2026-10-05T15:06:12Z",
+      "artifact": {
+        "id": 11354310957,
+        "name": "jetbrains-Windows-2024.2-host-evidence-1",
+        "zipBytes": 3491103,
+        "githubDigest": "sha256:78378fb2dad27e6b291f678a0e54e7f1719fdf839c9660847f19fdf39562ab77",
+        "verifiedDigest": "sha256:78378fb2dad27e6b291f678a0e54e7f1719fdf839c9660847f19fdf39562ab77",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2024.2",
+          "operatingSystem": "win32",
+          "architecture": "x64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:93384513494ed9f98f902c84e65697f0002a9492509c0b9064e1917fcecaaa34",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 5896,
+          "startedAt": "2026-10-05T15:02:46.676Z",
+          "completedAt": "2026-10-05T15:04:50.004Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 3808,
+          "startedAt": "2026-10-05T15:04:50.676Z",
+          "completedAt": "2026-10-05T15:05:58.878Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2024.2",
+        "ideBuild": "IC-242.20224.300",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "Windows-2024.2/canonical-environment.json",
+        "Windows-2024.2/conversation-recovery-host-phases.json",
+        "Windows-2024.2/conversation-recovery-initial.json",
+        "Windows-2024.2/conversation-recovery-restart.json",
+        "Windows-2024.2/native-transcript-metrics.json",
+        "Windows-2024.2/stop-continuation-observations.json",
+        "Windows-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "Windows-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "Windows-2024.2/journey-evidence.json"
+      ]
+    },
+    {
+      "cell": "Windows-2025.2",
+      "jobId": 111820926211,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37327110713/job/111820926211",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-05T14:47:53Z",
+      "completedAt": "2026-10-05T15:09:02Z",
+      "artifact": {
+        "id": 11353159707,
+        "name": "jetbrains-Windows-2025.2-host-evidence-1",
+        "zipBytes": 3475787,
+        "githubDigest": "sha256:0251207876b4cc4976d3ed59bee79989d2a1d304e1ff303a5179be99c1f0e268",
+        "verifiedDigest": "sha256:0251207876b4cc4976d3ed59bee79989d2a1d304e1ff303a5179be99c1f0e268",
+        "rawZipPublic": false
+      },
+      "journey": {
+        "id": "jetbrains-canonical-conversation-recovery",
+        "result": "passed",
+        "evidenceComplete": true,
+        "host": {
+          "name": "jetbrains",
+          "version": "2025.2",
+          "operatingSystem": "win32",
+          "architecture": "x64",
+          "transport": "local-ide-bridge"
+        },
+        "cliVersion": "0.166.89",
+        "extensionVersion": "0.4.152"
+      },
+      "installedArchiveSha256": "sha256:44ed6afd89e418c2f717761c16acf984b84cdbf4b6f7baac61c8049b9bce52f6",
+      "phases": [
+        {
+          "phase": "initial",
+          "attempt": 1,
+          "processId": 9892,
+          "startedAt": "2026-10-05T15:05:19.878Z",
+          "completedAt": "2026-10-05T15:07:34.173Z"
+        },
+        {
+          "phase": "restart",
+          "attempt": 1,
+          "processId": 8264,
+          "startedAt": "2026-10-05T15:07:34.813Z",
+          "completedAt": "2026-10-05T15:08:54.778Z"
+        }
+      ],
+      "recovery": {
+        "backgroundCompletion": true,
+        "distinctSavedRows": 6,
+        "independentDrafts": true,
+        "processRestart": true,
+        "automaticInputReplay": false,
+        "providerEvidence": "deterministic fixture",
+        "stopBeforeInit": true,
+        "cancelledDraftRecovered": true,
+        "stopAfterCancelledPreparation": true,
+        "firstStopPreservesChild": true
+      },
+      "nativeTranscript": {
+        "status": "measured",
+        "ideVersion": "2025.2",
+        "ideBuild": "IC-252.23892.409",
+        "profile": "installed-plugin-native-swing",
+        "sloStatus": "not-evaluated",
+        "cases": [
+          {
+            "requestedChars": 10000,
+            "streamedChars": 10000,
+            "retainedChars": 10000
+          },
+          {
+            "requestedChars": 100000,
+            "streamedChars": 100000,
+            "retainedChars": 100000
+          },
+          {
+            "requestedChars": 200000,
+            "streamedChars": 200000,
+            "retainedChars": 199973
+          }
+        ]
+      },
+      "files": [
+        "Windows-2025.2/canonical-environment.json",
+        "Windows-2025.2/conversation-recovery-host-phases.json",
+        "Windows-2025.2/conversation-recovery-initial.json",
+        "Windows-2025.2/conversation-recovery-restart.json",
+        "Windows-2025.2/native-transcript-metrics.json",
+        "Windows-2025.2/stop-continuation-observations.json",
+        "Windows-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "Windows-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "Windows-2025.2/journey-evidence.json"
+      ]
+    }
+  ],
+  "otherJobs": [
+    {
+      "id": 111820569433,
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111820925879,
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111820925918,
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111820926111,
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111820926373,
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111825117183,
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111825117269,
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 111825117424,
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111827210354,
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111830915314,
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111832710620,
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111834197308,
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 111837545037,
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "files": [
+    {
+      "name": "macOS-2025.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:5ecebf58320d6eb277d7f05d252801b27d818f1fd7b5639b61bd241084954213",
+      "bytes": 181
+    },
+    {
+      "name": "macOS-2025.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:afa8faaa34a6dd9ca5b0797d7118da57a417c4dd1a995fd07eb61b2dea354a44",
+      "bytes": 3391
+    },
+    {
+      "name": "macOS-2025.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:9c604215a9b7b8e459ee367bbcb8cfd3acf81e920afadcf9e30a443f4e568c12",
+      "bytes": 33978
+    },
+    {
+      "name": "macOS-2025.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:d543ce3418e04188b0935c78e465aa7e85d85148a404fd616963fb52931e08a8",
+      "bytes": 8416
+    },
+    {
+      "name": "macOS-2025.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:a0bb80ac7dfe24bbf04c00d85ae542bace4506220c85fe891c028acbbffb015c",
+      "bytes": 33755
+    },
+    {
+      "name": "macOS-2025.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:1ebf9c59848e3d6e0a224fd5fa2426a1bb62a33f600675b0c9b9ea46e798d24b",
+      "bytes": 11879
+    },
+    {
+      "name": "macOS-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11354715540,
+      "sha256": "sha256:b6df2ab715c6857879b060f6f7153a9e0a023e5ea571f92d358630ebec6789f9",
+      "bytes": 726
+    },
+    {
+      "name": "macOS-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11354715540,
+      "sha256": "sha256:6f1e57eb0c820473606ab95ebaffbe373636d7f8704fb9f0f9b795fb47da22a3",
+      "bytes": 693
+    },
+    {
+      "name": "macOS-2025.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2025.2/journey-evidence.json",
+      "artifactId": 11354715540,
+      "sha256": "sha256:9b5e68dab10942319385f7410cabe01e8d7a61c0b9f27c7441ef16d1be6d3905",
+      "bytes": 11920
+    },
+    {
+      "name": "Windows-2024.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:6e559bee44206bcbb7ba0e90e5fa8765000002cb025a0f2d4fca1341a6383c25",
+      "bytes": 175
+    },
+    {
+      "name": "Windows-2024.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:d08a04adf052d048f0414b9f00dd9f90d4f462ee03a655e48f14e0f9cddd0387",
+      "bytes": 3346
+    },
+    {
+      "name": "Windows-2024.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:fd78e6f43a3bf528c6196aed24a98f5efee4fad92533a954634376f619c63127",
+      "bytes": 37064
+    },
+    {
+      "name": "Windows-2024.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:369b0dd0d0aad82f6589ef9b4d9b61ba6e1b74fe8d172d0dd2a7ab96766770a3",
+      "bytes": 8407
+    },
+    {
+      "name": "Windows-2024.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:2a1567e52e2a7f426505d6c8d01671d432c9630af70ed00e692e3b32a4f6bbfb",
+      "bytes": 32599
+    },
+    {
+      "name": "Windows-2024.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:9da58ad584c291eb9a5faaa80d36d47eee068d4b86f26316d300eaf942ff42e0",
+      "bytes": 12005
+    },
+    {
+      "name": "Windows-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11354310957,
+      "sha256": "sha256:6f36e7d00eaed2d47ed8c841613561f4a29af4c5573dae9885d2496f88156374",
+      "bytes": 681
+    },
+    {
+      "name": "Windows-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11354310957,
+      "sha256": "sha256:67c206959ae24e439a7990ebab28a34fe5b1d1992ac9736793c170dec6b8ee39",
+      "bytes": 648
+    },
+    {
+      "name": "Windows-2024.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2024.2/journey-evidence.json",
+      "artifactId": 11354310957,
+      "sha256": "sha256:542b681748c3fd87671b307cd6b884b07bc0d4062e5d98aa6ea9778e5b254e2d",
+      "bytes": 11918
+    },
+    {
+      "name": "Linux-2024.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:70527d4c77d1fdc41021c89382f32ff8e1753a3d759a8f95e5d4c402f685f8a2",
+      "bytes": 137
+    },
+    {
+      "name": "Linux-2024.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:6ba2f361089593d3e58788ddb13aa81d24a8f7d22d28763ed4c244fcc13ce879",
+      "bytes": 3393
+    },
+    {
+      "name": "Linux-2024.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:287d00054a7cc2c1f63f589cb8381cd077e8641713fa8b9684f264961c284d1e",
+      "bytes": 69076
+    },
+    {
+      "name": "Linux-2024.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:eb42ef03ec6b1484910ffdf3cc2d99452e7e7933d6c9819e784841c59d244490",
+      "bytes": 8421
+    },
+    {
+      "name": "Linux-2024.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:40962de049e24b206e0e70fbdcebd29ac1872f3bdb30e60e93471330437d4355",
+      "bytes": 34606
+    },
+    {
+      "name": "Linux-2024.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:defc5bf177cbe3c4b6956d614f0835a25993ea2c8550eb38df9c6afa7f5863c2",
+      "bytes": 11893
+    },
+    {
+      "name": "Linux-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11354071617,
+      "sha256": "sha256:38db18d1cb98d0b476b29f84ebbb66013f1cddd50d357f173ed10f829d4e6e86",
+      "bytes": 671
+    },
+    {
+      "name": "Linux-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11354071617,
+      "sha256": "sha256:cc563813d9eb3b6ab45c856be7b94cfeba67d8f204a938b922a8bd06a95d965c",
+      "bytes": 641
+    },
+    {
+      "name": "Linux-2024.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2024.2/journey-evidence.json",
+      "artifactId": 11354071617,
+      "sha256": "sha256:3ee58226a05daedd277755af7c5cfba9209996c5800ff37df48099ac79ad7de7",
+      "bytes": 11919
+    },
+    {
+      "name": "Linux-2025.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:58086825f0d8475e01c26d490c6564c925b345162f6154282bf991fa28000d19",
+      "bytes": 137
+    },
+    {
+      "name": "Linux-2025.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:619622b5285b0dd4df89c34269e8751fe5eb7fbac5e28978dca792f7923be0d7",
+      "bytes": 3402
+    },
+    {
+      "name": "Linux-2025.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:9ee8f5721d57e6c2a982d173bb223a48dcd38eb688c866a97fe38a21ca5e89fa",
+      "bytes": 63584
+    },
+    {
+      "name": "Linux-2025.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:d5997afb2c6861a29d08b43e9e3936a9b6acf06795f9b60945efff35ea758b62",
+      "bytes": 8421
+    },
+    {
+      "name": "Linux-2025.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:af9dda54118f7cf5dff6ea255225184d4e7142bc32385e3667de1e0448e2218a",
+      "bytes": 35053
+    },
+    {
+      "name": "Linux-2025.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:4c418a4fc263eabd341fff050161698a6b7a2b8d4265c03c27263c14b24cdcdf",
+      "bytes": 11844
+    },
+    {
+      "name": "Linux-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11353825370,
+      "sha256": "sha256:11aa2a991e8a39bbf9f4e04b1a1d7457a981d0b74310fd63def9974302b159c4",
+      "bytes": 669
+    },
+    {
+      "name": "Linux-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11353825370,
+      "sha256": "sha256:0814cf60cb0e319cd178ad48d5b1289f4a3b4e6dee37163688af5db857255d92",
+      "bytes": 641
+    },
+    {
+      "name": "Linux-2025.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-Linux-2025.2/journey-evidence.json",
+      "artifactId": 11353825370,
+      "sha256": "sha256:c071637835fdab93410c5ab99c33c4c001e71d0c867085f9013a7d5f6c4f0dc7",
+      "bytes": 11917
+    },
+    {
+      "name": "macOS-2024.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:5c5afb8374b38de1036b2b0e93886b10bc7c85556ba2583f752cfbac63674d2f",
+      "bytes": 181
+    },
+    {
+      "name": "macOS-2024.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:91909f11b5382023499ae71fbbb27dc1c58b711f91c73bacc98624a41395f205",
+      "bytes": 3395
+    },
+    {
+      "name": "macOS-2024.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:52009e9b7b43aa627dece8127ebea8edf8fcacc8d9884c6eb4f8ea5ef56e951e",
+      "bytes": 47404
+    },
+    {
+      "name": "macOS-2024.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:397a860987ec909de3f3b1d4b292fd263551d754fbd8bf4c7bbdacb8fd1586ce",
+      "bytes": 8416
+    },
+    {
+      "name": "macOS-2024.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:9c2bff78a0bffa9d902b0f8819be74677add0722177dbeb7d1dbb404b0115c2b",
+      "bytes": 33879
+    },
+    {
+      "name": "macOS-2024.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:e6e266c0296f59e2bddebdc65bb57c9dc587b8a4785ca752705fcdba84ee3caf",
+      "bytes": 11879
+    },
+    {
+      "name": "macOS-2024.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11353553894,
+      "sha256": "sha256:8e4b4e0572d4d8bf8c085f2baf55d40d95ff54275bbd4ca0e5a75f7c44031f82",
+      "bytes": 725
+    },
+    {
+      "name": "macOS-2024.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11353553894,
+      "sha256": "sha256:119c9cb0c807172f4c54498f7a14ad99e322051a8f0c9f24944bc98c8ea8dab0",
+      "bytes": 692
+    },
+    {
+      "name": "macOS-2024.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-macOS-2024.2/journey-evidence.json",
+      "artifactId": 11353553894,
+      "sha256": "sha256:a74449d51273862ed9dec18ec4e47bb8c9bdf002ad7ae1ff45012e4c65d25fb0",
+      "bytes": 11920
+    },
+    {
+      "name": "Windows-2025.2/canonical-environment.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/001-canonical-environment.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:f4318191309723592e384a39162908fee7997dbdf414379ed63a88abfe895d33",
+      "bytes": 175
+    },
+    {
+      "name": "Windows-2025.2/conversation-recovery-host-phases.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:30b1bc19fe7cbc51e75de4f4110111422fb348e17136e60f11266efe2f6fdbc5",
+      "bytes": 3347
+    },
+    {
+      "name": "Windows-2025.2/conversation-recovery-initial.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/003-conversation-recovery-initial.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:ef2c052e59eec31a7f1d09b9ead98a652491490612d8019b67b928865d721eea",
+      "bytes": 37122
+    },
+    {
+      "name": "Windows-2025.2/conversation-recovery-restart.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/004-conversation-recovery-restart.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:a60a6fc49d0192cc5531271798a8d2eeb2038c1b1d90f1e4ac577d1a7acace7c",
+      "bytes": 8407
+    },
+    {
+      "name": "Windows-2025.2/native-transcript-metrics.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/017-native-transcript-metrics.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:5e74b614affb732433aa3a149ce8d3f629127e0adf0bec564ea5cfe79ed632d9",
+      "bytes": 32443
+    },
+    {
+      "name": "Windows-2025.2/stop-continuation-observations.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/024-stop-continuation-observations.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:7e443eb8c66ba6cab38513d69cfbabf3e55844a2076ca22ee35d31438e922c1c",
+      "bytes": 12057
+    },
+    {
+      "name": "Windows-2025.2/TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/032-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "artifactId": 11353159707,
+      "sha256": "sha256:df7715a258345389bcf781c70b4cce441c31b94a5a4ff9cafa35969f605b544e",
+      "bytes": 681
+    },
+    {
+      "name": "Windows-2025.2/TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/diagnostics/033-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "artifactId": 11353159707,
+      "sha256": "sha256:7b08566a62b1c6f661e3f151294cf0e79a8d81f3a14b93112f239bc2c58dc8c8",
+      "bytes": 649
+    },
+    {
+      "name": "Windows-2025.2/journey-evidence.json",
+      "sourceEntry": "ide-journey/canonical-Windows-2025.2/journey-evidence.json",
+      "artifactId": 11353159707,
+      "sha256": "sha256:b2c442dd17f78bab47b7591ed131c87cf1b787a2e3bea0c33e47216149f40f45",
+      "bytes": 11917
+    }
+  ],
+  "boundaries": {
+    "sixJetbrainsHostsPassed": true,
+    "topLevelIdeRunPassed": false,
+    "macosVsCodeHostFailed": true,
+    "releaseEligible": false,
+    "formalSample": false,
+    "providerAssessed": false,
+    "performanceSloApproved": false,
+    "publicTextSubsetOnly": true,
+    "screenshotsArchived": false,
+    "rawProtocolArchived": false,
+    "rawZipPublic": false,
+    "standaloneExitReceipts": "The upstream artifacts contain host phase completion records but no standalone process-exit receipt files. No exit result is inferred from phase completion."
+  }
+}

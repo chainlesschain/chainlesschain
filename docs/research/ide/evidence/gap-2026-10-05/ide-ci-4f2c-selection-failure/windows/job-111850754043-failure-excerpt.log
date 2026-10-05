@@ -1,0 +1,28 @@
+2026-10-05T15:55:30.8685052Z false !== true
+2026-10-05T15:55:30.8686715Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:30.8707815Z false !== true
+2026-10-05T15:55:30.8711257Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:30.9650478Z false !== true
+2026-10-05T15:55:30.9672002Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:31.2217537Z false !== true
+2026-10-05T15:55:31.2218934Z false !== true
+2026-10-05T15:55:31.2219601Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:31.2243558Z [2026-10-05T15:55:29.662Z] streamProfile progress: {"chars":10000,"stage":"waiting-visible","completedFrames":0,"visibilityState":"visible","visible":true,"elapsedMs":0.20000000001164153}
+2026-10-05T15:55:31.2244889Z [2026-10-05T15:55:29.671Z] streamProfile progress: {"chars":10000,"stage":"visible","completedFrames":0,"visibilityState":"visible","visible":true,"elapsedMs":11.299999999988358}
+2026-10-05T15:55:31.2246177Z [2026-10-05T15:55:29.836Z] streamProfile progress: {"chars":10000,"stage":"sampling","completedFrames":1,"visibilityState":"visible","visible":true,"elapsedMs":176.20000000001164}
+2026-10-05T15:55:31.2247458Z [2026-10-05T15:55:30.063Z] streamProfile progress: {"chars":10000,"stage":"sampling","completedFrames":16,"visibilityState":"visible","visible":true,"elapsedMs":402.79999999998836}
+2026-10-05T15:55:31.2248739Z [2026-10-05T15:55:30.312Z] streamProfile progress: {"chars":10000,"stage":"sampling","completedFrames":32,"visibilityState":"visible","visible":true,"elapsedMs":651.7999999999884}
+2026-10-05T15:55:31.2250018Z [2026-10-05T15:55:30.563Z] streamProfile progress: {"chars":10000,"stage":"sampling","completedFrames":48,"visibilityState":"visible","visible":true,"elapsedMs":903.1000000000349}
+2026-10-05T15:55:31.2251295Z [2026-10-05T15:55:30.813Z] streamProfile progress: {"chars":10000,"stage":"sampling","completedFrames":64,"visibilityState":"visible","visible":true,"elapsedMs":1152.600000000035}
+2026-10-05T15:55:31.2252585Z [2026-10-05T15:55:30.813Z] streamProfile progress: {"chars":10000,"stage":"finalizing","completedFrames":64,"visibilityState":"visible","visible":true,"elapsedMs":1152.7000000000116}
+2026-10-05T15:55:31.2253878Z [2026-10-05T15:55:30.858Z] streamProfile progress: {"chars":10000,"stage":"completed","completedFrames":64,"visibilityState":"visible","visible":true,"elapsedMs":1198.2000000000116}
+2026-10-05T15:55:31.2255441Z false !== true
+2026-10-05T15:55:31.2358377Z false !== true
+2026-10-05T15:55:31.2359035Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:31.2366901Z false !== true
+2026-10-05T15:55:31.2367548Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:31.2375233Z false !== true
+2026-10-05T15:55:31.2375871Z 	at verifyStreamingProfile (d:\a\chainlesschain\chainlesschain\packages\vscode-extension\test\extension-host\driver\streaming-profile.cjs:58:10)
+2026-10-05T15:55:31.3604061Z [extension-host-smoke] FAIL AggregateError: VS Code host and DOM relay journey failed during initial: host=Test run failed with code 1; journey=host journey initial failed: Expected values to be strictly equal:
+2026-10-05T15:55:31.3614179Z false !== true
+2026-10-05T15:55:31.3962401Z ##[error]Process completed with exit code 1.

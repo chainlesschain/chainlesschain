@@ -54,15 +54,25 @@ CLI CI 的 Linux integration 1/8 作业中 149 项通过、1 项失败，原因�
 
 修复为流式采集增加独立有界期限：host 90 秒、renderer 75 秒、可见性预检 15 秒；普通 relay 仍为 10 秒。必须使用真实可见 DOM 与真实 rAF，逐案例/warmup 记录 started/completed/failed 及实际帧进度。隐藏、取消、超时和逾期帧会停止采样、清理临时 DOM 并恢复 selection/scroll；取消和进度消息均校验 token/requestId，不接受并发采样。原有 64 帧、selection、parse/finalization 等断言及 `performanceGate:false` 保留，没有将采集期限扩大解释为 SLO 通过。
 
-本地 host DOM 与 extension-host runner **86/86** 通过，CLI 引用侧 20 个文件分轮 **260/260** 通过；最初两个 DOM 文件因本地缺少锁定 `happy-dom` 没有加载，隔离补齐 lock 中的 20.11.1 后通过，未修改仓库依赖。ESLint、Prettier 和 diff 检查通过。同一旧提交的 JetBrains 三系统 × 两版本六宿主全部成功，IDE 工作流最终只有上述 macOS VS Code 作业失败；Linux 发布门因此跳过。修复后的准确提交仍须完整 CLI 双门与 IDE 宿主矩阵，当前候选 CLI 0.166.89、VS Code 0.37.134、JetBrains 0.4.152 均未发布。
+本地 host DOM 与 extension-host runner **86/86** 通过，CLI 引用侧 20 个文件分轮 **260/260** 通过；最初两个 DOM 文件因本地缺少锁定 `happy-dom` 没有加载，隔离补齐 lock 中的 20.11.1 后通过，未修改仓库依赖。ESLint、Prettier 和 diff 检查通过。同一旧提交的 JetBrains 三系统 × 两版本六宿主全部成功，[54 份安全原始文本及字节回读](./ide/evidence/gap-2026-10-05/jetbrains-ci-6196/readback.json) 已归档；IDE 工作流最终只有上述 macOS VS Code 作业失败，Linux 发布门因此跳过。修复后的准确提交仍须完整 CLI 双门与 IDE 宿主矩阵，当前候选 CLI 0.166.89、VS Code 0.37.134、JetBrains 0.4.152 均未发布。
 
-## 4. JetBrains 身份旅程
+## 4. Windows / macOS 流式诊断选区准备失败
+
+准确提交 `4f2c19281ca9b66576a3ef3d599dafa1fe67471c` 的 [IDE Extensions #37332999462](https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462) 出现两个失败作业：[Windows](https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462/job/111850754043) 与 [macOS](https://github.com/chainlesschain/chainlesschain/actions/runs/37332999462/job/111850754054)。macOS stable 与最低版本均在 `verifyStreamingProfile` 的 `deferredWhileSelected` 断言失败；Windows warmup 已采满 64 个真实可见帧，耗时约 1.2 秒，macOS 最低版本约 5.1 秒。本次不是隐藏视图或采集超时，失败结果继续保留。
+
+Astra 使用真实 Chromium 确认诊断准备缺陷：已有 collapsed caret range 时，直接 `Selection.addRange(target)` 会保留原光标，实际选中文本为空。旧 `selectionStable` 比较空文本仍可能通过，但生产 renderer 正确识别 `isCollapsed=true`，立即格式化，因此延迟格式化断言失败。新增 warmup 校验暴露了此问题；不能删除 warmup 校验或放宽正式案例断言。
+
+修复在保存原 range 后，先清除已有选区，再建立并核验目标文本的非折叠选区；清理路径仍恢复原 range 和滚动位置。真实可见 DOM、rAF、64 帧、取消/期限合同与 `performanceGate:false` 保持不变。修复后的准确提交仍须重新完成全系统 CLI 双门和完整 IDE 宿主矩阵，不能复用 `4f2c` 或 `6196` 的通过作业发布新提交。
+
+本地 host DOM 与 extension-host runner **87/87** 通过，CLI 流式渲染 DOM 引用回归 **7/7** 通过；ESLint、Prettier 和 diff 检查通过。新回归模拟 Chromium 单 range 行为，验证已有 caret 的替换、取消后的恢复以及拒绝目标 range 时的清理。只在内存中移除新增的清除操作后，caret 回归按预期失败，共享源码未被临时修改。
+
+## 5. JetBrains 身份旅程
 
 真实 Windows IntelliJ 2024.2 / 插件 0.4.152 的同一 IDE 进程完成八阶段诊断：有效 CLI、显式错误路径且存在 managed fallback、修复显式路径、同路径替换为 GCC、PATH 上 GCC、四个命令别名均缺失、managed fallback、安装到 PATH 后无需重启恢复。两次手动更新也显示正确的身份失败原因。
 
 该诊断只使用本地命令 fixture，没有发送模型请求、运行 agent 任务或安装公开产品。[安全归档与回读](./ide/evidence/gap-2026-10-05/onboarding-identity-windows/readback.json) 包含 29 份原始文件，其中 10 张截图限定 IDE/对话框；前两次失败尝试的整桌面截图不公开，前三次失败原因和清理结果分别保留。最终回执绑定 `ae6adbe13c` 加 dirty 工作区及逐文件字节摘要，五份源码摘要与当前文件一致；不能将其描述为干净提交的 CI 或首次公开安装样本。实际 IDE 正常退出，Gradle owner exit 0、taskkill 未使用、已记录进程身份均已消失。
 
-## 5. 仍需独立完成的任务
+## 6. 仍需独立完成的任务
 
 | 项目                      | 当前证据与剩余条件                                                                                         |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |

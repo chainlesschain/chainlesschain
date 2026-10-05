@@ -1,0 +1,233 @@
+{
+  "schema": "cc-jetbrains-conversation-recovery/v3",
+  "phase": "restart",
+  "model": "deterministic fixture",
+  "persistence": "production canonical store and actual CLI command",
+  "installation": {
+    "pluginPath": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2024-2-1791212679621/IC-2024.2/plugins_runIdeForUiTests/chainlesschain-ide-bridge",
+    "archiveSha256": "sha256:9835b6f7c846c500be29eb135ca95c936d1331b4224f16b1c264a5434802e399",
+    "files": {
+      "lib/chainlesschain-ide-bridge-0.4.152-searchableOptions.jar": "sha256:1e2b69381fd5b8db61576f355a9d2799e8be02c87239dabb0be82873e76e4e08",
+      "lib/chainlesschain-ide-bridge-0.4.152.jar": "sha256:0960574ed9648ea886a1de854462c39236dcf014aa940ca0d468fc99c6ebf85e"
+    },
+    "exactZipContents": true
+  },
+  "cancelledDraft": {
+    "observedAt": "2026-10-05T15:07:18.983180463Z",
+    "processId": "18724",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2024-2-1791212679621/IC-2024.2/config_runIdeForUiTests",
+    "id": "bfe5064c-38bc-4c1e-8e38-02463322dff9",
+    "sessionId": "panel-1791212752380-049001",
+    "tabs": [
+      {
+        "id": "43d5d466-eb3a-44b4-965c-2860fd357acf",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "bfe5064c-38bc-4c1e-8e38-02463322dff9",
+        "index": 1,
+        "selected": true
+      },
+      {
+        "id": "34820536-b23c-4bc4-b144-690916dcfd58",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "94d586ab-8db1-4acb-875e-0753a5043fa1",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "5f114ecf-3b14-4560-ae32-b059835b5797",
+        "index": 4,
+        "selected": false
+      },
+      {
+        "id": "3ad1a43e-1448-439d-b1b2-4eefe08a0761",
+        "index": 5,
+        "selected": false
+      }
+    ],
+    "inputText": "cancelled before init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " No saved messages",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "a": {
+    "observedAt": "2026-10-05T15:07:20.783128971Z",
+    "processId": "18724",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2024-2-1791212679621/IC-2024.2/config_runIdeForUiTests",
+    "id": "94d586ab-8db1-4acb-875e-0753a5043fa1",
+    "sessionId": "panel-1791212760195-d4ea38",
+    "tabs": [
+      {
+        "id": "43d5d466-eb3a-44b4-965c-2860fd357acf",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "bfe5064c-38bc-4c1e-8e38-02463322dff9",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "34820536-b23c-4bc4-b144-690916dcfd58",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "94d586ab-8db1-4acb-875e-0753a5043fa1",
+        "index": 3,
+        "selected": true
+      },
+      {
+        "id": "5f114ecf-3b14-4560-ae32-b059835b5797",
+        "index": 4,
+        "selected": false
+      },
+      {
+        "id": "3ad1a43e-1448-439d-b1b2-4eefe08a0761",
+        "index": 5,
+        "selected": false
+      }
+    ],
+    "inputText": "unsent draft A 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " Saved messages 1–4 of 4",
+    "binaryChoice": "cc",
+    "text": "ℹ 1 saved input(s); review acceptance before intentionally resending.\nLLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n\nMessage 1, user (saved)\njourney:history-A\n\nMessage 2, assistant (saved)\ncanonical answer A\n\nMessage 3, user (saved)\njourney:history-A\n\nMessage 4, assistant (saved)\ncanonical answer A\n",
+    "visible": true,
+    "savedRows": [
+      {
+        "id": "panel-1791212760195-d4ea38:a10e0137f4c0d57b527d260dc2b38bea3c0f0af84f6eeb150aa35639fe136a07:0",
+        "text": "\nMessage 1, user (saved)\njourney:history-A\n",
+        "bodyText": "journey:history-A",
+        "start": 185,
+        "sourceText": "journey:history-A",
+        "role": "user",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791212760195-d4ea38:e9e70aa6f7a43f799bc8d77cd146948ca9137153cd62a3ae7823a34b647487ea:0",
+        "text": "\nMessage 2, assistant (saved)\ncanonical answer A\n",
+        "bodyText": "canonical answer A",
+        "start": 228,
+        "sourceText": "canonical answer A",
+        "role": "assistant",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791212760195-d4ea38:80bd91e60edb93eb31a9186b91083b3fee084563a848b61929006d397f021be4:0",
+        "text": "\nMessage 3, user (saved)\njourney:history-A\n",
+        "bodyText": "journey:history-A",
+        "start": 277,
+        "sourceText": "journey:history-A",
+        "role": "user",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791212760195-d4ea38:17e9cc6503b5b9e9d1c53ebebcd62610a5304c1cc6f55874b84f270c75dc28b0:0",
+        "text": "\nMessage 4, assistant (saved)\ncanonical answer A\n",
+        "bodyText": "canonical answer A",
+        "start": 320,
+        "sourceText": "canonical answer A",
+        "role": "assistant",
+        "truncated": false
+      }
+    ]
+  },
+  "b": {
+    "observedAt": "2026-10-05T15:07:22.421961368Z",
+    "processId": "18724",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2024-2-1791212679621/IC-2024.2/config_runIdeForUiTests",
+    "id": "5f114ecf-3b14-4560-ae32-b059835b5797",
+    "sessionId": "panel-1791212761777-1beb01",
+    "tabs": [
+      {
+        "id": "43d5d466-eb3a-44b4-965c-2860fd357acf",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "bfe5064c-38bc-4c1e-8e38-02463322dff9",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "34820536-b23c-4bc4-b144-690916dcfd58",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "94d586ab-8db1-4acb-875e-0753a5043fa1",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "5f114ecf-3b14-4560-ae32-b059835b5797",
+        "index": 4,
+        "selected": true
+      },
+      {
+        "id": "3ad1a43e-1448-439d-b1b2-4eefe08a0761",
+        "index": 5,
+        "selected": false
+      }
+    ],
+    "inputText": "unsent draft B 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " Saved messages 1–2 of 2",
+    "binaryChoice": "cc",
+    "text": "ℹ 1 saved input(s); review acceptance before intentionally resending.\nLLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n\nMessage 1, user (saved)\njourney:history-B\n\nMessage 2, assistant (saved)\ncanonical answer B\n",
+    "visible": true,
+    "savedRows": [
+      {
+        "id": "panel-1791212761777-1beb01:d7db12f4736f32500e18fc92c9d47374b3bbe09ace5de3c11363068987892af0:0",
+        "text": "\nMessage 1, user (saved)\njourney:history-B\n",
+        "bodyText": "journey:history-B",
+        "start": 185,
+        "sourceText": "journey:history-B",
+        "role": "user",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791212761777-1beb01:6e9a6abe6e24715d4ed10e6a54f6f47b2e37d6b0968b5b09d2b11e1eafa4f023:0",
+        "text": "\nMessage 2, assistant (saved)\ncanonical answer B\n",
+        "bodyText": "canonical answer B",
+        "start": 228,
+        "sourceText": "canonical answer B",
+        "role": "assistant",
+        "truncated": false
+      }
+    ]
+  }
+}

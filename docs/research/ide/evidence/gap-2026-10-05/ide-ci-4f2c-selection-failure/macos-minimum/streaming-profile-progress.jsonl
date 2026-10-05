@@ -1,0 +1,2 @@
+{"at":"2026-10-05T16:01:16.657Z","chars":10000,"warmup":true,"status":"started"}
+{"at":"2026-10-05T16:01:21.803Z","chars":10000,"warmup":true,"status":"failed","error":"Expected values to be strictly equal:\n\nfalse !== true\n"}

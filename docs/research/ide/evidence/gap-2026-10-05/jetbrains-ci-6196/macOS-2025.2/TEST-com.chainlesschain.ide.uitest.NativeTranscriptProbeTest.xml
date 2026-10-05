@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.uitest.NativeTranscriptProbeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-05T15:13:38" hostname="iad20-gt1023-96b0763c-c7de-47c7-8d3c-8551c90412b3-96D1F1528FA8.local" time="0.69">
+  <properties/>
+  <testcase name="acceptsOnlyTheCurrentValidatedFixtureIdentity()" classname="com.chainlesschain.ide.uitest.NativeTranscriptProbeTest" time="0.0"/>
+  <testcase name="rejectsEdtInvocationBeforeAttemptingAnyCliProbe()" classname="com.chainlesschain.ide.uitest.NativeTranscriptProbeTest" time="0.689"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

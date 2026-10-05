@@ -1,0 +1,309 @@
+{
+  "preparation": {
+    "waiting": {
+      "at": "2026-10-05T14:55:48.570Z",
+      "direction": "fixture",
+      "command": "init-gate-waiting",
+      "sessionId": "panel-1791212147738-41bf3c",
+      "nonce": "08f9871b-d6b9-47de-b9eb-67a83667c98a",
+      "processId": 18069,
+      "processInstanceId": "f5e6da20-019d-4b27-bd49-d12885842c59"
+    },
+    "preparing": {
+      "observedAt": "2026-10-05T14:55:48.619911533Z",
+      "processId": "17359",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+      "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+      "sessionId": "panel-1791212147738-41bf3c",
+      "tabs": [
+        {
+          "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+          "index": 2,
+          "selected": true
+        }
+      ],
+      "inputText": "cancelled before init 中文😀",
+      "editable": false,
+      "sendInFlight": true,
+      "childRunning": true,
+      "childProcessId": "18069",
+      "childProcessIds": [
+        "18069"
+      ],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saving draft…",
+      "historyStatus": " Live conversation",
+      "binaryChoice": "cc",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+      "visible": true,
+      "savedRows": []
+    },
+    "stopped": {
+      "observedAt": "2026-10-05T14:55:48.992798242Z",
+      "processId": "17359",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+      "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+      "sessionId": "panel-1791212147738-41bf3c",
+      "tabs": [
+        {
+          "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+          "index": 2,
+          "selected": true
+        }
+      ],
+      "inputText": "cancelled before init 中文😀",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": true,
+      "childProcessId": "18069",
+      "childProcessIds": [
+        "18069"
+      ],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Draft saved · 0 saved input(s)",
+      "historyStatus": " Live conversation",
+      "binaryChoice": "cc",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n",
+      "visible": true,
+      "savedRows": []
+    },
+    "released": {
+      "at": "2026-10-05T14:55:49.008Z",
+      "direction": "fixture",
+      "command": "init-gate-released",
+      "sessionId": "panel-1791212147738-41bf3c",
+      "nonce": "08f9871b-d6b9-47de-b9eb-67a83667c98a",
+      "processId": 18069,
+      "processInstanceId": "f5e6da20-019d-4b27-bd49-d12885842c59"
+    },
+    "ready": {
+      "observedAt": "2026-10-05T14:55:49.255621319Z",
+      "processId": "17359",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+      "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+      "sessionId": "panel-1791212147738-41bf3c",
+      "tabs": [
+        {
+          "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+          "index": 2,
+          "selected": true
+        }
+      ],
+      "inputText": "cancelled before init 中文😀",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": true,
+      "childProcessId": "18069",
+      "childProcessIds": [
+        "18069"
+      ],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": true,
+      "draftStatus": "Draft saved · 0 saved input(s)",
+      "historyStatus": " Live conversation",
+      "binaryChoice": "cc",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  "idleStopped": {
+    "observedAt": "2026-10-05T14:55:49.448126065Z",
+    "processId": "17359",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+    "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+    "sessionId": "panel-1791212147738-41bf3c",
+    "tabs": [
+      {
+        "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "cancelled before init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "18069",
+    "childProcessIds": [
+      "18069"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n── deterministic-host-peer · ollama ──\nℹ no active turn\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "running": {
+    "observedAt": "2026-10-05T14:55:49.972355226Z",
+    "processId": "17359",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+    "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+    "sessionId": "panel-1791212147738-41bf3c",
+    "tabs": [
+      {
+        "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "18069",
+    "childProcessIds": [
+      "18069"
+    ],
+    "turnActive": true,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n── deterministic-host-peer · ollama ──\nℹ no active turn\n\nTurn 1, User message\n\nyou\u003e journey:stop-after-cancel\nTurn 1, Assistant response\nfixture stop waiting #1ℹ Input accepted by the CLI; task completion is separate.\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "stopped": {
+    "observedAt": "2026-10-05T14:55:53.230508472Z",
+    "processId": "17359",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+    "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+    "sessionId": "panel-1791212147738-41bf3c",
+    "tabs": [
+      {
+        "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "18069",
+    "childProcessIds": [
+      "18069"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Live turn stopped. Saved history is available from Latest saved messages.",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n── deterministic-host-peer · ollama ──\nℹ no active turn\n\nTurn 1, User message\n\nyou\u003e journey:stop-after-cancel\nTurn 1, Assistant response\nfixture stop waiting #1ℹ Input accepted by the CLI; task completion is separate.\n⏹ interrupted\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "lastObserved": {
+    "observedAt": "2026-10-05T14:55:53.273458548Z",
+    "processId": "17359",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/2025-2-1791212077496/IC-2024.2/config_runIdeForUiTests",
+    "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+    "sessionId": "panel-1791212147738-41bf3c",
+    "tabs": [
+      {
+        "id": "4829e8fa-116d-4332-ae5e-2cf1258c661f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "3ab3b3e5-1a7a-42bc-9be6-61972c1661c6",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "c2c95432-90aa-4112-8b87-b38888d9e052",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "18069",
+    "childProcessIds": [
+      "18069"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Live turn stopped. Saved history is available from Latest saved messages.",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n⏹ Input preparation stopped; draft kept for editing\n⚠ could not send message: Input stopped before delivery; draft kept for editing\n── deterministic-host-peer · ollama ──\nℹ no active turn\n\nTurn 1, User message\n\nyou\u003e journey:stop-after-cancel\nTurn 1, Assistant response\nfixture stop waiting #1ℹ Input accepted by the CLI; task completion is separate.\n⏹ interrupted\n",
+    "visible": true,
+    "savedRows": []
+  }
+}
