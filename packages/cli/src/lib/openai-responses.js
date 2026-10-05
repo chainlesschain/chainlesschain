@@ -176,7 +176,16 @@ export function createOpenAIResponsesBody({
   maxOutputTokens = null,
   reasoning = null,
   stream = false,
+  modelProfile = null,
 }) {
+  if (
+    modelProfile?.advertisedMaxOutputTokens != null &&
+    maxOutputTokens > modelProfile.advertisedMaxOutputTokens
+  ) {
+    throw new RangeError(
+      `maxOutputTokens exceeds the documented limit (${modelProfile.advertisedMaxOutputTokens}) for ${model}`,
+    );
+  }
   return {
     model,
     input: toOpenAIResponsesInput(messages),
@@ -187,6 +196,36 @@ export function createOpenAIResponsesBody({
     ...(reasoning ? { reasoning } : {}),
     ...(stream ? { stream: true } : {}),
   };
+}
+
+/** Translate UI intensity without sending an effort rejected by the model. */
+export function createOpenAIResponsesReasoning(
+  options = {},
+  modelProfile = null,
+) {
+  const want = options.thinking;
+  if (!want || want === "off" || want === "none") return null;
+  const requested =
+    typeof options.thinkingEffort === "string"
+      ? options.thinkingEffort.toLowerCase()
+      : null;
+  const fallback = ["ultra", "ultrathink"].includes(String(want))
+    ? "xhigh"
+    : want === "think"
+      ? "medium"
+      : "high";
+  const generic = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+  const effort =
+    requested && generic.includes(requested) ? requested : fallback;
+  if (
+    modelProfile?.reasoningEfforts &&
+    !modelProfile.reasoningEfforts.includes(requested || effort)
+  ) {
+    throw new RangeError(
+      `Unsupported reasoning effort for ${modelProfile.model}; allowed: ${modelProfile.reasoningEfforts.join(", ")}`,
+    );
+  }
+  return { effort, summary: "auto" };
 }
 
 export function normalizeOpenAIResponsesUsage(usage) {

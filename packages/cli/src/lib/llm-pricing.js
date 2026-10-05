@@ -40,6 +40,7 @@ export const PRICE_TABLE = Object.freeze({
       match,
       ...model.pricing,
       exact: true,
+      ...(model.pricingTerms ? { terms: model.pricingTerms } : {}),
     })),
     // Current Anthropic list prices (USD per 1M tokens), verified 2026-06-21
     // against the claude-api reference. The Opus tier dropped to $5/$25 with
@@ -64,7 +65,12 @@ export const PRICE_TABLE = Object.freeze({
         match,
         ...model.pricing,
         exact: true,
-        terms: GPT6_PRICING_TERMS,
+        terms: Object.freeze({
+          ...GPT6_PRICING_TERMS,
+          ...(model.cacheReadMultiplier == null
+            ? {}
+            : { cacheReadMultiplier: model.cacheReadMultiplier }),
+        }),
       })),
     // GPT-5 family (2026). Matching is longest-pattern-first, so dated/variant
     // ids (gpt-5.5, gpt-5.5-pro, gpt-5.5-instant, …) resolve to the most
@@ -120,14 +126,16 @@ export const PRICE_TABLE = Object.freeze({
 /**
  * Merge user-supplied price overrides (typically `config.llm.pricing`) onto the
  * built-in table. Override shape mirrors PRICE_TABLE:
- *   { "<provider>": [ { match: "<substr>", in: <num>, out: <num> }, ... ] }
+ *   { "<provider>": [ { match: "<model>", in: <num>, out: <num>, exact?, terms? }, ... ] }
  *
  * Per provider, a user entry whose `match` equals a built-in pattern REPLACES
  * it; brand-new patterns are prepended so they win ties; unknown providers are
  * added. Malformed entries (missing match / non-numeric / negative / Infinity
  * rate) are skipped so a bad config line can't crash cost reporting or produce a
  * negative cost that undercounts spend. Returns a new table; never mutates
- * PRICE_TABLE or the input.
+ * PRICE_TABLE or the input. Explicit terms replace (rather than partly inherit)
+ * the matched terms. Invalid terms throw: silently ignoring a requested tier
+ * or cache policy can materially misstate a hard budget.
  *
  * @param {object} [overrides]
  * @param {object} [base=PRICE_TABLE]
@@ -168,6 +176,12 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
         match: e.match.toLowerCase(),
         in: Number(e.in),
         out: Number(e.out),
+        ...(Object.hasOwn(e, "exact")
+          ? { exact: validateExactMatch(e.exact) }
+          : {}),
+        ...(Object.hasOwn(e, "terms")
+          ? { terms: normalizePricingTerms(e.terms) }
+          : {}),
         explicitOverride: true,
       }));
     if (valid.length === 0) continue;
@@ -178,6 +192,79 @@ export function mergePricing(overrides, base = PRICE_TABLE) {
     merged[providerKey] = [...valid, ...kept];
   }
   return merged;
+}
+
+function validateExactMatch(value) {
+  if (typeof value !== "boolean")
+    throw new TypeError("pricing exact must be a boolean");
+  return value;
+}
+
+/** Validate and copy the documented request-level override schema. */
+export function normalizePricingTerms(value) {
+  const object = (v) =>
+    v !== null &&
+    typeof v === "object" &&
+    (Object.getPrototypeOf(v) === Object.prototype ||
+      Object.getPrototypeOf(v) === null);
+  const finite = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+  const fail = () => {
+    throw new TypeError(
+      "Invalid pricing terms: expected finite non-negative multipliers and a positive long-context threshold",
+    );
+  };
+  const allowed = new Set([
+    "cacheReadMultiplier",
+    "cacheWriteMultiplier",
+    "longContext",
+    "serviceMultipliers",
+  ]);
+  if (!object(value) || Reflect.ownKeys(value).some((key) => !allowed.has(key)))
+    fail();
+  const result = {};
+  for (const key of ["cacheReadMultiplier", "cacheWriteMultiplier"]) {
+    if (!Object.hasOwn(value, key)) continue;
+    if (!finite(value[key])) fail();
+    result[key] = value[key];
+  }
+  if (Object.hasOwn(value, "longContext")) {
+    const tier = value.longContext;
+    if (
+      !object(tier) ||
+      Reflect.ownKeys(tier).some(
+        (key) =>
+          !["threshold", "inputMultiplier", "outputMultiplier"].includes(key),
+      ) ||
+      !Number.isSafeInteger(tier.threshold) ||
+      tier.threshold <= 0 ||
+      !finite(tier.inputMultiplier) ||
+      !finite(tier.outputMultiplier)
+    )
+      fail();
+    result.longContext = Object.freeze({
+      threshold: tier.threshold,
+      inputMultiplier: tier.inputMultiplier,
+      outputMultiplier: tier.outputMultiplier,
+    });
+  }
+  if (Object.hasOwn(value, "serviceMultipliers")) {
+    const tiers = value.serviceMultipliers;
+    if (
+      !object(tiers) ||
+      Reflect.ownKeys(tiers).length === 0 ||
+      Reflect.ownKeys(tiers).some(
+        (key) =>
+          !["standard", "default", "auto", "batch", "flex", "fast"].includes(
+            key,
+          ) || !finite(tiers[key]),
+      )
+    )
+      fail();
+    result.serviceMultipliers = Object.freeze(
+      Object.fromEntries(Object.entries(tiers)),
+    );
+  }
+  return Object.freeze(result);
 }
 
 /**
@@ -199,14 +286,12 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
   const sorted = [...entries].sort((a, b) => b.match.length - a.match.length);
   for (const e of sorted) {
     if (e.exact ? m === e.match : m.includes(e.match)) {
-      // An unrecognized new version must not inherit an older Opus price.
+      // An unrecognized new generation must not inherit an older family price.
       // Explicit operator overrides remain authoritative.
       if (
-        e.match === "opus" &&
-        Number(/^claude-opus-(\d+)(?:[.-]|$)/u.exec(m)?.[1]) >= 5 &&
-        !e.explicitOverride &&
-        e.in === 5 &&
-        e.out === 25
+        ["opus", "sonnet"].includes(e.match) &&
+        Number(/^claude-(?:opus|sonnet)-(\d+)(?:[.-]|$)/u.exec(m)?.[1]) >= 5 &&
+        !e.explicitOverride
       )
         continue;
       return {
@@ -258,7 +343,7 @@ export function estimateCost({
   table,
 } = {}) {
   const rate = lookupRate(provider, model, table);
-  const tierMultiplier = rate?.terms
+  const tierMultiplier = rate?.terms?.serviceMultipliers
     ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)
       ? rate.terms.serviceMultipliers[serviceTier]
       : null
@@ -359,7 +444,9 @@ export function priceRollup(aggregate, { table } = {}) {
         est[field] = estimates.reduce((sum, entry) => sum + entry[field], 0);
       }
     } else if (
-      lookupRate(row.provider, row.model, table)?.terms &&
+      (lookupRate(row.provider, row.model, table)?.terms?.longContext ||
+        lookupRate(row.provider, row.model, table)?.terms
+          ?.serviceMultipliers) &&
       row.calls > 1
     ) {
       // A legacy aggregate cannot establish which individual requests crossed

@@ -7,7 +7,11 @@
  */
 
 import crypto from "node:crypto";
-import { PRICE_TABLE, priceRollup } from "./llm-pricing.js";
+import {
+  PRICE_TABLE,
+  priceRollup,
+  normalizePricingTerms,
+} from "./llm-pricing.js";
 import {
   projectUsagePricingContext,
   mergeUsagePricingBucket,
@@ -267,50 +271,7 @@ function normalizePricingTable(table = PRICE_TABLE) {
         result.exact = entry.exact;
       }
       if (Object.hasOwn(entry, "terms")) {
-        const terms = entry.terms;
-        const nonNegative = (value) => {
-          if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
-            throw new Error("invalid pricing multiplier");
-          return value;
-        };
-        assertKnownOwnKeys(
-          terms,
-          new Set([
-            "cacheReadMultiplier",
-            "cacheWriteMultiplier",
-            "longContext",
-            "serviceMultipliers",
-          ]),
-          "pricing terms",
-        );
-        assertKnownOwnKeys(
-          terms.longContext,
-          new Set(["threshold", "inputMultiplier", "outputMultiplier"]),
-          "pricing long context",
-        );
-        const threshold = nonNegative(terms.longContext.threshold);
-        if (!Number.isSafeInteger(threshold))
-          throw new Error("invalid pricing threshold");
-        assertKnownOwnKeys(
-          terms.serviceMultipliers,
-          new Set(["standard", "default", "auto", "batch", "flex", "fast"]),
-          "pricing service multipliers",
-        );
-        result.terms = {
-          cacheReadMultiplier: nonNegative(terms.cacheReadMultiplier),
-          cacheWriteMultiplier: nonNegative(terms.cacheWriteMultiplier),
-          longContext: {
-            threshold,
-            inputMultiplier: nonNegative(terms.longContext.inputMultiplier),
-            outputMultiplier: nonNegative(terms.longContext.outputMultiplier),
-          },
-          serviceMultipliers: Object.fromEntries(
-            Object.entries(terms.serviceMultipliers).map(([key, value]) => [
-              key,
-              nonNegative(value),
-            ]),
-          ),
-        };
+        result.terms = normalizePricingTerms(entry.terms);
       }
       return result;
     });

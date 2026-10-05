@@ -45,7 +45,7 @@ export const CONTEXT_WINDOWS = Object.freeze({
   }),
 });
 
-export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-09-27";
+export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-10-05";
 
 // Explicit ownership prevents a model name served by an unrelated provider
 // from silently inheriting another provider's catalog window.
@@ -85,6 +85,18 @@ export const LEGACY_MODEL_PROVIDERS = Object.freeze({
 // Official pages reviewed on the catalog version date. These describe the
 // named models, not endpoint access, account entitlement, or a live CLI run.
 export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
+  "gpt-6.1-sol": Object.freeze({
+    contextWindowTokens: 1050000,
+    advertisedMaxOutputTokens: 128000,
+    requiresResponsesForTools: true,
+    reasoningEfforts: Object.freeze(["low", "medium", "high", "xhigh", "max"]),
+    pricing: Object.freeze({ in: 2, out: 10 }),
+    // This generation has a 5% cache-read rate, unlike GPT-6 Sol's 10%.
+    cacheReadMultiplier: 0.05,
+    sources: Object.freeze([
+      "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    ]),
+  }),
   "gpt-4o": Object.freeze({
     contextWindowTokens: 128000,
     advertisedMaxOutputTokens: 16384,
@@ -132,11 +144,21 @@ export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
 });
 
 export const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({
+  "claude-sonnet-5-5": Object.freeze({
+    contextWindowTokens: 1000000,
+    advertisedMaxOutputTokens: null,
+    pricing: Object.freeze({ in: 2, out: 10 }),
+    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.1 }),
+    sources: Object.freeze([
+      "https://code.claude.com/docs/en/changelog#2-1-284",
+    ]),
+  }),
   "claude-opus-5-5": Object.freeze({
     contextWindowTokens: 1000000,
     // The release notes establish the window and pricing, not an output cap.
     advertisedMaxOutputTokens: null,
     pricing: Object.freeze({ in: 4, out: 20 }),
+    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.05 }),
     sources: Object.freeze([
       "https://code.claude.com/docs/en/changelog#2-1-280",
     ]),
