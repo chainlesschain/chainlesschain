@@ -4,18 +4,12 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
-At candidate preparation, the latest npm package was
-`@chainlesschain/session-core@0.3.13`. That release adds
-the checked-in skill invocation receipt compatibility policy and keeps
-unsupported receipt histories fail closed. The release workflow publishes the
-child package before the CLI and compares the exact local tarball with the
-public npm archive before CLI publication.
-
-The `0.3.14` source is a release candidate. Its ApprovalGate records a
-monotonic policy revision per session and sends synchronous revision events to
-subscribers. CLI `0.166.81` depends on this exact child version; neither
-candidate is ready to publish without the required exact-commit CI and public
-registry readback sequence.
+The `0.3.15` release candidate adds business-object contracts, controlled task
+description actions and readers, offline risk rules and saved project risk
+reviews. CLI `0.166.90` pins this exact version. At candidate preparation, npm
+latest is `0.3.14`, which supplies monotonic ApprovalGate policy revisions and
+synchronous revision events. The release workflow requires exact-commit CI,
+publishes the child before the CLI and verifies the public archive byte-for-byte.
 
 The package exports its public modules through `package.json`, including
 `./runtime-claims`, `./evolvable-artifact`,

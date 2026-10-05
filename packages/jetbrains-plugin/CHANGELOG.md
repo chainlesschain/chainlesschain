@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.153] - Pair with CLI project and data recovery tools (2026-10-06)
+
+- Recommend CLI `0.166.90` after its public npm release and the plugin's
+  exact-commit release gates pass, including upgrade guidance when npm lookup
+  is unavailable or returns an older version.
+- The paired CLI persists Personal Data Hub projection recovery and provides
+  explicit consumer retirement and bounded cleanup of historical receipts.
+- Use the CLI's `project risk-evaluate` and `project task-description-preview`
+  commands with explicit offline snapshots. Risk checks distinguish incomplete
+  source data from zero matching rule signals; description previews do not write.
+
 ## [0.4.152] - Wire real panel capture and restart diagnostics (2026-10-05)
 
 - Connect opt-in protocol capture to ConversationView and preserve explicit null

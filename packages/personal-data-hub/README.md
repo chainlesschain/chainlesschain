@@ -1,8 +1,10 @@
 # @chainlesschain/personal-data-hub
 
-Current npm package: `@chainlesschain/personal-data-hub@0.4.62`. The published
-archive contains the governed default SDK transport fixes in `lib/**` and is
-verified byte-for-byte from the public registry before the paired CLI publishes.
+Release candidate: `@chainlesschain/personal-data-hub@0.4.63`, paired with CLI
+`0.166.90`. It adds durable projection receipts, incomplete-derivation recovery,
+bounded receipt retention and honest adapter capability reporting. At candidate
+preparation, npm latest is `0.4.62`. Publication requires the full three-platform
+native test suite and public archive verification before the paired CLI publishes.
 
 Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
 LocalVault, and AdapterRegistry for the "data back to the individual"

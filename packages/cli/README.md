@@ -2,11 +2,20 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-05)
+## Current release and source (2026-10-06)
 
-Public npm `latest` is **chainlesschain@0.166.88**, tagged `v-npm-0-166-88` at `7db17a12e1`. Public Open VSX **0.37.133** and JetBrains **0.4.151** both recommend CLI **0.166.88**. The exact release passed complete CLI CI, Strict Sandbox, IDE and ARM64 host gates, npm OIDC publication, and public artifact readback. All 13 child npm packages were verified first. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+At candidate preparation, public npm `latest` is **chainlesschain@0.166.89**,
+public Open VSX is **0.37.134**, and public JetBrains is **0.4.151**.
+JetBrains `0.4.152` publication is still in progress. See the
+[upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
-Source `main@feda6d1eee` contains unpublished CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152**. It adds raw IDE protocol/UI capture, prepare/finish evidence, an explicit Linux controlled-host entry, and JetBrains identity diagnostics with source provenance. Six real IDE host diagnostics and three-OS reference MCP passed at `f289a08844`; controlled peers do not establish formal provider results. Docker full-pack acceptance remains open.
+The source prepares CLI **0.166.90** / VS Code **0.37.135** / JetBrains
+**0.4.153**. The CLI pins Personal Data Hub **0.4.63** and Session Core
+**0.3.15** for recoverable projections, receipt retention, offline risk rules
+and task-description previews. Desktop native action execution remains a
+separate host capability. Publication proceeds through exact-commit three-OS
+CI, child packages, public CLI verification, then IDE extensions. See the
+[release progress](../../docs/research/palantir/palantir-release-progress-2026-10-06.md).
 
 ### Memory pagination (public 0.166.88)
 

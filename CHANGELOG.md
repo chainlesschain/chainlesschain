@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.90: recoverable projections and project risk evidence
+
+- Publish Personal Data Hub `0.4.63` and Session Core `0.3.15` before the CLI,
+  with exact dependency pins and public tarball verification. Require the full
+  PDH suite with its declared native SQLCipher driver on Linux, Windows and macOS.
+- Persist PDH projection receipts, recover incomplete derivations and support
+  bounded receipt retention. Harden RAG updates, audit redaction and capability
+  reporting so unavailable sources do not appear as successful live collection.
+- Add offline project risk evaluation and version-bound task description
+  previews. Session Core also supplies native SQLite action/read services and
+  saved rule/source reviews for the desktop project workbench; CLI previews
+  carry unverified snapshot authority and do not execute those desktop actions.
+- Pair VS Code `0.37.135` and JetBrains `0.4.153` with CLI `0.166.90` after
+  exact-commit release checks and public npm readback.
+
 ### Added - cc CLI 0.166.89: IDE capture journeys and controlled Linux entry
 
 - Prepare and finish frozen IDE tasks with byte-pinned baselines, complete diffs,

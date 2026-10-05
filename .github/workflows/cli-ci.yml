@@ -7,6 +7,10 @@ on:
       - "packages/cli/**"
       - "packages/core-db/**"
       - "packages/session-core/**"
+      - "packages/personal-data-hub/**"
+      - ".github/scripts/ci-test-pdh.sh"
+      - "scripts/android/pdh-sqlite-leaf-salvage.js"
+      - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
@@ -41,6 +45,10 @@ on:
       - "packages/cli/**"
       - "packages/core-db/**"
       - "packages/session-core/**"
+      - "packages/personal-data-hub/**"
+      - ".github/scripts/ci-test-pdh.sh"
+      - "scripts/android/pdh-sqlite-leaf-salvage.js"
+      - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
@@ -76,6 +84,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pdh-native-tests:
+    name: PDH native release tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      PDH_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PDH_EVIDENCE_DIR: ${{ runner.temp }}/pdh-native-evidence
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.22.2"
+      - name: Test complete PDH suite with host-native drivers
+        shell: bash
+        run: bash .github/scripts/ci-test-pdh.sh
+      - name: Upload PDH native identity and full test report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pdh-native-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pdh-native-evidence
+          if-no-files-found: error
+          retention-days: 90
+
   linux-subreaper:
     uses: ./.github/workflows/_cli-linux-subreaper.yml
     with:

@@ -55,6 +55,75 @@ function occurrences(text, needle) {
 }
 
 describe("CLI release workflow contracts", () => {
+  it("gates PDH release source on all three native hosts without filtered suites", () => {
+    const text = workflow("cli-ci.yml");
+    const job = text
+      .split("\n  pdh-native-tests:")[1]
+      .split("\n  linux-subreaper:")[0];
+    expect(job).toContain("os: [ubuntu-latest, windows-latest, macos-latest]");
+    expect(job).toContain("fail-fast: false");
+    expect(job).toContain("timeout-minutes: 25");
+    expect(job).toContain(
+      "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+    );
+    expect(job).toContain('test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"');
+    expect(job).toContain("bash .github/scripts/ci-test-pdh.sh");
+    expect(job).not.toContain("continue-on-error");
+    expect(job).not.toMatch(/^    (?:if|needs):/mu);
+    for (const trigger of ["push", "pull_request"]) {
+      const paths = text.split(`\n  ${trigger}:`)[1].split(/\n  \w/u)[0];
+      for (const input of [
+        "packages/personal-data-hub/**",
+        ".github/scripts/ci-test-pdh.sh",
+        "scripts/android/pdh-sqlite-leaf-salvage.js",
+        "docs/internal/pdh-app-data-catalog.json",
+      ])
+        expect(paths).toContain(input);
+    }
+    const script = fs.readFileSync(
+      path.join(repositoryRoot, ".github/scripts/ci-test-pdh.sh"),
+      "utf8",
+    );
+    expect(script).toContain("set -euo pipefail");
+    expect(script).toContain(
+      'test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"',
+    );
+    expect(script).toContain('mktemp -d "${RUNNER_TEMP}/pdh-native.XXXXXX"');
+    expect(script).not.toMatch(/rm\s+-rf/u);
+    expect(script).toContain(
+      "['better-sqlite3-multiple-ciphers', 'better-sqlite3']",
+    );
+    expect(script).toContain("new Database(':memory:')");
+    expect(script).toContain(
+      "drivers[name] = require(`${name}/package.json`).version",
+    );
+    expect(script).toContain("commit: process.env.PDH_EXPECTED_SHA");
+    expect(script).toContain(
+      "npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn",
+    );
+    expect(script).toContain("--pool=forks --maxWorkers=2");
+    expect(script).toContain(
+      "dependencies: { semver: cli.dependencies.semver }",
+    );
+    expect(script).toContain('npm install --prefix "$PDH_SCRATCH"');
+    for (const module of [
+      "knowledge-graph.js",
+      "bm25-search.js",
+      "host-adb-bridge.js",
+    ]) {
+      expect(script).toContain(`await import('../cli/src/lib/${module}')`);
+    }
+    expect(script).toContain(
+      "npx vitest run --reporter=default --reporter=json",
+    );
+    expect(script).not.toMatch(
+      /--(?:exclude|testNamePattern|passWithNoTests)|\|\| true/u,
+    );
+    expect(script.indexOf("new Database(':memory:')")).toBeLessThan(
+      script.indexOf("npx vitest run"),
+    );
+  });
+
   it("stages the fixed helper before the actual Linux packaging dry-run", () => {
     const dryRun = workflow("cli-ci.yml")
       .split("\n  pack-linux-dryrun:")[1]
@@ -409,8 +478,8 @@ describe("CLI release workflow contracts", () => {
     const strict = workflow("cli-strict-sandbox.yml");
 
     expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(5);
-    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(4);
-    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(4);
+    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(5);
+    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(5);
     expect(cliCi).toContain(`CC_PM_RECOVERY_EXPECTED_SHA: ${eventSha}`);
     expect(cliCi).toContain("ref: ${{ env.CC_PM_RECOVERY_EXPECTED_SHA }}");
 

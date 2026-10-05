@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.135] - Pair with CLI project and data recovery tools (2026-10-06)
+
+- Recommend CLI `0.166.90` after its public npm release and the extension's
+  exact-commit release gates pass.
+- The paired CLI persists Personal Data Hub projection recovery and provides
+  explicit consumer retirement and bounded cleanup of historical receipts.
+- Use the CLI's `project risk-evaluate` and `project task-description-preview`
+  commands with explicit offline snapshots. Risk checks distinguish incomplete
+  source data from zero matching rule signals; description previews do not write.
+
 ## [0.37.134] - Wire real panel capture and restart diagnostics (2026-10-05)
 
 - Connect explicit protocol capture to the actual chat panel and preserve raw
