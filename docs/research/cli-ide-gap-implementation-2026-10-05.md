@@ -16,7 +16,7 @@
 | VERIFY-02                    | 冻结 CLI suite 执行、独立 setup/check 摘要、Git blobs 隔离工作区、原始终态与完整变更回执接线                                   | 36 项实际预审脚本及独立审阅、真实双 IDE / 首次安装适配、获授权付费执行仍未完成，固定 36+9 保持 NOT_RUN                                   |
 | PLATFORM-02                  | `sandbox capabilities` 新增 OS/架构/引擎/stdio/权限来源/持久撤销支持投影；受控 host 从真实权限绑定生成诊断                     | 默认 CLI 不因此获得 durable host；Windows/macOS durable 后端、native Windows ARM64 准入与正式目标入口交付仍开放                          |
 | CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                    | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                              |
-| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执   | 本地 Windows 不能证明 Linux 内核回收；新 Linux x64/arm64 专项 gate 需实际通过。旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine |
+| BRIDGE-02                    | 显式 Linux delegated cgroup2 恢复路径：发 launch frame 前附加 supervisor，持久化内核对象身份，kill/空组 fence 后保存恢复回执   | `320301e6e7` 的真实 Linux x64/arm64 专项已通过，见第 8 节；旧 PID-only 记录仍不可恢复，默认路径不自动解除 quarantine，不扩大为同 UID 对抗隔离 |
 | PERF-02                      | 校准器增加两模型 × 中文/代码/emoji/工具 schema 覆盖合同，逐请求去重和缺失项报告；冻结采样矩阵                                  | 无新付费 usage 样本；事实保真、任务成功率和估算器校准尚未完成，不凭 fixture 调整 bytes/4                                                 |
 | MCP-02                       | 固定官方 server-everything 2026.8.31 + SDK 1.32.0，真实进程完成 tool/prompt/resource 及工具响应丢失后的恢复                    | 只覆盖所列 Streamable HTTP 路径；服务端 GET push、stdio、外部账号/OAuth 不在本次证据内                                                   |
 | MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                         | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                           |
@@ -104,8 +104,10 @@ cgroup 路径显式由受控宿主通过 `CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP
 5. CLOUD-02 完整云端连续工作的需求与验收范围；现有 self-hosted handoff 不自动升级为完整 resume。
 6. 本轮准确提交的完整 CI 与后续如需发布时的 OIDC 门。源码提交、合并、CI 通过、公开发行是不同状态。
 
-## 8. ??????
+## 8. 发布候选与后续验证
 
-?????????????????????? CLI `0.166.87`?VS Code `0.37.132`?JetBrains `0.4.150`??????????????? `482c1b2727`?13 ????? npm ??? `v-npm-0-166-86` ???????????????????????????????????? registry-only ???????????? OIDC ??????????? CLI??? IDE?
+用户已授权在功能与测试达标后发布。候选版本为 CLI `0.166.87`、VS Code `0.37.132`、JetBrains `0.4.150`；对应工程实现包含 `482c1b2727`。13 个子 npm 包源码相对 `v-npm-0-166-86` 没有变化，沿用已发布版本。发布流水线仍须先校验全部子包的公开制品、源码来源与 registry-only 安装，再通过 OIDC 发布 CLI，最后发布 IDE。
 
-?????????????VS Code 234/234?Java 21 ??????? SDK ???????/??/???? 87 ????2 ? Linux ?????????????? 64 ????5 ??? workflow actionlint ???????? shellcheck/pyflakes????????????spawn inventory ???????????? CI??? cgroup2 ????????????????????????
+候选版本本地回归：VS Code 234/234；Java 21 定向测试和生产 SDK 编译通过；执行器、恢复与结果报告定向回归 87 项通过、2 项 Linux 测试跳过；发布工作流与命令生命周期回归 64 项通过。5 个相关 workflow 通过 actionlint（未运行 shellcheck/pyflakes），生成文件与 spawn inventory 检查通过。这些结果不替代准确提交的完整 CI；真实 cgroup2 恢复必须在 Linux 两架构实际执行后确认。
+
+真实 cgroup2 专项现已通过：[Process Ownership Recovery #37258234311](https://github.com/chainlesschain/chainlesschain/actions/runs/37258234311)，源码 `320301e6e7ff6dd0be42a0e62177ac2db9ce1fb1`，Node 22.12.0，Linux x64 / arm64 各 2 项通过。原始恢复回执：[x64](./cli/evidence/gap-2026-10-05/cgroup-recovery-x64.json)、[arm64](./cli/evidence/gap-2026-10-05/cgroup-recovery-arm64.json)。覆盖仍存活的脱离会话孙进程、清理后重新准入且不重放、旧记录拒绝、boot/inode 漂移及持久化失败保留后重试。测试修复了配置目录与 cwd 重叠，以及直接 target 受 `PDEATHSIG=SIGKILL` 保护时应检查存活孙进程的断言；生产保护未放宽。
