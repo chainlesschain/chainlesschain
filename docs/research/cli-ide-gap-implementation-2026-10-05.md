@@ -157,3 +157,5 @@ VS Code 和 JetBrains 的 `AgentChatSession` 新增可选 `onProtocolRecord`，�
 VS Code 234 项通过；JetBrains 28 项与生产 Java/Kotlin 编译通过。本地首次增量编译的 Doctor 仍内联旧 `0.166.87`，已用 javap 确认；完整 `--rerun-tasks` 后通过，未改生产断言或停止共享 daemon。13 个子包精确 registry tarball 已取回并核对 SHA512/SHA1，依赖范围一致，见[子包复审](./cli/evidence/gap-2026-10-05/release-0.166.88/child-package-audit.json)；这不替代 workflow 的 pack 比较与干净安装门。
 
 候选仍须取得准确源码提交的 CLI CI、CLI Strict Sandbox 三系统完整矩阵及 IDE 发布门；全部通过后由 immutable tag 触发 OIDC 发布 CLI，公开回读成功后再发布双 IDE。当前本段是发布准备记录，不是成功回执；准确 SHA、工作流链接及公开制品结果将在完成后追加。发布不关闭第 7、9 节所列真实验收，36+9 仍为 `NOT_RUN`。
+
+首次候选 `4f120306418207ba3c06d6d1a9726f0d1c437cba` 的 [Linux unit shard 3/4](https://github.com/chainlesschain/chainlesschain/actions/runs/37278010296/job/111659302382) 在 changelog artifact parity 单项失败：版本和根 CHANGELOG 已升级，但提交的 `src/data/changelog.json` 仍是旧版本。该 job 419 个文件、9,212 项通过，1 项失败，13 项跳过。已用正式生成器补齐 bundled changelog，相关 3 文件 17 项本地通过；该失败 SHA 不发标签，新修复提交须重新取得完整矩阵。

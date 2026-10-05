@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.88",
+      "cliVersions": ["0.166.88"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.88: reviewed acceptance packs and host evidence import",
+          "body": "- Generate byte-pinned setup/check scripts for all 36 frozen tasks, including\n  behavior mutants, bounded Linux Docker execution and raw acceptance receipts.\n- Import IDE and first-run evidence through existing Eval/outcome contracts,\n  requiring input acceptance, terminal state, drained exit and complete file diffs.\n  Explicit failures stay failures; missing cost and identity attestation stay unknown.\n- Pair VS Code `0.37.133` and JetBrains `0.4.151` with CLI `0.166.88` for optional\n  ordered protocol capture. Full container, GUI, provider and billing acceptance\n  remain open; the frozen 36+9 samples remain `NOT_RUN`."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.87",
       "cliVersions": ["0.166.87"],
       "date": null,
