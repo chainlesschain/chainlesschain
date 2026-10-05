@@ -6,22 +6,29 @@ MCP bridge.
 
 ## Current release
 
-> Candidate extension `0.37.131` pairs with `chainlesschain@0.166.86`.
+> Candidate extension `0.37.132` pairs with `chainlesschain@0.166.87`.
 > IDE publication requires this exact commit to pass its release gates.
 
-Candidate `0.37.131` bounds image frame decoding and file snapshots, and pairs
-with CLI `0.166.86` for segmented canonical memory storage and the explicit
-Linux permission-authority host. Complete release gates remain required.
+Candidate `0.37.132` diagnoses capabilities from the active session and pairs
+with CLI `0.166.87` for October model contracts and indexed canonical memory
+queries. Complete release gates remain required.
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.131**; image draft recovery candidate              |
-| Recommended CLI           | **`chainlesschain@0.166.86`**                             |
+| VS Code extension         | **0.37.132**; live capability diagnostics candidate       |
+| Recommended CLI           | **`chainlesschain@0.166.87`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
 
-### What's new in 0.37.131
+### What's new in 0.37.132
+
+- **See actual readiness.** Doctor reports input receipt support and the
+  confirmed approval mode from the running session, preserving unknown states.
+- **Keep version guidance separate.** Show both the base compatibility floor
+  and the recommended CLI without blocking basic older-runtime functionality.
+
+### Changes carried from 0.37.131
 
 - **Bound image previews.** Validate image structures and cumulative frame work,
   decode in a terminable Worker, and render only validated 40px frame bitmaps.
@@ -189,7 +196,7 @@ Linux permission-authority host. Complete release gates remain required.
 - **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
   evidence across compaction, offers a focused recovery turn, and stops persistent
   retries as an incomplete task. Status queries and fresh log evidence remain available.
-- Older CLI installations receive the normal upgrade prompt for `0.166.86`.
+- Older CLI installations receive the normal upgrade prompt for `0.166.87`.
 
 ### Retained workspace and connection features
 
@@ -231,7 +238,7 @@ Linux permission-authority host. Complete release gates remain required.
 - **Large files advance without rereading earlier pages.** Exact line/column
   cursors survive context compression, unchanged pages are referenced instead
   of reinjected, and edits invalidate the bounded read cache.
-- On startup, an installed CLI older than `0.166.86` receives an explicit
+- On startup, an installed CLI older than `0.166.87` receives an explicit
   **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
   works even when the best-effort npm registry lookup is unavailable.
 
@@ -253,12 +260,12 @@ Linux permission-authority host. Complete release gates remain required.
 > Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
 > backfill stopped before upload because its publishing credential was not
 > configured, so no Microsoft listing is claimed. Download
-> the [0.37.131 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.vsix)
+> the [0.37.132 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.132/file/chainlesschain.chainlesschain-ide-0.37.132.vsix)
 > after that version is listed,
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can install by extension ID.
 
-After publication, paired CLI `0.166.86` is the recommended install. It routes Graph, Team,
+After publication, paired CLI `0.166.87` is the recommended install. It routes Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
 fences stale writers and takeover/recovery receipts, preserves explicitly
@@ -278,7 +285,7 @@ identities, artifacts, and authority digests never enter the Webview.
 
 CLI `0.166.34` includes the governed Automation/Routine commands, the
 Automation Center v3 projection, scoped permission and side-effect authority,
-and shared permission/budget enforcement. Version `0.37.131` accepts only the
+and shared permission/budget enforcement. Version `0.37.132` accepts only the
 exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired
 versions fail closed. With v3 it shows sanitized run incidents and bounded live
 scheduler occurrences. Incident retry/cancel and cooperative occurrence
@@ -286,7 +293,7 @@ pause/resume appear only when the CLI supplies an exact revision/fence-gated
 action preview. The extension refreshes the projection and rechecks that
 preview before execution; it never derives argv from display data.
 
-Version `0.37.131` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.37.132` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -295,7 +302,7 @@ corresponding governed `team merge-review` command and exact evidence contract.
 
 CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.37.131`. The extension continues to fail closed when an older CLI cannot
+`0.37.132`. The extension continues to fail closed when an older CLI cannot
 provide the exact projection or refreshed action evidence.
 
 CLI `0.166.34` also bounds durable-session event backlogs and sidecars, routes
@@ -321,7 +328,7 @@ with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
 follow-ups, recipients, bytes, and pressure); message content and attempt
 credentials never enter the Webview. For those reasons, `0.166.34` is the
-retained compatibility floor. CLI `0.166.86` is the preferred pairing after publication
+retained compatibility floor. CLI `0.166.87` is the preferred pairing after publication
 for this extension, whose own exact-commit gates and public readback must pass
 before its release is complete.
 
@@ -330,7 +337,7 @@ under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
 The planned immutable publication tag for this Open VSX extension is
-[`ide-vscode-v0.37.131`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.131).
+[`ide-vscode-v0.37.132`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.132).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. A tag-bound manual backfill can publish the
@@ -402,11 +409,11 @@ Open VSX listing remains the public registry source.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.166.86
+npm i -g chainlesschain@0.166.87
 cc --version
 ```
 
-Using `@0.166.86` after publication reproduces the preferred CLI pairing,
+Using `@0.166.87` after publication reproduces the preferred CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.
@@ -418,8 +425,8 @@ It is not currently published on the Microsoft VS Code Marketplace.
 
 - In VSCodium and other Open VSX-compatible editors, search for
   **ChainlessChain IDE** (`chainlesschain.chainlesschain-ide`).
-- In stock Microsoft VS Code, after `0.37.131` is listed, download the
-  [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.131/file/chainlesschain.chainlesschain-ide-0.37.131.vsix)
+- In stock Microsoft VS Code, after `0.37.132` is listed, download the
+  [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.132/file/chainlesschain.chainlesschain-ide-0.37.132.vsix)
   and run **Extensions: Install from VSIX...**.
 - JetBrains users can install the sibling plugin from the
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
@@ -575,7 +582,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.131.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.132.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

@@ -41,7 +41,7 @@ class IdeDoctorTest {
         assertTrue(up.contains("endpoint injected: yes"));
         assertTrue(up.contains("DEGRADED (可降级运行)"));
         assertTrue(up.contains("Agent session: not observed"));
-        assertTrue(up.contains("Recommended CLI: 0.166.86"));
+        assertTrue(up.contains("Recommended CLI: 0.166.87"));
         assertTrue(up.contains("Plugin: 0.4.69"));
         assertTrue(up.contains("CLI: 0.162.190"));
         assertTrue(up.contains("Development runtimes and offline recovery"));
@@ -50,7 +50,7 @@ class IdeDoctorTest {
 
     @Test void confirmedRuntimeShowsReceiptsAndEffectiveMode() {
         String report = IdeDoctor.formatReport(51234, "ok", "ok", "ok",
-                RuntimeCompatibility.evaluate("0.166.86", null, 51234, true,
+                RuntimeCompatibility.evaluate("0.166.87", null, 51234, true,
                     new RuntimeCompatibility.AgentRuntime("running", true, "default", "default", "effective")),
                 "0.4.149", "2025.2");
         assertTrue(report.contains("READY (可运行)"));

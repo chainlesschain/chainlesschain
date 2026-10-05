@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.132] - Diagnose actual session capabilities (2026-10-05)
+
+- Report input acceptance receipts and the confirmed approval mode from the
+  active session. A compatible CLI version alone no longer implies full readiness.
+- Show the minimum bridge version and recommended CLI pairing separately;
+  retain draft recovery and avoid replaying inputs with unknown delivery.
+- Recommend CLI `0.166.87` for October model contracts and indexed memory queries.
+
 ## [0.37.131] - Bound image decoding and file snapshots (2026-10-04)
 
 - Preserve image draft saving on Windows when private staging paths exceed the

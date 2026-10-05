@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **后续实施（2026-10-05）**：IDE-READY-02、IDE-ONBOARD-02、IDE-COLD-02 及共享模型修复已落地；实现、测试及真实宿主验收边界见[本期实施状态与证据](../cli-ide-gap-implementation-2026-10-05.md)。以下正文保留原审计快照，所述缺陷与行号指原代码基线。后续工作按用户要求在 `main` 进行。
+
 - 审计日期：2026-10-05（Asia/Shanghai）。
 - 代码快照：`main@8b13129624d4b7fa5b122a4109151c574564448e`。开始时共享实施记录已有工作区修改；本次保留该修改，未改产品代码。
 - 本项目源码版本：VS Code **0.37.131**、JetBrains **0.4.149**、CLI **0.166.86**。

@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.150] - Preserve slow-start drafts and diagnose capabilities (2026-10-05)
+
+- Give initialization a bounded 120-second window and preserve the draft after
+  timeout. A late initialization cannot submit the timed-out input automatically.
+- Reuse strict CLI identity checks during onboarding and manual updates, so gcc
+  or clang banners cannot be mistaken for an installed ChainlessChain version.
+- Diagnose live input receipts and confirmed approval mode separately from the
+  minimum bridge version. Recommend CLI `0.166.87` after its public release.
+
 ## [0.4.149] - Bound attachment file snapshots (2026-10-04)
 
 - Read attachment metadata and bytes from one bounded open-file snapshot in both

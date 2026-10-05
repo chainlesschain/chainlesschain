@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.87: October model contracts and indexed memory queries
+
+- Add exact GPT-6.1 Sol and Claude Sonnet 5.5 profiles, model-specific cache
+  pricing, Responses reasoning/output validation and reviewed catalog drift checks.
+- Push memory list filters and limits into authority-bound query indexes, retain
+  stable snapshot pagination and rebuild corrupted derived indexes from authority.
+  Upgraded index descriptors require compatible readers; older readers fail closed.
+- Add a reviewed frozen CLI evaluation entry with isolated project snapshots,
+  independent acceptance scripts and raw execution evidence. Real provider/IDE
+  evaluation and billing acceptance remain separate from fixture validation.
+- Support explicit cooperative Linux cgroup2 ownership cleanup after supervisor
+  loss, preserving quarantine when kernel identity or durable settlement is unknown.
+- Verify Codex 0.160.0 native protocol and pinned MCP reference-server recovery
+  without expanding the production external-agent admission allowlist.
+- Pair VS Code `0.37.132` and JetBrains `0.4.150` with CLI `0.166.87` for live
+  capability diagnostics, strict CLI identity and bounded slow-start draft handling.
+
 ### Added - cc CLI 0.166.86: segmented memory and controlled permission authority
 
 - Store canonical Context/Memory records, audit events and reconciliations in

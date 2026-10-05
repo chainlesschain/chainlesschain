@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.87",
+      "cliVersions": ["0.166.87"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.87: October model contracts and indexed memory queries",
+          "body": "- Add exact GPT-6.1 Sol and Claude Sonnet 5.5 profiles, model-specific cache\n  pricing, Responses reasoning/output validation and reviewed catalog drift checks.\n- Push memory list filters and limits into authority-bound query indexes, retain\n  stable snapshot pagination and rebuild corrupted derived indexes from authority.\n  Upgraded index descriptors require compatible readers; older readers fail closed.\n- Add a reviewed frozen CLI evaluation entry with isolated project snapshots,\n  independent acceptance scripts and raw execution evidence. Real provider/IDE\n  evaluation and billing acceptance remain separate from fixture validation.\n- Support explicit cooperative Linux cgroup2 ownership cleanup after supervisor\n  loss, preserving quarantine when kernel identity or durable settlement is unknown.\n- Verify Codex 0.160.0 native protocol and pinned MCP reference-server recovery\n  without expanding the production external-agent admission allowlist.\n- Pair VS Code `0.37.132` and JetBrains `0.4.150` with CLI `0.166.87` for live\n  capability diagnostics, strict CLI identity and bounded slow-start draft handling."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.86",
       "cliVersions": ["0.166.86"],
       "date": null,

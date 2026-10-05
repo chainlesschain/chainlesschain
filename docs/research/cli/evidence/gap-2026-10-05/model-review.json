@@ -1,0 +1,29 @@
+{
+  "schema": "chainlesschain.model-catalog-review-result/v1",
+  "reviewedAt": "2026-10-05",
+  "localContractPassed": true,
+  "mismatches": [],
+  "upstream": [
+    {
+      "name": "codex",
+      "reviewedVersion": "0.160.0",
+      "observedVersion": "0.160.0",
+      "reviewRequired": false
+    },
+    {
+      "name": "claude",
+      "reviewedVersion": "2.1.289",
+      "observedVersion": "2.1.289",
+      "reviewRequired": false
+    }
+  ],
+  "reviewRequired": false,
+  "automaticEnablement": false,
+  "sourceHead": "b85ec50aedf0489fba54ea35bb53bdf30c488a93",
+  "workingTree": "clean",
+  "upstreamSnapshotSha256": {
+    "codex": "0b373989fa56f0a21e58245e5fe96320389a9231dde3ba5ac7c2da041d85375a",
+    "claude": "ee77a9703fee91a243a7baeedef4860124d00b63d58c7b5a13a94499d2ad62ca"
+  },
+  "realProviderAcceptance": false
+}

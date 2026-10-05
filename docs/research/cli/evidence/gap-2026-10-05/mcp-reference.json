@@ -1,0 +1,40 @@
+{
+  "schema": "chainlesschain.mcp-reference-interop/v1",
+  "status": "passed",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "upstream": {
+    "name": "@modelcontextprotocol/server-everything",
+    "version": "2026.8.31",
+    "sdkVersion": "1.32.0",
+    "packageJsonSha256": "7100d08c9cf478cf4b642cfb0da81ae2e330ff4d5b2dd420dd5d26ef47b59e2f",
+    "serverEntrySha256": "64d7ceb80fbbec767cfa695d5aefa9a41d5df75636d023ba566d7b63c958c402"
+  },
+  "realServerProcess": true,
+  "transport": "official-sdk-streamable-http-with-loopback-test-host",
+  "fault": "proxy-injected HTTP 404 after a real server tool response",
+  "serverPushAssessed": false,
+  "stdioAssessed": false,
+  "externalAccountAssessed": false,
+  "checks": {
+    "tool": true,
+    "prompt": true,
+    "resource": true,
+    "connectionRecovered": true,
+    "unknownOutcomePreserved": true,
+    "automaticToolReplays": 0,
+    "forwardedTools": 3,
+    "initializations": 2,
+    "injectedFailures": 1
+  },
+  "source": {
+    "commit": "b85ec50aedf0489fba54ea35bb53bdf30c488a93",
+    "clean": true,
+    "files": {
+      "../src/harness/mcp-client.js": "3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "./mcp-reference-interop.mjs": "ab2f55d3ce57031985f11fb844c29e8cc91bd43787f2270f82fa686fd7333172",
+      "./mcp-reference-server-worker.mjs": "68dae08ff346ed74161cb033d1791b7cf98a3c1ac499c71e9f821a266e6eb1a8"
+    }
+  }
+}
