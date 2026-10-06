@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give the receipt signer deadline test enough admission time on hosted runners
   and verify that the signer is actually invoked before its bounded timeout.
 - Regenerate the bundled CLI changelog from its canonical source.
+- Capture JetBrains transcript snapshots on the event dispatch thread during
+  cross-platform host validation, retaining the full transcript assertions.
 - Publish Session Core `0.3.16` and Personal Data Hub `0.4.64` before CLI
   `0.166.91`, with exact dependency pins and public package verification.
 - Pair VS Code `0.37.136` and JetBrains `0.4.154` with CLI `0.166.91` after

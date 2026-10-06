@@ -1110,8 +1110,17 @@ final class IdeUiSmokeTest {
         long deadline = System.nanoTime() + budget.toNanos();
         String last = "";
         while (System.nanoTime() < deadline) {
-            Object value = transcript.callJs("component.getText()");
-            last = value == null ? "" : String.valueOf(value);
+            // JTextPane.getText() serializes through its EditorKit and returns
+            // null if serialization fails, including a concurrent document
+            // edit. Remote Robot cannot serialize that null.
+            // Snapshot the actual document on the EDT, alongside its writers,
+            // and let document errors fail instead of hiding them as no text.
+            last = transcript.callJs("""
+                    if (!javax.swing.SwingUtilities.isEventDispatchThread())
+                        throw new Error('Transcript snapshot requires EDT');
+                    var document = component.getDocument();
+                    document.getText(0, document.getLength());
+                    """, true);
             if (last.contains(expected)) return;
             Thread.sleep(250);
         }

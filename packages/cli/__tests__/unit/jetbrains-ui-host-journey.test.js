@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createFakeCliEnvironment,
@@ -291,6 +292,62 @@ describe("JetBrains real-host journey driver", () => {
     expect(source).not.toContain("component.getFocusOwner().setText");
     expect(source).not.toContain("clickButton(dispatch);");
     expect(source).not.toContain("clickButton(reply);");
+  });
+
+  it("reads transcript snapshots on the EDT and propagates document failures", () => {
+    const source = fs.readFileSync(
+      new URL(
+        "../../../../packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const method = source.slice(
+      source.indexOf("private static void waitForTranscript("),
+      source.indexOf("private static String jsString("),
+    );
+    const snapshot = method.match(
+      /transcript\.callJs\(\s*"""([\s\S]*?)""",\s*true\s*\)/,
+    );
+    expect(
+      snapshot,
+      "Remote Robot must execute the snapshot on EDT",
+    ).not.toBeNull();
+    const read = (text, onEdt = true, failure = null) => {
+      let documentReads = 0;
+      const value = runInNewContext(snapshot[1], {
+        javax: {
+          swing: { SwingUtilities: { isEventDispatchThread: () => onEdt } },
+        },
+        component: {
+          getText: () => {
+            throw new Error("JTextPane serialization must not be used");
+          },
+          getDocument: () => {
+            documentReads++;
+            return {
+              getLength: () => text.length,
+              getText: (offset, length) => {
+                expect(offset).toBe(0);
+                expect(length).toBe(text.length);
+                if (failure) throw failure;
+                return text;
+              },
+            };
+          },
+        },
+      });
+      expect(documentReads).toBe(1);
+      return value;
+    };
+    for (const text of ["", "pending", "fixture permission approved #4\n尾部"])
+      expect(read(text)).toBe(text);
+    expect(() => read("pending", false)).toThrow(/requires EDT/);
+    const failure = new Error("document read failed");
+    expect(() => read("pending", true, failure)).toThrow(failure);
+    expect(method).toContain("System.nanoTime() < deadline");
+    expect(method).toContain("if (last.contains(expected)) return;");
+    expect(method).toContain("throw new AssertionError(");
   });
 
   it("prepends an isolated fixture CLI without duplicating the PATH key", () => {
