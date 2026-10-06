@@ -1,0 +1,487 @@
+{
+  "schema": "chainlesschain.public-jetbrains-independent-readback/v1",
+  "checkedAt": "2026-10-06T10:26:09.841Z",
+  "formalSample": false,
+  "observationsCreated": false,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "sourceCommitVerified": false,
+  "livePassed": true,
+  "credentialExactScan": {
+    "files": 56,
+    "hits": 0
+  },
+  "billedCost": "unknown",
+  "diagnosticPassed": true,
+  "protocolInspection": {
+    "terminalVerified": true,
+    "observedFallback": false,
+    "usage": {
+      "inputTokens": 18600,
+      "outputTokens": 398,
+      "cacheReadInputTokens": 24576,
+      "cacheCreationInputTokens": 0
+    },
+    "totalCostUsd": null,
+    "generation": "c5597454-9eae-4601-a24b-bdb1513b6b41",
+    "sessionId": "panel-1791282170930-40097c",
+    "result": "DONE.",
+    "terminalFailure": false,
+    "startedAt": "2026-10-06T10:23:28.120177700Z",
+    "inputAt": "2026-10-06T10:23:28.149142500Z",
+    "terminalAt": "2026-10-06T10:24:14.733335400Z",
+    "finishedAt": "2026-10-06T10:24:21.315817800Z",
+    "elapsedMs": 53195,
+    "executionSucceeded": true,
+    "executionEvidence": {
+      "protocol": "cc-agent-stream-json/v1",
+      "exitCode": 0,
+      "signal": null,
+      "terminalVerified": true,
+      "observedFallback": false
+    }
+  },
+  "rawRecordCount": 22,
+  "inputCount": 1,
+  "outputCount": 20,
+  "uiActionCount": 6,
+  "uiActions": [
+    "submit",
+    "background-tab",
+    "return-tab",
+    "final-result",
+    "reload",
+    "restored-result"
+  ],
+  "rawGenerationCount": 1,
+  "sessionId": "panel-1791282170930-40097c",
+  "terminal": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "DONE.",
+    "session_id": "panel-1791282170930-40097c",
+    "turn": 1,
+    "usage": {
+      "input_tokens": 18600,
+      "output_tokens": 398,
+      "cache_read_input_tokens": 24576,
+      "cache_creation_input_tokens": 0
+    },
+    "transcript_refs": {
+      "schema": "chainlesschain.session-transcript-references/v1",
+      "sessionId": "panel-1791282170930-40097c",
+      "assistantEventId": "c630f31fbdf74cb3e07b4b82d404da170e699ccb55797296ab2de545c3ce69ea",
+      "userEventId": "04d249f0277910255c6587211cd3a9923f3241d046b660f790813c5f6a413afe",
+      "clientMessageId": "83f2e8c1-9d6b-4d82-b387-46c5d566ca02"
+    },
+    "trace_id": "tr-8a932324-0a0b-46a2-9a44-b11316c34bdf",
+    "seq": 19
+  },
+  "usageRecords": [
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 13695,
+        "output_tokens": 263,
+        "cache_read_input_tokens": 0
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-8a932324-0a0b-46a2-9a44-b11316c34bdf",
+      "seq": 6
+    },
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 2073,
+        "output_tokens": 67,
+        "cache_read_input_tokens": 12288
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-8a932324-0a0b-46a2-9a44-b11316c34bdf",
+      "seq": 12
+    },
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 2832,
+        "output_tokens": 68,
+        "cache_read_input_tokens": 12288
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-8a932324-0a0b-46a2-9a44-b11316c34bdf",
+      "seq": 18
+    }
+  ],
+  "knownModelUsageCount": 3,
+  "aggregateUsage": {
+    "input_tokens": 18600,
+    "output_tokens": 398,
+    "cache_read_input_tokens": 24576,
+    "cache_creation_input_tokens": 0
+  },
+  "usageMatchesTerminal": true,
+  "knownEstimatedCostUsd": 0.003059504,
+  "perRequestEstimates": [
+    {
+      "inputCost": 0.0019173000000000003,
+      "outputCost": 0.00007364,
+      "cacheReadCost": 0,
+      "cacheCreationCost": 0,
+      "totalCost": 0.00199094,
+      "currency": "USD",
+      "matched": true,
+      "free": false,
+      "rate": {
+        "in": 0.14,
+        "out": 0.28,
+        "pattern": "deepseek-v4-flash"
+      }
+    },
+    {
+      "inputCost": 0.00029022000000000005,
+      "outputCost": 0.000018760000000000003,
+      "cacheReadCost": 0.00017203200000000002,
+      "cacheCreationCost": 0,
+      "totalCost": 0.00048101200000000006,
+      "currency": "USD",
+      "matched": true,
+      "free": false,
+      "rate": {
+        "in": 0.14,
+        "out": 0.28,
+        "pattern": "deepseek-v4-flash"
+      }
+    },
+    {
+      "inputCost": 0.00039648,
+      "outputCost": 0.00001904,
+      "cacheReadCost": 0.00017203200000000002,
+      "cacheCreationCost": 0,
+      "totalCost": 0.0005875520000000001,
+      "currency": "USD",
+      "matched": true,
+      "free": false,
+      "rate": {
+        "in": 0.14,
+        "out": 0.28,
+        "pattern": "deepseek-v4-flash"
+      }
+    }
+  ],
+  "pricingSource": {
+    "path": "packages/cli/src/lib/llm-pricing.js",
+    "sha256": "sha256:ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+  },
+  "reportedTerminalCostUsd": null,
+  "failedRequestCostUsd": null,
+  "totalDiagnosticCostUsd": null,
+  "invoiceVerified": false,
+  "streamRetryCount": 0,
+  "toolNames": [
+    "write_file",
+    "read_file"
+  ],
+  "sameProfileRestart": true,
+  "newIdeProcess": true,
+  "noInputOnRestart": true,
+  "artifactExact": true,
+  "cleanupConfirmed": true,
+  "driverSourceClassBound": true,
+  "sourceCount": 9,
+  "classCount": 10,
+  "notes": [
+    "Known usage cost is a repository-price estimate, not a total bill.",
+    "No observed retries does not independently establish absence of other billed provider requests.",
+    "Public Marketplace bytes and installed plugin identity are verified; source commit and signatures are not attested.",
+    "Windows 10 / Node22.22.2 diagnostic is separate from frozen formal Windows11 / Node22.12.0 samples."
+  ],
+  "artifacts": [
+    {
+      "path": "capture/action-1.json",
+      "sha256": "sha256:569657c46f2d2f9485d6f14238501661b6a3304942f65c06c48b3ae276ad80e5",
+      "bytes": 164
+    },
+    {
+      "path": "capture/action-2.json",
+      "sha256": "sha256:6e6312c8e1deadca4c9f332aa4cb3d7e06dac867e762b0ca18699296fd2e1e26",
+      "bytes": 172
+    },
+    {
+      "path": "capture/action-3.json",
+      "sha256": "sha256:cfffc90a48f71c392b9a698738d3d72559063b26cab0e7c2824f8a0fa79a0b37",
+      "bytes": 168
+    },
+    {
+      "path": "capture/action-4.json",
+      "sha256": "sha256:722afe5819d99168cf19df68f56a697b987da9aeb937a26492daf8a0df6a1ef3",
+      "bytes": 263
+    },
+    {
+      "path": "capture/action-5.json",
+      "sha256": "sha256:be36574dd578e17a16bc51980c145f27a056f8afdea517a1926d53a6e5acb3ca",
+      "bytes": 164
+    },
+    {
+      "path": "capture/action-6.json",
+      "sha256": "sha256:58ae4d88e7bc606dc2f71faa225850f7470b2739444a7389ad862dbdcfaaeec0",
+      "bytes": 266
+    },
+    {
+      "path": "capture/host-identity-initial.json",
+      "sha256": "sha256:d449e0aee41506ff878309a04bc33a33c1c33421ef6ea97222109f79ef5eaa0e",
+      "bytes": 381
+    },
+    {
+      "path": "capture/host-identity-restart.json",
+      "sha256": "sha256:358b9242b95ee3ff29c5ad905debeb79964f6a31eec2642315b35a8de73a2919",
+      "bytes": 381
+    },
+    {
+      "path": "capture/protocol-c5597454-9eae-4601-a24b-bdb1513b6b41.jsonl",
+      "sha256": "sha256:b87c042656b6706d4937123339bdcdfc026806594cb18a36e9d0032f20be4d8b",
+      "bytes": 308710
+    },
+    {
+      "path": "capture/protocol.json",
+      "sha256": "sha256:520aedd033be16e175b97ed7ac9a9b3f8ddd11d775341412d8021bb0635f92d0",
+      "bytes": 375875
+    },
+    {
+      "path": "capture/restart-state.json",
+      "sha256": "sha256:e35dbbb579f2abcacaf10ec9ef735618837c5e1ad1ca54a7c3eaeb49cceeb49a",
+      "bytes": 4109
+    },
+    {
+      "path": "capture/restored-snapshot.json",
+      "sha256": "sha256:f6aefd687b3b1481c7990c801993cc582a325f74cc51765d13986de9e9313d7b",
+      "bytes": 2666
+    },
+    {
+      "path": "capture/ui-initial.json",
+      "sha256": "sha256:3d83338f8da29b294bc213cbcf51f62c9850660b147fb3e91d51169f0ed20e94",
+      "bytes": 824
+    },
+    {
+      "path": "capture/ui.json",
+      "sha256": "sha256:06e45c7e37df6b7af85ecec853c7764fd2bd6f84c6d6462ff428b4edf702d021",
+      "bytes": 1282
+    },
+    {
+      "path": "configure-baseUrl.json",
+      "sha256": "sha256:6109bd8f78e9327f866780f901aa76a01622b6134e1e25949bd033ca05f84ee5",
+      "bytes": 106
+    },
+    {
+      "path": "configure-model.json",
+      "sha256": "sha256:d92e0684eebeb4ef19f06301e7a5cf41d9c36afe0f1a17ff6b89cb1be7b35a0d",
+      "bytes": 104
+    },
+    {
+      "path": "configure-provider.json",
+      "sha256": "sha256:d68ec0214e25c29df00b62090a6d0087452d62c9cefdbf0699c9e4228b80b725",
+      "bytes": 107
+    },
+    {
+      "path": "diagnostic-result.json",
+      "sha256": "sha256:372d642762e60f5eae6f853364a9bd99f4429a6213a5e06a0dd40bb9f4c45eee",
+      "bytes": 924
+    },
+    {
+      "path": "driver-build-manifest.json",
+      "sha256": "sha256:c1b4b7e0c183177e9fd8fdf3d0ff9c299d42fed42ea130e80711de6e28ee130e",
+      "bytes": 27827
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/ColdInitializationJourney.class",
+      "sha256": "sha256:38ba7c6734f8a26f042162359bc8c20d0a374f8e9cb47fad5cd322c977cd20cb",
+      "bytes": 11787
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.class",
+      "sha256": "sha256:e742d37fc1d9926d0c086c2475771c01ec52a392e2507a0f995679fe73761ab6",
+      "bytes": 25396
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/IdeUiSmokeTest.class",
+      "sha256": "sha256:e4a94124af3754b5a4397ea2386e2b4318e328ddf62815b54c7ab284e7b48ccf",
+      "bytes": 39064
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptJourney.class",
+      "sha256": "sha256:3fbdac81be6385f14dbfc1f962ef27c02f5c60ff2c72c2426a8dbc71e8e6b6d4",
+      "bytes": 6317
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbe.class",
+      "sha256": "sha256:f2171e079073db3442235121dbf31882c443c2037f75cec0cfa1a3bdcf3d9017",
+      "bytes": 19872
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest$Identity.class",
+      "sha256": "sha256:0848a1321e3a474eac3e2fd5f583e9413220c8909281fafbc3c9f677c18881f7",
+      "bytes": 628
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest.class",
+      "sha256": "sha256:f7deea6012b7142308101adb2f390e7f20d574036e4a5a6c8f9fe0514e7a28ab",
+      "bytes": 2450
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.class",
+      "sha256": "sha256:20d663d2c8bb860b24e7d7d7c55234d461db91f73ad4a63f68655d8484f1c9bd",
+      "bytes": 13318
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/PublicJetBrainsDriver.class",
+      "sha256": "sha256:7a0ab0a1625c969a711219cfd40da5e85e0ea0597da7153d3737c743296a1d13",
+      "bytes": 478
+    },
+    {
+      "path": "driver-classes/com/chainlesschain/ide/uitest/Verify01HostJourney.class",
+      "sha256": "sha256:c0b9f96a79b04032c193a57b9c012f9e92174d34e90627a1b95c1473cfeb4887",
+      "bytes": 17995
+    },
+    {
+      "path": "driver-compile.log",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "driver-initial.log",
+      "sha256": "sha256:16589bea741f99bbe3a1fab034ffe8ff4f830b8c4f6a7e9ce9a7d8fb3d16e4cd",
+      "bytes": 312
+    },
+    {
+      "path": "driver-restart.log",
+      "sha256": "sha256:360f26f7488ead3363cf1f73d4518412aec137e6791d2de83c51ae5d72ed759e",
+      "bytes": 250
+    },
+    {
+      "path": "driver-source/ColdInitializationJourney.java",
+      "sha256": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "bytes": 11713
+    },
+    {
+      "path": "driver-source/ConversationRecoveryJourney.java",
+      "sha256": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "bytes": 24398
+    },
+    {
+      "path": "driver-source/IdeUiSmokeTest.java",
+      "sha256": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "bytes": 61342
+    },
+    {
+      "path": "driver-source/NativeTranscriptJourney.java",
+      "sha256": "sha256:9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb",
+      "bytes": 5232
+    },
+    {
+      "path": "driver-source/NativeTranscriptProbe.java",
+      "sha256": "sha256:b2bb5230a1d19e2eedb898b42fa7802b50cf3335d0b6680813ab0fb71a1168de",
+      "bytes": 18467
+    },
+    {
+      "path": "driver-source/NativeTranscriptProbeTest.java",
+      "sha256": "sha256:3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273",
+      "bytes": 1848
+    },
+    {
+      "path": "driver-source/OnboardingIdentityJourney.java",
+      "sha256": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "bytes": 12444
+    },
+    {
+      "path": "driver-source/PublicJetBrainsDriver.java",
+      "sha256": "sha256:fcad4797fb417f522db4376c271226d8d2b4105e8f8f01719e08d4ca435765f0",
+      "bytes": 204
+    },
+    {
+      "path": "driver-source/Verify01HostJourney.java",
+      "sha256": "sha256:022f06efd03aa69b9fedb117ff5d3b5d3daebcce2b3561144c832c61fafc851a",
+      "bytes": 16623
+    },
+    {
+      "path": "extract-result.json",
+      "sha256": "sha256:383a4d2cd2b4f0731635537b5e11659d15072375b1b64f01a89de68725fa6cda",
+      "bytes": 85
+    },
+    {
+      "path": "host-logs/idea.log",
+      "sha256": "sha256:224b93b18265963474625969cc72dfe0ce209b2e62ee338e56e679e4b7d9f834",
+      "bytes": 165437
+    },
+    {
+      "path": "ide-initial.log",
+      "sha256": "sha256:bd3e68e0f50639065ed665cb8b2a0d565de80c1947f3e083e0cef6cae716681d",
+      "bytes": 15438
+    },
+    {
+      "path": "ide-initial.log.cleanup.json",
+      "sha256": "sha256:ef0f1664e32a82458c415513c3fffd6da358f018cf38696c123541a4c9f37141",
+      "bytes": 1488
+    },
+    {
+      "path": "ide-restart.log",
+      "sha256": "sha256:6dd7ad0a1dac05b7f17bb16cb8e86b9a7c1f4fd33205b905b37115182548ecc6",
+      "bytes": 22295
+    },
+    {
+      "path": "ide-restart.log.cleanup.json",
+      "sha256": "sha256:ff0229a775b4f70ed59109a5ccac5f1cd5f7b44b963d9f5a77a64b4befc6ab5d",
+      "bytes": 881
+    },
+    {
+      "path": "installed-public-plugin-inventory.json",
+      "sha256": "sha256:e426039aabcf42c74daf9bbb48243cfd3bfa75dfc6d80f4047795a1ff1bbbc1b",
+      "bytes": 633
+    },
+    {
+      "path": "onboarding-proof.txt",
+      "sha256": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178",
+      "bytes": 39
+    },
+    {
+      "path": "operator-script.mjs",
+      "sha256": "sha256:48fcfcba77b33da9bf30871244f5e349c32e81032feee2516cbb4409d1d9df33",
+      "bytes": 15827
+    },
+    {
+      "path": "preparation-interruption.json",
+      "sha256": "sha256:66f7c47fa150a1ab60e0a6248f9563613cf9ac6f57ef8c9a2fd2a7b482a38c49",
+      "bytes": 761
+    },
+    {
+      "path": "prepare-driver.mjs",
+      "sha256": "sha256:4549c509dd111424b9606f2367cd940978e7b838de87fae800a9a021f389690e",
+      "bytes": 3508
+    },
+    {
+      "path": "prior-sandbox-compile-manifest.json",
+      "sha256": "sha256:4b680c93bbe015327863a865f24567cd9318efd7deff28b8695343444a143375",
+      "bytes": 27755
+    },
+    {
+      "path": "prior-sandbox-compile.log",
+      "sha256": "sha256:2d750ae070ba869cc54c01936916b6ed17be41ec96ae9832261279c58f4a94a3",
+      "bytes": 1842
+    },
+    {
+      "path": "prompt.txt",
+      "sha256": "sha256:5f499a5ce8dafb8b1caed201ad67e163a0b0ae2fcb1826ee585201a1bcae5f86",
+      "bytes": 219
+    },
+    {
+      "path": "scope.json",
+      "sha256": "sha256:206c46d9059c6aa5f651a0363f3dc9717817de622b4260ef0d503222e5f9a0a2",
+      "bytes": 1792
+    }
+  ]
+}

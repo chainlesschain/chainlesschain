@@ -1,0 +1,981 @@
+{
+  "schema": "chainlesschain.gap-completion-verification/v1",
+  "checkedAt": "2026-10-06T10:28:44.571Z",
+  "localChecksPassed": true,
+  "nativePassed": 360,
+  "terminalRegressionPassed": 106,
+  "publicVscodePassed": true,
+  "publicJetbrainsPassed": true,
+  "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "formalCollectorExit": 2,
+  "formalTaskObserved": 0,
+  "formalFirstRunObserved": 0,
+  "formalCost": null,
+  "credentialValueScan": {
+    "configuredSecretsPresent": true,
+    "valuesPublished": false,
+    "files": 183,
+    "matches": 0
+  },
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:db184ba5085d1cc2a4cb30bd4803532869496f7ba38dd080d57ac0cdfd3fc3d2"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/platform-sandbox.js",
+      "digest": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/index.js",
+      "digest": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:28cb22301a34e94f8cf358bf669816425e28fa85b552b6533125db3738c29b5d"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:100e5279e7ddcd293dd94e0dba890b3b4a15e1d672db5c89b1da1bfa382b3068"
+    },
+    {
+      "path": "packages/cli/src/lib/eval/verify01-host-evidence.js",
+      "digest": "sha256:14f044bf853020dac6106017e653fedfaf23faf349049c05d75076918c7e78da"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-pricing.js",
+      "digest": "sha256:ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-readback/readback.json",
+      "bytes": 15792,
+      "digest": "sha256:b7d1df3b8734abcad753d2dcb9d02e0c3450a42bc01de6218b2ffc6fcf17eeb4"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/diagnostic-result.json",
+      "bytes": 612,
+      "digest": "sha256:5e735a90d4a45f64bccff97cb22ba094c85bbcc8ee557e8a416943b92786999e"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/install.json",
+      "bytes": 857,
+      "digest": "sha256:bc5eda384e09a5f8d08531c946f1dbb2cdd1a69c405612ff91499f73649b6898"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/install.stderr",
+      "bytes": 175,
+      "digest": "sha256:166f2e2342934ffb750330545c28deea8ac6adc76c92df08dec244b445b13f4b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/install.stdout",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/operator-script.mjs",
+      "bytes": 9481,
+      "digest": "sha256:a49ab789a974b4781bf1b6b9b37b8c8f37577bd272a256ea7564e5e5a7789576"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/registry-manifest.json",
+      "bytes": 8697,
+      "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows/scope.json",
+      "bytes": 518,
+      "digest": "sha256:5121a13f4c123bd98cd72c343ae70568b5460bd838ff3ba58e967bad3df7ff8a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/diagnostic-result.json",
+      "bytes": 635,
+      "digest": "sha256:9602552248488e0f682c4ecc8acd1303a227686cecf1807c50256c19afa9f668"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/identity.json",
+      "bytes": 657,
+      "digest": "sha256:9c26d1d5ad6a89e8ed186cac6b9fa3d4da54e65f4949e3898ebe8ec453d77ef6"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/identity.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/identity.stdout",
+      "bytes": 9,
+      "digest": "sha256:a0fafebb60c86a96fc319d3865ec4965ca012159d5a5bc01cfd69849a98af2b7"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/install.json",
+      "bytes": 860,
+      "digest": "sha256:74d84564705557a2043595b1e8d26341febdb6a7e8f6338dc94a8d1047c6f850"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/install.stderr",
+      "bytes": 243,
+      "digest": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/install.stdout",
+      "bytes": 26,
+      "digest": "sha256:855a9cdb138310347e24a8cf8f35f75330462bf0c5c1237655f5994487404e9b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/operator-script.mjs",
+      "bytes": 9571,
+      "digest": "sha256:a7704a8c7724a971665146a25c400019edd9ca619136fea10f6a5f05e5340a48"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/package-lock.json",
+      "bytes": 209474,
+      "digest": "sha256:d0cec96f347689303dfde3d2ab83d52ed5bc1687a8929abca2cd202bc4a8abc5"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/registry-install.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/registry-manifest.json",
+      "bytes": 8697,
+      "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v2/scope.json",
+      "bytes": 518,
+      "digest": "sha256:c2d8031162d02faa33a36fab6d66be430a5d6b6a7768cf24398fa3ac75e3c315"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/authenticate.json",
+      "bytes": 711,
+      "digest": "sha256:037c35965e6b2df0da1d620105d8cb289e006fd9f0ce43165fdb959ded97d33e"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/authenticate.stderr",
+      "bytes": 114,
+      "digest": "sha256:10a35fc2bf04c9ddea46d210471bd0187f511cf481828c44fe65354794197a3c"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/authenticate.stdout",
+      "bytes": 15,
+      "digest": "sha256:71261bc7736170f0ff1558f8290fde45a4ab98d87661195090377c57986712a7"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-baseUrl.json",
+      "bytes": 786,
+      "digest": "sha256:c128490b24f1c7d2bbac7c00f3f4cc0a09ef2edbd5e731b5896ecbf7d302b120"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-baseUrl.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-baseUrl.stdout",
+      "bytes": 20,
+      "digest": "sha256:fa38144845db2631509b158274f8d0698309c750dcd85ac76cac0eebec965699"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-model.json",
+      "bytes": 769,
+      "digest": "sha256:e59e978ffa3b849801ba5b62361b77b9ae021f1ba656fd93e21ff5c6660a32ee"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-model.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-model.stdout",
+      "bytes": 18,
+      "digest": "sha256:9cdfc7519b952eacdd2b8c3e0cfc76b0e728d99cfaba6e2bcd8dae50a6a450fc"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-provider.json",
+      "bytes": 758,
+      "digest": "sha256:d6cd4ee67fc0093f81a782facf24a8330c1e6e33a4d48f47cb5bd910b42ea531"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-provider.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/configure-provider.stdout",
+      "bytes": 21,
+      "digest": "sha256:d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/diagnostic-result.json",
+      "bytes": 928,
+      "digest": "sha256:50db557b47a8444e9fa05524b3d81b9c2562df6b331a2fa8569eb22c3eb8ab6d"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/identity.json",
+      "bytes": 701,
+      "digest": "sha256:7a7796ac17e915372901a8398aa21f4e990bed3aa13e932445a42f12d0adb514"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/identity.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/identity.stdout",
+      "bytes": 9,
+      "digest": "sha256:a0fafebb60c86a96fc319d3865ec4965ca012159d5a5bc01cfd69849a98af2b7"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/install.json",
+      "bytes": 904,
+      "digest": "sha256:8e3bcdcf6fa7edcd8469326505991bb4afdf0f623e3b32a4feef57dbc0a0cbb9"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/install.stderr",
+      "bytes": 243,
+      "digest": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/install.stdout",
+      "bytes": 26,
+      "digest": "sha256:12a250f03ccd6c8a0eed8437a42d71cb93dcd3cf77f89175d55b907c4dde9551"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/operator-script.mjs",
+      "bytes": 9684,
+      "digest": "sha256:ce83b5604b8aec086c617cdbeda0cc0365eaa74b1fa9c5716850a5e13d1e47de"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/package-lock.json",
+      "bytes": 209474,
+      "digest": "sha256:d0cec96f347689303dfde3d2ab83d52ed5bc1687a8929abca2cd202bc4a8abc5"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/registry-install.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/registry-manifest.json",
+      "bytes": 8697,
+      "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/scope.json",
+      "bytes": 518,
+      "digest": "sha256:4cbd1e7d93f429b3b2446423ad05af91e4eb4ebfcd4404d3ce8059a00e8f9b46"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/tool.json",
+      "bytes": 1196,
+      "digest": "sha256:4df8159fd7af5db7d47c6346a3c65f83c4c89274b6f5b05c49e5360c46fd9ebf"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/tool.stderr",
+      "bytes": 38,
+      "digest": "sha256:04011c35f36a05b2aa21c88d2dd915964d9ad8e15877bb474275cefa487faf66"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3/tool.stdout",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows/diagnostic-result.json",
+      "bytes": 1511,
+      "digest": "sha256:f4cfdc5f1e1def0cb579aa9d58ffd6cf99c2d020588c5fb3eee7b25e22e5d56c"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows/operator-script.mjs",
+      "bytes": 6256,
+      "digest": "sha256:3ba10bb8bb3e971d0875720e5d6211a63f7894b0923ce43e0a765a6bcd3577ac"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows/registry-readback.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows/tool.stderr",
+      "bytes": 265,
+      "digest": "sha256:be652f3a7d60bca7cf805de69363f765065fa5a85aa03c0cdfcddf33ea7df082"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows/tool.stdout",
+      "bytes": 15949,
+      "digest": "sha256:5c39cf400a4fce3366fe8537338f964d266e53f0e07a9eefbfb98fac7a67aab2"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2/operator-script.mjs",
+      "bytes": 6370,
+      "digest": "sha256:80d1eb72659a5a3825923e5dce5678931f5f9a6af46c8c2e4f8d6c2aea3f4530"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2/registry-readback.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/configure-baseUrl.json",
+      "bytes": 194,
+      "digest": "sha256:a7f21ee5c0376fc7da2cf0076f9b489322017784b0550fbc24bfef6af6e9a6e1"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/configure-model.json",
+      "bytes": 192,
+      "digest": "sha256:745fb325f2b7d0f349762bf7002f2043dc786599fa21d88e777dfaeafff66807"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/configure-provider.json",
+      "bytes": 195,
+      "digest": "sha256:fbeb067f2ab83c6c3dd7944505ef1cbb60186cc63522c4df8fff0d11d1f18507"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/diagnostic-result.json",
+      "bytes": 2912,
+      "digest": "sha256:56ccbac6cd4062315cf7103f7fab87051298225ae5c83fffdcf450c4b865e457"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/onboarding-proof.txt",
+      "bytes": 35,
+      "digest": "sha256:49976935868213c5282dffa9a5c3794dceda5ca83eb4a2270fa43586c8c72d82"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/operator-script.mjs",
+      "bytes": 7822,
+      "digest": "sha256:9b75b833f59672dff09eb317a9130e8cb43b35092377855406cb05df0fe6dfa1"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/registry-readback.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/tool.stderr",
+      "bytes": 263,
+      "digest": "sha256:e7f6ba6cdce1e346bc00022015d38ec4215cdb70479b14a5f8740d43b2a276c1"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e/tool.stdout",
+      "bytes": 60626,
+      "digest": "sha256:0670ae80ce5bb750b70078897d6984c74db96b3c5afb9733e1c2957f571f1d97"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d/diagnostic-result.json",
+      "bytes": 1594,
+      "digest": "sha256:ef00694da0af516b925bb491a29a45824093ee9d751ba00eddb45eea5d3f0228"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d/operator-script.mjs",
+      "bytes": 6554,
+      "digest": "sha256:66e4b701dc3fa9275951bba022953692d982faff835de6e0500dc0771c69c572"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d/registry-readback.json",
+      "bytes": 3508,
+      "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d/tool.stderr",
+      "bytes": 442,
+      "digest": "sha256:7959b7aec0106772add5bbe1bf8ab5a7b74fd28f87632338d85357fef900b445"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d/tool.stdout",
+      "bytes": 337,
+      "digest": "sha256:c6e273da610f2606e32a1048e4fef6660e6307858bc1721e900288d1ad8a9b86"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-first.sanitized.json",
+      "bytes": 2238,
+      "digest": "sha256:3fa6420bea66b4fee18fe23df67ff8c4d37010ffcf3d834dd666555a12f3847e"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-policy-acl-fixed.sanitized.json",
+      "bytes": 5135,
+      "digest": "sha256:352136eaf210e967c4f36feb59d5f7a94b4710ecccb596a910796c4bf1da43d1"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-policy-attested-first.sanitized.json",
+      "bytes": 4979,
+      "digest": "sha256:6bd5aa798a9c69b5cf27138a189733261561b1554d15fa3beb892d0943cc87ba"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-real-user-first.sanitized.json",
+      "bytes": 2394,
+      "digest": "sha256:5d7f49c5284929a3e0bd4c82e74afef0a8ca7d46bf6b76b928a267370c74b08b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-real-user-loader-fixed.sanitized.json",
+      "bytes": 6251,
+      "digest": "sha256:06126a9027eccf4339c93ab6ad4c56d93c6b5bb47e1104d41beb9ca1ab76e7c2"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-real-user-network-diagnostic.sanitized.json",
+      "bytes": 3539,
+      "digest": "sha256:aacf8082571473ed24ac389618c07c3645cca0def31d58e0552aa10529902cf2"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/failures/windows-native-evaluator-real-user-token-fixed.sanitized.json",
+      "bytes": 6198,
+      "digest": "sha256:9f1073cb7c4498b6b035d7b9d3dec7d022ef3053b4121c96dc203dbfb82c6ea9"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/readback.json",
+      "bytes": 15816,
+      "digest": "sha256:909b24909ada4547249c8fa3d85ef545ddec0c7e65c2542e60e3e66a911a9d0b"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/receipt.sanitized.json",
+      "bytes": 5311,
+      "digest": "sha256:ffb7865a7d9a82f6b55279e0230d200e5137c9b59d6b5e4e19e7a906242fc2eb"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/vitest-results.sanitized.json",
+      "bytes": 184340,
+      "digest": "sha256:5716ed2c0a31137d0def2eb88ea571449099d54490e3b4dd121a320e2346a835"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/readback.json",
+      "bytes": 1324,
+      "digest": "sha256:1244c7bfbd4bc39c5fd99f45d682fe4f624f3646d9b2b0fe05c3a94d8115a1d3"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/receipt.json",
+      "bytes": 1712,
+      "digest": "sha256:dd2a4a7a85e918d9252416f34f3919a234814088bf3f3e0244ffc50a84415eb0"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/snapshot/index.js",
+      "bytes": 214793,
+      "digest": "sha256:2d702c043fa3c687c6528aad3d14706af6eba0ae63cfe8e1efb5be5c0e584eea"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/snapshot/platform-sandbox.js",
+      "bytes": 323022,
+      "digest": "sha256:90ca58d172971864a525035d5353490a91dd980e61f44643ce47cf570846a548"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/snapshot/windows-sandbox-helper.dll",
+      "bytes": 67072,
+      "digest": "sha256:3d78386c176ff247daaac82796a222abf4fd14a68328125d2cb09aa4f3baba96"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/snapshot/windows-sandbox-helper.exe",
+      "bytes": 67584,
+      "digest": "sha256:2117c0af888a83b364796f98607367d9be0a7008ffe69d821addd5107ae8644f"
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/snapshot/windows-sandbox.cs",
+      "bytes": 171665,
+      "digest": "sha256:ada5ef52e83f5a5ae2a20743dd86f280b34e267b807c391584a32ae674d69971"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-1.json",
+      "bytes": 164,
+      "digest": "sha256:569657c46f2d2f9485d6f14238501661b6a3304942f65c06c48b3ae276ad80e5"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-2.json",
+      "bytes": 172,
+      "digest": "sha256:6e6312c8e1deadca4c9f332aa4cb3d7e06dac867e762b0ca18699296fd2e1e26"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-3.json",
+      "bytes": 168,
+      "digest": "sha256:cfffc90a48f71c392b9a698738d3d72559063b26cab0e7c2824f8a0fa79a0b37"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-4.json",
+      "bytes": 263,
+      "digest": "sha256:722afe5819d99168cf19df68f56a697b987da9aeb937a26492daf8a0df6a1ef3"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-5.json",
+      "bytes": 164,
+      "digest": "sha256:be36574dd578e17a16bc51980c145f27a056f8afdea517a1926d53a6e5acb3ca"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/action-6.json",
+      "bytes": 266,
+      "digest": "sha256:58ae4d88e7bc606dc2f71faa225850f7470b2739444a7389ad862dbdcfaaeec0"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/host-identity-initial.json",
+      "bytes": 381,
+      "digest": "sha256:d449e0aee41506ff878309a04bc33a33c1c33421ef6ea97222109f79ef5eaa0e"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/host-identity-restart.json",
+      "bytes": 381,
+      "digest": "sha256:358b9242b95ee3ff29c5ad905debeb79964f6a31eec2642315b35a8de73a2919"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/protocol-c5597454-9eae-4601-a24b-bdb1513b6b41.jsonl",
+      "bytes": 308710,
+      "digest": "sha256:b87c042656b6706d4937123339bdcdfc026806594cb18a36e9d0032f20be4d8b"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/protocol.json",
+      "bytes": 375875,
+      "digest": "sha256:520aedd033be16e175b97ed7ac9a9b3f8ddd11d775341412d8021bb0635f92d0"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/restart-state.json",
+      "bytes": 4109,
+      "digest": "sha256:e35dbbb579f2abcacaf10ec9ef735618837c5e1ad1ca54a7c3eaeb49cceeb49a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/restored-snapshot.json",
+      "bytes": 2666,
+      "digest": "sha256:f6aefd687b3b1481c7990c801993cc582a325f74cc51765d13986de9e9313d7b"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/ui-initial.json",
+      "bytes": 824,
+      "digest": "sha256:3d83338f8da29b294bc213cbcf51f62c9850660b147fb3e91d51169f0ed20e94"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/capture/ui.json",
+      "bytes": 1282,
+      "digest": "sha256:06e45c7e37df6b7af85ecec853c7764fd2bd6f84c6d6462ff428b4edf702d021"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/configure-baseUrl.json",
+      "bytes": 106,
+      "digest": "sha256:6109bd8f78e9327f866780f901aa76a01622b6134e1e25949bd033ca05f84ee5"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/configure-model.json",
+      "bytes": 104,
+      "digest": "sha256:d92e0684eebeb4ef19f06301e7a5cf41d9c36afe0f1a17ff6b89cb1be7b35a0d"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/configure-provider.json",
+      "bytes": 107,
+      "digest": "sha256:d68ec0214e25c29df00b62090a6d0087452d62c9cefdbf0699c9e4228b80b725"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/diagnostic-result.json",
+      "bytes": 924,
+      "digest": "sha256:372d642762e60f5eae6f853364a9bd99f4429a6213a5e06a0dd40bb9f4c45eee"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-build-manifest.json",
+      "bytes": 27827,
+      "digest": "sha256:c1b4b7e0c183177e9fd8fdf3d0ff9c299d42fed42ea130e80711de6e28ee130e"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/ColdInitializationJourney.class",
+      "bytes": 11787,
+      "digest": "sha256:38ba7c6734f8a26f042162359bc8c20d0a374f8e9cb47fad5cd322c977cd20cb"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.class",
+      "bytes": 25396,
+      "digest": "sha256:e742d37fc1d9926d0c086c2475771c01ec52a392e2507a0f995679fe73761ab6"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/IdeUiSmokeTest.class",
+      "bytes": 39064,
+      "digest": "sha256:e4a94124af3754b5a4397ea2386e2b4318e328ddf62815b54c7ab284e7b48ccf"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptJourney.class",
+      "bytes": 6317,
+      "digest": "sha256:3fbdac81be6385f14dbfc1f962ef27c02f5c60ff2c72c2426a8dbc71e8e6b6d4"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbe.class",
+      "bytes": 19872,
+      "digest": "sha256:f2171e079073db3442235121dbf31882c443c2037f75cec0cfa1a3bdcf3d9017"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest$Identity.class",
+      "bytes": 628,
+      "digest": "sha256:0848a1321e3a474eac3e2fd5f583e9413220c8909281fafbc3c9f677c18881f7"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest.class",
+      "bytes": 2450,
+      "digest": "sha256:f7deea6012b7142308101adb2f390e7f20d574036e4a5a6c8f9fe0514e7a28ab"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.class",
+      "bytes": 13318,
+      "digest": "sha256:20d663d2c8bb860b24e7d7d7c55234d461db91f73ad4a63f68655d8484f1c9bd"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/PublicJetBrainsDriver.class",
+      "bytes": 478,
+      "digest": "sha256:7a0ab0a1625c969a711219cfd40da5e85e0ea0597da7153d3737c743296a1d13"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-classes/com/chainlesschain/ide/uitest/Verify01HostJourney.class",
+      "bytes": 17995,
+      "digest": "sha256:c0b9f96a79b04032c193a57b9c012f9e92174d34e90627a1b95c1473cfeb4887"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-compile.log",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-initial.log",
+      "bytes": 312,
+      "digest": "sha256:16589bea741f99bbe3a1fab034ffe8ff4f830b8c4f6a7e9ce9a7d8fb3d16e4cd"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-restart.log",
+      "bytes": 250,
+      "digest": "sha256:360f26f7488ead3363cf1f73d4518412aec137e6791d2de83c51ae5d72ed759e"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/ColdInitializationJourney.java",
+      "bytes": 11713,
+      "digest": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/ConversationRecoveryJourney.java",
+      "bytes": 24398,
+      "digest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/IdeUiSmokeTest.java",
+      "bytes": 61342,
+      "digest": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/NativeTranscriptJourney.java",
+      "bytes": 5232,
+      "digest": "sha256:9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/NativeTranscriptProbe.java",
+      "bytes": 18467,
+      "digest": "sha256:b2bb5230a1d19e2eedb898b42fa7802b50cf3335d0b6680813ab0fb71a1168de"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/NativeTranscriptProbeTest.java",
+      "bytes": 1848,
+      "digest": "sha256:3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/OnboardingIdentityJourney.java",
+      "bytes": 12444,
+      "digest": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/PublicJetBrainsDriver.java",
+      "bytes": 204,
+      "digest": "sha256:fcad4797fb417f522db4376c271226d8d2b4105e8f8f01719e08d4ca435765f0"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/driver-source/Verify01HostJourney.java",
+      "bytes": 16623,
+      "digest": "sha256:022f06efd03aa69b9fedb117ff5d3b5d3daebcce2b3561144c832c61fafc851a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/extract-result.json",
+      "bytes": 85,
+      "digest": "sha256:383a4d2cd2b4f0731635537b5e11659d15072375b1b64f01a89de68725fa6cda"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/host-logs/idea.log",
+      "bytes": 165437,
+      "digest": "sha256:224b93b18265963474625969cc72dfe0ce209b2e62ee338e56e679e4b7d9f834"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/ide-initial.log",
+      "bytes": 15438,
+      "digest": "sha256:bd3e68e0f50639065ed665cb8b2a0d565de80c1947f3e083e0cef6cae716681d"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/ide-initial.log.cleanup.json",
+      "bytes": 1488,
+      "digest": "sha256:ef0f1664e32a82458c415513c3fffd6da358f018cf38696c123541a4c9f37141"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/ide-restart.log",
+      "bytes": 22295,
+      "digest": "sha256:6dd7ad0a1dac05b7f17bb16cb8e86b9a7c1f4fd33205b905b37115182548ecc6"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/ide-restart.log.cleanup.json",
+      "bytes": 881,
+      "digest": "sha256:ff0229a775b4f70ed59109a5ccac5f1cd5f7b44b963d9f5a77a64b4befc6ab5d"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/installed-public-plugin-inventory.json",
+      "bytes": 633,
+      "digest": "sha256:e426039aabcf42c74daf9bbb48243cfd3bfa75dfc6d80f4047795a1ff1bbbc1b"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/onboarding-proof.txt",
+      "bytes": 39,
+      "digest": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/operator-script.mjs",
+      "bytes": 15827,
+      "digest": "sha256:48fcfcba77b33da9bf30871244f5e349c32e81032feee2516cbb4409d1d9df33"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/preparation-interruption.json",
+      "bytes": 761,
+      "digest": "sha256:66f7c47fa150a1ab60e0a6248f9563613cf9ac6f57ef8c9a2fd2a7b482a38c49"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/prepare-driver.mjs",
+      "bytes": 3508,
+      "digest": "sha256:4549c509dd111424b9606f2367cd940978e7b838de87fae800a9a021f389690e"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/prior-sandbox-compile-manifest.json",
+      "bytes": 27755,
+      "digest": "sha256:4b680c93bbe015327863a865f24567cd9318efd7deff28b8695343444a143375"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/prior-sandbox-compile.log",
+      "bytes": 1842,
+      "digest": "sha256:2d750ae070ba869cc54c01936916b6ed17be41ec96ae9832261279c58f4a94a3"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/prompt.txt",
+      "bytes": 219,
+      "digest": "sha256:5f499a5ce8dafb8b1caed201ad67e163a0b0ae2fcb1826ee585201a1bcae5f86"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/readback-script.mjs",
+      "bytes": 7357,
+      "digest": "sha256:f07ab293550b4566966c2ce893df06a0f48e3a29bcc1cdfacd4817b2f7aa923c"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/readback.json",
+      "bytes": 15811,
+      "digest": "sha256:2fad9f8a9e51ff1c6ff65d05045ed1a36c81124b40b82445c3c53ce0a405aa25"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/scope.json",
+      "bytes": 1792,
+      "digest": "sha256:206c46d9059c6aa5f651a0363f3dc9717817de622b4260ef0d503222e5f9a0a2"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-market-source/chainlesschain-ide-bridge-0.4.153.zip",
+      "bytes": 1521021,
+      "digest": "sha256:d41b78abc65eb3c417e573295da10bc24eccf7a13f79e2e8cb24d4f33cc7f1e0"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-market-source/marketplace-metadata.json",
+      "bytes": 84266,
+      "digest": "sha256:70653452f0ca4ebe2e976bb60b2648c76c2bcb2dc52a0ae70f7d0a832443fa62"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-market-source/readback.json",
+      "bytes": 901,
+      "digest": "sha256:a1407e9b1bef339adb49a35ec15aa8a668f271d7cf79ba9fe2752a9999fbdd63"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-readback/operator-readback.mjs",
+      "bytes": 7391,
+      "digest": "sha256:d354ffe837454c19b6fbcdd46f022762320f384ef8afb25ac60ba2c5c2d83d8a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-readback/readback.json",
+      "bytes": 6867,
+      "digest": "sha256:30a26b5d8264b9974b838152e0d6fae93a9bda3751a09070d31521dd2a5c936a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/configure-baseUrl.json",
+      "bytes": 193,
+      "digest": "sha256:99cf21bc02d84e40fad72cd04422bc3870072c13ffa7d8fd9a37ea6bd333eb0d"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/configure-model.json",
+      "bytes": 191,
+      "digest": "sha256:b9c0eca9cbe537d5651499e128ea0fa4710b1db9e3199c42adb536fc04e04f6a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/configure-provider.json",
+      "bytes": 194,
+      "digest": "sha256:12dc2c0fccc985dc5773902549712d75db80f0c8f1c5077d9e6ad6591d413698"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/launcher-config.json",
+      "bytes": 989,
+      "digest": "sha256:424b06fbe085b0f4d49ce14ae1c8c18efabf8cf74bcea389e2ff8d7fe24bb94b"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/operator-script.mjs",
+      "bytes": 6464,
+      "digest": "sha256:e8fdf74bbef2143bc576e7015196811573374e0b808177b65da2e1de4d7d5a0a"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/recovered-log-0.txt",
+      "bytes": 47253,
+      "digest": "sha256:d1814a52cc37c38ecb2b6bdce728505c53561f550cf8a032e8466bfed308df19"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/recovered-log-1.txt",
+      "bytes": 47123,
+      "digest": "sha256:0385e6c8a9e76a06baef329c479888d70c6eed9e3c932641c3429d91475b33ce"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/recovered-log-2.txt",
+      "bytes": 408,
+      "digest": "sha256:057e1c25f116f613e07b8e4b46fa71727c287a4dd861344af893dd280de690d1"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/recovery-readback.json",
+      "bytes": 1618,
+      "digest": "sha256:4025e594edc74c45d1d3122cbd51531894ae3fcd25649a1ea5ab3772f1a97e17"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/scope.json",
+      "bytes": 972,
+      "digest": "sha256:25d98ee5864c3925647ee0d241161887dd0c270afeea68fac1a5e54474e5b965"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/ui.ndjson",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/vscode-install.json",
+      "bytes": 635,
+      "digest": "sha256:06fc4fb5add92d05c1d98d12c174911eb70d321da78b498a3f3e002be84b8285"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/371be9b0-603f-4ca7-924f-2d531ecea173.ndjson",
+      "bytes": 310951,
+      "digest": "sha256:2751bf6bcb511b694e88671fa8e58fa2f226c2d84d3181eca82386f85da0ef64"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/configure-baseUrl.json",
+      "bytes": 193,
+      "digest": "sha256:cd7ec0801518de79ed54ae62233188ae1a87574eb682e36358c46d40b5cff0b6"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/configure-model.json",
+      "bytes": 191,
+      "digest": "sha256:500b0d6a1828e0f6a1d3d7972a56eb63a095217903773385991f922c585236d3"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/configure-provider.json",
+      "bytes": 194,
+      "digest": "sha256:ee55dda6e77493a0cfd2abaf4afe3c474e3b1e3169aaf85781eaf94119e7a095"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/diagnostic-result.json",
+      "bytes": 573,
+      "digest": "sha256:0adf84dfef60d2df2b8c4c36b55801f757d5890da65ef56c25be7ed7138ac6c4"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/launcher-config.json",
+      "bytes": 996,
+      "digest": "sha256:fbc98525ad400285ea3f135e622db9ee8cdae8dc41ec0efcefa56df2da6d3d3f"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/launcher.log",
+      "bytes": 90978,
+      "digest": "sha256:95dcd9d514dc29f1af0781164c03743e1aadf6a601e6f69eb1410133a45d4fa0"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/onboarding-proof.txt",
+      "bytes": 39,
+      "digest": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/operator-script.mjs",
+      "bytes": 6634,
+      "digest": "sha256:35d3925651bfc85e27e10a084a6877c5a087782f8c6580cc159d7c36f3120e6d"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/protocol.json",
+      "bytes": 375209,
+      "digest": "sha256:bb69b37889fa9399caf5a0c82a8cadb06c73b6db09ac475cac39e59d5fb23a40"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/reader-terminal-first.json",
+      "bytes": 710,
+      "digest": "sha256:9d97851fe143b7cec29e63465f27fffb0bed720811ea87ef9b47607473d45a83"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/scope.json",
+      "bytes": 972,
+      "digest": "sha256:b6d2a30c73453bfcd4dee0632d99eeed697eca2cd8321f94765c8429ffcb63c1"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/terminal.json",
+      "bytes": 855,
+      "digest": "sha256:320b38d8af969ac3508a99970b0b0a2ea8ab6151b16b25a33c9c73aa36074e4c"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/ui.json",
+      "bytes": 1324,
+      "digest": "sha256:53e3adf0be854ae56efff80d5734c196bc06976650fd60133fb530b9ba8bba05"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/ui.ndjson",
+      "bytes": 1129,
+      "digest": "sha256:9dfe056eba97bde27e0837661e6e40c4b780cabf2f73d3fbee00928d8f7cc3a3"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/vscode-initial.json",
+      "bytes": 5818,
+      "digest": "sha256:51d70a922ad4e4a7f691b7c3dc70e77ca4b93c2132dd36f1c04c266509c0e4f5"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/vscode-install.json",
+      "bytes": 635,
+      "digest": "sha256:3764487f06900dc37038e083e1429ba2c751068335c94dc9302d00ac35748665"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-live-windows-v2/vscode-restart.json",
+      "bytes": 3853,
+      "digest": "sha256:64d59b7d676c7dbc46383c04185498bc40ef4303e4e170a268fbd4b4f32f9579"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/chainlesschain-ide-0.37.135.vsix",
+      "bytes": 714045,
+      "digest": "sha256:ba905abfa806bebfef726dde4941dacf24fc4ef39ffe571896d7f585238b8408"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/marketplace.sha256",
+      "bytes": 64,
+      "digest": "sha256:5ea31797cded0ed4a2170f88e4caa62fb02952eae7dd7f9f08492fe1ed58630b"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/package.json",
+      "bytes": 24438,
+      "digest": "sha256:55cf6601e5ecb1e5672fa44b756b5d1faa44c40652c559176fd5a4663df17cc7"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/receipt.json",
+      "bytes": 569,
+      "digest": "sha256:468c75a204cbcd70825a22202efc8a79048ff805ead0f351c30f9b6f4fd030a3"
+    },
+    {
+      "path": "docs/research/ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/registry.json",
+      "bytes": 10875,
+      "digest": "sha256:089b4567441c6873ab47720d7f00dd85121707673474f1d24cb90207b24af183"
+    }
+  ],
+  "releaseGateAssessed": false,
+  "observationsCreated": false
+}

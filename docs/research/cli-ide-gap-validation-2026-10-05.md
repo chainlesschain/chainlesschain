@@ -198,3 +198,73 @@ Astra 协助修复 `context-token-volcengine-live-probe.mjs`：20 秒期限现�
 | CLOUD-02                     | 现有 self-hosted handoff 合同                                          | 完整跨机器 resume 仍为需求条件项                                                                   |
 
 本地 Docker Linux engine 的命名管道当前不存在，未启动或修改宿主服务。Windows 本机版本 **10.0.19045**、Node **22.22.2** 不匹配冻结正式 Windows 11 / Node 22.12.0 目标，不能将本轮真实探针改填正式样本。再次只读检查冻结采集器：原生退出 **2**、`NOT_RUN` / `INSUFFICIENT_EVIDENCE`、task observed=0/missing=36、firstRun observed=0/missing=9、totalCost=null；指纹与 **$72+$27=$99** 冻结预算不变。归档的 **255 项字节/源码摘要** 全部匹配，检查材料未包含本机已配置凭据，见[最终核对与原始采集器回读](./cli/evidence/gap-2026-10-05/volcengine-live-20261006/final-verification.json)。未写正式 observations。
+
+## 9. 2026-10-06 公开安装与 Windows 原生检查器
+
+用户授权继续火山实测并在完成后提交 Git。本节记录公开包的独立诊断及原生沙箱增量，不修改冻结正式计划。原生实现已在 `7e8d61e1c7` 提交，公开 npm 校验与第 8 节材料已在 `189a904032` 提交；本轮继续补齐证据归档、真实公开 IDE 旅程与发现的采集器缺陷。
+
+### 9.1 公开 npm CLI 安装、配置和真实工具
+
+公开安装校验器保留本地候选模式。npm manifest 带 `dist` 时，新增校验 CLI 自身的 registry lock 条目：准确版本、tarball URL、规范的 64-byte SHA512 integrity，同时继续核对全部固定版本子包。该合同不证明签名、源码提交或安装后每个文件的字节身份。新增 Node **3/3**、原有单文件 Vitest **10/10** 通过，Node 测试已接入三系统 CLI CI。
+
+真实安装公开 CLI **0.166.90** 到独立 prefix，完成配置及火山连通性，再用新的隔离 profile 完成 `write_file` → `read_file`。产物严格为 `CHAINLESSCHAIN_PUBLIC_FIRST_RUN_V1\n`，唯一成功终态、三条 usage、自然 owner exit，已知工具调用估算费用 **$0.000869764**。见[完整尝试回读](./cli/evidence/gap-2026-10-05/public-cli-first-run-readback/readback.json)。
+
+安装操作错误、错误 flag、网络失败、跨执行身份的 EPERM 及准备阶段 EEXIST 均保留；没有修改旧 profile ACL，也没有把失败尝试改写为首次即成功。五个诊断阶段在多次尝试后完成，**singleInitialAttemptPassed=false**。连通性请求与失败请求费用未知，完整总费用为 null；未验证账单、签名或恶意后代隔离。Windows 10 / Node 22.22.2 与冻结目标不同，不计正式 first-run。
+
+### 9.2 Windows 原生执行期限
+
+普通 broker 新增 Windows 专用 `sandboxPolicy.limits.wallTimeMs`，只接受 **1–3,600,000 ms** 的安全整数；其他平台明确拒绝，不静默忽略。C# watchdog 在目标 Resume 前启动，覆盖入口管道交付，期限耗尽终止整个 Job；仍需确认空 Job 才允许结算。处理 timer callback 与句柄关闭竞态，期限不包含 wrapper 准备时间，也不替代最多 10 秒的清理屏障。
+
+最初三项原生案例及五份匹配源码/二进制快照见[stage 1 回读](./cli/evidence/gap-2026-10-05/windows-native-wall-time-stage1/readback.json)。后续 stage 2 完整回归仍覆盖这三项，不将两个阶段测试数量叠加成不同测试。
+
+### 9.3 最小只读原生检查器
+
+新增 `windows-native-evaluator.js`：每次创建私有 stage，源文件和检查器只读，scratch 可写；工厂签发一次性 WeakMap policy，绑定文件身份、摘要、runtime、check、cwd 和期限。拒绝软链接、硬链接、重复/非法路径与超限数据。Node 被复制到私有 control，不给原项目或 NVM 目录追加 AppContainer ACL；仅以明确的最小环境启动检查器，没有 provider 凭据。
+
+原生 helper 持有文件及祖先目录 guard 到空 Job 确认，唯一零 capability AppContainer 同时限制文件与网络。沙箱账户的 profile 创建失败保留；成功实测来自获准的真实用户执行身份，不据此推广到所有账户。Native helper readiness、格式与定向 lint 已核对；最终 **5 文件、360/360、无跳过**，六个源码/二进制摘要与当前实现及准确 Git blobs 一致。最终回执、完整测试结果及七个关键失败材料见[stage 2 归档](./cli/evidence/gap-2026-10-05/windows-native-evaluator-stage2/readback.json)。归档脱敏绝对用户路径，同时记录原始与归档摘要；历史失败的缺失字段及并发源码绑定问题单独标明。
+
+真实案例验证源文件/检查器改写、删除、目录重命名和硬链接被拒绝，scratch 可写，篡改在创建目标前被拒绝，detached child 随 Job 清理。公网 TCP 返回 **EACCES**；loopback 为 **ETIMEDOUT**，并同时核验零 capability、前后无 loopback exemption、同一 listener 的前后可达正对照及零额外连接。**超时本身没有被写成明确拒绝码**。
+
+这是最小 staged **CJS 检查器**，不是完整 native36/Vitest review pack，不是 Windows durable authority、WFP 持续网络撤销或崩溃恢复，也不证明运行中修改 loopback exemption 的对抗隔离；macOS 原生检查器仍开放。不能用它替代冻结正式任务的全部平台前置条件。
+
+### 9.4 公开 VS Code 与真实火山任务
+
+从 Open VSX 下载 **0.37.135** 原始 VSIX，实际 **714,045 bytes**，SHA256 `ba905abfa806bebfef726dde4941dacf24fc4ef39ffe571896d7f585238b8408` 与市场 checksum 一致；下载仅允许 Open VSX 及其 Eclipse 内容域。配对公开 CLI **0.166.90**。见[公开来源回执](./ide/evidence/gap-2026-10-05/public-vscode-market-source-v2/receipt.json)。未声称签名或源码提交已认证。
+
+第一轮在真实 VS Code **1.132.0** 安装成功，但驱动把 CLI 别名 `auto` 交给 IDE 的 `setMode`，在发送提示前报 `Unsupported host permission mode`。IDE 正常退出，不是 10 分钟 deadline 耗尽；零 user 输入、零 CLI 任务、零模型调用。操作器又因重复复制相同 launcher config 报 EEXIST；原文件保留，后来按字节相等恢复归档，原始日志仅保留脱敏节选并记录完整日志摘要，见[原失败回读](./ide/evidence/gap-2026-10-05/public-vscode-live-windows-first/recovery-readback.json)。
+
+Astra 协助在 launcher 启动前严格校验 `default/acceptEdits/bypassPermissions`，不自动转换权限。新增模式契约及无副作用拒绝测试，与诊断和宿主 runner 合计 **57/57** 通过，接入扩展 `test:unit` 及三系统宿主诊断工作流。
+
+第二轮使用新的隔离 profile、明确 `acceptEdits` 和最多四轮，在公开安装的面板中发送一次真实任务。实际执行 `write_file` 与 `read_file`，文件严格为 `CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1\n`；面板显示 `DONE.`，后台 tab 切换及返回、自然关闭和真实 IDE 重启后恢复均完成，恢复没有启动新 agent 或重放输入。原始 **22** 条连续记录包含一条 user、一个匹配的 durable input receipt、唯一 success、同会话 `system/end` 和 drained exit 0；见[独立回读](./ide/evidence/gap-2026-10-05/public-vscode-live-readback/readback.json)。
+
+独立核验暴露旧 `inspectIdeProtocol` 将合法 `system/end` 当作任务尾输出的问题。修复只识别唯一、最后、紧随唯一 result 的同会话单轮结束帧，核对 turn、可选 trace/sequence 和字段白名单；保留原始 capture，通用 `verifyAgentTerminal` 仍拒绝任意尾输出。重复/提前 end、跨会话、附带 error、错误 turns、额外工具/错误、非零或未 drain 退出仍失败，显式失败结果后 end 也不变为成功。最初 reader 失败回执保留，未为通过核验重新调用模型。
+
+三个成功 usage 的输入/输出/缓存读分别合计 **18,126 / 231 / 25,600 tokens**，按仓库价格表估算 **$0.00296072**。实测还出现一次 `stream_retry`，原始重试保留，失败请求费用未知，因此完整诊断总费用为 **null**，不是上述小计。没有真实账单、物理桌面鼠标导航、恶意进程树、听测或性能 SLO 验收；本机 OS/Node 与正式计划不同，**formalSample=false、observationsCreated=false**。
+
+### 9.5 公开 JetBrains 与真实火山任务
+
+从 JetBrains Marketplace 获取已公开 **0.4.153**，update **1187914**，ZIP **1,521,021 bytes**，SHA256 `d41b78abc65eb3c417e573295da10bc24eccf7a13f79e2e8cb24d4f33cc7f1e0`。保留官方 API 元数据、请求与最终内容域、原始 ZIP 和摘要，见[公开来源](./ide/evidence/gap-2026-10-05/public-jetbrains-market-source/readback.json)；这是来源与字节记录，不宣称市场签名或源码提交已认证。
+
+驱动准备的 Gradle 命令在审批/工具返回前挂起约 **493 秒**，root 中断后没有 stdout/session，未启动 GUI 或模型任务。随后沙箱内直接 javac 虽返回 0，关闭外部依赖 jar 时日志出现 `AccessDeniedException`，这次也不算干净通过。两份准备失败保留。获准执行的统一脚本用仓库 JDK 21、缓存依赖，将当前八份 UI Java 源码及独立 main 编译到新的输出目录；exit 0、无异常日志、十个 class，记录编译器、源码、依赖及 class 的逐文件摘要。
+
+直接启动缓存的真实 IntelliJ **2024.2 / build 242.20224.300**，全新 config/system/plugins/home/workspace。插件只从市场 ZIP 解压，没有调用 `buildPlugin/runIdeForUiTests` 替换为本地包。实际宿主身份分别核对插件 **0.4.153**、安装路径、配置路径、amd64、JBR **21.0.3** 及迭代预算 **4**；公开 CLI **0.166.90** 使用独立 profile 和火山配置。采用明确 `acceptEdits`，发送一次与 VS Code 同内容的写入/读回任务。
+
+初次运行与同 profile 的真实新 IDE 进程重启均完成，驱动两次 exit 0，IDE 退出和进程清理分别确认。实际文件严格为 `CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1\n`；唯一用户输入、匹配 durable receipt、指定 provider/model、write/read 各一次、唯一 success → 同会话 end → drained exit 0 均从原始协议回读。重启前后原始协议摘要一致，恢复不启动 agent、不重放输入。六个 UI 动作、结果文本/row 身份、源码/class 和市场包身份见[独立回读](./ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1/readback.json)。
+
+保留三个成功 usage，输入/输出/缓存读分别合计 **18,600 / 398 / 24,576 tokens**，与 terminal 汇总一致；当前统一价格估算小计 **$0.003059504**，实际 `stream_retry` **0**。terminal 未报告费用，实际账单及未观测失败请求费用保留 unknown，不将费用 unknown 当作零。原始 capture 和全部准备/执行/清理记录均归档。这是 Windows 10 / Node 22.22.2 的公开包诊断，不是正式首次安装样本、真人鼠标导航/听测或性能 SLO；未写 observations。
+
+### 9.6 本轮验证与未关闭条件
+
+最终终态导入相关四文件 **106/106** 通过，包含结束帧顺序、来源、字段和失败保真的反例；VS Code 模式/诊断/runner 三文件 **57/57** 通过。定向 ESLint 无错误或警告，Prettier、宿主 workflow actionlint 和 diff 检查通过。原生 **360** 与这两组测试的范围分别记录，不把测试数量作为真实编码成功率。本轮的新模式前置检查已接入扩展单测与三系统宿主 CI，准确新提交的远端矩阵仍待运行。
+
+所有新增公开安装和原生归档均设置 `-text` 并排除全仓格式化，保留记录摘要对应的字节。最终核对包括源码、原始/脱敏归档摘要、已配置凭据值的精确扫描、冻结 validator 和只读采集器，见[收尾核对](./cli/evidence/gap-2026-10-05/completion-checks-20261006/verification.json)。正式计划指纹仍为 `665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`；采集器原生 exit **2**，task observed=0/missing=36、firstRun observed=0/missing=9、totalCost=null，冻结预算 **$99** 未变。
+
+| 项目                      | 本轮后的准确状态                                                                | 尚需完成                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 公开 CLI / 双 IDE         | 公开配对包的真实火山读写、双 IDE 终态和重启零重放均通过；原始失败和未知费用保留 | 签名/安装后逐字节溯源、真实账单、其他正式 OS/Node 与各个 first-run            |
+| Windows native review     | 执行期限、一次性只读 staged CJS、零 capability 与空 Job 已实测，360/360         | 完整 native36/Vitest review pack、独立人工 setup/check 预审、macOS 原生检查器 |
+| PLATFORM-02 / NET-02      | 最小检查器不扩张原平台准入；Linux authority/恢复合同保留                        | Windows 服务/WFP/durable 身份、macOS 受信任服务、持续撤销与崩溃恢复           |
+| MODEL-03 / PERF-02        | 火山已授权并有真实 usage、工具与事实保真                                        | 官方 OpenAI/Anthropic 新型号端点、完整校准矩阵与账单，不能以火山代替          |
+| VERIFY-02 / VERIFY-IDE-02 | 正式 36+9 保持 `NOT_RUN`，不把 Windows 10/Node 22.22.2 诊断填入冻结目标         | 正式目标环境、独立人工审查和逐样本完整证据；未知费用仍不能结案                |
+| 辅助技术、性能与维护      | 既有工程/宿主语义证据保留                                                       | NVDA/VoiceOver/Orca 真人听测、8h/24h、获批 SLO 与独立维护工时                 |
+| CLOUD-02                  | 现有 self-hosted handoff 继续可用，resume 明确未实现                            | 需求明确后实现跨机器连续恢复，不默认复制云账户/订阅                           |

@@ -1,0 +1,16 @@
+{
+  "archiveDigest": "sha256:d41b78abc65eb3c417e573295da10bc24eccf7a13f79e2e8cb24d4f33cc7f1e0",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-jetbrains-live-lJ02qk\\plugins\\chainlesschain-ide-bridge",
+  "files": [
+    {
+      "relative": "lib\\chainlesschain-ide-bridge-0.4.153-searchableOptions.jar",
+      "sha256": "sha256:43c3babece268cb353f010c88c6a71a3c5676e06428984bcbb52387f772d7c8b",
+      "bytes": 1263
+    },
+    {
+      "relative": "lib\\chainlesschain-ide-bridge-0.4.153.jar",
+      "sha256": "sha256:8526f582f8bd88ba42372d74627852ed7748e8767bab154ace4cf345036a6d58",
+      "bytes": 1608440
+    }
+  ]
+}

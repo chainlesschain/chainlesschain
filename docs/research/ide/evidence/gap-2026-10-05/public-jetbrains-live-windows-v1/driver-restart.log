@@ -1,0 +1,4 @@
+[ui-smoke] IDE frame state before foreground: 0
+[ui-smoke] verified IDE JVM architecture: amd64
+[ui-smoke] verified IDE version: 2024.2.0.0
+[ui-smoke] verified governed automatic-completion contract: false|650|60|240000|30000|800|12|2000|5000|20

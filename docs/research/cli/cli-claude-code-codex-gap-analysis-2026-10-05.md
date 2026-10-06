@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-06 公开包与原生沙箱续做**：公开 npm CLI `0.166.90` 已在隔离 profile 中用火山完成真实写入/读回；补齐 registry lock 身份校验。Windows 原生执行期限与一次性只读 staged CJS 检查器已实现，5 文件 **360/360** 回归通过，旧失败和源码/二进制摘要均归档。公开 VS Code `0.37.135` 与 JetBrains `0.4.153` 的真实工具任务和重启恢复也通过，修复模式启动前校验与合法 `system/end` 被误判的采集器缺陷。范围及费用 unknown 见[验证记录第 9 节](../cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、Windows/macOS durable 后端、官方账号/账单、正式 36+9 与人工/长时验收仍开放，不将诊断写入正式 observations。
+
 > **2026-10-06 本轮续做**：已回读并归档 Linux x64/ARM64 显式进程恢复矩阵（各 31/31）与双 IDE 六宿主矩阵。按用户授权使用火山 `deepseek-v4-flash-ga-260731` 完成两轮共 24 个校准请求、两轮压缩及只读工具轨迹的 6 个请求，合计 30 次实际调用，usage 对应估算费用 **$0.01506344**。修复采样的正文超时、部分失败回执丢失，并记录实际输出超过请求限制；15 项回归通过且接入三系统 CI。原始回执、准确源码范围及剩余任务见[续做记录第 8 节](../cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。正式 36+9、官方新模型矩阵、账单、Windows/macOS durable 后端、真人听测与长时观察仍未完成；以下正文保留原审计时点。
 
 > **2026-10-06 继续实施**：补齐 BRIDGE-02 的显式 Linux `agent process-ownership status/recover` 入口，复用可信 cgroup 身份与持久清理回执；IDE 宿主诊断新增跨平台身份旅程和真实 IntelliJ 冷初始化采集，工程回归与实际宿主结果见[续做验证第 7 节](../cli-ide-gap-validation-2026-10-05.md#7-2026-10-06-剩余工程接线)。后续配对发行已为 CLI `0.166.90` / Open VSX `0.37.135` / JetBrains `0.4.153`，公开版本及标签源码见[最新发行回读](./evidence/documentation-release-status-2026-10-06-final.json)。Windows/macOS durable 后端、正式 36+9、账户账单、真人听测与长时观察仍开放；以下正文保留原审计时点。

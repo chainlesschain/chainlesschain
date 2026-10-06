@@ -1,0 +1,273 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-stage2-archive/v1",
+  "archivedAt": "2026-10-06T09:58:14.424Z",
+  "implementationHeadAtArchive": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+  "scope": "Minimal Windows native evaluator for a fresh private staged CJS input tree and locked check, through the ordinary broker with zero-capability AppContainer and a native Job fence.",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "validation": {
+    "testFiles": 5,
+    "passed": 360,
+    "failed": 0,
+    "skipped": 0,
+    "testStartTime": "2026-10-06T09:51:07.057Z",
+    "casesByFile": [
+      {
+        "file": "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js",
+        "cases": 341,
+        "status": "passed"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/process-execution-broker-sync-contract.test.js",
+        "cases": 9,
+        "status": "passed"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/windows-native-evaluator.test.js",
+        "cases": 5,
+        "status": "passed"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/windows-sandbox-identity-publication.test.js",
+        "cases": 2,
+        "status": "passed"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/windows-sandbox-wall-time.test.js",
+        "cases": 3,
+        "status": "passed"
+      }
+    ]
+  },
+  "observedControls": [
+    "Runtime, check, files and directories bound to immutable issued startup policy; native identity/digest/reparse/link validation",
+    "Read-only staged source/control and separate writable scratch",
+    "Source/check overwrite, source deletion, workspace rename and hardlink attempts rejected",
+    "Changed staged source rejected before target creation (targetPid=0)",
+    "One-use evaluator policy",
+    "Native wall-time watchdog and whole-Job cleanup",
+    "A real detached descendant and parent observed absent after native completion",
+    "Provider environment variables absent in the checked target"
+  ],
+  "networkEvidence": {
+    "observations": [
+      {
+        "host": "127.0.0.1",
+        "code": "ETIMEDOUT",
+        "errno": -4039
+      },
+      {
+        "host": "1.1.1.1",
+        "code": "EACCES",
+        "errno": -4092
+      }
+    ],
+    "capabilityCount": 0,
+    "loopbackExemptionAbsentBeforeResumeAndAfterEmptyJob": true,
+    "sameLoopbackListenerPositiveControlBeforeAndAfter": true,
+    "unexpectedLoopbackConnections": 0,
+    "timeoutAloneAcceptedAsDeny": false,
+    "interpretation": "This host's public connection returned EACCES; loopback returned ETIMEDOUT. Loopback evidence combines the native policy checks, reachable listener before and after, and no extra accepted connections. ETIMEDOUT is not rewritten as an explicit access-denied error."
+  },
+  "exclusions": {
+    "native36ReviewPackCompleted": false,
+    "generalVitestWorkspaceRunnerAssessed": false,
+    "providerAssessed": false,
+    "durableNet02AuthorityAssessed": false,
+    "continuousNetworkRevocationAssessed": false,
+    "liveLoopbackExemptionMutationRaceAssessed": false,
+    "ciReleaseMatrixAssessed": false
+  },
+  "caveats": [
+    "Results are local Windows evidence, not an authoritative release gate or cross-platform certification.",
+    "The zero-capability/token/profile preparation behavior differs between the restricted Codex sandbox account and the real-user run; successful final results do not generalize to the restricted account.",
+    "Historical failure receipts are diagnostic records, not retroactively successful observations; some omit the harness assertion that failed after native completion.",
+    "The token-fixed historical receipt has explicitly unreliable startup source binding because its original producer hashed files after concurrent edits.",
+    "The already-hashed supervisor identity remains pseudonymous; raw account names and user-path prefixes are omitted."
+  ],
+  "redaction": {
+    "method": "Recursively redact only absolute user-profile and repository prefixes in JSON string values, then pretty-print JSON. Raw source and archived byte digests permit explicit distinction; originals remain in local .work.",
+    "rawSensitiveProviderArtifactsRead": false,
+    "credentialPatternScanPassed": true,
+    "presentEnvironmentCredentialValueScanPassed": true,
+    "limitation": "Pattern and available environment-value checks do not constitute an exhaustive secret detector. These inputs are scoped native sandbox diagnostics and test results."
+  },
+  "implementation": [
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "bytes": 10363,
+      "testedWorkingTreeSha256": "db184ba5085d1cc2a4cb30bd4803532869496f7ba38dd080d57ac0cdfd3fc3d2",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "0f11115fc944db4c88f33abd40ed7da518b1fac0",
+      "gitBlobSha256": "db184ba5085d1cc2a4cb30bd4803532869496f7ba38dd080d57ac0cdfd3fc3d2",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/platform-sandbox.js",
+      "bytes": 323487,
+      "testedWorkingTreeSha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "a5a2a4d8e4175de963325c640c9611864a2c9312",
+      "gitBlobSha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/index.js",
+      "bytes": 216534,
+      "testedWorkingTreeSha256": "ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "dc3b00fe87aa8ac2bf6fe1c74486bd0496d7501b",
+      "gitBlobSha256": "ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "bytes": 188955,
+      "testedWorkingTreeSha256": "66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "c9391764432cd697b3f1860a013e5eadd13a28ed",
+      "gitBlobSha256": "66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "bytes": 77312,
+      "testedWorkingTreeSha256": "f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "7cf4193108e0cce6fa466f108b75cad5094a839c",
+      "gitBlobSha256": "f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "bytes": 76800,
+      "testedWorkingTreeSha256": "b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e",
+      "currentWorkingTreeMatchesTestedReceipt": true,
+      "committedAtHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+      "lastChangeCommit": "7e8d61e1c75da59fcb130fd256fb30005de2e180",
+      "gitBlob": "c90e6c8bf771adb17458986d25c5c1855adab448",
+      "gitBlobSha256": "b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e",
+      "note": "Working-tree digest binds the tested bytes; Git blob digest is recorded separately because checkout newline conversion may differ."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "receipt.sanitized.json",
+      "source": ".work/windows-native-evaluator-stage2-verified/receipt.json",
+      "sourceSha256": "d55bda50c36dca0d0b989e0dd0c8581cc24593da856d317fe080a471a25b1bc3",
+      "archivedSha256": "ffb7865a7d9a82f6b55279e0230d200e5137c9b59d6b5e4e19e7a906242fc2eb",
+      "category": "final-native-receipt",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "Only absolute user/workspace path prefixes were redacted; results, OS error codes, policy digests, ephemeral AppContainer SIDs and already-hashed supervisor SID are unchanged."
+    },
+    {
+      "path": "vitest-results.sanitized.json",
+      "source": ".work/windows-native-evaluator-stage2-verified/vitest-results.json",
+      "sourceSha256": "15c79044ad9a5146b7de7479d639d888ac6f296d57e445499c21f90fe4314020",
+      "archivedSha256": "5716ed2c0a31137d0def2eb88ea571449099d54490e3b4dd121a320e2346a835",
+      "category": "final-complete-test-results",
+      "redactions": {
+        "userProfilePrefixes": 0,
+        "workspacePrefixes": 5
+      },
+      "note": "Complete 360-test result object retained; absolute user/workspace prefixes redacted and JSON pretty-printed."
+    },
+    {
+      "path": "failures/windows-native-evaluator-first.sanitized.json",
+      "source": ".work/windows-native-evaluator-first/receipt.json",
+      "sourceSha256": "c6ba0eb91b0db57cf488441bd5c06628564dc4228aad8b36458102c9b9199ef6",
+      "archivedSha256": "3fa6420bea66b4fee18fe23df67ff8c4d37010ffcf3d834dd666555a12f3847e",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "Initial broker rejected readiness before launching the evaluator. The receipt only contains its generic rejection; it does not independently identify the Windows account or API cause. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-real-user-first.sanitized.json",
+      "source": ".work/windows-native-evaluator-real-user-first/receipt.json",
+      "sourceSha256": "52a4b3c05db25450aff2cc9156e2c67caaf1179146e2f8ba0a34f8ec290a9447",
+      "archivedSha256": "5d7f49c5284929a3e0bd4c82e74afef0a8ca7d46bf6b76b928a267370c74b08b",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "Explicit real-user run still failed AppContainer readiness. Subsequent direct helper diagnosis found a disabled SeIncreaseWorkingSetPrivilege; this receipt itself records only readiness failure. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-real-user-token-fixed.sanitized.json",
+      "source": ".work/windows-native-evaluator-real-user-token-fixed/receipt.json",
+      "sourceSha256": "804facf88712a9c8edb1b4cb59eccb238554664a8bf8472ffb78dda62ba03785",
+      "archivedSha256": "9f1073cb7c4498b6b035d7b9d3dec7d022ef3053b4121c96dc203dbfb82c6ea9",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "After privilege filtering was corrected, Node entry realpath tried to inspect the unauthorized C:\\ root and returned EPERM. This run's end-of-run source hashes overlapped later edits and are NOT authoritative launch bindings. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-real-user-loader-fixed.sanitized.json",
+      "source": ".work/windows-native-evaluator-real-user-loader-fixed/receipt.json",
+      "sourceSha256": "3d51eeef73b5a1ba2514641ed9a927ff4c99b398aa2e500e648e221120f3ce16",
+      "archivedSha256": "06126a9027eccf4339c93ab6ad4c56d93c6b5bb47e1104d41beb9ca1ab76e7c2",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 6,
+        "workspacePrefixes": 0
+      },
+      "note": "Read-only and tamper controls succeeded; the original network access-error-only assertion failed and Node anonymous child pipe creation returned spawn EPERM. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-real-user-network-diagnostic.sanitized.json",
+      "source": ".work/windows-native-evaluator-real-user-network-diagnostic/receipt.json",
+      "sourceSha256": "67aca9a1faa0c89753df7f12bca61732a76b4a109406ed5ffeefb16985b38dc8",
+      "archivedSha256": "aacf8082571473ed24ac389618c07c3645cca0def31d58e0552aa10529902cf2",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 3,
+        "workspacePrefixes": 0
+      },
+      "note": "Actual loopback Winsock ETIMEDOUT was retained as a failed access-error-only assertion. Detached child cleanup succeeded using inherited stdio and scratch readiness acknowledgement. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-policy-attested-first.sanitized.json",
+      "source": ".work/windows-native-evaluator-policy-attested-first/receipt.json",
+      "sourceSha256": "baa56cd95fb78f932758e4d0c7d734e617bc22642a02bedf4d9c2d064afc5289",
+      "archivedSha256": "6bd5aa798a9c69b5cf27138a189733261561b1554d15fa3beb892d0943cc87ba",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "Replacing private-stage ACLs initially failed before target creation; the original localized error has already suffered console-encoding loss and is preserved verbatim, not reconstructed. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    },
+    {
+      "path": "failures/windows-native-evaluator-policy-acl-fixed.sanitized.json",
+      "source": ".work/windows-native-evaluator-policy-acl-fixed/receipt.json",
+      "sourceSha256": "92f8463e3e438a4af10062be674e61e62ed2f241f508ca2cd02afdcaea10439b",
+      "archivedSha256": "352136eaf210e967c4f36feb59d5f7a94b4710ecccb596a910796c4bf1da43d1",
+      "category": "historical-diagnostic-only",
+      "redactions": {
+        "userProfilePrefixes": 4,
+        "workspacePrefixes": 0
+      },
+      "note": "Native operations succeeded, but the test's post-run positive-control accept callback raced its client connect callback. This receipt is NOT a complete test pass; it omits the later failed harness assertion. Historical source digest fields are preserved as reported, not certified against the final implementation."
+    }
+  ]
+}

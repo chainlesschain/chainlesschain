@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.public-vscode-reader-failure/v1",
+  "checkedAt": "2026-10-06T10:03:19.485Z",
+  "readerGitHead": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+  "passed": false,
+  "reason": "The original IDE importer fed the valid system/end lifecycle trailer into the strict task-terminal parser",
+  "protocolDigest": "sha256:bb69b37889fa9399caf5a0c82a8cadb06c73b6db09ac475cac39e59d5fb23a40",
+  "originalRawParserResult": {
+    "terminalVerified": false,
+    "observedFallback": false,
+    "usage": {
+      "inputTokens": 18126,
+      "outputTokens": 231,
+      "cacheReadInputTokens": 25600,
+      "cacheCreationInputTokens": 0
+    },
+    "totalCostUsd": null
+  },
+  "rawCaptureModified": false
+}

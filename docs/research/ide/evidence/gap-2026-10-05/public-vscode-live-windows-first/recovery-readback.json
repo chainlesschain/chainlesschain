@@ -1,0 +1,46 @@
+{
+  "schema": "chainlesschain.public-vscode-failure-recovery/v1",
+  "capturedAt": "2026-10-06T09:56:39.334Z",
+  "passed": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "captureFiles": [
+    "launcher-config.json",
+    "ui.ndjson",
+    "vscode-install.json"
+  ],
+  "reason": "Unsupported host permission mode: auto; driver failed at setMode before send",
+  "terminal": "host exited without completing its UI capture",
+  "operatorCollectorFailure": "EEXIST copying identical launcher-config.json; original files preserved",
+  "configByteEqualityVerified": true,
+  "taskSubmitted": false,
+  "cliStarted": false,
+  "modelCalls": 0,
+  "notDeadlineTimeout": true,
+  "logs": [
+    {
+      "source": "launcher.log",
+      "rawDigest": "sha256:4d02dcc9dd3988c2741aebbe4bf46ddae45e87ea84ec0978cc8b84845e57d520",
+      "rawBytes": 47254,
+      "excludedLines": 0,
+      "archive": "recovered-log-0.txt",
+      "rawLogPublished": false
+    },
+    {
+      "source": "userDataDir/logs/20261006T173738/window1/exthost/exthost.log",
+      "rawDigest": "sha256:e26ca710e13ddfba8cfc90c266d9f81b331538d95b733b378978d21eb7abfaf2",
+      "rawBytes": 1152455,
+      "excludedLines": 1,
+      "archive": "recovered-log-1.txt",
+      "rawLogPublished": false
+    },
+    {
+      "source": "userDataDir/logs/20261006T173738/window1/exthost/output_logging_20261006T173742/1-ChainlessChain IDE.log",
+      "rawDigest": "sha256:057e1c25f116f613e07b8e4b46fa71727c287a4dd861344af893dd280de690d1",
+      "rawBytes": 408,
+      "excludedLines": 0,
+      "archive": "recovered-log-2.txt",
+      "rawLogPublished": false
+    }
+  ]
+}

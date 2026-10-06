@@ -1,0 +1,46 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 13576,
+      "parentPid": 25940,
+      "name": "idea64.exe",
+      "created": "639268790811754800"
+    },
+    {
+      "pid": 22736,
+      "parentPid": 13576,
+      "name": "fsnotifier.exe",
+      "created": "639268790832026960"
+    },
+    {
+      "pid": 9572,
+      "parentPid": 22736,
+      "name": "conhost.exe",
+      "created": "639268790832561390"
+    },
+    {
+      "pid": 7572,
+      "parentPid": 13576,
+      "name": "powershell.exe",
+      "created": "639268790980202970"
+    },
+    {
+      "pid": 17700,
+      "parentPid": 7572,
+      "name": "conhost.exe",
+      "created": "639268790980329790"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

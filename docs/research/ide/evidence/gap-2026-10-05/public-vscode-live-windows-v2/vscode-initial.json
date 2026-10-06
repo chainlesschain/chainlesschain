@@ -1,0 +1,116 @@
+{
+  "sessionId": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c",
+  "terminalText": "DONE.",
+  "renderedText": "DONE.",
+  "profileStorage": "c:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\userDataDir\\User\\globalStorage\\chainlesschain-tests.chainlesschain-extension-host-smoke-driver",
+  "recoveryRequired": true,
+  "protocolFile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\captureDir\\371be9b0-603f-4ca7-924f-2d531ecea173.ndjson",
+  "closed": {
+    "files": [
+      {
+        "file": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\captureDir\\371be9b0-603f-4ca7-924f-2d531ecea173.ndjson",
+        "sequence": 22,
+        "exited": true,
+        "failed": false
+      }
+    ],
+    "errors": []
+  },
+  "rendered": {
+    "readyState": "complete",
+    "title": "",
+    "url": "vscode-webview://0q11mdlj7s32i43rj4419paj2q4g784a773cc026l4h4n8l8eosj/index.html?id=95c34ed5-06a2-4547-8a5d-e5118e2ca42e&parentId=1&origin=b86bb830-7c8e-44c0-b6bb-1c44c10af9a9&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+    "text": "Create onboarding-proof.txt i…\n×\nChat 2\n×\n+\n↗\nLatest messages\n/auto\napproval mode requested → auto-accept edits (waiting for CLI confirmation on your next message)\nTurn 1, User message\nCreate onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.\nTurn 1, Assistant response\nwrite_file: onboarding-proof.txt\n⚠ API connection dropped — retrying (attempt 1)\nFile written. Now reading it back to verify:\n\n\nread_file: onboarding-proof.txt\n⚠ [Budget Warning] 1 iterations remaining out of 4. Start wrapping up your work.\nDONE.\nready · 18k→231 tokens (cache read 26k, cache write 0)\n⊟ context 15k / 33k (47%)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+    "inputPresent": true,
+    "inputText": "",
+    "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC Discard saved input",
+    "attachmentChips": [],
+    "tabs": [
+      {
+        "id": "conv-1",
+        "title": "Create onboarding-proof.txt i…",
+        "selected": true
+      },
+      {
+        "id": "conv-2",
+        "title": "Chat 2",
+        "selected": false
+      }
+    ],
+    "savedRows": [
+      {
+        "id": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c:7ac13bb8a59b05a5cfdd640d3f73b7adfe227e930f85e389a29514721a277358:0",
+        "text": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+        "source": {
+          "text": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c:ea465d46794ac541c2cce37230355a3c3e2c485edac49e1637d61dc47f52c990:0",
+        "text": "DONE.",
+        "source": {
+          "text": "DONE.",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "displayedRows": [
+      {
+        "id": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c:7ac13bb8a59b05a5cfdd640d3f73b7adfe227e930f85e389a29514721a277358:0",
+        "text": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+        "source": {
+          "text": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "write_file: onboarding-proof.txt",
+        "source": {
+          "text": "write_file: onboarding-proof.txt",
+          "role": "tool",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "File written. Now reading it back to verify:",
+        "source": {
+          "text": "File written. Now reading it back to verify:\n\n",
+          "role": "assistant",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "read_file: onboarding-proof.txt",
+        "source": {
+          "text": "read_file: onboarding-proof.txt",
+          "role": "tool",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c:ea465d46794ac541c2cce37230355a3c3e2c485edac49e1637d61dc47f52c990:0",
+        "text": "DONE.",
+        "source": {
+          "text": "DONE.",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "sendEnabled": true,
+    "stopEnabled": true,
+    "planVisible": false,
+    "planApproveEnabled": true,
+    "approvalApproveEnabled": false,
+    "attachments": []
+  },
+  "extensionHostPid": 9236,
+  "completedAt": "2026-10-06T09:57:57.264Z"
+}

@@ -149,13 +149,46 @@ export function inspectIdeProtocol(records, { prompt, comparison } = {}) {
       resultRecords[0].event.session_id === sessionId,
     "IDE terminal is missing or ambiguous",
   );
-  const parsed = verifyAgentTerminal(
-    outputs.map((record) => JSON.stringify(record.event)).join("\n"),
-  );
   const terminal = resultRecords[0].event;
+  // Persistent headless streams emit one lifecycle end after stdin closes.
+  // Accept only that exact, same-session one-turn trailer; task output after
+  // the result stays ambiguous. Keep the complete capture intact.
+  const trailing = outputs.slice(outputs.indexOf(resultRecords[0]) + 1);
+  const end = trailing[0]?.event;
+  const lifecycleFrames = outputs.filter(
+    (record) =>
+      record.event.type === "system" && record.event.subtype === "end",
+  );
+  const lifecycleEnded =
+    trailing.length === 1 &&
+    lifecycleFrames.length === 1 &&
+    end.type === "system" &&
+    end.subtype === "end" &&
+    end.session_id === sessionId &&
+    end.turns === 1 &&
+    terminal.turn === 1 &&
+    Object.keys(end).every((key) =>
+      ["type", "subtype", "session_id", "turns", "trace_id", "seq"].includes(
+        key,
+      ),
+    ) &&
+    (end.trace_id === undefined ||
+      (typeof end.trace_id === "string" &&
+        end.trace_id === terminal.trace_id)) &&
+    (end.seq === undefined ||
+      (Number.isSafeInteger(end.seq) &&
+        Number.isSafeInteger(terminal.seq) &&
+        end.seq === terminal.seq + 1));
+  const taskOutputs = lifecycleEnded ? outputs.slice(0, -1) : outputs;
+  const parsed = verifyAgentTerminal(
+    taskOutputs.map((record) => JSON.stringify(record.event)).join("\n"),
+  );
+  if (lifecycleFrames.length > 0 && !lifecycleEnded)
+    parsed.terminalVerified = false;
   // A complete explicit failure is an observation. It never becomes success.
   const knownFailure =
-    outputs.at(-1) === resultRecords[0] &&
+    taskOutputs.at(-1) === resultRecords[0] &&
+    (lifecycleFrames.length === 0 || lifecycleEnded) &&
     terminal.is_error === true &&
     typeof terminal.subtype === "string" &&
     terminal.subtype.length > 0 &&

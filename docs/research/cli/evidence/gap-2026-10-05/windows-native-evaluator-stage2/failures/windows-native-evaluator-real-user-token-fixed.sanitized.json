@@ -1,0 +1,116 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "c4e2647ceb580f7a18a0f00bd0e0387caf9d730168e9c65c78345c6e3233e083"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "ce82a93ffac03570968159eee40e976e704d58f84bc6958dd86d0766231b15fe"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "529f993df4372913d513dca99c022640199edb81178e2c4a0c9b4e84e0563464"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "34f20c2be618170b2ef30c471614f0d0cb74f10fa7fd7981c0872dd3543cfcfb"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "39a210a932a1129023d4ec50b27ca753c08d4f39bc996188b5790a6fb5ff54d1"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "readonly-check",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bP5VIh",
+      "manifestDigest": "8449613f4d46b3bbdea76848c0ca878bb9272d17ff73dcd9533be9c04a9e78e3",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "node:fs:2749\r\n    const out = binding.lstat(base, false, undefined, true /* throwIfNoEntry */);\r\n                        ^\r\n\r\nError: EPERM: operation not permitted, lstat 'C:\\'\r\n    at Object.realpathSync (node:fs:2749:25)\r\n    at toRealPath (node:internal/modules/helpers:61:13)\r\n    at Function._findPath (node:internal/modules/cjs/loader:746:22)\r\n    at resolveMainPath (node:internal/modules/run_main:39:23)\r\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:163:20)\r\n    at node:internal/main/run_main_module:36:49 {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'lstat',\r\n  path: 'C:\\\\'\r\n}\r\n\r\nNode.js v22.22.2\r\n",
+      "settlement": {
+        "manifestDigest": "8449613f4d46b3bbdea76848c0ca878bb9272d17ff73dcd9533be9c04a9e78e3",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 24748,
+        "appContainerSid": "S-1-15-2-2753445048-4005675184-1474608891-1717209793-866116186-3492425528-150955497",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "tampered-source",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-HdKqJZ",
+      "manifestDigest": "5f19426993ec35cadd369527c371793b21963c05089cfd56afa37c7220e38ff8",
+      "status": 125,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "CC_WINDOWS_SANDBOX_ERROR: Native evaluator file identity or link count changed\r\n",
+      "settlement": {
+        "manifestDigest": "5f19426993ec35cadd369527c371793b21963c05089cfd56afa37c7220e38ff8",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 0,
+        "appContainerSid": "S-1-15-2-887387796-3331333801-3110389056-3830905487-2597953176-3177179217-62726020",
+        "wallTimeMs": 10000,
+        "targetExitCode": 125,
+        "executionFailed": true
+      }
+    },
+    {
+      "kind": "network-deny",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-ZiXpb3",
+      "manifestDigest": "1f1d652c4b454c441f4c30b123342b627ea949a7484cacb0da8179633ba2ec64",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "node:fs:2749\r\n    const out = binding.lstat(base, false, undefined, true /* throwIfNoEntry */);\r\n                        ^\r\n\r\nError: EPERM: operation not permitted, lstat 'C:\\'\r\n    at Object.realpathSync (node:fs:2749:25)\r\n    at toRealPath (node:internal/modules/helpers:61:13)\r\n    at Function._findPath (node:internal/modules/cjs/loader:746:22)\r\n    at resolveMainPath (node:internal/modules/run_main:39:23)\r\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:163:20)\r\n    at node:internal/main/run_main_module:36:49 {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'lstat',\r\n  path: 'C:\\\\'\r\n}\r\n\r\nNode.js v22.22.2\r\n",
+      "settlement": {
+        "manifestDigest": "1f1d652c4b454c441f4c30b123342b627ea949a7484cacb0da8179633ba2ec64",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 9104,
+        "appContainerSid": "S-1-15-2-2202337032-1689730548-3817806359-3257711550-3666133671-1800500836-352811124",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-LPZKsE",
+      "manifestDigest": "0217e79018c19314a3380060e0b9a2ac827f46abaf44691cd1d97f5539e13603",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "node:fs:2749\r\n    const out = binding.lstat(base, false, undefined, true /* throwIfNoEntry */);\r\n                        ^\r\n\r\nError: EPERM: operation not permitted, lstat 'C:\\'\r\n    at Object.realpathSync (node:fs:2749:25)\r\n    at toRealPath (node:internal/modules/helpers:61:13)\r\n    at Function._findPath (node:internal/modules/cjs/loader:746:22)\r\n    at resolveMainPath (node:internal/modules/run_main:39:23)\r\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:163:20)\r\n    at node:internal/main/run_main_module:36:49 {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'lstat',\r\n  path: 'C:\\\\'\r\n}\r\n\r\nNode.js v22.22.2\r\n",
+      "settlement": {
+        "manifestDigest": "0217e79018c19314a3380060e0b9a2ac827f46abaf44691cd1d97f5539e13603",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 19576,
+        "appContainerSid": "S-1-15-2-3316262578-4219036735-2273547405-1207142343-1087019536-1324704341-3599231439",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "executionFailed": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {loadConfig} from '../packages/cli/src/lib/config-manager.js';
+import {applyConfigLlmDefaults} from '../packages/cli/src/lib/llm-config-defaults.js';
+import {verifyDiagnosticCapture} from '../scripts/lib/verify01-diagnostic-evidence.mjs';
+import {inspectIdeProtocol} from '../packages/cli/src/lib/eval/verify01-host-evidence.js';
+import {estimateCost} from '../packages/cli/src/lib/llm-pricing.js';
+const archive=path.resolve('docs/research/ide/evidence/gap-2026-10-05/public-jetbrains-live-windows-v1'),capture=path.join(archive,'capture');
+const read=n=>JSON.parse(fs.readFileSync(path.join(archive,n),'utf8'));
+const hash=b=>'sha256:'+createHash('sha256').update(b).digest('hex');
+const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);
+const llm={provider:'volcengine'};applyConfigLlmDefaults(llm,loadConfig().llm||{});llm.apiKey||=process.env.VOLCENGINE_API_KEY;
+if(!llm.apiKey)throw Error('Missing authorized secret for negative exact-byte scan');
+const files=walk(archive);for(const file of files)assert.equal(fs.readFileSync(file).includes(Buffer.from(llm.apiKey)),false,'Credential bytes in '+path.relative(archive,file));
+const result=read('diagnostic-result.json'),scope=read('scope.json');
+const out={schema:'chainlesschain.public-jetbrains-independent-readback/v1',checkedAt:new Date().toISOString(),formalSample:false,observationsCreated:false,provider:'volcengine',model:'deepseek-v4-flash-ga-260731',sourceCommitVerified:false,livePassed:false,credentialExactScan:{files:files.length,hits:0},billedCost:'unknown',diagnosticPassed:result.passed};
+try{
+ assert.equal(result.passed,true);
+ const checked=verifyDiagnosticCapture(capture,'jetbrains');
+ const records=JSON.parse(fs.readFileSync(path.join(capture,'protocol.json'),'utf8'));
+ const outputs=records.filter(r=>r.direction==='output').map(r=>r.event),init=outputs.filter(e=>e.type==='system'&&e.subtype==='init'),terminals=outputs.filter(e=>e.type==='result'),usage=outputs.filter(e=>e.type==='token_usage');
+ const inspection=inspectIdeProtocol(records,{prompt:fs.readFileSync(path.join(archive,'prompt.txt'),'utf8'),comparison:{provider:out.provider,model:out.model,permissionMode:'acceptEdits'}});assert.equal(inspection.executionSucceeded,true);assert.equal(inspection.observedFallback,false);
+ assert.equal(init.length,1);assert.equal(terminals.length,1);assert.notEqual(terminals[0].is_error,true);assert.equal(init[0].permission_mode,'acceptEdits');assert.equal(init[0].provider,'volcengine');assert.equal(init[0].model,'deepseek-v4-flash-ga-260731');
+ const first=read('capture/host-identity-initial.json'),second=read('capture/host-identity-restart.json');
+ assert.equal(first.pluginVersion,'0.4.153');assert.equal(second.pluginVersion,'0.4.153');assert.equal(first.pluginPath,second.pluginPath);assert.equal(first.configPath,second.configPath);assert.notEqual(first.processId,second.processId);assert.equal(first.iterationBudget,'4');assert.equal(second.iterationBudget,'4');
+ const initial=checked.initial,restart=checked.restart;
+ assert.notEqual(initial.processId,restart.processId);assert.equal(initial.profile,restart.profile);assert.equal(initial.sessionId,restart.sessionId);assert.equal(restart.childRunning,false);
+ const row=restart.savedRows.find(r=>r.id===initial.savedRowId);assert.ok(row);assert.equal(row.bodyText,initial.result);assert.equal(row.bodyText,initial.renderedText);assert.equal(row.truncated,false);
+ for(const [name,digest]of Object.entries(initial.rawProtocolDigests))assert.equal(hash(fs.readFileSync(path.join(capture,name))),'sha256:'+digest);
+ assert.equal(fs.readFileSync(path.join(archive,'onboarding-proof.txt'),'utf8'),'CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1\n');
+ for(const phase of ['initial','restart'])assert.equal(read('ide-'+phase+'.log.cleanup.json').confirmed,true);
+ const manifest=read('driver-build-manifest.json');assert.equal(manifest.result.status,0);assert.equal(manifest.result.exceptionOutput,false);
+ for(const source of manifest.sources)assert.equal(hash(fs.readFileSync(path.join(archive,'driver-source',path.basename(source.path)))),source.sha256);
+ for(const cls of manifest.classes)assert.equal(hash(fs.readFileSync(path.join(archive,'driver-classes',path.relative(path.join(manifest.output,'classes'),cls.path)))),cls.sha256);
+ const toolNames=outputs.filter(e=>e.type==='tool_use').map(e=>e.tool);assert.deepEqual(toolNames,['write_file','read_file']);
+ const costs=usage.map(({provider,model,usage:u})=>{assert.equal(provider,out.provider);assert.equal(model,out.model);return estimateCost({provider,model,inputTokens:u.input_tokens,outputTokens:u.output_tokens,cacheReadTokens:u.cache_read_input_tokens||0,cacheCreationTokens:u.cache_creation_input_tokens||0});});assert.ok(costs.every(c=>c.matched));
+ const aggregate={};for(const key of ['input_tokens','output_tokens','cache_read_input_tokens','cache_creation_input_tokens']){aggregate[key]=usage.reduce((sum,e)=>sum+(e.usage[key]||0),0);assert.equal(aggregate[key],terminals[0].usage[key]||0);}
+ Object.assign(out,{livePassed:true,protocolInspection:inspection,rawRecordCount:records.length,inputCount:records.filter(r=>r.direction==='input').length,outputCount:outputs.length,uiActionCount:checked.uiActions,uiActions:read('capture/ui.json').map(e=>e.action),rawGenerationCount:new Set(records.map(r=>r.generation)).size,sessionId:init[0].session_id,terminal:terminals[0],usageRecords:usage,knownModelUsageCount:usage.length,aggregateUsage:aggregate,usageMatchesTerminal:true,knownEstimatedCostUsd:costs.reduce((sum,c)=>sum+c.totalCost,0),perRequestEstimates:costs,pricingSource:{path:'packages/cli/src/lib/llm-pricing.js',sha256:hash(fs.readFileSync('packages/cli/src/lib/llm-pricing.js'))},reportedTerminalCostUsd:inspection.reportedTerminalCostUsd??null,failedRequestCostUsd:null,totalDiagnosticCostUsd:null,invoiceVerified:false,streamRetryCount:outputs.filter(e=>e.type==='stream_retry').length,toolNames,sameProfileRestart:true,newIdeProcess:true,noInputOnRestart:true,artifactExact:true,cleanupConfirmed:true,driverSourceClassBound:true,sourceCount:manifest.sources.length,classCount:manifest.classes.length,notes:['Known usage cost is a repository-price estimate, not a total bill.','No observed retries does not independently establish absence of other billed provider requests.','Public Marketplace bytes and installed plugin identity are verified; source commit and signatures are not attested.','Windows 10 / Node22.22.2 diagnostic is separate from frozen formal Windows11 / Node22.12.0 samples.']});
+}catch(error){out.error=String(error.stack||error);}
+out.artifacts=files.map(p=>({path:path.relative(archive,p).replaceAll('\\','/'),sha256:hash(fs.readFileSync(p)),bytes:fs.statSync(p).size}));
+fs.copyFileSync(new URL(import.meta.url),path.join(archive,'readback-script.mjs'),fs.constants.COPYFILE_EXCL);
+fs.writeFileSync(path.join(archive,'readback.json'),JSON.stringify(out,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({livePassed:out.livePassed,rawRecordCount:out.rawRecordCount,inputCount:out.inputCount,uiActionCount:out.uiActionCount,error:out.error,archive}));if(!out.livePassed)process.exitCode=1;

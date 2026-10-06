@@ -1,0 +1,5 @@
+[2026-10-06T09:37:43.478Z] [InlineChat] initialized (MVP stable)
+[2026-10-06T09:37:43.480Z] Inline chat decorator initialized (CodeBuddy/Cursor-style quick actions)
+[2026-10-06T09:37:46.771Z] CC App Server pilot ready (protocol 1)
+[2026-10-06T09:37:47.964Z] bridge up on 127.0.0.1:52041 as MCP server "ide" (18 tools)
+[2026-10-06T09:37:48.323Z] host DOM relay driver failed: Unsupported host permission mode

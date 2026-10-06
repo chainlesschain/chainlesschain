@@ -1,0 +1,40 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:22:51.702965700Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:22:52.614425200Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:24:15.024995500Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:24:21.064742100Z",
+    "resultDigest": "sha256:26ba608fa18d91df95d3723b5d96930b1a2b9f25383f630c9a8b80099de7e955"
+  },
+  {
+    "action": "reload",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:24:52.683289700Z"
+  },
+  {
+    "action": "restored-result",
+    "sampleId": "first-run-public-windows-jetbrains",
+    "sessionId": "panel-1791282170930-40097c",
+    "at": "2026-10-06T10:24:56.308389400Z",
+    "resultDigest": "sha256:26ba608fa18d91df95d3723b5d96930b1a2b9f25383f630c9a8b80099de7e955"
+  }
+]

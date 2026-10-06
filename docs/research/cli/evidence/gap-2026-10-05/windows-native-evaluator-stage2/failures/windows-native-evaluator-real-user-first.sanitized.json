@@ -1,0 +1,60 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "c84bfc9d98e68102708a7328e05f16375056c431147418da1c3ae546e0ffacdd"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "ce82a93ffac03570968159eee40e976e704d58f84bc6958dd86d0766231b15fe"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "8898122cbeb64504deabac4d5928f1c43e34fda99a39711277a74b19af920177"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "5716c701b51ad36521aced241b58eb0f344a67423b910ae6803ac1c4d3eda2cb"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "0154ad9d77e3165f344683d4971a1a78360ad601a275cf4a53ff7f0e21b70c58"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "readonly-check",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-tqqffF",
+      "manifestDigest": "086672a3cbd04a10d8fae978b0db3b28e5aecc124b85ee660a11b7eb3d65a17f",
+      "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_failed"
+    },
+    {
+      "kind": "tampered-source",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-lIdOSM",
+      "manifestDigest": "d6528292ff5083737ff360e52403bbc9e0bc632dd4a8e0e36b47096c251409db",
+      "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_failed"
+    },
+    {
+      "kind": "network-deny",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7JaGZS",
+      "manifestDigest": "0ed827ac70528b28be72d50c115a81575cc3de0b71fc0f19bebdd7eaed936db2",
+      "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_failed"
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-W9XwGa",
+      "manifestDigest": "d696ca59cf17e467705c4d548204c948aac1ea264bdc612f291dd2bcd2d50c11",
+      "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_failed"
+    }
+  ]
+}

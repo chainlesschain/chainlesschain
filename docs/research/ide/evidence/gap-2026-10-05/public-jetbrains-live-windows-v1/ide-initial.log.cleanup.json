@@ -1,0 +1,76 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 20756,
+      "parentPid": 25940,
+      "name": "idea64.exe",
+      "created": "639268789552191710"
+    },
+    {
+      "pid": 17944,
+      "parentPid": 20756,
+      "name": "fsnotifier.exe",
+      "created": "639268789573337580"
+    },
+    {
+      "pid": 18484,
+      "parentPid": 17944,
+      "name": "conhost.exe",
+      "created": "639268789574113420"
+    },
+    {
+      "pid": 11580,
+      "parentPid": 20756,
+      "name": "wsl.exe",
+      "created": "639268789632842350"
+    },
+    {
+      "pid": 6592,
+      "parentPid": 11580,
+      "name": "conhost.exe",
+      "created": "639268789633161110"
+    },
+    {
+      "pid": 14148,
+      "parentPid": 11580,
+      "name": "wsl.exe",
+      "created": "639268789634619740"
+    },
+    {
+      "pid": 17780,
+      "parentPid": 14148,
+      "name": "init",
+      "created": "639268789637760670"
+    },
+    {
+      "pid": 21496,
+      "parentPid": 17780,
+      "name": "init",
+      "created": "639268789642088250"
+    },
+    {
+      "pid": 17696,
+      "parentPid": 14148,
+      "name": "wslhost.exe",
+      "created": "639268789643365350"
+    },
+    {
+      "pid": 19704,
+      "parentPid": 17696,
+      "name": "conhost.exe",
+      "created": "639268789644253590"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

@@ -1,0 +1,1 @@
+Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.

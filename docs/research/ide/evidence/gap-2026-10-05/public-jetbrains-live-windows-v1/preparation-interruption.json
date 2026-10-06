@@ -1,0 +1,16 @@
+{
+  "schema": "chainlesschain.operator-preparation-interruption/v1",
+  "action": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .work/prepare-public-jetbrains-driver.ps1",
+  "requestedCommand": "gradlew.bat compileUiTestJava --offline --no-daemon --no-configuration-cache --console=plain",
+  "waitSecondsApproximately": 493,
+  "toolResult": "aborted by user",
+  "interruptedBy": "root agent after pending approval/tool wait",
+  "stdoutObserved": false,
+  "sessionIdObserved": false,
+  "compileSuccessClaimed": false,
+  "liveRootCreated": false,
+  "guiStarted": false,
+  "modelInputCount": 0,
+  "automaticReviewRejectionReasonReceived": false,
+  "subsequentPreparation": "Direct javac current-source compilation, recorded separately"
+}

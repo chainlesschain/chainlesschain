@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-06T09:56:40.946Z",
+  "finishedAt": "2026-10-06T09:56:44.573Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "✔ Set llm.provider\n",
+  "stderr": ""
+}

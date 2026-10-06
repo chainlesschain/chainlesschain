@@ -70,6 +70,12 @@ function validateConfig(config) {
       `${key} is required`,
     );
   assert.ok(
+    ["default", "acceptEdits", "bypassPermissions"].includes(
+      config.permissionMode,
+    ),
+    "permissionMode must be default, acceptEdits, or bypassPermissions; CLI aliases are not supported by the IDE panel",
+  );
+  assert.ok(
     Number.isSafeInteger(config.deadline) &&
       config.deadline > Date.now() &&
       config.deadline - Date.now() <= 1200000,

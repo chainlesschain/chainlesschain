@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-06 公开 IDE 实测续做**：市场 VS Code `0.37.135` / JetBrains `0.4.153` 配对公开 npm CLI `0.166.90`，在真实 VS Code `1.132.0` / IntelliJ `2024.2`、隔离 profile 和火山账号中完成写入/读回、tab 切换、终态显示及重启恢复；唯一输入和 durable receipt、自然 drained exit 0、零恢复重放均经原始协议核验。保留首轮不支持 `auto` 的失败，新增模式启动前校验；修复采集器误判合法 `system/end`，未知重试费用保留 null。源码及费用边界见[验证记录第 9 节](../cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。这是 Windows 10 / Node 22.22.2 诊断；正式 36+9、双平台完整 review、账单、真人听测与长时观察仍开放。
+
 > **2026-10-06 本轮续做**：已归档 `7694e16564` 的双 IDE 六宿主成功矩阵，包含 Linux/Windows/macOS 实际 IntelliJ 八阶段身份与三场冷初始化旅程；原始协议/UI、退出确认及源码摘要已独立回读。后续 `22236fcb09` 的永不 init/提前退出替换及菜单修复仍以其本地证据为准，不借用旧矩阵。用户授权火山真实采样后，两轮生产压缩与只读工具轨迹通过；正式 provider/首次安装 36+9、官方新模型、真人听测和长时性能验收仍未关闭。详见[续做记录第 8 节](../cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。
 
 > **2026-10-06 继续实施**：JetBrains 身份诊断解除 Windows-only 限制，隔离 PATH 仅作用于实际 IDE，三系统 CI 增加同进程八阶段身份旅程；新增真实 30 秒 init、生产 120 秒超时、迟到 init、Stop 与显式重试采集，并以原始子进程记录独立核对零自动补发。最新工程回归与实际宿主结果见[续做验证第 7 节](../cli-ide-gap-validation-2026-10-05.md#7-2026-10-06-剩余工程接线)。CLI `0.166.90` / Open VSX `0.37.135` / JetBrains `0.4.153` 已有[公开回读](../cli/evidence/documentation-release-status-2026-10-06-final.json)；正式 provider/首次安装、真人听测、8h/24h 与获批 SLO 仍独立验收，以下正文保留原审计时点。

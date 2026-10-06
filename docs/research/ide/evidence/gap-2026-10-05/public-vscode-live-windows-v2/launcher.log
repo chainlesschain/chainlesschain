@@ -1,0 +1,1081 @@
+- Resolving version...
+✔ Validated version: 1.132.0
+✔ Found existing install in C:\code\chainlesschain\packages\vscode-extension\.vscode-test\vscode-win32-x64-archive-1.132.0
+- Resolving version...
+✔ Validated version: 1.132.0
+✔ Found existing install in C:\code\chainlesschain\packages\vscode-extension\.vscode-test\vscode-win32-x64-archive-1.132.0
+
+Warning: 'disable-background-timer-throttling' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-backgrounding-occluded-windows' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-renderer-backgrounding' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-extension-update-checks' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'cached-data' is not in the list of known options, but still passed to Electron/Chromium.
+[main 2026-10-06T09:56:53.745Z] PolicyConfiguration#initialize
+[main 2026-10-06T09:56:53.747Z] PolicyConfiguration#updatePolicyDefinitions [
+  'update.mode',
+  'update.channel',
+  'update.enableWindowsBackgroundUpdates',
+  'update.showReleaseNotes',
+  'update.showPostInstallInfo',
+  'update.titleBar',
+  'http.useLocalProxyConfiguration',
+  'http.electronFetch',
+  'http.proxy',
+  'http.proxyStrictSSL',
+  'http.proxyKerberosServicePrincipal',
+  'http.noProxy',
+  'http.proxyAuthorization',
+  'http.proxySupport',
+  'http.systemCertificates',
+  'http.systemCertificatesNode',
+  'http.experimental.systemCertificatesV2',
+  'http.fetchAdditionalSupport',
+  'http.webSocketAdditionalSupport',
+  'http.experimental.networkInterfaceCheckInterval',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'telemetry.enableTelemetry',
+  'extensions.allowed',
+  'chat.agentHost.enabled',
+  'chat.agents.copilotCli.hideExtensionHost',
+  'chat.editor.preferCopilotHarness',
+  'chat.defaultToCopilotHarness',
+  'chat.editor.localAgent.enabled',
+  'chat.editor.copilotCli.hideExtensionHost',
+  'chat.agentHost.systemProxy.enabled',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.byokModels.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile',
+  'chat.agentHost.otel.dbSpanExporter.enabled'
+]
+[main 2026-10-06T09:56:53.748Z] NativePolicyService#_updatePolicyDefinitions - Found 11 policy definitions
+[main 2026-10-06T09:56:53.786Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:56:53.791Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:56:53.792Z] PolicyConfiguration#update [
+  'update.mode',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'extensions.allowed',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile'
+]
+[main 2026-10-06T09:56:53.792Z] PolicyConfiguration#updatePolicyDefinitions [
+  'chat.agentHost.copilotAgent.multiRootEnabled',
+  'chat.agentHost.claudeAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.sdkRoot',
+  'chat.agentHost.codexAgent.codexHome',
+  'chat.agentHost.codexAgent.binaryArgs',
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[main 2026-10-06T09:56:53.792Z] NativePolicyService#_updatePolicyDefinitions - Found 15 policy definitions
+[main 2026-10-06T09:56:53.797Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:56:53.798Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:56:53.801Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:56:53.801Z] PolicyConfiguration#update [
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[main 2026-10-06T09:56:53.818Z] Starting VS Code
+[main 2026-10-06T09:56:53.818Z] from: c:\code\chainlesschain\packages\vscode-extension\.vscode-test\vscode-win32-x64-archive-1.132.0\df53daabb1\resources\app
+[main 2026-10-06T09:56:53.818Z] args: {
+  _: [
+    'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\workspace'
+  ],
+  diff: false,
+  merge: false,
+  add: false,
+  remove: false,
+  goto: false,
+  'new-window': false,
+  'reuse-window': false,
+  agents: false,
+  wait: false,
+  'user-data-dir': 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\userDataDir',
+  help: false,
+  'extensions-dir': 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\extensionsDir',
+  'list-extensions': false,
+  'show-versions': false,
+  'pre-release': false,
+  'update-extensions': false,
+  version: false,
+  verbose: true,
+  status: false,
+  'prof-startup': false,
+  'no-cached-data': false,
+  'prof-v8-extensions': false,
+  'disable-extensions': false,
+  'disable-lcd-text': false,
+  'disable-gpu': false,
+  'disable-chromium-sandbox': false,
+  sandbox: false,
+  telemetry: false,
+  extensionDevelopmentPath: [
+    'C:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver'
+  ],
+  debugRenderer: false,
+  'enable-smoke-test-driver': false,
+  'skip-sessions-welcome': false,
+  logExtensionHostCommunication: false,
+  'skip-release-notes': true,
+  'skip-welcome': true,
+  'disable-telemetry': true,
+  'disable-updates': true,
+  'share-secrets-with-agents-app': false,
+  transient: false,
+  'use-inmemory-secretstorage': true,
+  'disable-workspace-trust': true,
+  'disable-crash-reporter': true,
+  'skip-add-to-recently-opened': false,
+  'open-url': false,
+  'file-write': false,
+  'file-chmod': false,
+  force: false,
+  'do-not-sync': false,
+  'do-not-include-pack-dependencies': false,
+  trace: false,
+  'trace-memory-infra': false,
+  'preserve-env': false,
+  'force-user-env': false,
+  'force-disable-user-env': false,
+  'open-devtools': false,
+  'disable-gpu-sandbox': true,
+  '__enable-file-policy': false,
+  'enable-coi': false,
+  'enable-rdp-display-tracking': false,
+  'disable-layout-restore': false,
+  'disable-experiments': false,
+  'no-proxy-server': false,
+  'no-sandbox': false,
+  nolazy: false,
+  'force-renderer-accessibility': false,
+  'ignore-certificate-errors': false,
+  'allow-insecure-localhost': false,
+  'disable-dev-shm-usage': false,
+  'profile-temp': false,
+  logsPath: 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\userDataDir\\logs\\20261006T175653'
+}
+[main 2026-10-06T09:56:53.818Z] Resolving machine identifier...
+[main 2026-10-06T09:56:53.819Z] Resolving SQM identifier...
+[main 2026-10-06T09:56:53.825Z] Resolving devDevice identifier...
+[main 2026-10-06T09:56:53.909Z] Resolved machine identifier: 823ff009e4b91222bc213a5a893c86c12ba2cfa546bc8f73f184f6d8ab877c21
+[main 2026-10-06T09:56:53.909Z] Resolved SQM identifier: {31224306-E6BA-44B0-99D5-CF4738A46400}
+[main 2026-10-06T09:56:53.909Z] Resolved devDevice identifier: a3e5f61c-84c3-4bbb-8ebc-0e07bb04bf07
+[main 2026-10-06T09:56:53.909Z] Main->SharedProcess#connect
+[main 2026-10-06T09:56:53.911Z] PolicyConfiguration#updatePolicyDefinitions [
+  'terminal.integrated.automationProfile.linux',
+  'terminal.integrated.automationProfile.osx',
+  'terminal.integrated.automationProfile.windows',
+  'terminal.integrated.agentHostProfile.linux',
+  'terminal.integrated.agentHostProfile.osx',
+  'terminal.integrated.agentHostProfile.windows',
+  'terminal.integrated.profiles.windows',
+  'terminal.integrated.profiles.osx',
+  'terminal.integrated.profiles.linux',
+  'terminal.integrated.useWslProfiles',
+  'terminal.integrated.inheritEnv',
+  'terminal.integrated.persistentSessionScrollback',
+  'terminal.integrated.showLinkHover',
+  'terminal.integrated.ignoreProcessNames'
+]
+[main 2026-10-06T09:56:53.911Z] PolicyConfiguration#updatePolicyDefinitions [
+  'terminal.integrated.defaultProfile.linux',
+  'terminal.integrated.defaultProfile.osx',
+  'terminal.integrated.defaultProfile.windows'
+]
+[main 2026-10-06T09:56:53.912Z] PolicyConfiguration#update []
+[main 2026-10-06T09:56:53.912Z] PolicyConfiguration#update []
+[main 2026-10-06T09:56:53.916Z] StorageMainService: creating application storage
+[main 2026-10-06T09:56:53.917Z] StorageMainService: creating application shared storage
+[main 2026-10-06T09:56:53.933Z] ElectronURLListener: waiting for window to be ready to handle URLs...
+[main 2026-10-06T09:56:53.933Z] lifecycle (main): phase changed (value: 2)
+[main 2026-10-06T09:56:53.934Z] windowsManager#open
+[main 2026-10-06T09:56:53.936Z] windowsManager#open pathsToOpen [
+  {
+    workspace: { id: '5ef9c64272b5d8143bdd3f1dab5f45dc', uri: [qo] },
+    type: 2,
+    exists: true
+  }
+]
+[main 2026-10-06T09:56:53.937Z] windowsManager#doOpenFolderOrWorkspace {
+  folderOrWorkspace: {
+    workspace: { id: '5ef9c64272b5d8143bdd3f1dab5f45dc', uri: [qo] },
+    type: 2,
+    exists: true
+  },
+  filesToOpen: undefined
+}
+[main 2026-10-06T09:56:53.942Z] IPC Object URL: Registered new channel vscode:738c9164-2caa-4fb3-aa78-b64533b8ab0f.
+[main 2026-10-06T09:56:53.942Z] window#validateWindowState: validating window state on 1 display(s) {
+  width: 1440,
+  height: 900,
+  mode: 1,
+  x: 240,
+  y: 150,
+  hasDefaultState: true
+}
+[main 2026-10-06T09:56:53.942Z] window#validateWindowState: single monitor working area { x: 0, y: 0, width: 1920, height: 1160 }
+[main 2026-10-06T09:56:53.943Z] window#ctor: using window state {
+  width: 1440,
+  height: 900,
+  mode: 1,
+  x: 240,
+  y: 150,
+  hasDefaultState: true
+}
+[main 2026-10-06T09:56:53.989Z] window#load: attempt to load window (id: 1)
+[main 2026-10-06T09:56:54.012Z] StorageMainService: creating workspace storage (5ef9c64272b5d8143bdd3f1dab5f45dc)
+[main 2026-10-06T09:56:54.013Z] windowsManager#open used window count 1 (workspacesToOpen: 0, foldersToOpen: 1, emptyToRestore: 0, maybeOpenEmptyWindow: false)
+[main 2026-10-06T09:56:54.017Z] lifecycle (main): phase changed (value: 3)
+[main 2026-10-06T09:56:54.021Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:56:54.061Z] [shared storage] Creating shared storage database at 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\profileHome\.vscode-shared\sharedStorage\state.vscdb' (wasCreated: true)
+[main 2026-10-06T09:56:54.067Z] [shared storage] Initializing fallback application storage (path: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage\state.vscdb)
+[main 2026-10-06T09:56:54.069Z] [shared storage] Fallback application storage initialized with 3 items
+[main 2026-10-06T09:56:54.070Z] update#setState disabled
+[main 2026-10-06T09:56:54.070Z] update#ctor - updates are disabled by the environment
+[main 2026-10-06T09:56:54.071Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User'
+[main 2026-10-06T09:56:54.074Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:56:54.093Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:56:54.095Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:54.095Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.100Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:54.100Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.101Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:54.101Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.171Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.172Z] User data changed
+[main 2026-10-06T09:56:54.177Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:54.177Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.178Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:54.179Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.259Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:54.259Z] User data changed
+[main 2026-10-06T09:56:55.342Z] NativePolicyService#_updatePolicyDefinitions - Found 38 policy definitions
+[main 2026-10-06T09:56:55.346Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:56:55.347Z] NativeManagedSettingsService#updateWatcher - Found 9 managed-settings definitions
+[main 2026-10-06T09:56:55.352Z] Creating native managed-settings watcher for productName GitHubCopilot
+[main 2026-10-06T09:56:55.353Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:56:55.354Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:56:55.354Z] PolicyConfiguration#update []
+[main 2026-10-06T09:56:55.356Z] NativeManagedSettingsService#_onDidManagedSettingsChange - Updated managed-settings values: {}
+[main 2026-10-06T09:56:55.359Z] NativePolicyService#_updatePolicyDefinitions - Found 48 policy definitions
+[main 2026-10-06T09:56:55.363Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:56:55.364Z] NativeManagedSettingsService#updateWatcher - Found 18 managed-settings definitions
+[main 2026-10-06T09:56:55.368Z] Creating native managed-settings watcher for productName GitHubCopilot
+[main 2026-10-06T09:56:55.369Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:56:55.369Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:56:55.369Z] PolicyConfiguration#update []
+[main 2026-10-06T09:56:55.370Z] NativeManagedSettingsService#_onDidManagedSettingsChange - Updated managed-settings values: {}
+[main 2026-10-06T09:56:55.505Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:56:55.506Z] [UtilityProcess type: agentHost, pid: <none>]: creating new...
+[main 2026-10-06T09:56:55.508Z] AgentHostProcessManager: agent host started
+[main 2026-10-06T09:56:55.535Z] [UtilityProcess type: agentHost, pid: 25912]: successfully created
+[main 2026-10-06T09:56:55.913Z] window#load: window reported ready (id: 1)
+[main 2026-10-06T09:56:55.913Z] ElectronURLListener#flush(): flushing URLs
+[main 2026-10-06T09:56:56.006Z] [SharedProcess] onWindowConnection for: vscode:createSharedProcessChannelConnectionResult
+[main 2026-10-06T09:56:56.007Z] [UtilityProcess type: shared-process, pid: <none>]: creating new...
+[main 2026-10-06T09:56:56.008Z] [UtilityProcess type: shared-process, pid: <none>]: payload sent via postMessage()
+[main 2026-10-06T09:56:56.008Z] [UtilityProcessWorker]: createWorker(window: 1, moduleId: vs/platform/files/node/watcher/watcherMain)
+[main 2026-10-06T09:56:56.010Z] [UtilityProcess id: 1, type: fileWatcher, pid: <none>]: creating new...
+[main 2026-10-06T09:56:56.032Z] [UtilityProcess type: shared-process, pid: 6760]: successfully created
+[main 2026-10-06T09:56:56.061Z] [UtilityProcess id: 1, type: fileWatcher, pid: 16884]: successfully created
+[main 2026-10-06T09:56:56.213Z] [UtilityProcess id: 1, type: extensionHost, pid: <none>]: creating new...
+[main 2026-10-06T09:56:56.224Z] [File Watcher (node.js)] [raw] ["rename"] chatLanguageModels.json
+[main 2026-10-06T09:56:56.227Z] [File Watcher (node.js)] [raw] ["change"] chatLanguageModels.json
+[main 2026-10-06T09:56:56.228Z] [File Watcher (node.js)] [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\chatLanguageModels.json
+[main 2026-10-06T09:56:56.244Z] [UtilityProcess id: 1, type: extensionHost, pid: 9236]: successfully created
+[main 2026-10-06T09:56:56.274Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:56.274Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.277Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:56.277Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.332Z] [File Watcher (node.js)]  >> normalized [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\chatLanguageModels.json
+[main 2026-10-06T09:56:56.333Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.333Z] User data changed
+[main 2026-10-06T09:56:56.343Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\chatLanguageModels.json
+[main 2026-10-06T09:56:56.419Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\chatLanguageModels.json
+[main 2026-10-06T09:56:56.419Z] User data changed
+[main 2026-10-06T09:56:56.516Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:56.516Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.519Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:56.519Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.527Z] lifecycle (main): phase changed (value: 4)
+[main 2026-10-06T09:56:56.539Z] updateWindowsJumpList#setJumpList unexpected result: error
+[main 2026-10-06T09:56:56.595Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:56.595Z] User data changed
+[main 2026-10-06T09:56:56.948Z] [SharedProcess] IPC ready
+[main 2026-10-06T09:56:56.948Z] Main->SharedProcess#connect: connection established
+[main 2026-10-06T09:56:56.985Z] NativePolicyService#_updatePolicyDefinitions - Found 48 policy definitions
+[main 2026-10-06T09:56:56.990Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:56:56.995Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:56:56.998Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User'
+[main 2026-10-06T09:56:56.998Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:56:56.998Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:56:56.998Z] PolicyConfiguration#update []
+[main 2026-10-06T09:56:57.000Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:56:57.024Z] [SharedProcess] Overall ready
+[main 2026-10-06T09:56:57.084Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir\extensions.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:56:57.087Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.087Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.089Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.089Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.090Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir'
+[main 2026-10-06T09:56:57.091Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir\extensions.json'
+[main 2026-10-06T09:56:57.176Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.176Z] User data changed
+[main 2026-10-06T09:56:57.176Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.319Z] Terminal profile not validated bash (MSYS2) [ { path: 'C:\\msys64\\usr\\bin\\bash.exe', isUnsafe: true } ]
+[main 2026-10-06T09:56:57.324Z] Terminal profile not validated Cygwin [
+  { path: 'C:\\cygwin64\\bin\\bash.exe', isUnsafe: true },
+  { path: 'C:\\cygwin\\bin\\bash.exe', isUnsafe: true }
+]
+[main 2026-10-06T09:56:57.339Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.339Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.341Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.341Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.344Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.344Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.345Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.345Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.346Z] Terminal profile not validated Git Bash [
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git\\current\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git-with-openssh\\current\\bin\\bash.exe'
+]
+[main 2026-10-06T09:56:57.440Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.440Z] User data changed
+[main 2026-10-06T09:56:57.441Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.561Z] [File Watcher (node.js)] [raw] ["rename"] snippets
+[main 2026-10-06T09:56:57.563Z] [File Watcher (node.js)] [raw] ["rename"] snippets
+[main 2026-10-06T09:56:57.565Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.565Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.566Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.566Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.568Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.568Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.571Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.571Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.646Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.646Z] User data changed
+[main 2026-10-06T09:56:57.647Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.670Z] [File Watcher (node.js)] [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\snippets
+[main 2026-10-06T09:56:57.670Z] [File Watcher (node.js)] [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\snippets
+[main 2026-10-06T09:56:57.714Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.714Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.716Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.716Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.720Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.720Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.722Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.722Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.724Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.724Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.725Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:57.726Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.753Z] [File Watcher (node.js)]  >> normalized [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\snippets
+[main 2026-10-06T09:56:57.753Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.753Z] User data changed
+[main 2026-10-06T09:56:57.753Z] [File Watcher (node.js)]  >> normalized [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\snippets
+[main 2026-10-06T09:56:57.753Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:57.991Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:56:57.991Z] [File Watcher (node.js)] ignoring a path for watching who's stat info failed to resolve: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (error: Error: ENOENT: no such file or directory, stat 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json')
+[main 2026-10-06T09:56:57.992Z] [File Watcher (node.js)] starting fs.watchFile() on c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (correlationId: undefined)
+[main 2026-10-06T09:56:58.069Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.069Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.071Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.071Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.073Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.073Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.074Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.075Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.154Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.155Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.155Z] User data changed
+[main 2026-10-06T09:56:58.494Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.494Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.496Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.496Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.497Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.497Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.499Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.499Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.570Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.571Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.571Z] User data changed
+[main 2026-10-06T09:56:58.683Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.684Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.685Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.685Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.687Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.687Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.689Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.689Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.762Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.762Z] User data changed
+[main 2026-10-06T09:56:58.763Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.804Z] [File Watcher (node.js)] Request to stop watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:56:58.805Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:56:58.822Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.822Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.824Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.824Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.826Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.826Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.827Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.827Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.852Z] Setting background throttling for window 1 to 'true'
+[main 2026-10-06T09:56:58.871Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.872Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.873Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.873Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.895Z] [AgentHost:stderr] (node:25912) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+
+[main 2026-10-06T09:56:58.897Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.898Z] User data changed
+[main 2026-10-06T09:56:58.913Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.962Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.962Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.963Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.963Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.965Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.965Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:58.966Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:58.967Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.038Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.038Z] User data changed
+[main 2026-10-06T09:56:59.039Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.112Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:59.112Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.114Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:59.114Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.116Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:59.116Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.117Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:56:59.117Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.195Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.195Z] User data changed
+[main 2026-10-06T09:56:59.196Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:56:59.348Z] Terminal profile not validated bash (MSYS2) [ { path: 'C:\\msys64\\usr\\bin\\bash.exe', isUnsafe: true } ]
+[main 2026-10-06T09:56:59.348Z] Terminal profile not validated Cygwin [
+  { path: 'C:\\cygwin64\\bin\\bash.exe', isUnsafe: true },
+  { path: 'C:\\cygwin\\bin\\bash.exe', isUnsafe: true }
+]
+[main 2026-10-06T09:56:59.349Z] Terminal profile not validated Git Bash [
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git\\current\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git-with-openssh\\current\\bin\\bash.exe'
+]
+[main 2026-10-06T09:56:59.645Z] [File Watcher (node.js)] [raw] ["rename"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.646Z] [File Watcher (node.js)] [raw] ["rename"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.649Z] [File Watcher (node.js)] [raw] ["change"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.649Z] [File Watcher (node.js)] [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.651Z] [File Watcher (node.js)] [raw] ["change"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.651Z] [File Watcher (node.js)] [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.653Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.653Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.653Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.654Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.654Z] [File Watcher (node.js)] [raw] ["rename"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.656Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.656Z] [File Watcher (node.js)] [raw] ["rename"] settings.json.vsctmp
+[main 2026-10-06T09:56:59.657Z] [File Watcher (node.js)] [raw] ["rename"] settings.json
+[main 2026-10-06T09:56:59.725Z] [File Watcher (node.js)]  >> normalized [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.725Z] User data changed
+[main 2026-10-06T09:56:59.727Z] [File Watcher (node.js)]  >> normalized [ADDED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.753Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.754Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:56:59.756Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.757Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:56:59.758Z] [File Watcher (node.js)] [DELETED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.758Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.758Z] [File Watcher (node.js)] [DELETED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.760Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.835Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.836Z] User data changed
+[main 2026-10-06T09:56:59.836Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.837Z] [File Watcher (node.js)]  >> normalized [DELETED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.837Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.837Z] [File Watcher (node.js)]  >> normalized [DELETED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json.vsctmp
+[main 2026-10-06T09:56:59.837Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json
+[main 2026-10-06T09:56:59.837Z] User data changed
+Unknown channel: agentHostClientProxy
+[main 2026-10-06T09:57:00.138Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.138Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.140Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.140Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.142Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.143Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.144Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.144Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.225Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.226Z] User data changed
+[main 2026-10-06T09:57:00.226Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.442Z] WSL is not installed, so could not detect WSL profiles
+[main 2026-10-06T09:57:00.702Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.702Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.704Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.704Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.705Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.705Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.707Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:00.707Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.789Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.789Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:00.789Z] User data changed
+[main 2026-10-06T09:57:04.135Z] ProxyResolver#loadSystemCertificates count (32ms) 276
+[main 2026-10-06T09:57:04.147Z] ProxyResolver#filterExpiredCertificates count filtered 182
+[main 2026-10-06T09:57:04.806Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:04.807Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.808Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:04.808Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.811Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:04.811Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.812Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:04.812Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.894Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.894Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:04.895Z] User data changed
+[main 2026-10-06T09:57:06.722Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:06.722Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.723Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:06.723Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.726Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:06.726Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.727Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:06.727Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.807Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.807Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:06.808Z] User data changed
+[main 2026-10-06T09:57:27.028Z] [File Watcher (node.js)] [raw] ["change"] workspaceStorage
+[main 2026-10-06T09:57:27.028Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\workspaceStorage
+[main 2026-10-06T09:57:27.029Z] [File Watcher (node.js)] [raw] ["change"] workspaceStorage
+[main 2026-10-06T09:57:27.029Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\workspaceStorage
+[main 2026-10-06T09:57:27.103Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\workspaceStorage
+[main 2026-10-06T09:57:27.104Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\workspaceStorage
+[main 2026-10-06T09:57:27.105Z] User data changed
+[main 2026-10-06T09:57:55.582Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:55.582Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.583Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:55.583Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.585Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:55.585Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.586Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:55.587Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.671Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.671Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:55.672Z] User data changed
+[main 2026-10-06T09:57:57.521Z] Lifecycle#quit() - begin (willRestart: undefined)
+[main 2026-10-06T09:57:57.521Z] Lifecycle#quit() - calling app.quit()
+[main 2026-10-06T09:57:57.521Z] Lifecycle#app.on(before-quit)
+[main 2026-10-06T09:57:57.521Z] Lifecycle#onBeforeShutdown.fire()
+[main 2026-10-06T09:57:57.522Z] [WindowsStateHandler] onBeforeShutdown {
+  lastActiveWindow: undefined,
+  lastPluginDevelopmentHostWindow: {
+    workspaceIdentifier: undefined,
+    folder: 'file:///c%3A/Users/longfa/AppData/Local/Temp/cc-public-vscode-live-UiUQ7t/workspace',
+    backupPath: undefined,
+    remoteAuthority: undefined,
+    uiState: [Object: null prototype] {
+      mode: 1,
+      x: 240,
+      y: 150,
+      width: 1443,
+      height: 903,
+      zoomLevel: undefined
+    }
+  },
+  openedWindows: []
+}
+[main 2026-10-06T09:57:57.522Z] Lifecycle#window.on('close') - window ID 1
+[main 2026-10-06T09:57:57.522Z] Lifecycle#unload() - window ID 1
+[main 2026-10-06T09:57:57.634Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:57.635Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:57.636Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:57.636Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:57.637Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:57.637Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:57.638Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:57:57.639Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:57:57.645Z] Lifecycle#onBeforeCloseWindow.fire() - window ID 1
+[main 2026-10-06T09:57:57.653Z] IPC Object URL: Removed channel vscode:738c9164-2caa-4fb3-aa78-b64533b8ab0f.
+[main 2026-10-06T09:57:57.658Z] Lifecycle#window.on('closed') - window ID 1
+[main 2026-10-06T09:57:57.658Z] Lifecycle#onWillShutdown.fire()
+[main 2026-10-06T09:57:57.659Z] Lifecycle#onWillShutdown - begin 'instanceLockfile'
+[main 2026-10-06T09:57:57.660Z] [UtilityProcess type: agentHost, pid: 25912]: attempting to kill the process...
+[main 2026-10-06T09:57:57.660Z] [UtilityProcess type: agentHost, pid: 25912]: successfully killed the process
+[main 2026-10-06T09:57:57.661Z] storageMainService#onWillShutdown()
+[main 2026-10-06T09:57:57.662Z] Lifecycle#onWillShutdown - begin 'applicationStorage'
+[main 2026-10-06T09:57:57.662Z] Lifecycle#onWillShutdown - begin 'applicationSharedStorage'
+[main 2026-10-06T09:57:57.662Z] Lifecycle#onWillShutdown - begin 'workspaceStorage'
+[main 2026-10-06T09:57:57.662Z] [UtilityProcess id: 1, type: extensionHost, pid: 9236]: waiting to exit...
+[main 2026-10-06T09:57:57.662Z] Lifecycle#onWillShutdown - begin 'extHostStarter'
+[main 2026-10-06T09:57:57.662Z] [UtilityProcess id: 1, type: fileWatcher, pid: 16884]: attempting to kill the process...
+[main 2026-10-06T09:57:57.663Z] [UtilityProcess id: 1, type: fileWatcher, pid: 16884]: successfully killed the process
+[main 2026-10-06T09:57:57.663Z] [UtilityProcess id: 1, type: extensionHost, pid: 9236]: waiting to exit...
+[main 2026-10-06T09:57:57.663Z] Lifecycle#app.on(window-all-closed)
+[main 2026-10-06T09:57:57.664Z] Lifecycle#app.on(will-quit) - begin
+[main 2026-10-06T09:57:57.669Z] Lifecycle#onWillShutdown - end 'instanceLockfile'
+[main 2026-10-06T09:57:57.671Z] [File Watcher (node.js)] Request to stop watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:57:57.671Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:57:57.672Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:57:57.678Z] StorageMainService: closed application shared storage
+[main 2026-10-06T09:57:57.678Z] Lifecycle#onWillShutdown - end 'applicationSharedStorage'
+[main 2026-10-06T09:57:57.686Z] [UtilityProcess id: 1, type: fileWatcher, pid: 16884]: received exit event with code 0
+[main 2026-10-06T09:57:57.686Z] [UtilityProcessWorker]: terminated normally with code 0, signal: unknown
+[main 2026-10-06T09:57:57.693Z] StorageMainService: closed application storage
+[main 2026-10-06T09:57:57.693Z] Lifecycle#onWillShutdown - end 'applicationStorage'
+[main 2026-10-06T09:57:57.695Z] StorageMainService: closed workspace storage (5ef9c64272b5d8143bdd3f1dab5f45dc)
+[main 2026-10-06T09:57:57.695Z] Lifecycle#onWillShutdown - end 'workspaceStorage'
+[main 2026-10-06T09:57:59.541Z] [UtilityProcess id: 1, type: extensionHost, pid: 9236]: received exit event with code 0
+[main 2026-10-06T09:57:59.542Z] Extension host with pid 9236 exited with code: 0, signal: unknown.
+[main 2026-10-06T09:57:59.542Z] Lifecycle#onWillShutdown - end 'extHostStarter'
+[main 2026-10-06T09:57:59.543Z] Lifecycle#app.on(will-quit) - after fireOnWillShutdown
+[main 2026-10-06T09:57:59.543Z] Lifecycle#app.on(will-quit) - calling app.quit()
+
+Warning: 'disable-background-timer-throttling' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-backgrounding-occluded-windows' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-renderer-backgrounding' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'disable-extension-update-checks' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'cached-data' is not in the list of known options, but still passed to Electron/Chromium.
+[main 2026-10-06T09:58:00.115Z] PolicyConfiguration#initialize
+[main 2026-10-06T09:58:00.116Z] PolicyConfiguration#updatePolicyDefinitions [
+  'update.mode',
+  'update.channel',
+  'update.enableWindowsBackgroundUpdates',
+  'update.showReleaseNotes',
+  'update.showPostInstallInfo',
+  'update.titleBar',
+  'http.useLocalProxyConfiguration',
+  'http.electronFetch',
+  'http.proxy',
+  'http.proxyStrictSSL',
+  'http.proxyKerberosServicePrincipal',
+  'http.noProxy',
+  'http.proxyAuthorization',
+  'http.proxySupport',
+  'http.systemCertificates',
+  'http.systemCertificatesNode',
+  'http.experimental.systemCertificatesV2',
+  'http.fetchAdditionalSupport',
+  'http.webSocketAdditionalSupport',
+  'http.experimental.networkInterfaceCheckInterval',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'telemetry.enableTelemetry',
+  'extensions.allowed',
+  'chat.agentHost.enabled',
+  'chat.agents.copilotCli.hideExtensionHost',
+  'chat.editor.preferCopilotHarness',
+  'chat.defaultToCopilotHarness',
+  'chat.editor.localAgent.enabled',
+  'chat.editor.copilotCli.hideExtensionHost',
+  'chat.agentHost.systemProxy.enabled',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.byokModels.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile',
+  'chat.agentHost.otel.dbSpanExporter.enabled'
+]
+[main 2026-10-06T09:58:00.117Z] NativePolicyService#_updatePolicyDefinitions - Found 11 policy definitions
+[main 2026-10-06T09:58:00.156Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:58:00.163Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:58:00.163Z] PolicyConfiguration#update [
+  'update.mode',
+  'telemetry.telemetryLevel',
+  'telemetry.feedback.enabled',
+  'extensions.allowed',
+  'chat.agentHost.claudeAgent.enabled',
+  'chat.agentHost.codexAgent.enabled',
+  'chat.agentHost.otel.enabled',
+  'chat.agentHost.otel.exporterType',
+  'chat.agentHost.otel.otlpEndpoint',
+  'chat.agentHost.otel.captureContent',
+  'chat.agentHost.otel.outfile'
+]
+[main 2026-10-06T09:58:00.163Z] PolicyConfiguration#updatePolicyDefinitions [
+  'chat.agentHost.copilotAgent.multiRootEnabled',
+  'chat.agentHost.claudeAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.multiRootEnabled',
+  'chat.agentHost.codexAgent.sdkRoot',
+  'chat.agentHost.codexAgent.codexHome',
+  'chat.agentHost.codexAgent.binaryArgs',
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[main 2026-10-06T09:58:00.163Z] NativePolicyService#_updatePolicyDefinitions - Found 15 policy definitions
+[main 2026-10-06T09:58:00.168Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:58:00.169Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:00.171Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:58:00.171Z] PolicyConfiguration#update [
+  'chat.agentHost.otel.otlpProtocol',
+  'chat.agentHost.otel.serviceName',
+  'chat.agentHost.otel.resourceAttributes',
+  'chat.agentHost.otel.headers'
+]
+[main 2026-10-06T09:58:00.187Z] Starting VS Code
+[main 2026-10-06T09:58:00.187Z] from: c:\code\chainlesschain\packages\vscode-extension\.vscode-test\vscode-win32-x64-archive-1.132.0\df53daabb1\resources\app
+[main 2026-10-06T09:58:00.187Z] args: {
+  _: [
+    'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\workspace'
+  ],
+  diff: false,
+  merge: false,
+  add: false,
+  remove: false,
+  goto: false,
+  'new-window': false,
+  'reuse-window': false,
+  agents: false,
+  wait: false,
+  'user-data-dir': 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\userDataDir',
+  help: false,
+  'extensions-dir': 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\extensionsDir',
+  'list-extensions': false,
+  'show-versions': false,
+  'pre-release': false,
+  'update-extensions': false,
+  version: false,
+  verbose: true,
+  status: false,
+  'prof-startup': false,
+  'no-cached-data': false,
+  'prof-v8-extensions': false,
+  'disable-extensions': false,
+  'disable-lcd-text': false,
+  'disable-gpu': false,
+  'disable-chromium-sandbox': false,
+  sandbox: false,
+  telemetry: false,
+  extensionDevelopmentPath: [
+    'C:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver'
+  ],
+  debugRenderer: false,
+  'enable-smoke-test-driver': false,
+  'skip-sessions-welcome': false,
+  logExtensionHostCommunication: false,
+  'skip-release-notes': true,
+  'skip-welcome': true,
+  'disable-telemetry': true,
+  'disable-updates': true,
+  'share-secrets-with-agents-app': false,
+  transient: false,
+  'use-inmemory-secretstorage': true,
+  'disable-workspace-trust': true,
+  'disable-crash-reporter': true,
+  'skip-add-to-recently-opened': false,
+  'open-url': false,
+  'file-write': false,
+  'file-chmod': false,
+  force: false,
+  'do-not-sync': false,
+  'do-not-include-pack-dependencies': false,
+  trace: false,
+  'trace-memory-infra': false,
+  'preserve-env': false,
+  'force-user-env': false,
+  'force-disable-user-env': false,
+  'open-devtools': false,
+  'disable-gpu-sandbox': true,
+  '__enable-file-policy': false,
+  'enable-coi': false,
+  'enable-rdp-display-tracking': false,
+  'disable-layout-restore': false,
+  'disable-experiments': false,
+  'no-proxy-server': false,
+  'no-sandbox': false,
+  nolazy: false,
+  'force-renderer-accessibility': false,
+  'ignore-certificate-errors': false,
+  'allow-insecure-localhost': false,
+  'disable-dev-shm-usage': false,
+  'profile-temp': false,
+  logsPath: 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\userDataDir\\logs\\20261006T175800'
+}
+[main 2026-10-06T09:58:00.188Z] Resolving machine identifier...
+[main 2026-10-06T09:58:00.188Z] Resolving SQM identifier...
+[main 2026-10-06T09:58:00.188Z] Resolving devDevice identifier...
+[main 2026-10-06T09:58:00.188Z] Resolved machine identifier: 823ff009e4b91222bc213a5a893c86c12ba2cfa546bc8f73f184f6d8ab877c21
+[main 2026-10-06T09:58:00.188Z] Resolved SQM identifier: {31224306-E6BA-44B0-99D5-CF4738A46400}
+[main 2026-10-06T09:58:00.188Z] Resolved devDevice identifier: a3e5f61c-84c3-4bbb-8ebc-0e07bb04bf07
+[main 2026-10-06T09:58:00.188Z] Main->SharedProcess#connect
+[main 2026-10-06T09:58:00.190Z] PolicyConfiguration#updatePolicyDefinitions [
+  'terminal.integrated.automationProfile.linux',
+  'terminal.integrated.automationProfile.osx',
+  'terminal.integrated.automationProfile.windows',
+  'terminal.integrated.agentHostProfile.linux',
+  'terminal.integrated.agentHostProfile.osx',
+  'terminal.integrated.agentHostProfile.windows',
+  'terminal.integrated.profiles.windows',
+  'terminal.integrated.profiles.osx',
+  'terminal.integrated.profiles.linux',
+  'terminal.integrated.useWslProfiles',
+  'terminal.integrated.inheritEnv',
+  'terminal.integrated.persistentSessionScrollback',
+  'terminal.integrated.showLinkHover',
+  'terminal.integrated.ignoreProcessNames'
+]
+[main 2026-10-06T09:58:00.190Z] PolicyConfiguration#updatePolicyDefinitions [
+  'terminal.integrated.defaultProfile.linux',
+  'terminal.integrated.defaultProfile.osx',
+  'terminal.integrated.defaultProfile.windows'
+]
+[main 2026-10-06T09:58:00.200Z] PolicyConfiguration#update []
+[main 2026-10-06T09:58:00.200Z] PolicyConfiguration#update []
+[main 2026-10-06T09:58:00.203Z] StorageMainService: creating application storage
+[main 2026-10-06T09:58:00.203Z] StorageMainService: creating application shared storage
+[main 2026-10-06T09:58:00.221Z] ElectronURLListener: waiting for window to be ready to handle URLs...
+[main 2026-10-06T09:58:00.221Z] lifecycle (main): phase changed (value: 2)
+[main 2026-10-06T09:58:00.222Z] windowsManager#open
+[main 2026-10-06T09:58:00.224Z] windowsManager#open pathsToOpen [
+  {
+    workspace: { id: '5ef9c64272b5d8143bdd3f1dab5f45dc', uri: [qo] },
+    type: 2,
+    exists: true
+  }
+]
+[main 2026-10-06T09:58:00.225Z] windowsManager#doOpenFolderOrWorkspace {
+  folderOrWorkspace: {
+    workspace: { id: '5ef9c64272b5d8143bdd3f1dab5f45dc', uri: [qo] },
+    type: 2,
+    exists: true
+  },
+  filesToOpen: undefined
+}
+[main 2026-10-06T09:58:00.230Z] IPC Object URL: Registered new channel vscode:6dc9f9d0-07de-49a4-83a7-6ec8d6d3db0f.
+[main 2026-10-06T09:58:00.230Z] window#validateWindowState: validating window state on 1 display(s) { mode: 1, x: 240, y: 150, width: 1443, height: 903 }
+[main 2026-10-06T09:58:00.230Z] window#validateWindowState: single monitor working area { x: 0, y: 0, width: 1920, height: 1160 }
+[main 2026-10-06T09:58:00.230Z] window#ctor: using window state { mode: 1, x: 240, y: 150, width: 1443, height: 903 }
+[main 2026-10-06T09:58:00.269Z] window#load: attempt to load window (id: 1)
+[main 2026-10-06T09:58:00.291Z] StorageMainService: creating workspace storage (5ef9c64272b5d8143bdd3f1dab5f45dc)
+[main 2026-10-06T09:58:00.292Z] windowsManager#open used window count 1 (workspacesToOpen: 0, foldersToOpen: 1, emptyToRestore: 0, maybeOpenEmptyWindow: false)
+[main 2026-10-06T09:58:00.296Z] lifecycle (main): phase changed (value: 3)
+[main 2026-10-06T09:58:00.303Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:58:00.331Z] [shared storage] Creating shared storage database at 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\profileHome\.vscode-shared\sharedStorage\state.vscdb' (wasCreated: false)
+[main 2026-10-06T09:58:00.337Z] [shared storage] Initializing fallback application storage (path: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage\state.vscdb)
+[main 2026-10-06T09:58:00.353Z] [shared storage] Fallback application storage initialized with 75 items
+[main 2026-10-06T09:58:00.360Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User'
+[main 2026-10-06T09:58:00.361Z] update#setState disabled
+[main 2026-10-06T09:58:00.361Z] update#ctor - updates are disabled by the environment
+[main 2026-10-06T09:58:00.362Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:58:00.377Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:58:00.462Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:00.462Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:00.464Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:00.464Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:00.550Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:00.552Z] User data changed
+[main 2026-10-06T09:58:01.541Z] NativePolicyService#_updatePolicyDefinitions - Found 38 policy definitions
+[main 2026-10-06T09:58:01.545Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:58:01.546Z] NativeManagedSettingsService#updateWatcher - Found 9 managed-settings definitions
+[main 2026-10-06T09:58:01.550Z] Creating native managed-settings watcher for productName GitHubCopilot
+[main 2026-10-06T09:58:01.551Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:58:01.551Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:58:01.551Z] PolicyConfiguration#update []
+[main 2026-10-06T09:58:01.553Z] NativeManagedSettingsService#_onDidManagedSettingsChange - Updated managed-settings values: {}
+[main 2026-10-06T09:58:01.556Z] NativePolicyService#_updatePolicyDefinitions - Found 48 policy definitions
+[main 2026-10-06T09:58:01.560Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:58:01.561Z] NativeManagedSettingsService#updateWatcher - Found 18 managed-settings definitions
+[main 2026-10-06T09:58:01.565Z] Creating native managed-settings watcher for productName GitHubCopilot
+[main 2026-10-06T09:58:01.566Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:58:01.566Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:58:01.566Z] PolicyConfiguration#update []
+[main 2026-10-06T09:58:01.568Z] NativeManagedSettingsService#_onDidManagedSettingsChange - Updated managed-settings values: {}
+[main 2026-10-06T09:58:01.705Z] resolveShellEnv(): skipped (Windows)
+[main 2026-10-06T09:58:01.706Z] [UtilityProcess type: agentHost, pid: <none>]: creating new...
+[main 2026-10-06T09:58:01.708Z] AgentHostProcessManager: agent host started
+[main 2026-10-06T09:58:01.744Z] [UtilityProcess type: agentHost, pid: 21112]: successfully created
+[main 2026-10-06T09:58:02.037Z] window#load: window reported ready (id: 1)
+[main 2026-10-06T09:58:02.038Z] ElectronURLListener#flush(): flushing URLs
+[main 2026-10-06T09:58:02.270Z] [UtilityProcess id: 1, type: extensionHost, pid: <none>]: creating new...
+[main 2026-10-06T09:58:02.276Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:02.276Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:02.278Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:02.279Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:02.309Z] [UtilityProcess id: 1, type: extensionHost, pid: 24356]: successfully created
+[main 2026-10-06T09:58:02.360Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:02.360Z] User data changed
+[main 2026-10-06T09:58:02.821Z] lifecycle (main): phase changed (value: 4)
+[main 2026-10-06T09:58:02.893Z] updateWindowsJumpList#setJumpList unexpected result: error
+[main 2026-10-06T09:58:02.946Z] [SharedProcess] onWindowConnection for: vscode:createSharedProcessChannelConnectionResult
+[main 2026-10-06T09:58:02.947Z] [UtilityProcess type: shared-process, pid: <none>]: creating new...
+[main 2026-10-06T09:58:02.949Z] [UtilityProcess type: shared-process, pid: <none>]: payload sent via postMessage()
+[main 2026-10-06T09:58:02.949Z] [UtilityProcessWorker]: createWorker(window: 1, moduleId: vs/platform/files/node/watcher/watcherMain)
+[main 2026-10-06T09:58:02.950Z] [UtilityProcess id: 1, type: fileWatcher, pid: <none>]: creating new...
+[main 2026-10-06T09:58:02.981Z] [UtilityProcess type: shared-process, pid: 24688]: successfully created
+[main 2026-10-06T09:58:03.009Z] [UtilityProcess id: 1, type: fileWatcher, pid: 15396]: successfully created
+[main 2026-10-06T09:58:03.098Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.098Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.179Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.180Z] User data changed
+[main 2026-10-06T09:58:03.352Z] Terminal profile not validated bash (MSYS2) [ { path: 'C:\\msys64\\usr\\bin\\bash.exe', isUnsafe: true } ]
+[main 2026-10-06T09:58:03.352Z] Terminal profile not validated Cygwin [
+  { path: 'C:\\cygwin64\\bin\\bash.exe', isUnsafe: true },
+  { path: 'C:\\cygwin\\bin\\bash.exe', isUnsafe: true }
+]
+[main 2026-10-06T09:58:03.353Z] Terminal profile not validated Git Bash [
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git\\current\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git-with-openssh\\current\\bin\\bash.exe'
+]
+[main 2026-10-06T09:58:03.422Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.422Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.424Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.424Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.491Z] [SharedProcess] IPC ready
+[main 2026-10-06T09:58:03.492Z] Main->SharedProcess#connect: connection established
+[main 2026-10-06T09:58:03.500Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.501Z] User data changed
+[main 2026-10-06T09:58:03.532Z] NativePolicyService#_updatePolicyDefinitions - Found 48 policy definitions
+[main 2026-10-06T09:58:03.538Z] Creating watcher for productName VSCode
+[main 2026-10-06T09:58:03.550Z] NativePolicyService#_onDidPolicyChange - Updated policy values: {}
+[main 2026-10-06T09:58:03.550Z] PolicyConfiguration#onDidChangePolicies []
+[main 2026-10-06T09:58:03.550Z] PolicyConfiguration#update []
+[main 2026-10-06T09:58:03.559Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:03.566Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User'
+[main 2026-10-06T09:58:03.568Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json'
+[main 2026-10-06T09:58:03.587Z] [SharedProcess] Overall ready
+[main 2026-10-06T09:58:03.654Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir\extensions.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:03.656Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.656Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.658Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.658Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.660Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.660Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.665Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:03.665Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.669Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir'
+[main 2026-10-06T09:58:03.672Z] [File Watcher (node.js)] Started watching: 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\extensionsDir\extensions.json'
+[main 2026-10-06T09:58:03.735Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.736Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:03.736Z] User data changed
+[main 2026-10-06T09:58:04.188Z] [File Watcher (node.js)] Request to start watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:04.189Z] [File Watcher (node.js)] ignoring a path for watching who's stat info failed to resolve: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (error: Error: ENOENT: no such file or directory, stat 'c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json')
+[main 2026-10-06T09:58:04.189Z] [File Watcher (node.js)] starting fs.watchFile() on c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (correlationId: undefined)
+[main 2026-10-06T09:58:04.578Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.578Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.580Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.580Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.582Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.582Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.583Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.584Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.656Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.656Z] User data changed
+[main 2026-10-06T09:58:04.657Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.659Z] Setting background throttling for window 1 to 'true'
+[main 2026-10-06T09:58:04.756Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.756Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.758Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.758Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.760Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.760Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.761Z] [File Watcher (node.js)] [raw] ["change"] globalStorage
+[main 2026-10-06T09:58:04.761Z] [File Watcher (node.js)] [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.837Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.837Z] User data changed
+[main 2026-10-06T09:58:04.837Z] [File Watcher (node.js)]  >> normalized [CHANGED] c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\globalStorage
+[main 2026-10-06T09:58:04.996Z] [File Watcher (node.js)] Request to stop watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:04.996Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\mcp.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:58:05.225Z] [AgentHost:stderr] (node:21112) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+
+[main 2026-10-06T09:58:05.323Z] Terminal profile not validated bash (MSYS2) [ { path: 'C:\\msys64\\usr\\bin\\bash.exe', isUnsafe: true } ]
+[main 2026-10-06T09:58:05.324Z] Terminal profile not validated Cygwin [
+  { path: 'C:\\cygwin64\\bin\\bash.exe', isUnsafe: true },
+  { path: 'C:\\cygwin\\bin\\bash.exe', isUnsafe: true }
+]
+[main 2026-10-06T09:58:05.326Z] Terminal profile not validated Git Bash [
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\Git\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\AppData\\Local\\Program\\usr\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git\\current\\bin\\bash.exe',
+  'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\profileHome\\scoop\\apps\\git-with-openssh\\current\\bin\\bash.exe'
+]
+Unknown channel: agentHostClientProxy
+[main 2026-10-06T09:58:07.822Z] ProxyResolver#loadSystemCertificates count (38ms) 276
+[main 2026-10-06T09:58:07.834Z] ProxyResolver#filterExpiredCertificates count filtered 182
+[main 2026-10-06T09:58:13.861Z] Lifecycle#quit() - begin (willRestart: undefined)
+[main 2026-10-06T09:58:13.861Z] Lifecycle#quit() - calling app.quit()
+[main 2026-10-06T09:58:13.861Z] Lifecycle#app.on(before-quit)
+[main 2026-10-06T09:58:13.861Z] Lifecycle#onBeforeShutdown.fire()
+[main 2026-10-06T09:58:13.862Z] [WindowsStateHandler] onBeforeShutdown {
+  lastActiveWindow: undefined,
+  lastPluginDevelopmentHostWindow: {
+    workspaceIdentifier: undefined,
+    folder: 'file:///c%3A/Users/longfa/AppData/Local/Temp/cc-public-vscode-live-UiUQ7t/workspace',
+    backupPath: undefined,
+    remoteAuthority: undefined,
+    uiState: [Object: null prototype] {
+      mode: 1,
+      x: 240,
+      y: 150,
+      width: 1447,
+      height: 903,
+      zoomLevel: undefined
+    }
+  },
+  openedWindows: []
+}
+[main 2026-10-06T09:58:13.862Z] Lifecycle#window.on('close') - window ID 1
+[main 2026-10-06T09:58:13.862Z] Lifecycle#unload() - window ID 1
+[main 2026-10-06T09:58:13.930Z] [UtilityProcess id: 1, type: extensionHost, pid: 24356]: received exit event with code 0
+[main 2026-10-06T09:58:13.930Z] Extension host with pid 24356 exited with code: 0, signal: unknown.
+[main 2026-10-06T09:58:13.953Z] Lifecycle#onBeforeCloseWindow.fire() - window ID 1
+[main 2026-10-06T09:58:13.964Z] IPC Object URL: Removed channel vscode:6dc9f9d0-07de-49a4-83a7-6ec8d6d3db0f.
+[main 2026-10-06T09:58:13.971Z] Lifecycle#window.on('closed') - window ID 1
+[main 2026-10-06T09:58:13.971Z] Lifecycle#onWillShutdown.fire()
+[main 2026-10-06T09:58:13.972Z] Lifecycle#onWillShutdown - begin 'instanceLockfile'
+[main 2026-10-06T09:58:13.973Z] [UtilityProcess type: agentHost, pid: 21112]: attempting to kill the process...
+[main 2026-10-06T09:58:13.974Z] [UtilityProcess type: agentHost, pid: 21112]: successfully killed the process
+[main 2026-10-06T09:58:13.975Z] storageMainService#onWillShutdown()
+[main 2026-10-06T09:58:13.975Z] Lifecycle#onWillShutdown - begin 'applicationStorage'
+[main 2026-10-06T09:58:13.975Z] Lifecycle#onWillShutdown - begin 'applicationSharedStorage'
+[main 2026-10-06T09:58:13.975Z] Lifecycle#onWillShutdown - begin 'workspaceStorage'
+[main 2026-10-06T09:58:13.976Z] Lifecycle#onWillShutdown - begin 'extHostStarter'
+[main 2026-10-06T09:58:13.976Z] [UtilityProcess id: 1, type: fileWatcher, pid: 15396]: attempting to kill the process...
+[main 2026-10-06T09:58:13.976Z] [UtilityProcess id: 1, type: fileWatcher, pid: 15396]: successfully killed the process
+[main 2026-10-06T09:58:13.976Z] Lifecycle#onWillShutdown - end 'extHostStarter'
+[main 2026-10-06T09:58:13.977Z] Lifecycle#app.on(window-all-closed)
+[main 2026-10-06T09:58:13.977Z] Lifecycle#app.on(will-quit) - begin
+[main 2026-10-06T09:58:13.982Z] Lifecycle#onWillShutdown - end 'instanceLockfile'
+[main 2026-10-06T09:58:13.988Z] [File Watcher (node.js)] Request to stop watching: c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>),c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>)
+[main 2026-10-06T09:58:13.989Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:58:13.989Z] [File Watcher (node.js)] stopping file watcher (c:\Users\longfa\AppData\Local\Temp\cc-public-vscode-live-UiUQ7t\userDataDir\User\settings.json (excludes: <none>, includes: <all>, filter: <none>, correlationId: <none>))
+[main 2026-10-06T09:58:13.992Z] [UtilityProcess id: 1, type: fileWatcher, pid: 15396]: received exit event with code 0
+[main 2026-10-06T09:58:13.992Z] [UtilityProcessWorker]: terminated normally with code 0, signal: unknown
+[main 2026-10-06T09:58:14.001Z] StorageMainService: closed application shared storage
+[main 2026-10-06T09:58:14.001Z] Lifecycle#onWillShutdown - end 'applicationSharedStorage'
+[main 2026-10-06T09:58:14.009Z] StorageMainService: closed application storage
+[main 2026-10-06T09:58:14.009Z] Lifecycle#onWillShutdown - end 'applicationStorage'
+[main 2026-10-06T09:58:14.009Z] StorageMainService: closed workspace storage (5ef9c64272b5d8143bdd3f1dab5f45dc)
+[main 2026-10-06T09:58:14.009Z] Lifecycle#onWillShutdown - end 'workspaceStorage'
+[main 2026-10-06T09:58:14.011Z] Lifecycle#app.on(will-quit) - after fireOnWillShutdown
+[main 2026-10-06T09:58:14.012Z] Lifecycle#app.on(will-quit) - calling app.quit()
+{"captureDir":"C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t\\captureDir","status":"CAPTURED","observationsCreated":false,"identityVerified":false,"productionAttested":false}

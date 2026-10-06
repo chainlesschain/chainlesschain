@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import { evalDigest } from "../../src/lib/eval/evidence.js";
 import { outcomeDigest } from "../../src/lib/eval/outcomes.js";
+import { verifyAgentTerminal } from "../../src/lib/eval/stream-terminal.js";
 import {
   inspectIdeProtocol,
   importVerify01HostCapture,
@@ -247,6 +248,166 @@ describe("existing actual-host evidence adapter (all records here are test fixtu
       usage: null,
     });
     expect(result.report.task.succeeded).toBe(0);
+  });
+  function appendOutput(f, ...events) {
+    f.raw.splice(
+      -1,
+      0,
+      ...events.map((event) => ({
+        ...f.raw[3],
+        direction: "output",
+        event,
+      })),
+    );
+    for (const [index, record] of f.raw.entries()) {
+      record.sequence = index + 1;
+      record.at = new Date(Date.parse(f.raw[0].at) + index * 100).toISOString();
+    }
+  }
+  const lifecycleEnd = () => ({
+    type: "system",
+    subtype: "end",
+    session_id: "capture-test",
+    turns: 1,
+  });
+  it("accepts the actual persistent stream's one-turn lifecycle end without altering capture", () => {
+    const f = fixture();
+    Object.assign(f.raw[3].event, { turn: 1, trace_id: "trace-test", seq: 4 });
+    appendOutput(f, { ...lifecycleEnd(), trace_id: "trace-test", seq: 5 });
+    const before = JSON.stringify(f.raw);
+    expect(
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }),
+    ).toMatchObject({ executionSucceeded: true, terminalFailure: false });
+    expect(JSON.stringify(f.raw)).toBe(before);
+    expect(
+      verifyAgentTerminal(
+        f.raw
+          .filter((r) => r.direction === "output")
+          .map((r) => JSON.stringify(r.event))
+          .join("\n"),
+      ).terminalVerified,
+    ).toBe(false);
+  });
+  it("keeps an explicit failure followed by lifecycle end as failure", () => {
+    const f = fixture();
+    Object.assign(f.raw[3].event, {
+      turn: 1,
+      subtype: "error_max_turns",
+      is_error: true,
+    });
+    appendOutput(f, lifecycleEnd());
+    expect(
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }),
+    ).toMatchObject({
+      executionSucceeded: false,
+      terminalFailure: true,
+      executionEvidence: { terminalVerified: true },
+    });
+  });
+  it.each([
+    ["missing session", { ...lifecycleEnd(), session_id: undefined }],
+    ["wrong turn count", { ...lifecycleEnd(), turns: 2 }],
+    ["string turn count", { ...lifecycleEnd(), turns: "1" }],
+    ["payload on end", { ...lifecycleEnd(), error: "late error" }],
+    ["different trace", { ...lifecycleEnd(), trace_id: "foreign-trace" }],
+    ["stale output sequence", { ...lifecycleEnd(), seq: 4 }],
+    ["tool after result", { type: "tool_use", tool: "write_file" }],
+    ["error after result", { type: "error", message: "late failure" }],
+  ])("does not accept an ambiguous lifecycle trailer: %s", (_label, end) => {
+    const f = fixture();
+    Object.assign(f.raw[3].event, { turn: 1, trace_id: "trace-test", seq: 4 });
+    appendOutput(f, end);
+    expect(
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }),
+    ).toMatchObject({
+      executionSucceeded: false,
+      executionEvidence: { terminalVerified: false },
+    });
+  });
+  it("rejects foreign-session lifecycle end and duplicate end/result", () => {
+    const foreign = fixture();
+    foreign.raw[3].event.turn = 1;
+    appendOutput(foreign, { ...lifecycleEnd(), session_id: "foreign" });
+    expect(() =>
+      inspectIdeProtocol(foreign.raw, {
+        prompt: foreign.task.prompt,
+        comparison: foreign.comparison,
+      }),
+    ).toThrow(/foreign session/);
+    const duplicate = fixture();
+    duplicate.raw[3].event.turn = 1;
+    appendOutput(duplicate, lifecycleEnd(), lifecycleEnd());
+    expect(
+      inspectIdeProtocol(duplicate.raw, {
+        prompt: duplicate.task.prompt,
+        comparison: duplicate.comparison,
+      }).executionSucceeded,
+    ).toBe(false);
+    const secondResult = fixture();
+    appendOutput(secondResult, { ...secondResult.raw[3].event });
+    expect(() =>
+      inspectIdeProtocol(secondResult.raw, {
+        prompt: secondResult.task.prompt,
+        comparison: secondResult.comparison,
+      }),
+    ).toThrow(/terminal is missing or ambiguous/);
+  });
+  it("does not accept a lifecycle end before the result or error hidden before a valid end", () => {
+    for (const event of [
+      lifecycleEnd(),
+      { type: "error", message: "earlier failure" },
+    ]) {
+      const f = fixture();
+      f.raw[3].event.turn = 1;
+      f.raw.splice(3, 0, { ...f.raw[3], event });
+      appendOutput(f, lifecycleEnd());
+      expect(
+        inspectIdeProtocol(f.raw, {
+          prompt: f.task.prompt,
+          comparison: f.comparison,
+        }).executionSucceeded,
+      ).toBe(false);
+    }
+    const f = fixture();
+    f.raw.splice(3, 0, { ...f.raw[3], event: lifecycleEnd() });
+    for (const [index, record] of f.raw.entries()) {
+      record.sequence = index + 1;
+      record.at = new Date(Date.parse(f.raw[0].at) + index * 100).toISOString();
+    }
+    expect(
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }).executionSucceeded,
+    ).toBe(false);
+  });
+  it("still requires a clean drained exit with a valid lifecycle end", () => {
+    const f = fixture();
+    f.raw[3].event.turn = 1;
+    appendOutput(f, lifecycleEnd());
+    f.raw.at(-1).event.code = 1;
+    expect(
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }).executionSucceeded,
+    ).toBe(false);
+    f.raw.at(-1).event.stdoutDrained = false;
+    expect(() =>
+      inspectIdeProtocol(f.raw, {
+        prompt: f.task.prompt,
+        comparison: f.comparison,
+      }),
+    ).toThrow(/drained process exit/);
   });
   it("retains a verified explicit failure rather than counting it as success", () => {
     const f = fixture();

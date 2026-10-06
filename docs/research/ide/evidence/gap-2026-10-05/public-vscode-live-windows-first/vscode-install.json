@@ -1,0 +1,8 @@
+{
+  "hostVersion": "1.132.0",
+  "vsixDigest": "sha256:ba905abfa806bebfef726dde4941dacf24fc4ef39ffe571896d7f585238b8408",
+  "stdout": "Installing extensions...\nExtension 'chainlesschain-ide-0.37.135.vsix' was successfully installed.\n",
+  "stderr": "(node:22460) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.\n(Use `Code --trace-deprecation ...` to show where the warning was created)\n",
+  "completedAt": "2026-10-06T09:37:38.383Z",
+  "installationVerified": false
+}

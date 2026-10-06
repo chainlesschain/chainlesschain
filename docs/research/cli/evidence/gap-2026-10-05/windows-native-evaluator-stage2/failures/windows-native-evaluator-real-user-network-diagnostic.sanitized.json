@@ -1,0 +1,79 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "c4e2647ceb580f7a18a0f00bd0e0387caf9d730168e9c65c78345c6e3233e083"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "ce82a93ffac03570968159eee40e976e704d58f84bc6958dd86d0766231b15fe"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "63950f5f7e65be5db406764484a97ab112e29bf0a3be326c568fe403729a9c2e"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "6813771737ae352c359756fbe85d24bd2413120a029afa2e3c52882bdbedcad4"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "92b3cea894bc29fdf2afcb7d65f5d701b33874c3f95468647b0ae4a931517558"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "network-deny",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-s5i2Sh",
+      "manifestDigest": "899a3e7fae1cd60a2d819dfe0e684185f21704a70c80a3c1216588efd52d67f4",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "AssertionError [ERR_ASSERTION]: {\"host\":\"127.0.0.1\",\"code\":\"ETIMEDOUT\",\"errno\":-4039,\"message\":\"connect ETIMEDOUT 127.0.0.1:52280\"}\n    at Socket.<anonymous> (<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-s5i2Sh\\control\\check.cjs:7:67)\n    at Object.onceWrapper (node:events:634:26)\n    at Socket.emit (node:events:519:28)\n    at emitErrorNT (node:internal/streams/destroy:170:8)\n    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n",
+      "settlement": {
+        "manifestDigest": "899a3e7fae1cd60a2d819dfe0e684185f21704a70c80a3c1216588efd52d67f4",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 21296,
+        "appContainerSid": "S-1-15-2-1983353672-31446677-869396716-3291869226-1103950308-1513763619-4222221727",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-fLa2cj",
+      "manifestDigest": "9707b1c91878fc72e3fa4516668e1fe891fd58be5e87066a3759c668b9c98aa3",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"parent\":19612,\"descendant\":24388}\n",
+      "stderr": "",
+      "settlement": {
+        "manifestDigest": "9707b1c91878fc72e3fa4516668e1fe891fd58be5e87066a3759c668b9c98aa3",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 19612,
+        "appContainerSid": "S-1-15-2-1170035859-2414915222-1191001894-1970064547-4118033000-1080986080-4111778660",
+        "wallTimeMs": 10000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "observedProcessesAbsent": true
+    }
+  ]
+}

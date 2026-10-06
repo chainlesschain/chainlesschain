@@ -1,0 +1,26 @@
+{
+  "text": "DONE.",
+  "event": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "DONE.",
+    "session_id": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c",
+    "turn": 1,
+    "usage": {
+      "input_tokens": 18126,
+      "output_tokens": 231,
+      "cache_read_input_tokens": 25600,
+      "cache_creation_input_tokens": 0
+    },
+    "transcript_refs": {
+      "schema": "chainlesschain.session-transcript-references/v1",
+      "sessionId": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c",
+      "assistantEventId": "ea465d46794ac541c2cce37230355a3c3e2c485edac49e1637d61dc47f52c990",
+      "userEventId": "7ac13bb8a59b05a5cfdd640d3f73b7adfe227e930f85e389a29514721a277358",
+      "clientMessageId": "abb2e394-9e6b-4596-8b06-912c85e9640c"
+    },
+    "trace_id": "tr-76d620bd-ab29-4564-b3dd-7ea32434861f",
+    "seq": 19
+  }
+}

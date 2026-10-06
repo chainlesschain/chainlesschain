@@ -1,0 +1,4392 @@
+{
+  "numTotalTestSuites": 11,
+  "numPassedTestSuites": 11,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 360,
+  "numPassedTests": 360,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1791280267057,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract opens ARM64 snapshots and seccomp filters with the native anonymous flag",
+          "status": "passed",
+          "title": "opens ARM64 snapshots and seccomp filters with the native anonymous flag",
+          "duration": 61.45740000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports the implicit macOS profile unavailable without altering the invocation",
+          "status": "passed",
+          "title": "reports the implicit macOS profile unavailable without altering the invocation",
+          "duration": 2.842300000000023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract returns a macOS Seatbelt wrapper as the executable spawn plan",
+          "status": "passed",
+          "title": "returns a macOS Seatbelt wrapper as the executable spawn plan",
+          "duration": 2.5663999999999305,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract preserves shell command semantics behind an explicit macOS wrapper",
+          "status": "passed",
+          "title": "preserves shell command semantics behind an explicit macOS wrapper",
+          "duration": 0.9152999999998883,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract launches an MCP capsule from anonymous Linux runtime and entry snapshots",
+          "status": "passed",
+          "title": "launches an MCP capsule from anonymous Linux runtime and entry snapshots",
+          "duration": 8.419399999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails the Linux MCP capsule boundary closed when source changes during snapshot",
+          "status": "passed",
+          "title": "fails the Linux MCP capsule boundary closed when source changes during snapshot",
+          "duration": 2.57529999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract returns the Linux prlimit wrapper and marked child environment",
+          "status": "passed",
+          "title": "returns the Linux prlimit wrapper and marked child environment",
+          "duration": 1.155699999999797,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract requires a trusted execution contract before probing or starting bubblewrap",
+          "status": "passed",
+          "title": "requires a trusted execution contract before probing or starting bubblewrap",
+          "duration": 0.796100000000024,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed and releases every pin when argv becomes sparse after the policy probe",
+          "status": "passed",
+          "title": "fails closed and releases every pin when argv becomes sparse after the policy probe",
+          "duration": 13.458200000000033,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an argv array with a throwing slice getter without opening resources",
+          "status": "passed",
+          "title": "rejects an argv array with a throwing slice getter without opening resources",
+          "duration": 3.1687999999999192,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an argv array with a throwing Symbol.iterator getter without opening resources",
+          "status": "passed",
+          "title": "rejects an argv array with a throwing Symbol.iterator getter without opening resources",
+          "duration": 3.225300000000061,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract builds an attested empty-root bwrap plan for one direct Plugin Node bin",
+          "status": "passed",
+          "title": "builds an attested empty-root bwrap plan for one direct Plugin Node bin",
+          "duration": 27.4991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract composes an MCP capsule snapshot with Linux filesystem and network isolation",
+          "status": "passed",
+          "title": "composes an MCP capsule snapshot with Linux filesystem and network isolation",
+          "duration": 5.898800000000165,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract snapshots every Node plugin file with normalized data-bind modes",
+          "status": "passed",
+          "title": "snapshots every Node plugin file with normalized data-bind modes",
+          "duration": 8.896199999999908,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the Node entry snapshot stable across same-inode truncate/write between plan and spawn",
+          "status": "passed",
+          "title": "keeps the Node entry snapshot stable across same-inode truncate/write between plan and spawn",
+          "duration": 10.113500000000158,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the Node entry snapshot stable across rename-over between plan and spawn",
+          "status": "passed",
+          "title": "keeps the Node entry snapshot stable across rename-over between plan and spawn",
+          "duration": 14.533200000000079,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract recursively binds cyclic second-level DT_NEEDED edges and survives dependency pathname replacement",
+          "status": "passed",
+          "title": "recursively binds cyclic second-level DT_NEEDED edges and survives dependency pathname replacement",
+          "duration": 58.345600000000104,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for a missing second-level dependency in the recursive native loader graph",
+          "status": "passed",
+          "title": "fails closed for a missing second-level dependency in the recursive native loader graph",
+          "duration": 3.773400000000038,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for a second-level DT_RUNPATH directive in the recursive native loader graph",
+          "status": "passed",
+          "title": "fails closed for a second-level DT_RUNPATH directive in the recursive native loader graph",
+          "duration": 3.0715999999999894,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for a second-level DT_SONAME alias in the recursive native loader graph",
+          "status": "passed",
+          "title": "fails closed for a second-level DT_SONAME alias in the recursive native loader graph",
+          "duration": 1.8141000000000531,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for an ambiguous second-level basename in the recursive native loader graph",
+          "status": "passed",
+          "title": "fails closed for an ambiguous second-level basename in the recursive native loader graph",
+          "duration": 1.2618999999999687,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'x64'",
+          "status": "passed",
+          "title": "adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'x64'",
+          "duration": 13.2820999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'arm64'",
+          "status": "passed",
+          "title": "adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'arm64'",
+          "duration": 13.089699999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'riscv64'",
+          "status": "passed",
+          "title": "adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for 'riscv64'",
+          "duration": 16.417699999999968,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract binds and hashes ld.so.cache as a pathname-visible load-set member",
+          "status": "passed",
+          "title": "binds and hashes ld.so.cache as a pathname-visible load-set member",
+          "duration": 13.469900000000052,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps a Node dependency snapshot stable across same-inode truncate/write after planning",
+          "status": "passed",
+          "title": "keeps a Node dependency snapshot stable across same-inode truncate/write after planning",
+          "duration": 4.168999999999869,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps a Node dependency snapshot stable across rename-over after planning",
+          "status": "passed",
+          "title": "keeps a Node dependency snapshot stable across rename-over after planning",
+          "duration": 3.977300000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract snapshots a valid empty Node entry source",
+          "status": "passed",
+          "title": "snapshots a valid empty Node entry source",
+          "duration": 4.999499999999898,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the Node v4 digest stable and binds sorted tree membership",
+          "status": "passed",
+          "title": "keeps the Node v4 digest stable and binds sorted tree membership",
+          "duration": 34.834299999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node entry snapshot source changes during verified copy",
+          "status": "passed",
+          "title": "fails closed when the Node entry snapshot source changes during verified copy",
+          "duration": 2.7523999999998523,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node entry snapshot copied bytes change before sealing",
+          "status": "passed",
+          "title": "fails closed when the Node entry snapshot copied bytes change before sealing",
+          "duration": 2.2345000000000255,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node entry snapshot O_TMPFILE creation is denied",
+          "status": "passed",
+          "title": "fails closed when the Node entry snapshot O_TMPFILE creation is denied",
+          "duration": 2.2503999999998996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node entry snapshot read-only OFDs cannot be reopened",
+          "status": "passed",
+          "title": "fails closed when the Node entry snapshot read-only OFDs cannot be reopened",
+          "duration": 2.855999999999767,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node entry snapshot writer close result is unavailable",
+          "status": "passed",
+          "title": "fails closed when the Node entry snapshot writer close result is unavailable",
+          "duration": 3.8661999999999352,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when Node plugin tree regular-file count exceeds 256",
+          "status": "passed",
+          "title": "fails closed when Node plugin tree regular-file count exceeds 256",
+          "duration": 19.56899999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when Node plugin tree aggregate bytes exceed 256 MiB",
+          "status": "passed",
+          "title": "fails closed when Node plugin tree aggregate bytes exceed 256 MiB",
+          "duration": 2.774800000000141,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract releases every prior tree snapshot when a middle snapshot fails",
+          "status": "passed",
+          "title": "releases every prior tree snapshot when a middle snapshot fails",
+          "duration": 4.007200000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the Node snapshot changes after the policy probe",
+          "status": "passed",
+          "title": "fails closed when the Node snapshot changes after the policy probe",
+          "duration": 5.676300000000083,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract releases both Node snapshot readers when the policy probe fails",
+          "status": "passed",
+          "title": "releases both Node snapshot readers when the policy probe fails",
+          "duration": 4.6435999999998785,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract classifies a failed detached child descriptor report without exposing stderr",
+          "status": "passed",
+          "title": "classifies a failed detached child descriptor report without exposing stderr",
+          "duration": 2.9395000000004075,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract preserves full-width bwrap device and inode identity evidence",
+          "status": "passed",
+          "title": "preserves full-width bwrap device and inode identity evidence",
+          "duration": 10.297799999999825,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract builds an attested bwrap plan for one direct static ELF native bin",
+          "status": "passed",
+          "title": "builds an attested bwrap plan for one direct static ELF native bin",
+          "duration": 12.46289999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract materializes and seals every native plugin file before launch",
+          "status": "passed",
+          "title": "materializes and seals every native plugin file before launch",
+          "duration": 7.1865999999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the descriptor-pinned bwrap supervisor stable when its path is replaced for Plugin Node",
+          "status": "passed",
+          "title": "keeps the descriptor-pinned bwrap supervisor stable when its path is replaced for Plugin Node",
+          "duration": 8.526499999999942,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the descriptor-pinned bwrap supervisor stable when its path is replaced for static ELF native",
+          "status": "passed",
+          "title": "keeps the descriptor-pinned bwrap supervisor stable when its path is replaced for static ELF native",
+          "duration": 7.233099999999922,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract builds the same attested bwrap plan for a narrow static PIE native bin",
+          "status": "passed",
+          "title": "builds the same attested bwrap plan for a narrow static PIE native bin",
+          "duration": 6.181500000000142,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract binds a dynamic PIE ET_DYN interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
+          "status": "passed",
+          "title": "binds a dynamic PIE ET_DYN interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
+          "duration": 10.456299999999828,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract binds a dynamic non-PIE ET_EXEC interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
+          "status": "passed",
+          "title": "binds a dynamic non-PIE ET_EXEC interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
+          "duration": 10.12940000000026,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract accepts a trusted dependency whose unused PT_INTERP is a valid system loader path",
+          "status": "passed",
+          "title": "accepts a trusted dependency whose unused PT_INTERP is a valid system loader path",
+          "duration": 7.004999999999654,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unused dependency PT_INTERP outside trusted system roots",
+          "status": "passed",
+          "title": "rejects an unused dependency PT_INTERP outside trusted system roots",
+          "duration": 2.468000000000302,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the visible dynamic probe Node runtime on an immutable snapshot across a same-inode host rewrite",
+          "status": "passed",
+          "title": "keeps the visible dynamic probe Node runtime on an immutable snapshot across a same-inode host rewrite",
+          "duration": 9.515499999999975,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ELF with later PT_LOAD overlay of the PT_DYNAMIC loader view before runtime inspection or target start",
+          "status": "passed",
+          "title": "rejects a native ELF with later PT_LOAD overlay of the PT_DYNAMIC loader view before runtime inspection or target start",
+          "duration": 2.1159999999999854,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ELF with page-rounded PT_LOAD overlap without raw virtual-range overlap before runtime inspection or target start",
+          "status": "passed",
+          "title": "rejects a native ELF with page-rounded PT_LOAD overlap without raw virtual-range overlap before runtime inspection or target start",
+          "duration": 1.8024000000000342,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the trusted Linux runtime page-size contract is invalid",
+          "status": "passed",
+          "title": "fails closed when the trusted Linux runtime page-size contract is invalid",
+          "duration": 1.5472999999997228,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for dynamic native an interpreter outside the trusted runtime closure before the plugin target can start",
+          "status": "passed",
+          "title": "fails closed for dynamic native an interpreter outside the trusted runtime closure before the plugin target can start",
+          "duration": 2.0498999999999796,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for dynamic native a DT_NEEDED member outside the trusted runtime closure before the plugin target can start",
+          "status": "passed",
+          "title": "fails closed for dynamic native a DT_NEEDED member outside the trusted runtime closure before the plugin target can start",
+          "duration": 1.9148000000000138,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for dynamic native DT_RUNPATH loader search injection before the plugin target can start",
+          "status": "passed",
+          "title": "fails closed for dynamic native DT_RUNPATH loader search injection before the plugin target can start",
+          "duration": 1.084599999999682,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps a native entry snapshot runnable after the source inode changes",
+          "status": "passed",
+          "title": "keeps a native entry snapshot runnable after the source inode changes",
+          "duration": 4.095899999999801,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract does not reselect the host native entry after the policy probe",
+          "status": "passed",
+          "title": "does not reselect the host native entry after the policy probe",
+          "duration": 11.679399999999987,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the native policy digest stable across anonymous inode IDs",
+          "status": "passed",
+          "title": "keeps the native policy digest stable across anonymous inode IDs",
+          "duration": 19.489200000000437,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when a native entry loses execute mode before snapshot",
+          "status": "passed",
+          "title": "fails closed when a native entry loses execute mode before snapshot",
+          "duration": 3.9161999999996624,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when a native snapshot changes during verified copy",
+          "status": "passed",
+          "title": "fails closed when a native snapshot changes during verified copy",
+          "duration": 2.8896999999997206,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when a native snapshot cannot be reopened read-only",
+          "status": "passed",
+          "title": "fails closed when a native snapshot cannot be reopened read-only",
+          "duration": 2.611699999999928,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed and releases prior snapshots when a native tree member cannot be sealed",
+          "status": "passed",
+          "title": "fails closed and releases prior snapshots when a native tree member cannot be sealed",
+          "duration": 3.7676000000001295,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed before snapshot allocation when a native plugin tree exceeds the file limit",
+          "status": "passed",
+          "title": "fails closed before snapshot allocation when a native plugin tree exceeds the file limit",
+          "duration": 42.30230000000029,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the native snapshot changes after the policy probe",
+          "status": "passed",
+          "title": "fails closed when the native snapshot changes after the policy probe",
+          "duration": 7.49330000000009,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract releases both snapshot readers when the native policy probe fails",
+          "status": "passed",
+          "title": "releases both snapshot readers when the native policy probe fails",
+          "duration": 3.1087000000002263,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native PT_INTERP before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native PT_INTERP before the bwrap policy probe or target spawn",
+          "duration": 1.5170000000002801,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "duration": 2.298399999999674,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_REL before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_REL before the bwrap policy probe or target spawn",
+          "duration": 1.4319000000000415,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN without PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN without PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "duration": 2.161000000000058,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with PT_INTERP before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with PT_INTERP before the bwrap policy probe or target spawn",
+          "duration": 2.0421000000001186,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with duplicate PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with duplicate PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "duration": 2.1718000000000757,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with executable PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with executable PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "duration": 2.0273999999999432,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with malformed PT_DYNAMIC size before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with malformed PT_DYNAMIC size before the bwrap policy probe or target spawn",
+          "duration": 2.0511999999998807,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with unmapped PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with unmapped PT_DYNAMIC before the bwrap policy probe or target spawn",
+          "duration": 1.2834000000002561,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with DT_NEEDED before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with DT_NEEDED before the bwrap policy probe or target spawn",
+          "duration": 1.3957000000000335,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN with unterminated dynamic table before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN with unterminated dynamic table before the bwrap policy probe or target spawn",
+          "duration": 1.287499999999909,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ET_DYN without DF_1_PIE before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ET_DYN without DF_1_PIE before the bwrap policy probe or target spawn",
+          "duration": 1.632199999999557,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native ELF32 before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native ELF32 before the bwrap policy probe or target spawn",
+          "duration": 2.989300000000185,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native big-endian ELF before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native big-endian ELF before the bwrap policy probe or target spawn",
+          "duration": 2.4391999999998006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native foreign architecture before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native foreign architecture before the bwrap policy probe or target spawn",
+          "duration": 2.1896999999999025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native out-of-bounds program headers before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native out-of-bounds program headers before the bwrap policy probe or target spawn",
+          "duration": 2.031500000000051,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native executable script before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native executable script before the bwrap policy probe or target spawn",
+          "duration": 1.824500000000171,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native missing non-executable stack attestation before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native missing non-executable stack attestation before the bwrap policy probe or target spawn",
+          "duration": 8.326399999999921,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native executable stack before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native executable stack before the bwrap policy probe or target spawn",
+          "duration": 2.9840000000003783,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native writable executable load segment before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native writable executable load segment before the bwrap policy probe or target spawn",
+          "duration": 2.3598000000001775,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native load segment larger on disk than in memory before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native load segment larger on disk than in memory before the bwrap policy probe or target spawn",
+          "duration": 1.9279999999998836,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native entry outside every executable load segment before the bwrap policy probe or target spawn",
+          "status": "passed",
+          "title": "rejects a native entry outside every executable load segment before the bwrap policy probe or target spawn",
+          "duration": 2.4926000000000386,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a set-id native entry before any host inspection or spawn",
+          "status": "passed",
+          "title": "rejects a set-id native entry before any host inspection or spawn",
+          "duration": 2.5174999999999272,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract emits the exact fail-closed network cBPF program for x64",
+          "status": "passed",
+          "title": "emits the exact fail-closed network cBPF program for x64",
+          "duration": 5.703600000000279,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract emits the exact fail-closed network cBPF program for arm64",
+          "status": "passed",
+          "title": "emits the exact fail-closed network cBPF program for arm64",
+          "duration": 3.4589999999998327,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract emits the exact fail-closed network cBPF program for riscv64",
+          "status": "passed",
+          "title": "emits the exact fail-closed network cBPF program for riscv64",
+          "duration": 3.030199999999695,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract accepts an async strong Plugin Node contract without detaching the bwrap supervisor",
+          "status": "passed",
+          "title": "accepts an async strong Plugin Node contract without detaching the bwrap supervisor",
+          "duration": 4.042000000000371,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the policy digest independent of user argv values",
+          "status": "passed",
+          "title": "keeps the policy digest independent of user argv values",
+          "duration": 10.54320000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps a failed fixed-policy bwrap probe as a candidate with no guarantee",
+          "status": "passed",
+          "title": "keeps a failed fixed-policy bwrap probe as a candidate with no guarantee",
+          "duration": 5.622499999999945,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the sealed Node entry after its source changes after the policy probe",
+          "status": "passed",
+          "title": "keeps the sealed Node entry after its source changes after the policy probe",
+          "duration": 6.889599999999973,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract still fails closed when the attested runtime changes after the policy probe",
+          "status": "passed",
+          "title": "still fails closed when the attested runtime changes after the policy probe",
+          "duration": 6.63189999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects unsupported shell Plugin Node launch options before probing bwrap",
+          "status": "passed",
+          "title": "rejects unsupported shell Plugin Node launch options before probing bwrap",
+          "duration": 1.6846999999997934,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects unsupported detached Plugin Node launch options before probing bwrap",
+          "status": "passed",
+          "title": "rejects unsupported detached Plugin Node launch options before probing bwrap",
+          "duration": 1.0496000000002823,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects unsupported ipc Plugin Node launch options before probing bwrap",
+          "status": "passed",
+          "title": "rejects unsupported ipc Plugin Node launch options before probing bwrap",
+          "duration": 0.9471000000003187,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects unsupported numeric fd Plugin Node launch options before probing bwrap",
+          "status": "passed",
+          "title": "rejects unsupported numeric fd Plugin Node launch options before probing bwrap",
+          "duration": 0.7382999999999811,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an entry identity change before probing or starting bwrap",
+          "status": "passed",
+          "title": "rejects an entry identity change before probing or starting bwrap",
+          "duration": 1.329200000000128,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a nested host mount inside the plugin root",
+          "status": "passed",
+          "title": "rejects a nested host mount inside the plugin root",
+          "duration": 1.4666999999999462,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by fuse.sshfs before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by fuse.sshfs before probing bubblewrap",
+          "duration": 1.405999999999949,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by nfs before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by nfs before probing bubblewrap",
+          "duration": 1.4949999999998909,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by cifs before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by cifs before probing bubblewrap",
+          "duration": 1.1667999999999665,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by 9p before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by 9p before probing bubblewrap",
+          "duration": 0.9794999999999163,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by virtiofs before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by virtiofs before probing bubblewrap",
+          "duration": 0.8510999999998603,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root backed by unknownfs before probing bubblewrap",
+          "status": "passed",
+          "title": "rejects a plugin root backed by unknownfs before probing bubblewrap",
+          "duration": 0.898200000000088,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an exact local bind mount at the plugin root",
+          "status": "passed",
+          "title": "rejects an exact local bind mount at the plugin root",
+          "duration": 2.0867000000002918,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin subtree that crosses a mount identity through a directory fd",
+          "status": "passed",
+          "title": "rejects a plugin subtree that crosses a mount identity through a directory fd",
+          "duration": 2.759700000000066,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a plugin root inode replacement between validation and pinning",
+          "status": "passed",
+          "title": "rejects a plugin root inode replacement between validation and pinning",
+          "duration": 1.2241000000003623,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a root-wide plugin contract before probing bwrap",
+          "status": "passed",
+          "title": "rejects a root-wide plugin contract before probing bwrap",
+          "duration": 0.9558000000001812,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports an unattested or missing fixed bwrap binary without running ldd",
+          "status": "passed",
+          "title": "reports an unattested or missing fixed bwrap binary without running ldd",
+          "duration": 1.0752999999999702,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when bubblewrap lacks required supervisor option file",
+          "status": "passed",
+          "title": "fails closed when bubblewrap lacks required supervisor option file",
+          "duration": 3.000500000000102,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when bubblewrap lacks required supervisor option ro-bind-fd",
+          "status": "passed",
+          "title": "fails closed when bubblewrap lacks required supervisor option ro-bind-fd",
+          "duration": 2.154199999999946,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when bubblewrap lacks required supervisor option perms",
+          "status": "passed",
+          "title": "fails closed when bubblewrap lacks required supervisor option perms",
+          "duration": 2.1502000000000407,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when Node bubblewrap lacks ro-bind-data snapshot support",
+          "status": "passed",
+          "title": "fails closed when Node bubblewrap lacks ro-bind-data snapshot support",
+          "duration": 8.589100000000144,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when native bubblewrap lacks ro-bind-data",
+          "status": "passed",
+          "title": "fails closed when native bubblewrap lacks ro-bind-data",
+          "duration": 4.17450000000008,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when native bubblewrap lacks perms",
+          "status": "passed",
+          "title": "fails closed when native bubblewrap lacks perms",
+          "duration": 4.254699999999957,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when bubblewrap cannot install the network seccomp filter",
+          "status": "passed",
+          "title": "fails closed when bubblewrap cannot install the network seccomp filter",
+          "duration": 4.655299999999897,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed and releases every pin on an unsupported seccomp architecture",
+          "status": "passed",
+          "title": "fails closed and releases every pin on an unsupported seccomp architecture",
+          "duration": 3.3510000000001128,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the anonymous seccomp filter bytes change before handoff",
+          "status": "passed",
+          "title": "fails closed when the anonymous seccomp filter bytes change before handoff",
+          "duration": 3.628099999999904,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a non-canonical library path returned by ldd",
+          "status": "passed",
+          "title": "rejects a non-canonical library path returned by ldd",
+          "duration": 6.949300000000221,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract preserves shell command semantics behind the Linux wrapper",
+          "status": "passed",
+          "title": "preserves shell command semantics behind the Linux wrapper",
+          "duration": 2.453200000000379,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects invalid Windows wall-time limits before preparing a native adapter",
+          "status": "passed",
+          "title": "rejects invalid Windows wall-time limits before preparing a native adapter",
+          "duration": 2.0855999999998858,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract does not silently translate native wall time into Linux CPU limits or macOS Seatbelt",
+          "status": "passed",
+          "title": "does not silently translate native wall time into Linux CPU limits or macOS Seatbelt",
+          "duration": 0.5169999999998254,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract returns the Windows Job Object + restricted-token wrapper plan",
+          "status": "passed",
+          "title": "returns the Windows Job Object + restricted-token wrapper plan",
+          "duration": 14.485900000000129,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract changes only CPU budget in the Windows build profile",
+          "status": "passed",
+          "title": "changes only CPU budget in the Windows build profile",
+          "duration": 10.004500000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps the build profile on the default macOS compatibility path",
+          "status": "passed",
+          "title": "keeps the build profile on the default macOS compatibility path",
+          "duration": 0.6268000000000029,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the native helper probe payload cannot be removed",
+          "status": "passed",
+          "title": "fails closed when the native helper probe payload cannot be removed",
+          "duration": 34.245000000000346,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails synchronous plan cleanup when its invocation payload remains",
+          "status": "passed",
+          "title": "fails synchronous plan cleanup when its invocation payload remains",
+          "duration": 26.705399999999827,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract binds a synchronous Windows Plugin Node launch to a verified entry snapshot",
+          "status": "passed",
+          "title": "binds a synchronous Windows Plugin Node launch to a verified entry snapshot",
+          "duration": 18.098899999999958,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract binds an asynchronous Windows MCP capsule to runtime locks and an entry snapshot",
+          "status": "passed",
+          "title": "binds an asynchronous Windows MCP capsule to runtime locks and an entry snapshot",
+          "duration": 14.422000000000025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract composes a Windows MCP capsule snapshot with zero-capability AppContainer boundaries",
+          "status": "passed",
+          "title": "composes a Windows MCP capsule snapshot with zero-capability AppContainer boundaries",
+          "duration": 22.16890000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract probes the real Node snapshot transport before a restricted-token launch",
+          "status": "passed",
+          "title": "probes the real Node snapshot transport before a restricted-token launch",
+          "duration": 30.598500000000058,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'native execution contract' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'native execution contract' before compiling or starting the helper",
+          "duration": 1.8974000000002889,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'asynchronous Node launch' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'asynchronous Node launch' before compiling or starting the helper",
+          "duration": 1.0452000000000226,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'detached Node launch' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'detached Node launch' before compiling or starting the helper",
+          "duration": 0.9936999999999898,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'Node IPC descriptor' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'Node IPC descriptor' before compiling or starting the helper",
+          "duration": 2.206000000000131,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'ES module entry snapshot' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'ES module entry snapshot' before compiling or starting the helper",
+          "duration": 1.9284999999999854,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects an unsupported Windows Plugin snapshot 'mismatched runtime identity' before compiling or starting the helper",
+          "status": "passed",
+          "title": "rejects an unsupported Windows Plugin snapshot 'mismatched runtime identity' before compiling or starting the helper",
+          "duration": 1.583299999999781,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract uses the audited default fallback for Git's nested Windows process tree",
+          "status": "passed",
+          "title": "uses the audited default fallback for Git's nested Windows process tree",
+          "duration": 1.7721000000001368,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract prefers a canonical protected PowerShell 7 host for strong Windows plans",
+          "status": "passed",
+          "title": "prefers a canonical protected PowerShell 7 host for strong Windows plans",
+          "duration": 12.670500000000175,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract falls back to the protected in-box host when PowerShell 7 cannot probe under restriction",
+          "status": "passed",
+          "title": "falls back to the protected in-box host when PowerShell 7 cannot probe under restriction",
+          "duration": 13.345400000000154,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a redirected PowerShell 7 host and retains the in-box host",
+          "status": "passed",
+          "title": "rejects a redirected PowerShell 7 host and retains the in-box host",
+          "duration": 8.787699999999859,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract uses the dedicated Windows adapter temp root from the environment",
+          "status": "passed",
+          "title": "uses the dedicated Windows adapter temp root from the environment",
+          "duration": 13.228700000000117,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract prefers a runtime Windows adapter temp root over the environment",
+          "status": "passed",
+          "title": "prefers a runtime Windows adapter temp root over the environment",
+          "duration": 12.270199999999932,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract calls an explicit tmpdir hook once and pins every plan temp path to it",
+          "status": "passed",
+          "title": "calls an explicit tmpdir hook once and pins every plan temp path to it",
+          "duration": 13.388899999999921,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract resolves an explicit Windows tmpdir hook once through applySandbox",
+          "status": "passed",
+          "title": "resolves an explicit Windows tmpdir hook once through applySandbox",
+          "duration": 6.224299999999857,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed with one reason when the adapter temp root is an embedded NUL",
+          "status": "passed",
+          "title": "fails closed with one reason when the adapter temp root is an embedded NUL",
+          "duration": 0.7155999999999949,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed with one reason when the adapter temp root is a relative path",
+          "status": "passed",
+          "title": "fails closed with one reason when the adapter temp root is a relative path",
+          "duration": 5.101100000000315,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed with one reason when the adapter temp root is a symlink",
+          "status": "passed",
+          "title": "fails closed with one reason when the adapter temp root is a symlink",
+          "duration": 0.9110000000000582,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed with one reason when the adapter temp root is a reparse point",
+          "status": "passed",
+          "title": "fails closed with one reason when the adapter temp root is a reparse point",
+          "duration": 0.5653999999999542,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed with one reason when the adapter temp root is a non-directory",
+          "status": "passed",
+          "title": "fails closed with one reason when the adapter temp root is a non-directory",
+          "duration": 1.4464999999995598,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a junction or reparse point in an adapter-root ancestor",
+          "status": "passed",
+          "title": "rejects a junction or reparse point in an adapter-root ancestor",
+          "duration": 0.9292999999997846,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract accepts a native 8.3 alias only when it resolves to the same directory identity",
+          "status": "passed",
+          "title": "accepts a native 8.3 alias only when it resolves to the same directory identity",
+          "duration": 16.659299999999803,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects a native realpath target with a different leaf identity",
+          "status": "passed",
+          "title": "rejects a native realpath target with a different leaf identity",
+          "duration": 1.1358000000000175,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed when the bound adapter root is replaced during helper creation",
+          "status": "passed",
+          "title": "fails closed when the bound adapter root is replaced during helper creation",
+          "duration": 6.594900000000052,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract refuses cleanup after root replacement and succeeds after identity restoration",
+          "status": "passed",
+          "title": "refuses cleanup after root replacement and succeeds after identity restoration",
+          "duration": 11.02520000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract materializes a random byte-loaded Windows helper and never trusts a prepositioned cache",
+          "status": "passed",
+          "title": "materializes a random byte-loaded Windows helper and never trusts a prepositioned cache",
+          "duration": 7.4944000000000415,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract shares one attested helper across ordinary plans in the same process",
+          "status": "passed",
+          "title": "shares one attested helper across ordinary plans in the same process",
+          "duration": 13.71180000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract deletes a quiescent cached helper after the unref idle TTL",
+          "status": "passed",
+          "title": "deletes a quiescent cached helper after the unref idle TTL",
+          "duration": 14.255500000000211,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract synchronously retires a released helper at zero TTL from the process environment",
+          "status": "passed",
+          "title": "synchronously retires a released helper at zero TTL from the process environment",
+          "duration": 13.645899999999983,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract synchronously retires a released helper at zero TTL from an explicit runtime override",
+          "status": "passed",
+          "title": "synchronously retires a released helper at zero TTL from an explicit runtime override",
+          "duration": 6.779099999999744,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract does not reuse a 60-second helper lease for a new zero-TTL policy",
+          "status": "passed",
+          "title": "does not reuse a 60-second helper lease for a new zero-TTL policy",
+          "duration": 17.935300000000097,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract retries a strict non-recursive directory removal after the helper file is gone",
+          "status": "passed",
+          "title": "retries a strict non-recursive directory removal after the helper file is gone",
+          "duration": 26.683599999999842,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract tracks the helper directory when a partial materialization cannot clean up immediately",
+          "status": "passed",
+          "title": "tracks the helper directory when a partial materialization cannot clean up immediately",
+          "duration": 41.52599999999984,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract retires the cache entry when an unlink race leaves only a file backlog",
+          "status": "passed",
+          "title": "retires the cache entry when an unlink race leaves only a file backlog",
+          "duration": 32.72940000000017,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports reset success when an immediate retry clears transient backlogs",
+          "status": "passed",
+          "title": "reports reset success when an immediate retry clears transient backlogs",
+          "duration": 29.002800000000207,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract rejects and rematerializes a cached helper when its digest or file identity changes",
+          "status": "passed",
+          "title": "rejects and rematerializes a cached helper when its digest or file identity changes",
+          "duration": 3164.7835999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract invalidates the process-local helper when built-in adapter content changes",
+          "status": "passed",
+          "title": "invalidates the process-local helper when built-in adapter content changes",
+          "duration": 11.393100000000231,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract returns an attested zero-capability AppContainer plan for required filesystem and network boundaries",
+          "status": "passed",
+          "title": "returns an attested zero-capability AppContainer plan for required filesystem and network boundaries",
+          "duration": 11.61869999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract retries AppContainer cleanup before reporting a synchronous failure",
+          "status": "passed",
+          "title": "retries AppContainer cleanup before reporting a synchronous failure",
+          "duration": 13.996499999999287,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reacquires the helper when AppContainer cleanup succeeds only after a reported failure",
+          "status": "passed",
+          "title": "reacquires the helper when AppContainer cleanup succeeds only after a reported failure",
+          "duration": 14.355599999999868,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract bounds automatic AppContainer cleanup retries after a permanent failure",
+          "status": "passed",
+          "title": "bounds automatic AppContainer cleanup retries after a permanent failure",
+          "duration": 19.436999999999898,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps automatic AppContainer backoff independent for staggered profiles",
+          "status": "passed",
+          "title": "keeps automatic AppContainer backoff independent for staggered profiles",
+          "duration": 52.38760000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract tracks AppContainer cleanup when readiness fails before a plan is returned",
+          "status": "passed",
+          "title": "tracks AppContainer cleanup when readiness fails before a plan is returned",
+          "duration": 16.381199999999808,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract tracks AppContainer cleanup when final invocation creation fails",
+          "status": "passed",
+          "title": "tracks AppContainer cleanup when final invocation creation fails",
+          "duration": 15.181700000000092,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract re-attests and refreshes the helper before AppContainer cleanup invocation",
+          "status": "passed",
+          "title": "re-attests and refreshes the helper before AppContainer cleanup invocation",
+          "duration": 13.80659999999989,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps AppContainer guarantees unavailable when synchronous launch attestation fails",
+          "status": "passed",
+          "title": "keeps AppContainer guarantees unavailable when synchronous launch attestation fails",
+          "duration": 11.048200000000179,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract requires per-target AppContainer identity attestation for asynchronous Windows launches",
+          "status": "passed",
+          "title": "requires per-target AppContainer identity attestation for asynchronous Windows launches",
+          "duration": 15.309599999999591,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract uses only documented AppContainer attributes and attests the suspended target before resume",
+          "status": "passed",
+          "title": "uses only documented AppContainer attributes and attests the suspended target before resume",
+          "duration": 3.843399999999747,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract keeps Windows MCP plan issuance private and revokes it before cleanup",
+          "status": "passed",
+          "title": "keeps Windows MCP plan issuance private and revokes it before cleanup",
+          "duration": 1.1252000000004045,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reapplies restricted-token policy idempotently for nested workers",
+          "status": "passed",
+          "title": "reapplies restricted-token policy idempotently for nested workers",
+          "duration": 2.2750999999998385,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract builds an explicit AppContainer environment for readiness probes",
+          "status": "passed",
+          "title": "builds an explicit AppContainer environment for readiness probes",
+          "duration": 2.337999999999738,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract maps Node path-stat identities to the same locked native file",
+          "status": "passed",
+          "title": "maps Node path-stat identities to the same locked native file",
+          "duration": 2.3724999999994907,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract captures verified entry bytes before launch and inherits only the snapshot pipe",
+          "status": "passed",
+          "title": "captures verified entry bytes before launch and inherits only the snapshot pipe",
+          "duration": 4.52179999999953,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports detached numeric file stdio as unavailable on Windows",
+          "status": "passed",
+          "title": "reports detached numeric file stdio as unavailable on Windows",
+          "duration": 0.581000000000131,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports Windows unavailable when its native host is missing",
+          "status": "passed",
+          "title": "reports Windows unavailable when its native host is missing",
+          "duration": 5.131000000000313,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract retains a retryable cleanup record when a host-missing helper cannot be removed",
+          "status": "passed",
+          "title": "retains a retryable cleanup record when a host-missing helper cannot be removed",
+          "duration": 39.23779999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract preserves Node IPC stdio in the Windows restricted-token plan",
+          "status": "passed",
+          "title": "preserves Node IPC stdio in the Windows restricted-token plan",
+          "duration": 10.048099999999977,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract fails closed for unsupported Windows descriptors above the IPC fd",
+          "status": "passed",
+          "title": "fails closed for unsupported Windows descriptors above the IPC fd",
+          "duration": 0.5742000000000189,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract resolves detached Windows launches to the target PID synchronously",
+          "status": "passed",
+          "title": "resolves detached Windows launches to the target PID synchronously",
+          "duration": 6.3244000000004235,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract cleans a detached target identity after same-file metadata settles",
+          "status": "passed",
+          "title": "cleans a detached target identity after same-file metadata settles",
+          "duration": 8.613400000000183,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "platform sandbox adapter contract"
+          ],
+          "fullName": "platform sandbox adapter contract reports Linux unavailable when the wrapper is missing",
+          "status": "passed",
+          "title": "reports Linux unavailable when the wrapper is missing",
+          "duration": 0.4113999999999578,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement loads only verified helper bytes when the temp directory contains loader sidecars",
+          "status": "passed",
+          "title": "loads only verified helper bytes when the temp directory contains loader sidecars",
+          "duration": 7309.1666,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement rejects helper bytes changed after the final launch plan is issued",
+          "status": "passed",
+          "title": "rejects helper bytes changed after the final launch plan is issued",
+          "duration": 4315.274299999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement rejects remote target paths before the helper performs target lookup",
+          "status": "passed",
+          "title": "rejects remote target paths before the helper performs target lookup",
+          "duration": 10379.5297,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement launches an attested AppContainer target and leaves no profile behind when the OS supports it",
+          "status": "passed",
+          "title": "launches an attested AppContainer target and leaves no profile behind when the OS supports it",
+          "duration": 10249.866999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement runs or fails closed on a nested Broker launch from an already restricted worker",
+          "status": "passed",
+          "title": "runs or fails closed on a nested Broker launch from an already restricted worker",
+          "duration": 7006.2183,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement starts a real child only after the native wrapper is active",
+          "status": "passed",
+          "title": "starts a real child only after the native wrapper is active",
+          "duration": 21989.400799999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement preserves a real Node fd3 IPC channel through the native adapter",
+          "status": "passed",
+          "title": "preserves a real Node fd3 IPC channel through the native adapter",
+          "duration": 4853.879799999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement exposes and supervises the real detached target PID",
+          "status": "passed",
+          "title": "exposes and supervises the real detached target PID",
+          "duration": 4452.5432,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "Windows sandbox live enforcement"
+          ],
+          "fullName": "Windows sandbox live enforcement fails closed for detached numeric file stdio in strict mode",
+          "status": "passed",
+          "title": "fails closed for detached numeric file stdio in strict mode",
+          "duration": 89.11080000000948,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption passes adapter command, args, and options to async native spawn",
+          "status": "passed",
+          "title": "passes adapter command, args, and options to async native spawn",
+          "duration": 2.9456000000063796,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption requires native wall-time enforcement before dispatch even when ordinary fallback is allowed",
+          "status": "passed",
+          "title": "requires native wall-time enforcement before dispatch even when ordinary fallback is allowed",
+          "duration": 7.378599999996368,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption does not dispatch an injected adapter through its mutable call property",
+          "status": "passed",
+          "title": "does not dispatch an injected adapter through its mutable call property",
+          "duration": 1.9461000000010245,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a structurally valid Linux bwrap plan from an injected adapter",
+          "status": "passed",
+          "title": "rejects a structurally valid Linux bwrap plan from an injected adapter",
+          "duration": 4.915099999998347,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a reserved bwrap backend declared for another platform",
+          "status": "passed",
+          "title": "rejects a reserved bwrap backend declared for another platform",
+          "duration": 1.392199999987497,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects the reserved Linux FD snapshot backend outside its built-in Linux authority",
+          "status": "passed",
+          "title": "rejects the reserved Linux FD snapshot backend outside its built-in Linux authority",
+          "duration": 3.4078000000008615,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects plugin bwrap plans that attach a workspace-only PTY policy",
+          "status": "passed",
+          "title": "rejects plugin bwrap plans that attach a workspace-only PTY policy",
+          "duration": 1.864000000001397,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a stateful sandbox-plan command getter before native launch",
+          "status": "passed",
+          "title": "rejects a stateful sandbox-plan command getter before native launch",
+          "duration": 1.440600000001723,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a stateful sandbox-plan applied getter before native launch",
+          "status": "passed",
+          "title": "rejects a stateful sandbox-plan applied getter before native launch",
+          "duration": 1.7448999999905936,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption preserves extended runtime probe evidence in the audit log",
+          "status": "passed",
+          "title": "preserves extended runtime probe evidence in the audit log",
+          "duration": 4.206399999995483,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption validates Node plugin-tree evidence but rejects its injected adapter",
+          "status": "passed",
+          "title": "validates Node plugin-tree evidence but rejects its injected adapter",
+          "duration": 2.497300000002724,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot forged complete-tree scope before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot forged complete-tree scope before native spawn",
+          "duration": 1.1275999999925261,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot incomplete evidence before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot incomplete evidence before native spawn",
+          "duration": 0.797099999996135,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot atomic claim before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot atomic claim before native spawn",
+          "duration": 0.7409999999945285,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot regular-file count above 256 before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot regular-file count above 256 before native spawn",
+          "duration": 0.8369999999995343,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot aggregate bytes above 256 MiB before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot aggregate bytes above 256 MiB before native spawn",
+          "duration": 1.373200000001816,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot with attempted=false before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot with attempted=false before native spawn",
+          "duration": 0.7822000000014668,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot with a non-null reason before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot with a non-null reason before native spawn",
+          "duration": 0.6743999999889638,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot with a non-Node probe runtime before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot with a non-Node probe runtime before native spawn",
+          "duration": 0.6172000000078697,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot without a bound supervisor before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot without a bound supervisor before native spawn",
+          "duration": 0.6142999999865424,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot on a non-Linux platform before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot on a non-Linux platform before native spawn",
+          "duration": 0.5048999999999069,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot with a candidate backend before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot with a candidate backend before native spawn",
+          "duration": 0.5982999999978347,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot from a non-bwrap backend before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot from a non-bwrap backend before native spawn",
+          "duration": 0.6000999999960186,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot with non-bwrap enforcement before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot with non-bwrap enforcement before native spawn",
+          "duration": 0.6185999999870546,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot without policy attestation before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot without policy attestation before native spawn",
+          "duration": 1.4866999999940163,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot without a policy digest before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot without a policy digest before native spawn",
+          "duration": 0.6918000000005122,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Node plugin-tree snapshot without both strong guarantees before native spawn",
+          "status": "passed",
+          "title": "rejects Node plugin-tree snapshot without both strong guarantees before native spawn",
+          "duration": 0.6860000000015134,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption validates dynamic ELF graph evidence but rejects its injected adapter",
+          "status": "passed",
+          "title": "validates dynamic ELF graph evidence but rejects its injected adapter",
+          "duration": 3.3713999999890802,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption preserves a zero-capability runtime attestation through plan validation",
+          "status": "passed",
+          "title": "preserves a zero-capability runtime attestation through plan validation",
+          "duration": 0.7443000000057509,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects missing capability evidence for a Windows AppContainer runtime attestation",
+          "status": "passed",
+          "title": "rejects missing capability evidence for a Windows AppContainer runtime attestation",
+          "duration": 0.7612000000081025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects nonzero capability evidence for a Windows AppContainer runtime attestation",
+          "status": "passed",
+          "title": "rejects nonzero capability evidence for a Windows AppContainer runtime attestation",
+          "duration": 0.5362000000022817,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption does not fabricate capability evidence for a failed AppContainer probe",
+          "status": "passed",
+          "title": "does not fabricate capability evidence for a failed AppContainer probe",
+          "duration": 0.5591000000131316,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption validates static native tree evidence but rejects its injected adapter",
+          "status": "passed",
+          "title": "validates static native tree evidence but rejects its injected adapter",
+          "duration": 2.4675000000133878,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects successful dynamic native evidence with missing complete-tree evidence before native spawn",
+          "status": "passed",
+          "title": "rejects successful dynamic native evidence with missing complete-tree evidence before native spawn",
+          "duration": 1.328300000008312,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects successful dynamic native evidence with Node entry scope before native spawn",
+          "status": "passed",
+          "title": "rejects successful dynamic native evidence with Node entry scope before native spawn",
+          "duration": 1.0473999999958323,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a missing pathname-closure discriminator",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a missing pathname-closure discriminator",
+          "duration": 2.472200000003795,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a forged exclusion boundary",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a forged exclusion boundary",
+          "duration": 3.1947999999974854,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a forged pathname scope",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a forged pathname scope",
+          "duration": 1.9272999999957392,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a forged enforcement mechanism",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a forged enforcement mechanism",
+          "duration": 1.778599999990547,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with an empty load set",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with an empty load set",
+          "duration": 1.6310000000084983,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with an oversized load set",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with an oversized load set",
+          "duration": 1.0178000000014435,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with zero attested bytes",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with zero attested bytes",
+          "duration": 1.7384000000020023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with an oversized byte aggregate",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with an oversized byte aggregate",
+          "duration": 1.9855999999999767,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with an invalid load-set digest",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with an invalid load-set digest",
+          "duration": 1.8303000000014435,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with an unbound load set",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with an unbound load set",
+          "duration": 1.5908999999955995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a writable filesystem",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a writable filesystem",
+          "duration": 1.8592999999964377,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a mounted procfs",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a mounted procfs",
+          "duration": 1.1680000000051223,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with a mounted devfs",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with a mounted devfs",
+          "duration": 1.0678999999945518,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with writable scratch",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with writable scratch",
+          "duration": 0.9254999999975553,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with descriptor reopen paths",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with descriptor reopen paths",
+          "duration": 0.9881999999925029,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic runtime pathname closure evidence with procfs supervisor exposure",
+          "status": "passed",
+          "title": "rejects dynamic runtime pathname closure evidence with procfs supervisor exposure",
+          "duration": 0.8766000000032363,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with a procfs mount",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with a procfs mount",
+          "duration": 1.2331999999878462,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with an unknown future bwrap option",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with an unknown future bwrap option",
+          "duration": 1.1168000000034226,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with an injected loader environment variable",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with an injected loader environment variable",
+          "duration": 1.0521000000007916,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with an unapproved writable tmpfs",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with an unapproved writable tmpfs",
+          "duration": 1.4605999999912456,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with an unbound host pathname mount",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with an unbound host pathname mount",
+          "duration": 1.0988999999972293,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with an extra descriptor-created regular file",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with an extra descriptor-created regular file",
+          "duration": 1.080099999991944,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with a non-sequential load-set descriptor",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with a non-sequential load-set descriptor",
+          "duration": 1.0296999999991385,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with a caller-owned raw Node runtime descriptor",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with a caller-owned raw Node runtime descriptor",
+          "duration": 1.029500000004191,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with a mismatched seccomp descriptor",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with a mismatched seccomp descriptor",
+          "duration": 1.051900000005844,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a dynamic runtime pathname closure plan with remount ordering after the writable overlay",
+          "status": "passed",
+          "title": "rejects a dynamic runtime pathname closure plan with remount ordering after the writable overlay",
+          "duration": 1.0377999999909662,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with forged scope before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with forged scope before native spawn",
+          "duration": 1.0921000000089407,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with forged mechanism before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with forged mechanism before native spawn",
+          "duration": 0.942799999989802,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with interpreter outside system roots before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with interpreter outside system roots before native spawn",
+          "duration": 0.852100000003702,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with non-canonical interpreter before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with non-canonical interpreter before native spawn",
+          "duration": 1.2854999999981374,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with dependency edge count above 1024 before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with dependency edge count above 1024 before native spawn",
+          "duration": 1.331000000005588,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with runtime file count above 256 before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with runtime file count above 256 before native spawn",
+          "duration": 1.5252000000036787,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with aggregate runtime bytes above 512 MiB before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with aggregate runtime bytes above 512 MiB before native spawn",
+          "duration": 2.368900000001304,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with missing aggregate runtime bytes before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with missing aggregate runtime bytes before native spawn",
+          "duration": 1.9955000000045402,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with a forged arbitrary shared-library closure claim before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with a forged arbitrary shared-library closure claim before native spawn",
+          "duration": 2.0568999999959487,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with invalid digest before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with invalid digest before native spawn",
+          "duration": 1.64879999999539,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with non-dynamic kind before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with non-dynamic kind before native spawn",
+          "duration": 0.957299999994575,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with non-dynamic target runtime before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with non-dynamic target runtime before native spawn",
+          "duration": 0.8730999999970663,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with atomic handle claim before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with atomic handle claim before native spawn",
+          "duration": 0.856500000008964,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects dynamic ELF recursive startup-graph evidence with without descriptor binding before native spawn",
+          "status": "passed",
+          "title": "rejects dynamic ELF recursive startup-graph evidence with without descriptor binding before native spawn",
+          "duration": 1.5707000000111293,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects successful dynamic ELF evidence without a descriptor-bound recursive startup graph",
+          "status": "passed",
+          "title": "rejects successful dynamic ELF evidence without a descriptor-bound recursive startup graph",
+          "duration": 1.2706000000034692,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption preserves complete bwrap supervisor evidence in the audit log",
+          "status": "passed",
+          "title": "preserves complete bwrap supervisor evidence in the audit log",
+          "duration": 1.8323999999993248,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorDescriptorBound before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorDescriptorBound before native spawn",
+          "duration": 1.4761999999900581,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorExecutablePinned before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorExecutablePinned before native spawn",
+          "duration": 1.2770999999920605,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorDescriptorContained before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorDescriptorContained before native spawn",
+          "duration": 1.2991999999940163,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorDescriptorConsumedBeforeTarget before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorDescriptorConsumedBeforeTarget before native spawn",
+          "duration": 1.636499999993248,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorStagingPathHidden before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorStagingPathHidden before native spawn",
+          "duration": 1.6186999999918044,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a non-boolean runtime probe supervisorTemporaryCopyObscured before native spawn",
+          "status": "passed",
+          "title": "rejects a non-boolean runtime probe supervisorTemporaryCopyObscured before native spawn",
+          "duration": 1.562999999994645,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorBindingScope string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorBindingScope string before native spawn",
+          "duration": 1.4337999999988824,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorBindingScope string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorBindingScope string before native spawn",
+          "duration": 1.1062999999994645,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorDescriptorBindingMechanism string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorDescriptorBindingMechanism string before native spawn",
+          "duration": 1.1838999999890802,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorDescriptorBindingMechanism string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorDescriptorBindingMechanism string before native spawn",
+          "duration": 1.1220000000030268,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorPid1ExecutableExposure string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorPid1ExecutableExposure string before native spawn",
+          "duration": 1.1330000000016298,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe supervisorPid1ExecutableExposure string before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe supervisorPid1ExecutableExposure string before native spawn",
+          "duration": 1.384200000000419,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity object before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity object before native spawn",
+          "duration": 2.4671999999991385,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity path before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity path before native spawn",
+          "duration": 1.4299000000028173,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity sha256 before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity sha256 before native spawn",
+          "duration": 1.294899999993504,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity fileId before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity fileId before native spawn",
+          "duration": 1.2657999999937601,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity bytes before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity bytes before native spawn",
+          "duration": 1.1761999999871477,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity oversized bytes before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity oversized bytes before native spawn",
+          "duration": 1.1598999999987427,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity mtimeMs before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity mtimeMs before native spawn",
+          "duration": 1.185299999997369,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity mode before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity mode before native spawn",
+          "duration": 1.1506999999983236,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity unsafe mode before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity unsafe mode before native spawn",
+          "duration": 1.312000000005355,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity uid before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity uid before native spawn",
+          "duration": 1.187900000004447,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity non-root uid before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity non-root uid before native spawn",
+          "duration": 1.4896000000007916,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid bwrap supervisor executable identity gid before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid bwrap supervisor executable identity gid before native spawn",
+          "duration": 1.7437000000063563,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe contentSnapshot field before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe contentSnapshot field before native spawn",
+          "duration": 2.055500000002212,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe contentSnapshotScope field before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe contentSnapshotScope field before native spawn",
+          "duration": 1.9811999999947147,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an invalid runtime probe contentSnapshotMechanism field before native spawn",
+          "status": "passed",
+          "title": "rejects an invalid runtime probe contentSnapshotMechanism field before native spawn",
+          "duration": 1.5302999999985332,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption enforces and audits a satisfied typed boundary policy",
+          "status": "passed",
+          "title": "enforces and audits a satisfied typed boundary policy",
+          "duration": 3.514100000000326,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption validates Linux FD snapshots but rejects their injected adapter",
+          "status": "passed",
+          "title": "validates Linux FD snapshots but rejects their injected adapter",
+          "duration": 5.3408999999955995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption validates Linux bwrap snapshots but rejects their injected adapter",
+          "status": "passed",
+          "title": "validates Linux bwrap snapshots but rejects their injected adapter",
+          "duration": 5.628700000001118,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS CODE_SNAPSHOT evidence without an atomic runtime launch",
+          "status": "passed",
+          "title": "rejects macOS CODE_SNAPSHOT evidence without an atomic runtime launch",
+          "duration": 2.611399999994319,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption preserves macOS fail-closed atomic evidence before native spawn",
+          "status": "passed",
+          "title": "preserves macOS fail-closed atomic evidence before native spawn",
+          "duration": 2.3197000000072876,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS signed-root MCP authority from a structurally complete unissued plan",
+          "status": "passed",
+          "title": "rejects macOS signed-root MCP authority from a structurally complete unissued plan",
+          "duration": 3.421699999991688,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS signed-root MCP authority from mutated helper arguments",
+          "status": "passed",
+          "title": "rejects macOS signed-root MCP authority from mutated helper arguments",
+          "duration": 1.792699999990873,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS signed-root MCP authority from mutated caller-lifeline stdio",
+          "status": "passed",
+          "title": "rejects macOS signed-root MCP authority from mutated caller-lifeline stdio",
+          "duration": 1.552400000000489,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS signed-root MCP authority from mutated environment",
+          "status": "passed",
+          "title": "rejects macOS signed-root MCP authority from mutated environment",
+          "duration": 1.2290999999968335,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects macOS signed-root MCP authority from a different execution-contract object",
+          "status": "passed",
+          "title": "rejects macOS signed-root MCP authority from a different execution-contract object",
+          "duration": 1.2427000000025146,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption burns and validates macOS MCP plan bindings before native spawn",
+          "status": "passed",
+          "title": "burns and validates macOS MCP plan bindings before native spawn",
+          "duration": 1.7624999999970896,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects Windows MCP authority minted through an injected runtime adapter",
+          "status": "passed",
+          "title": "rejects Windows MCP authority minted through an injected runtime adapter",
+          "duration": 17.757299999997485,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption fails closed instead of re-entering a consumed Windows MCP post-spawn plan",
+          "status": "passed",
+          "title": "fails closed instead of re-entering a consumed Windows MCP post-spawn plan",
+          "duration": 1.6714000000065425,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an unissued Windows helper plan even when evidence matches the launch contract",
+          "status": "passed",
+          "title": "rejects an unissued Windows helper plan even when evidence matches the launch contract",
+          "duration": 7.791800000006333,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a forged code snapshot guarantee before native spawn",
+          "status": "passed",
+          "title": "rejects a forged code snapshot guarantee before native spawn",
+          "duration": 2.870200000004843,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a code snapshot guarantee with no runtime evidence",
+          "status": "passed",
+          "title": "rejects a code snapshot guarantee with no runtime evidence",
+          "duration": 2.599999999991269,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption fails closed before spawn when actual guarantees miss a required boundary",
+          "status": "passed",
+          "title": "fails closed before spawn when actual guarantees miss a required boundary",
+          "duration": 1.791300000011688,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption fails closed before native spawn when a Linux strong policy has no trusted execution contract",
+          "status": "passed",
+          "title": "fails closed before native spawn when a Linux strong policy has no trusted execution contract",
+          "duration": 2.374200000005658,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects a forged Plugin Node contract before adapter or native execution",
+          "status": "passed",
+          "title": "rejects a forged Plugin Node contract before adapter or native execution",
+          "duration": 2.575199999992037,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption supports the top-level requiredBoundaries alias on spawnSync",
+          "status": "passed",
+          "title": "supports the top-level requiredBoundaries alias on spawnSync",
+          "duration": 1.5855000000010477,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects unknown boundary identifiers before consulting the adapter",
+          "status": "passed",
+          "title": "rejects unknown boundary identifiers before consulting the adapter",
+          "duration": 1.2097999999969034,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption fails closed when a native PTY cannot provide a required boundary",
+          "status": "passed",
+          "title": "fails closed when a native PTY cannot provide a required boundary",
+          "duration": 5.639400000000023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption passes adapter command, args, and options to native spawnSync",
+          "status": "passed",
+          "title": "passes adapter command, args, and options to native spawnSync",
+          "duration": 2.1696999999985565,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption honors CC_SANDBOX_DISABLE without calling the adapter",
+          "status": "passed",
+          "title": "honors CC_SANDBOX_DISABLE without calling the adapter",
+          "duration": 2.0711999999912223,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption does not let CC_SANDBOX_DISABLE bypass strict mode",
+          "status": "passed",
+          "title": "does not let CC_SANDBOX_DISABLE bypass strict mode",
+          "duration": 2.318599999998696,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects an unavailable platform before spawn in strict mode",
+          "status": "passed",
+          "title": "rejects an unavailable platform before spawn in strict mode",
+          "duration": 1.9611000000004424,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects the legacy newCommand/newArgs adapter shape",
+          "status": "passed",
+          "title": "rejects the legacy newCommand/newArgs adapter shape",
+          "duration": 1.8604000000050291,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption rejects required async post-spawn enforcement before strict spawn",
+          "status": "passed",
+          "title": "rejects required async post-spawn enforcement before strict spawn",
+          "duration": 2.165099999998347,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption cleans an applied plan when spawnSync cannot run post-spawn enforcement",
+          "status": "passed",
+          "title": "cleans an applied plan when spawnSync cannot run post-spawn enforcement",
+          "duration": 1.9726000000082422,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption kills the child and throws when strict synchronous post-spawn fails",
+          "status": "passed",
+          "title": "kills the child and throws when strict synchronous post-spawn fails",
+          "duration": 2.4108999999880325,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker sandbox-plan consumption"
+          ],
+          "fullName": "ProcessExecutionBroker sandbox-plan consumption exposes non-strict asynchronous post-spawn failure on sandboxReady",
+          "status": "passed",
+          "title": "exposes non-strict asynchronous post-spawn failure on sandboxReady",
+          "duration": 2.2765999999974156,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791280281575,
+      "endTime": 1791280357203.2766,
+      "status": "passed",
+      "message": "",
+      "name": "<WORKSPACE>/packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract returns stdout and records sync provenance on success",
+          "status": "passed",
+          "title": "returns stdout and records sync provenance on success",
+          "duration": 33.93100000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract persists admission before a required-audit process can start",
+          "status": "passed",
+          "title": "persists admission before a required-audit process can start",
+          "duration": 10.44640000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract fails closed before spawn when required audit persistence is unavailable",
+          "status": "passed",
+          "title": "fails closed before spawn when required audit persistence is unavailable",
+          "duration": 7.874499999999898,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract terminates a PTY when required audit becomes unavailable after spawn",
+          "status": "passed",
+          "title": "terminates a PTY when required audit becomes unavailable after spawn",
+          "duration": 13.313100000000077,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract shares one trace singleton across CJS and ESM consumers",
+          "status": "passed",
+          "title": "shares one trace singleton across CJS and ESM consumers",
+          "duration": 2.8245999999999185,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract propagates the shared active trace to sync children and audit",
+          "status": "passed",
+          "title": "propagates the shared active trace to sync children and audit",
+          "duration": 14.257399999999961,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract supports the native options-only overload",
+          "status": "passed",
+          "title": "supports the native options-only overload",
+          "duration": 8.948200000000043,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract throws a native-shaped error for a non-zero exit",
+          "status": "passed",
+          "title": "throws a native-shaped error for a non-zero exit",
+          "duration": 6.779899999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "ProcessExecutionBroker execFileSync contract"
+          ],
+          "fullName": "ProcessExecutionBroker execFileSync contract rethrows spawn errors without hiding their code",
+          "status": "passed",
+          "title": "rethrows spawn errors without hiding their code",
+          "duration": 7.130499999999984,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791280279588,
+      "endTime": 1791280279695.1306,
+      "status": "passed",
+      "message": "",
+      "name": "<WORKSPACE>/packages/cli/__tests__/unit/process-execution-broker-sync-contract.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator rejects forged policy, reused destinations, excessive files, path aliases and hardlinks",
+          "status": "passed",
+          "title": "rejects forged policy, reused destinations, excessive files, path aliases and hardlinks",
+          "duration": 9.909400000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator executes a real staged Node check with immutable source/control and writable scratch",
+          "status": "passed",
+          "title": "executes a real staged Node check with immutable source/control and writable scratch",
+          "duration": 12600.0898,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator rejects changed staged source before target creation instead of blessing its old digest",
+          "status": "passed",
+          "title": "rejects changed staged source before target creation instead of blessing its old digest",
+          "duration": 13424.5868,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator attests zero-capability network policy without loopback exemptions and records real TCP failures",
+          "status": "passed",
+          "title": "attests zero-capability network policy without loopback exemptions and records real TCP failures",
+          "duration": 14093.118000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator fences a detached AppContainer descendant after the evaluator exits",
+          "status": "passed",
+          "title": "fences a detached AppContainer descendant after the evaluator exits",
+          "duration": 14012.6924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791280269112,
+      "endTime": 1791280323252.6924,
+      "status": "passed",
+      "message": "",
+      "name": "<WORKSPACE>/packages/cli/__tests__/unit/windows-native-evaluator.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "uses closed, flushed, non-overwriting identity publication for success and failure",
+          "status": "passed",
+          "title": "uses closed, flushed, non-overwriting identity publication for success and failure",
+          "duration": 3.883199999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "the compiled helper preserves an already-published identity when a late failure competes",
+          "status": "passed",
+          "title": "the compiled helper preserves an already-published identity when a late failure competes",
+          "duration": 2680.9056,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791280275834,
+      "endTime": 1791280278518.9055,
+      "status": "passed",
+      "message": "",
+      "name": "<WORKSPACE>/packages/cli/__tests__/unit/windows-sandbox-identity-publication.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "real Windows broker native wall-time watchdog"
+          ],
+          "fullName": "real Windows broker native wall-time watchdog executes the rebuilt helper with the exact C# source digest",
+          "status": "passed",
+          "title": "executes the rebuilt helper with the exact C# source digest",
+          "duration": 531.7707,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "real Windows broker native wall-time watchdog"
+          ],
+          "fullName": "real Windows broker native wall-time watchdog native wall time stops a sleeping parent and detached descendant without the outer timeout",
+          "status": "passed",
+          "title": "native wall time stops a sleeping parent and detached descendant without the outer timeout",
+          "duration": 3810.6050000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "real Windows broker native wall-time watchdog"
+          ],
+          "fullName": "real Windows broker native wall-time watchdog normal parent exit still fences its detached descendant",
+          "status": "passed",
+          "title": "normal parent exit still fences its detached descendant",
+          "duration": 1833.8525,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791280269105,
+      "endTime": 1791280275281.8525,
+      "status": "passed",
+      "message": "",
+      "name": "<WORKSPACE>/packages/cli/__tests__/unit/windows-sandbox-wall-time.test.js"
+    }
+  ]
+}

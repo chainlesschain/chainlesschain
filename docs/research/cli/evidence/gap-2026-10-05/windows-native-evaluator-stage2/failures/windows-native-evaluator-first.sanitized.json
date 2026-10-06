@@ -1,0 +1,60 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "eec4be28eab3eb187ee9f6d58962e20cc5792670d102becc4b775d7878f021ec"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "3ca7ab501265b04c341a200652b61614554017360cc5f3e131b357d809b1e9e5"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "2df20228b9b24fa59b5d9aadc6732929880badc08e78343421db21f33ee30c06"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "416643b251bd11b8f0b06042bc677b1cfec72bc2e1c9c4eea38013aba7ba11ea"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "2599abcefb3d4e9e86bb6fcf426eca15931c4eb459da9e1f93d448c6ced93b9b"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "readonly-check",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dKDhF4",
+      "manifestDigest": "e73eba631bcf5df7d0491049c284019886fa67503d74077b281e2fd743f77ec2",
+      "error": "The requested native wall-time limit was not enforced"
+    },
+    {
+      "kind": "tampered-source",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-8Dxumx",
+      "manifestDigest": "09711ecf8f7f707713fd051d40f623a4121ab6ba49ef798953f5c541ab8fdbb0",
+      "error": "The requested native wall-time limit was not enforced"
+    },
+    {
+      "kind": "network-deny",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-1SwFZu",
+      "manifestDigest": "b18ac1fa7efb63acbef8e7aecbc393c671eb75c06d00a5463dc642e4aec590dd",
+      "error": "The requested native wall-time limit was not enforced"
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Gvs4wr",
+      "manifestDigest": "abc2e31442c2836d79eeb431e7a9299d91d3b9f04bc2bffe8c5c243b52264c37",
+      "error": "The requested native wall-time limit was not enforced"
+    }
+  ]
+}

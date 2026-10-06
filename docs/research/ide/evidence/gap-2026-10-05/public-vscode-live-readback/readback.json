@@ -1,0 +1,214 @@
+{
+  "schema": "chainlesschain.public-vscode-live-readback/v1",
+  "checkedAt": "2026-10-06T10:03:19.494Z",
+  "passed": true,
+  "publicExtensionVersion": "0.37.135",
+  "publicCliVersion": "0.166.90",
+  "hostVersion": "1.132.0",
+  "osRelease": "10.0.19045",
+  "node": "v22.22.2",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "permissionMode": "acceptEdits",
+  "sessionId": "panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c",
+  "generation": "371be9b0-603f-4ca7-924f-2d531ecea173",
+  "protocolRecords": 22,
+  "userInputs": 1,
+  "inputAcceptanceReceipts": 1,
+  "terminalResults": 1,
+  "drainedExit": {
+    "code": 0,
+    "signal": null
+  },
+  "uiActions": [
+    "submit",
+    "background-tab",
+    "return-tab",
+    "final-result",
+    "reload",
+    "restored-result"
+  ],
+  "restartStartedNewAgent": false,
+  "restartReplayedInput": false,
+  "artifactExact": true,
+  "artifactDigest": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178",
+  "toolNames": [
+    "write_file",
+    "read_file"
+  ],
+  "usage": [
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 13876,
+        "output_tokens": 158,
+        "cache_read_input_tokens": 0
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-76d620bd-ab29-4564-b3dd-7ea32434861f",
+      "seq": 5
+    },
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 1231,
+        "output_tokens": 69,
+        "cache_read_input_tokens": 13312
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-76d620bd-ab29-4564-b3dd-7ea32434861f",
+      "seq": 12
+    },
+    {
+      "type": "token_usage",
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "usage": {
+        "input_tokens": 3019,
+        "output_tokens": 4,
+        "cache_read_input_tokens": 12288
+      },
+      "contextWindow": 32768,
+      "trace_id": "tr-76d620bd-ab29-4564-b3dd-7ea32434861f",
+      "seq": 18
+    }
+  ],
+  "terminalUsage": {
+    "inputTokens": 18126,
+    "outputTokens": 231,
+    "cacheReadInputTokens": 25600,
+    "cacheCreationInputTokens": 0
+  },
+  "knownEstimatedCostUsd": 0.00296072,
+  "networkRetryEvents": 1,
+  "failedRequestCostUsd": null,
+  "totalDiagnosticCostUsd": null,
+  "invoiceVerified": false,
+  "sourceCommitVerified": false,
+  "signatureVerified": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "hostileProcessTreeAssessed": false,
+  "physicalDesktopInteractionAssessed": false,
+  "operatorDriverDigests": [
+    {
+      "path": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:28cb22301a34e94f8cf358bf669816425e28fa85b552b6533125db3738c29b5d"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:100e5279e7ddcd293dd94e0dba890b3b4a15e1d672db5c89b1da1bfa382b3068"
+    },
+    {
+      "path": "packages/cli/src/lib/eval/verify01-host-evidence.js",
+      "digest": "sha256:14f044bf853020dac6106017e653fedfaf23faf349049c05d75076918c7e78da"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-pricing.js",
+      "digest": "sha256:ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+    }
+  ],
+  "files": [
+    {
+      "path": "371be9b0-603f-4ca7-924f-2d531ecea173.ndjson",
+      "bytes": 310951,
+      "digest": "sha256:2751bf6bcb511b694e88671fa8e58fa2f226c2d84d3181eca82386f85da0ef64"
+    },
+    {
+      "path": "configure-baseUrl.json",
+      "bytes": 193,
+      "digest": "sha256:cd7ec0801518de79ed54ae62233188ae1a87574eb682e36358c46d40b5cff0b6"
+    },
+    {
+      "path": "configure-model.json",
+      "bytes": 191,
+      "digest": "sha256:500b0d6a1828e0f6a1d3d7972a56eb63a095217903773385991f922c585236d3"
+    },
+    {
+      "path": "configure-provider.json",
+      "bytes": 194,
+      "digest": "sha256:ee55dda6e77493a0cfd2abaf4afe3c474e3b1e3169aaf85781eaf94119e7a095"
+    },
+    {
+      "path": "diagnostic-result.json",
+      "bytes": 573,
+      "digest": "sha256:0adf84dfef60d2df2b8c4c36b55801f757d5890da65ef56c25be7ed7138ac6c4"
+    },
+    {
+      "path": "launcher-config.json",
+      "bytes": 996,
+      "digest": "sha256:fbc98525ad400285ea3f135e622db9ee8cdae8dc41ec0efcefa56df2da6d3d3f"
+    },
+    {
+      "path": "launcher.log",
+      "bytes": 90978,
+      "digest": "sha256:95dcd9d514dc29f1af0781164c03743e1aadf6a601e6f69eb1410133a45d4fa0"
+    },
+    {
+      "path": "onboarding-proof.txt",
+      "bytes": 39,
+      "digest": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178"
+    },
+    {
+      "path": "operator-script.mjs",
+      "bytes": 6634,
+      "digest": "sha256:35d3925651bfc85e27e10a084a6877c5a087782f8c6580cc159d7c36f3120e6d"
+    },
+    {
+      "path": "protocol.json",
+      "bytes": 375209,
+      "digest": "sha256:bb69b37889fa9399caf5a0c82a8cadb06c73b6db09ac475cac39e59d5fb23a40"
+    },
+    {
+      "path": "reader-terminal-first.json",
+      "bytes": 710,
+      "digest": "sha256:9d97851fe143b7cec29e63465f27fffb0bed720811ea87ef9b47607473d45a83"
+    },
+    {
+      "path": "scope.json",
+      "bytes": 972,
+      "digest": "sha256:b6d2a30c73453bfcd4dee0632d99eeed697eca2cd8321f94765c8429ffcb63c1"
+    },
+    {
+      "path": "terminal.json",
+      "bytes": 855,
+      "digest": "sha256:320b38d8af969ac3508a99970b0b0a2ea8ab6151b16b25a33c9c73aa36074e4c"
+    },
+    {
+      "path": "ui.json",
+      "bytes": 1324,
+      "digest": "sha256:53e3adf0be854ae56efff80d5734c196bc06976650fd60133fb530b9ba8bba05"
+    },
+    {
+      "path": "ui.ndjson",
+      "bytes": 1129,
+      "digest": "sha256:9dfe056eba97bde27e0837661e6e40c4b780cabf2f73d3fbee00928d8f7cc3a3"
+    },
+    {
+      "path": "vscode-initial.json",
+      "bytes": 5818,
+      "digest": "sha256:51d70a922ad4e4a7f691b7c3dc70e77ca4b93c2132dd36f1c04c266509c0e4f5"
+    },
+    {
+      "path": "vscode-install.json",
+      "bytes": 635,
+      "digest": "sha256:3764487f06900dc37038e083e1429ba2c751068335c94dc9302d00ac35748665"
+    },
+    {
+      "path": "vscode-restart.json",
+      "bytes": 3853,
+      "digest": "sha256:64d59b7d676c7dbc46383c04185498bc40ef4303e4e170a268fbd4b4f32f9579"
+    }
+  ],
+  "notes": [
+    "The first attempt failed on unsupported operator mode before task input or CLI startup. Its receipts are retained separately.",
+    "The public installed extension ran both phases; this diagnostic does not attest a source commit or signatures.",
+    "The raw protocol was unchanged after restart; no new agent/input was started by restoration.",
+    "Provider retry events and unknown failed-request charges are retained; successful usage estimates do not prove the complete bill.",
+    "This diagnostic uses Windows 10 and Node 22.22.2, not the frozen formal Windows 11/Node 22.12.0 sample."
+  ]
+}

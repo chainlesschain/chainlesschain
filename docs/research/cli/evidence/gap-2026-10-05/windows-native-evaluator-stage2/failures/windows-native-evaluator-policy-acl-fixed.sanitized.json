@@ -1,0 +1,125 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "c4e2647ceb580f7a18a0f00bd0e0387caf9d730168e9c65c78345c6e3233e083"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "ce82a93ffac03570968159eee40e976e704d58f84bc6958dd86d0766231b15fe"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "readonly-check",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-rlI6GR",
+      "manifestDigest": "bce109362db83c487c9212cb2287152f3dcfc88e4bb899d03cb9a9badcda5bde",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"sum\":5,\"sourceWriteDenied\":true,\"checkWriteDenied\":true,\"scratchWritable\":true}\n",
+      "stderr": "",
+      "settlement": {
+        "manifestDigest": "bce109362db83c487c9212cb2287152f3dcfc88e4bb899d03cb9a9badcda5bde",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 16564,
+        "appContainerSid": "S-1-15-2-424763477-219196715-3392840899-3607361533-658091922-620294307-3739475067",
+        "wallTimeMs": 10000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "tampered-source",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Eju4eD",
+      "manifestDigest": "6d8cd9a41769103808b27e68e69ea396454e7ac8bff2f0f87521067a7add4d75",
+      "status": 125,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "CC_WINDOWS_SANDBOX_ERROR: Native evaluator file identity or link count changed\r\n",
+      "settlement": {
+        "manifestDigest": "6d8cd9a41769103808b27e68e69ea396454e7ac8bff2f0f87521067a7add4d75",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 0,
+        "appContainerSid": "S-1-15-2-1088260065-2090086432-961740779-2214187401-1531360705-3591930919-2868121784",
+        "wallTimeMs": 10000,
+        "targetExitCode": 125,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": true
+      }
+    },
+    {
+      "kind": "network-policy-and-reachability",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-sWPosf",
+      "manifestDigest": "27b4da0a494bde3757c0b4b331414d00fca236c952bec02d802076fe3e1b2a00",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"observedFailures\":[{\"host\":\"127.0.0.1\",\"code\":\"ETIMEDOUT\",\"errno\":-4039,\"message\":\"connect ETIMEDOUT 127.0.0.1:52453\"},{\"host\":\"1.1.1.1\",\"code\":\"EACCES\",\"errno\":-4092,\"message\":\"connect EACCES 1.1.1.1:443\"}]}\n",
+      "stderr": "",
+      "settlement": {
+        "manifestDigest": "27b4da0a494bde3757c0b4b331414d00fca236c952bec02d802076fe3e1b2a00",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 25468,
+        "appContainerSid": "S-1-15-2-1687956212-749805925-1489535626-1828597310-445677557-1559081170-2992092316",
+        "wallTimeMs": 10000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7OF6yL",
+      "manifestDigest": "0513b9cb7311a52015f22a6067b8ed272720909a5d5d03665c67498add50d223",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"parent\":13276,\"descendant\":16408}\n",
+      "stderr": "",
+      "settlement": {
+        "manifestDigest": "0513b9cb7311a52015f22a6067b8ed272720909a5d5d03665c67498add50d223",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 13276,
+        "appContainerSid": "S-1-15-2-2558602745-3182992845-3158701356-3585941067-3142352576-220093726-1199325883",
+        "wallTimeMs": 10000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "observedProcessesAbsent": true
+    }
+  ]
+}

@@ -1,0 +1,359 @@
+{
+  "schema": "chainlesschain.current-ui-driver-compile/v1",
+  "createdAt": "2026-10-06T10:17:22.579Z",
+  "repo": "C:\\code\\chainlesschain",
+  "output": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver",
+  "javaHome": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1",
+  "java": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1\\bin\\java.exe",
+  "robot": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin",
+  "classpath": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\*;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.jupiter\\junit-jupiter-api\\5.10.2\\fb55d6e2bce173f35fd28422e7975539621055ef\\junit-jupiter-api-5.10.2.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.platform\\junit-platform-commons\\1.10.2\\3197154a1f0c88da46c47a9ca27611ac7ec5d797\\junit-platform-commons-1.10.2.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.opentest4j\\opentest4j\\1.3.0\\152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e\\opentest4j-1.3.0.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.apiguardian\\apiguardian-api\\1.1.2\\a231e0d844d2721b0fa1b238006d15c6ded6842a\\apiguardian-api-1.1.2.jar",
+  "compiler": {
+    "path": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1\\bin\\javac.exe",
+    "sha256": "sha256:00f7c6f9ec89ebba4bb96cf8760403cccf1268df2eae8685900ba38e58a7aff9",
+    "version": "javac 21.0.12.1"
+  },
+  "arguments": [
+    "-encoding",
+    "UTF-8",
+    "-cp",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\*;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.jupiter\\junit-jupiter-api\\5.10.2\\fb55d6e2bce173f35fd28422e7975539621055ef\\junit-jupiter-api-5.10.2.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.platform\\junit-platform-commons\\1.10.2\\3197154a1f0c88da46c47a9ca27611ac7ec5d797\\junit-platform-commons-1.10.2.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.opentest4j\\opentest4j\\1.3.0\\152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e\\opentest4j-1.3.0.jar;C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.apiguardian\\apiguardian-api\\1.1.2\\a231e0d844d2721b0fa1b238006d15c6ded6842a\\apiguardian-api-1.1.2.jar",
+    "-d",
+    "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\ColdInitializationJourney.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\ConversationRecoveryJourney.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\IdeUiSmokeTest.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptJourney.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbe.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbeTest.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\OnboardingIdentityJourney.java",
+    "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\Verify01HostJourney.java",
+    "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\PublicJetBrainsDriver.java"
+  ],
+  "result": {
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\ColdInitializationJourney.java",
+      "sha256": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\ConversationRecoveryJourney.java",
+      "sha256": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\IdeUiSmokeTest.java",
+      "sha256": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptJourney.java",
+      "sha256": "sha256:9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbe.java",
+      "sha256": "sha256:b2bb5230a1d19e2eedb898b42fa7802b50cf3335d0b6680813ab0fb71a1168de"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbeTest.java",
+      "sha256": "sha256:3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\OnboardingIdentityJourney.java",
+      "sha256": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\src\\uiTest\\java\\com\\chainlesschain\\ide\\uitest\\Verify01HostJourney.java",
+      "sha256": "sha256:022f06efd03aa69b9fedb117ff5d3b5d3daebcce2b3561144c832c61fafc851a"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\PublicJetBrainsDriver.java",
+      "sha256": "sha256:fcad4797fb417f522db4376c271226d8d2b4105e8f8f01719e08d4ca435765f0"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\alpn-api-1.1.3.v20160715.jar",
+      "sha256": "sha256:07be99758b699e194f70fb9784d94202dc6c98212877829e3d72b020f2660576"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\annotations-23.0.0.jar",
+      "sha256": "sha256:7b0f19724082cbfcbc66e5abea2b9bc92cf08a1ea11e191933ed43801eb3cd05"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\asm-9.6.jar",
+      "sha256": "sha256:3c6fac2424db3d4a853b669f4e3d1d9c3c552235e19a319673f887083c2303a1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\asm-commons-9.6.jar",
+      "sha256": "sha256:7aefd0d5c0901701c69f7513feda765fb6be33af2ce7aa17c5781fc87657c511"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\assertj-core-3.17.2.jar",
+      "sha256": "sha256:d9a978d559d0b52a87f419b3d8f5bb137b97c661f7be2134e0498b454e4b980e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\assertj-swing-3.17.1.jar",
+      "sha256": "sha256:e36445438d72d83cc48015dcb3f14d9a97eaa42c4663a9826db2bb50e4c7713b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\byte-buddy-dep-1.14.15.jar",
+      "sha256": "sha256:c63138c81c7f2cb5cb05685e3aa8410670535c6cf93c2c6159ff933134b30119"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\config-1.4.3.jar",
+      "sha256": "sha256:8ada4c185ce72416712d63e0b5afdc5f009c0cdf405e5f26efecdf156aa5dfb6"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\converter-gson-2.11.0.jar",
+      "sha256": "sha256:3d2b4b668909468465c5776430b57232275d0165513f20fc96b0cfe4aa531326"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\fest-util-1.2.5.jar",
+      "sha256": "sha256:7b52f4d3ad41b7ed71f5b6b11833113b7e08326c8ef70d2dedf0b430c7ba5341"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\gson-2.10.1.jar",
+      "sha256": "sha256:4241c14a7727c34feea6507ec801318a3d4a90f070e4525681079fb94ee4c593"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\instrumented-robot-server-plugin-0.11.23.jar",
+      "sha256": "sha256:ce0113f5961eca4b903fc7163d3f24362c478b1d8f95958f6d6595faeaa005c0"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\jansi-2.4.1.jar",
+      "sha256": "sha256:2e5e775a9dc58ffa6bbd6aa6f099d62f8b62dcdeb4c3c3bbbe5cf2301bc2dcc1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlin-reflect-1.9.23.jar",
+      "sha256": "sha256:747c2927a623b6ebb734b465d6a26862e920ddd1828ef43716887c0849a3131f"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlin-stdlib-1.9.23.jar",
+      "sha256": "sha256:8910cc238807d86ef550cb1f0b10dd5ed40b35a4ec1a52525f760aede84ead37"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlin-stdlib-jdk7-1.9.23.jar",
+      "sha256": "sha256:34b1dff7ee4e42af452dca1e3c001e352bcd9e9ec27dfdd478bb7e76e7bfa3e1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlin-stdlib-jdk8-1.9.23.jar",
+      "sha256": "sha256:d624c60cc1b472a1dcbee3ad1ec4ea95f2fba0032152ddb15905c6207f7718ec"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlinx-coroutines-core-jvm-1.7.1.jar",
+      "sha256": "sha256:7496cffdd3eb10109acdda1c3212f6ac7815789e09380dc9e2ccdec496dba3fc"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\kotlinx-coroutines-jdk8-1.7.1.jar",
+      "sha256": "sha256:b96f7145ba69b48f4940534cb8e19c7e159c45443e27c36821626148ba1710f2"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-events-jvm-2.3.11.jar",
+      "sha256": "sha256:f760e693bb696aaf6cac58445c5236858d10cd7c15084ac20c7a7505ae7491a7"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-http-cio-jvm-2.3.11.jar",
+      "sha256": "sha256:6c82a85b918cc00b124a7db0f474ed387f05148a42296810586ee591344d0e7f"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-http-jvm-2.3.11.jar",
+      "sha256": "sha256:050333e1b8b3ff3070be3216e1f3ee78fa9d650ac8d211041d05bf48259b4df6"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-io-jvm-2.3.11.jar",
+      "sha256": "sha256:9c9b74bf1ef116e4b26d5c94509a0577bca140f830a80cf3f52d2454cd01121b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-network-jvm-2.3.11.jar",
+      "sha256": "sha256:f678ee806414804576f173394762e0e1bbacaee30739a048d4ecb48387dee466"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-serialization-gson-jvm-2.3.11.jar",
+      "sha256": "sha256:74942771d031fd2bffb3142d2e9c0eac009e176b52b0bb26126ee297c2ba6b3f"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-serialization-jvm-2.3.11.jar",
+      "sha256": "sha256:4c2f3422268a95feb7770c75d1d27e09d009dd697c9b4bf26fd9317332db503e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-server-content-negotiation-jvm-2.3.11.jar",
+      "sha256": "sha256:20d0ade452708c46a215a3ef6736cdcc1344a62899a0cda23f333cb911650aa9"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-server-core-jvm-2.3.11.jar",
+      "sha256": "sha256:ea68b5d363a85a7b41c732127f704b0e98fe3aac122529763d8ae70047fbf3ca"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-server-default-headers-jvm-2.3.11.jar",
+      "sha256": "sha256:dec9dc24a66e267d72cb9e2479c4e069bea3a842bd0f6f6f2942871199a8d9fd"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-server-host-common-jvm-2.3.11.jar",
+      "sha256": "sha256:1e3bcd78b1e98eca108d927bbb541d0d9b723fb218726d61e85b9ca6ae1c8e2b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-server-netty-jvm-2.3.11.jar",
+      "sha256": "sha256:f98c4852bdf6e62acacd6bb9e32ade3f5de5b2633e518ec5ec1dad983d575f91"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-utils-jvm-2.3.11.jar",
+      "sha256": "sha256:d508e8853294c8a72e561a1290127deeaf92742e2d81036a6b9b73c82b31ed61"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\ktor-websockets-jvm-2.3.11.jar",
+      "sha256": "sha256:d0307b0effc634963299c3b52f513f78cfb5c5663aeede9dc424b8559b53ebaa"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-buffer-4.1.106.Final.jar",
+      "sha256": "sha256:d5067bdbe476d63cb43293822832a749a7c38a38c1c516107c73d257c39bed21"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-codec-4.1.106.Final.jar",
+      "sha256": "sha256:93863dfd690f7ace7c26e4c808fdc24780adad465b3cdcb7ce3fc73c422df76f"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-codec-http-4.1.106.Final.jar",
+      "sha256": "sha256:ba177a03adc587fa63e96f1dbae9c46ff25f59397ea34d960b45e05d0296026e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-codec-http2-4.1.106.Final.jar",
+      "sha256": "sha256:c2b821d57a733cd671ea2ab0642002b17e0a2b89004ca026c6eae8f5381cf81e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-common-4.1.106.Final.jar",
+      "sha256": "sha256:5ffbe01bd845617a916de3613010d5fda57c5eb694147d38d04f791e9834d5c3"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-handler-4.1.106.Final.jar",
+      "sha256": "sha256:5a919ad88b6d9e9f08c3069980bc656a62926a00e6ba2da5859aa0ee4e202e44"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-resolver-4.1.106.Final.jar",
+      "sha256": "sha256:404958b8f0590ee526013d011cd2354dab78adbaad743d7d444db33a3f9eabac"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-4.1.106.Final.jar",
+      "sha256": "sha256:23ea9a39009b41e9d0aa1515b3073af9ee4da4e16c2e869b5aa8aa9f109d4251"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-classes-epoll-4.1.106.Final.jar",
+      "sha256": "sha256:ebbea0f678a2f3947eb200be033ed7fe553067e39cb5df4b769d1b9fc6a29872"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-classes-kqueue-4.1.106.Final.jar",
+      "sha256": "sha256:f68ed442500165c6a3873e0731e1b62084b42f842d0f4766747480ef1fc9763e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-native-epoll-4.1.106.Final.jar",
+      "sha256": "sha256:66039a151635302ae233dfd187d91c7dd773a11accd12735c1653b82774e77f0"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-native-kqueue-4.1.106.Final.jar",
+      "sha256": "sha256:142ff50ba59c75bbf673a6c1439dcfae3cb7469adb8105dc3fb66aa40551a4ae"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\netty-transport-native-unix-common-4.1.106.Final.jar",
+      "sha256": "sha256:f52d4b38c571066bfaae964a7867fa937f0e54fb5ff467c576cb650a20a854e8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\okhttp-3.14.9.jar",
+      "sha256": "sha256:2570fab55515cbf881d7a4ceef49fc515490bc027057e666776a2832465aeca0"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\okio-1.17.2.jar",
+      "sha256": "sha256:f80ce42d2ffac47ad4c47e1d6f980d604d247ceb1a886705cf4581ab0c9fe2b8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\remote-fixtures.jar",
+      "sha256": "sha256:d4c84071ee573e85d62c6b09a6a2aa01347ac81a230b43ff9722795afaa8bbbb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\remote-robot.jar",
+      "sha256": "sha256:75906089037b0753de4872eddf98f827644e6a1a2bca07cb8e8cf008d6e12cdf"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\retrofit-2.11.0.jar",
+      "sha256": "sha256:9f4fbbce70728584fbeed38d4061f36d4477e89bca74b4e2ac8aeb6819b0fe43"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\rhino-1.7.15.jar",
+      "sha256": "sha256:2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\robot-server-core-0.11.23.jar",
+      "sha256": "sha256:344b68f098fe79b4e48d7f705a70b7f7034844e7b5b2eb289adf75f550261c06"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\searchableOptions-0.11.23.jar",
+      "sha256": "sha256:b70c5a6adea86360fef9bbe8d32f4ce30231dfc94db980d279cc3576e6cf6cae"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\verify01-jetbrains-gui-3yPXRt\\IC-2024.2\\plugins_runIdeForUiTests\\robot-server-plugin\\lib\\test-recorder-0.11.23.jar",
+      "sha256": "sha256:673698ae69f33ce8d25dd6f25b8bad91fe7e454be72fd184c016827a738e186e"
+    },
+    {
+      "path": "C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.jupiter\\junit-jupiter-api\\5.10.2\\fb55d6e2bce173f35fd28422e7975539621055ef\\junit-jupiter-api-5.10.2.jar",
+      "sha256": "sha256:afff77c186cd317275803872fa5133aa801fd6ac40bd91c78a6cf8009b4b17cc"
+    },
+    {
+      "path": "C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.junit.platform\\junit-platform-commons\\1.10.2\\3197154a1f0c88da46c47a9ca27611ac7ec5d797\\junit-platform-commons-1.10.2.jar",
+      "sha256": "sha256:b56a5ec000a479df4973b18bba24c98fe0db8faa14c8907d3ef451d8c71fd8ae"
+    },
+    {
+      "path": "C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.opentest4j\\opentest4j\\1.3.0\\152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e\\opentest4j-1.3.0.jar",
+      "sha256": "sha256:48e2df636cab6563ced64dcdff8abb2355627cb236ef0bf37598682ddf742f1b"
+    },
+    {
+      "path": "C:\\Users\\longfa\\.gradle\\caches\\modules-2\\files-2.1\\org.apiguardian\\apiguardian-api\\1.1.2\\a231e0d844d2721b0fa1b238006d15c6ded6842a\\apiguardian-api-1.1.2.jar",
+      "sha256": "sha256:b509448ac506d607319f182537f0b35d71007582ec741832a1f111e5b5b70b38"
+    }
+  ],
+  "classes": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\ColdInitializationJourney.class",
+      "sha256": "sha256:38ba7c6734f8a26f042162359bc8c20d0a374f8e9cb47fad5cd322c977cd20cb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\ConversationRecoveryJourney.class",
+      "sha256": "sha256:e742d37fc1d9926d0c086c2475771c01ec52a392e2507a0f995679fe73761ab6"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\IdeUiSmokeTest.class",
+      "sha256": "sha256:e4a94124af3754b5a4397ea2386e2b4318e328ddf62815b54c7ab284e7b48ccf"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptJourney.class",
+      "sha256": "sha256:3fbdac81be6385f14dbfc1f962ef27c02f5c60ff2c72c2426a8dbc71e8e6b6d4"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbe.class",
+      "sha256": "sha256:f2171e079073db3442235121dbf31882c443c2037f75cec0cfa1a3bdcf3d9017"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbeTest$Identity.class",
+      "sha256": "sha256:0848a1321e3a474eac3e2fd5f583e9413220c8909281fafbc3c9f677c18881f7"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\NativeTranscriptProbeTest.class",
+      "sha256": "sha256:f7deea6012b7142308101adb2f390e7f20d574036e4a5a6c8f9fe0514e7a28ab"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\OnboardingIdentityJourney.class",
+      "sha256": "sha256:20d663d2c8bb860b24e7d7d7c55234d461db91f73ad4a63f68655d8484f1c9bd"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\PublicJetBrainsDriver.class",
+      "sha256": "sha256:7a0ab0a1625c969a711219cfd40da5e85e0ea0597da7153d3737c743296a1d13"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\public-jetbrains-current-driver\\classes\\com\\chainlesschain\\ide\\uitest\\Verify01HostJourney.class",
+      "sha256": "sha256:c0b9f96a79b04032c193a57b9c012f9e92174d34e90627a1b95c1473cfeb4887"
+    }
+  ],
+  "gradleInvoked": false,
+  "pluginRebuilt": false,
+  "guiStarted": false,
+  "modelInputCount": 0
+}

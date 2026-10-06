@@ -1,0 +1,11 @@
+{
+  "schema": "chainlesschain.gap-staged-byte-verification/v1",
+  "checkedAt": "2026-10-06T10:30:59.000Z",
+  "repositoryHeadBeforeCommit": "189a904032751fefb8cada89aaf04a8917c9aa1b",
+  "checkedPaths": 198,
+  "stagedBytesMatchReceiptDigests": true,
+  "missingStage1HelperExeDetectedAndAdded": true,
+  "scope": "183 bound archived artifacts, final reports and bound implementation source files staged at check time; this newly created receipt and its verifier copy are excluded from the count.",
+  "releaseGateAssessed": false,
+  "observationsCreated": false
+}

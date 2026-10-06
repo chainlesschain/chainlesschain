@@ -1,0 +1,79 @@
+{
+  "sampleId": "first-run-public-windows-jetbrains",
+  "sessionId": "panel-1791282170930-40097c",
+  "deadlineMs": 1791282760885,
+  "tabId": "a7d8cd2b-521f-434e-aa4a-bd339a1a37ae",
+  "processId": "20756",
+  "profile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-jetbrains-live-lJ02qk\\config",
+  "result": "DONE.",
+  "renderedText": "DONE.",
+  "savedRowId": "panel-1791282170930-40097c:c630f31fbdf74cb3e07b4b82d404da170e699ccb55797296ab2de545c3ce69ea:0",
+  "finalSnapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T10:24:21.058949200Z",
+    "processId": "20756",
+    "profile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-jetbrains-live-lJ02qk\\config",
+    "id": "a7d8cd2b-521f-434e-aa4a-bd339a1a37ae",
+    "sessionId": "panel-1791282170930-40097c",
+    "tabs": [
+      {
+        "id": "2694489d-f9cd-41bf-836d-8bab67a15848",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "a7d8cd2b-521f-434e-aa4a-bd339a1a37ae",
+        "index": 1,
+        "selected": true
+      },
+      {
+        "id": "60571e7a-3eb6-430d-822a-734007423800",
+        "index": 2,
+        "selected": false
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "26104",
+    "childProcessIds": [
+      "26104",
+      "144",
+      "24064"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Saved messages 1–2 of 2",
+    "binaryChoice": "null",
+    "text": "ℹ approval mode → auto (accept edits) — next message applies\n── deepseek-v4-flash-ga-260731 · volcengine ──\n\nTurn 1, User message\n\nyou\u003e Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nI\u0027ll create the file with the exact content, then read it back to verify.\n\n\n→ write_file onboarding-proof.txt\n✓ write_file\nFile created successfully (39 bytes \u003d 38 chars + newline). Now reading it back to verify:\n\n\n→ read_file onboarding-proof.txt\n✓ read_file\nℹ ⚠ [Budget Warning] 1 iterations remaining out of 4. Start wrapping up your work.\nDONE.\n",
+    "visible": true,
+    "savedRows": [
+      {
+        "id": "panel-1791282170930-40097c:04d249f0277910255c6587211cd3a9923f3241d046b660f790813c5f6a413afe:0",
+        "text": "\nTurn 1, User message\n\nyou\u003e Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.\n",
+        "bodyText": "\nTurn 1, User message\n\nyou\u003e Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.\n",
+        "start": 108,
+        "sourceText": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+        "role": "user",
+        "truncated": false
+      },
+      {
+        "id": "panel-1791282170930-40097c:c630f31fbdf74cb3e07b4b82d404da170e699ccb55797296ab2de545c3ce69ea:0",
+        "text": "DONE.",
+        "bodyText": "DONE.",
+        "start": 784,
+        "sourceText": "DONE.",
+        "role": "assistant",
+        "truncated": false
+      }
+    ]
+  },
+  "rawProtocolDigests": {
+    "protocol-c5597454-9eae-4601-a24b-bdb1513b6b41.jsonl": "b87c042656b6706d4937123339bdcdfc026806594cb18a36e9d0032f20be4d8b",
+    "protocol.json": "520aedd033be16e175b97ed7ac9a9b3f8ddd11d775341412d8021bb0635f92d0"
+  },
+  "readyForRestartAt": "2026-10-06T10:24:21.537615900Z"
+}

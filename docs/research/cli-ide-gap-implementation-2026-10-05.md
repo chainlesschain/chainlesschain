@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-06 公开安装与 Windows 原生增量**：公开 CLI `0.166.90` 的 registry lock/子包校验与真实工具旅程完成；Windows watchdog、只读 stage 和一次性原生检查器完成，**360/360** 回归及关键失败已归档。公开 VS Code `0.37.135` / JetBrains `0.4.153` 在真实火山任务后重启恢复且零输入重放；补齐许可模式启动前校验并修复合法 `system/end` 的终态导入。详细证据见[验证记录第 9 节](./cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、durable Windows/macOS、官方账户/账单及正式人工验收仍独立开放。
+
 > **2026-10-06 CI 与真实采样回读**：Linux x64/ARM64 显式进程恢复各 31/31、双 IDE 六宿主矩阵成功并归档。按用户授权完成火山两轮校准与两轮压缩/工具轨迹，共 30 次真实调用；修复正文期限、部分失败回执和输出限制观测，15 项 Node 回归通过并接入三系统 CI。准确源码、估算费用与仍开放条件见[验证记录第 8 节](./cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。火山授权已取得；官方 OpenAI/Anthropic 账号、正式 36+9 的原生验收和独立人工审阅仍未具备。
 
 > **2026-10-06 继续实施**：Linux 可信恢复补齐显式 CLI 管理入口；JetBrains 八阶段身份诊断接入三系统，新增真实慢初始化/120 秒超时/Stop/显式重试旅程与原始进程记录核对。Windows 生命周期准备与请求期限分开，采集失败仍保留未确认清理证据。当前验证与未关闭条件见[续做记录第 7 节](./cli-ide-gap-validation-2026-10-05.md#7-2026-10-06-剩余工程接线)。后续 CLI `0.166.90`、VS Code `0.37.135`、JetBrains `0.4.153` 已有[公开发行回读](./cli/evidence/documentation-release-status-2026-10-06-final.json)，不再将旧 `0.166.89/0.37.134/0.4.152` 候选描述为当前唯一未发布版本；下方历史各节保留其原时点。
@@ -16,24 +18,24 @@
 
 “工程完成”指实现及所列局部回归完成。真实 provider、完整 Actions 矩阵、实际 IDE 和人工验收分别列出，不共用通过标记。
 
-| ID                           | 本轮交付                                                                                                                       | 尚需的证据或范围                                                                                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同 | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                                           |
-| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                  | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                                         |
-| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                  | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                                             |
-| VERIFY-02                    | 冻结 CLI suite、36 项 setup/check、42 个反例、双 IDE prepare/finish、全量基线/diff 与真实 UI driver                            | `6196cd065d` 的 Docker 六分片 36/36 和 42 反例通过；独立人工 review、正式 provider、native Windows/macOS review 仍开放，36+9 保持 NOT_RUN |
-| PLATFORM-02                  | 支持投影及历史 native 六目标 unsigned 验证；新增显式 `agent controlled-host` 接通预 provision Linux 权限域，见第 12 节         | Windows/macOS durable 存储、网络撤销与崩溃恢复后端仍缺实现；默认 CLI 不自动注册；unsigned 历史回执不等于本轮发布准入                      |
-| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                    | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                               |
-| BRIDGE-02                    | Linux delegated cgroup2 可信恢复；显式 agent process-ownership status/recover 与真实 CLI 回收后代、持久回执及零重放            | `3027b27454` 的 Linux x64/arm64 矩阵各 31/31 成功；旧 PID-only 不可恢复，不扩大平台或同 UID 对抗隔离声明                                  |
-| PERF-02                      | 两模型 × 四类冻结校准合同；火山 24 次真实 usage 采样、两轮生产压缩事实保真及只读工具轨迹；正文期限/逐请求回执修复              | 火山两轮保留 9/9 与 17/17 冻结事实；官方新模型矩阵、账单和真实任务成功率仍缺，不据单 provider 小样本调整 bytes/4                          |
-| MCP-02                       | `f289a08844` 的官方 stdio/HTTP、响应丢失恢复及 GET/SSE 周期推送三系统 CI 全部通过，见第 13 节                                  | 外部账号/OAuth 仍未验证；参考服务器的真实进程测试不等于外部服务账号验收                                                                   |
-| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                         | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                                            |
-| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                       | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                                 |
-| IDE-ONBOARD-02               | 严格 CLI 身份、跨平台隔离环境；`7694e16564` 三系统实际 IntelliJ 八阶段旅程通过；后续 Windows 菜单修复有独立本地证据            | 当前菜单修复仍需新准确提交矩阵；公开安装、鼠标导航与物理桌面可见性不由 Swing 动作证明                                                     |
-| IDE-COLD-02                  | 120 秒期限、零自动补发；`7694e16564` 三系统慢 init/超时/Stop 通过；后续永不 init/提前退出替换与错误提示修复已有本地证据        | 当前额外两场边界需新三系统矩阵；真实 provider/hooks 冷启动发生率仍独立验收，不作为性能门                                                  |
-| VERIFY-IDE-02                | 双 IDE 采集/重启与退出确认；`f289a08844`、`7694e16564` 各自六宿主矩阵全部通过，原始协议/UI 回读已归档                          | provider、公开安装、真人听测、8h/24h 与获批 SLO 仍需实际证据；确定性 peer 和 IntelliJ 最低 API 诊断不计正式样本                           |
-| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                  | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                                             |
-| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                       | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                                          |
+| ID                           | 本轮交付                                                                                                                                  | 尚需的证据或范围                                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| MODEL-03                     | 精确增加 GPT-6.1 Sol / Sonnet 5.5；修正 Opus 5.5 缓存读价格；Responses 路由、reasoning 与输出上限校验、每请求价格/预算共享合同            | 真实官方端点的 stream/tool/reasoning、账户 usage 和账单核对尚未运行；自定义网关继续保留能力假设                            |
+| MODEL-04                     | 已审查模型 fixture、目录漂移检查脚本、每周及手动官方 changelog 审查工作流；发现漂移要求审查，不自动启用新型号                             | CI 执行结果与未来上游新版本审查仍需持续维护；检测到上游发行不等于已验证所有新模型                                          |
+| PERF-03                      | 权威 manifest 绑定的分片二级查询索引、过滤下推、稳定游标、损坏重建；Memory 列表和 recall 接入                                             | 本地 1K/10K/100K 测量与三系统工作流已提供；无已批准延迟 SLO，不宣称性能门通过                                              |
+| VERIFY-02                    | 冻结36项setup/check、42反例、双IDE prepare/finish；新增Windows watchdog/只读staged CJS检查器，360/360；公开CLI真实读写完成                | Linux Docker六分片36/36保留；完整native36、macOS检查器、独立人工review及正式36+9仍开放，Windows10诊断不填正式样本          |
+| PLATFORM-02                  | Linux controlled-host接线保留；Windows原生Job执行期限、一次性只读检查器、身份/摘要绑定与空Job屏障已补齐                                   | Windows/macOS durable authority、持续网络撤销与崩溃恢复仍缺；最小CJS stage不替代WFP/受信任服务，旧unsigned回执不作发布准入 |
+| CODEX-02                     | 固定 schema 及真原生进程探针升级至 0.160.0；交错线程、取消、失败与准入后断线保持无 fallback                                               | 真进程使用 synthetic loopback Responses，未验证真实 provider；生产 allowlist 仍最高 0.154.0，不扩大治理准入                |
+| BRIDGE-02                    | Linux delegated cgroup2 可信恢复；显式 agent process-ownership status/recover 与真实 CLI 回收后代、持久回执及零重放                       | `3027b27454` 的 Linux x64/arm64 矩阵各 31/31 成功；旧 PID-only 不可恢复，不扩大平台或同 UID 对抗隔离声明                   |
+| PERF-02                      | 两模型 × 四类冻结校准合同；火山 24 次真实 usage 采样、两轮生产压缩事实保真及只读工具轨迹；正文期限/逐请求回执修复                         | 火山两轮保留 9/9 与 17/17 冻结事实；官方新模型矩阵、账单和真实任务成功率仍缺，不据单 provider 小样本调整 bytes/4           |
+| MCP-02                       | `f289a08844` 的官方 stdio/HTTP、响应丢失恢复及 GET/SSE 周期推送三系统 CI 全部通过，见第 13 节                                             | 外部账号/OAuth 仍未验证；参考服务器的真实进程测试不等于外部服务账号验收                                                    |
+| MAINT-02                     | 定价 terms 校验与 Responses reasoning 逻辑各自统一，删除重复消费者实现                                                                    | 未记录独立维护工时/回归成本，不能声称已证明维护收益；不做无边界 runtime 大拆分                                             |
+| IDE-READY-02                 | 双 IDE Doctor 消费实际活动会话的 init/输入回执/请求与有效模式，显示最低与推荐版本；未知能力保留 degraded                                  | 局部 JS/Java 合同和 SDK 编译已通过；当前提交的新真实 IDE 宿主旅程另行验收                                                  |
+| IDE-ONBOARD-02               | 严格 CLI 身份、跨平台隔离环境；`7694e16564` 三系统实际 IntelliJ 八阶段旅程通过；后续 Windows 菜单修复有独立本地证据                       | 当前菜单修复仍需新准确提交矩阵；公开安装、鼠标导航与物理桌面可见性不由 Swing 动作证明                                      |
+| IDE-COLD-02                  | 120 秒期限、零自动补发；`7694e16564` 三系统慢 init/超时/Stop 通过；后续永不 init/提前退出替换与错误提示修复已有本地证据                   | 当前额外两场边界需新三系统矩阵；真实 provider/hooks 冷启动发生率仍独立验收，不作为性能门                                   |
+| VERIFY-IDE-02                | 历史六宿主矩阵保留；公开 VS Code 0.37.135 / JetBrains 0.4.153＋npm CLI 0.166.90＋真实火山完成读写/tab/终态/重启零重放；严格结束帧导入修复 | VS Code 有 1 次重试、JetBrains 0 次；已知小计与完整账单 unknown 分开；正式 36+9、真人听测、8h/24h 和获批 SLO 仍开放        |
+| CLOUD-02                     | 保留现有 self-hosted handoff 与 `resume:not-implemented` 合同                                                                             | 条件项，完整云端 resume 的需求未确认；不把 detached background handoff 描述为跨机器云会话恢复                              |
+| NET-02 / BRIDGE-01 / RELEASE | 原有治理和准确提交的 OIDC 发布门继续保留                                                                                                  | 本轮不扩大外部 Agent 执行治理或跨平台持久撤销声明；未执行发布，不沿用历史 SHA 成功作当前发布凭据                           |
 
 ## 2. 模型与计费合同
 

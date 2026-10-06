@@ -1,0 +1,120 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "files": [
+    {
+      "file": "windows-native-evaluator.js",
+      "sha256": "c4e2647ceb580f7a18a0f00bd0e0387caf9d730168e9c65c78345c6e3233e083"
+    },
+    {
+      "file": "platform-sandbox.js",
+      "sha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "file": "index.js",
+      "sha256": "ce82a93ffac03570968159eee40e976e704d58f84bc6958dd86d0766231b15fe"
+    },
+    {
+      "file": "windows-sandbox.cs",
+      "sha256": "63950f5f7e65be5db406764484a97ab112e29bf0a3be326c568fe403729a9c2e"
+    },
+    {
+      "file": "windows-sandbox-helper.exe",
+      "sha256": "6813771737ae352c359756fbe85d24bd2413120a029afa2e3c52882bdbedcad4"
+    },
+    {
+      "file": "windows-sandbox-helper.dll",
+      "sha256": "92b3cea894bc29fdf2afcb7d65f5d701b33874c3f95468647b0ae4a931517558"
+    }
+  ],
+  "fullReviewPackAssessed": false,
+  "providerAssessed": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "readonly-check",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-mvf2Vb",
+      "manifestDigest": "99a0faee7f07d7d95314651bbb6432217d0db650ce7bcf3ee061cde7688b2595",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"sum\":5,\"sourceWriteDenied\":true,\"checkWriteDenied\":true,\"scratchWritable\":true}\n",
+      "stderr": "",
+      "settlement": {
+        "manifestDigest": "99a0faee7f07d7d95314651bbb6432217d0db650ce7bcf3ee061cde7688b2595",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 1196,
+        "appContainerSid": "S-1-15-2-792854422-2356370353-3021644947-3795418802-1656696583-2085173680-3327240165",
+        "wallTimeMs": 10000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "tampered-source",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7ZwWQl",
+      "manifestDigest": "7c619e11075418303646bd5c8efe4f274eb88fbaf29471aeb578bdaff100a68f",
+      "status": 125,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "CC_WINDOWS_SANDBOX_ERROR: Native evaluator file identity or link count changed\r\n",
+      "settlement": {
+        "manifestDigest": "7c619e11075418303646bd5c8efe4f274eb88fbaf29471aeb578bdaff100a68f",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 0,
+        "appContainerSid": "S-1-15-2-477718196-2001965003-2987770995-3808204604-685321268-3086096633-1802120111",
+        "wallTimeMs": 10000,
+        "targetExitCode": 125,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": true
+      }
+    },
+    {
+      "kind": "network-deny",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-n3LIUT",
+      "manifestDigest": "7a283e0cd61103240aa160b1bc2362cc9f013ec0df1353fd28f978f2ae4641a5",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(['EACCES','EPERM'].includes(error.code))\n\n    at Socket.<anonymous> (<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-n3LIUT\\control\\check.cjs:7:67)\n    at Object.onceWrapper (node:events:634:26)\n    at Socket.emit (node:events:519:28)\n    at emitErrorNT (node:internal/streams/destroy:170:8)\n    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n",
+      "settlement": {
+        "manifestDigest": "7a283e0cd61103240aa160b1bc2362cc9f013ec0df1353fd28f978f2ae4641a5",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 26356,
+        "appContainerSid": "S-1-15-2-3189954318-3205322684-2913718996-171180629-1807571625-3725960429-1441899976",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    },
+    {
+      "kind": "detached-descendant",
+      "stage": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-FSIxH7",
+      "manifestDigest": "69e148bfb25613e58bbef97a2baf2580b723ecdd3dd37eac97938734672f2792",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "node:internal/child_process:420\r\n    throw new ErrnoException(err, 'spawn');\r\n    ^\r\n\r\nError: spawn EPERM\r\n    at ChildProcess.spawn (node:internal/child_process:420:11)\r\n    at Object.spawn (node:child_process:787:9)\r\n    at Object.<anonymous> (<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-FSIxH7\\control\\check.cjs:2:49)\r\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\r\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\r\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\r\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\r\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\r\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5) {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'spawn'\r\n}\r\n\r\nNode.js v22.22.2\r\n",
+      "settlement": {
+        "manifestDigest": "69e148bfb25613e58bbef97a2baf2580b723ecdd3dd37eac97938734672f2792",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "targetPid": 19172,
+        "appContainerSid": "S-1-15-2-2243848379-2328997197-3941139416-2444733782-1782038226-3368710653-54236903",
+        "wallTimeMs": 10000,
+        "targetExitCode": 1,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      }
+    }
+  ]
+}

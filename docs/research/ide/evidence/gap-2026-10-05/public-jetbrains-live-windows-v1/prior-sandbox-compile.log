@@ -1,0 +1,16 @@
+������ (21.0.12.1) �г����쳣��������� Bug Database (https://bugs.java.com) ��û���ҵ��йظô���� Java ������ Bug����ͨ�� Java Bug ����ҳ (https://bugreport.java.com) �ύ Java ������ Bug�����ڱ����и������ĳ������������Ϣ�Լ����ݵ� Java �������Ĳ�����лл��
+java.nio.file.AccessDeniedException: C:\Users\longfa\.gradle\caches\modules-2\files-2.1\org.junit.jupiter\junit-jupiter-api\5.10.2\fb55d6e2bce173f35fd28422e7975539621055ef\junit-jupiter-api-5.10.2.jar
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:89)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:96)
+	at java.base/sun.nio.fs.WindowsLinkSupport.getRealPath(WindowsLinkSupport.java:288)
+	at java.base/sun.nio.fs.WindowsPath.toRealPath(WindowsPath.java:947)
+	at java.base/sun.nio.fs.WindowsPath.toRealPath(WindowsPath.java:42)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystemProvider.lambda$removeFileSystem$0(ZipFileSystemProvider.java:324)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystemProvider.removeFileSystem(ZipFileSystemProvider.java:326)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystem.close(ZipFileSystem.java:526)
+	at jdk.compiler/com.sun.tools.javac.file.JavacFileManager$ArchiveContainer.close(JavacFileManager.java:657)
+	at jdk.compiler/com.sun.tools.javac.file.JavacFileManager.close(JavacFileManager.java:735)
+	at jdk.compiler/com.sun.tools.javac.main.Main.compile(Main.java:182)
+	at jdk.compiler/com.sun.tools.javac.Main.compile(Main.java:64)
+	at jdk.compiler/com.sun.tools.javac.Main.main(Main.java:50)

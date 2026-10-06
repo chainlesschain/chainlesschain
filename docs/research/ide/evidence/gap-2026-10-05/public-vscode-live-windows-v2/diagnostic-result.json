@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.public-vscode-live-diagnostic/v1",
+  "finishedAt": "2026-10-06T09:58:14.185Z",
+  "passed": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-UiUQ7t",
+  "formalSample": false,
+  "observationsCreated": false,
+  "publicArtifactsUsed": true,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "sourceCommitVerified": false,
+  "artifactExact": true,
+  "artifactDigest": "sha256:39ace124ab0612af58afefa9e5a6ed36976377dbbd172bb13bb02cdd2e4cd178"
+}

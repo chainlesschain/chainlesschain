@@ -76,6 +76,7 @@ jobs:
           scripts/__tests__/verify01-cold-boundaries.test.mjs
           scripts/__tests__/verify01-init-gate.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
+          packages/vscode-extension/test/verify01-config.test.cjs
       - name: Install Linux virtual display
         if: runner.os == 'Linux'
         run: |

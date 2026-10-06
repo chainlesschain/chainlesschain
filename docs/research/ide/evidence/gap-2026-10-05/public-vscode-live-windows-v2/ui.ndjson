@@ -1,0 +1,6 @@
+{"action":"submit","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:57:04.863Z"}
+{"action":"background-tab","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:57:20.057Z"}
+{"action":"return-tab","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:57:20.064Z"}
+{"action":"final-result","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:57:56.928Z","resultDigest":"sha256:26ba608fa18d91df95d3723b5d96930b1a2b9f25383f630c9a8b80099de7e955"}
+{"action":"reload","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:58:08.738Z"}
+{"action":"restored-result","sampleId":"first-run-public-windows-vscode","sessionId":"panel-bae4d8c2-444c-4b4d-bfe9-25817be13c8c","at":"2026-10-06T09:58:13.599Z","resultDigest":"sha256:26ba608fa18d91df95d3723b5d96930b1a2b9f25383f630c9a8b80099de7e955"}

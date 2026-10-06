@@ -24,3 +24,10 @@ docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-v3/*
 docs/research/ide/evidence/gap-2026-10-05/host-ci-7694/**
 docs/research/cli/evidence/gap-2026-10-05/process-recovery-ci-3027/**
 docs/research/cli/evidence/gap-2026-10-05/volcengine-live-20261006/**
+
+# Public-install and native evaluator evidence preserves archived bytes.
+docs/research/cli/evidence/gap-2026-10-05/public-cli*/**
+docs/research/cli/evidence/gap-2026-10-05/windows-native*/**
+docs/research/ide/evidence/gap-2026-10-05/public-vscode*/**
+docs/research/ide/evidence/gap-2026-10-05/public-jetbrains*/**
+docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/**
