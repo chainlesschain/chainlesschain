@@ -229,8 +229,12 @@ try {
 
     it.each(nativeRuntimeHosts)(
       "executes a real staged Node check with immutable source/control and writable scratch on $label",
-      async ({ command }) => {
-        const evaluator = create(`
+      async ({ command, label }) => {
+        const started = performance.now();
+        const timings = { runtime: label };
+        let outcome;
+        try {
+          const evaluator = create(`
       const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
       const workspace=process.argv[2],scratch=process.argv[3];
       assert.equal(require(path.join(workspace,'math.cjs'))(2,3),5);
@@ -249,48 +253,78 @@ try {
       assert.equal(process.env.VOLCENGINE_API_KEY,undefined);
       console.log(JSON.stringify({sum:5,sourceWriteDenied:true,checkWriteDenied:true,scratchWritable:true}));
     `);
-        const originalNative = executionBroker._native;
-        let hostLaunches = 0;
-        executionBroker._native = {
-          ...originalNative,
-          spawnSync: (requested, args, options) => {
-            expect(["powershell.exe", "pwsh.exe"]).toContain(
-              path.basename(requested).toLowerCase(),
+          timings.prepareMs = Math.round(performance.now() - started);
+          const originalNative = executionBroker._native;
+          let hostLaunches = 0;
+          executionBroker._native = {
+            ...originalNative,
+            spawnSync: (requested, args, options) => {
+              expect(["powershell.exe", "pwsh.exe"]).toContain(
+                path.basename(requested).toLowerCase(),
+              );
+              expect(args).toContain("-EncodedCommand");
+              hostLaunches++;
+              // Exercise the unchanged byte-loaded helper/bootstrap and target
+              // policy in each installed CLR, including portable pwsh for local
+              // reproduction. No helper or AppContainer boundary is mocked.
+              const supervisorStarted = performance.now();
+              try {
+                return spawnSync(command, args, options);
+              } finally {
+                timings.supervisorMs = Math.round(
+                  performance.now() - supervisorStarted,
+                );
+              }
+            },
+          };
+          const executionStarted = performance.now();
+          try {
+            outcome = await execute(evaluator, "readonly-check");
+          } finally {
+            executionBroker._native = originalNative;
+            timings.executeMs = Math.round(
+              performance.now() - executionStarted,
             );
-            expect(args).toContain("-EncodedCommand");
-            hostLaunches++;
-            // Exercise the unchanged byte-loaded helper/bootstrap and target
-            // policy in each installed CLR, including portable pwsh for local
-            // reproduction. No helper or AppContainer boundary is mocked.
-            return spawnSync(command, args, options);
-          },
-        };
-        let outcome;
-        try {
-          outcome = await execute(evaluator, "readonly-check");
+          }
+          expect(hostLaunches).toBe(1);
+          expect(outcome.result.status, outcome.result.stderr).toBe(0);
+          expect(JSON.parse(outcome.result.stdout)).toMatchObject({
+            sum: 5,
+            sourceWriteDenied: true,
+            checkWriteDenied: true,
+            scratchWritable: true,
+          });
+          expect(outcome.receipt).toMatchObject({
+            cleanupConfirmed: true,
+            capabilityCount: 0,
+            executionFailed: false,
+            wallTimeMs: 10000,
+          });
+          await expect(evaluator.execute()).rejects.toThrow(/already consumed/);
+          expect(
+            fs.readFileSync(path.join(sourceRoot, "math.cjs"), "utf8"),
+          ).toBe("module.exports = (a,b) => a+b;\n");
+          const disposalStarted = performance.now();
+          evaluator.dispose();
+          timings.disposeMs = Math.round(performance.now() - disposalStarted);
         } finally {
-          executionBroker._native = originalNative;
+          console.info(
+            "[native-evaluator] " +
+              JSON.stringify({
+                ...timings,
+                totalMs: Math.round(performance.now() - started),
+                status: outcome?.result.status ?? null,
+                cleanupConfirmed: outcome?.receipt.cleanupConfirmed ?? false,
+                targetWallTimeMs: outcome?.receipt.wallTimeMs ?? null,
+              }),
+          );
         }
-        expect(hostLaunches).toBe(1);
-        expect(outcome.result.status, outcome.result.stderr).toBe(0);
-        expect(JSON.parse(outcome.result.stdout)).toMatchObject({
-          sum: 5,
-          sourceWriteDenied: true,
-          checkWriteDenied: true,
-          scratchWritable: true,
-        });
-        expect(outcome.receipt).toMatchObject({
-          cleanupConfirmed: true,
-          capabilityCount: 0,
-          executionFailed: false,
-        });
-        await expect(evaluator.execute()).rejects.toThrow(/already consumed/);
-        expect(fs.readFileSync(path.join(sourceRoot, "math.cjs"), "utf8")).toBe(
-          "module.exports = (a,b) => a+b;\n",
-        );
-        evaluator.dispose();
       },
-      30000,
+      // This includes runtime capture, cold adapter probes, CLR startup and
+      // disposal. The target still has its independently attested 10s native
+      // watchdog. Hosted cold starts exceeded the old 30s test-only budget
+      // (30.5s); use the existing suite's 90s subprocess budget for both CLRs.
+      90000,
     );
 
     it("preserves supervisor diagnostics when native settlement is missing", async () => {
