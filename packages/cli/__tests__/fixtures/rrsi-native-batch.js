@@ -19,11 +19,16 @@ import { buildRrsiSettlementMessage } from "../../src/lib/evolution/rrsi-history
 export function rrsiNativeBatchFixture({
   stage = "selection",
   targetCount = 1,
+  campaignOverrides = {},
+  versions,
+  cellOverrides = {},
 } = {}) {
   const defaults = rrsiCampaignInput();
   const planContext = rrsiNativeEvaluationFixture({
     stage,
     targetCount,
+    versions,
+    cellOverrides,
     campaignOverrides: {
       budget: {
         ...defaults.budget,
@@ -37,6 +42,7 @@ export function rrsiNativeBatchFixture({
           maxExecutions: 50000,
         },
       },
+      ...campaignOverrides,
     },
   });
   const plan = buildRrsiNativeEvaluationPlan(planContext);

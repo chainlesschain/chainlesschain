@@ -24,9 +24,12 @@ export function rrsiNativeEvaluationFixture({
   targetCount = 1,
   fullBudget = true,
   campaignOverrides = {},
+  versions,
+  cellOverrides = {},
 } = {}) {
   const defaults = rrsiCampaignInput();
   const value = rrsiEvaluationFixture({
+    versions,
     campaignOverrides: {
       ...(fullBudget
         ? {
@@ -164,6 +167,7 @@ export function rrsiNativeEvaluationFixture({
               trainerAuthority: "TEST-trainer",
               trainerRevision: "TEST-trainer-v1",
               maximumCellSettlementMs: 30000,
+              ...cellOverrides,
             })),
           }),
         };
