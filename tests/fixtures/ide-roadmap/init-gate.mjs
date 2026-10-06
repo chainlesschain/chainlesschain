@@ -20,9 +20,12 @@ export async function waitForInitGate(sessionId, trace) {
     !/^[a-zA-Z0-9-]{1,80}$/u.test(gate.nonce)
   )
     throw new Error("Invalid fixture init gate nonce");
+  const timeoutMs = gate.timeoutMs ?? 60_000;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 180_000)
+    throw new Error("Fixture init gate timeout must be 1..180000 milliseconds");
   const identity = { sessionId, nonce: gate.nonce, processId: process.pid };
   trace({ direction: "fixture", command: "init-gate-waiting", ...identity });
-  const deadline = Date.now() + 60_000;
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const release = read(`${gatePath}.release`, true);
     if (release?.sessionId === sessionId && release?.nonce === gate.nonce) {
@@ -36,6 +39,6 @@ export async function waitForInitGate(sessionId, trace) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   throw new Error(
-    "Fixture init gate was not explicitly released within 60 seconds",
+    `Fixture init gate was not explicitly released within ${timeoutMs} milliseconds`,
   );
 }

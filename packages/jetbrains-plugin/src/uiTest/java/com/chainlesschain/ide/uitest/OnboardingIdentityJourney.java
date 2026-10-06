@@ -49,7 +49,8 @@ final class OnboardingIdentityJourney {
 
             // Removing the private PATH shim exercises actual command absence.
             Path global = Path.of(config.get("globalCommand").getAsString());
-            Files.move(global, global.resolveSibling("cc-disabled.cmd"));
+            Path disabled = global.resolveSibling(global.getFileName() + ".disabled");
+            Files.move(global, disabled);
             observe("missing", "CLI (cc) not found", true);
 
             settings("", true);
@@ -57,7 +58,7 @@ final class OnboardingIdentityJourney {
 
             // Repair within the SAME IDE process; no cache reset through reflection.
             Files.writeString(root.resolve("version-mode.txt"), "valid");
-            Files.move(global.resolveSibling("cc-disabled.cmd"), global);
+            Files.move(disabled, global);
             settings("", false);
             observe("installed-on-path-without-restart", "LLM not configured yet", false);
             write("onboarding-ui.json", results);

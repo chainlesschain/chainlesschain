@@ -197,6 +197,46 @@ quorum protocol or a stop guarantee for unregistered receivers.
 
 ## Validation and remaining scope
 
+### Explicit process ownership inspection and recovery
+
+For a Linux native supervised launch configured with an administrator-delegated
+cgroup v2 root (`CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP_ROOT`), inspect and recover
+one pending execution using the same user and security anchor as the original
+launch:
+
+```sh
+cc agent process-ownership status --json
+cc agent process-ownership recover <execution-uuid> --timeout-ms 5000 --json
+```
+
+`status` reads the existing ownership journal without provisioning, launching,
+or clearing anything. `recoverableExecutionIds` lists persisted kernel recovery
+candidates; the current boot and cgroup identities still require verification.
+A successful status command can report `blocked:true`. Its exit code describes
+whether inspection succeeded, not whether a new execution is admitted.
+
+`recover` is an explicit request to **terminate** the descendants of that exact
+execution. It delegates to the existing kernel recovery authority, issues
+`cgroup.kill`, waits for the empty-group fence, rechecks that fence while
+committing the durable receipt, and only then removes the matching pending
+record. JSON output wraps that receipt in
+`chainlesschain.process-ownership-recovery/v1`. `executionResumed:false` means
+the interrupted task was not replayed. The bounded deadline is 1–30000 ms; an
+expired deadline leaves quarantine in place and emits no successful receipt.
+
+There is no reset, clear-all, PID-based recovery, automatic retry, or task resume.
+Old PID-only records, changed boot/cgroup identities, corrupt state, and failed
+durable publication remain failures. A current locally owned launch uses its
+normal cancellation path. Keep using the original trusted security anchor;
+changing or deleting state does not prove cleanup. Parent `agent` flags are
+rejected. Both commands reject Windows/macOS before opening authority.
+
+This is cooperative Linux native-process lifecycle recovery. It does not clean
+up Docker egress sessions, establish hostile same-UID confinement, make
+`restartSafe` true, or implement Windows/macOS durable recovery.
+
+### Existing host validation
+
 The native Linux probe runs real production child/Worker writers, concurrent
 settings writes, scoped add/revoke and ABA, CAS conflicts, local notification
 followed by polling, fixed launch validation, controlled-host entry, and an

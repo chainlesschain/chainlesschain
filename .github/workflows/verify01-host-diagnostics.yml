@@ -10,8 +10,8 @@ on:
       - "packages/jetbrains-plugin/**"
       - "packages/cli/src/**"
       - "tests/fixtures/ide-roadmap/**"
-      - "scripts/lib/verify01-diagnostic-*.mjs"
-      - "scripts/__tests__/verify01-diagnostic-*.test.mjs"
+      - "scripts/lib/verify01-*.mjs"
+      - "scripts/__tests__/verify01-*.test.mjs"
       - "package-lock.json"
       - ".github/workflows/verify01-host-diagnostics.yml"
   push:
@@ -21,8 +21,8 @@ on:
       - "packages/jetbrains-plugin/**"
       - "packages/cli/src/**"
       - "tests/fixtures/ide-roadmap/**"
-      - "scripts/lib/verify01-diagnostic-*.mjs"
-      - "scripts/__tests__/verify01-diagnostic-*.test.mjs"
+      - "scripts/lib/verify01-*.mjs"
+      - "scripts/__tests__/verify01-*.test.mjs"
       - "package-lock.json"
       - ".github/workflows/verify01-host-diagnostics.yml"
 
@@ -71,6 +71,9 @@ jobs:
           node --test scripts/__tests__/verify01-diagnostic-process.test.mjs
           scripts/__tests__/verify01-diagnostic-evidence.test.mjs
           scripts/__tests__/verify01-diagnostic-command-drain.test.mjs
+          scripts/__tests__/verify01-onboarding-fixture.test.mjs
+          scripts/__tests__/verify01-cold-evidence.test.mjs
+          scripts/__tests__/verify01-init-gate.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
       - name: Install Linux virtual display
         if: runner.os == 'Linux'
@@ -119,6 +122,26 @@ jobs:
           fi
           "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \
             --ide-version 2024.2 --artifact-dir verify01-artifacts/jetbrains
+      - name: Run IntelliJ identity discovery and repair in one IDE process
+        if: matrix.host == 'jetbrains'
+        shell: bash
+        run: |
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs \
+            --ide-version 2024.2 --artifact-dir verify01-artifacts/onboarding
+      - name: Run IntelliJ bounded cold initialization and explicit retry
+        if: matrix.host == 'jetbrains'
+        shell: bash
+        run: |
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \
+            --journey cold --ide-version 2024.2 --artifact-dir verify01-artifacts/cold
       - name: Preserve successful and failed attempts
         if: always()
         uses: actions/upload-artifact@v6

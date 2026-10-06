@@ -86,6 +86,13 @@ final class IdeUiSmokeTest {
             }
 
             String verifyRoot = System.getProperty("ui.verify01.captureRoot", "");
+            String coldRoot = System.getProperty("ui.cold.root", "");
+            if (!coldRoot.isBlank()) {
+                ensureChatInputVisible(robot);
+                new ColdInitializationJourney(robot, frame, Paths.get(coldRoot),
+                        Long.parseLong(System.getProperty("ui.verify01.deadlineMs"))).run();
+                return;
+            }
             if (!verifyRoot.isBlank()) {
                 ensureChatInputVisible(robot);
                 String phase = System.getProperty("ui.journey.phase", "initial");

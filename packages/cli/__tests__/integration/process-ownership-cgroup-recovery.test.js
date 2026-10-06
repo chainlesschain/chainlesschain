@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { ProcessOwnershipJournal } from "../../src/lib/process-execution-broker/process-ownership-journal.js";
 import {
@@ -82,6 +83,24 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
       expect(result.status, result.stderr).toBe(0);
       return result.stdout.trim() ? JSON.parse(result.stdout.trim()) : null;
     };
+    const runCli = (...args) => {
+      const result = spawnSync(
+        process.execPath,
+        [
+          fileURLToPath(
+            new URL("../../bin/chainlesschain.js", import.meta.url),
+          ),
+          "agent",
+          "process-ownership",
+          ...args,
+          "--json",
+        ],
+        { cwd: workspace, env, encoding: "utf8", timeout: 30000 },
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.status, result.stderr).toBe(0);
+      return JSON.parse(result.stdout.trim());
+    };
     try {
       const target = `const fs=require('node:fs');const {spawn}=require('node:child_process');fs.appendFileSync(${JSON.stringify(marker)},'started\\n');const leaf=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setTimeout(()=>{},25000)"],{detached:true,stdio:'ignore'});process.stdout.write(JSON.stringify([process.pid,leaf.pid])+'\\n');process.on('SIGTERM',()=>{});setTimeout(()=>{},25000);`;
       run(`import fs from 'node:fs';import {spawn} from 'node:child_process';import broker from ${JSON.stringify(brokerUrl)};
@@ -97,16 +116,15 @@ describe.skipIf(!eligible)("real delegated cgroup2 restart recovery", () => {
       // The supervisor gives its direct target PDEATHSIG=SIGKILL. The detached
       // grandchild does not inherit that flag and must still need recovery.
       expect(executing(pids[1])).toBe(true);
-      const status = run(
-        `import broker from ${JSON.stringify(brokerUrl)};console.log(JSON.stringify(broker.getProcessOwnershipStatus()));`,
-      );
+      const status = runCli("status");
       expect(status).toMatchObject({
         blocked: true,
         recoverableExecutionIds: [id],
         restartSafe: false,
       });
-      const receipt = run(
-        `import broker from ${JSON.stringify(brokerUrl)};const receipt=await broker.recoverProcessOwnership(${JSON.stringify(id)});const child=broker.spawnSync(process.execPath,['-e','process.exit(0)'],{policy:'allow'});if(child.status!==0)throw Error('admission did not reopen');console.log(JSON.stringify(receipt));`,
+      const { receipt } = runCli("recover", id);
+      run(
+        `import broker from ${JSON.stringify(brokerUrl)};const child=broker.spawnSync(process.execPath,['-e','process.exit(0)'],{policy:'allow'});if(child.status!==0)throw Error('admission did not reopen');`,
       );
       expect(receipt).toMatchObject({
         cleanupConfirmed: true,

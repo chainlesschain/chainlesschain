@@ -47,6 +47,7 @@ import {
 } from "../lib/formal-quality-eval-runtime.js";
 import { withQuietStdout } from "../runtime/quiet-stdout.js";
 import { registerControlledHostCommand } from "./agent-controlled-host.js";
+import { registerProcessOwnershipCommands } from "./agent-process-ownership.js";
 import { resolveCredentialEnvironmentValue } from "../lib/process-execution-broker/credential-transport.js";
 import {
   captureClaudeStorageLaunchEnvironment,
@@ -2261,6 +2262,7 @@ export function registerAgentCommand(program, dependencies = {}) {
       await _finishWorktree();
     });
   registerControlledHostCommand(agent, dependencies.controlledHost);
+  registerProcessOwnershipCommands(agent, dependencies.processOwnership);
 }
 
 export function registerSubAgentV2Command(program) {

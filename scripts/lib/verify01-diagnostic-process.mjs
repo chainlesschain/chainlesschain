@@ -58,7 +58,7 @@ function cleanupUnconfirmed(message) {
 }
 
 function windowsProcessSnapshot() {
-  const script = `$ErrorActionPreference='Stop'; @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId;name=$_.Name;created=if($null -eq $_.CreationDate){$null}else{$_.CreationDate.ToUniversalTime().Ticks.ToString()}} }) | ConvertTo-Json -Compress`;
+  const script = `$ErrorActionPreference='Stop'; @(Get-CimInstance -Query 'SELECT ProcessId, ParentProcessId, Name, CreationDate FROM Win32_Process' | ForEach-Object { [pscustomobject]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId;name=$_.Name;created=if($null -eq $_.CreationDate){$null}else{$_.CreationDate.ToUniversalTime().Ticks.ToString()}} }) | ConvertTo-Json -Compress`;
   const result = spawnSync(
     path.join(
       process.env.SystemRoot || "C:\\Windows",
@@ -174,6 +174,48 @@ function saveCleanupEvidence(handle) {
     );
 }
 
+const preparedWindowsTrees = new WeakMap();
+
+/** Capture live Windows ownership before starting a caller's shutdown deadline.
+ * This is preparation only: descendants must still be observed absent by stopOwned.
+ */
+export function captureOwnedProcessTree(handle) {
+  if (
+    process.platform !== "win32" ||
+    !handle?.child.pid ||
+    handle.cleanupConfirmed
+  )
+    return;
+  if (preparedWindowsTrees.has(handle)) return;
+  const evidence = {
+    scope: "known-diagnostic-process-tree",
+    owned: [],
+    taskkill: null,
+    confirmed: false,
+  };
+  handle.cleanupEvidence = evidence;
+  try {
+    if (
+      handle.closed ||
+      handle.child.exitCode !== null ||
+      handle.child.signalCode !== null
+    )
+      throw cleanupUnconfirmed(
+        "Windows host owner exited before identity capture",
+      );
+    evidence.owned = windowsOwnedTree(
+      windowsProcessSnapshot(),
+      handle.child.pid,
+    );
+    preparedWindowsTrees.set(handle, evidence.owned);
+  } catch (error) {
+    evidence.error = error.message;
+    throw error;
+  } finally {
+    saveCleanupEvidence(handle);
+  }
+}
+
 /** Long-running Windows hosts require a living owner for tree termination.
  * A departed root PID cannot establish ownership of its former descendants.
  * The default permits natural short-command completion, not durable recovery.
@@ -209,14 +251,10 @@ export async function stopOwned(
     if (process.platform === "win32") {
       // Record OS identities while the owner is alive. This confirms the known
       // diagnostic tree, not containment of hostile/detaching descendants.
-      const owned = windowsOwnedTree(windowsProcessSnapshot(), child.pid);
-      const evidence = {
-        scope: "known-diagnostic-process-tree",
-        owned,
-        taskkill: null,
-        confirmed: false,
-      };
-      handle.cleanupEvidence = evidence;
+      captureOwnedProcessTree(handle);
+      const owned = preparedWindowsTrees.get(handle);
+      preparedWindowsTrees.delete(handle);
+      const evidence = handle.cleanupEvidence;
       const saveEvidence = () => saveCleanupEvidence(handle);
       const observeRemaining = () => {
         const snapshot = windowsProcessSnapshot();

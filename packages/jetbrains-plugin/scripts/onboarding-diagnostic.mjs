@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Windows real-host command discovery diagnostics, never formal/provider evidence.
+// Cross-platform real-host identity diagnostics, never formal/provider evidence.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +21,7 @@ import {
   readPluginVersion,
   findPluginArchive,
 } from "./run-ui-host-journey.mjs";
+import { createOnboardingFixture } from "../../../scripts/lib/verify01-onboarding-fixture.mjs";
 
 const pkg = path.resolve(import.meta.dirname, "..");
 const { values } = parseArgs({
@@ -29,10 +30,6 @@ const { values } = parseArgs({
     "ide-version": { type: "string", default: "2024.2" },
   },
 });
-if (process.platform !== "win32")
-  throw new Error(
-    "This command-absence diagnostic currently isolates Windows PATH only",
-  );
 if (!/^\d{4}\.\d+(?:\.\d+)?$/u.test(values["ide-version"]))
   throw new Error("Exact IDE version required");
 const destination = reserveArtifactDirectory(values["artifact-dir"]);
@@ -44,58 +41,11 @@ const dirs = Object.fromEntries(
 );
 for (const directory of Object.values(dirs)) fs.mkdirSync(directory);
 const deadline = Date.now() + 25 * 60 * 1000;
-const fixture = path.join(root, "identity-peer.cjs");
-const trace = path.join(root, "identity-trace.jsonl");
-const mode = path.join(dirs.capture, "version-mode.txt");
-fs.writeFileSync(mode, "valid");
-fs.writeFileSync(trace, "");
-fs.writeFileSync(
-  fixture,
-  `const fs=require('node:fs');
-const identity=process.argv[2],args=process.argv.slice(3);
-const mode=identity==='managed'?'valid':fs.readFileSync(${JSON.stringify(mode)},'utf8');
-fs.appendFileSync(${JSON.stringify(trace)},JSON.stringify({at:new Date().toISOString(),pid:process.pid,identity,args,mode})+'\\n');
-if(args.includes('--version'))console.log(mode==='gcc'?'cc (GCC) 12.2.0':'0.166.89');
-else if(args[0]==='agent'){console.error('Agent invocation forbidden in identity diagnostic');process.exitCode=98;}
-else if(args[0]==='config'&&args[1]==='get')console.log('');
-else console.log('{}');
-`,
-);
-const shim = (file, identity) =>
-  fs.writeFileSync(
-    file,
-    `@echo off\r\n"${process.execPath}" "${fixture}" "${identity}" %*\r\n`,
-  );
-const goodCommand = path.join(root, "good.cmd");
-const globalCommand = path.join(dirs.bin, "cc.cmd");
-shim(goodCommand, "explicit");
-shim(globalCommand, "global");
-// Deterministic local managed layout; this does not claim registry installation.
-const managed = path.join(
-  dirs.home,
-  ".chainlesschain",
-  "ide",
-  "managed-cli-jetbrains",
-);
-const managedPackage = path.join(managed, "0.166.89", "package");
-fs.mkdirSync(managedPackage, { recursive: true });
-fs.writeFileSync(
-  path.join(managedPackage, "package.json"),
-  JSON.stringify({
-    name: "chainlesschain",
-    version: "0.166.89",
-    bin: { cc: "entry.cjs" },
-  }),
-);
-fs.writeFileSync(
-  path.join(managedPackage, "entry.cjs"),
-  "// Deterministic fixture entry; shim invokes the traced peer.\n",
-);
-fs.writeFileSync(
-  path.join(managed, "current.json"),
-  JSON.stringify({ version: "0.166.89", previousVersion: null }),
-);
-shim(path.join(managed, "cc-managed.cmd"), "managed");
+const version = JSON.parse(
+  fs.readFileSync(path.join(pkg, "../cli/package.json"), "utf8"),
+).version;
+const { trace, goodCommand, globalCommand, missingCommand, idePath } =
+  createOnboardingFixture({ root, dirs, version });
 fs.writeFileSync(
   path.join(dirs.capture, "onboarding-config.json"),
   JSON.stringify(
@@ -103,7 +53,7 @@ fs.writeFileSync(
       deadlineMs: deadline,
       goodCommand,
       globalCommand,
-      missingCommand: path.join(root, "not-installed.cmd"),
+      missingCommand,
     },
     null,
     2,
@@ -116,18 +66,13 @@ const env = {
   USERPROFILE: dirs.home,
   CHAINLESSCHAIN_HOME: path.join(dirs.home, ".chainlesschain"),
 };
-for (const key of Object.keys(env))
-  if (
-    /^(?:path|nvm_bin|nvm_symlink|volta_home|fnm_multishell_path)$/iu.test(key)
-  )
-    delete env[key];
-env.PATH = `${dirs.bin};${path.join(process.env.SystemRoot || "C:\\Windows", "System32")}`;
 for (const key of ["APPDATA", "LOCALAPPDATA", "ProgramFiles"]) {
   env[key] = path.join(root, key);
   fs.mkdirSync(env[key]);
 }
 const gradle =
-  process.env.CC_JETBRAINS_GRADLE_EXECUTABLE || path.join(pkg, "gradlew.bat");
+  process.env.CC_JETBRAINS_GRADLE_EXECUTABLE ||
+  path.join(pkg, process.platform === "win32" ? "gradlew.bat" : "gradlew");
 const base = [
   "--no-daemon",
   "--no-configuration-cache",
@@ -144,6 +89,7 @@ const params = [
   `-Dui.verify01.workspace=${dirs.workspace}`,
   `-Dui.verify01.home=${dirs.home}`,
   `-Dui.onboarding.root=${dirs.capture}`,
+  `-Dui.onboarding.path=${idePath}`,
 ];
 const launch = (args, name, childEnv = process.env) =>
   launchLogged(gradle, args, {
@@ -153,7 +99,7 @@ const launch = (args, name, childEnv = process.env) =>
   });
 let active;
 const result = {
-  scope: "real-windows-intellij-onboarding-local-command-fixtures",
+  scope: "real-intellij-onboarding-local-command-fixtures",
   formalSample: false,
   providerAssessed: false,
   publicInstallationAssessed: false,
@@ -161,6 +107,7 @@ const result = {
   root,
   platform: process.platform,
   node: process.version,
+  arch: process.arch,
   hostVersion: values["ide-version"],
 };
 result.source = {
@@ -190,6 +137,13 @@ result.source = {
     ]),
   ),
 };
+result.source.fixtureDigest = `sha256:${createHash("sha256")
+  .update(
+    fs.readFileSync(
+      path.resolve(pkg, "../../scripts/lib/verify01-onboarding-fixture.mjs"),
+    ),
+  )
+  .digest("hex")}`;
 console.log(`Onboarding diagnostic: ${root}`);
 async function portFree() {
   const server = net.createServer();
@@ -245,7 +199,9 @@ try {
         ).ok
       )
         break;
-    } catch {}
+    } catch {
+      // The loopback robot endpoint may not be ready during bounded startup.
+    }
     await delay(500);
   }
   await requireSuccess(

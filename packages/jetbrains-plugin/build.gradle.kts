@@ -301,6 +301,7 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
     systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
     systemProperty("ui.onboarding.root", System.getProperty("ui.onboarding.root") ?: "")
+    systemProperty("ui.cold.root", System.getProperty("ui.cold.root") ?: "")
     systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
     for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace")) {
         System.getProperty("ui.verify01.$name")?.let { systemProperty("ui.verify01.$name", it) }
@@ -344,6 +345,15 @@ runCatching {
             version = hostIdeVersion
         }
         task {
+            val onboardingPath = System.getProperty("ui.onboarding.path", "")
+            if (onboardingPath.isNotBlank()) {
+                require(System.getProperty("ui.onboarding.root", "").isNotBlank()) {
+                    "Isolated onboarding PATH requires its diagnostic journey"
+                }
+                environment.keys.filter { it.equals("path", ignoreCase = true) }
+                    .forEach { environment.remove(it) }
+                environment("PATH", onboardingPath)
+            }
             if (verifyHome != null) {
                 environment("HOME", verifyHome.absolutePath)
                 environment("USERPROFILE", verifyHome.absolutePath)

@@ -6,6 +6,7 @@ import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   launchLogged,
+  captureOwnedProcessTree,
   requireSuccess,
   stopOwned,
   withinDeadline,
@@ -396,6 +397,7 @@ test(
     t.after(() => stopOwned(handle));
     while (!fs.existsSync(pidFile)) await delay(25);
     const pid = Number(fs.readFileSync(pidFile, "utf8"));
+    captureOwnedProcessTree(handle);
     await stopOwned(handle, {
       requireRunningOwner: true,
       gracefulDeadline: Date.now() + 15000,
@@ -433,6 +435,7 @@ test(
       { logFile: path.join(directory, "no-exit.log") },
     );
     t.after(() => stopOwned(handle));
+    captureOwnedProcessTree(handle);
     await stopOwned(handle, {
       requireRunningOwner: true,
       gracefulDeadline:
@@ -449,6 +452,26 @@ test(
 );
 
 test(
+  "Windows identity preparation refuses a departed owner and preserves failure evidence",
+  { skip: process.platform !== "win32" },
+  async (t) => {
+    const directory = root(t);
+    const handle = launchLogged(process.execPath, ["-e", "process.exit(0)"], {
+      logFile: path.join(directory, "departed-before-capture.log"),
+    });
+    await handle.done;
+    assert.throws(() => captureOwnedProcessTree(handle), {
+      code: "CC_DIAGNOSTIC_CLEANUP_UNCONFIRMED",
+    });
+    const evidence = JSON.parse(fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"));
+    assert.equal(evidence.confirmed, false);
+    assert.equal(evidence.taskkill, null);
+    assert.match(evidence.error, /exited before identity capture/u);
+    assert.equal(handle.cleanupConfirmed, undefined);
+  },
+);
+
+test(
   "a hanging graceful request is bounded and aborted before fallback cleanup",
   { timeout: 30000 },
   async (t) => {
@@ -458,7 +481,21 @@ test(
       ["-e", "setInterval(()=>{},1000)"],
       { logFile: path.join(directory, "hung-request.log") },
     );
-    t.after(() => stopOwned(handle));
+    t.after(async () => {
+      try {
+        await stopOwned(handle);
+      } finally {
+        // This fixture has no descendants. Reap its own direct child even if
+        // OS identity sampling fails; never turn that into cleanup evidence.
+        if (!handle.closed) handle.child.kill();
+        await withinDeadline(
+          handle.done,
+          Date.now() + 5000,
+          "fixture child exit",
+        );
+      }
+    });
+    captureOwnedProcessTree(handle);
     let aborted = false;
     await stopOwned(handle, {
       requireRunningOwner: true,
@@ -497,6 +534,7 @@ test(
     try {
       while (!fs.existsSync(pidFile)) await delay(25);
       pid = Number(fs.readFileSync(pidFile, "utf8"));
+      captureOwnedProcessTree(handle);
       await assert.rejects(
         stopOwned(handle, {
           requireRunningOwner: true,

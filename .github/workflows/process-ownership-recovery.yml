@@ -4,14 +4,22 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - "packages/cli/src/commands/agent.js"
+      - "packages/cli/src/commands/agent-process-ownership.js"
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/__tests__/unit/agent-process-ownership.test.js"
+      - "packages/cli/__tests__/integration/agent-process-ownership-cli.test.js"
       - "packages/cli/__tests__/unit/process-ownership*.test.js"
       - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
       - ".github/workflows/process-ownership-recovery.yml"
   push:
     branches: [main, "feature/**"]
     paths:
+      - "packages/cli/src/commands/agent.js"
+      - "packages/cli/src/commands/agent-process-ownership.js"
       - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/__tests__/unit/agent-process-ownership.test.js"
+      - "packages/cli/__tests__/integration/agent-process-ownership-cli.test.js"
       - "packages/cli/__tests__/unit/process-ownership*.test.js"
       - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
       - ".github/workflows/process-ownership-recovery.yml"
@@ -70,6 +78,8 @@ jobs:
               export CHAINLESSCHAIN_REQUIRE_CGROUP_RECOVERY_TEST=1
               test -w "$CHAINLESSCHAIN_PROCESS_RECOVERY_CGROUP_ROOT/cgroup.procs"
               node ../../node_modules/vitest/vitest.mjs run \
+                __tests__/unit/agent-process-ownership.test.js \
+                __tests__/integration/agent-process-ownership-cli.test.js \
                 __tests__/integration/process-ownership-cgroup-recovery.test.js \
                 --reporter=default --reporter=json --outputFile="$RECOVERY_ARTIFACT"
             '

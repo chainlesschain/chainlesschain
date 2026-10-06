@@ -78,6 +78,8 @@ final class ConversationRecoveryJourney {
             tabList.push({id:String(field(c,'draftKey')), index:i, selected:i===index});
         }
         JSON.stringify({
+            initializationTimeoutSeconds:Number(java.lang.Class.forName('com.chainlesschain.ide.InputDispatch',true,loader)
+                .getField('INITIALIZATION_TIMEOUT_SECONDS').get(null)),
             observedAt:String(java.time.Instant.now()), processId:String(java.lang.ProcessHandle.current().pid()),
             profile:String(Packages.com.intellij.openapi.application.PathManager.getConfigPath()),
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
@@ -102,7 +104,10 @@ final class ConversationRecoveryJourney {
     }
     private static String text(JsonObject value, String key) { return value.get(key).getAsString(); }
     JsonObject waitFor(String label, Predicate<JsonObject> condition) throws Exception {
-        long deadline = System.nanoTime() + BUDGET.toNanos();
+        return waitFor(label, condition, BUDGET);
+    }
+    JsonObject waitFor(String label, Predicate<JsonObject> condition, Duration budget) throws Exception {
+        long deadline = System.nanoTime() + budget.toNanos();
         JsonObject last = null;
         while (System.nanoTime() < deadline && System.currentTimeMillis() < taskDeadline) {
             last = snapshot();
@@ -117,7 +122,7 @@ final class ConversationRecoveryJourney {
         return robot.find(ComponentFixture.class, Locators.byXpath(xpath),
                 Duration.ofMillis(Math.min(BUDGET.toMillis(), remaining)));
     }
-    private void click(String name) {
+    void click(String name) {
         component("//div[@text='" + name + "' and @visible='true']").runJs("component.doClick();", true);
     }
     private void edit(String value) {
