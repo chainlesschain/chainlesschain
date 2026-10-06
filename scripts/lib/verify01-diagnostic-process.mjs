@@ -280,7 +280,7 @@ export async function stopOwned(
             if (!evidence.remaining.length || Date.now() >= gracefulDeadline)
               break;
             await delay(Math.min(100, gracefulDeadline - Date.now()));
-          } while (true);
+          } while (evidence.remaining.length && Date.now() < gracefulDeadline);
           if (
             evidence.remaining.length &&
             !evidence.remaining.some(

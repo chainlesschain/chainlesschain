@@ -463,7 +463,9 @@ test(
     assert.throws(() => captureOwnedProcessTree(handle), {
       code: "CC_DIAGNOSTIC_CLEANUP_UNCONFIRMED",
     });
-    const evidence = JSON.parse(fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"));
+    const evidence = JSON.parse(
+      fs.readFileSync(`${handle.logFile}.cleanup.json`, "utf8"),
+    );
     assert.equal(evidence.confirmed, false);
     assert.equal(evidence.taskkill, null);
     assert.match(evidence.error, /exited before identity capture/u);
