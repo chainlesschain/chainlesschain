@@ -7,8 +7,8 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 Public npm `latest` is **chainlesschain@0.166.90** and Open VSX **0.37.135**
 recommends that CLI, at exact release commit `28cff6adc8`. Session Core
 `0.3.15`, Agent SDK `0.2.13` and PDH `0.4.63` were published and verified first
-through GitHub Actions OIDC. JetBrains currently lists **0.4.152**, recommending
-CLI `0.166.89`; the `0.4.153` tag workflow is in progress. See the
+through GitHub Actions OIDC. JetBrains **0.4.153** is approved and publicly
+listed, recommends CLI `0.166.90`, and its tag workflow succeeded. See the
 [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
 Public CLI **0.166.90** pins Personal Data Hub **0.4.63** and Session Core
@@ -16,7 +16,7 @@ Public CLI **0.166.90** pins Personal Data Hub **0.4.63** and Session Core
 and task-description previews. Desktop native action execution remains a
 separate host capability outside the public v5.0.3.138 installer. This release
 passed exact-commit three-OS CI, child package and public CLI verification,
-then Open VSX publication. JetBrains publication is tracked separately. See the
+then successful Open VSX and JetBrains publication, with public approval readback. See the
 [release progress](../../docs/research/palantir/palantir-release-progress-2026-10-06.md).
 
 ### Memory pagination (public 0.166.88)

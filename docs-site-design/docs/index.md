@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.90 | Open VSX 0.37.135 | JetBrains 0.4.152"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.90 | Open VSX 0.37.135 | JetBrains 0.4.153"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -65,7 +65,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **当前核对**：2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 新增投影恢复、项目任务动作与风险规则；使用[本轮指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)，设计见[本轮增量](/data-actions-update-2026-10-06)。
+> **当前核对**：2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 新增投影恢复、项目任务动作与风险规则；使用[本轮指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)，设计见[本轮增量](/data-actions-update-2026-10-06)。
 
 > **2026-09-28 历史核对**：npm CLI `0.166.78@3400318446`、Open VSX `0.37.119` 与 JetBrains Marketplace `0.4.140` 均已公开。CLI 增加分页会话历史与恢复、草稿边界及后台进程清理；逐槽签名 PM 回执对账已进入本版源码。主线 `c2ff6d036e` 随后修正 IDE 清单配对。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 

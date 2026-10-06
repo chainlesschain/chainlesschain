@@ -2,7 +2,7 @@
 
 ## October 6, 2026 release and source review
 
-Public npm CLI **0.166.90** and Open VSX **0.37.135** are released at `28cff6adc8`; Open VSX recommends CLI `0.166.90`. Session Core **0.3.15**, Agent SDK **0.2.13** and PDH **0.4.63** were published first through GitHub Actions OIDC and downloaded independently. JetBrains currently lists **0.4.152**, whose artifact recommends CLI `0.166.89`; the `0.4.153` tag workflow is in progress without confirmed public availability. Reviewed source is `main@f6f9998654`. Desktop/mobile **v5.0.3.138** remains a separate product release.
+Public npm CLI **0.166.90** and Open VSX **0.37.135** are released at `28cff6adc8`; Open VSX recommends CLI `0.166.90`. Session Core **0.3.15**, Agent SDK **0.2.13** and PDH **0.4.63** were published first through GitHub Actions OIDC and downloaded independently. JetBrains **0.4.153** is now approved and publicly listed, recommending CLI `0.166.90` at the same release commit; its tag workflow succeeded. All original CI archive file contents match the public ZIP. Reviewed source is `main@2b4de8bcd7`. Desktop/mobile **v5.0.3.138** remains a separate product release.
 
 ```bash
 npm i -g chainlesschain@0.166.90 --registry https://registry.npmjs.org
@@ -14,9 +14,9 @@ The exact release passed [CLI CI](https://github.com/chainlesschain/chainlesscha
 - **Published PDH** persists canonical entities and projection intent atomically, confirms KG/BM25 independently and supports bounded recovery and retired ephemeral-consumer receipt maintenance. Hosts rebuild in-memory indexes without a vector destination; unknown running deliveries remain protected.
 - **Published CLI** adds offline risk evaluation and task-description previews. Snapshot identities are unverified and previews do not execute desktop actions. Structured audit redaction and RAG update/removal ordering are hardened.
 - **Desktop source** adds personal-project pending-task description previews, native confirmation and atomic receipts, plus overdue/direct-dependency checks. This workbench is not included in the separate public v5.0.3.138 installer. Automation simulation, design-only low-code publication and unsupported outbound SCIM are labeled explicitly.
-- **IDE** Open VSX 0.37.135 ships bounded streaming-diagnostic, selection-replacement and stale-frame fixes; JetBrains 0.4.153 still needs publication and public approval readback. Microsoft Marketplace remains unpublished.
+- **IDE** Open VSX 0.37.135 ships bounded streaming-diagnostic, selection-replacement and stale-frame fixes; JetBrains 0.4.153 publication and public approval readback also succeeded. Microsoft Marketplace remains unpublished.
 
-Formal 36+9 samples, real costs, human accessibility and long-duration SLO acceptance remain open; automatic active Skill promotion stays HOLD. See the [usage guide](docs-site/docs/chainlesschain/data-actions-current.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [design](docs/design/data-actions-update-2026-10-06.md) and [post-release observations](docs/research/cli/evidence/documentation-release-status-2026-10-06-after-release.json). Dated sections below retain their historical identities.
+Formal 36+9 samples, real costs, human accessibility and long-duration SLO acceptance remain open; automatic active Skill promotion stays HOLD. See the [usage guide](docs-site/docs/chainlesschain/data-actions-current.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [design](docs/design/data-actions-update-2026-10-06.md) and [post-release observations](docs/research/cli/evidence/documentation-release-status-2026-10-06-final.json). Dated sections below retain their historical identities.
 
 ## October 2, 2026 release and source review (historical)
 

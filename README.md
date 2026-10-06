@@ -2,15 +2,15 @@
 
 ## 2026-10-06 最新发布与代码核对
 
-2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。
+2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。
 
-| 组件                     | 当前公开版本                 | 来源与配对                                        |
-| ------------------------ | ---------------------------- | ------------------------------------------------- |
-| npm CLI                  | **0.166.90**                 | `v-npm-0-166-90` → `28cff6adc8`                   |
-| VS Code / VSCodium       | **Open VSX 0.37.135**        | 推荐 CLI `0.166.90`；同一发行提交                 |
-| JetBrains                | **Marketplace 0.4.152**      | 公开制品推荐 CLI `0.166.89`；`0.4.153` 发布进行中 |
-| Session Core / SDK / PDH | **0.3.15 / 0.2.13 / 0.4.63** | OIDC 发布及公开归档核验成功                       |
-| Desktop / Android / iOS  | **v5.0.3.138**               | 独立产品发行                                      |
+| 组件                     | 当前公开版本                 | 来源与配对                                    |
+| ------------------------ | ---------------------------- | --------------------------------------------- |
+| npm CLI                  | **0.166.90**                 | `v-npm-0-166-90` → `28cff6adc8`               |
+| VS Code / VSCodium       | **Open VSX 0.37.135**        | 推荐 CLI `0.166.90`；同一发行提交             |
+| JetBrains                | **Marketplace 0.4.153**      | 已批准公开；推荐 CLI `0.166.90`；同一发行提交 |
+| Session Core / SDK / PDH | **0.3.15 / 0.2.13 / 0.4.63** | OIDC 发布及公开归档核验成功                   |
+| Desktop / Android / iOS  | **v5.0.3.138**               | 独立产品发行                                  |
 
 ```bash
 npm i -g chainlesschain@0.166.90 --registry https://registry.npmjs.org
@@ -22,9 +22,9 @@ cc --version
 - **PDH 公开版**：实体与投影意图同事务保存，KG/BM25 分别确认；支持积压查询、分批重试及退休临时 consumer 回执维护。当前宿主使用内存索引，没有连接向量目的地；未知 running 不自动重放。
 - **CLI 公开版**：新增离线项目风险评估和任务描述预览，不认证 JSON 身份、不执行真实任务动作。结构化审计脱敏和 RAG 更新/删除顺序已加固。
 - **桌面源码**：个人项目待办描述支持预览、原生确认和原子回执；风险只检查逾期与直接依赖。该工作区尚未随公开 `v5.0.3.138` 安装包发行。自动化模拟、低代码设计发布和不支持的 SCIM 出站分别显示真实状态。
-- **IDE**：Open VSX `0.37.135` 已公开流式诊断范围、选区替换与过期帧修复；JetBrains `0.4.153` 以其发布工作流与公共审核回读分别验收。Microsoft Marketplace 未发行。
+- **IDE**：Open VSX `0.37.135` 已公开流式诊断范围、选区替换与过期帧修复；JetBrains `0.4.153` 标签发布成功，公共 API 已确认批准上架；公开 ZIP 的全部原始文件与 CI 制品内容一致。Microsoft Marketplace 未发行。
 
-真实 PM/成本、正式 36+9 样本、真人辅助技术与长时 SLO 仍开放，自动 active Skill 晋升保持 HOLD。详见[操作指南](docs-site/docs/chainlesschain/data-actions-current.md)、[发布与升级](docs-site/docs/chainlesschain/agent-platform-release.md)、[本轮设计](docs/design/data-actions-update-2026-10-06.md)与[发布后版本观察](docs/research/cli/evidence/documentation-release-status-2026-10-06-after-release.json)。下方带日期段落保留历史时点。
+真实 PM/成本、正式 36+9 样本、真人辅助技术与长时 SLO 仍开放，自动 active Skill 晋升保持 HOLD。详见[操作指南](docs-site/docs/chainlesschain/data-actions-current.md)、[发布与升级](docs-site/docs/chainlesschain/agent-platform-release.md)、[本轮设计](docs/design/data-actions-update-2026-10-06.md)与[发布后版本观察](docs/research/cli/evidence/documentation-release-status-2026-10-06-final.json)。下方带日期段落保留历史时点。
 
 ## 2026-10-02 发布与代码核对（历史快照）
 

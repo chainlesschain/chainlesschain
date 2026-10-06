@@ -1,6 +1,6 @@
 # 数据投影恢复与项目受控动作增量设计（2026-10-06）
 
-2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 操作说明见[用户指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)。
+2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 操作说明见[用户指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)。
 
 ## Git 变更与设计范围
 
@@ -114,7 +114,7 @@ sequenceDiagram
 
 准确发行提交 `28cff6adc8` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585)（70 成功）、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644409)（5/5）和 [IDE 宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37407686847)（18 成功）通过；条件跳过项不计为通过。[质量与安全](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385)（9/9）、[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340)及 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414359683)成功。PDH 原生完整测试在 Linux、Windows、macOS 各 4482 项通过、0 失败，125 项显式停用的历史用例跳过；Session Core 各 709 项、SDK 各 83 项通过且无跳过。CLI 公开归档精确依赖 Session Core `0.3.15` 与 PDH `0.4.63`，签名来源绑定本次标签、提交和发布工作流。
 
-本轮完整门禁和 npm 发布证明均绑定 `28cff6adc8`；历史失败/取消记录保留。Open VSX `0.37.135` 已公开，JetBrains `0.4.153` 发布与公开审批仍分别核验。公共状态见[发布后版本观察](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-release-sync-20261006/docs/research/cli/evidence/documentation-release-status-2026-10-06-after-release.json)。设计中的桌面 IPC/UI 接线属于本轮源码，不能借 CLI/IDE 发布声明旧桌面安装包已包含新功能。
+本轮完整门禁和 npm 发布证明均绑定 `28cff6adc8`；历史失败/取消记录保留。Open VSX `0.37.135` 已公开，JetBrains `0.4.153` 标签发布成功，公共 API 已确认批准上架；公开 ZIP 原始文件内容与 CI 制品一致。公共状态见[发布后版本观察](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-release-sync-20261006/docs/research/cli/evidence/documentation-release-status-2026-10-06-final.json)。设计中的桌面 IPC/UI 接线属于本轮源码，不能借 CLI/IDE 发布声明旧桌面安装包已包含新功能。
 
 ## 关键文件
 

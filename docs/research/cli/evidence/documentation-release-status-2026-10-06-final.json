@@ -1,0 +1,154 @@
+{
+  "schema": "chainlesschain.documentation-release-observation/v1",
+  "checkedAt": "2026-10-06T05:28:00.488Z",
+  "codeBaseline": "2b4de8bcd76cbacba6c72097978f9a4de284790b",
+  "publicReleaseCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "tags": {
+    "v-npm-0-166-90": "28cff6adc82a4f358d785baada110e48884527ea",
+    "ide-vscode-v0.37.135": "28cff6adc82a4f358d785baada110e48884527ea",
+    "ide-jetbrains-v0.4.153": "28cff6adc82a4f358d785baada110e48884527ea"
+  },
+  "observations": [
+    {
+      "endpoint": "https://registry.npmjs.org/chainlesschain/latest",
+      "observedAt": "2026-10-06T05:01:18.169Z",
+      "bytes": 7674,
+      "sha256": "a57c68ce8de110ff0bd2f98b269a177cea06a9dd8326b1628f4fcd4cd1e2cd2a",
+      "result": {
+        "version": "0.166.90",
+        "dist": {
+          "shasum": "f5ffe4422b741d60bbd2ed069fd0bdfad63585d3",
+          "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.90.tgz",
+          "fileCount": 1742,
+          "integrity": "sha512-4jYwe45rFuOa3thhyiFBLrvj/8nowWMh0KOczO2XFY2cEdoCUF3yrdCRmxKTJydvSsLib6amt99WT5krNgpRqg==",
+          "signatures": [
+            {
+              "sig": "MEUCIDHZD8JKWk9H60Ke21/1O+BJU7tVEw0D1qoKfaz+2iEEAiEAxr6WhQkigX/WzOoRURW+yGUTcZR0f1sGtCWkbJj7UcQ=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEUCICPSaIbaliXnPNDK+wG/J8isUA0Aj28lkBW4IK+eOQi+AiEAn/QWp89ieTvYFkxRN91FkpSp+fTBTi1wts6BrvBA+YQ=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "attestations": {
+            "url": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.90",
+            "provenance": {
+              "predicateType": "https://slsa.dev/provenance/v1"
+            }
+          },
+          "unpackedSize": 37920420
+        },
+        "dependencies": {
+          "ws": "^8.14.2",
+          "ajv": "^8.20.0",
+          "ora": "^8.1.1",
+          "chalk": "^5.4.1",
+          "semver": "^7.6.3",
+          "sql.js": "^1.14.1",
+          "undici": "^7.29.0",
+          "webdav": "^5.10.0",
+          "js-yaml": "^3.15.1",
+          "commander": "^12.1.0",
+          "ajv-formats": "^3.0.1",
+          "esbuild-wasm": "0.28.1",
+          "pac-resolver": "^7.0.1",
+          "@noble/curves": "^1.9.7",
+          "@inquirer/prompts": "^7.2.0",
+          "@aws-sdk/client-s3": "^3.700.0",
+          "@chainlesschain/core-db": "0.1.5",
+          "@chainlesschain/core-env": "0.1.2",
+          "@chainlesschain/core-mtc": "0.2.3",
+          "@chainlesschain/core-infra": "0.1.1",
+          "@chainlesschain/core-config": "0.1.2",
+          "@chainlesschain/session-core": "0.3.15",
+          "@chainlesschain/core-multisig": "0.1.4",
+          "@chainlesschain/shared-logger": "0.1.1",
+          "@tootallnate/quickjs-emscripten": "^0.23.0",
+          "@chainlesschain/personal-data-hub": "0.4.63",
+          "@chainlesschain/context-memory-kernel": "0.1.6"
+        }
+      }
+    },
+    {
+      "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "observedAt": "2026-10-06T05:01:19.159Z",
+      "bytes": 10875,
+      "sha256": "988984e683a994fed0bb15f919ff44e5be19067d0ca6b1d78a99ef50847c9ef4",
+      "result": {
+        "version": "0.37.135",
+        "files": {
+          "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/chainlesschain.chainlesschain-ide-0.37.135.vsix",
+          "signature": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/chainlesschain.chainlesschain-ide-0.37.135.sigzip",
+          "manifest": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/package.json",
+          "readme": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/readme.md",
+          "changelog": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/changelog.md",
+          "license": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/LICENSE.txt",
+          "icon": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/logo.png",
+          "sha256": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/chainlesschain.chainlesschain-ide-0.37.135.sha256",
+          "vsixmanifest": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/extension.vsixmanifest",
+          "publicKey": "https://open-vsx.org/api/-/public-key/14ccb407-4e79-41ed-be5a-6d608325c45a"
+        }
+      }
+    },
+    {
+      "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/package.json",
+      "observedAt": "2026-10-06T05:02:06.513Z",
+      "bytes": 24438,
+      "sha256": "55cf6601e5ecb1e5672fa44b756b5d1faa44c40652c559176fd5a4663df17cc7",
+      "result": {
+        "version": "0.37.135",
+        "chainlesschain": {
+          "recommendedCliVersion": "0.166.90"
+        }
+      }
+    },
+    {
+      "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=5",
+      "observedAt": "2026-10-06T05:24:46.187Z",
+      "bytes": 19087,
+      "sha256": "2b4db8a3a291b4b046a2a7d6bb3c5c3d0ea47c6507ba7a290aaea46f437d3c13",
+      "result": [
+        {
+          "id": 1187914,
+          "version": "0.4.153",
+          "approve": true,
+          "listed": true,
+          "hidden": false
+        },
+        {
+          "id": 1187819,
+          "version": "0.4.152",
+          "approve": true,
+          "listed": true,
+          "hidden": false
+        }
+      ],
+      "recommendedCliVersion": "0.166.90",
+      "publicDownload": {
+        "publicVersion": "0.4.153",
+        "publicArchiveBytes": 1521021,
+        "publicArchiveSha256": "d41b78abc65eb3c417e573295da10bc24eccf7a13f79e2e8cb24d4f33cc7f1e0",
+        "candidateArchiveSha256": "74065e1f8a5b8f140af0e94c0aaeb42465e25b8929dffa9490b71f4618471adf",
+        "candidateEntriesUnchanged": true,
+        "publicExtraEntries": [],
+        "descriptorVerified": true,
+        "authorSigningConfigured": false,
+        "verification": "All original CI archive entries match public bytes; Marketplace-added archive entries are listed without independently certifying their signatures."
+      }
+    }
+  ],
+  "authority": "Public metadata readback; authoritative exact-commit gates and cryptographic npm provenance are in the linked release evidence.",
+  "releaseEvidence": [
+    "docs/research/palantir/evidence/palantir-release-gates-28cff6ad-2026-10-06.json",
+    "docs/research/palantir/evidence/palantir-release-pdh-28cff6ad-2026-10-06.json",
+    "docs/research/palantir/evidence/palantir-npm-release-28cff6ad-2026-10-06.json",
+    "docs/research/palantir/evidence/palantir-open-vsx-release-28cff6ad-2026-10-06.json",
+    "docs/research/palantir/evidence/palantir-jetbrains-release-28cff6ad-2026-10-06.json"
+  ],
+  "limitations": [
+    "Desktop workbench changes are source-only relative to public product v5.0.3.138.",
+    "Documentation deployment grants no package publication authority.",
+    "Earlier release evidence retained its pending-review observation; this later public readback confirms approval. Public ZIP file contents match CI entries; this does not independently certify author or Marketplace signatures."
+  ]
+}
