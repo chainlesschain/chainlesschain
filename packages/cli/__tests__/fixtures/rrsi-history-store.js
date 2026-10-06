@@ -21,7 +21,7 @@ import {
   createRrsiHistoryLedgerAdapter,
 } from "../../src/lib/evolution/rrsi-history-ledger-adapter.js";
 import {
-  RRSI_PREPARATION_RESERVATION_SCHEMA,
+  isRrsiPreparationReservation,
   RRSI_PREPARATION_SETTLEMENT_SCHEMA,
 } from "../../src/lib/evolution/rrsi-preparation-contracts.js";
 import {
@@ -157,10 +157,9 @@ export function openRrsiHistoryStore(
   });
   const signSettlement = (reservation, overrides = {}) => {
     const core = {
-      schema:
-        reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA
-          ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
-          : RRSI_SETTLEMENT_SCHEMA,
+      schema: isRrsiPreparationReservation(reservation)
+        ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
+        : RRSI_SETTLEMENT_SCHEMA,
       receiptId: "settlement-1",
       bindings: reservation.bindings,
       status: "succeeded",

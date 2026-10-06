@@ -15,6 +15,14 @@ export const RRSI_PREPARATION_PLAN_SCHEMA =
   "chainlesschain.rrsi-preparation-plan/v1";
 export const RRSI_PREPARATION_RESERVATION_SCHEMA =
   "chainlesschain.rrsi-preparation-reservation/v1";
+export const RRSI_PREPARATION_RESERVATION_SCHEMA_V2 =
+  "chainlesschain.rrsi-preparation-reservation/v2";
+export function isRrsiPreparationReservation(value) {
+  return (
+    value.schema === RRSI_PREPARATION_RESERVATION_SCHEMA ||
+    value.schema === RRSI_PREPARATION_RESERVATION_SCHEMA_V2
+  );
+}
 export const RRSI_PREPARATION_SETTLEMENT_SCHEMA =
   "chainlesschain.rrsi-preparation-settlement/v1";
 export const RRSI_PREPARATION_PHASES = Object.freeze([
@@ -113,6 +121,7 @@ export function normalizeRrsiPreparationPlan(payload, rootCampaign) {
 }
 
 export function normalizeRrsiPreparationRequest(payload, campaign, plan) {
+  const versioned = Object.hasOwn(payload, "plannedExecutions");
   rrsiExact(
     payload,
     [
@@ -125,6 +134,7 @@ export function normalizeRrsiPreparationRequest(payload, campaign, plan) {
       "slotId",
       "executionId",
       "budget",
+      ...(versioned ? ["plannedExecutions"] : []),
     ],
     "preparation reservation",
   );
@@ -173,9 +183,21 @@ export function normalizeRrsiPreparationRequest(payload, campaign, plan) {
       rrsiInteger(payload.budget[key], key),
     ]),
   );
-  if (ceiling.maxExecutions < 1)
-    rrsiFail("preparation reservation must cover at least one execution");
+  const plannedExecutions = versioned
+    ? rrsiInteger(
+        payload.plannedExecutions,
+        "planned preparation executions",
+        1,
+        64,
+      )
+    : 1;
+  if (ceiling.maxExecutions < plannedExecutions)
+    rrsiFail("preparation reservation must cover its planned executions");
   return {
+    schema: versioned
+      ? RRSI_PREPARATION_RESERVATION_SCHEMA_V2
+      : RRSI_PREPARATION_RESERVATION_SCHEMA,
+    plannedExecutions,
     budget: ceiling,
     bindings: {
       phase: payload.phase,

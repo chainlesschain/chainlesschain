@@ -28,7 +28,7 @@ import {
   verifyRrsiCandidate,
 } from "./rrsi-contracts.js";
 import {
-  RRSI_PREPARATION_RESERVATION_SCHEMA,
+  isRrsiPreparationReservation,
   RRSI_PREPARATION_SETTLEMENT_SCHEMA,
   RRSI_PREPARATION_PHASES,
   RRSI_PREPARATION_BINDING_FIELDS,
@@ -58,6 +58,14 @@ export const RRSI_SETTLEMENT_SCHEMA = "chainlesschain.rrsi-settlement/v1";
 export const RRSI_HISTORY_EVENT_TYPE = "rrsi.history.committed";
 const ARTIFACT_TYPE = "rrsi-history-event";
 const VERIFIERS = new WeakMap();
+const ADAPTERS = new WeakMap();
+
+/** Capture only methods of an already composed, genuine history adapter. */
+export function captureRrsiHistoryLedgerAdapter(value) {
+  const captured = ADAPTERS.get(value);
+  if (!captured) rrsiFail("a branded RRSI history adapter is required");
+  return captured;
+}
 const USAGE_FIELDS = [
   "tokens",
   "toolCalls",
@@ -280,10 +288,9 @@ function verifySettlement(verifier, input, reservation, acceptanceTime) {
   const evidence = snapshotRrsiData(input);
   rrsiExact(evidence, ["core", "attestation"], "signed settlement");
   const core = settlementCore(evidence.core);
-  const expectedSchema =
-    reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA
-      ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
-      : RRSI_SETTLEMENT_SCHEMA;
+  const expectedSchema = isRrsiPreparationReservation(reservation)
+    ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
+    : RRSI_SETTLEMENT_SCHEMA;
   if (core.schema !== expectedSchema)
     rrsiFail(
       "settlement domain differs from reservation",
@@ -526,7 +533,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
     if (
       [...state.reservations.values()].some(
         (entry) =>
-          entry.reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA &&
+          isRrsiPreparationReservation(entry.reservation) &&
           entry.status !== "settled",
       )
     )
@@ -656,16 +663,16 @@ export function createRrsiHistoryLedgerAdapter(input) {
         partition: "train",
         ...normalized.bindings,
       };
-      const reservationDigest = rrsiHash(RRSI_PREPARATION_RESERVATION_SCHEMA, {
+      const reservationDigest = rrsiHash(normalized.schema, {
         bindings: core,
         budget: normalized.budget,
-        plannedExecutions: 1,
+        plannedExecutions: normalized.plannedExecutions,
       });
       const reservation = freezeRrsiData({
-        schema: RRSI_PREPARATION_RESERVATION_SCHEMA,
+        schema: normalized.schema,
         bindings: { ...core, reservationDigest },
         budget: normalized.budget,
-        plannedExecutions: 1,
+        plannedExecutions: normalized.plannedExecutions,
         reservationDigest,
       });
       state.reservations.set(payload.executionId, {
@@ -882,7 +889,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
               "history contains a resource overrun",
               "CC_RRSI_BUDGET_EXCEEDED",
             );
-          if (entry.reservation.schema !== RRSI_PREPARATION_RESERVATION_SCHEMA)
+          if (!isRrsiPreparationReservation(entry.reservation))
             checkPreparationHold(state);
         }
         if (entry.status !== "reserved" || entry.dispatched)
@@ -897,6 +904,45 @@ export function createRrsiHistoryLedgerAdapter(input) {
           rrsiFail("settled execution cannot become unknown");
         entry.status = "unknown";
       }
+      return entry.reservation;
+    }
+    if (kind === "observe-preparation") {
+      rrsiExact(
+        payload,
+        ["executionId", "reservationDigest", "observation"],
+        "preparation execution observation",
+      );
+      const entry = reservationFor(
+        state,
+        payload.executionId,
+        payload.reservationDigest,
+      );
+      if (!isRrsiPreparationReservation(entry.reservation) || !entry.dispatched)
+        rrsiFail(
+          "preparation observation requires durable preparation dispatch",
+        );
+      rrsiExact(
+        payload.observation,
+        ["result", "failureCode", "driftDetected"],
+        "PM execution observation",
+      );
+      rrsiBoolean(payload.observation.driftDetected, "PM journal drift");
+      if (payload.observation.failureCode !== null)
+        rrsiId(payload.observation.failureCode, "PM failure code");
+      if (
+        payload.observation.result !== null &&
+        (typeof payload.observation.result !== "object" ||
+          Array.isArray(payload.observation.result))
+      )
+        rrsiFail("PM observation result must be a record or null");
+      entry.observation = freezeRrsiData({
+        ...payload.observation,
+        independentlyReverified: false,
+        costEvidenceVerified: false,
+        qualifiesForPromotion: false,
+      });
+      // A PM receipt does not settle money or cleanup. Never erase signed settlement.
+      if (entry.status !== "settled") entry.status = "unknown";
       return entry.reservation;
     }
     if (kind === "settle") {
@@ -1323,6 +1369,14 @@ export function createRrsiHistoryLedgerAdapter(input) {
         payload,
       ).newlyCommitted;
     },
+    recordPreparationObservation(input) {
+      const payload = snapshotRrsiData(input);
+      return commit(
+        "observe-preparation",
+        `observe.${rrsiHash("rrsi-execution-id/v1", payload.executionId).slice(7)}`,
+        payload,
+      ).newlyCommitted;
+    },
     freezeCandidate(input) {
       const payload = snapshotRrsiData(input);
       return commit(
@@ -1386,6 +1440,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
               status: entry.status,
               dispatched: entry.dispatched,
               knownUsage: entry.knownUsage,
+              executionObservation: entry.observation ?? null,
               settlementSignatureVerified: entry.settlement !== null,
               executionEvidenceVerified:
                 entry.status === "settled" &&
@@ -1404,5 +1459,16 @@ export function createRrsiHistoryLedgerAdapter(input) {
   });
   // Validate existing roots immediately, including a changed settlement authority.
   withHistoryLock(load);
+  ADAPTERS.set(
+    adapter,
+    Object.freeze({
+      descriptor,
+      inspect: adapter.inspect,
+      reservePreparation: adapter.reservePreparation,
+      recordDispatch: adapter.recordDispatch,
+      markUnknown: adapter.markUnknown,
+      recordPreparationObservation: adapter.recordPreparationObservation,
+    }),
+  );
   return adapter;
 }

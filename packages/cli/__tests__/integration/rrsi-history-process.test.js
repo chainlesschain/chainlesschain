@@ -129,7 +129,12 @@ describe("RRSI actual file and process recovery", () => {
     expect(isEvolutionLedgerV2Journal(first.store.backend.ledger)).toBe(true);
     first.adapter.registerCampaign(value.campaign);
     first.adapter.registerPreparationPlan(value.preparationPlan());
-    const prep = first.adapter.reservePreparation(value.preparationRequest());
+    const preparationRequest = value.preparationRequest({
+      plannedExecutions: 2,
+      budget: { ...value.preparationRequest().budget, maxExecutions: 2 },
+    });
+    const prep = first.adapter.reservePreparation(preparationRequest);
+    expect(prep.reservation.plannedExecutions).toBe(2);
     first.adapter.settle(
       value.signSettlement(prep.reservation, {
         status: "not-started",
@@ -151,8 +156,7 @@ describe("RRSI actual file and process recovery", () => {
       false,
     );
     expect(
-      reopened.adapter.reservePreparation(value.preparationRequest())
-        .newlyCommitted,
+      reopened.adapter.reservePreparation(preparationRequest).newlyCommitted,
     ).toBe(false);
     expect(reopened.adapter.inspect()).toMatchObject({
       selectionQueries: 1,
