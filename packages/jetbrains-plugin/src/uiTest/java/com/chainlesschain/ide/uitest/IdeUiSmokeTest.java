@@ -402,15 +402,23 @@ final class IdeUiSmokeTest {
         System.out.println("[ui-smoke] verified IDE version: " + actual);
     }
 
-    private static void assertAutomaticCompletionContract(ComponentFixture frame) {
-        Object value = frame.callJs(
-                "importClass(com.intellij.ide.plugins.PluginManagerCore); "
+    static final String PLUGIN_CLASSLOADER_PENDING = "__cc_plugin_classloader_pending__";
+
+    static String automaticCompletionContractScript() {
+        return "importClass(com.intellij.ide.plugins.PluginManagerCore); "
                         + "importClass(com.intellij.openapi.extensions.PluginId); "
                         + "importClass(com.intellij.openapi.application.ApplicationManager); "
+                        + "(function() { "
                         + "var descriptor = PluginManagerCore.getPlugin("
                         + "PluginId.getId('com.chainlesschain.ide')); "
                         + "if (descriptor == null) throw 'ChainlessChain plugin not installed'; "
+                        + "if (!descriptor.isEnabled()) throw 'ChainlessChain plugin is disabled'; "
                         + "var loader = descriptor.getPluginClassLoader(); "
+                        // A restored frame and Robot can be available before plugin startup
+                        // assigns its loader. Passing null to Class.forName selects the
+                        // bootstrap loader, producing a misleading ClassNotFoundException.
+                        // Robot's retrieveAny endpoint rejects null results as non-Serializable.
+                        + "if (loader == null) return '" + PLUGIN_CLASSLOADER_PENDING + "'; "
                         + "var settingsClass = java.lang.Class.forName("
                         + "'com.chainlesschain.ide.intellij.CcSettings', true, loader); "
                         + "var policyClass = java.lang.Class.forName("
@@ -418,15 +426,36 @@ final class IdeUiSmokeTest {
                         + "var settings = ApplicationManager.getApplication()"
                         + ".getService(settingsClass); "
                         + "var options = settings.getAutomaticCompletionOptions(); "
-                        + "[settings.isAutomaticCompletionEnabled(), "
+                        + "return [settings.isAutomaticCompletionEnabled(), "
                         + "options.debounceMs, options.maxRequestsPerHour, "
                         + "options.maxContextCharsPerHour, options.cacheTtlMs, "
                         + "options.maxCompletionChars, options.maxCompletionLines, "
                         + "policyClass.getField('SLO_P50_MS').get(null), "
                         + "policyClass.getField('SLO_P95_MS').get(null), "
                         + "policyClass.getField('SLO_MINIMUM_SAMPLES').get(null)]"
-                        + ".join('|');");
-        String actual = String.valueOf(value);
+                        + ".join('|'); })();";
+    }
+
+    private static void assertAutomaticCompletionContract(ComponentFixture frame)
+            throws InterruptedException {
+        awaitAutomaticCompletionContract(
+                () -> frame.callJs(automaticCompletionContractScript()), FRAME_BUDGET);
+    }
+
+    static void awaitAutomaticCompletionContract(java.util.function.Supplier<String> probe,
+            Duration budget) throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        String actual;
+        // Re-read the descriptor each time; do not retain an incomplete startup snapshot.
+        // Only the explicit null-loader marker is transient. Remote errors, missing classes,
+        // missing/disabled plugins and contract mismatches must still fail the journey.
+        while (PLUGIN_CLASSLOADER_PENDING.equals(actual = probe.get())) {
+            if (System.nanoTime() >= deadline) {
+                throw new AssertionError("ChainlessChain plugin classloader did not become ready within "
+                        + budget.toMillis() + " ms");
+            }
+            Thread.sleep(100);
+        }
         String expected = "false|650|60|240000|30000|800|12|2000|5000|20";
         if (!expected.equals(actual)) {
             throw new AssertionError(
