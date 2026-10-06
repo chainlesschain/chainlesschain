@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **2026-10-05 当前版本**：公开 CLI `0.166.88@7db17a12e1`；Open VSX `0.37.133` / JetBrains `0.4.151` 均推荐 CLI `0.166.88`。SDK TS/Python `0.2.12/0.2.9`、Protocol `0.1.12`、Session Core `0.3.14`、Context/Memory Kernel `0.1.6` 独立发行，Node.js ≥ 22.12.0。源码 `0.166.89/0.37.134/0.4.152@feda6d1eee` 尚未公开，新增宿主采集、身份诊断与源码溯源；索引分页、冻结评估与 cgroup2 恢复已公开。见[发布指南](./agent-platform-release)与[最新设计](/design/agent-runtime-update-2026-10-05)。
+> **2026-10-06 当前版本**：2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 Node.js ≥ 22.12.0；本轮命令见[用户指南](./data-actions-current)。
 
 ## 概述
 
@@ -142,7 +142,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
 chainlesschain setup
 chainlesschain start
 ```
@@ -159,7 +159,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
 ```
 
 安装后提供 4 个等价命令：

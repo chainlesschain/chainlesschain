@@ -1,11 +1,21 @@
 # ChainlessChain 完整用户手册
 
-> **2026-10-05 使用入口更新**：桌面/移动产品发行保持 `v5.0.3.138`；公开 CLI `0.166.88`、Open VSX `0.37.133` 与 JetBrains `0.4.151` 均来自 `7db17a12e1`，两个 IDE 推荐 CLI `0.166.88`。安装、记忆分页、评估与 IDE 诊断请以[发布升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)和[IDE 使用指南](../../docs-site/docs/chainlesschain/ide-plugin.md)为准。下方手册保留原有功能基线，不作为新版 CLI/IDE 命令或验收结论。
+> **2026-10-06 使用入口更新**：2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 安装与 IDE 操作见[发布指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)；候选源码的新功能见[数据与项目操作指南](../../docs-site/docs/chainlesschain/data-actions-current.md)。下方手册保留历史功能基线。
 
 **历史功能基线**: v0.24.0
 **基线日期**: 2026-01-17
 
 ---
+
+## 2026-10-06 新功能操作入口
+
+公开版先升级 CLI 至 `0.166.89`，安装配对 Open VSX `0.37.134` 或 JetBrains `0.4.152`，再重启聊天宿主。新项目任务工作区和 PDH 投影维护属于后续候选，尚未进入上述公共安装包。
+
+- 候选桌面：项目详情 → 项目任务 → 选择已保存待办 → 编辑描述 → 预览修改 → 确认此修改 → 原生确认；修改记录中只有 `succeeded` 表示提交。
+- 风险检查：检查逾期和直接依赖，保存检查时点；描述修改不改变任务状态或截止日。
+- 候选 CLI：`cc hub derivation-status --json` 后按原因分批重试；未知 running 不自动重放，回执只清理明确选定的退休临时 consumer。
+
+完整限制、参数和故障处理见[本轮用户指南](../../docs-site/docs/chainlesschain/data-actions-current.md)。
 
 ## 📖 目录
 

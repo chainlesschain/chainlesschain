@@ -1,29 +1,29 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-05 最新发布与代码核对
+## 2026-10-06 最新发布与代码核对
 
-2026-10-05 核对：公开 CLI **0.166.88**、Open VSX **0.37.133**、JetBrains **0.4.151** 同属发行提交 `7db17a12e1`，两端 IDE 推荐 CLI `0.166.88`。最新已提交源码基线 `main@feda6d1eee` 为 CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。
+2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。
 
-| 组件                    | 当前公开版本            | 来源与配对                        |
-| ----------------------- | ----------------------- | --------------------------------- |
-| npm CLI                 | **0.166.88**            | `v-npm-0-166-88` → `7db17a12e1`   |
-| VS Code / VSCodium      | **Open VSX 0.37.133**   | `7db17a12e1`；推荐 CLI `0.166.88` |
-| JetBrains               | **Marketplace 0.4.151** | 已公开上架；推荐 CLI `0.166.88`   |
-| Desktop / Android / iOS | **v5.0.3.138**          | 独立产品发行                      |
+| 组件                    | 当前公开版本            | 来源与配对                          |
+| ----------------------- | ----------------------- | ----------------------------------- |
+| npm CLI                 | **0.166.89**            | `v-npm-0-166-89` → `02e1318aae`     |
+| VS Code / VSCodium      | **Open VSX 0.37.134**   | 推荐 CLI `0.166.89`                 |
+| JetBrains               | **Marketplace 0.4.152** | 已批准公开上架；推荐 CLI `0.166.89` |
+| Desktop / Android / iOS | **v5.0.3.138**          | 独立产品发行                        |
 
 ```bash
-npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
 cc --version
 ```
 
-升级后重启 IDE 聊天宿主。精确发行提交 `7db17a12e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954)（最终 attempt 3，67 成功 / 1 条件跳过）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478)（5/5）、[IDE 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37279774086)及 [IDE ARM64 门](https://github.com/chainlesschain/chainlesschain/actions/runs/37279869315)通过。[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923667)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37291923696)成功；先核验 13 个子 npm 包，再发布 CLI，公开回读后才发布 IDE。失败和同 SHA 官方重跑均保留在[发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/gap-2026-10-05/release-0.166.88/README.md)中。
+升级后重启 IDE 聊天宿主。准确发行提交 `02e1318aae` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37348674897)（67 成功 / 1 条件跳过）、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37348685951)（5/5）和 [IDE 宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37348708603)通过；[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37357266569)成功。2026-10-06 回读 npm latest、Open VSX 清单及 JetBrains API，确认上述安装版本；JetBrains `approve/listed=true`、`hidden=false`。JetBrains 标签发布工作流末端存在 runner 失败记录，不能把市场可用性写成整个工作流成功。
 
-- **公开 CLI 0.166.88**：包含 canonical Memory v2 有界分片、准确 ID 删除、索引查询和快照游标分页，以及冻结 VERIFY-01 执行与 Linux cgroup2 所有权恢复。默认 shadow 不迁移；显式 Linux 持久权限宿主需管理员配置。
-- **IDE 公开版**：包含实际会话能力 Doctor、慢初始化草稿保护、有界图片快照与长回复选区/滚动保持。初始化最多等待 120 秒，超时保留草稿；恢复附件后手动发送。
-- **后续源码候选**：新增双 IDE 原始协议采集、真实 UI 驱动、prepare/finish 任务证据和显式 Linux controlled-host 入口；JetBrains 新增 CLI 身份检查与首次配置诊断，诊断材料绑定源码提交、dirty 状态和文件摘要。这些改动尚未进入公开安装包。
-- **工程验证**：`f289a08844` 的官方 MCP 三系统矩阵与双 IDE 六宿主采集矩阵已通过，使用受控协议 peer 的宿主诊断不代表真实模型/公开首次安装验收。Docker review pack 新增真实容器 CI，但整包验收尚未通过。
+- **公开版**：记忆索引分页、冻结评估、Linux cgroup2 恢复、双 IDE 显式协议/UI 采集及身份诊断已进入配对公开版。普通会话默认关闭采集；诊断 peer 不代表真实模型或业务效果验收。
+- **数据中台候选**：规范化实体与投影期望版本同事务落盘，KG/BM25 分别确认；支持查看积压、分批重试及清理已退休临时 consumer 的非运行回执。当前宿主使用内存索引，没有接入向量目的地；未知 running 保留。
+- **项目工作区候选**：项目详情“项目任务”提供已保存待办任务的描述预览、原生确认和原子回执；仅限当前 DID 所属个人项目。风险只检查逾期和直接依赖阻塞，CLI 只做离线风险评估与描述预览。
+- **能力状态候选**：自动化显式区分模拟与不支持，低代码发布只保存设计，SCIM 此处出站 provider 尚不执行真实同步；CLI 结构化审计脱敏、RAG 更新与删除顺序已加固。
 
-跨进程/Worker 权限撤销为 100 ms 轮询，停止回执等待清理成功。冻结 36+9 正式样本仍为 `NOT_RUN`，真实费用、真人辅助技术与长时 SLO 未完成，自动 active Skill 晋升保持 HOLD；历史六目标 unsigned native 验证不构成签名候选发行。详见[CLI README](packages/cli/README.md)、[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)与[最新设计](docs/design/agent-runtime-update-2026-10-05.md)。后续带日期段落保留历史时点。
+新候选须完成自身准确提交的全部发布门，不能沿用旧版成功。真实 PM/成本、正式 36+9 样本、真人辅助技术与长时 SLO 仍开放，自动 active Skill 晋升保持 HOLD。详见[操作指南](docs-site/docs/chainlesschain/data-actions-current.md)、[发布与升级](docs-site/docs/chainlesschain/agent-platform-release.md)、[本轮设计](docs/design/data-actions-update-2026-10-06.md)与[版本观察](docs/research/cli/evidence/documentation-release-status-2026-10-06.json)。下方带日期段落保留历史时点。
 
 ## 2026-10-02 发布与代码核对（历史快照）
 
@@ -45,11 +45,11 @@ Open VSX **0.37.126** 与 JetBrains Marketplace **0.4.146** 已公开。[IDE 精
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.88`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.89`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。

@@ -1,29 +1,29 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## October 5, 2026 release and source review
+## October 6, 2026 release and source review
 
-Public CLI **0.166.88**, Open VSX **0.37.133**, and JetBrains Marketplace **0.4.151** share exact release SHA `7db17a12e1`; both IDEs recommend CLI `0.166.88`. Reviewed source `main@feda6d1eee` contains unpublished candidates CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152**. Desktop and mobile retain independent **v5.0.3.138** releases.
+Public CLI **0.166.89**, Open VSX **0.37.134**, and JetBrains Marketplace **0.4.152** have release tags at `02e1318aae`; both IDEs recommend CLI `0.166.89`. Reviewed source `main@85181932ae` prepares unpublished CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153**, with PDH **0.4.63** and Session Core **0.3.15**. Desktop and mobile retain independent **v5.0.3.138** releases.
 
 | Component               | Public version          | Source and pairing                         |
 | ----------------------- | ----------------------- | ------------------------------------------ |
-| npm CLI                 | **0.166.88**            | `v-npm-0-166-88` → `7db17a12e1`            |
-| VS Code / VSCodium      | **Open VSX 0.37.133**   | Recommends CLI `0.166.88`                  |
-| JetBrains               | **Marketplace 0.4.151** | Publicly listed; recommends CLI `0.166.88` |
+| npm CLI                 | **0.166.89**            | `v-npm-0-166-89` → `02e1318aae`            |
+| VS Code / VSCodium      | **Open VSX 0.37.134**   | Recommends CLI `0.166.89`                  |
+| JetBrains               | **Marketplace 0.4.152** | Approved/listed; recommends CLI `0.166.89` |
 | Desktop / Android / iOS | **v5.0.3.138**          | Independent product release                |
 
 ```bash
-npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
 cc --version
 ```
 
-Restart the IDE chat host after upgrading. The exact release passed complete [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746954), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37279746478), [IDE gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37279774086), and [ARM64 host gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37279869315). [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37290065303) and both IDE publications succeeded after child-package verification and public CLI readback. Failed attempts and official same-SHA retries remain in the [release evidence](docs/research/cli/evidence/gap-2026-10-05/release-0.166.88/README.md).
+Restart the IDE chat host after upgrading. Exact release `02e1318aae` passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37348674897) (67 success, one conditional skip), [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37348685951) (5/5), and [IDE host gates](https://github.com/chainlesschain/chainlesschain/actions/runs/37348708603); [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37357266569) succeeded. Registry/manifest/marketplace readback confirms the public versions above. JetBrains is approved and listed; its tag workflow retains a runner failure in the final verification stage, so public availability does not imply overall workflow success.
 
-- **Public CLI** includes bounded canonical Memory v2 shards, exact-ID deletion, indexed queries and snapshot-bound pagination, reviewed VERIFY-01 execution, and Linux cgroup2 recovery. Default shadow does not migrate; durable Linux permissions require administrator provisioning.
-- **Published IDEs** diagnose observed session capabilities and preserve text/attachment drafts through slow initialization. Handshake waits at most 120 seconds; restored attachments require an explicit send.
-- **Post-release source** adds dual-IDE protocol/UI capture, prepare/finish evidence, an explicit Linux controlled-host entry, and JetBrains CLI identity/onboarding diagnostics with source commit, dirty state, and file digests. These changes are outside public packages.
-- **Engineering evidence** at `f289a08844` passed three-OS reference MCP and six real IDE hosts. Controlled peers verify capture wiring, not real-provider or public first-install acceptance. Real Docker review-pack CI is added but full-pack acceptance has not passed.
+- **Public pairing** includes Memory v2 indexed pagination, reviewed evaluation, Linux cgroup2 recovery, explicit dual-IDE protocol/UI capture and identity diagnostics. Ordinary sessions keep capture off; controlled peers are not real-provider acceptance.
+- **PDH source candidate** persists entities and projection intent together, confirms KG/BM25 separately, and supports status, bounded retries and pruning receipts of retired ephemeral consumers. Current hosts use in-memory indexes without a vector destination; unknown running deliveries remain protected.
+- **Project source candidate** previews description changes to saved pending tasks, requires native confirmation and commits the receipt atomically. Only the current DID's personal projects are supported. Risk rules detect overdue tasks and unfinished direct dependencies; CLI operations are offline previews.
+- **Capability source candidate** labels automation simulation, design-only low-code publishing and unsupported outbound SCIM truthfully, while hardening CLI structured audit redaction and RAG replacement/removal.
 
-Formal 36+9 samples remain `NOT_RUN`; billing, human accessibility, and long-duration SLO acceptance remain open, and automatic active Skill promotion stays HOLD. Historical unsigned native validation is not signed candidate publication. See the [CLI README](packages/cli/README.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), and [current design](docs/design/agent-runtime-update-2026-10-05.md). Dated sections below retain historical scope.
+The candidate still needs its own exact-commit release gates. Formal 36+9 samples, real costs, human accessibility and long-duration SLO acceptance remain open; automatic active Skill promotion stays HOLD. See the [usage guide](docs-site/docs/chainlesschain/data-actions-current.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [design](docs/design/data-actions-update-2026-10-06.md), and [release observations](docs/research/cli/evidence/documentation-release-status-2026-10-06.json). Dated sections below retain their historical identities.
 
 ## October 2, 2026 release and source review (historical)
 

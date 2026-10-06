@@ -1,14 +1,14 @@
 ---
+import SourceUpdate from '../../components/SourceUpdate.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Terminal from '../../components/Terminal.astro';
 import rootPkg from '../../../../package.json';
-import pdhPkg from '../../../../packages/personal-data-hub/package.json';
 import pdhCatalog from '../../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../../data/release-sizes.json';
 import releaseStatus from '../../data/release-status.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
-const PDH_VERSION = pdhPkg.version;
+const PDH_VERSION = releaseStatus.personalDataHubVersion;
 const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // Use the verified release-status snapshot for visible CLI versions. The
 // build-time release-sizes fetch updates download metadata independently.
@@ -796,4 +796,5 @@ const badges = [
       </div>
     </div>
   </section>
+  <SourceUpdate lang="en" />
 </BaseLayout>

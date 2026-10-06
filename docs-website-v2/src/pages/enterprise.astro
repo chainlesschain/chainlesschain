@@ -1,4 +1,5 @@
 ---
+import SourceUpdate from '../components/SourceUpdate.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const menu = [
@@ -6,7 +7,7 @@ const menu = [
   ['私有化部署', 'Docker / Kubernetes 全套部署包，完全离网运行，零外部依赖'],
   ['行业 Skills', '医疗分诊、法律起草、科研辅助、金融合规 — 按行业深度定制'],
   ['U-Key 批量签发', '批量密钥生成、管理、撤销；与企业 CA / HSM 联动'],
-  ['SSO + SCIM', 'SAML 2.0 / OIDC 单点登录，SCIM 2.0 自动同步 Azure AD / Okta'],
+  ['SSO + SCIM', 'SAML 2.0 / OIDC 登录及 SCIM 配置；出站 provider 同步尚未支持，需按宿主验证实际能力'],
   ['审计合规', '完整审计日志、SOC2 证据收集、等保三级合规报告'],
   ['DLP + SIEM', '数据防泄漏策略引擎 + CEF / LEEF / JSON 日志导出到 SIEM'],
   ['数据模型扩展', '按业务字段扩展数据库 Schema，提供 ORM 与迁移工具'],
@@ -309,4 +310,5 @@ const industries = [
       window.location.href = 'mailto:zhanglongfa@chainlesschain.com?subject=' + subject + '&body=' + body;
     });
   </script>
+  <SourceUpdate lang="zh" />
 </BaseLayout>

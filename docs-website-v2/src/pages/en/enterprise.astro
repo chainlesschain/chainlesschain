@@ -1,4 +1,5 @@
 ---
+import SourceUpdate from '../../components/SourceUpdate.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 const menu = [
@@ -6,7 +7,7 @@ const menu = [
   ['Private Deployment', 'Full Docker / Kubernetes packs, fully air-gapped, zero external dependencies'],
   ['Industry Skills', 'Healthcare triage, legal drafting, research assistant, financial compliance — deep customization per industry'],
   ['U-Key Batch Issuance', 'Bulk key generation, management, revocation; integrates with corporate CA / HSM'],
-  ['SSO + SCIM', 'SAML 2.0 / OIDC single sign-on, SCIM 2.0 auto-sync with Azure AD / Okta'],
+  ['SSO + SCIM', 'SAML 2.0 / OIDC login and SCIM configuration; outbound provider sync is unsupported and host capabilities require verification'],
   ['Audit & Compliance', 'Full audit logs, automated SOC2 evidence collection, MLPS Level 3 reports'],
   ['DLP + SIEM', 'Data-loss-prevention policy engine + CEF / LEEF / JSON log export to SIEM'],
   ['Schema Extension', 'Extend the database schema for your business fields with ORM and migration tooling'],
@@ -308,4 +309,5 @@ const industries = [
       window.location.href = 'mailto:zhanglongfa@chainlesschain.com?subject=' + subject + '&body=' + body;
     });
   </script>
+  <SourceUpdate lang="en" />
 </BaseLayout>

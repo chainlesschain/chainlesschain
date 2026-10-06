@@ -180,7 +180,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.76（npm latest）",
+          text: "🧩 Agent Platform 0.166.89（npm latest）",
           collapsed: false,
           items: [
             {
@@ -190,6 +190,14 @@ export default defineConfig({
             {
               text: "PM 效果评测与证据核验",
               link: "/chainlesschain/pm-effect-evaluation",
+            },
+            {
+              text: "数据投影恢复与项目任务操作（候选）",
+              link: "/chainlesschain/data-actions-current",
+            },
+            {
+              text: "2026-10-06 数据与受控动作设计",
+              link: "/design/data-actions-update-2026-10-06",
             },
             {
               text: "2026-10-05 CLI/IDE 运行时设计",
@@ -1861,7 +1869,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.24) ⭐NEW",
+              text: "CLI Runtime 当前实现与源码候选 ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {

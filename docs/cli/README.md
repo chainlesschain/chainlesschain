@@ -2,7 +2,7 @@
 
 [返回文档中心](../README.md)
 
-2026-10-05 核对：公开 CLI **0.166.88**、Open VSX **0.37.133**、JetBrains **0.4.151** 同属发行提交 `7db17a12e1`，两端 IDE 推荐 CLI `0.166.88`。最新已提交源码基线 `main@feda6d1eee` 为 CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 升级见[发布与升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)，分页、评估与恢复合同见[最新设计](../design/agent-runtime-update-2026-10-05.md)。[Linux 受控权限宿主](./NET02_CONTROLLED_HOST.md)已进入公开 CLI 0.166.88，但仍需管理员显式配置。
+2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 投影恢复、任务动作与风险规则见[最新设计](../design/data-actions-update-2026-10-06.md)。较早带日期段落保留其历史范围。
 
 从[安装指南](../guides/CLI_INSTALLATION_GUIDE.md)和[命令索引](./CLI_COMMANDS_REFERENCE.md)开始；完整命令清单见[自动生成的 CLI 参考](./CLI_REFERENCE.generated.md)。
 

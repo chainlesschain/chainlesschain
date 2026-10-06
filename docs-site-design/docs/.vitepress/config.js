@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-06 数据与受控动作设计",
+            link: "/data-actions-update-2026-10-06",
+          },
+          {
             text: "2026-10-05 CLI/IDE 运行时设计",
             link: "/agent-runtime-update-2026-10-05",
           },
@@ -919,7 +923,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.166.16) ⭐NEW",
+              text: "CLI Runtime 当前实现与源码候选 ⭐NEW",
               link: "/cli-runtime-current",
             },
             {

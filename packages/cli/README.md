@@ -5,8 +5,8 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## Current release and source (2026-10-06)
 
 At candidate preparation, public npm `latest` is **chainlesschain@0.166.89**,
-public Open VSX is **0.37.134**, and public JetBrains is **0.4.151**.
-JetBrains `0.4.152` publication is still in progress. See the
+public Open VSX is **0.37.134**, and public JetBrains is **0.4.152**.
+Both public IDEs recommend CLI `0.166.89`. See the
 [upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
 The source prepares CLI **0.166.90** / VS Code **0.37.135** / JetBrains

@@ -1,5 +1,7 @@
 # CLI 与 IDE 运行时增量设计（2026-10-05）
 
+> 历史设计快照；本页版本及发布结论保留核对时点，当前版本和新增能力见[2026-10-06 设计](data-actions-update-2026-10-06.md)。
+
 本次设计核对以已提交 `main@feda6d1eeee84330a8c22e48b4fc98c419f833e8` 的代码和 Git 记录为基线。公开 CLI **0.166.88**、Open VSX **0.37.133**、JetBrains **0.4.151** 共同来自 `7db17a12e15cc92cd7d84f8087141a9521cec5c3`，两端 IDE 推荐 CLI `0.166.88`；源码 **0.166.89 / 0.37.134 / 0.4.152** 为后续候选，尚未公开发行。桌面与移动产品保持独立 `v5.0.3.138`。安装步骤见[发布与升级指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。各专项结果保留其准确源码身份。
 
 ## 记忆查询索引与分页

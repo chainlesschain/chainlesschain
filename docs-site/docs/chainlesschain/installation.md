@@ -2,7 +2,7 @@
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
-> **2026-10-05 发布提示**：CLI 安装使用 `chainlesschain@0.166.88 --registry https://registry.npmjs.org`，准确发行 SHA 为 `7db17a12e1`。Open VSX `0.37.133` 与 JetBrains `0.4.151` 已公开，均推荐 CLI `0.166.88`；源码 `0.166.89/0.37.134/0.4.152@feda6d1eee` 为后续候选。桌面/移动端保持独立产品版 `v5.0.3.138`。见[发布与升级指南](./agent-platform-release)。
+> **2026-10-06 发布提示**：安装 `chainlesschain@0.166.89 --registry https://registry.npmjs.org`；发行提交 `02e1318aae`，Open VSX `0.37.134`、JetBrains `0.4.152` 均推荐 CLI `0.166.89`。源码 `0.166.90/0.37.135/0.4.153` 尚未公开。见[发布与升级](./agent-platform-release)。
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 

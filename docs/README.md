@@ -2,6 +2,14 @@
 
 按用途查找安装指南、开发文档、专题设计和实施记录。项目介绍见[仓库首页](../README.md)。
 
+## 2026-10-06 更新入口
+
+2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。
+
+- [数据投影、任务修改与风险检查用户指南](../docs-site/docs/chainlesschain/data-actions-current.md)
+- [数据与受控动作增量设计](./design/data-actions-update-2026-10-06.md)
+- [CLI/IDE 发布与升级](../docs-site/docs/chainlesschain/agent-platform-release.md)
+
 ## 常用入口
 
 | 我想……                 | 文档                                                                                                                           |

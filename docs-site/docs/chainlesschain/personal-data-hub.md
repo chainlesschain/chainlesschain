@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **状态（2026-09-04）：92 个采集契约 / 18 类已注册；PDH `0.4.59` 与 CLI `0.166.21` 分别为当前 npm `latest`。PDH 0.4.59 将 `better-sqlite3-multiple-ciphers` 改为 optional dependency；无 native prebuild、Python 或编译器时首次安装可跳过 native addon 并使用 CLI 内置 `sql.js` WASM fallback。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
+> **状态（2026-10-06）**：公开 npm CLI `0.166.89`、PDH `0.4.62`；候选 CLI `0.166.90` / PDH `0.4.63` 增加投影恢复和回执保留，尚未发行。采集清单不代表当前设备或账号全部可用，须按实际输入与宿主能力确认。当前生产宿主使用内存 KG/BM25，没有接入向量目的地；native 加密驱动的要求以对应运行宿主为准。
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -24,6 +24,12 @@
 > 完整设计与 13-Phase 路线图见设计文档：[`Personal_Data_Hub_Architecture.md`](https://design.chainlesschain.com/Personal_Data_Hub_Architecture.html)（"个人数据中台 专题"）。
 
 ## 最新更新
+
+### 2026-10-06 候选：投影恢复与回执维护
+
+规范化实体、删除墓碑及投影期望版本同事务保存，KG/RAG 各自确认；采集水位前进不代表索引更新成功。候选可用 `cc hub derivation-status --json` 查看积压，`cc hub retry-derivations --limit 100 --json` 分批重试。新宿主重建内存索引，同 consumer 未知 running 不自动重放。
+
+已退休临时 consumer 的非运行回执可显式清理，活动、persistent 与未知回执继续受保护。实体删除不擦除原始归档，也不删除来源平台数据。命令、状态解释与保护边界见[本轮用户指南](./data-actions-current)。
 
 > 本节汇总近几个版本的采集能力更新；更细的逐 Phase 落地记录见 [系统架构 → Phase 历史](#phase-历史)。
 

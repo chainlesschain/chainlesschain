@@ -1,4 +1,5 @@
 ---
+import SourceUpdate from '../../components/SourceUpdate.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import rootPkg from '../../../../package.json';
 import releaseSizes from '../../data/release-sizes.json';
@@ -6,7 +7,7 @@ import releaseStatus from '../../data/release-status.json';
 const PRODUCT_VERSION = rootPkg.productVersion;
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
-const SOURCE_COMMIT = releaseStatus.sourceCandidateCommit.slice(0, 10);
+const SOURCE_COMMIT = releaseStatus.documentedDesktopCommit.slice(0, 10);
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseSizes.tag || PRODUCT_VERSION}`;
 ---
@@ -192,4 +193,5 @@ const RELEASE_TAG_URL = `https://github.com/chainlesschain/chainlesschain/releas
       </p>
     </div>
   </section>
+  <SourceUpdate lang="en" />
 </BaseLayout>

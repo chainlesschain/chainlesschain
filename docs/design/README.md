@@ -1,8 +1,10 @@
 ﻿# 设计文档
 
-> 2026-10-05 核对：公开 CLI **0.166.88**、Open VSX **0.37.133**、JetBrains **0.4.151** 同属发行提交 `7db17a12e1`，两端 IDE 推荐 CLI `0.166.88`。最新已提交源码基线 `main@feda6d1eee` 为 CLI **0.166.89** / VS Code **0.37.134** / JetBrains **0.4.152** 候选，尚未公开发行。产品版保持独立 **v5.0.3.138**。 记忆分页、评估执行、进程恢复及 IDE 诊断见[最新设计](agent-runtime-update-2026-10-05.md)。历史六目标 unsigned native 复验已通过，不等于签名候选发行；真实 PM/成本与自动晋升仍 HOLD。下方带日期内容保留历史范围。
+> 2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 投影恢复、任务动作与风险规则见[最新设计](data-actions-update-2026-10-06.md)。较早带日期段落保留其历史范围。
 
 ## 当前重点
+
+- [2026-10-06 数据投影恢复、项目受控动作和风险检查](./data-actions-update-2026-10-06.md)：PDH 耐久回执、consumer 保留、原生确认、离线边界和企业能力状态。
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。

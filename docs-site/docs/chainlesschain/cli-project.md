@@ -1,19 +1,21 @@
 # 项目管理（cc project）
 
-> **版本: v1.3+ #21 P1 | 状态: ✅ 生产可用 | 7 集成测试全绿**
+> **2026-10-06 核对**：公开 CLI `0.166.89` 保留项目 CRUD；候选 `0.166.90` 新增离线风险评估与描述预览。桌面候选另有个人项目受控动作，CLI 不提供 live execute。历史移动同步能力须按实际配对和同步服务状态判断，不承诺跨端零延迟。
 >
-> `cc project` 直接读写桌面 app 的共享 SQLite（`chainlesschain.db`）来创建/管理项目：CLI 写入后**桌面 UI 立刻可见**，再经 Phase 3d sync 同步到手机端——桌面 / CLI / 手机三端零延迟一致。设计来源是 v1.2 GA 反馈「目标在手机端做 AI 项目的交互要像在电脑端那样丝滑」。
+> 详细操作与限制见[数据与项目指南](./data-actions-current)。
+>
+> `cc project` 的 CRUD 读写桌面共享 SQLite（`chainlesschain.db`），由实际桌面刷新显示。写入标记为待同步，移动端可见性取决于配对、同步服务和网络状态。候选离线命令只读取指定 JSON。
 
 ## 概述
 
-`cc project` 提供 `init / list / show / delete` 四个子命令，不经任何中间服务层，直接打开桌面 Electron app 的 `chainlesschain.db`（按 `app.getPath("userData")` 约定解析路径）。打开时启用 **WAL 模式**，允许桌面 app 同时运行（多读单写，短查询无冲突）。新建项目自动写 `sync_status='pending'`，由 Phase 3d sync 推送到移动端。
+公开版 `cc project` 的 `init / list / show / delete` 直接打开桌面 Electron app 的 `chainlesschain.db`（按 `app.getPath("userData")` 约定解析路径）。打开时启用 **WAL 模式**，允许桌面 app 同时运行（多读单写，短查询无冲突）。新建项目自动写 `sync_status='pending'`，由 Phase 3d sync 推送到移动端。
 
 SQLite 驱动按级联回退：`better-sqlite3-multiple-ciphers` → `better-sqlite3` → `sql.js`（WASM）。WASM 路径在 close 时整库写回文件，此时应关闭桌面 app 以避免竞态。
 
 ## 核心特性
 
 - 🗄️ **直写桌面 DB**：无中间层，CLI 创建的项目立刻出现在桌面 UI
-- 📱 **三端一致**：写入即标 `sync_status='pending'`，Phase 3d sync 自动同步手机端
+- 📱 **待同步标记**：写入标 `sync_status='pending'`，移动同步仍需实际服务及配对可用
 - 🏷️ **10 种项目类型**：`web | document | data | app | presentation | spreadsheet | design | code | workflow | knowledge`（默认 `document`），非法类型退出码 2
 - 📊 **4 种状态**：`draft | active | completed | archived`（新建即 `active`），`list --status` 可过滤
 - 🧹 **软删除默认**：`delete` 置 `deleted=1` 并重新标 pending 触发同步；`--hard` 才真正删行
@@ -41,8 +43,17 @@ SQLite 驱动按级联回退：`better-sqlite3-multiple-ciphers` → `better-sql
 └─────────┬───────────────────────┬────────────┘
           │ 同库并发读写（WAL）      │ Phase 3d sync
           ▼                       ▼
-   桌面 app UI（立刻可见）      手机端（自动同步）
+   桌面 app UI（立刻可见）      手机端（服务可用时同步）
 ```
+
+## 候选：离线风险与任务描述预览
+
+```bash
+cc project risk-evaluate --snapshot risk-snapshot.json --json
+cc project task-description-preview --snapshot task-description-snapshot.json --json
+```
+
+候选命令只读本地 JSON（最多 2 MiB），不认证快照中的 DID、不改真实数据库。描述预览为 `unverified-snapshot`，没有 live execute 子命令。风险只识别逾期和直接依赖阻塞，数据不足返回 `insufficient-data` 和退出码 2。桌面原生受控动作限当前 DID 所有的个人项目待办描述，必须预览并明确确认；未知回执不能自动重放。见[操作与预算](./data-actions-current)。
 
 ## 命令参考
 
