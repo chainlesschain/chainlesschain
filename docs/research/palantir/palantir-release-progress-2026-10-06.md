@@ -2,6 +2,26 @@
 
 更新日期：2026-10-06。用户已授权直接提交主分支、推送 GitHub Actions，测试通过后按依赖顺序发布，并持续修复发布失败。
 
+上一轮候选：`main@2f96e07a57d4ae80ec0c438fbbbb912f0649d37b`（因下述完整性断言修复而替代）。工作流：
+[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37366164477)、
+[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37366163952)、
+[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37366189246)。
+最新候选为本次完整性断言修复提交，需重新绑定其三平台测试；尚未发布本轮版本。
+
+## 截图失败项排查与处理
+
+| 检查                                   | 已核实原因 / 结果                                                        | 处理                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| CLI Strict Sandbox                     | 上轮重试后 5 项全部通过                                                  | 新修复提交仍需重新通过                                               |
+| CLI Windows unit 14、integration 5 / 7 | hosted runner lost communication；steps 为空且无测试日志归档             | 作为基础设施失败重跑，不修改源码或放宽超时                           |
+| CLI recovery 三平台聚合                | 上游平台未完成，聚合门禁正确失败                                         | 保持门禁，补齐上游                                                   |
+| JetBrains Linux 2024.2                 | buildPlugin、两个 UI smoke 测试通过后 runner 收到 shutdown signal        | 同提交完整重跑，不能用局部通过发布                                   |
+| Code Quality / Quality Gate            | rules-validation 未获 runner，结果 abandoned；Lint、Build、Database 通过 | 重跑上游与聚合                                                       |
+| IDE P0-S safety gate                   | Linux 未获 runner；Windows、macOS 通过，聚合正确失败                     | 补跑 Linux 与聚合                                                    |
+| Full Test Automation / Ubuntu          | CI 完整性测试仍预期 4 处 Node 配置；新增 PDH job 后实际为 5 处           | 更新数量为 5，继续强制每处 Node 22.22.2；51 项完整性测试通过、0 跳过 |
+
+GitHub 官方 Actions 分配故障于 `2026-10-05T22:49:42Z` 报告已解决。本轮先重试已核实的基础设施失败，同时修复上述真实计数断言遗漏；完整发布结果仍以修复后的新提交矩阵为准。
+
 | 阶段               | 目标版本 / 范围                            | 状态                                | 验证依据                                                                   |
 | ------------------ | ------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
 | 功能实现           | 四批 Palantir 对照改进                     | 已提交                              | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
@@ -35,6 +55,8 @@
 第二轮 Windows PDH 日志审计发现 20 项测试因缺少 CLI bin 和 Python bridge 被隐式跳过。已改为从准确提交归档完整候选源码，使用现有生产依赖安装器校验并安装 10 个本地子包，三平台显式安装 Python 3.12；报告强制检查这些 20 项测试与新增 35 项派生恢复测试均实际通过。
 
 补齐布局后的本地独立环境验证：288 个文件通过，4482 项通过、0 失败，125 项源码显式停用的历史 Evolution ingress 测试保持跳过；本轮未将这些跳过计为通过。原缺失 20 项全部执行通过，两个 native 驱动均实际加载。该结果作为补充，发布仍等待新提交的三平台 Actions。
+
+旧 IDE run `37364278953` 的失败注解为 “The job was not acquired by Runner of type hosted even after multiple attempts”，未执行测试。最新候选的能力清单检查已通过，后续宿主矩阵仍需完成。旧 JetBrains `0.4.152` 已上传成功，其市场核验同样因 runner 分配失败未执行；该版本不复用、不重复上传。
 
 按用户要求清理过期队列：19 个旧候选任务已取消；3 条 5 月 / 8 月的旧记录虽然 API 显示 queued，取消接口却返回已完成或未排队，无法取消且未删除历史。当前候选与正式 JetBrains 发布任务保留。
 
