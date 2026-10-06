@@ -4,28 +4,47 @@
 
 ## 最新门禁状态
 
-当前工作目录为 `main`，并行文档更新已提交。准确候选提交的全部发布门禁及 npm 正式 OIDC 发布已成功；三个子包和 CLI 已公开下载并核验完整性，IDE 标签发布正在运行。
+当前工作目录为 `main`。准确发布提交的全部门禁、npm 正式 OIDC 发布以及两个 IDE 正式发布流程均已成功结束。三个子包、CLI 和 Open VSX 插件已公开下载核验；JetBrains 上传已成功，仍等待 Marketplace 审核或上架。
 
 最新发布候选：`28cff6adc82a4f358d785baada110e48884527ea`。
 
-| 当前门禁                                  | 状态                     | Actions                                                                                                                                                                       |
-| ----------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Security Audit                            | 已通过                   | [安全审计](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385/job/112088668636)；原有三个阻塞项已修复                                                  |
-| Code Quality & Security                   | 全部通过（9/9）          | [完整质量与安全检查](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385)                                                                               |
-| CLI CI                                    | 已通过（70 成功）        | [三平台完整矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585)；三平台 SDK、Session Core、恢复验证及聚合门禁全部通过；PR 专用 dry-run 按条件跳过 |
-| CLI Strict Sandbox                        | 已通过（5/5）            | [严格沙箱](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644409)                                                                                         |
-| IDE Extensions                            | 已通过（18 成功）        | [宿主完整矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407686847)；全部宿主、构建和兼容性检查通过，标签发布专用市场核验按条件跳过                     |
-| IDE Safety                                | 已通过                   | [安全矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644400)                                                                                         |
-| macOS MCP Launcher                        | 已通过                   | [启动门禁](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644396)                                                                                         |
-| PDH 原生完整测试                          | 三平台已通过             | 当前候选 Linux、Windows、macOS 均为 4482 项通过、0 失败；报告已下载核验                                                                                                       |
-| Full Test Automation                      | 已通过                   | [完整自动化测试](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644417)；Linux、Windows 全套测试通过，失败创建 issue 步骤按条件跳过                       |
-| E2E Tests                                 | 全部通过（4/4）          | [E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644449)                                                                                              |
-| CI Tests                                  | 全部通过（14/14）        | [CI Tests](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644441)                                                                                         |
-| SDK / PDH / Session Core → CLI → IDE 发布 | npm 成功；IDE 发布运行中 | [npm 正式发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340)；子包先发布并下载核验，CLI 公开核验后已推送两个 IDE 标签                            |
-| VS Code / Open VSX 正式发布               | 运行中                   | [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414359683)                                                                                    |
-| JetBrains 正式发布                        | 运行中                   | [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414370365)；上传和公开审核分别记录                                                           |
+[Open VSX 正式发布与公开下载核验证据](./evidence/palantir-open-vsx-release-28cff6ad-2026-10-06.json) 确认 0.37.135 已公开可用，独立下载 VSIX 的 SHA256 与测试通过的固定归档完全一致。[JetBrains 正式上传与市场核验证据](./evidence/palantir-jetbrains-release-28cff6ad-2026-10-06.json) 确认 0.4.153 的六项真实宿主测试、1445 项逻辑回归、JUnit、构建、结构与兼容性检查全部通过，`publishPlugin` 上传成功。市场核验返回 `pending / version-not-visible`，尚未确认公开可下载。
+
+IDE 发布进度（截至北京时间 2026-10-06 13:14）：
+
+| 阶段                             | VS Code / Open VSX 0.37.135         | JetBrains 0.4.153               |
+| -------------------------------- | ----------------------------------- | ------------------------------- |
+| 准确提交与版本校验               | 已通过                              | 已通过                          |
+| Linux / Windows / macOS 宿主测试 | 已通过                              | 六项全部通过（2024.2 / 2025.2） |
+| 正式插件构建与兼容性检查         | 已通过                              | 已通过                          |
+| 市场上传                         | 已完成                              | 已完成                          |
+| 市场公开版本核验                 | 已通过                              | 待审核或上架；目标版本尚未公开  |
+| 独立公开下载核验                 | 已通过，VSIX 与固定测试归档哈希一致 | 等待公开可下载                  |
+
+VS Code 当前发布渠道为 Open VSX。Microsoft Marketplace 未配置 `VSCE_PAT`，本轮未发布到该渠道。JetBrains 上传结果与市场人工审核结果分别记录；只有公开下载验证通过后才标为公开可用。
+
+| 当前门禁                                  | 状态                               | Actions                                                                                                                                                                       |
+| ----------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Security Audit                            | 已通过                             | [安全审计](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385/job/112088668636)；原有三个阻塞项已修复                                                  |
+| Code Quality & Security                   | 全部通过（9/9）                    | [完整质量与安全检查](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385)                                                                               |
+| CLI CI                                    | 已通过（70 成功）                  | [三平台完整矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585)；三平台 SDK、Session Core、恢复验证及聚合门禁全部通过；PR 专用 dry-run 按条件跳过 |
+| CLI Strict Sandbox                        | 已通过（5/5）                      | [严格沙箱](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644409)                                                                                         |
+| IDE Extensions                            | 已通过（18 成功）                  | [宿主完整矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407686847)；全部宿主、构建和兼容性检查通过，标签发布专用市场核验按条件跳过                     |
+| IDE Safety                                | 已通过                             | [安全矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644400)                                                                                         |
+| macOS MCP Launcher                        | 已通过                             | [启动门禁](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644396)                                                                                         |
+| PDH 原生完整测试                          | 三平台已通过                       | 当前候选 Linux、Windows、macOS 均为 4482 项通过、0 失败；报告已下载核验                                                                                                       |
+| Full Test Automation                      | 已通过                             | [完整自动化测试](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644417)；Linux、Windows 全套测试通过，失败创建 issue 步骤按条件跳过                       |
+| E2E Tests                                 | 全部通过（4/4）                    | [E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644449)                                                                                              |
+| CI Tests                                  | 全部通过（14/14）                  | [CI Tests](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644441)                                                                                         |
+| SDK / PDH / Session Core → CLI → IDE 发布 | 全部发布流程成功；JetBrains 待审核 | [npm 正式发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340)；子包、CLI、Open VSX 已公开核验，JetBrains 上传已成功                               |
+| VS Code / Open VSX 正式发布               | 已成功，公开可下载                 | [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414359683)；独立下载 VSIX 与固定测试归档 SHA256 一致                                          |
+| JetBrains 正式发布                        | 上传成功；待市场审核或上架         | [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414370365)；13 成功、6 个其他产品任务按条件跳过、0 失败；市场核验为 pending                  |
 
 本轮又取消 11 个旧候选活动任务，另有一个在请求取消前已结束；剩余旧清理步骤已确认终态。保留当前候选、正式发布和其他分支任务，未删除历史记录。
+
+用户随后要求先取消与发布无关的 runner。已取消文档提交 `f6f9998654` 触发的 `CI Tests`（`37414660799`）、`Full Test Automation`（`37414660723`）、`E2E Tests`（`37414660719`）；macOS MCP Launcher（`37414660712`）在取消请求前已成功结束。核查全部活动记录后，仅两个 IDE 正式标签发布流程仍在运行。
+
+截至北京时间 13:14，两个 IDE 正式流程均已成功结束，最近 100 条工作流记录中已无活动任务。JetBrains CI 归档已独立下载并检查插件 ID `com.chainlesschain.ide`、版本 `0.4.153`，大小 1515361 字节，SHA256 为 `74065e1f8a5b8f140af0e94c0aaeb42465e25b8929dffa9490b71f4618471adf`。公开更新 API 尚未显示目标版本；原始发布与核验日志保存于 `.work/palantir-release-evidence/28cff6ad/`。待审核状态不计为公开下载通过，也无需重复上传。
 
 再次核查全部 queued / in-progress 记录：除当前候选外，仅剩三条 5 月 / 8 月的历史异常记录 `32212457155`、`25907303349`、`25907160592`。普通取消和 force-cancel 均返回 HTTP 409（不在运行中或未进入队列）；两条无 job，另一条所有 job 的 runner_id / runner_name 均为空，没有实际占用 runner。未删除历史记录。
 
@@ -82,18 +101,18 @@
 
 GitHub 官方 Actions 分配故障于 `2026-10-05T22:49:42Z` 报告已解决。本轮先重试已核实的基础设施失败，同时修复上述真实计数断言遗漏；完整发布结果仍以修复后的新提交矩阵为准。
 
-| 阶段               | 目标版本 / 范围                            | 状态                                       | 验证依据                                                                   |
-| ------------------ | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------- |
-| 功能实现           | 四批 Palantir 对照改进                     | 已提交                                     | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
-| 子包核对           | PDH、Session Core、Agent SDK               | 已确认必须更新                             | 前两包实现更新；SDK 公开清单升级测试依赖，不能复用旧 npm 包字节            |
-| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                          | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
-| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 修复 PDH helper 跨平台兼容性后重启完整检查 | Bash 3.2 空数组和 Windows tar 路径问题已定位；须最新提交全部通过后发布     |
-| Session Core       | `0.3.14` → `0.3.15`                        | OIDC 发布及公开下载核验成功                | 三平台 709 项全套测试均通过，包内版本和 SRI 已核验                         |
-| Personal Data Hub  | `0.4.62` → `0.4.63`                        | OIDC 发布及公开下载核验成功                | 三平台 4482 项通过；两个 SQLite 驱动实际加载；包内版本和 SRI 已核验        |
-| Agent SDK          | `0.2.12` → `0.2.13`                        | OIDC 发布及公开下载核验成功                | 三平台构建成功，83 项全套测试均通过；签名来源证明核验成功                  |
-| CLI                | `0.166.89` → `0.166.90`                    | OIDC 发布及公开下载核验成功                | 子包字节比较、纯 npm 依赖安装、固定归档和签名来源证明全部通过              |
-| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 正式标签发布运行中                         | CLI 已公开可用；标签绑定完整测试通过的准确提交                             |
-| JetBrains          | `0.4.153`                                  | 正式标签发布运行中                         | CLI 已公开可用；不复用旧版本；上传与公开审核状态分别记录                   |
+| 阶段               | 目标版本 / 范围                            | 状态                           | 验证依据                                                                   |
+| ------------------ | ------------------------------------------ | ------------------------------ | -------------------------------------------------------------------------- |
+| 功能实现           | 四批 Palantir 对照改进                     | 已提交                         | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
+| 子包核对           | PDH、Session Core、Agent SDK               | 已确认必须更新                 | 前两包实现更新；SDK 公开清单升级测试依赖，不能复用旧 npm 包字节            |
+| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main              | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
+| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 准确提交的完整门禁全部通过     | `28cff6ad` 的三平台测试通过，正式 npm 与 IDE 标签发布流程均成功            |
+| Session Core       | `0.3.14` → `0.3.15`                        | OIDC 发布及公开下载核验成功    | 三平台 709 项全套测试均通过，包内版本和 SRI 已核验                         |
+| Personal Data Hub  | `0.4.62` → `0.4.63`                        | OIDC 发布及公开下载核验成功    | 三平台 4482 项通过；两个 SQLite 驱动实际加载；包内版本和 SRI 已核验        |
+| Agent SDK          | `0.2.12` → `0.2.13`                        | OIDC 发布及公开下载核验成功    | 三平台构建成功，83 项全套测试均通过；签名来源证明核验成功                  |
+| CLI                | `0.166.89` → `0.166.90`                    | OIDC 发布及公开下载核验成功    | 子包字节比较、纯 npm 依赖安装、固定归档和签名来源证明全部通过              |
+| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 发布成功，公开 VSIX 已下载核验 | 正式工作流全部通过；独立下载包与测试归档哈希一致                           |
+| JetBrains          | `0.4.153`                                  | 上传成功；待市场审核或上架     | 六项宿主、回归、构建和兼容性全通过；市场核验 pending；CI 归档版本已核验    |
 
 发布标签依次为 `v-npm-0-166-90`、`ide-vscode-v0.37.135`、`ide-jetbrains-v0.4.153`。npm 工作流先发布缺失的子包并核验公开归档，再发布 CLI。仅本地测试、部分矩阵或旧提交检查均不能满足发布条件。
 

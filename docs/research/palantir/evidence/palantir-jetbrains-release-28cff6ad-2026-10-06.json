@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "version": "0.4.153",
+  "sourceCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "channel": "JetBrains Marketplace",
+  "checkedAt": "2026-10-06T05:14:11Z",
+  "publicationStatus": "uploaded successfully; awaiting Marketplace approval/listing",
+  "publiclyAvailableVerified": false,
+  "publicDownloadVerified": false,
+  "workflowRun": 37414370365,
+  "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37414370365",
+  "workflowConclusion": "success",
+  "workflowFinishedAt": "2026-10-06T05:13:04Z",
+  "workflowJobs": {
+    "success": 13,
+    "skipped": 6,
+    "failed": 0
+  },
+  "realHostMatrix": [
+    {
+      "id": 112109707715,
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 112109707790,
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 112109707792,
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 112109707811,
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 112109707814,
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 112109707852,
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "conclusion": "success"
+    }
+  ],
+  "buildPublishJob": {
+    "id": 112116798236,
+    "conclusion": "success",
+    "smokeTest": {
+      "passed": 1445,
+      "failed": 0
+    },
+    "junit": "passed",
+    "build": "passed",
+    "structure": "passed",
+    "compatibility": {
+      "status": "compatible",
+      "ide": "IC-252.23892.409 (2025.2)"
+    },
+    "publishedCliPrerequisite": {
+      "version": "0.166.90",
+      "publicChildPackages": 10,
+      "status": "passed"
+    },
+    "upload": "succeeded",
+    "uploadedAt": "2026-10-06T05:10:37Z",
+    "authorSigning": "not configured; signPlugin skipped"
+  },
+  "ciArtifact": {
+    "id": 11391337531,
+    "name": "chainlesschain-ide-jetbrains-1",
+    "artifactContainerDigest": "sha256:b0f453eac9f386603d0f1157576228dd4ae32bc5ecfd0f02fb6c0bf4f9660b42",
+    "archiveName": "chainlesschain-ide-bridge-0.4.153.zip",
+    "bytes": 1515361,
+    "sha256": "74065e1f8a5b8f140af0e94c0aaeb42465e25b8929dffa9490b71f4618471adf",
+    "pluginId": "com.chainlesschain.ide",
+    "archiveDescriptorVersion": "0.4.153",
+    "independentlyDownloadedAndInspected": true
+  },
+  "marketplaceVerification": {
+    "jobId": 112118446690,
+    "jobConclusion": "success",
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "pending",
+    "version": "0.4.153",
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "reason": "version-not-visible",
+    "attempts": 12
+  },
+  "independentPublicApiReadback": {
+    "status": "pending",
+    "reason": "version-not-visible",
+    "attempts": 1
+  },
+  "listingUrl": "https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge",
+  "notes": [
+    "Exact release tag ide-jetbrains-v0.4.153 remains on the fully tested source commit.",
+    "Six real-host cells passed on Linux, Windows, and macOS with IDE 2024.2 and 2025.2.",
+    "Successful Marketplace upload is separate from approval, listing, and public download verification.",
+    "The official workflow accepts a reachable pending-review result using its established --allow-pending verification policy.",
+    "No repeat upload, token-based npm publishing, or release-gate relaxation was used."
+  ]
+}
