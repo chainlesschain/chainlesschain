@@ -1,0 +1,57 @@
+{
+  "schema": "chainlesschain.gap-recovery-ci-readback/v1",
+  "checkedAt": "2026-10-06T08:29:19.090Z",
+  "runId": 37422826291,
+  "testedCommit": "3027b274540274a7b501e15384a6b80a290a60c3",
+  "cells": [
+    {
+      "runner": "ubuntu-24.04",
+      "arch": "x64",
+      "tests": 31,
+      "passed": 31,
+      "cliTests": [
+        "process ownership real CLI routing exposes explicit recovery help without creating an authority",
+        "process ownership real CLI routing inspects an empty Linux anchor read-only or rejects an unsupported host",
+        "process ownership real CLI routing retains a PID-only record after explicit recovery is refused"
+      ],
+      "files": [
+        {
+          "path": "process-recovery-evidence.json",
+          "bytes": 3485,
+          "digest": "sha256:916723f93d7cea616302ce5009d528e96b0cf8a35018761eb099b8a369c94456"
+        },
+        {
+          "path": "process-recovery.json",
+          "bytes": 13846,
+          "digest": "sha256:9f7d20d9bface730633c6687e48ca1d893990a4aaee01aeb30fa18554fd60d02"
+        }
+      ]
+    },
+    {
+      "runner": "ubuntu-24.04-arm",
+      "arch": "arm64",
+      "tests": 31,
+      "passed": 31,
+      "cliTests": [
+        "process ownership real CLI routing exposes explicit recovery help without creating an authority",
+        "process ownership real CLI routing inspects an empty Linux anchor read-only or rejects an unsupported host",
+        "process ownership real CLI routing retains a PID-only record after explicit recovery is refused"
+      ],
+      "files": [
+        {
+          "path": "process-recovery-evidence.json",
+          "bytes": 3487,
+          "digest": "sha256:80c018d0bc77a7665a35ce57904287f61ae15300c2e4fecb6378d676900e4552"
+        },
+        {
+          "path": "process-recovery.json",
+          "bytes": 13848,
+          "digest": "sha256:03cb21610ec1ac764ab834c878c6d23005f162deaeb5deaf220bbe1f9ccde355"
+        }
+      ]
+    }
+  ],
+  "currentHeadCovered": false,
+  "supportedPlatform": "linux",
+  "sameUidHostileConfinement": false
+}

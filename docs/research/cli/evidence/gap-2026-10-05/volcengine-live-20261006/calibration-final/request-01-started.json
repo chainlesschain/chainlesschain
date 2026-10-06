@@ -1,0 +1,16 @@
+{
+  "ordinal": 1,
+  "category": "chinese",
+  "scale": 1,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "5e801d178bbb56d91215d16ba13aa21d5f720809329220c7cf6a510949938595",
+  "startedAt": "2026-10-06T08:30:10.170Z",
+  "status": "STARTED",
+  "responseIdSha256": null,
+  "responseBodySha256": null,
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": null,
+  "usage": null,
+  "estimatedCostUsd": null
+}

@@ -1,0 +1,24 @@
+{
+  "ordinal": 12,
+  "category": "tool-schema",
+  "scale": 3,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "120f8211c292f0461f6c29e0c3ceb1034bc7e53cb26e961a4246cd88ba6e1cdf",
+  "startedAt": "2026-10-06T08:30:27.504Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "4081d32a8aac4ca60246192f83a85fa633f736dc890b9fada5cfc2f59ff2913b",
+  "responseBodySha256": "74a9d41ec52ab382b2b8ed7f22efbb1005032320a71614fae8626d7ec4d67522",
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": true,
+  "usage": {
+    "prompt_tokens": 1462,
+    "completion_tokens": 17,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": 0.00020944000000000003,
+  "httpStatus": 200,
+  "finishedAt": "2026-10-06T08:30:28.628Z"
+}

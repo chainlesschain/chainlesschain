@@ -1,0 +1,378 @@
+{
+  "schema": "chainlesschain.gap-volcengine-live-readback/v1",
+  "checkedAt": "2026-10-06T08:31:31.196Z",
+  "head": "22236fcb09a09c20e2bf2a5e5f8837b92084b252",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "authorizedByUser": true,
+  "calibration": [
+    {
+      "wave": "first",
+      "requestCount": 12,
+      "estimatedCostUsd": 0.0011092200000000004,
+      "originalSourceMetadataCaptured": false,
+      "sourceFileHashesVerified": false,
+      "files": [
+        {
+          "path": "calibration-first/receipt.json",
+          "bytes": 16920,
+          "digest": "sha256:849067cfbf568fb6031f4fe5744cd12753a83f1612c1f245e82ee4b315f5d1b4"
+        },
+        {
+          "path": "calibration-first/request-01-settled.json",
+          "bytes": 625,
+          "digest": "sha256:205f847f03a73317d28a6cf39ba980f97ed00239d18a7e334d1c63f318308fe8"
+        },
+        {
+          "path": "calibration-first/request-01-started.json",
+          "bytes": 361,
+          "digest": "sha256:c6dce4a4465fd40a55a159e3dc82666eb6cf3d213e642fca12d24f9ad783028c"
+        },
+        {
+          "path": "calibration-first/request-02-settled.json",
+          "bytes": 610,
+          "digest": "sha256:99cc156d990d52a2cda52cb4f7dfdd4c2d53d329a06da1cadb8d1b205fbf60f6"
+        },
+        {
+          "path": "calibration-first/request-02-started.json",
+          "bytes": 358,
+          "digest": "sha256:25c3023e6b53c37dc53daa070fca08ce7a961003c92452a4678bd9dd86096528"
+        },
+        {
+          "path": "calibration-first/request-03-settled.json",
+          "bytes": 623,
+          "digest": "sha256:9575de95eae88595f857bb46639acaac27e0796bff19dcfc60d497efa06339d7"
+        },
+        {
+          "path": "calibration-first/request-03-started.json",
+          "bytes": 359,
+          "digest": "sha256:3593e696c0d30e6a1b4cde53395c58dfc6b2191b65c646eb8fad5a2345d22ba3"
+        },
+        {
+          "path": "calibration-first/request-04-settled.json",
+          "bytes": 629,
+          "digest": "sha256:4e72149d01e4ff403d75d710aa27cf400c6b398ee85d58ce5a60c7bced2d026a"
+        },
+        {
+          "path": "calibration-first/request-04-started.json",
+          "bytes": 365,
+          "digest": "sha256:a216febfd826f5f42f7f40bfacdc021c3e29706faf598241de6eff449c209175"
+        },
+        {
+          "path": "calibration-first/request-05-settled.json",
+          "bytes": 625,
+          "digest": "sha256:5ddc4d74fd104f73c2d16be794065bcb251132f65d424b56354f999249cc57cd"
+        },
+        {
+          "path": "calibration-first/request-05-started.json",
+          "bytes": 361,
+          "digest": "sha256:0bc1c7176171da33e668eb6c345cd30dfa81542c6d8d857f0192912b063cc94a"
+        },
+        {
+          "path": "calibration-first/request-06-settled.json",
+          "bytes": 622,
+          "digest": "sha256:89d57de58e0196706021aa0063b0cb5f43dd44856fb654fd494b210aab62fa84"
+        },
+        {
+          "path": "calibration-first/request-06-started.json",
+          "bytes": 358,
+          "digest": "sha256:8edcdf467187b4c41bf601fe06b785c7cf1dd004fa817a2ca1321dda638ca90d"
+        },
+        {
+          "path": "calibration-first/request-07-settled.json",
+          "bytes": 611,
+          "digest": "sha256:344010708940a8768377345c704a4b87d0128f2c35c791104e367a03d5de43dd"
+        },
+        {
+          "path": "calibration-first/request-07-started.json",
+          "bytes": 359,
+          "digest": "sha256:5ffccc9971281a68fb821a0e14af805b3ba871f1eaeb054ebf5a6e7f6b6b8d32"
+        },
+        {
+          "path": "calibration-first/request-08-settled.json",
+          "bytes": 630,
+          "digest": "sha256:1d3fbacb5ff7c9ab292aa30dcb7c3ddf770ab28c5ac98fd0b64afda609f8f5e9"
+        },
+        {
+          "path": "calibration-first/request-08-started.json",
+          "bytes": 365,
+          "digest": "sha256:564a53c226a45d44bfe3418184b6f4eadeed07a17f64452f4d19025a0e1c3c23"
+        },
+        {
+          "path": "calibration-first/request-09-settled.json",
+          "bytes": 625,
+          "digest": "sha256:86b0067152f160acc2b9fd7ca8d7e484ffb2fd60273b8774e25e6aa952ed522d"
+        },
+        {
+          "path": "calibration-first/request-09-started.json",
+          "bytes": 361,
+          "digest": "sha256:0006de65f7e312a404af64930287d40c21d48b29cb7bb3d0d27a1a9304f50d57"
+        },
+        {
+          "path": "calibration-first/request-10-settled.json",
+          "bytes": 623,
+          "digest": "sha256:8626ac0a520eb867fee7acd5a5f1121512f6ccd0a80b03bdda9a6ca0fa8abeaf"
+        },
+        {
+          "path": "calibration-first/request-10-started.json",
+          "bytes": 359,
+          "digest": "sha256:ebe9a705bfe966a186eced3a799ff6abffb659253d1b88a9aba4396024a6eb07"
+        },
+        {
+          "path": "calibration-first/request-11-settled.json",
+          "bytes": 612,
+          "digest": "sha256:5a3b6478a473a6322d5d1645a86a3a421803e35ecaf590e9dc5fff38dde2ee78"
+        },
+        {
+          "path": "calibration-first/request-11-started.json",
+          "bytes": 360,
+          "digest": "sha256:ba1565bc9bfbac0be1e908111f33adc8c1d5e4b512b3ed16e3a3f052658369d9"
+        },
+        {
+          "path": "calibration-first/request-12-settled.json",
+          "bytes": 631,
+          "digest": "sha256:c87abe38e5237c4bfafcda507931a82882447ef4c7fad6fa848da06846b28347"
+        },
+        {
+          "path": "calibration-first/request-12-started.json",
+          "bytes": 366,
+          "digest": "sha256:4a7b66e42177d76d82a3b01e6be8cd8812afbe23f05c9d7230c90bbe05c7012f"
+        }
+      ]
+    },
+    {
+      "wave": "final",
+      "requestCount": 12,
+      "estimatedCostUsd": 0.0011237800000000002,
+      "originalSourceMetadataCaptured": true,
+      "sourceFileHashesVerified": true,
+      "files": [
+        {
+          "path": "calibration-final/metadata.json",
+          "bytes": 1392,
+          "digest": "sha256:4a3ed7ced217bf1812cbe039c9009e643d94e37ffd6d4e4229a00c42949244e7"
+        },
+        {
+          "path": "calibration-final/receipt.json",
+          "bytes": 20531,
+          "digest": "sha256:b1ff00994ab3cb64fa2693bb2053bf6c45b0fff7c67f4ffb05d582c07cf65dcf"
+        },
+        {
+          "path": "calibration-final/request-01-settled.json",
+          "bytes": 773,
+          "digest": "sha256:2f39f86f7cf1530ee44fb16e4de13cf5a8a6941be06c07e69a135d9205ed84c9"
+        },
+        {
+          "path": "calibration-final/request-01-started.json",
+          "bytes": 459,
+          "digest": "sha256:f778c3846ab78ec4b1d881ebcd8e2ceeed68e618c342704ea25b0107e4725340"
+        },
+        {
+          "path": "calibration-final/request-02-settled.json",
+          "bytes": 770,
+          "digest": "sha256:31f049a6729a4e16be95793b7717a3635b507b56046c2fb117255303c59f3052"
+        },
+        {
+          "path": "calibration-final/request-02-started.json",
+          "bytes": 456,
+          "digest": "sha256:7033e96f4dd748a5b1acf897a85aca47506b26b3f3a0411405e27c61700e6849"
+        },
+        {
+          "path": "calibration-final/request-03-settled.json",
+          "bytes": 772,
+          "digest": "sha256:c47e7604ad417cab75488445dc1567a6af208601f9ea556efb2c7597438e6694"
+        },
+        {
+          "path": "calibration-final/request-03-started.json",
+          "bytes": 457,
+          "digest": "sha256:4960f5b8b69fe4806e0cf345da8ba476beae028a254bc9cc6245d6e41c0fa784"
+        },
+        {
+          "path": "calibration-final/request-04-settled.json",
+          "bytes": 789,
+          "digest": "sha256:3113dd36f251a3f84d39de2b58199c1d101958d5240b263b3a5f2e9bc85e2558"
+        },
+        {
+          "path": "calibration-final/request-04-started.json",
+          "bytes": 463,
+          "digest": "sha256:31bf25f533189e95693eb02d8a579a80d8b85396f500fa21c5d7560162722be9"
+        },
+        {
+          "path": "calibration-final/request-05-settled.json",
+          "bytes": 785,
+          "digest": "sha256:a3f98241c889944b0b955493925da8f0a211ed31aafe58e4ba8611df691e5d0d"
+        },
+        {
+          "path": "calibration-final/request-05-started.json",
+          "bytes": 459,
+          "digest": "sha256:3005b1053bb4f57e162916e4a6219e0cd11d9c930827ec79c8af87ee4a702108"
+        },
+        {
+          "path": "calibration-final/request-06-settled.json",
+          "bytes": 769,
+          "digest": "sha256:4c175ac452ac650ba2f5a19a0c454829516feb57bbdceffd19208f72745598da"
+        },
+        {
+          "path": "calibration-final/request-06-started.json",
+          "bytes": 456,
+          "digest": "sha256:5849e6f7dc89d58d9a14d2a83cf39466c1f02012c0d09297ebd56087c836f983"
+        },
+        {
+          "path": "calibration-final/request-07-settled.json",
+          "bytes": 771,
+          "digest": "sha256:8cd19e501900cfa75e92629ae4f57fda53f22b2dd3ce0e692c8e66e679b25270"
+        },
+        {
+          "path": "calibration-final/request-07-started.json",
+          "bytes": 457,
+          "digest": "sha256:86932c8cdcc8b99bd89b14c0f59cd88f915514c072823ea010d5134935243c99"
+        },
+        {
+          "path": "calibration-final/request-08-settled.json",
+          "bytes": 790,
+          "digest": "sha256:599c897cb097c6322aeee1ec3d961119dae83493df1250ca043c5b9df1f355ad"
+        },
+        {
+          "path": "calibration-final/request-08-started.json",
+          "bytes": 463,
+          "digest": "sha256:d95e213d274fc5efa7a29ec2144e65cd7d0111da7b5944e7b16ee67eadb6c6e2"
+        },
+        {
+          "path": "calibration-final/request-09-settled.json",
+          "bytes": 785,
+          "digest": "sha256:c4cec01c6da70c7b148f34a3d77dcb93efb6837659cfbac22333938e940c2c7f"
+        },
+        {
+          "path": "calibration-final/request-09-started.json",
+          "bytes": 459,
+          "digest": "sha256:6a221c7a8f969b6782887ba6ba5b5beba478943fca0dc7db4d85b695cb3dcdad"
+        },
+        {
+          "path": "calibration-final/request-10-settled.json",
+          "bytes": 783,
+          "digest": "sha256:06640fd12d27aacff0ea61c031888526c816d76e229d5d3f686717d689cfcbdd"
+        },
+        {
+          "path": "calibration-final/request-10-started.json",
+          "bytes": 457,
+          "digest": "sha256:4ac27b852ac1f5dd987ffea730e39738ca82e3875d35487b3fee93c55f47c659"
+        },
+        {
+          "path": "calibration-final/request-11-settled.json",
+          "bytes": 784,
+          "digest": "sha256:5981703cbafef5fddea3f6a3d5b32917a428ec5389ef93d6422577f78776414b"
+        },
+        {
+          "path": "calibration-final/request-11-started.json",
+          "bytes": 458,
+          "digest": "sha256:35af3452d8c4d69a3d611b2dba096183e715fbab466ca5680a0e30e4f91f5b2e"
+        },
+        {
+          "path": "calibration-final/request-12-settled.json",
+          "bytes": 791,
+          "digest": "sha256:ecb680ae6c697579d728e822f48f95e675d67b62ee8da5c4078c289790588566"
+        },
+        {
+          "path": "calibration-final/request-12-started.json",
+          "bytes": 464,
+          "digest": "sha256:22a1274d5ec714177e1b5af184fd789110342238b2de9cfeade3e6a0601a71bf"
+        }
+      ]
+    }
+  ],
+  "trajectory": {
+    "path": "trajectory-first.json",
+    "digest": "sha256:a976911919a0ce55c8b60affd150641de105f409fe7dec0f8012b9f484204472",
+    "verification": {
+      "mode": "live",
+      "operatingSystem": "windows",
+      "runCount": 1,
+      "manifestMatrixEligible": false,
+      "manifestCoverageComplete": false
+    },
+    "requestCount": 6,
+    "estimatedCostUsd": 0.012830439999999999,
+    "trackedTrajectorySourcesUnchangedFromHead": true,
+    "observed": {
+      "semanticCompactionCount": 2,
+      "structuredHandoffSchemaStable": true,
+      "frozenFactRetentionRate": 1,
+      "silentLossCount": 0,
+      "providerUsageKnown": true,
+      "readOnlyToolSequenceCount": 2,
+      "credentialLeakCount": 0
+    },
+    "windowsRunCount": 1,
+    "linux100RunMatrixCovered": false
+  },
+  "totalRequests": 30,
+  "knownEstimatedCostUsd": 0.015063439999999999,
+  "invoiceVerified": false,
+  "formalSamplesCreated": false,
+  "officialModelMatrixStatus": "INSUFFICIENT_EVIDENCE",
+  "latestEstimatorSummary": {
+    "samples": 12,
+    "estimatedTokens": 5441,
+    "observedTokens": 7149,
+    "underestimates": 9,
+    "p95RelativeAbsoluteError": 0.47586206896551725,
+    "p95UnderestimateTokens": 365
+  },
+  "latestGroups": [
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "category": "chinese",
+      "samples": 3,
+      "estimatedTokens": 1260,
+      "observedTokens": 1065,
+      "underestimates": 0,
+      "p95RelativeAbsoluteError": 0.25051334702258726,
+      "p95UnderestimateTokens": 0
+    },
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "category": "code",
+      "samples": 3,
+      "estimatedTokens": 1022,
+      "observedTokens": 1236,
+      "underestimates": 3,
+      "p95RelativeAbsoluteError": 0.24302788844621515,
+      "p95UnderestimateTokens": 82
+    },
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "category": "emoji",
+      "samples": 3,
+      "estimatedTokens": 786,
+      "observedTokens": 1470,
+      "underestimates": 3,
+      "p95RelativeAbsoluteError": 0.47586206896551725,
+      "p95UnderestimateTokens": 318
+    },
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "category": "tool-schema",
+      "samples": 3,
+      "estimatedTokens": 2373,
+      "observedTokens": 3378,
+      "underestimates": 3,
+      "p95RelativeAbsoluteError": 0.3860759493670886,
+      "p95UnderestimateTokens": 365
+    }
+  ],
+  "requestedOutputLimit": 8,
+  "observedMaxOutputTokens": 133,
+  "outputLimitExceededRequests": 12,
+  "outputLimitEnforcementVerified": false,
+  "globalEstimatorChanged": false,
+  "notes": [
+    "First calibration capture predates the source-metadata and output-limit observation changes; original bytes are retained separately.",
+    "Costs use the repository price table and provider-reported usage; they are estimates, not invoices.",
+    "Synthetic content was sent to a real Volcengine account. These probes are outside the formal 36+9 samples.",
+    "The Windows trajectory uses the test evolution deployment with production compaction/tool paths. It does not establish deployment provenance, task success rate, the Linux 100-run cell, or official OpenAI/Anthropic model acceptance."
+  ]
+}

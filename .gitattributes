@@ -87,3 +87,8 @@ docs/research/ide/evidence/gap-2026-10-05/java-dispatch-mode-windows/** -text !e
 docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-first/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-second/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-v3/** -text !eol -whitespace
+
+# Raw CI and paid provider receipts retain their digest-bound bytes.
+docs/research/ide/evidence/gap-2026-10-05/host-ci-7694/** -text !eol -whitespace
+docs/research/cli/evidence/gap-2026-10-05/process-recovery-ci-3027/** -text !eol -whitespace
+docs/research/cli/evidence/gap-2026-10-05/volcengine-live-20261006/** -text !eol -whitespace

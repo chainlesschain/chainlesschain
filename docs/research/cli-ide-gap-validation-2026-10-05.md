@@ -139,3 +139,62 @@ Astra 使用真实 Chromium 确认诊断准备缺陷：已有 collapsed caret ra
 | CLOUD-02 / MAINT-02          | 完整跨机器 resume 仍是需求条件项；持续维护工时和真实任务收益仍需独立记录                                                                           |
 
 重新执行冻结 validator/fingerprint 和只读采集器，指纹仍为 `665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，原生进程退出码 **2**：task observed=0/missing=36，firstRun observed=0/missing=9，totalCost=null。冻结 provider 为 **Volcengine `deepseek-v4-flash-ga-260731` 与 OpenAI `gpt-6-astra`**；MODEL-03 的 Anthropic 官方端点验收是另一个项目，不能替换冻结 provider。当前仍需账户配置、费用授权和独立人工签核，未启动付费调用，也未写入正式 observations。
+
+## 8. 2026-10-06 CI 回读与火山真实采样
+
+本轮从 `22236fcb09a09c20e2bf2a5e5f8837b92084b252` 的干净工作区开始。用户随后明确授权“可用火山引擎测试，本地环境好了的”。只读取配置的 provider/model/endpoint 和凭据是否存在，确认其为内置火山端点与 `deepseek-v4-flash-ga-260731`；按该授权完成以下真实调用。第 7 节的“无付费授权”仅保留当时含义，不再适用于火山测试。未取得官方 OpenAI/Anthropic 账号或真实账单材料。
+
+### 8.1 Linux 显式进程恢复的双架构结果
+
+[Process Ownership Recovery #37422826291](https://github.com/chainlesschain/chainlesschain/actions/runs/37422826291) 绑定 `3027b274540274a7b501e15384a6b80a290a60c3`，Linux x64 与 ARM64 两个 job 均成功，每个 **31/31**、无跳过。已下载并按原字节归档测试报告与内核回执，见[独立回读](./cli/evidence/gap-2026-10-05/process-recovery-ci-3027/readback.json)。
+
+集成场景通过真实 CLI 执行 `status`、`recover <uuid>`：监督进程死亡后 detached 后代仍在执行，恢复要求实际 cgroup 身份匹配、发出 kill、确认空组、持久化回执，再验证新的执行准入；原任务启动标记仍只有一条。旧 PID-only 记录、boot/object 漂移及发布失败保持拒绝，恢复不重放任务。相关命令、内核实现、集成测试和工作流从被测提交到本轮 HEAD 无改动；回执仍仅归属于其明确记录的准确提交，不作为本轮发布门或其他平台证明。
+
+### 8.2 双 IDE 六宿主与身份、初始化矩阵
+
+[VERIFY01 Host Diagnostics #37423495338](https://github.com/chainlesschain/chainlesschain/actions/runs/37423495338) 绑定 `7694e165644f99ed8a03cf76c9459df72f32ed5d`，打包及六宿主 job 全部成功：Linux、Windows、macOS Intel × VS Code **1.132.0** / IntelliJ **2024.2**，Node **22.12.0**。保存原始协议、UI、源码摘要、进程退出确认与 Actions 元数据，见[完整回读](./ide/evidence/gap-2026-10-05/host-ci-7694/readback.json)。
+
+回读重新核对六处 task capture：每场唯一 generation、唯一 user 输入、连续原始协议、真实 drained exit 0，以及 submit/tab/return/final/reload/restored 六个动作。IntelliJ 三系统各含八阶段身份旅程及 slow-init / timeout-late-init / stop-before-init；用被测提交的原版校验器重新比对 GUI 与原始 child ledger，保留实际 120 秒生产期限、显式重试和零自动补发。源码摘要与准确 Git blobs 对照；Windows checkout 的 CRLF 变换单独记录。
+
+这些通过结果关闭了对应历史提交的 Linux/macOS 身份与三场冷初始化“尚无矩阵回读”。`22236fcb09` 后续的菜单动作修复、永不 init/提前退出替换和错误分类不在旧工作流源码中，仍需新准确提交矩阵；不能以旧三场通过冒充新五场通过。本轮宿主回读使用确定性 peer，未评估 provider、市场安装、物理桌面交互、屏幕阅读器或性能 SLO，不加入正式 36+9。
+
+### 8.3 火山校准采集修复与实际结果
+
+Astra 协助修复 `context-token-volcengine-live-probe.mjs`：20 秒期限现在覆盖 headers 和完整正文，正文最多 1 MiB；每请求先保存 started，结束保存 settled，失败保留已付费样本和已知费用小计，未知费用保留 null。输出目录拒绝复用，原始请求/响应 ID/响应正文只保留摘要，保存数值 usage、准确源码文件摘要与实际 OS/Node。增加 `--output`、`--matrix`，原调用方式保持兼容。
+
+首次 12 请求完成后发现实际 `completion_tokens` 超过请求的 `max_tokens:8`。补充 requested/observed 字段和超限次数，并增加 66-token 响应负例；全部实际 output usage 仍计入费用，没有猜测原因、增加未经验证的参数或将请求值当作硬性上限。最终脚本再采 12 请求；两轮原始回执分别保留，第一轮缺源码元数据的限制明确记录，见[真实采样回读](./cli/evidence/gap-2026-10-05/volcengine-live-20261006/readback.json)。最终脚本及估算器的全部记录文件摘要与回读时工作区一致，`workingTreeDirty:true`，不冒称干净提交 CI。
+
+最终一轮 Windows x64 / Node **22.22.2** 的结果：
+
+| 类别        | 不同请求数 | 估算输入 token 合计 | provider 输入 token 合计 | 低估次数 | P95 相对绝对误差 |
+| ----------- | ---------: | ------------------: | -----------------------: | -------: | ---------------: |
+| 中文        |          3 |               1,260 |                    1,065 |        0 |           25.05% |
+| 代码        |          3 |               1,022 |                    1,236 |        3 |           24.30% |
+| emoji       |          3 |                 786 |                    1,470 |        3 |           47.59% |
+| 工具 schema |          3 |               2,373 |                    3,378 |        3 |           38.61% |
+| 合计        |         12 |               5,441 |                    7,149 |        9 |           47.59% |
+
+最大单请求低估 **365 tokens**；实际输出最多 **133 tokens**，最终 12 次 usage 都超过请求值 8。两轮校准对应估算费用分别 **$0.00110922**、**$0.00112378**。这只说明本次火山请求的 framing、schema 与内容编码偏差；冻结官方矩阵仍为 OpenAI `gpt-6.1-sol` / Anthropic `claude-sonnet-5-5` × 四类 × 三个不同请求，全部 24 个官方目标请求仍缺。保留 `INSUFFICIENT_EVIDENCE`，不据单 provider 小样本改动全局 bytes/4。
+
+### 8.4 生产压缩与只读工具的真实轨迹
+
+复用现有 `ide-roadmap-live-provider-trajectory.mjs --mode live --runs 1`，使用真实火山账户完成 **6 次调用**：两轮生产 semantic compaction，每轮再完成 read_file 与最终回答。Windows 本轮 HEAD 下的轨迹代码、运行时和冻结 fixture 相对提交无改动，回执已再次经既有严格校验器验证；[原始结果](./cli/evidence/gap-2026-10-05/volcengine-live-20261006/trajectory-first.json)记录完整脱敏 usage、事件顺序与事实摘要。
+
+两轮分别保留 **9/9**、**17/17** 条冻结事实，字段归属与结构一致，silent loss **0**；只读工具各执行一次，模型 usage 全部已知。轨迹对应估算费用 **$0.01283044**；合并两轮校准，共 **30 次真实调用、$0.01506344**。费用使用仓库价表与返回 usage 估算，未认证账户账单。测试演化部署用于构建隔离运行时，不作为生产部署溯源、真实任务成功率、Linux 100 次 manifest 单元或 IDE/provider 正式样本证明。
+
+### 8.5 本轮验证与剩余任务
+
+两份校准 Node 文件合计 **15/15** 通过，含真实 HTTP headers 后正文挂起的 abort、部分失败不丢失、未知费用、输出超限与脱敏负例；已接入 `CLI CI` 的三系统 `verify-cli`。本轮定向 ESLint（推荐 Node 规则）、Prettier、workflow actionlint 与 diff 检查全部通过；该新增 CI 步骤尚无新准确提交的 Actions 结果。本轮没有提交发布。
+
+| 项目                         | 已补齐                                                                 | 仍需实际完成                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| BRIDGE-02                    | Linux x64/ARM64 显式 CLI 真实回收与持久回执，各 31/31                  | Windows/macOS ownership 与同 UID 对抗隔离不在支持声明内                                            |
+| IDE-ONBOARD-02 / IDE-COLD-02 | `7694e16564` 三系统八阶段身份、三场冷初始化；后续 Windows 五场本地证据 | 当前菜单/额外边界修复的新准确提交三系统矩阵、公开安装与更广调度                                    |
+| PERF-02                      | 火山中文/代码/emoji/schema 真 usage、两轮事实保真、采集可靠性修复      | 官方新模型矩阵、多 provider 校准、账单与真实项目成功率                                             |
+| MODEL-03                     | 工程合同保留，火山连接与 usage 已验证                                  | 官方 OpenAI/Anthropic 新模型 stream/tool/reasoning 与账户账单；火山不能替代官方端点                |
+| VERIFY-02 / VERIFY-IDE-02    | 冻结 Linux Docker 全包、六宿主诊断、火山付费测试授权                   | 独立人工预审、Windows/macOS native evaluator 隔离、正式 36+9、公开安装来源及账单                   |
+| PLATFORM-02 / NET-02         | 继续保留 Linux authority/撤销与平台拒绝                                | Windows 服务/WFP/持久身份恢复、macOS 受信任服务/持续网络撤销；原生 review 不得退化为本机直接 spawn |
+| 辅助技术、性能与维护         | 既有语义采集、历史工程证据                                             | NVDA/VoiceOver/Orca 真人验收、8h/24h 观察、获批 SLO、独立维护工时                                  |
+| CLOUD-02                     | 现有 self-hosted handoff 合同                                          | 完整跨机器 resume 仍为需求条件项                                                                   |
+
+本地 Docker Linux engine 的命名管道当前不存在，未启动或修改宿主服务。Windows 本机版本 **10.0.19045**、Node **22.22.2** 不匹配冻结正式 Windows 11 / Node 22.12.0 目标，不能将本轮真实探针改填正式样本。再次只读检查冻结采集器：原生退出 **2**、`NOT_RUN` / `INSUFFICIENT_EVIDENCE`、task observed=0/missing=36、firstRun observed=0/missing=9、totalCost=null；指纹与 **$72+$27=$99** 冻结预算不变。归档的 **255 项字节/源码摘要** 全部匹配，检查材料未包含本机已配置凭据，见[最终核对与原始采集器回读](./cli/evidence/gap-2026-10-05/volcengine-live-20261006/final-verification.json)。未写正式 observations。

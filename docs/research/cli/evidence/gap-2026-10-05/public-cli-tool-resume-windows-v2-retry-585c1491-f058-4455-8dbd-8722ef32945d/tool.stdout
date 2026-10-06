@@ -1,0 +1,1 @@
+{"type":"result","subtype":"error","is_error":true,"error":"Hook runtime audit store prepare failed (C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\cli-home\\audit\\hook-runtime-v1.json): EPERM: operation not permitted, mkdir 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\cli-home\\audit'"}

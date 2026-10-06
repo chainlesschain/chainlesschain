@@ -1,0 +1,21 @@
+{
+  "ordinal": 2,
+  "category": "code",
+  "scale": 1,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "08bef7e67db6c7f8dfe034504ae6ed94a870c9b957d2c53c38124003a7e07c11",
+  "startedAt": "2026-10-06T08:26:36.342Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "80964f3f07cc459112ff1c09db1b172960b1921f887c3ce8ca71e3f5932953ca",
+  "usage": {
+    "prompt_tokens": 251,
+    "completion_tokens": 13,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": 0.00003878,
+  "httpStatus": 200,
+  "finishedAt": "2026-10-06T08:26:37.463Z"
+}

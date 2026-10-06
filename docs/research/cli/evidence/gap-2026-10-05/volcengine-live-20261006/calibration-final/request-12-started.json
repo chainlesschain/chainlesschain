@@ -1,0 +1,16 @@
+{
+  "ordinal": 12,
+  "category": "tool-schema",
+  "scale": 3,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "120f8211c292f0461f6c29e0c3ceb1034bc7e53cb26e961a4246cd88ba6e1cdf",
+  "startedAt": "2026-10-06T08:30:27.504Z",
+  "status": "STARTED",
+  "responseIdSha256": null,
+  "responseBodySha256": null,
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": null,
+  "usage": null,
+  "estimatedCostUsd": null
+}

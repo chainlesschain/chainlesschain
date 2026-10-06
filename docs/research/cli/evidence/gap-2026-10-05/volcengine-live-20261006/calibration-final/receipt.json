@@ -1,0 +1,584 @@
+{
+  "schema": "chainlesschain.context-token-volcengine-live-probe/v1",
+  "capturedAt": "2026-10-06T08:30:28.633Z",
+  "requestCount": 12,
+  "attemptedRequests": 12,
+  "plannedRequests": 12,
+  "executionStatus": "COMPLETED",
+  "repeats": 3,
+  "source": {
+    "commit": "22236fcb09a09c20e2bf2a5e5f8837b92084b252",
+    "workingTreeDirty": true,
+    "scriptSha256": "d1b33550860850614d713b6b1ec8d1391d213dbd89e111ce9b43ccc5372030c4",
+    "files": [
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "sha256": "d1b33550860850614d713b6b1ec8d1391d213dbd89e111ce9b43ccc5372030c4"
+      },
+      {
+        "path": "packages/cli/scripts/context-token-calibration.mjs",
+        "sha256": "897bf687c65cb89f4a3b9ddb8e04c963ab04a2f7db9d9b0ba3e9a9316eb97fbc"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+        "sha256": "6774505d2504e90a96b042bcf1a74909c4b38c65df29bdbf25f125d5229a6519"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "sha256": "3f5cab9dcbba94bfee5cd6b8ae8b3d082a1bc99c9db7a5eef74cb81f2d622c3a"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-pricing.js",
+        "sha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+      },
+      {
+        "path": "packages/cli/src/lib/model-context-catalog.js",
+        "sha256": "8abe124bede4135900c56c51e6a4dafe05d11be0b9a514372e585873f88438a1"
+      }
+    ]
+  },
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "nodeVersion": "v22.22.2",
+    "osRelease": "10.0.19045"
+  },
+  "maxOutputTokensPerRequest": 8,
+  "requestedOutputLimit": 8,
+  "observedMaxOutputTokens": 133,
+  "observedOutputLimitExceeded": true,
+  "outputLimitExceededRequests": 12,
+  "outputLimitEnforcementVerified": false,
+  "timeoutMsPerRequest": 20000,
+  "responseIdSha256": [
+    "6992e95792331d8877721bcbbc352163ff73c901c1b3d7fce0a87d122129f3ad",
+    "73da037f6ade18081781c64b077ed91cc3245f43477f23469d12a58539be9826",
+    "de6b38e99ba4303e074c21d280b72e69772b7ea3f62b13f9417c28bec5199934",
+    "bc61d6105fdd303d2587bf8365751696a154013b10de796aa9a7392614d27a4e",
+    "1e7e470cd80f75a36945cfc6fefc6a0730bb213bf47d44718272c1aca8b04d81",
+    "c6f1629229f9099f84507af40559d96c32a45e0dc38be7468996b5ef261e2def",
+    "9e0abfd32b080c5657f8cad6a6a0554cd3142b572dcdc422c0af9c151f3a90cc",
+    "f7eee8f0188ed50532a0847be97e7d4058f1fcfbdfcad67a4a4ca47e19550232",
+    "a08fba83c09bd5b009640e67be8c2bce60c87d96bc3d2e6f1ab3ec66db9f6b49",
+    "4a749341c167e49a109012381b0cd6f164a3d6ca314f9b2bae62d5c41f9e5b5d",
+    "baa6aff8bb3390d033b913fa6e0d603de6af3c70a2296bf4a14d90b8294111c3",
+    "4081d32a8aac4ca60246192f83a85fa633f736dc890b9fada5cfc2f59ff2913b"
+  ],
+  "outputTokens": 439,
+  "estimatedCostUsd": 0.0011237800000000002,
+  "knownEstimatedCostUsd": 0.0011237800000000002,
+  "unknownCostRequests": 0,
+  "invoiceAssessed": false,
+  "attempts": [
+    {
+      "ordinal": 1,
+      "category": "chinese",
+      "scale": 1,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "5e801d178bbb56d91215d16ba13aa21d5f720809329220c7cf6a510949938595",
+      "startedAt": "2026-10-06T08:30:10.170Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "6992e95792331d8877721bcbbc352163ff73c901c1b3d7fce0a87d122129f3ad",
+      "responseBodySha256": "4d54a89616754338df530a43af10e78a76a75073eca090fcd6aee7d8143f3cda",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 223,
+        "completion_tokens": 25,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00003822,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:12.460Z"
+    },
+    {
+      "ordinal": 2,
+      "category": "code",
+      "scale": 1,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "08bef7e67db6c7f8dfe034504ae6ed94a870c9b957d2c53c38124003a7e07c11",
+      "startedAt": "2026-10-06T08:30:12.464Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "73da037f6ade18081781c64b077ed91cc3245f43477f23469d12a58539be9826",
+      "responseBodySha256": "380aa81f43690d4fcdc833534679144eddb8ee65c5e25f04eeaae0d4822e692f",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 251,
+        "completion_tokens": 14,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00003906,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:13.957Z"
+    },
+    {
+      "ordinal": 3,
+      "category": "emoji",
+      "scale": 1,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "9b9cbb79c208ac903ffbfbc037110dafa69ec85c4524cfd6664c20b2b43e0330",
+      "startedAt": "2026-10-06T08:30:13.961Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "de6b38e99ba4303e074c21d280b72e69772b7ea3f62b13f9417c28bec5199934",
+      "responseBodySha256": "fe1513c4ab54bbc1d856bd559a712b3c36adbbbec49d21d47af97ae0dc949ec6",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 290,
+        "completion_tokens": 133,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00007784,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:15.892Z"
+    },
+    {
+      "ordinal": 4,
+      "category": "tool-schema",
+      "scale": 1,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "a9cb27dd1d5f572cdb5c58cdb36ca2b01aa0f3435535d10daf37e0d66202b859",
+      "startedAt": "2026-10-06T08:30:15.895Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "bc61d6105fdd303d2587bf8365751696a154013b10de796aa9a7392614d27a4e",
+      "responseBodySha256": "f571f84580577028fe4c328d20d1e3e50960aa64d5e8e36caf06c6f653bb0ac3",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 790,
+        "completion_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00011508000000000002,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:17.200Z"
+    },
+    {
+      "ordinal": 5,
+      "category": "chinese",
+      "scale": 2,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "113f145282ebcfce152740e426a4d06d879d22057fa09da4f9f6351839a68fca",
+      "startedAt": "2026-10-06T08:30:17.204Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "1e7e470cd80f75a36945cfc6fefc6a0730bb213bf47d44718272c1aca8b04d81",
+      "responseBodySha256": "9103b7962aefce09d2bffc3f6168ccbfd1ec4f7b31a0215fbd3f4f3a24fc2cf3",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 355,
+        "completion_tokens": 20,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00005530000000000001,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:18.542Z"
+    },
+    {
+      "ordinal": 6,
+      "category": "code",
+      "scale": 2,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "4905dcb4e00b3fdd2be1eba63932ce63335c8a6f57066be171456e16f2570f8c",
+      "startedAt": "2026-10-06T08:30:18.545Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "c6f1629229f9099f84507af40559d96c32a45e0dc38be7468996b5ef261e2def",
+      "responseBodySha256": "8b11aa6b56282d25c3b657e6903a1d326991515ca0cb4e201ba232069118bc7c",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 412,
+        "completion_tokens": 49,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.0000714,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:19.993Z"
+    },
+    {
+      "ordinal": 7,
+      "category": "emoji",
+      "scale": 2,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "d1d00ef32585ce9d40d3e08cb4491d48372dc4fdc5013fd1471200673cd8b9d8",
+      "startedAt": "2026-10-06T08:30:19.999Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "9e0abfd32b080c5657f8cad6a6a0554cd3142b572dcdc422c0af9c151f3a90cc",
+      "responseBodySha256": "1d6c0463a4c9387868e35e0658fc4a59695cc67169188eb2e70ab51c4cfff80e",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 490,
+        "completion_tokens": 64,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00008652,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:21.755Z"
+    },
+    {
+      "ordinal": 8,
+      "category": "tool-schema",
+      "scale": 2,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "95573c6dbfd84ca6c492e724e2ce25d1636905e9cfbb51a7c86e39f8fab966bf",
+      "startedAt": "2026-10-06T08:30:21.757Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "f7eee8f0188ed50532a0847be97e7d4058f1fcfbdfcad67a4a4ca47e19550232",
+      "responseBodySha256": "777e7c8369395d844bf2b737542d1e92e0bedb973393fc248ec2ba732d07fe98",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 1126,
+        "completion_tokens": 17,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00016240000000000002,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:23.299Z"
+    },
+    {
+      "ordinal": 9,
+      "category": "chinese",
+      "scale": 3,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "86eab17635acc4df23ebf1660d8e5010a9f880341d6d4ceb98f107966017eb81",
+      "startedAt": "2026-10-06T08:30:23.301Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "a08fba83c09bd5b009640e67be8c2bce60c87d96bc3d2e6f1ab3ec66db9f6b49",
+      "responseBodySha256": "ee51bf7b1d8f00334b69bd9871ba49fe685a7756abd28492b6dc789ab838c902",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 487,
+        "completion_tokens": 23,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00007462000000000001,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:25.330Z"
+    },
+    {
+      "ordinal": 10,
+      "category": "code",
+      "scale": 3,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "212ece3cbfcfb161af355855816e9c44845e4c3d643150e9fe41904fd5e84982",
+      "startedAt": "2026-10-06T08:30:25.333Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "4a749341c167e49a109012381b0cd6f164a3d6ca314f9b2bae62d5c41f9e5b5d",
+      "responseBodySha256": "3ddeb51c5f0eb6e9c0de7be6418f9a7b84cd5b4f3b8073b50a98255c95085592",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 573,
+        "completion_tokens": 33,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00008946000000000001,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:26.630Z"
+    },
+    {
+      "ordinal": 11,
+      "category": "emoji",
+      "scale": 3,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "be5dd11af6e444b587212cf26e0f4514710df20f9a3f779c7389996ef3607556",
+      "startedAt": "2026-10-06T08:30:26.632Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "baa6aff8bb3390d033b913fa6e0d603de6af3c70a2296bf4a14d90b8294111c3",
+      "responseBodySha256": "f097551915c6005d81a655e11d5230aa0464293ea7fcaf8fd6cf771991d2ea25",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 690,
+        "completion_tokens": 28,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00010444000000000001,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:27.501Z"
+    },
+    {
+      "ordinal": 12,
+      "category": "tool-schema",
+      "scale": 3,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "120f8211c292f0461f6c29e0c3ceb1034bc7e53cb26e961a4246cd88ba6e1cdf",
+      "startedAt": "2026-10-06T08:30:27.504Z",
+      "status": "CAPTURED",
+      "responseIdSha256": "4081d32a8aac4ca60246192f83a85fa633f736dc890b9fada5cfc2f59ff2913b",
+      "responseBodySha256": "74a9d41ec52ab382b2b8ed7f22efbb1005032320a71614fae8626d7ec4d67522",
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": true,
+      "usage": {
+        "prompt_tokens": 1462,
+        "completion_tokens": 17,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "estimatedCostUsd": 0.00020944000000000003,
+      "httpStatus": 200,
+      "finishedAt": "2026-10-06T08:30:28.628Z"
+    }
+  ],
+  "calibration": {
+    "schema": "chainlesschain.context-token-calibration/v1",
+    "estimator": "canonical-context-item-utf8-bytes-divided-by-four",
+    "caveat": "Provider input usage includes request framing and may include hidden tokens; only captured real provider responses establish calibration evidence.",
+    "total": {
+      "samples": 12,
+      "estimatedTokens": 5441,
+      "observedTokens": 7149,
+      "underestimates": 9,
+      "p95RelativeAbsoluteError": 0.47586206896551725,
+      "p95UnderestimateTokens": 365
+    },
+    "groups": [
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "chinese",
+        "samples": 3,
+        "estimatedTokens": 1260,
+        "observedTokens": 1065,
+        "underestimates": 0,
+        "p95RelativeAbsoluteError": 0.25051334702258726,
+        "p95UnderestimateTokens": 0
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "code",
+        "samples": 3,
+        "estimatedTokens": 1022,
+        "observedTokens": 1236,
+        "underestimates": 3,
+        "p95RelativeAbsoluteError": 0.24302788844621515,
+        "p95UnderestimateTokens": 82
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "emoji",
+        "samples": 3,
+        "estimatedTokens": 786,
+        "observedTokens": 1470,
+        "underestimates": 3,
+        "p95RelativeAbsoluteError": 0.47586206896551725,
+        "p95UnderestimateTokens": 318
+      },
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "category": "tool-schema",
+        "samples": 3,
+        "estimatedTokens": 2373,
+        "observedTokens": 3378,
+        "underestimates": 3,
+        "p95RelativeAbsoluteError": 0.3860759493670886,
+        "p95UnderestimateTokens": 365
+      }
+    ],
+    "requests": [
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "b3680e4e1421f84388e13dc844443ac14dc053f937320f217550234320875bcf",
+        "estimatedTokens": 231,
+        "observedTokens": 223
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "0246b7692c2b2c799191a119c80db7d609f4fd3372f900eb58869ae9ad3570fb",
+        "estimatedTokens": 190,
+        "observedTokens": 251
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "ae937b5df04a90803765d5811e4963586f37068581862f64926cad5754b8dfeb",
+        "estimatedTokens": 152,
+        "observedTokens": 290
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "c35a205dee8f828b27b4e3901fb15e60ebdd9cb2f3c2055fd55fae74450d5fb5",
+        "estimatedTokens": 485,
+        "observedTokens": 790
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "0518dca31c37a7943e11f8560e3307ed34c0e202a765ed0fb7892e2aa066bf7b",
+        "estimatedTokens": 420,
+        "observedTokens": 355
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "5d7e17427bea2ffa4ca36e9a99772053893d68a41317d44607c1a00853a5e700",
+        "estimatedTokens": 341,
+        "observedTokens": 412
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "4b1b13fb564ad9a60e580c609a5fecb61e0017d07d37edb21df3446bfb6c27e7",
+        "estimatedTokens": 262,
+        "observedTokens": 490
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "c4425cea774063037f589424ffb3df3a1634a5dfa06093a93c698ec206dab723",
+        "estimatedTokens": 791,
+        "observedTokens": 1126
+      },
+      {
+        "category": "chinese",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "786f8d4527fa67019f7e29c0b30318a1ba8a82a582b8c3f973382c2551695598",
+        "estimatedTokens": 609,
+        "observedTokens": 487
+      },
+      {
+        "category": "code",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "e566d0083557e6007a3686b46c18cdaf676a90424220af482b7a6abb60fcaf1a",
+        "estimatedTokens": 491,
+        "observedTokens": 573
+      },
+      {
+        "category": "emoji",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "ad4ab4e03847f302600fb90b93b2ded5fa26b715fa19a221dc685f84c42183fb",
+        "estimatedTokens": 372,
+        "observedTokens": 690
+      },
+      {
+        "category": "tool-schema",
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "requestSha256": "72f2a0b9a155802c877b4cb3c79667a3ae7db3a5f0395e67c5e79f5701e60a28",
+        "estimatedTokens": 1097,
+        "observedTokens": 1462
+      }
+    ],
+    "matrix": {
+      "status": "INSUFFICIENT_EVIDENCE",
+      "cells": [
+        {
+          "provider": "openai",
+          "model": "gpt-6.1-sol",
+          "category": "chinese",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "openai",
+          "model": "gpt-6.1-sol",
+          "category": "code",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "openai",
+          "model": "gpt-6.1-sol",
+          "category": "emoji",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "openai",
+          "model": "gpt-6.1-sol",
+          "category": "tool-schema",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "category": "chinese",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "category": "code",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "category": "emoji",
+          "distinctRequests": 0,
+          "missing": 3
+        },
+        {
+          "provider": "anthropic",
+          "model": "claude-sonnet-5-5",
+          "category": "tool-schema",
+          "distinctRequests": 0,
+          "missing": 3
+        }
+      ],
+      "realProviderAcceptance": false,
+      "factualFidelityAssessed": false,
+      "taskSuccessAssessed": false,
+      "estimatorChanged": false
+    }
+  }
+}

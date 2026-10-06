@@ -1,0 +1,451 @@
+{
+  "schema": "chainlesschain.public-cli-first-run-readback/v1",
+  "checkedAt": "2026-10-06T09:18:08.256Z",
+  "package": "chainlesschain",
+  "version": "0.166.90",
+  "publicCliLockAndChildPinsMatched": true,
+  "childCount": 10,
+  "originalInstallProfile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5",
+  "successfulFreshProfile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-profile-oxzILv",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "completedDiagnosticStagesAcrossAttempts": [
+    "install",
+    "configure",
+    "authenticate",
+    "tool",
+    "artifact"
+  ],
+  "singleInitialAttemptPassed": false,
+  "attempts": [
+    {
+      "name": "public-cli-first-run-windows",
+      "passed": false,
+      "stages": [],
+      "failure": "install failed",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 612,
+          "digest": "sha256:5e735a90d4a45f64bccff97cb22ba094c85bbcc8ee557e8a416943b92786999e"
+        },
+        {
+          "path": "install.json",
+          "bytes": 857,
+          "digest": "sha256:bc5eda384e09a5f8d08531c946f1dbb2cdd1a69c405612ff91499f73649b6898"
+        },
+        {
+          "path": "install.stderr",
+          "bytes": 175,
+          "digest": "sha256:166f2e2342934ffb750330545c28deea8ac6adc76c92df08dec244b445b13f4b"
+        },
+        {
+          "path": "install.stdout",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 9481,
+          "digest": "sha256:a49ab789a974b4781bf1b6b9b37b8c8f37577bd272a256ea7564e5e5a7789576"
+        },
+        {
+          "path": "registry-manifest.json",
+          "bytes": 8697,
+          "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+        },
+        {
+          "path": "scope.json",
+          "bytes": 518,
+          "digest": "sha256:5121a13f4c123bd98cd72c343ae70568b5460bd838ff3ba58e967bad3df7ff8a"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-first-run-windows-v2",
+      "passed": false,
+      "stages": [],
+      "failure": "Installed CLI version banner mismatch",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 635,
+          "digest": "sha256:9602552248488e0f682c4ecc8acd1303a227686cecf1807c50256c19afa9f668"
+        },
+        {
+          "path": "identity.json",
+          "bytes": 657,
+          "digest": "sha256:9c26d1d5ad6a89e8ed186cac6b9fa3d4da54e65f4949e3898ebe8ec453d77ef6"
+        },
+        {
+          "path": "identity.stderr",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "identity.stdout",
+          "bytes": 9,
+          "digest": "sha256:a0fafebb60c86a96fc319d3865ec4965ca012159d5a5bc01cfd69849a98af2b7"
+        },
+        {
+          "path": "install.json",
+          "bytes": 860,
+          "digest": "sha256:74d84564705557a2043595b1e8d26341febdb6a7e8f6338dc94a8d1047c6f850"
+        },
+        {
+          "path": "install.stderr",
+          "bytes": 243,
+          "digest": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+        },
+        {
+          "path": "install.stdout",
+          "bytes": 26,
+          "digest": "sha256:855a9cdb138310347e24a8cf8f35f75330462bf0c5c1237655f5994487404e9b"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 9571,
+          "digest": "sha256:a7704a8c7724a971665146a25c400019edd9ca619136fea10f6a5f05e5340a48"
+        },
+        {
+          "path": "package-lock.json",
+          "bytes": 209474,
+          "digest": "sha256:d0cec96f347689303dfde3d2ab83d52ed5bc1687a8929abca2cd202bc4a8abc5"
+        },
+        {
+          "path": "registry-install.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        },
+        {
+          "path": "registry-manifest.json",
+          "bytes": 8697,
+          "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+        },
+        {
+          "path": "scope.json",
+          "bytes": 518,
+          "digest": "sha256:c2d8031162d02faa33a36fab6d66be430a5d6b6a7768cf24398fa3ac75e3c315"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-first-run-windows-v3",
+      "passed": false,
+      "stages": [
+        "install",
+        "configure",
+        "authenticate"
+      ],
+      "failure": "tool failed",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "authenticate.json",
+          "bytes": 711,
+          "digest": "sha256:037c35965e6b2df0da1d620105d8cb289e006fd9f0ce43165fdb959ded97d33e"
+        },
+        {
+          "path": "authenticate.stderr",
+          "bytes": 114,
+          "digest": "sha256:10a35fc2bf04c9ddea46d210471bd0187f511cf481828c44fe65354794197a3c"
+        },
+        {
+          "path": "authenticate.stdout",
+          "bytes": 15,
+          "digest": "sha256:71261bc7736170f0ff1558f8290fde45a4ab98d87661195090377c57986712a7"
+        },
+        {
+          "path": "configure-baseUrl.json",
+          "bytes": 786,
+          "digest": "sha256:c128490b24f1c7d2bbac7c00f3f4cc0a09ef2edbd5e731b5896ecbf7d302b120"
+        },
+        {
+          "path": "configure-baseUrl.stderr",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "configure-baseUrl.stdout",
+          "bytes": 20,
+          "digest": "sha256:fa38144845db2631509b158274f8d0698309c750dcd85ac76cac0eebec965699"
+        },
+        {
+          "path": "configure-model.json",
+          "bytes": 769,
+          "digest": "sha256:e59e978ffa3b849801ba5b62361b77b9ae021f1ba656fd93e21ff5c6660a32ee"
+        },
+        {
+          "path": "configure-model.stderr",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "configure-model.stdout",
+          "bytes": 18,
+          "digest": "sha256:9cdfc7519b952eacdd2b8c3e0cfc76b0e728d99cfaba6e2bcd8dae50a6a450fc"
+        },
+        {
+          "path": "configure-provider.json",
+          "bytes": 758,
+          "digest": "sha256:d6cd4ee67fc0093f81a782facf24a8330c1e6e33a4d48f47cb5bd910b42ea531"
+        },
+        {
+          "path": "configure-provider.stderr",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "configure-provider.stdout",
+          "bytes": 21,
+          "digest": "sha256:d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6"
+        },
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 928,
+          "digest": "sha256:50db557b47a8444e9fa05524b3d81b9c2562df6b331a2fa8569eb22c3eb8ab6d"
+        },
+        {
+          "path": "identity.json",
+          "bytes": 701,
+          "digest": "sha256:7a7796ac17e915372901a8398aa21f4e990bed3aa13e932445a42f12d0adb514"
+        },
+        {
+          "path": "identity.stderr",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "identity.stdout",
+          "bytes": 9,
+          "digest": "sha256:a0fafebb60c86a96fc319d3865ec4965ca012159d5a5bc01cfd69849a98af2b7"
+        },
+        {
+          "path": "install.json",
+          "bytes": 904,
+          "digest": "sha256:8e3bcdcf6fa7edcd8469326505991bb4afdf0f623e3b32a4feef57dbc0a0cbb9"
+        },
+        {
+          "path": "install.stderr",
+          "bytes": 243,
+          "digest": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+        },
+        {
+          "path": "install.stdout",
+          "bytes": 26,
+          "digest": "sha256:12a250f03ccd6c8a0eed8437a42d71cb93dcd3cf77f89175d55b907c4dde9551"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 9684,
+          "digest": "sha256:ce83b5604b8aec086c617cdbeda0cc0365eaa74b1fa9c5716850a5e13d1e47de"
+        },
+        {
+          "path": "package-lock.json",
+          "bytes": 209474,
+          "digest": "sha256:d0cec96f347689303dfde3d2ab83d52ed5bc1687a8929abca2cd202bc4a8abc5"
+        },
+        {
+          "path": "registry-install.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        },
+        {
+          "path": "registry-manifest.json",
+          "bytes": 8697,
+          "digest": "sha256:5a1d28adbceebf0e5a200eb663fb84c19639007a324ab550afeae758c19de4a0"
+        },
+        {
+          "path": "scope.json",
+          "bytes": 518,
+          "digest": "sha256:4cbd1e7d93f429b3b2446423ad05af91e4eb4ebfcd4404d3ce8059a00e8f9b46"
+        },
+        {
+          "path": "tool.json",
+          "bytes": 1196,
+          "digest": "sha256:4df8159fd7af5db7d47c6346a3c65f83c4c89274b6f5b05c49e5360c46fd9ebf"
+        },
+        {
+          "path": "tool.stderr",
+          "bytes": 38,
+          "digest": "sha256:04011c35f36a05b2aa21c88d2dd915964d9ad8e15877bb474275cefa487faf66"
+        },
+        {
+          "path": "tool.stdout",
+          "bytes": 0,
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-tool-resume-windows",
+      "passed": false,
+      "stages": [],
+      "failure": "Actual CLI task exited unsuccessfully",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 1511,
+          "digest": "sha256:f4cfdc5f1e1def0cb579aa9d58ffd6cf99c2d020588c5fb3eee7b25e22e5d56c"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 6256,
+          "digest": "sha256:3ba10bb8bb3e971d0875720e5d6211a63f7894b0923ce43e0a765a6bcd3577ac"
+        },
+        {
+          "path": "registry-readback.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        },
+        {
+          "path": "tool.stderr",
+          "bytes": 265,
+          "digest": "sha256:be652f3a7d60bca7cf805de69363f765065fa5a85aa03c0cdfcddf33ea7df082"
+        },
+        {
+          "path": "tool.stdout",
+          "bytes": 15949,
+          "digest": "sha256:5c39cf400a4fce3366fe8537338f964d266e53f0e07a9eefbfb98fac7a67aab2"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-tool-resume-windows-v2",
+      "passed": false,
+      "stages": [],
+      "failure": "collector preparation stopped before receipt",
+      "completeReceipt": false,
+      "files": [
+        {
+          "path": "operator-script.mjs",
+          "bytes": 6370,
+          "digest": "sha256:80d1eb72659a5a3825923e5dce5678931f5f9a6af46c8c2e4f8d6c2aea3f4530"
+        },
+        {
+          "path": "registry-readback.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-tool-resume-windows-v2-retry-585c1491-f058-4455-8dbd-8722ef32945d",
+      "passed": false,
+      "stages": [],
+      "failure": "Actual CLI task exited unsuccessfully",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 1594,
+          "digest": "sha256:ef00694da0af516b925bb491a29a45824093ee9d751ba00eddb45eea5d3f0228"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 6554,
+          "digest": "sha256:66e4b701dc3fa9275951bba022953692d982faff835de6e0500dc0771c69c572"
+        },
+        {
+          "path": "registry-readback.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        },
+        {
+          "path": "tool.stderr",
+          "bytes": 442,
+          "digest": "sha256:7959b7aec0106772add5bbe1bf8ab5a7b74fd28f87632338d85357fef900b445"
+        },
+        {
+          "path": "tool.stdout",
+          "bytes": 337,
+          "digest": "sha256:c6e273da610f2606e32a1048e4fef6660e6307858bc1721e900288d1ad8a9b86"
+        }
+      ]
+    },
+    {
+      "name": "public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e",
+      "passed": true,
+      "stages": [],
+      "failure": "collector preparation stopped before receipt",
+      "completeReceipt": true,
+      "files": [
+        {
+          "path": "configure-baseUrl.json",
+          "bytes": 194,
+          "digest": "sha256:a7f21ee5c0376fc7da2cf0076f9b489322017784b0550fbc24bfef6af6e9a6e1"
+        },
+        {
+          "path": "configure-model.json",
+          "bytes": 192,
+          "digest": "sha256:745fb325f2b7d0f349762bf7002f2043dc786599fa21d88e777dfaeafff66807"
+        },
+        {
+          "path": "configure-provider.json",
+          "bytes": 195,
+          "digest": "sha256:fbeb067f2ab83c6c3dd7944505ef1cbb60186cc63522c4df8fff0d11d1f18507"
+        },
+        {
+          "path": "diagnostic-result.json",
+          "bytes": 2912,
+          "digest": "sha256:56ccbac6cd4062315cf7103f7fab87051298225ae5c83fffdcf450c4b865e457"
+        },
+        {
+          "path": "onboarding-proof.txt",
+          "bytes": 35,
+          "digest": "sha256:49976935868213c5282dffa9a5c3794dceda5ca83eb4a2270fa43586c8c72d82"
+        },
+        {
+          "path": "operator-script.mjs",
+          "bytes": 7822,
+          "digest": "sha256:9b75b833f59672dff09eb317a9130e8cb43b35092377855406cb05df0fe6dfa1"
+        },
+        {
+          "path": "registry-readback.json",
+          "bytes": 3508,
+          "digest": "sha256:7709a7db10562f3f66f0c18745cc66be28c0464ae4a9ce1c5e47a92868cf233a"
+        },
+        {
+          "path": "tool.stderr",
+          "bytes": 263,
+          "digest": "sha256:e7f6ba6cdce1e346bc00022015d38ec4215cdb70479b14a5f8740d43b2a276c1"
+        },
+        {
+          "path": "tool.stdout",
+          "bytes": 60626,
+          "digest": "sha256:0670ae80ce5bb750b70078897d6984c74db96b3c5afb9733e1c2957f571f1d97"
+        }
+      ]
+    }
+  ],
+  "successfulAttempt": "public-cli-tool-resume-windows-v2-retry-1e94fbe3-855f-4718-b226-81eb5a6e947e",
+  "toolNames": [
+    "write_file",
+    "read_file"
+  ],
+  "modelUsageCalls": 3,
+  "knownToolEstimatedCostUsd": 0.0008697640000000001,
+  "authenticationCost": null,
+  "failedRequestCost": null,
+  "totalDiagnosticCostUsd": null,
+  "invoiceVerified": false,
+  "sourceCommitVerified": false,
+  "npmSignatureAuditRun": false,
+  "processTreeAssessed": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "notes": [
+    "The initial three installation/configuration/connectivity stages passed; its tool invocation was rejected by an incorrect operator flag.",
+    "Two earlier collector setup failures (shared npmrc and bare-version parsing) remain in their original directories.",
+    "The first corrected task received fetch failed; its provider charge remains unknown.",
+    "The first unsandboxed continuation could not reuse the protected profile (EPERM). No ACL was weakened. A fresh profile in the approved execution context completed the task.",
+    "One preparation attempt stopped with EEXIST before launching the task; the incomplete capture is retained.",
+    "This diagnostic uses Windows 10 and Node 22.22.2. It does not fill the frozen Windows 11/Node 22.12.0 first-run sample or authenticate a package source commit.",
+    "Natural CLI owner exit is observed. Hostile descendant containment is not assessed by this public first-run probe."
+  ]
+}

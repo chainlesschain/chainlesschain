@@ -1,0 +1,235 @@
+{
+  "case": "timeout-late-init",
+  "prompt": "journey:model cold-timeout-late-init 中文😀",
+  "sessionId": "panel-1791271238068-3b0d20",
+  "submittedAt": "2026-10-06T07:20:38.367881Z",
+  "waiting": {
+    "at": "2026-10-06T07:20:39.726Z",
+    "direction": "fixture",
+    "command": "init-gate-waiting",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "nonce": "71e33e2b-582e-481b-9566-891c2444d214",
+    "processId": 31836,
+    "processInstanceId": "700c118e-d348-493c-b329-47765ec06b66"
+  },
+  "preparing": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:20:39.866950Z",
+    "processId": "29367",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-4GvIMM/IC-2024.2/config_runIdeForUiTests",
+    "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "tabs": [
+      {
+        "id": "b5763e37-21b6-49f6-b132-6e822513f51e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "d1cdb8d4-8ae3-4b8d-9b35-583a2c17beeb",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-timeout-late-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "31836",
+    "childProcessIds": [
+      "31836"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  },
+  "held": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:22:39.782791Z",
+    "processId": "29367",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-4GvIMM/IC-2024.2/config_runIdeForUiTests",
+    "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "tabs": [
+      {
+        "id": "b5763e37-21b6-49f6-b132-6e822513f51e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "d1cdb8d4-8ae3-4b8d-9b35-583a2c17beeb",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-timeout-late-init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "31836",
+    "childProcessIds": [
+      "31836"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "⚠ could not send message: Agent initialization did not finish in time; draft kept for editing. Retry explicitly or press New to restart\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "released": {
+    "at": "2026-10-06T07:22:39.805Z",
+    "direction": "fixture",
+    "command": "init-gate-released",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "nonce": "71e33e2b-582e-481b-9566-891c2444d214",
+    "processId": 31836,
+    "processInstanceId": "700c118e-d348-493c-b329-47765ec06b66"
+  },
+  "ready": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:22:40.118953Z",
+    "processId": "29367",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-4GvIMM/IC-2024.2/config_runIdeForUiTests",
+    "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "tabs": [
+      {
+        "id": "b5763e37-21b6-49f6-b132-6e822513f51e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "d1cdb8d4-8ae3-4b8d-9b35-583a2c17beeb",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-timeout-late-init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "31836",
+    "childProcessIds": [
+      "31836"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "⚠ could not send message: Agent initialization did not finish in time; draft kept for editing. Retry explicitly or press New to restart\n── deterministic-host-peer · ollama ──\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "beforeRetry": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:22:42.272951Z",
+    "processId": "29367",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-4GvIMM/IC-2024.2/config_runIdeForUiTests",
+    "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "tabs": [
+      {
+        "id": "b5763e37-21b6-49f6-b132-6e822513f51e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "d1cdb8d4-8ae3-4b8d-9b35-583a2c17beeb",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-timeout-late-init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "31836",
+    "childProcessIds": [
+      "31836"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "⚠ could not send message: Agent initialization did not finish in time; draft kept for editing. Retry explicitly or press New to restart\n── deterministic-host-peer · ollama ──\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "explicitRetryAt": "2026-10-06T07:22:42.277759Z",
+  "completed": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:22:43.000201Z",
+    "processId": "29367",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-4GvIMM/IC-2024.2/config_runIdeForUiTests",
+    "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+    "sessionId": "panel-1791271238068-3b0d20",
+    "tabs": [
+      {
+        "id": "b5763e37-21b6-49f6-b132-6e822513f51e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "d1cdb8d4-8ae3-4b8d-9b35-583a2c17beeb",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "f1aae69b-a419-49f5-b1f0-e88ba090462c",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "31836",
+    "childProcessIds": [
+      "31836"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Loading saved conversation…",
+    "binaryChoice": "cc",
+    "text": "⚠ could not send message: Agent initialization did not finish in time; draft kept for editing. Retry explicitly or press New to restart\n── deterministic-host-peer · ollama ──\n\nTurn 1, User message\n\nyou\u003e journey:model cold-timeout-late-init 中文😀\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nfixture model deterministic-host-peer; vision\u003dnone; probe\u003djourney:model cold-timeout-late-init 中文😀\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

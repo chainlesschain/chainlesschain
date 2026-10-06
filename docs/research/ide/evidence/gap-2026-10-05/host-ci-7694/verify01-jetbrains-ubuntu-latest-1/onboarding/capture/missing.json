@@ -1,0 +1,64 @@
+{
+  "case": "missing",
+  "at": "2026-10-06T07:15:43.484033710Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:15:43.479590170Z",
+    "processId": "5640",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+    "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+    "sessionId": "panel-1791270943408-662702",
+    "tabs": [
+      {
+        "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "89df5573-c421-41fa-9e16-923a93551007",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+        "index": 4,
+        "selected": false
+      },
+      {
+        "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+        "index": 5,
+        "selected": false
+      },
+      {
+        "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+        "index": 6,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "null",
+    "text": "The panel needs the cc CLI to work. ChainlessChain CLI (cc) not found. Install it first (needs Node.js \u003e\u003d 22.12.0): npm i -g chainlesschain — after installing, restart the IDE (so it picks up the new PATH), or run `cc --version` in a terminal to confirm.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

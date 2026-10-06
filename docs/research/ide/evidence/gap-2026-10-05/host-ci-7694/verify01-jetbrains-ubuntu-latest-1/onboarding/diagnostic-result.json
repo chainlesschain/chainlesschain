@@ -1,0 +1,40 @@
+{
+  "scope": "real-intellij-onboarding-local-command-fixtures",
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "passed": true,
+  "root": "/tmp/cc-onboard-QwlyP8",
+  "platform": "linux",
+  "node": "v22.12.0",
+  "arch": "x64",
+  "hostVersion": "2024.2",
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": false,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:3ddfa7f2bc748578aaab2e3b8720aed7e350cc8c542eecbcfb46c8f0030cd55e",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "build.gradle.kts": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "scripts/onboarding-diagnostic.mjs": "sha256:a776cbc9681f3bd66a8bff4fb518f909efbb5670bf7414a67cc0f1f4e71520f6"
+    },
+    "fixtureDigest": "sha256:fee1f616772880b19579e681e6a82290ecc39d126a9a4a188b5d28461f7fecaf"
+  },
+  "pluginVersion": "0.4.153",
+  "pluginDigest": "sha256:68ef91fbabb46b1348f10fc262400451102384456081f7056dae38c3f1813a4f",
+  "cases": [
+    "valid",
+    "bad-explicit-with-managed",
+    "repaired-explicit",
+    "same-path-gcc",
+    "gcc-on-path",
+    "missing",
+    "managed-fallback",
+    "installed-on-path-without-restart"
+  ],
+  "commandInvocations": 30
+}

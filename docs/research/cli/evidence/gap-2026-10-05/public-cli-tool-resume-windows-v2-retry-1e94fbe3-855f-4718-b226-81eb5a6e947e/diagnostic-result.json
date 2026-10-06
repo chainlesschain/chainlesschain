@@ -1,0 +1,93 @@
+{
+  "schema": "chainlesschain.public-cli-first-run-continuation/v1",
+  "startedAt": "2026-10-06T09:13:30.463Z",
+  "priorInitialAttempt": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3",
+  "priorDigest": "sha256:50db557b47a8444e9fa05524b3d81b9c2562df6b331a2fa8569eb22c3eb8ab6d",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-profile-oxzILv",
+  "installedRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5",
+  "freshProfile": true,
+  "version": "0.166.90",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+    "agent",
+    "-p",
+    "Use write_file to create onboarding-proof.txt in the current workspace containing exactly CHAINLESSCHAIN_PUBLIC_FIRST_RUN_V1 followed by a newline. Then use read_file to verify it. Do not execute shell commands or access any other file. Reply DONE.",
+    "--output-format",
+    "stream-json",
+    "--permission-mode",
+    "auto",
+    "--allowed-tools",
+    "write_file,read_file",
+    "--max-turns",
+    "4",
+    "--max-budget-usd",
+    "0.10",
+    "--no-file-refs",
+    "--no-slash-macros"
+  ],
+  "manualRepairs": 1,
+  "retriedAfterRejectedInvocation": true,
+  "priorModelFailure": "public-cli-tool-resume-windows",
+  "priorModelCost": null,
+  "formalSample": false,
+  "observationsCreated": false,
+  "billingVerified": false,
+  "ownerExitConfirmed": true,
+  "processTreeAssessed": false,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "initialization": {
+    "type": "system",
+    "subtype": "init",
+    "protocol_version": 1,
+    "session_id": "headless-1791278012501-26532",
+    "session_persistence": false,
+    "model": "deepseek-v4-flash-ga-260731",
+    "provider": "volcengine",
+    "permission_mode": "auto",
+    "tools": [
+      "write_file",
+      "read_file"
+    ],
+    "tools_hash": "0c3a5238e77e7109",
+    "policy_digest": "39484bfc809b024e",
+    "loaded_sources": [
+      "project-memory",
+      "memory-recall",
+      "plugins"
+    ],
+    "isolation_level": "policy-only",
+    "max_turns": 4,
+    "resumed_from": null,
+    "history_messages": 0,
+    "additional_directories": [],
+    "goal_id": null
+  },
+  "terminal": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "DONE.",
+    "session_id": "headless-1791278012501-26532",
+    "num_turns": 3,
+    "duration_ms": 5632,
+    "usage": {
+      "input_tokens": 5325,
+      "output_tokens": 239,
+      "cache_read_input_tokens": 4096,
+      "cache_creation_input_tokens": 0
+    },
+    "total_cost_usd": 0.0008697640000000001
+  },
+  "eventCount": 14,
+  "artifact": {
+    "path": "onboarding-proof.txt",
+    "digest": "sha256:49976935868213c5282dffa9a5c3794dceda5ca83eb4a2270fa43586c8c72d82"
+  },
+  "passed": true,
+  "finishedAt": "2026-10-06T09:13:45.842Z"
+}

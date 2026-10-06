@@ -1,0 +1,16 @@
+{
+  "ordinal": 6,
+  "category": "code",
+  "scale": 2,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "4905dcb4e00b3fdd2be1eba63932ce63335c8a6f57066be171456e16f2570f8c",
+  "startedAt": "2026-10-06T08:30:18.545Z",
+  "status": "STARTED",
+  "responseIdSha256": null,
+  "responseBodySha256": null,
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": null,
+  "usage": null,
+  "estimatedCostUsd": null
+}

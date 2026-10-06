@@ -1,0 +1,16 @@
+{
+  "ordinal": 11,
+  "category": "emoji",
+  "scale": 3,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "be5dd11af6e444b587212cf26e0f4514710df20f9a3f779c7389996ef3607556",
+  "startedAt": "2026-10-06T08:30:26.632Z",
+  "status": "STARTED",
+  "responseIdSha256": null,
+  "responseBodySha256": null,
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": null,
+  "usage": null,
+  "estimatedCostUsd": null
+}

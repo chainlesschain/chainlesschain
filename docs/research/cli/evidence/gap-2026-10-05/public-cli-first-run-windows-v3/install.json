@@ -1,0 +1,32 @@
+{
+  "label": "install",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node_modules\\npm\\bin\\npm-cli.js",
+    "install",
+    "chainlesschain@0.166.90",
+    "--prefix",
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\install",
+    "--registry",
+    "https://registry.npmjs.org/",
+    "--no-audit",
+    "--no-fund",
+    "--loglevel",
+    "warn"
+  ],
+  "startedAt": "2026-10-06T08:51:05.220Z",
+  "finishedAt": "2026-10-06T08:57:26.134Z",
+  "elapsedMs": 380914,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "error": null,
+  "cleanup": {
+    "ownerExitConfirmed": true,
+    "processTreeConfirmed": false,
+    "naturalExit": true
+  },
+  "credentialAvailable": false,
+  "stdoutDigest": "sha256:12a250f03ccd6c8a0eed8437a42d71cb93dcd3cf77f89175d55b907c4dde9551",
+  "stderrDigest": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+}

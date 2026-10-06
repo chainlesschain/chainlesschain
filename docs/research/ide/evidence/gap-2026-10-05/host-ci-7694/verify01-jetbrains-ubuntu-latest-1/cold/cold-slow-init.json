@@ -1,0 +1,172 @@
+{
+  "case": "slow-init",
+  "prompt": "journey:model cold-slow-init 中文😀",
+  "sessionId": "panel-1791270998787-cc1a3c",
+  "submittedAt": "2026-10-06T07:16:39.109803703Z",
+  "waiting": {
+    "at": "2026-10-06T07:16:39.673Z",
+    "direction": "fixture",
+    "command": "init-gate-waiting",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "nonce": "bf48a98d-8415-42e7-883d-ecca53900765",
+    "processId": 7445,
+    "processInstanceId": "89b73670-731a-4df6-b2ea-015a9e366b05"
+  },
+  "preparing": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:16:39.719773342Z",
+    "processId": "6893",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-NtYwZG/IC-2024.2/config_runIdeForUiTests",
+    "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "tabs": [
+      {
+        "id": "d1b325a6-635c-44e3-84ea-33dc7dc34e1f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+        "index": 1,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-slow-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "7445",
+    "childProcessIds": [
+      "7445"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  },
+  "held": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:09.747599498Z",
+    "processId": "6893",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-NtYwZG/IC-2024.2/config_runIdeForUiTests",
+    "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "tabs": [
+      {
+        "id": "d1b325a6-635c-44e3-84ea-33dc7dc34e1f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+        "index": 1,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-slow-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "7445",
+    "childProcessIds": [
+      "7445"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  },
+  "released": {
+    "at": "2026-10-06T07:17:09.760Z",
+    "direction": "fixture",
+    "command": "init-gate-released",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "nonce": "bf48a98d-8415-42e7-883d-ecca53900765",
+    "processId": 7445,
+    "processInstanceId": "89b73670-731a-4df6-b2ea-015a9e366b05"
+  },
+  "ready": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:09.985495785Z",
+    "processId": "6893",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-NtYwZG/IC-2024.2/config_runIdeForUiTests",
+    "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "tabs": [
+      {
+        "id": "d1b325a6-635c-44e3-84ea-33dc7dc34e1f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+        "index": 1,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-slow-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "7445",
+    "childProcessIds": [
+      "7445"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  },
+  "completed": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:10.210064814Z",
+    "processId": "6893",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-NtYwZG/IC-2024.2/config_runIdeForUiTests",
+    "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+    "sessionId": "panel-1791270998787-cc1a3c",
+    "tabs": [
+      {
+        "id": "d1b325a6-635c-44e3-84ea-33dc7dc34e1f",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "cd760b2a-312b-4ffe-bf72-230884a509d6",
+        "index": 1,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "7445",
+    "childProcessIds": [
+      "7445"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Loading saved conversation…",
+    "binaryChoice": "cc",
+    "text": "── deterministic-host-peer · ollama ──\n\nTurn 1, User message\n\nyou\u003e journey:model cold-slow-init 中文😀\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nfixture model deterministic-host-peer; vision\u003dnone; probe\u003djourney:model cold-slow-init 中文😀\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

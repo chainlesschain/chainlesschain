@@ -1,0 +1,15 @@
+{
+  "sampleId": "first-run-public-windows-vscode",
+  "prompt": "Create onboarding-proof.txt in this workspace with exactly CHAINLESSCHAIN_PUBLIC_IDE_FIRST_RUN_V1 followed by a newline. Read it back to verify. Use only file write and read tools. Do not run shell commands. Reply DONE.",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "permissionMode": "auto",
+  "hostVersion": "1.132.0",
+  "extensionVersion": "0.37.135",
+  "deadline": 1791280055823,
+  "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\workspace",
+  "captureDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\captureDir",
+  "profileHome": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\profileHome",
+  "userDataDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\userDataDir",
+  "extensionsDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\extensionsDir"
+}

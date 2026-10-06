@@ -1,0 +1,1430 @@
+{
+  "schema": "chainlesschain.gap-host-ci-readback/v1",
+  "checkedAt": "2026-10-06T08:27:10.788Z",
+  "runId": 37423495338,
+  "testedCommit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+  "completeSixHostMatrix": true,
+  "historicalColdCheckerDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+  "cells": [
+    {
+      "host": "vscode",
+      "runner": "ubuntu-latest",
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "1.132.0",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "vscode/captureDir/39f5c5f8-1003-40df-bf63-326ce19aaed5.ndjson",
+          "bytes": 3420,
+          "digest": "sha256:75c3b2954636bf533bfad48ea10ba317c0074662f26eff398d8f45931f122824"
+        },
+        {
+          "path": "vscode/captureDir/launcher-config.json",
+          "bytes": 533,
+          "digest": "sha256:375eca689ef289362f6391ee458233a4b9e0330850cafba72220680143d43736"
+        },
+        {
+          "path": "vscode/captureDir/protocol.json",
+          "bytes": 4484,
+          "digest": "sha256:4d37e3f837b8c9ca923d82d8b37ada58c46b332bf8c037e9b477482c7173ff19"
+        },
+        {
+          "path": "vscode/captureDir/terminal.json",
+          "bytes": 723,
+          "digest": "sha256:f26b046264ed8d7353aa4abf5cd9081be19fcfa23724b804fb6b203feb0c5e30"
+        },
+        {
+          "path": "vscode/captureDir/ui.json",
+          "bytes": 1192,
+          "digest": "sha256:8d2a092a5f2338da78ce2ae9f92437d3623936c1da4e6e1f2b5bef881d5da5b5"
+        },
+        {
+          "path": "vscode/captureDir/ui.ndjson",
+          "bytes": 997,
+          "digest": "sha256:68bb710e26fc06d0a5bff879b7e3e14b7ba118268edd43b8fb3558ebcea34392"
+        },
+        {
+          "path": "vscode/captureDir/vscode-initial.json",
+          "bytes": 4049,
+          "digest": "sha256:7af4134a538f8eaad417f21607f2adab082c69e08abb37fc4e9653a296536560"
+        },
+        {
+          "path": "vscode/captureDir/vscode-install.json",
+          "bytes": 615,
+          "digest": "sha256:56824dc906a71940e08cb48318bf95498487aefd044cbb0d98c261e36266aff1"
+        },
+        {
+          "path": "vscode/captureDir/vscode-restart.json",
+          "bytes": 2891,
+          "digest": "sha256:103e3b9efad59cf245d6b10d41aac20a1ef8a2fcfc465ba54c5f69612716627b"
+        },
+        {
+          "path": "vscode/diagnostic-result.json",
+          "bytes": 9189,
+          "digest": "sha256:8f8f91352ddfd859f2bd523f5adb67a37f77560bb6c84dc76609875a0267ae08"
+        },
+        {
+          "path": "vscode/fixture-cli-protocol.jsonl",
+          "bytes": 5899,
+          "digest": "sha256:0f04c4441af37c99733b297e256eea7364805ad4355ff6a55d6cfd9f9d73ea9e"
+        },
+        {
+          "path": "vscode/host.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:653f0e170d1df0fb7dc609312c8b3ad0110f102896c61cb58e33982ccbc3aa0b"
+        }
+      ]
+    },
+    {
+      "host": "jetbrains",
+      "runner": "ubuntu-latest",
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "2024.2",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "cold/canonical-environment.json",
+          "bytes": 137,
+          "digest": "sha256:c353892602af24be978dcdfd0a096fd00a8849d89c42045802f39c56fd74fcf5"
+        },
+        {
+          "path": "cold/capture/protocol-8c21dabb-13ee-4bbd-96ca-4605712bf0fc.jsonl",
+          "bytes": 2427,
+          "digest": "sha256:13c1f0e430743892a0e9c3a643ad8db79fed74030f7a3d8700c458455149e015"
+        },
+        {
+          "path": "cold/capture/protocol-c87fee72-3845-4e76-b947-2c2effc77076.jsonl",
+          "bytes": 2411,
+          "digest": "sha256:b20b23c9ed52374e972d1ff69ea356c06214ca49a891ae10a39d6baa45cf6ddd"
+        },
+        {
+          "path": "cold/capture/protocol-dc15bf92-edc3-4a7b-94d6-bfe30aeeee3e.jsonl",
+          "bytes": 2425,
+          "digest": "sha256:fcd7db8842fc120c8a1aa6c686c2a7a8d8131e2ddd80ca2c596d58834a8a1a4d"
+        },
+        {
+          "path": "cold/cold-slow-init.json",
+          "bytes": 5588,
+          "digest": "sha256:cce70f3563ea405523890140ffc12c8f48dea4817ab0354ab8ca911802e12b2c"
+        },
+        {
+          "path": "cold/cold-stop-before-init.json",
+          "bytes": 8673,
+          "digest": "sha256:59b5139eef59edca0c4cb3cc746c109d60cc80adf2762a10b9c4e420bb55c843"
+        },
+        {
+          "path": "cold/cold-timeout-late-init.json",
+          "bytes": 8116,
+          "digest": "sha256:50280325d55418d86e2bc29668547e139b04a98a9b66480d373059b2cc4f3ee3"
+        },
+        {
+          "path": "cold/cold-ui.json",
+          "bytes": 23717,
+          "digest": "sha256:65c4f1af305272bb8939c756d727693fec10f69c4a4b5e2e2b55d7f57101d848"
+        },
+        {
+          "path": "cold/diagnostic-result.json",
+          "bytes": 3786,
+          "digest": "sha256:4a19ada46878ac7742f3f89eadf8e37c5a0eb765b6e72f542b02cb0a0ecd13cf"
+        },
+        {
+          "path": "cold/diagnostic-scope.json",
+          "bytes": 2472,
+          "digest": "sha256:c83675a3ce27e818d3e0e6c82e77899de32d2ca709bf88e51dbe2ee033bfef2f"
+        },
+        {
+          "path": "cold/fake-cli-protocol.jsonl",
+          "bytes": 15999,
+          "digest": "sha256:874bbf31bcd2c7e55c18fe2f2ceb07cda340cd119d70a082c0268fafa3f869ed"
+        },
+        {
+          "path": "cold/fake-cli-state.json",
+          "bytes": 108,
+          "digest": "sha256:243044d21eb29382262c936f278ee166db376064b3cf697004a198aea3411150"
+        },
+        {
+          "path": "cold/ide-cold.log.cleanup.json",
+          "bytes": 231,
+          "digest": "sha256:38028a76b24628fff2787743a7d0f7a6613c26eb5d7f60d71508037dffabfe6a"
+        },
+        {
+          "path": "cold/init-gate.json",
+          "bytes": 121,
+          "digest": "sha256:709be6c79222e2af9095671dc063f7de63d747464190451a89341f6aba524ac6"
+        },
+        {
+          "path": "cold/prepare.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:402c72ea114977955334b24afaeb648dd809c54500de0fc476e1f3c2fde6b798"
+        },
+        {
+          "path": "cold/test-cold.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:cd7a0c9f76f700eaa037c14265907284c6b05e84bfd521107626f16bfeb013c5"
+        },
+        {
+          "path": "jetbrains/canonical-environment.json",
+          "bytes": 137,
+          "digest": "sha256:b8e17c9561cdec63327a4bdd411c89408f0a456b35cc68015cb86924a33070b5"
+        },
+        {
+          "path": "jetbrains/capture/action-1.json",
+          "bytes": 139,
+          "digest": "sha256:0a29b6c7d5a5a45972bc6a4d9de10ef73693a93a9f4db47c2a0792bdd897a304"
+        },
+        {
+          "path": "jetbrains/capture/action-2.json",
+          "bytes": 147,
+          "digest": "sha256:1c5d4a04ecb2346dcafa9d49d7257e2920efff544c8778f9de8c2f0564e0c45a"
+        },
+        {
+          "path": "jetbrains/capture/action-3.json",
+          "bytes": 143,
+          "digest": "sha256:246a8089fd7e48bc1fbdbca4f6b188a10481ae98d960feec5656e374a863348c"
+        },
+        {
+          "path": "jetbrains/capture/action-4.json",
+          "bytes": 238,
+          "digest": "sha256:4f4ab6256fe2e9b4537d030a88bf53d8122a60ff13ba771028063e4338693691"
+        },
+        {
+          "path": "jetbrains/capture/action-5.json",
+          "bytes": 139,
+          "digest": "sha256:67067a90a67d7cb245a4e6965b9d39a396521a7a3d42957931c11ff96b0366a1"
+        },
+        {
+          "path": "jetbrains/capture/action-6.json",
+          "bytes": 241,
+          "digest": "sha256:77d120f4266f5c6e57e4f86607913de95b779af8d0fe7eea985c876f036b8d12"
+        },
+        {
+          "path": "jetbrains/capture/protocol-7fb2a0ea-8b93-47be-a2ad-7644f11cb64e.jsonl",
+          "bytes": 3382,
+          "digest": "sha256:536c1f02befd4f5d77b9e839b2061fc49afe273624c1230706a0c967ccce5f2d"
+        },
+        {
+          "path": "jetbrains/capture/protocol.json",
+          "bytes": 4438,
+          "digest": "sha256:48e8df37cad21e0008422b3fae296d34e5d131a6b1558c6240661e6c0b60a0d2"
+        },
+        {
+          "path": "jetbrains/capture/restart-state.json",
+          "bytes": 3156,
+          "digest": "sha256:a4ac53ab18dbba4d38b060ff0ff29d05268d6fcfd6028621ae268eae1ea83a28"
+        },
+        {
+          "path": "jetbrains/capture/restored-snapshot.json",
+          "bytes": 1982,
+          "digest": "sha256:e4455a4b0baf51d1fdee9d9cfebd44d08bffbd29f3d6585f121f83acdfac1825"
+        },
+        {
+          "path": "jetbrains/capture/ui-initial.json",
+          "bytes": 724,
+          "digest": "sha256:ba4cc752f9ef02d6832698b56aeaee272aaa606f243ff4eb51d54764b0ea05f1"
+        },
+        {
+          "path": "jetbrains/capture/ui.json",
+          "bytes": 1132,
+          "digest": "sha256:6b4962527c6a38c635ba1a7df2cdaf924a694fe0825e0cf5ef8ec137e7fd3ea5"
+        },
+        {
+          "path": "jetbrains/diagnostic-result.json",
+          "bytes": 10119,
+          "digest": "sha256:b915fa6ec62f36b313ffac2f740d2b69b994c4f8edd57a01317e07d127bf30a0"
+        },
+        {
+          "path": "jetbrains/diagnostic-scope.json",
+          "bytes": 2475,
+          "digest": "sha256:7006d0c5fdbe22f057a096d16e968b5a02ca42b739aba8057510669eb6108dc1"
+        },
+        {
+          "path": "jetbrains/fake-cli-protocol.jsonl",
+          "bytes": 9655,
+          "digest": "sha256:353e01c474b2a7ffdca7abc752e12411b70c0238177c4a57d2ff6a0afc6d1ef0"
+        },
+        {
+          "path": "jetbrains/fake-cli-state.json",
+          "bytes": 46,
+          "digest": "sha256:b851c2b31d1a8e0e0f8b22eb3b886ccb96c462417eb6e26c08ab4d107fbdeba4"
+        },
+        {
+          "path": "jetbrains/ide-initial.log.cleanup.json",
+          "bytes": 250,
+          "digest": "sha256:2935174f23c5f0a2d871d9ec3857818556be26bdda8480e9efc511e1c5e9f613"
+        },
+        {
+          "path": "jetbrains/ide-restart.log.cleanup.json",
+          "bytes": 231,
+          "digest": "sha256:761c8eb1cceae7ee6e9967d1d9c98395b5ac43ec86154b8c4ddbd95be3623e8d"
+        },
+        {
+          "path": "jetbrains/prepare.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:af0204c0feced1de61bf6e98aa8019a44e9e5f8e10d809c4f9412f7f2fdb87b8"
+        },
+        {
+          "path": "jetbrains/test-initial.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:441aca70a9c5585fcdfb3ef4c36f71bc2e944293b63463ccd7508b8e61cbb9ea"
+        },
+        {
+          "path": "jetbrains/test-restart.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:c60b6584f8304a4e267b2f62f04d535e8b58c5f5aead7b8cfcc7d18bf8b4f677"
+        },
+        {
+          "path": "onboarding/capture/bad-explicit-with-managed.json",
+          "bytes": 1531,
+          "digest": "sha256:e76e41242afd76e67f359da05dbb9929e58ce3849465e782b94b9949162e9184"
+        },
+        {
+          "path": "onboarding/capture/gcc-on-path.json",
+          "bytes": 1879,
+          "digest": "sha256:c9b29318e8a9123b8857f964b14b655804c340d34b8ff3da3ee27f1775f024e4"
+        },
+        {
+          "path": "onboarding/capture/installed-on-path-without-restart.json",
+          "bytes": 2102,
+          "digest": "sha256:085d7fa49c7ea1d88a45d661c725eb85645d815da3285593206c63db56b6d50d"
+        },
+        {
+          "path": "onboarding/capture/managed-fallback.json",
+          "bytes": 1970,
+          "digest": "sha256:f1d2384ce17790feca3f57f9c049b862cc4caae6e5d0b020a6e0ed223c4d2afc"
+        },
+        {
+          "path": "onboarding/capture/manual-update-2.json",
+          "bytes": 596,
+          "digest": "sha256:fd230de27224e80d9a9fbd2b77164b364afcd334f41949c55a59a3645d259854"
+        },
+        {
+          "path": "onboarding/capture/manual-update-5.json",
+          "bytes": 449,
+          "digest": "sha256:2467acbb34ee9c656e9e89fa99dbd15dc05c4a57c92df97b293a02b09c51fc2a"
+        },
+        {
+          "path": "onboarding/capture/missing.json",
+          "bytes": 1992,
+          "digest": "sha256:06e1dabb2f305ea680bacb177d025cc93cb9d564aa5f81002c18dfe7f64329b2"
+        },
+        {
+          "path": "onboarding/capture/onboarding-config.json",
+          "bytes": 193,
+          "digest": "sha256:780a2fb106945310b154980aba30aaca05c19af6f1ece66370f18c00ef3f39d0"
+        },
+        {
+          "path": "onboarding/capture/onboarding-ui.json",
+          "bytes": 14893,
+          "digest": "sha256:83b592f26f233ee6490e647eb4f038f81851267d179a6c312cffc410d9747a6d"
+        },
+        {
+          "path": "onboarding/capture/repaired-explicit.json",
+          "bytes": 1503,
+          "digest": "sha256:cf9a81222d76e0c393cd0eddff8a899d8dac028eeea75e94530b6b9e73cf206e"
+        },
+        {
+          "path": "onboarding/capture/same-path-gcc.json",
+          "bytes": 1744,
+          "digest": "sha256:c75bc79802a1e65bb41438358e9a6b9953a3c89adb4a82b0f2658448f19fae5f"
+        },
+        {
+          "path": "onboarding/capture/valid.json",
+          "bytes": 1257,
+          "digest": "sha256:e4d75322d8819a46e83c79ea55961c8beebb98651aa18afb7c78a3411e06774b"
+        },
+        {
+          "path": "onboarding/diagnostic-result.json",
+          "bytes": 2010,
+          "digest": "sha256:b6324a63f5b8d5bc3090b6879b9f4545f892f59c7086129cfaf05ac8799ea101"
+        },
+        {
+          "path": "onboarding/ide.log.cleanup.json",
+          "bytes": 231,
+          "digest": "sha256:ceac0a94cc0d845b8844e0c764e25c261866601b7b5d3c2853aee01ef266fbd9"
+        },
+        {
+          "path": "onboarding/identity-trace.jsonl",
+          "bytes": 3123,
+          "digest": "sha256:c66334bf1a94d32d0b2462ba48cd5182b3c6c452657061f5613303a8b4d04dc4"
+        },
+        {
+          "path": "onboarding/prepare.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:a62aa6a8c0ea0365cc83c5e87fd7117761bcc43694f0ca5f5ea812438668520a"
+        },
+        {
+          "path": "onboarding/ui.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:a720bbd27698b0f40a06c3adeb4e7bb5b852822d45d52dbabeaf95d3011ba066"
+        }
+      ],
+      "cold": {
+        "passed": true,
+        "cases": [
+          {
+            "case": "slow-init",
+            "sessionId": "panel-1791270998787-cc1a3c",
+            "waitObservedMs": 30074,
+            "submissionElapsedMs": 30638,
+            "userInputs": 1,
+            "processInstanceId": "89b73670-731a-4df6-b2ea-015a9e366b05",
+            "automaticResends": 0
+          },
+          {
+            "case": "timeout-late-init",
+            "sessionId": "panel-1791271030415-85d8b0",
+            "waitObservedMs": 119978,
+            "submissionElapsedMs": 120301,
+            "userInputs": 1,
+            "processInstanceId": "52e6b0e0-3c99-4eda-8e59-f723894263bd",
+            "automaticResends": 0
+          },
+          {
+            "case": "stop-before-init",
+            "sessionId": "panel-1791271153647-174d70",
+            "waitObservedMs": 175,
+            "submissionElapsedMs": 468,
+            "userInputs": 1,
+            "processInstanceId": "09e6f9d6-e42e-44a3-bba9-091a8b062449",
+            "automaticResends": 0
+          }
+        ],
+        "providerAssessed": false,
+        "formalSample": false,
+        "publicInstallationAssessed": false,
+        "performanceGate": false
+      },
+      "onboardingCases": [
+        "valid",
+        "bad-explicit-with-managed",
+        "repaired-explicit",
+        "same-path-gcc",
+        "gcc-on-path",
+        "missing",
+        "managed-fallback",
+        "installed-on-path-without-restart"
+      ],
+      "sources": [
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+          "capturedDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "gitBlobDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+          "capturedDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "gitBlobDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+          "capturedDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "gitBlobDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java",
+          "capturedDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "gitBlobDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+          "capturedDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "gitBlobDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+          "capturedDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "gitBlobDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/build.gradle.kts",
+          "capturedDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "gitBlobDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs",
+          "capturedDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "gitBlobDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+          "capturedDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "gitBlobDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/init-gate.mjs",
+          "capturedDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "gitBlobDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+          "capturedDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "gitBlobDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-cold-evidence.mjs",
+          "capturedDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "gitBlobDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-diagnostic-process.mjs",
+          "capturedDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "gitBlobDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "checkoutLineEndings": "git-blob"
+        }
+      ]
+    },
+    {
+      "host": "vscode",
+      "runner": "windows-latest",
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "1.132.0",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "vscode/captureDir/af929a2d-1a6d-44f5-bfa5-00ef1ea2b53a.ndjson",
+          "bytes": 3420,
+          "digest": "sha256:1ed64a2ddf4469fdfe43ea2cbe7dd5c47ad7d407e7467fb2d41677ba096aec16"
+        },
+        {
+          "path": "vscode/captureDir/launcher-config.json",
+          "bytes": 767,
+          "digest": "sha256:27dc967a3532901445881b904c70893f5a989dc606b0a278ab488f5050f4ec26"
+        },
+        {
+          "path": "vscode/captureDir/protocol.json",
+          "bytes": 4484,
+          "digest": "sha256:1522325a854f12d87f790159dce1c5c6d97c19ce89582c11fb4228e410abedef"
+        },
+        {
+          "path": "vscode/captureDir/terminal.json",
+          "bytes": 723,
+          "digest": "sha256:03c489512c36f224cddec1aaa78965be951b1ffafbe11dfba222b88443459b9d"
+        },
+        {
+          "path": "vscode/captureDir/ui.json",
+          "bytes": 1192,
+          "digest": "sha256:dfab1f0151a0fe97b2a2ada03372f7303ca56188ea09773104e4e1f652c5bb06"
+        },
+        {
+          "path": "vscode/captureDir/ui.ndjson",
+          "bytes": 997,
+          "digest": "sha256:12dffb1ce89f4bceb04dec1251988b31423b9216b93ab7bd79ee2673b9806a97"
+        },
+        {
+          "path": "vscode/captureDir/vscode-initial.json",
+          "bytes": 4310,
+          "digest": "sha256:160b045ecfae6509fcedf2eb68b208f577e349f6149338f6808c4d29d0c9e897"
+        },
+        {
+          "path": "vscode/captureDir/vscode-install.json",
+          "bytes": 615,
+          "digest": "sha256:6a360b8614bed6ecfb76e31a78f0faf7499de6a98c2de1136eb8bd1194bd32d3"
+        },
+        {
+          "path": "vscode/captureDir/vscode-restart.json",
+          "bytes": 2891,
+          "digest": "sha256:e97e0ad16aea832975de8961deccb11405f2551d90a88060f7032610ea1d6670"
+        },
+        {
+          "path": "vscode/diagnostic-result.json",
+          "bytes": 9450,
+          "digest": "sha256:5962ed95e02455e2a03980b8c1b5cdd8061a83420e3a7f4b6ba3d6b97cf34506"
+        },
+        {
+          "path": "vscode/fixture-cli-protocol.jsonl",
+          "bytes": 5899,
+          "digest": "sha256:c0be65aee5ee52bda0903d4b7da8f6bfde63b5ab9c962e0603b3da1f9aa06f7f"
+        }
+      ]
+    },
+    {
+      "host": "jetbrains",
+      "runner": "windows-latest",
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "2024.2",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "cold/canonical-environment.json",
+          "bytes": 175,
+          "digest": "sha256:ba849ea097b7dfce374f3222a19e4227d2e7543c8cea4138a2407be8a9b59248"
+        },
+        {
+          "path": "cold/capture/protocol-668f07d8-bcad-4b9b-bf49-ceaf6affd49d.jsonl",
+          "bytes": 2425,
+          "digest": "sha256:ededb1496f38354245d442dc1e89e505f3025e9fdcb3dc027e28ffe6edb73dc4"
+        },
+        {
+          "path": "cold/capture/protocol-8fa51ff2-24f9-47d6-95be-c9c3dc04dc0e.jsonl",
+          "bytes": 2406,
+          "digest": "sha256:beb52d9c9d32d811dbc24076c00be4cf3fcef4b344ed14e99d768f36ba2acd93"
+        },
+        {
+          "path": "cold/capture/protocol-9397b510-beda-4991-bbe0-156a7ba4873f.jsonl",
+          "bytes": 2420,
+          "digest": "sha256:e1eadf65a1257e61ec986461c650b2ed84ed35be4b29d46e181068a5c1fe56db"
+        },
+        {
+          "path": "cold/cold-slow-init.json",
+          "bytes": 5809,
+          "digest": "sha256:bef94b86edeef554f8f0f9fb9daf71425499f1c9b8e82fcfbab977dc08909d4b"
+        },
+        {
+          "path": "cold/cold-stop-before-init.json",
+          "bytes": 8798,
+          "digest": "sha256:c3e64632542428dd66bfc8f7e66db41b510f0c8f9b360e37c0c4ca752d5f78dd"
+        },
+        {
+          "path": "cold/cold-timeout-late-init.json",
+          "bytes": 8241,
+          "digest": "sha256:996653fd3e7e24a983235d3d218d900b79ab504437ae8415c14fb28c097e5553"
+        },
+        {
+          "path": "cold/cold-ui.json",
+          "bytes": 24244,
+          "digest": "sha256:0a14dd06c0768c67339f55c8fb24f07cc1387b1aab9b9ed4d3199f366417fcf6"
+        },
+        {
+          "path": "cold/diagnostic-result.json",
+          "bytes": 3825,
+          "digest": "sha256:2b8d408572ed30bb8c6b24d17aa938217d55dd9d902098d1a5bd6512b2c16376"
+        },
+        {
+          "path": "cold/diagnostic-scope.json",
+          "bytes": 2510,
+          "digest": "sha256:ee740f26f824a2d26446626c526728c8148192720b890178790024d468691012"
+        },
+        {
+          "path": "cold/fake-cli-protocol.jsonl",
+          "bytes": 16000,
+          "digest": "sha256:bca4fa5459332a5d672a54ee34432fe872392346c240cdd222985f3ae797a8f8"
+        },
+        {
+          "path": "cold/fake-cli-state.json",
+          "bytes": 108,
+          "digest": "sha256:253ed3bc27b03f7d33ca9f5d0e0b4f8f1e2171405d11d40e6010f0cb05b6f2bc"
+        },
+        {
+          "path": "cold/ide-cold.log.cleanup.json",
+          "bytes": 2202,
+          "digest": "sha256:8aee4647e98214a0059b7caa761b6d4a5f6fc7ec38fbc54b9d3ed8cec736a548"
+        },
+        {
+          "path": "cold/init-gate.json",
+          "bytes": 121,
+          "digest": "sha256:06c2a3ca2408d524dad40cf53cbad6cb3408d9a8d70236cae7cad371a528a56c"
+        },
+        {
+          "path": "jetbrains/canonical-environment.json",
+          "bytes": 175,
+          "digest": "sha256:9537b9b5388acb20bd7e0f73941b750e537612300f1653cce348a917edb5b673"
+        },
+        {
+          "path": "jetbrains/capture/action-1.json",
+          "bytes": 139,
+          "digest": "sha256:2692798a9dfc62d7c74875552ff18c61c8336d4b2e219f2ee9cfc96e8cac7e81"
+        },
+        {
+          "path": "jetbrains/capture/action-2.json",
+          "bytes": 144,
+          "digest": "sha256:32db0df0d8d73bc1e8942908193cf6ffb462f1376ddc2c55ce89b6862449cea7"
+        },
+        {
+          "path": "jetbrains/capture/action-3.json",
+          "bytes": 143,
+          "digest": "sha256:29f25a01c95e833bce60f0685237e9aba2dc9914a61f9b5bb48dba41add0feb8"
+        },
+        {
+          "path": "jetbrains/capture/action-4.json",
+          "bytes": 238,
+          "digest": "sha256:edfe44b21944ef409904714fc9d3dd01d58ce266438ee6c82527fdbd5047de3d"
+        },
+        {
+          "path": "jetbrains/capture/action-5.json",
+          "bytes": 139,
+          "digest": "sha256:7e48d92e6c5cd85450c48647ffa8e782fbba2167d381f8fd2a89f9150444b2a4"
+        },
+        {
+          "path": "jetbrains/capture/action-6.json",
+          "bytes": 241,
+          "digest": "sha256:dd0491cd74497e10cc493e28acdd5ee2f327431169036d40234e4138ff30e4b0"
+        },
+        {
+          "path": "jetbrains/capture/protocol-7919a087-15e3-4315-b59f-965a679b726b.jsonl",
+          "bytes": 3382,
+          "digest": "sha256:201d128053f5a9aa31fb6c63466d5d04a5c9a7ad6f2fc9b0bc6200d39e116c03"
+        },
+        {
+          "path": "jetbrains/capture/protocol.json",
+          "bytes": 4438,
+          "digest": "sha256:f7becdf6dcd16ede73526096bd66ebddba4525a287729f5788ff8bf843160803"
+        },
+        {
+          "path": "jetbrains/capture/restart-state.json",
+          "bytes": 3175,
+          "digest": "sha256:6ff55a5b1ba959edd9013c33118f097d01662816fd7a89de04907787301de6d3"
+        },
+        {
+          "path": "jetbrains/capture/restored-snapshot.json",
+          "bytes": 1976,
+          "digest": "sha256:47d294d2fb76c5291bb0714f4370fc96fa47536629747b66141cfcbf43d04ffe"
+        },
+        {
+          "path": "jetbrains/capture/ui-initial.json",
+          "bytes": 721,
+          "digest": "sha256:442151d94de24ea2a166de07a782916bbb78d01db596ac7be72223a30d5c6a5d"
+        },
+        {
+          "path": "jetbrains/capture/ui.json",
+          "bytes": 1129,
+          "digest": "sha256:55b1a16a1db574eedc97b8384477526ec1932a62037ed4757ea5494ad7ede995"
+        },
+        {
+          "path": "jetbrains/diagnostic-result.json",
+          "bytes": 10178,
+          "digest": "sha256:014795ed37a1aca1b365fcccc5c7301fcdd90ff147f50ec875c4575279916e8c"
+        },
+        {
+          "path": "jetbrains/diagnostic-scope.json",
+          "bytes": 2513,
+          "digest": "sha256:06e2d57053e616e8396bbab89a1e58554bbd62a2a19d8917b267f119c784e820"
+        },
+        {
+          "path": "jetbrains/fake-cli-protocol.jsonl",
+          "bytes": 9655,
+          "digest": "sha256:396b21fee84dbd381f8f7aa73c7f72a3c1528d5c967c465b64a12d969a980932"
+        },
+        {
+          "path": "jetbrains/fake-cli-state.json",
+          "bytes": 46,
+          "digest": "sha256:5d877e489ccc899571ee77d814641b4b30e316f1fddb6d5e8bd0a2bc47a21717"
+        },
+        {
+          "path": "jetbrains/ide-initial.log.cleanup.json",
+          "bytes": 2670,
+          "digest": "sha256:713e0ae88afc821e6b745e36f628121e1400f80b5c021d6569cdc96230eb7741"
+        },
+        {
+          "path": "jetbrains/ide-restart.log.cleanup.json",
+          "bytes": 2670,
+          "digest": "sha256:8daf9570764d446811106f4f766d9131c6a316e5db7ec7f1e59acc33e02e6ea7"
+        },
+        {
+          "path": "onboarding/capture/bad-explicit-with-managed.json",
+          "bytes": 1571,
+          "digest": "sha256:033fd66e57af7f35d4f96153d85085f8dbb38597110b46b0004d7a3b3fd14f6d"
+        },
+        {
+          "path": "onboarding/capture/gcc-on-path.json",
+          "bytes": 1876,
+          "digest": "sha256:cf5cf479e10e34af7060ebadc308aea8ca978308e299df803855a5a566698f8c"
+        },
+        {
+          "path": "onboarding/capture/installed-on-path-without-restart.json",
+          "bytes": 2099,
+          "digest": "sha256:f4e92ba135ba9a86ec0086a7d9e5c7b2064b3c85aac28dfc59b87ee59c5ecc8c"
+        },
+        {
+          "path": "onboarding/capture/managed-fallback.json",
+          "bytes": 1967,
+          "digest": "sha256:12d53fc70a00361cf0101213b036ca316a7234dde5f3b7546d8a3808ba5474ad"
+        },
+        {
+          "path": "onboarding/capture/manual-update-2.json",
+          "bytes": 657,
+          "digest": "sha256:9e3ae9a85aac2ba3734fe4aae14f52288e8446181bf2aaeef99e573e3aa3fa70"
+        },
+        {
+          "path": "onboarding/capture/manual-update-5.json",
+          "bytes": 467,
+          "digest": "sha256:b8ce521a0751af662384e1fe1f037ca6809e6bf554c11c23c0416e8391ac62c4"
+        },
+        {
+          "path": "onboarding/capture/missing.json",
+          "bytes": 1989,
+          "digest": "sha256:16ee38bff04329c171dfcf7ec57c2fb880ce78db472787c9dff7bb0f77f8f29d"
+        },
+        {
+          "path": "onboarding/capture/onboarding-config.json",
+          "bytes": 323,
+          "digest": "sha256:77990354bafddf993916198a9224476bcd11d5b0916dfb3474b7693d699f2da0"
+        },
+        {
+          "path": "onboarding/capture/onboarding-ui.json",
+          "bytes": 14955,
+          "digest": "sha256:1a82b7a573da944a2b4215bdfad7bf70602fd14fba72882543e1b7aa63c24dad"
+        },
+        {
+          "path": "onboarding/capture/repaired-explicit.json",
+          "bytes": 1500,
+          "digest": "sha256:5bac9281090973cec93f1830803d625b039f83bb3f0364d350d8141e47a89f3b"
+        },
+        {
+          "path": "onboarding/capture/same-path-gcc.json",
+          "bytes": 1784,
+          "digest": "sha256:af1e6783b1727e81383b0cd7961b745fd67ae715b311cf6cd32425c3aadfbfe7"
+        },
+        {
+          "path": "onboarding/capture/valid.json",
+          "bytes": 1254,
+          "digest": "sha256:5577d257dc299411c644fee5cc12ed8916dd22030b02ab63ab87029dd068b733"
+        },
+        {
+          "path": "onboarding/diagnostic-result.json",
+          "bytes": 2048,
+          "digest": "sha256:9ae41110edd68f8431bb77adb777d8e0f968dfb2fcd382eb949748a8fc152ba2"
+        },
+        {
+          "path": "onboarding/ide.log.cleanup.json",
+          "bytes": 2662,
+          "digest": "sha256:95ecbc5c842a8024bab55a3d9e62ecc7fed3713cd5df704f8849309cb253a8eb"
+        },
+        {
+          "path": "onboarding/identity-trace.jsonl",
+          "bytes": 3123,
+          "digest": "sha256:e2dac8f66d1dd60955df81372e56b42ad88551911e82b1cf4d5295e9119fee01"
+        }
+      ],
+      "cold": {
+        "passed": true,
+        "cases": [
+          {
+            "case": "slow-init",
+            "sessionId": "panel-1791270514439-549aa0",
+            "waitObservedMs": 30116,
+            "submissionElapsedMs": 31503,
+            "userInputs": 1,
+            "processInstanceId": "05a18430-5338-41ce-8a3e-e037aaf82346",
+            "automaticResends": 0
+          },
+          {
+            "case": "timeout-late-init",
+            "sessionId": "panel-1791270549482-dd0aca",
+            "waitObservedMs": 119986,
+            "submissionElapsedMs": 120739,
+            "userInputs": 1,
+            "processInstanceId": "0ac28be1-1f13-4098-a699-180b4d6d2052",
+            "automaticResends": 0
+          },
+          {
+            "case": "stop-before-init",
+            "sessionId": "panel-1791270675233-51ab10",
+            "waitObservedMs": 255,
+            "submissionElapsedMs": 1184,
+            "userInputs": 1,
+            "processInstanceId": "3be6f928-38c0-4950-b8c8-6cc64d2cf27c",
+            "automaticResends": 0
+          }
+        ],
+        "providerAssessed": false,
+        "formalSample": false,
+        "publicInstallationAssessed": false,
+        "performanceGate": false
+      },
+      "onboardingCases": [
+        "valid",
+        "bad-explicit-with-managed",
+        "repaired-explicit",
+        "same-path-gcc",
+        "gcc-on-path",
+        "missing",
+        "managed-fallback",
+        "installed-on-path-without-restart"
+      ],
+      "sources": [
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+          "capturedDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "gitBlobDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+          "capturedDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "gitBlobDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+          "capturedDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "gitBlobDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java",
+          "capturedDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "gitBlobDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+          "capturedDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "gitBlobDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+          "capturedDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "gitBlobDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/build.gradle.kts",
+          "capturedDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "gitBlobDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs",
+          "capturedDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "gitBlobDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+          "capturedDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "gitBlobDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/init-gate.mjs",
+          "capturedDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "gitBlobDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+          "capturedDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "gitBlobDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-cold-evidence.mjs",
+          "capturedDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "gitBlobDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-diagnostic-process.mjs",
+          "capturedDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "gitBlobDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "checkoutLineEndings": "git-blob"
+        }
+      ]
+    },
+    {
+      "host": "vscode",
+      "runner": "macos-15-intel",
+      "platform": "darwin",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "1.132.0",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "vscode/captureDir/3480ebf9-df2e-4b38-9f60-955eb728319d.ndjson",
+          "bytes": 3420,
+          "digest": "sha256:c7c995747b429d964e3415a7d181672bd5f363c74a076d9fee457d22d1d2adbe"
+        },
+        {
+          "path": "vscode/captureDir/launcher-config.json",
+          "bytes": 581,
+          "digest": "sha256:5f9b9a1f2dfabcc7320afebbedf72c81f9f98ea0d6bd5cb63beb605ab1415c9c"
+        },
+        {
+          "path": "vscode/captureDir/protocol.json",
+          "bytes": 4484,
+          "digest": "sha256:0858591570395639249578d417f6f413eb913c90c6130923576a114acc9bd088"
+        },
+        {
+          "path": "vscode/captureDir/terminal.json",
+          "bytes": 723,
+          "digest": "sha256:ec63ca451521dbc8fb4411cab5225aa62818920ec061df7b2035d13b688278fd"
+        },
+        {
+          "path": "vscode/captureDir/ui.json",
+          "bytes": 1192,
+          "digest": "sha256:04be840ad1ffd7d163d9318b318221539e4310108d3a6fc9d233830e4f427d16"
+        },
+        {
+          "path": "vscode/captureDir/ui.ndjson",
+          "bytes": 997,
+          "digest": "sha256:dc486a2522778e5d814ed796194270156273e4139225065395a60660fa6f5f83"
+        },
+        {
+          "path": "vscode/captureDir/vscode-initial.json",
+          "bytes": 4073,
+          "digest": "sha256:b49c1808fb39bb4a2bdfa4bb293fc06a33edb7de2bd82ce3da3f2bc3aa53c1a2"
+        },
+        {
+          "path": "vscode/captureDir/vscode-install.json",
+          "bytes": 615,
+          "digest": "sha256:b4dc5ddc92004f1ba3b5b7ec7de05ff00a46eb32c0a6b2ed25a6fb71fb411849"
+        },
+        {
+          "path": "vscode/captureDir/vscode-restart.json",
+          "bytes": 2891,
+          "digest": "sha256:f487702a43a55555bf6954a5d4d27b3a85e1644943404a844aff6fb99b5657f9"
+        },
+        {
+          "path": "vscode/diagnostic-result.json",
+          "bytes": 9214,
+          "digest": "sha256:d90cdad267938f74415932baa4b95ddd833021257f9d2596dc30d49e784963d6"
+        },
+        {
+          "path": "vscode/fixture-cli-protocol.jsonl",
+          "bytes": 5899,
+          "digest": "sha256:181735f1421230ae9b05dd3be6bf6fe3c8a179639ce7dce6824b7db296b0171e"
+        },
+        {
+          "path": "vscode/host.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:fbcf0f7e6026befa98438978c0d84ae84ddbdf14734f52347fbaf8d2c095aae4"
+        }
+      ]
+    },
+    {
+      "host": "jetbrains",
+      "runner": "macos-15-intel",
+      "platform": "darwin",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "hostVersion": "2024.2",
+      "rawRecords": 9,
+      "uiActions": 6,
+      "files": [
+        {
+          "path": "cold/canonical-environment.json",
+          "bytes": 181,
+          "digest": "sha256:8f8523f5501f327430e72bd37b83c4966f669f523178f5037bb289c0009f056f"
+        },
+        {
+          "path": "cold/capture/protocol-2153cdcc-cd06-4574-a3e2-b3f2f8cf17b7.jsonl",
+          "bytes": 2412,
+          "digest": "sha256:e2d10e636a70f8ad65adbfac55376f76834a03428feeb74de346e58f8cec0ddb"
+        },
+        {
+          "path": "cold/capture/protocol-2c8c50b2-d3b5-47b7-b5cb-d456efc01e93.jsonl",
+          "bytes": 2396,
+          "digest": "sha256:01b9d50f4bd7d8db5c4c1df55447cfe94bda4b9cb1703407e50a0a05862d6ffb"
+        },
+        {
+          "path": "cold/capture/protocol-fca963de-1277-4369-9b4f-0c5c50f6b453.jsonl",
+          "bytes": 2410,
+          "digest": "sha256:d9783c66c5f608fbf2a51c99a05ec2c2cd5ed14e6eef3bb3bb811ccf67badb8b"
+        },
+        {
+          "path": "cold/cold-slow-init.json",
+          "bytes": 5715,
+          "digest": "sha256:3cdd3dcdc8f84576415076329abf4fe54aff1b2fcb43ca39d5e450160cbfb67a"
+        },
+        {
+          "path": "cold/cold-stop-before-init.json",
+          "bytes": 8706,
+          "digest": "sha256:b649ef1fa53ff1fcb50d12d0c4d7b536df3984db70a9f091b0182bde20daacf3"
+        },
+        {
+          "path": "cold/cold-timeout-late-init.json",
+          "bytes": 8117,
+          "digest": "sha256:c6c69b605bc42ca4c43f44e9ab68d557d59acccb26a024ac52f5b37828e96c1d"
+        },
+        {
+          "path": "cold/cold-ui.json",
+          "bytes": 23878,
+          "digest": "sha256:da5212a28f3d89dc0438968d2a429e406b5581f8aea849e570836154024a12c2"
+        },
+        {
+          "path": "cold/diagnostic-result.json",
+          "bytes": 3840,
+          "digest": "sha256:de5915c123f0ff1d7d7b89cc52f3d627282750e6faccf78e4462e72803536703"
+        },
+        {
+          "path": "cold/diagnostic-scope.json",
+          "bytes": 2525,
+          "digest": "sha256:d0a5e2835b7c06ec362364e613cf43013bff41bd2fd4dea23149aba57f8bd604"
+        },
+        {
+          "path": "cold/fake-cli-protocol.jsonl",
+          "bytes": 16023,
+          "digest": "sha256:08f71f0c8e4ff327f3bdec7baf92925121e6ee2f80948fcefa9e9fd2baed0311"
+        },
+        {
+          "path": "cold/fake-cli-state.json",
+          "bytes": 108,
+          "digest": "sha256:b56955425d7696bf02a75f170854cf772e9ccc9343ca2d552025abee052de639"
+        },
+        {
+          "path": "cold/ide-cold.log.cleanup.json",
+          "bytes": 232,
+          "digest": "sha256:c67d67c04dc82851446da037d589889871309bc66d521be334b9387388bd7b08"
+        },
+        {
+          "path": "cold/init-gate.json",
+          "bytes": 121,
+          "digest": "sha256:3ddfaace35df2b22fd52abf241f7a67a04f30bd27e16b11a7125dfd9a9676d57"
+        },
+        {
+          "path": "cold/prepare.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:943d5142d7aee74e39c19e128eede33949f913f68677ff76f572fe14f0bdf227"
+        },
+        {
+          "path": "cold/test-cold.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:3e6bc6830c3a45078ff646b361abfcd3daee1c4dfef148b49b44dec990137d74"
+        },
+        {
+          "path": "jetbrains/canonical-environment.json",
+          "bytes": 181,
+          "digest": "sha256:9d179aa05c790515227c3a5496509480a2d9be7472bc3ea4af62cfebde596768"
+        },
+        {
+          "path": "jetbrains/capture/action-1.json",
+          "bytes": 136,
+          "digest": "sha256:a0e6cf8934e6d5610302f492e4723f58d45d057118ead3087caac8b8c5eaa6f0"
+        },
+        {
+          "path": "jetbrains/capture/action-2.json",
+          "bytes": 144,
+          "digest": "sha256:724ce6df4f35244d264706586b3c6e864122ffa4bd665477289dbeb97007eb18"
+        },
+        {
+          "path": "jetbrains/capture/action-3.json",
+          "bytes": 140,
+          "digest": "sha256:95001bd23edf1294076803a6708cc36092f55abb48fdad8d00b29c850066f879"
+        },
+        {
+          "path": "jetbrains/capture/action-4.json",
+          "bytes": 235,
+          "digest": "sha256:4d7d6ddc1da4f81978488477d3b4f0b133398fc25077d1ab958aef1b43f0ef4a"
+        },
+        {
+          "path": "jetbrains/capture/action-5.json",
+          "bytes": 136,
+          "digest": "sha256:566e551bcd9e7a293e8c0725df9cbc1c2c221657049f64236ac737536d36a325"
+        },
+        {
+          "path": "jetbrains/capture/action-6.json",
+          "bytes": 238,
+          "digest": "sha256:f27d6c923d9b6eca9855aa50c68d8b0e0c65b41d97c6f044d642351e142fde3b"
+        },
+        {
+          "path": "jetbrains/capture/protocol-4f226e2e-dd56-4cca-b4ad-8a5530943294.jsonl",
+          "bytes": 3355,
+          "digest": "sha256:f036d74aded7d21fcd852e23d49a9c6cd96095c3955a4271a6b18c4a99dbd07a"
+        },
+        {
+          "path": "jetbrains/capture/protocol.json",
+          "bytes": 4411,
+          "digest": "sha256:dbfde462371204b616604acf332062699e88e7a011b51422b91881c8914b7d8e"
+        },
+        {
+          "path": "jetbrains/capture/restart-state.json",
+          "bytes": 3156,
+          "digest": "sha256:0b45be66e884ae865cc7942aa8f1cdb4e68e70f9b1dad740b2a1353d63d3bbcb"
+        },
+        {
+          "path": "jetbrains/capture/restored-snapshot.json",
+          "bytes": 1981,
+          "digest": "sha256:fa12d99c1482286b6e512630c6d4cef73bb2fa8649b733da9c5f1c1326201a19"
+        },
+        {
+          "path": "jetbrains/capture/ui-initial.json",
+          "bytes": 712,
+          "digest": "sha256:2fdc367471bbb82e4587a959781eef9a642af05d0ef7224c2c5280eaa9d18567"
+        },
+        {
+          "path": "jetbrains/capture/ui.json",
+          "bytes": 1114,
+          "digest": "sha256:844afb3d305f92336d4810aa1892497e4bd3ccc95a3a2ccde1dd506eaed61b12"
+        },
+        {
+          "path": "jetbrains/diagnostic-result.json",
+          "bytes": 10171,
+          "digest": "sha256:ee3324449e0122d00b987ae99b9e96396690b4b65f588e7cc12cd9de67582ed5"
+        },
+        {
+          "path": "jetbrains/diagnostic-scope.json",
+          "bytes": 2528,
+          "digest": "sha256:8573f4b9001681328a1ece5575590df285532d97b609aafe4a1541f5c5b5010b"
+        },
+        {
+          "path": "jetbrains/fake-cli-protocol.jsonl",
+          "bytes": 9666,
+          "digest": "sha256:18cc01ab1d3f719eb271af6d8c1083917b19ac36746cf1fb7c49666fd9a978be"
+        },
+        {
+          "path": "jetbrains/fake-cli-state.json",
+          "bytes": 46,
+          "digest": "sha256:ea56913bbb92b85d7b55037643facf47466ba2659e9d1aebfe69223ea07c0883"
+        },
+        {
+          "path": "jetbrains/ide-initial.log.cleanup.json",
+          "bytes": 251,
+          "digest": "sha256:ca5cc08c1906fe507f7ec6ba896894ab08ddc8d6c5477687208da9ef547d1207"
+        },
+        {
+          "path": "jetbrains/ide-restart.log.cleanup.json",
+          "bytes": 251,
+          "digest": "sha256:9a785011845fd38f97c5aea0ef99fad97c6ffa96a65e8d1ed7f8b0a1246818a1"
+        },
+        {
+          "path": "jetbrains/prepare.log.cleanup.json",
+          "bytes": 162,
+          "digest": "sha256:0a66c00f976fcc8157bcb04f9bb126b4751bb68b84811c8bcd8a5bbdab5ebaca"
+        },
+        {
+          "path": "jetbrains/test-initial.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:64ea88d1c7ca4e503b8d8d53808d55a0920996f272967fa0c22f449b4f98838c"
+        },
+        {
+          "path": "jetbrains/test-restart.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:454a6dc38323a54fc96077e8b4e9383766c800f013ef55c59e59b17f48727a02"
+        },
+        {
+          "path": "onboarding/capture/bad-explicit-with-managed.json",
+          "bytes": 1579,
+          "digest": "sha256:c2f86a7b1ae4b0d39434ab243a85748847df7bea771a27e25cff35a57549f3e8"
+        },
+        {
+          "path": "onboarding/capture/gcc-on-path.json",
+          "bytes": 1875,
+          "digest": "sha256:b7d366e98a27802483c62b60625f48febd8167ecc2e6b46affbef3659093a67b"
+        },
+        {
+          "path": "onboarding/capture/installed-on-path-without-restart.json",
+          "bytes": 2098,
+          "digest": "sha256:85b989c40ee9867aa7e8a81d13e4d92fb9ffa62d0d3136ce40c601e98287db95"
+        },
+        {
+          "path": "onboarding/capture/managed-fallback.json",
+          "bytes": 1966,
+          "digest": "sha256:5cc60633dea953db2b4d6ccbace20a78dba295ad0fb92d601dc6e794e55bb88f"
+        },
+        {
+          "path": "onboarding/capture/manual-update-2.json",
+          "bytes": 645,
+          "digest": "sha256:476e2b6a599e655069d183f957a0ad375634e7710708f2125ec6927ce2b823dd"
+        },
+        {
+          "path": "onboarding/capture/manual-update-5.json",
+          "bytes": 446,
+          "digest": "sha256:4fc3c30a75df8b64d7db477dde7cb507995c7290c2da4c5d793e3fa51b64216e"
+        },
+        {
+          "path": "onboarding/capture/missing.json",
+          "bytes": 1988,
+          "digest": "sha256:dba1ed4d3920f1a664c71e8e796c375ed24e501499f2581d69bbb20da27b3686"
+        },
+        {
+          "path": "onboarding/capture/onboarding-config.json",
+          "bytes": 349,
+          "digest": "sha256:6840ae52ece00335f610527e370523082226e017bb18d6c5d9eaa6293ae7ba26"
+        },
+        {
+          "path": "onboarding/capture/onboarding-ui.json",
+          "bytes": 14965,
+          "digest": "sha256:35196cc65a3f48c096706acc09ce5dce406c188dce5f696294b5d11c4f078d03"
+        },
+        {
+          "path": "onboarding/capture/repaired-explicit.json",
+          "bytes": 1499,
+          "digest": "sha256:f0403045e2a563d0ac72fda7520d6031fbce0aa26afd9eb7fe3e3f684ceb9126"
+        },
+        {
+          "path": "onboarding/capture/same-path-gcc.json",
+          "bytes": 1792,
+          "digest": "sha256:5e51e52b36014101ba4bef80879a0c75a7252f8cbeece34fd3535df92d279f7c"
+        },
+        {
+          "path": "onboarding/capture/valid.json",
+          "bytes": 1253,
+          "digest": "sha256:114ee8658ebbdc2fb41190076bb1a3251b19367864e9b5d576a185712c823720"
+        },
+        {
+          "path": "onboarding/diagnostic-result.json",
+          "bytes": 2063,
+          "digest": "sha256:4fee36536e46c34ad7a1f357bf74764fb5532bec7c98974aaf1b41e501cf0e8b"
+        },
+        {
+          "path": "onboarding/ide.log.cleanup.json",
+          "bytes": 251,
+          "digest": "sha256:dddfe44965ebcf5e2f87f106f6c3648b72a34fadc025113b165d43395d32fe98"
+        },
+        {
+          "path": "onboarding/identity-trace.jsonl",
+          "bytes": 3153,
+          "digest": "sha256:0f802967ec5b5a23caadbd72a4e84a7df84788786a871c8a289ceec3ab8402d4"
+        },
+        {
+          "path": "onboarding/prepare.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:e47030437337dd50e223a55a790798ebbe8469e38ffa3ea09154ffc04c2dd864"
+        },
+        {
+          "path": "onboarding/ui.log.cleanup.json",
+          "bytes": 163,
+          "digest": "sha256:9c63ef665c82d8239b6d9d1396d3fd2dcfcbfea8649c27d6ada9b97c4e0a869e"
+        }
+      ],
+      "cold": {
+        "passed": true,
+        "cases": [
+          {
+            "case": "slow-init",
+            "sessionId": "panel-1791271204224-7df6b0",
+            "waitObservedMs": 30274,
+            "submissionElapsedMs": 32191,
+            "userInputs": 1,
+            "processInstanceId": "3f86bd0a-db4c-471a-b9bd-e8179b16f5b3",
+            "automaticResends": 0
+          },
+          {
+            "case": "timeout-late-init",
+            "sessionId": "panel-1791271238068-3b0d20",
+            "waitObservedMs": 120056,
+            "submissionElapsedMs": 121415,
+            "userInputs": 1,
+            "processInstanceId": "700c118e-d348-493c-b329-47765ec06b66",
+            "automaticResends": 0
+          },
+          {
+            "case": "stop-before-init",
+            "sessionId": "panel-1791271363312-99e378",
+            "waitObservedMs": 343,
+            "submissionElapsedMs": 2713,
+            "userInputs": 1,
+            "processInstanceId": "c00f6c0e-a684-4551-b3f4-9589f45df706",
+            "automaticResends": 0
+          }
+        ],
+        "providerAssessed": false,
+        "formalSample": false,
+        "publicInstallationAssessed": false,
+        "performanceGate": false
+      },
+      "onboardingCases": [
+        "valid",
+        "bad-explicit-with-managed",
+        "repaired-explicit",
+        "same-path-gcc",
+        "gcc-on-path",
+        "missing",
+        "managed-fallback",
+        "installed-on-path-without-restart"
+      ],
+      "sources": [
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+          "capturedDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "gitBlobDigest": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+          "capturedDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "gitBlobDigest": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+          "capturedDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "gitBlobDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java",
+          "capturedDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "gitBlobDigest": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+          "capturedDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "gitBlobDigest": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+          "capturedDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "gitBlobDigest": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/build.gradle.kts",
+          "capturedDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "gitBlobDigest": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs",
+          "capturedDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "gitBlobDigest": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+          "capturedDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "gitBlobDigest": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/init-gate.mjs",
+          "capturedDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "gitBlobDigest": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+          "capturedDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "gitBlobDigest": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-cold-evidence.mjs",
+          "capturedDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "gitBlobDigest": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+          "checkoutLineEndings": "git-blob"
+        },
+        {
+          "path": "scripts/lib/verify01-diagnostic-process.mjs",
+          "capturedDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "gitBlobDigest": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+          "checkoutLineEndings": "git-blob"
+        }
+      ]
+    }
+  ],
+  "formalSamplesCreated": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "currentHeadCovered": false,
+  "coldBoundaryReplacementCovered": false
+}

@@ -1,0 +1,112 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 7916,
+      "parentPid": 6460,
+      "name": "cmd.exe",
+      "created": "639268672408644850"
+    },
+    {
+      "pid": 4440,
+      "parentPid": 7916,
+      "name": "java.exe",
+      "created": "639268672408890760"
+    },
+    {
+      "pid": 5148,
+      "parentPid": 4440,
+      "name": "java.exe",
+      "created": "639268672419325640"
+    },
+    {
+      "pid": 1804,
+      "parentPid": 5148,
+      "name": "java.exe",
+      "created": "639268672660607440"
+    },
+    {
+      "pid": 5652,
+      "parentPid": 1804,
+      "name": "conhost.exe",
+      "created": "639268672660657060"
+    },
+    {
+      "pid": 4936,
+      "parentPid": 1804,
+      "name": "fsnotifier.exe",
+      "created": "639268672686032430"
+    },
+    {
+      "pid": 9908,
+      "parentPid": 4936,
+      "name": "conhost.exe",
+      "created": "639268672686103150"
+    },
+    {
+      "pid": 8552,
+      "parentPid": 1804,
+      "name": "cmd.exe",
+      "created": "639268673160274840"
+    },
+    {
+      "pid": 6656,
+      "parentPid": 8552,
+      "name": "conhost.exe",
+      "created": "639268673160382780"
+    },
+    {
+      "pid": 5592,
+      "parentPid": 8552,
+      "name": "node.exe",
+      "created": "639268673161053380"
+    },
+    {
+      "pid": 4896,
+      "parentPid": 1804,
+      "name": "cmd.exe",
+      "created": "639268673503564850"
+    },
+    {
+      "pid": 7060,
+      "parentPid": 4896,
+      "name": "conhost.exe",
+      "created": "639268673503636200"
+    },
+    {
+      "pid": 9204,
+      "parentPid": 4896,
+      "name": "node.exe",
+      "created": "639268673504100780"
+    },
+    {
+      "pid": 3736,
+      "parentPid": 1804,
+      "name": "cmd.exe",
+      "created": "639268674762570220"
+    },
+    {
+      "pid": 1480,
+      "parentPid": 3736,
+      "name": "conhost.exe",
+      "created": "639268674762722150"
+    },
+    {
+      "pid": 7084,
+      "parentPid": 3736,
+      "name": "node.exe",
+      "created": "639268674763164540"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schema": "chainlesschain.process-cgroup-recovery-evidence/v1",
+  "sourceHead": "3027b274540274a7b501e15384a6b80a290a60c3",
+  "platform": "linux",
+  "arch": "arm64",
+  "node": "v22.12.0",
+  "delegatedRoot": "/sys/fs/cgroup/system.slice/cc-recovery-37422826291-1.service",
+  "status": "passed",
+  "scenarios": [
+    {
+      "name": "owner-loss-kills-descendants-without-replay",
+      "before": {
+        "executionId": "c8cf9008-0842-49b2-968a-4d52bea4145f",
+        "ownerPid": 2909,
+        "token": "349ec5ed-5775-4408-a703-f9394750da9c",
+        "recovery": {
+          "schema": "chainlesschain.process-recovery-cgroup/v1",
+          "root": "/sys/fs/cgroup/system.slice/cc-recovery-37422826291-1.service",
+          "name": "cc-owner-c8cf9008-0842-49b2-968a-4d52bea4145f",
+          "bootId": "c6988b62-67cc-4a4c-8bae-5f34c14ed063",
+          "rootdev": "32",
+          "rootino": "6764",
+          "dev": "32",
+          "ino": "6825"
+        }
+      },
+      "receipt": {
+        "executionId": "c8cf9008-0842-49b2-968a-4d52bea4145f",
+        "token": "349ec5ed-5775-4408-a703-f9394750da9c",
+        "group": {
+          "schema": "chainlesschain.process-recovery-cgroup/v1",
+          "root": "/sys/fs/cgroup/system.slice/cc-recovery-37422826291-1.service",
+          "name": "cc-owner-c8cf9008-0842-49b2-968a-4d52bea4145f",
+          "bootId": "c6988b62-67cc-4a4c-8bae-5f34c14ed063",
+          "rootdev": "32",
+          "rootino": "6764",
+          "dev": "32",
+          "ino": "6825"
+        },
+        "killIssued": true,
+        "populated": false,
+        "completedAt": "2026-10-06T06:18:19.721Z",
+        "cleanupConfirmed": true,
+        "executionResumed": false
+      },
+      "settled": {
+        "schema": "chainlesschain.process-ownership-journal/v2",
+        "pending": [],
+        "recoveries": [
+          {
+            "executionId": "c8cf9008-0842-49b2-968a-4d52bea4145f",
+            "token": "349ec5ed-5775-4408-a703-f9394750da9c",
+            "group": {
+              "schema": "chainlesschain.process-recovery-cgroup/v1",
+              "root": "/sys/fs/cgroup/system.slice/cc-recovery-37422826291-1.service",
+              "name": "cc-owner-c8cf9008-0842-49b2-968a-4d52bea4145f",
+              "bootId": "c6988b62-67cc-4a4c-8bae-5f34c14ed063",
+              "rootdev": "32",
+              "rootino": "6764",
+              "dev": "32",
+              "ino": "6825"
+            },
+            "killIssued": true,
+            "populated": false,
+            "completedAt": "2026-10-06T06:18:19.721Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "legacy-drift-and-publication-failure",
+      "legacyStillPending": "4fbe6b8d-12d9-4003-b473-75ec6704e738",
+      "publicationRetry": {
+        "executionId": "edcb1cb9-5741-4cca-96d2-86efd3acbddb",
+        "token": "70eb5105-fa25-4d53-b2de-a4c4b2ad7b29",
+        "group": {
+          "schema": "chainlesschain.process-recovery-cgroup/v1",
+          "root": "/sys/fs/cgroup/system.slice/cc-recovery-37422826291-1.service",
+          "name": "cc-owner-edcb1cb9-5741-4cca-96d2-86efd3acbddb",
+          "bootId": "c6988b62-67cc-4a4c-8bae-5f34c14ed063",
+          "rootdev": "32",
+          "rootino": "6764",
+          "dev": "32",
+          "ino": "6843"
+        },
+        "killIssued": true,
+        "populated": false,
+        "completedAt": "2026-10-06T06:18:19.916Z",
+        "cleanupConfirmed": true,
+        "executionResumed": false
+      }
+    }
+  ],
+  "sameUidHostileConfinement": false
+}

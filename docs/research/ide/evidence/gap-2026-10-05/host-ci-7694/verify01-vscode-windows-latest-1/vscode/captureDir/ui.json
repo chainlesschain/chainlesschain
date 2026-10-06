@@ -1,0 +1,40 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:37.347Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:39.877Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:39.885Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:46.182Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  },
+  {
+    "action": "reload",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:54.268Z"
+  },
+  {
+    "action": "restored-result",
+    "sampleId": "verify-02",
+    "sessionId": "panel-0fc3c1ac-d310-453e-a39a-17b1832919a6",
+    "at": "2026-10-06T06:59:55.738Z",
+    "resultDigest": "sha256:d6deb8364ad217808b255ed7d9ebb8368a063cf5009d783f808b764c5d68d171"
+  }
+]

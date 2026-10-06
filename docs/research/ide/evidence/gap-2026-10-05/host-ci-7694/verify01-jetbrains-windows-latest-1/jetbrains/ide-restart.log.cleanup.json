@@ -1,0 +1,66 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 9568,
+      "parentPid": 1796,
+      "name": "cmd.exe",
+      "created": "639268669493731260"
+    },
+    {
+      "pid": 9716,
+      "parentPid": 9568,
+      "name": "java.exe",
+      "created": "639268669493969810"
+    },
+    {
+      "pid": 5444,
+      "parentPid": 9716,
+      "name": "java.exe",
+      "created": "639268669503545610"
+    },
+    {
+      "pid": 9688,
+      "parentPid": 5444,
+      "name": "java.exe",
+      "created": "639268669741508020"
+    },
+    {
+      "pid": 9612,
+      "parentPid": 9688,
+      "name": "conhost.exe",
+      "created": "639268669741549650"
+    },
+    {
+      "pid": 4220,
+      "parentPid": 9688,
+      "name": "fsnotifier.exe",
+      "created": "639268669769587460"
+    },
+    {
+      "pid": 1068,
+      "parentPid": 4220,
+      "name": "conhost.exe",
+      "created": "639268669769654740"
+    }
+  ],
+  "taskkill": {
+    "status": 0,
+    "signal": null,
+    "stdout": "SUCCESS: The process with PID 1068 (child process of PID 4220) has been terminated.\r\nSUCCESS: The process with PID 9612 (child process of PID 9688) has been terminated.\r\nSUCCESS: The process with PID 4220 (child process of PID 9688) has been terminated.\r\nSUCCESS: The process with PID 9688 (child process of PID 5444) has been terminated.\r\nSUCCESS: The process with PID 5444 (child process of PID 9716) has been terminated.\r\nSUCCESS: The process with PID 9716 (child process of PID 9568) has been terminated.\r\nSUCCESS: The process with PID 9568 (child process of PID 1796) has been terminated.\r\n",
+    "stderr": "",
+    "displayEncoding": "utf8-lossy",
+    "stdoutBase64": "U1VDQ0VTUzogVGhlIHByb2Nlc3Mgd2l0aCBQSUQgMTA2OCAoY2hpbGQgcHJvY2VzcyBvZiBQSUQgNDIyMCkgaGFzIGJlZW4gdGVybWluYXRlZC4NClNVQ0NFU1M6IFRoZSBwcm9jZXNzIHdpdGggUElEIDk2MTIgKGNoaWxkIHByb2Nlc3Mgb2YgUElEIDk2ODgpIGhhcyBiZWVuIHRlcm1pbmF0ZWQuDQpTVUNDRVNTOiBUaGUgcHJvY2VzcyB3aXRoIFBJRCA0MjIwIChjaGlsZCBwcm9jZXNzIG9mIFBJRCA5Njg4KSBoYXMgYmVlbiB0ZXJtaW5hdGVkLg0KU1VDQ0VTUzogVGhlIHByb2Nlc3Mgd2l0aCBQSUQgOTY4OCAoY2hpbGQgcHJvY2VzcyBvZiBQSUQgNTQ0NCkgaGFzIGJlZW4gdGVybWluYXRlZC4NClNVQ0NFU1M6IFRoZSBwcm9jZXNzIHdpdGggUElEIDU0NDQgKGNoaWxkIHByb2Nlc3Mgb2YgUElEIDk3MTYpIGhhcyBiZWVuIHRlcm1pbmF0ZWQuDQpTVUNDRVNTOiBUaGUgcHJvY2VzcyB3aXRoIFBJRCA5NzE2IChjaGlsZCBwcm9jZXNzIG9mIFBJRCA5NTY4KSBoYXMgYmVlbiB0ZXJtaW5hdGVkLg0KU1VDQ0VTUzogVGhlIHByb2Nlc3Mgd2l0aCBQSUQgOTU2OCAoY2hpbGQgcHJvY2VzcyBvZiBQSUQgMTc5NikgaGFzIGJlZW4gdGVybWluYXRlZC4NCg==",
+    "stderrBase64": ""
+  },
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 1,
+    "signal": null
+  }
+}

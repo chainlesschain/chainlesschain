@@ -1,0 +1,26 @@
+{
+  "label": "configure-provider",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+    "config",
+    "set",
+    "llm.provider",
+    "volcengine"
+  ],
+  "startedAt": "2026-10-06T08:57:26.280Z",
+  "finishedAt": "2026-10-06T08:57:28.934Z",
+  "elapsedMs": 2654,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "error": null,
+  "cleanup": {
+    "ownerExitConfirmed": true,
+    "processTreeConfirmed": false,
+    "naturalExit": true
+  },
+  "credentialAvailable": false,
+  "stdoutDigest": "sha256:d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6",
+  "stderrDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

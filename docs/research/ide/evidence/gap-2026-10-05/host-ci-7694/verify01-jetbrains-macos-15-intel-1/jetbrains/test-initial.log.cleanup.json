@@ -1,0 +1,10 @@
+{
+  "scope": "owned-diagnostic-process-group",
+  "groupPid": 14894,
+  "signals": [],
+  "confirmed": true,
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

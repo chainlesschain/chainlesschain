@@ -1,0 +1,19 @@
+{
+  "scope": "public-open-vsx-and-npm-real-vscode-volcengine-diagnostic",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt",
+  "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\workspace",
+  "captureDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\captureDir",
+  "profileHome": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\profileHome",
+  "userDataDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\userDataDir",
+  "extensionsDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-vscode-live-3ZCpQt\\extensionsDir",
+  "publicCliVersion": "0.166.90",
+  "publicExtensionVersion": "0.37.135",
+  "hostVersion": "1.132.0",
+  "osRelease": "10.0.19045",
+  "node": "v22.22.2",
+  "formalSample": false,
+  "observationsCreated": false,
+  "operatorDeadlineMs": 600000,
+  "maximumModelTurns": 4,
+  "sourceCommitVerified": false
+}

@@ -1,0 +1,54 @@
+{
+  "case": "same-path-gcc",
+  "at": "2026-10-06T07:17:05.898754Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:05.892297Z",
+    "processId": "23499",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-Mqw5xu/IC-2024.2/config_runIdeForUiTests",
+    "id": "7add4dc0-bcbe-4cdf-961f-7b178fdedb72",
+    "sessionId": "panel-1791271025164-6eab68",
+    "tabs": [
+      {
+        "id": "fcc93759-69bf-4e22-b2c2-48cb5b801c34",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "08ed472d-386f-4cf3-8186-8109916a75a4",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "21347723-6da4-444f-9ed2-b0c2647e10e2",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "0782fadd-f480-45fa-9822-f017f3699dc9",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "7add4dc0-bcbe-4cdf-961f-7b178fdedb72",
+        "index": 4,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "null",
+    "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: /private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-onboard-Mqw5xu/good. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

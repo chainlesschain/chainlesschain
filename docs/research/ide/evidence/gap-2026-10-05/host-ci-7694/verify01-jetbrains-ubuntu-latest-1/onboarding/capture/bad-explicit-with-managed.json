@@ -1,0 +1,44 @@
+{
+  "case": "bad-explicit-with-managed",
+  "at": "2026-10-06T07:15:32.838765492Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:15:32.829615314Z",
+    "processId": "5640",
+    "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+    "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+    "sessionId": "panel-1791270932530-f73538",
+    "tabs": [
+      {
+        "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "null",
+    "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: /tmp/cc-onboard-QwlyP8/not-installed. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

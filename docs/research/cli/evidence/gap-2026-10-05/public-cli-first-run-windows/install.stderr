@@ -1,0 +1,3 @@
+Exit prior to config file resolving
+cause
+double-loading config "C:\Users\longfa\AppData\Local\Temp\cc-public-first-run-3nUG6Q\npmrc" as "global", previously loaded as "user"

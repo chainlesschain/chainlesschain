@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-10-06T09:13:26.133Z",
+  "finishedAt": "2026-10-06T09:13:30.462Z",
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "stdout": "✔ Set llm.baseUrl\n",
+  "stderr": ""
+}

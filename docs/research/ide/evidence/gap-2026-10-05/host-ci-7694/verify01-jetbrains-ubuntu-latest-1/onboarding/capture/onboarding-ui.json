@@ -1,0 +1,454 @@
+[
+  {
+    "case": "valid",
+    "at": "2026-10-06T07:15:29.152029805Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:29.136368373Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+      "sessionId": "panel-1791270928812-77b24e",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "bad-explicit-with-managed",
+    "at": "2026-10-06T07:15:32.838765492Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:32.829615314Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+      "sessionId": "panel-1791270932530-f73538",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: /tmp/cc-onboard-QwlyP8/not-installed. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "repaired-explicit",
+    "at": "2026-10-06T07:15:36.711487725Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:36.706777838Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "89df5573-c421-41fa-9e16-923a93551007",
+      "sessionId": "panel-1791270936456-1ed9f8",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "same-path-gcc",
+    "at": "2026-10-06T07:15:37.365762955Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:37.360384269Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+      "sessionId": "panel-1791270937070-76ab55",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": false
+        },
+        {
+          "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+          "index": 4,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: /tmp/cc-onboard-QwlyP8/good. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "gcc-on-path",
+    "at": "2026-10-06T07:15:40.534285678Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:40.530000777Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+      "sessionId": "panel-1791270940286-bed85a",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": false
+        },
+        {
+          "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+          "index": 4,
+          "selected": false
+        },
+        {
+          "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+          "index": 5,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "The panel needs the cc CLI to work. ChainlessChain CLI (cc) not found. Install it first (needs Node.js \u003e\u003d 22.12.0): npm i -g chainlesschain — after installing, restart the IDE (so it picks up the new PATH), or run `cc --version` in a terminal to confirm.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "missing",
+    "at": "2026-10-06T07:15:43.484033710Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:43.479590170Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+      "sessionId": "panel-1791270943408-662702",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": false
+        },
+        {
+          "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+          "index": 4,
+          "selected": false
+        },
+        {
+          "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+          "index": 5,
+          "selected": false
+        },
+        {
+          "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+          "index": 6,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "The panel needs the cc CLI to work. ChainlessChain CLI (cc) not found. Install it first (needs Node.js \u003e\u003d 22.12.0): npm i -g chainlesschain — after installing, restart the IDE (so it picks up the new PATH), or run `cc --version` in a terminal to confirm.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "managed-fallback",
+    "at": "2026-10-06T07:15:46.558714367Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:46.554361044Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "d81b12c3-9d65-4194-929c-6c201f5694bf",
+      "sessionId": "panel-1791270946324-9f20ea",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": false
+        },
+        {
+          "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+          "index": 4,
+          "selected": false
+        },
+        {
+          "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+          "index": 5,
+          "selected": false
+        },
+        {
+          "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+          "index": 6,
+          "selected": false
+        },
+        {
+          "id": "d81b12c3-9d65-4194-929c-6c201f5694bf",
+          "index": 7,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "null",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  },
+  {
+    "case": "installed-on-path-without-restart",
+    "at": "2026-10-06T07:15:49.586481084Z",
+    "snapshot": {
+      "initializationTimeoutSeconds": 120,
+      "observedAt": "2026-10-06T07:15:49.582235843Z",
+      "processId": "5640",
+      "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-QwlyP8/IC-2024.2/config_runIdeForUiTests",
+      "id": "444eed3e-f4d0-45e2-b069-4e08275dfb2b",
+      "sessionId": "panel-1791270949365-880784",
+      "tabs": [
+        {
+          "id": "de46a5f5-a9d4-47e7-89ce-7661f6407b78",
+          "index": 0,
+          "selected": false
+        },
+        {
+          "id": "9aa4eeb7-933a-4bda-9cba-8f650123e8e9",
+          "index": 1,
+          "selected": false
+        },
+        {
+          "id": "ec0c23c5-9612-4b90-b17c-7c0a5e74d625",
+          "index": 2,
+          "selected": false
+        },
+        {
+          "id": "89df5573-c421-41fa-9e16-923a93551007",
+          "index": 3,
+          "selected": false
+        },
+        {
+          "id": "466fdc2c-fbb9-4e81-a84d-aeab3d0bcf24",
+          "index": 4,
+          "selected": false
+        },
+        {
+          "id": "fe91aaf3-c625-4bb7-91cb-a35c31380b59",
+          "index": 5,
+          "selected": false
+        },
+        {
+          "id": "efa671fc-0df8-4fee-afa2-8a673abb081b",
+          "index": 6,
+          "selected": false
+        },
+        {
+          "id": "d81b12c3-9d65-4194-929c-6c201f5694bf",
+          "index": 7,
+          "selected": false
+        },
+        {
+          "id": "444eed3e-f4d0-45e2-b069-4e08275dfb2b",
+          "index": 8,
+          "selected": true
+        }
+      ],
+      "inputText": "",
+      "editable": true,
+      "sendInFlight": false,
+      "childRunning": false,
+      "childProcessId": "",
+      "childProcessIds": [],
+      "turnActive": false,
+      "interruptPending": false,
+      "receiptReady": false,
+      "draftStatus": "Saved input restored for editing; it has not been sent",
+      "historyStatus": " ",
+      "binaryChoice": "cc",
+      "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+      "visible": true,
+      "savedRows": []
+    }
+  }
+]

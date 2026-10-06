@@ -1,0 +1,16 @@
+{
+  "scope": "owned-diagnostic-process-group",
+  "groupPid": 3361,
+  "signals": [
+    "SIGTERM"
+  ],
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "ownerExit": {
+    "code": 143,
+    "signal": null
+  }
+}

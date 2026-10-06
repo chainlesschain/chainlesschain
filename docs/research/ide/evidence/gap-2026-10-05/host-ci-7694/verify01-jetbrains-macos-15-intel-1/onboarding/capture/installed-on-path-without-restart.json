@@ -1,0 +1,74 @@
+{
+  "case": "installed-on-path-without-restart",
+  "at": "2026-10-06T07:17:28.676887Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:28.670348Z",
+    "processId": "23499",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-Mqw5xu/IC-2024.2/config_runIdeForUiTests",
+    "id": "d8dd4501-a790-422a-8d61-f6f0c051d77d",
+    "sessionId": "panel-1791271046729-b4cc34",
+    "tabs": [
+      {
+        "id": "fcc93759-69bf-4e22-b2c2-48cb5b801c34",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "08ed472d-386f-4cf3-8186-8109916a75a4",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "21347723-6da4-444f-9ed2-b0c2647e10e2",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "0782fadd-f480-45fa-9822-f017f3699dc9",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "7add4dc0-bcbe-4cdf-961f-7b178fdedb72",
+        "index": 4,
+        "selected": false
+      },
+      {
+        "id": "2fb51fc8-49a1-4a84-9c1a-028028520efe",
+        "index": 5,
+        "selected": false
+      },
+      {
+        "id": "d7f8d0bb-c634-4b36-808f-34030f87cdca",
+        "index": 6,
+        "selected": false
+      },
+      {
+        "id": "1038e7ea-f2e3-42f6-a701-2fc2b015d8b5",
+        "index": 7,
+        "selected": false
+      },
+      {
+        "id": "d8dd4501-a790-422a-8d61-f6f0c051d77d",
+        "index": 8,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "cc",
+    "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

@@ -177,6 +177,12 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify calibration capture accounting and public install identity
+        run: >-
+          node --test
+          packages/cli/test-node/context-token-calibration.node-test.mjs
+          packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs
+          packages/cli/test-node/cli-registry-public-install.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

@@ -1,0 +1,24 @@
+{
+  "label": "authenticate",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+    "llm",
+    "test"
+  ],
+  "startedAt": "2026-10-06T08:57:34.039Z",
+  "finishedAt": "2026-10-06T08:57:38.793Z",
+  "elapsedMs": 4754,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "error": null,
+  "cleanup": {
+    "ownerExitConfirmed": true,
+    "processTreeConfirmed": false,
+    "naturalExit": true
+  },
+  "credentialAvailable": true,
+  "stdoutDigest": "sha256:71261bc7736170f0ff1558f8290fde45a4ab98d87661195090377c57986712a7",
+  "stderrDigest": "sha256:10a35fc2bf04c9ddea46d210471bd0187f511cf481828c44fe65354794197a3c"
+}

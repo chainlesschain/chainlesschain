@@ -18,7 +18,38 @@ function inside(root, file) {
   );
 }
 
-/** The CLI archive is local; every production child must come from public npm. */
+function publicArchive(entry, label) {
+  if (
+    !entry ||
+    entry.link ||
+    !/^sha512-[A-Za-z0-9+/]+={0,2}$/u.test(entry.integrity || "") ||
+    Buffer.from(entry.integrity.slice(7), "base64").length !== 64 ||
+    `sha512-${Buffer.from(entry.integrity.slice(7), "base64").toString("base64")}` !==
+      entry.integrity
+  )
+    throw new Error(`${label} has no canonical sha512 registry integrity`);
+  let url;
+  try {
+    url = new URL(entry.resolved);
+  } catch {
+    throw new Error(`${label} did not resolve from public npm`);
+  }
+  if (
+    url.origin !== "https://registry.npmjs.org" ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    !url.pathname.includes("/-/")
+  )
+    throw new Error(`${label} did not resolve from public npm`);
+  return { resolved: entry.resolved, integrity: entry.integrity };
+}
+
+/** Children must come from public npm. An expected registry manifest's dist
+ * also pins the public CLI lock entry; a local candidate remains local.
+ * Lock matching does not authenticate registry provenance or installed bytes.
+ */
 export function verifyCliRegistryInstall(installRoot, expectedCli) {
   const root = fs.realpathSync.native(installRoot);
   const cliRoot = path.join(root, "node_modules", "chainlesschain");
@@ -47,6 +78,26 @@ export function verifyCliRegistryInstall(installRoot, expectedCli) {
     if (!expected.some(([dependency]) => dependency === name))
       throw new Error(`required CLI child missing: ${name}`);
   const lock = read(path.join(root, "package-lock.json"));
+  let cliArchive = null;
+  if (Object.hasOwn(expectedCli, "dist")) {
+    const pinned = publicArchive(
+      {
+        resolved: expectedCli.dist?.tarball,
+        integrity: expectedCli.dist?.integrity,
+      },
+      "expected public CLI archive",
+    );
+    const entry = lock.packages?.["node_modules/chainlesschain"];
+    cliArchive = publicArchive(entry, "installed public CLI archive");
+    if (
+      entry.version !== expectedCli.version ||
+      cliArchive.resolved !== pinned.resolved ||
+      cliArchive.integrity !== pinned.integrity
+    )
+      throw new Error(
+        "installed public CLI archive differs from the registry pin",
+      );
+  }
   const require = createRequire(cliFile);
   const children = expected.map(([name, version]) => {
     if (
@@ -105,7 +156,10 @@ export function verifyCliRegistryInstall(installRoot, expectedCli) {
     schema: "chainlesschain.cli-public-dependency-install.v1",
     package: installedCli.name,
     version: installedCli.version,
-    cliSource: "immutable-candidate-tarball",
+    cliSource: cliArchive
+      ? "public-npm-registry-lock"
+      : "immutable-candidate-tarball",
+    ...(cliArchive ? { cliArchive } : {}),
     childrenSource: "https://registry.npmjs.org",
     children,
   };

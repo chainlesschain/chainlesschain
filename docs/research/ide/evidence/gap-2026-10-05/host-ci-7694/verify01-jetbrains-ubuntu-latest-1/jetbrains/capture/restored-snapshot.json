@@ -1,0 +1,59 @@
+{
+  "initializationTimeoutSeconds": 120,
+  "observedAt": "2026-10-06T07:14:36.207920757Z",
+  "processId": "4551",
+  "profile": "/home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-verify01-jetbrains-Hn7kww/IC-2024.2/config_runIdeForUiTests",
+  "id": "6b48ca7e-7fb4-46f1-99d0-d8b73371fed5",
+  "sessionId": "panel-1791270808064-8863d4",
+  "tabs": [
+    {
+      "id": "d10dae8f-19f4-4bab-9105-1d78001a07f2",
+      "index": 0,
+      "selected": false
+    },
+    {
+      "id": "6b48ca7e-7fb4-46f1-99d0-d8b73371fed5",
+      "index": 1,
+      "selected": true
+    },
+    {
+      "id": "f75a2d68-2901-4022-905b-5b0884bd3291",
+      "index": 2,
+      "selected": false
+    }
+  ],
+  "inputText": "",
+  "editable": true,
+  "sendInFlight": false,
+  "childRunning": false,
+  "childProcessId": "",
+  "childProcessIds": [],
+  "turnActive": false,
+  "interruptPending": false,
+  "receiptReady": false,
+  "draftStatus": "Saved input restored for editing; it has not been sent",
+  "historyStatus": " Saved messages 1–2 of 2",
+  "binaryChoice": "cc",
+  "text": "ℹ 1 saved input(s); review acceptance before intentionally resending.\n\nMessage 1, user (saved)\njourney:history-A\n\nMessage 2, assistant (saved)\ncanonical answer A\n",
+  "visible": true,
+  "savedRows": [
+    {
+      "id": "panel-1791270808064-8863d4:75eb16dd59ab87db39a14156e28442943e64dc4def494e468795b4967587279e:0",
+      "text": "\nMessage 1, user (saved)\njourney:history-A\n",
+      "bodyText": "journey:history-A",
+      "start": 70,
+      "sourceText": "journey:history-A",
+      "role": "user",
+      "truncated": false
+    },
+    {
+      "id": "panel-1791270808064-8863d4:36898f870a381bcaa0830fc5f680d32901f73cb74eebbc990a4cdee778722c79:0",
+      "text": "\nMessage 2, assistant (saved)\ncanonical answer A\n",
+      "bodyText": "canonical answer A",
+      "start": 113,
+      "sourceText": "canonical answer A",
+      "role": "assistant",
+      "truncated": false
+    }
+  ]
+}

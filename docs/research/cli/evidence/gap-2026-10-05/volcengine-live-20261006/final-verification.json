@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.gap-final-byte-verification/v1",
+  "checkedAt": "2026-10-06T08:36:05.801Z",
+  "digestChecks": 255,
+  "filesChecked": 256,
+  "bytesChecked": 806921,
+  "configuredCredentialsAbsent": true,
+  "finalLiveSourceHashesMatch": true,
+  "formalCollection": {
+    "path": "formal-collection.json",
+    "digest": "sha256:f216e619100960b8eabfbf6f6c6ee01dd69ebd22016a591a263ae216d679a01c",
+    "exitCode": 2,
+    "executionStatus": "NOT_RUN",
+    "status": "INSUFFICIENT_EVIDENCE",
+    "observed": 0,
+    "missing": 45
+  },
+  "formalObservationsWritten": false
+}

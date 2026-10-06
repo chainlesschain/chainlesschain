@@ -1,0 +1,77 @@
+{
+  "root": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-verify01-jetbrains-JjfSko",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "sourceCommit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+  "hostVersion": "2024.2",
+  "journey": "cold",
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": false,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+      "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a"
+    }
+  },
+  "passed": true,
+  "pluginVersion": "0.4.153",
+  "pluginDigest": "sha256:303e6d31d819c6f7a2930a1c2928ee4b0442e2b9e164316851e7ea7cb54bacc1",
+  "canonicalCommandDrain": {
+    "cold": {
+      "started": 3,
+      "completed": 3
+    }
+  },
+  "capture": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "slow-init",
+        "sessionId": "panel-1791270514439-549aa0",
+        "waitObservedMs": 30116,
+        "submissionElapsedMs": 31503,
+        "userInputs": 1,
+        "processInstanceId": "05a18430-5338-41ce-8a3e-e037aaf82346",
+        "automaticResends": 0
+      },
+      {
+        "case": "timeout-late-init",
+        "sessionId": "panel-1791270549482-dd0aca",
+        "waitObservedMs": 119986,
+        "submissionElapsedMs": 120739,
+        "userInputs": 1,
+        "processInstanceId": "0ac28be1-1f13-4098-a699-180b4d6d2052",
+        "automaticResends": 0
+      },
+      {
+        "case": "stop-before-init",
+        "sessionId": "panel-1791270675233-51ab10",
+        "waitObservedMs": 255,
+        "submissionElapsedMs": 1184,
+        "userInputs": 1,
+        "processInstanceId": "3be6f928-38c0-4950-b8c8-6cc64d2cf27c",
+        "automaticResends": 0
+      }
+    ],
+    "providerAssessed": false,
+    "formalSample": false,
+    "publicInstallationAssessed": false,
+    "performanceGate": false
+  }
+}

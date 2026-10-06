@@ -1,0 +1,44 @@
+{
+  "case": "bad-explicit-with-managed",
+  "at": "2026-10-06T07:05:58.690285400Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:05:58.685289300Z",
+    "processId": "7996",
+    "profile": "D:\\a\\chainlesschain\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-onboard-AlDtpQ\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "7cb636e6-b547-4b09-bd79-3dc26257486d",
+    "sessionId": "panel-1791270358345-c5eb00",
+    "tabs": [
+      {
+        "id": "2fa55669-1a01-408e-80da-911aab3c27ff",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "9afa8a16-088c-4d10-86a0-cc0a0819043a",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "7cb636e6-b547-4b09-bd79-3dc26257486d",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "null",
+    "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-onboard-AlDtpQ\\not-installed.cmd. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "ordinal": 9,
+  "category": "chinese",
+  "scale": 3,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "86eab17635acc4df23ebf1660d8e5010a9f880341d6d4ceb98f107966017eb81",
+  "startedAt": "2026-10-06T08:30:23.301Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "a08fba83c09bd5b009640e67be8c2bce60c87d96bc3d2e6f1ab3ec66db9f6b49",
+  "responseBodySha256": "ee51bf7b1d8f00334b69bd9871ba49fe685a7756abd28492b6dc789ab838c902",
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": true,
+  "usage": {
+    "prompt_tokens": 487,
+    "completion_tokens": 23,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": 0.00007462000000000001,
+  "httpStatus": 200,
+  "finishedAt": "2026-10-06T08:30:25.330Z"
+}

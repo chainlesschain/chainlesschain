@@ -1,0 +1,59 @@
+{
+  "case": "gcc-on-path",
+  "at": "2026-10-06T07:17:12.111622Z",
+  "snapshot": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T07:17:12.103020Z",
+    "processId": "23499",
+    "profile": "/Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/idea-sandbox/cc-onboard-Mqw5xu/IC-2024.2/config_runIdeForUiTests",
+    "id": "2fb51fc8-49a1-4a84-9c1a-028028520efe",
+    "sessionId": "panel-1791271030310-23f982",
+    "tabs": [
+      {
+        "id": "fcc93759-69bf-4e22-b2c2-48cb5b801c34",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "08ed472d-386f-4cf3-8186-8109916a75a4",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "21347723-6da4-444f-9ed2-b0c2647e10e2",
+        "index": 2,
+        "selected": false
+      },
+      {
+        "id": "0782fadd-f480-45fa-9822-f017f3699dc9",
+        "index": 3,
+        "selected": false
+      },
+      {
+        "id": "7add4dc0-bcbe-4cdf-961f-7b178fdedb72",
+        "index": 4,
+        "selected": false
+      },
+      {
+        "id": "2fb51fc8-49a1-4a84-9c1a-028028520efe",
+        "index": 5,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saved input restored for editing; it has not been sent",
+    "historyStatus": " ",
+    "binaryChoice": "null",
+    "text": "The panel needs the cc CLI to work. ChainlessChain CLI (cc) not found. Install it first (needs Node.js \u003e\u003d 22.12.0): npm i -g chainlesschain — after installing, restart the IDE (so it picks up the new PATH), or run `cc --version` in a terminal to confirm.\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

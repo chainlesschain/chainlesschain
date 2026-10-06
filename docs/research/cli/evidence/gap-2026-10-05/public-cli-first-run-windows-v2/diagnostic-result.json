@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.public-cli-first-run-diagnostic/v1",
+  "startedAt": "2026-10-06T08:45:25.996Z",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-jouEZC",
+  "version": "0.166.90",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "isolatedProfile": true,
+  "formalSample": false,
+  "publicInstallationAssessed": false,
+  "billingVerified": false,
+  "observationsCreated": false,
+  "stages": [],
+  "credentialForwardedToInstaller": false,
+  "passed": false,
+  "failure": "Installed CLI version banner mismatch",
+  "finishedAt": "2026-10-06T08:50:03.773Z"
+}

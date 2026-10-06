@@ -1,0 +1,24 @@
+{
+  "ordinal": 6,
+  "category": "code",
+  "scale": 2,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "4905dcb4e00b3fdd2be1eba63932ce63335c8a6f57066be171456e16f2570f8c",
+  "startedAt": "2026-10-06T08:30:18.545Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "c6f1629229f9099f84507af40559d96c32a45e0dc38be7468996b5ef261e2def",
+  "responseBodySha256": "8b11aa6b56282d25c3b657e6903a1d326991515ca0cb4e201ba232069118bc7c",
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": true,
+  "usage": {
+    "prompt_tokens": 412,
+    "completion_tokens": 49,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": 0.0000714,
+  "httpStatus": 200,
+  "finishedAt": "2026-10-06T08:30:19.993Z"
+}

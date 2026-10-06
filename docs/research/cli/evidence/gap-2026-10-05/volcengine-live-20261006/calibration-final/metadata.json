@@ -1,0 +1,39 @@
+{
+  "source": {
+    "commit": "22236fcb09a09c20e2bf2a5e5f8837b92084b252",
+    "workingTreeDirty": true,
+    "scriptSha256": "d1b33550860850614d713b6b1ec8d1391d213dbd89e111ce9b43ccc5372030c4",
+    "files": [
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "sha256": "d1b33550860850614d713b6b1ec8d1391d213dbd89e111ce9b43ccc5372030c4"
+      },
+      {
+        "path": "packages/cli/scripts/context-token-calibration.mjs",
+        "sha256": "897bf687c65cb89f4a3b9ddb8e04c963ab04a2f7db9d9b0ba3e9a9316eb97fbc"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+        "sha256": "6774505d2504e90a96b042bcf1a74909c4b38c65df29bdbf25f125d5229a6519"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "sha256": "3f5cab9dcbba94bfee5cd6b8ae8b3d082a1bc99c9db7a5eef74cb81f2d622c3a"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-pricing.js",
+        "sha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+      },
+      {
+        "path": "packages/cli/src/lib/model-context-catalog.js",
+        "sha256": "8abe124bede4135900c56c51e6a4dafe05d11be0b9a514372e585873f88438a1"
+      }
+    ]
+  },
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "nodeVersion": "v22.22.2",
+    "osRelease": "10.0.19045"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "sessionId": "panel-f2d39765-3300-4ae8-9822-07a517551f3b",
+  "terminalText": "canonical answer A",
+  "renderedText": "canonical answer A",
+  "profileStorage": "/private/tmp/ccv-ndVR5T/userDataDir/User/globalStorage/chainlesschain-tests.chainlesschain-extension-host-smoke-driver",
+  "recoveryRequired": true,
+  "protocolFile": "/private/tmp/ccv-ndVR5T/captureDir/3480ebf9-df2e-4b38-9f60-955eb728319d.ndjson",
+  "closed": {
+    "files": [
+      {
+        "file": "/private/tmp/ccv-ndVR5T/captureDir/3480ebf9-df2e-4b38-9f60-955eb728319d.ndjson",
+        "sequence": 9,
+        "exited": true,
+        "failed": false
+      }
+    ],
+    "errors": []
+  },
+  "rendered": {
+    "readyState": "complete",
+    "title": "",
+    "url": "vscode-webview://044rvvfkqjooq78o4uo7c0oflvjoefaish8veb54eav581qqr5rd/index.html?id=d33b4afc-1e0e-43fb-837f-0e31a2c2c95c&parentId=1&origin=a7744bd4-56b8-4312-80ef-1fbd931a87fc&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+    "text": "journey:history-A\n×\nChat 2\n×\n+\n↗\nLatest messages\n/auto\napproval mode requested → auto-accept edits (waiting for CLI confirmation on your next message)\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+    "inputPresent": true,
+    "inputText": "",
+    "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input",
+    "attachmentChips": [],
+    "tabs": [
+      {
+        "id": "conv-1",
+        "title": "journey:history-A",
+        "selected": true
+      },
+      {
+        "id": "conv-2",
+        "title": "Chat 2",
+        "selected": false
+      }
+    ],
+    "savedRows": [
+      {
+        "id": "panel-f2d39765-3300-4ae8-9822-07a517551f3b:f1ecc1a187b6d66b1541e8ea907eb10e0dc5ef75377eea9d67d2723a0d3b3964:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-f2d39765-3300-4ae8-9822-07a517551f3b:a161b054d019706467f115926f5470d027ea3e9e3ed265c568e70eb04ea23f93:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "displayedRows": [
+      {
+        "id": "panel-f2d39765-3300-4ae8-9822-07a517551f3b:f1ecc1a187b6d66b1541e8ea907eb10e0dc5ef75377eea9d67d2723a0d3b3964:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "checking history fixture",
+        "source": {
+          "text": "checking history fixture\n",
+          "role": "assistant",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "read_file: fixture.txt",
+        "source": {
+          "text": "read_file: fixture.txt",
+          "role": "tool",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-f2d39765-3300-4ae8-9822-07a517551f3b:a161b054d019706467f115926f5470d027ea3e9e3ed265c568e70eb04ea23f93:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "sendEnabled": true,
+    "stopEnabled": true,
+    "planVisible": false,
+    "planApproveEnabled": true,
+    "approvalApproveEnabled": false,
+    "attachments": []
+  },
+  "extensionHostPid": 4677,
+  "completedAt": "2026-10-06T06:59:45.262Z"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.public-vscode-market-source/v1",
+  "checkedAt": "2026-10-06T09:26:20.680Z",
+  "endpoint": "https://open-vsx.org",
+  "namespace": "chainlesschain",
+  "name": "chainlesschain-ide",
+  "version": "0.37.135",
+  "pairedCli": "0.166.90",
+  "vsix": {
+    "path": "chainlesschain-ide-0.37.135.vsix",
+    "bytes": 714045,
+    "sha256": "ba905abfa806bebfef726dde4941dacf24fc4ef39ffe571896d7f585238b8408"
+  },
+  "checksumMatched": true,
+  "signatureVerified": false,
+  "sourceCommitVerified": false,
+  "hostLaunched": false,
+  "formalSample": false
+}

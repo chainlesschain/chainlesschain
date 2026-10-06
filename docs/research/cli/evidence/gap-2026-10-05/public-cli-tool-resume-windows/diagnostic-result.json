@@ -1,0 +1,42 @@
+{
+  "schema": "chainlesschain.public-cli-first-run-continuation/v1",
+  "startedAt": "2026-10-06T09:00:36.586Z",
+  "priorInitialAttempt": "docs/research/cli/evidence/gap-2026-10-05/public-cli-first-run-windows-v3",
+  "priorDigest": "sha256:50db557b47a8444e9fa05524b3d81b9c2562df6b331a2fa8569eb22c3eb8ab6d",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5",
+  "version": "0.166.90",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-public-first-run-vm2Qq5\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+    "agent",
+    "-p",
+    "Use write_file to create onboarding-proof.txt in the current workspace containing exactly CHAINLESSCHAIN_PUBLIC_FIRST_RUN_V1 followed by a newline. Then use read_file to verify it. Do not execute shell commands or access any other file. Reply DONE.",
+    "--output-format",
+    "stream-json",
+    "--permission-mode",
+    "auto",
+    "--allowed-tools",
+    "write_file,read_file",
+    "--max-turns",
+    "4",
+    "--max-budget-usd",
+    "0.10",
+    "--no-file-refs",
+    "--no-slash-macros"
+  ],
+  "manualRepairs": 1,
+  "retriedAfterRejectedInvocation": true,
+  "formalSample": false,
+  "observationsCreated": false,
+  "billingVerified": false,
+  "ownerExitConfirmed": true,
+  "processTreeAssessed": false,
+  "exit": {
+    "code": 5,
+    "signal": null
+  },
+  "passed": false,
+  "failure": "Actual CLI task exited unsuccessfully",
+  "finishedAt": "2026-10-06T09:00:53.722Z"
+}

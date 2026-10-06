@@ -1,0 +1,107 @@
+{
+  "sessionId": "panel-9c0b66d9-484d-44e7-8e0c-97bac68695cd",
+  "terminalText": "canonical answer A",
+  "renderedText": "canonical answer A",
+  "profileStorage": "/tmp/ccv-1HNEPi/userDataDir/User/globalStorage/chainlesschain-tests.chainlesschain-extension-host-smoke-driver",
+  "recoveryRequired": true,
+  "protocolFile": "/tmp/ccv-1HNEPi/captureDir/39f5c5f8-1003-40df-bf63-326ce19aaed5.ndjson",
+  "closed": {
+    "files": [
+      {
+        "file": "/tmp/ccv-1HNEPi/captureDir/39f5c5f8-1003-40df-bf63-326ce19aaed5.ndjson",
+        "sequence": 9,
+        "exited": true,
+        "failed": false
+      }
+    ],
+    "errors": []
+  },
+  "rendered": {
+    "readyState": "complete",
+    "title": "",
+    "url": "vscode-webview://0utfar7afd0emabrsct3470h758lnbdlm38rdm99mvuvne3d6dm1/index.html?id=f3b0e392-2a42-4624-adfe-943ae37ca974&parentId=1&origin=55a9c1b5-87a4-4ffb-a53d-1b1fe05f29e0&swVersion=6&extensionId=chainlesschain.chainlesschain-ide&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView",
+    "text": "journey:history-A\n×\nChat 2\n×\n+\n↗\nLatest messages\n/auto\napproval mode requested → auto-accept edits (waiting for CLI confirmation on your next message)\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\nMessage the agent\nSend\nPlan\nStop\nNew",
+    "inputPresent": true,
+    "inputText": "",
+    "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input",
+    "attachmentChips": [],
+    "tabs": [
+      {
+        "id": "conv-1",
+        "title": "journey:history-A",
+        "selected": true
+      },
+      {
+        "id": "conv-2",
+        "title": "Chat 2",
+        "selected": false
+      }
+    ],
+    "savedRows": [
+      {
+        "id": "panel-9c0b66d9-484d-44e7-8e0c-97bac68695cd:56e65a6ab5e5feeb75356008f2441d547d172c16d4b6fc50488f0b94f51f0ec2:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-9c0b66d9-484d-44e7-8e0c-97bac68695cd:8083be1830acc964c91c36078379dafffaa5e97890959b7ae4c6ed13fed74669:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "displayedRows": [
+      {
+        "id": "panel-9c0b66d9-484d-44e7-8e0c-97bac68695cd:56e65a6ab5e5feeb75356008f2441d547d172c16d4b6fc50488f0b94f51f0ec2:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "checking history fixture",
+        "source": {
+          "text": "checking history fixture\n",
+          "role": "assistant",
+          "streaming": false
+        }
+      },
+      {
+        "id": null,
+        "text": "read_file: fixture.txt",
+        "source": {
+          "text": "read_file: fixture.txt",
+          "role": "tool",
+          "streaming": false
+        }
+      },
+      {
+        "id": "panel-9c0b66d9-484d-44e7-8e0c-97bac68695cd:8083be1830acc964c91c36078379dafffaa5e97890959b7ae4c6ed13fed74669:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false
+        }
+      }
+    ],
+    "sendEnabled": true,
+    "stopEnabled": true,
+    "planVisible": false,
+    "planApproveEnabled": true,
+    "approvalApproveEnabled": false,
+    "attachments": []
+  },
+  "extensionHostPid": 3039,
+  "completedAt": "2026-10-06T07:09:14.215Z"
+}

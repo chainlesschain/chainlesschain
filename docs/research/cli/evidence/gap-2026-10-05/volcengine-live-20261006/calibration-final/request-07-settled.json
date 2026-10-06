@@ -1,0 +1,24 @@
+{
+  "ordinal": 7,
+  "category": "emoji",
+  "scale": 2,
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "requestPayloadSha256": "d1d00ef32585ce9d40d3e08cb4491d48372dc4fdc5013fd1471200673cd8b9d8",
+  "startedAt": "2026-10-06T08:30:19.999Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "9e0abfd32b080c5657f8cad6a6a0554cd3142b572dcdc422c0af9c151f3a90cc",
+  "responseBodySha256": "1d6c0463a4c9387868e35e0658fc4a59695cc67169188eb2e70ab51c4cfff80e",
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": true,
+  "usage": {
+    "prompt_tokens": 490,
+    "completion_tokens": 64,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": 0.00008652,
+  "httpStatus": 200,
+  "finishedAt": "2026-10-06T08:30:21.755Z"
+}
