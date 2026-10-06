@@ -1,6 +1,8 @@
 # 110. Agent Platform 发布与运行时边界设计
 
-> **2026-10-02 当前核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[增量设计](../agent-runtime-update-2026-09-26.md)。下文旧版本记录保留历史时点。
+> **2026-10-06 发布后核对**：CLI `0.166.90`、Session Core `0.3.15`、Agent SDK `0.2.13`、PDH `0.4.63` 和 Open VSX `0.37.135` 已公开，准确提交为 `28cff6adc8`。该提交完整 CLI CI、Strict Sandbox、IDE 宿主及安全门通过；子包先经 OIDC 发布并核验，再发布 CLI 和 Open VSX。JetBrains `0.4.153` 标签发布进行中，当前公开 `0.4.152` 仍推荐 CLI `0.166.89`。新增桌面受控任务工作区属于本轮源码，尚未进入独立 `v5.0.3.138` 产品安装包。详见[本轮设计](../data-actions-update-2026-10-06.md)与[发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
+
+> **2026-10-02 历史核对**：源码 `main@2bfaea2fa9`；公开 CLI `0.166.84@d93c9c9766`、Open VSX `0.37.126`、JetBrains `0.4.146`，两个 IDE 均推荐 CLI `0.166.84`。发布提交的 CLI CI 68/68 作业、Strict Sandbox 五个配置作业及 IDE 宿主矩阵通过；npm OIDC/provenance 与公共包字节回读成功，两个插件均已公开。公开版包含 WS 策略修订、无人值守入口、冻结工具上限，以及同一进程/模块实例内官方 settings 和 scoped 权限写口的同步 Shell 撤销；恢复原规则不能复活旧许可。设置来源只读观察与显式 Linux 事务基础已在代码中，但事务基础尚未接入默认权限准入或官方 settings writer。跨进程/Worker 即时通知、任意外部编辑与 legacy callback 仍未闭合。产品发行保持独立 v5.0.3.138；真实 PM 收益、完整启动覆盖和总成本未认证，自动晋升保持 HOLD。详见[增量设计](../agent-runtime-update-2026-09-26.md)。下文旧版本记录保留历史时点。
 
 > 状态：2026-09-20 核对，CLI、发生变化的子 npm 包与双 IDE 已按顺序发布并完成公共注册表回读
 >

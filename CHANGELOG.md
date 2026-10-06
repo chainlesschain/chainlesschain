@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - cc CLI 0.166.90: recoverable projections and project risk evidence
 
+- Verified on 2026-10-06: exact release commit `28cff6adc8` passed complete
+  CLI CI, Strict Sandbox, IDE host and security gates. Session Core `0.3.15`,
+  Agent SDK `0.2.13`, PDH `0.4.63` and CLI `0.166.90` were published through
+  GitHub Actions OIDC with independent public archive verification. Open VSX
+  `0.37.135` is public; JetBrains `0.4.153` tag publication is still in progress.
+  Desktop workbench changes are outside the separate v5.0.3.138 installer.
 - Publish Personal Data Hub `0.4.63` and Session Core `0.3.15` before the CLI,
   with exact dependency pins and public tarball verification. Require the full
   PDH suite with its declared native SQLCipher driver on Linux, Windows and macOS.

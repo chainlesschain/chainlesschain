@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.89 | Open VSX 0.37.134 | 桌面与移动端"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.90 | Open VSX 0.37.135 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: 🧩
-    title: Agent Platform 0.166.89
+    title: Agent Platform 0.166.90
     details: 公开 CLI 包含记忆索引与快照分页、冻结评估及 Linux cgroup2 恢复；真实模型验收和 Docker 整包验收仍开放。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: VS Code 0.37.134 与 JetBrains 0.4.152 均已公开，两端均推荐 CLI 0.166.89。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: Open VSX 0.37.135 推荐 CLI 0.166.90；JetBrains 公开 0.4.152 仍推荐 0.166.89，新版发布进行中。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +50,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.134 与 JetBrains 0.4.152 均已公开，均推荐 CLI 0.166.89；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.135 已公开并推荐 CLI 0.166.90；JetBrains 0.4.152 仍推荐 0.166.89；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -60,10 +60,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，继续支持事务化事实归并、显式游标、有界分页与部分结果失败闭合，并修复 ZIP 适配器依赖的超大内存分配风险。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.89@02e1318aae；准确提交的 CLI CI 为 67 成功 / 1 条件跳过，Strict 五个作业通过；候选 0.166.90 仍待自身门禁。
+    details: npm latest 为 CLI 0.166.90@28cff6adc8；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
 ---
 
-> **当前核对**：2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 新增投影恢复、项目任务动作与风险规则；使用[本轮指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)，设计见[本轮增量](/design/data-actions-update-2026-10-06)。
+> **当前核对**：2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 新增投影恢复、项目任务动作与风险规则；使用[本轮指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)，设计见[本轮增量](/design/data-actions-update-2026-10-06)。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

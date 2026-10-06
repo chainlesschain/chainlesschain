@@ -6,11 +6,11 @@ const items = english
   ? [
       [
         "Recover data projections",
-        "The source candidate persists projection intent with canonical entities, confirms KG/BM25 separately, and adds bounded retries. Current hosts rebuild in-memory indexes; unknown running deliveries remain protected.",
+        "Published CLI/PDH persists projection intent with canonical entities, confirms KG/BM25 separately, and adds bounded retries. Current hosts rebuild in-memory indexes; unknown running deliveries remain protected.",
       ],
       [
         "Review project task changes",
-        "Saved pending tasks in personal projects gain description previews, native confirmation and atomic receipts. Risk checks detect overdue tasks and unfinished direct dependencies. CLI commands only inspect offline snapshots.",
+        "Current desktop source gives saved pending tasks in personal projects description previews, native confirmation and atomic receipts. Risk checks detect overdue tasks and unfinished direct dependencies. CLI commands only inspect offline snapshots.",
       ],
       [
         "Read capability status accurately",
@@ -20,11 +20,11 @@ const items = english
   : [
       [
         "数据投影恢复",
-        "候选源码将投影意图与规范化实体一同保存，KG/BM25 分别确认并支持分批重试。当前宿主重建内存索引，未知运行投递继续保留。",
+        "公开 CLI/PDH 将投影意图与规范化实体一同保存，KG/BM25 分别确认并支持分批重试。当前宿主重建内存索引，未知运行投递继续保留。",
       ],
       [
         "项目任务预览与确认",
-        "个人项目的已保存待办任务支持描述预览、原生确认和原子回执。风险只检查逾期与直接依赖阻塞；CLI 命令只读取离线快照。",
+        "本轮桌面源码中的个人项目已保存待办任务支持描述预览、原生确认和原子回执。风险只检查逾期与直接依赖阻塞；CLI 命令只读取离线快照。",
       ],
       [
         "能力状态与审计",
@@ -39,7 +39,7 @@ const items = english
 >
   <div class="container-wide">
     <p class="font-mono text-sm text-muted">
-      2026-10-06 · {english ? "Source candidate" : "源码候选"} · CLI{" "}
+      2026-10-06 · {english ? "Published CLI and desktop source" : "公开 CLI 与桌面源码"} · CLI{" "}
       {releaseStatus.sourceMainCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
@@ -49,8 +49,8 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `These changes are reviewed at ${releaseStatus.sourceHeadCommit.slice(0, 10)} and remain unpublished. Install public CLI ${releaseStatus.recommendedCliVersion}; the desktop product release is separate. The candidate needs its own complete release gates.`
-        : `上述改动核对至 ${releaseStatus.sourceHeadCommit.slice(0, 10)}，尚未公开发行。日常安装使用公开 CLI ${releaseStatus.recommendedCliVersion}；桌面产品包独立发行，新候选仍需完成自身全部发布门。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion} and PDH ${releaseStatus.personalDataHubVersion} are public after exact-commit release gates. Desktop task interactions require the reviewed source at ${releaseStatus.sourceHeadCommit.slice(0, 10)}; the separate v5.0.3.138 installer does not include the new workbench.`
+        : `CLI ${releaseStatus.recommendedCliVersion} 与 PDH ${releaseStatus.personalDataHubVersion} 已通过准确提交发布门并公开。桌面任务交互需运行核对至 ${releaseStatus.sourceHeadCommit.slice(0, 10)} 的源码；独立 v5.0.3.138 安装包尚未包含新工作区。`}
     </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">
       {items.map(([title, description]) => (

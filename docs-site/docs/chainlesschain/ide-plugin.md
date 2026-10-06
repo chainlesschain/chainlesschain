@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> 2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 Microsoft Marketplace 未发行。
+> 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 Microsoft Marketplace 未发行。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.134`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.152`。执行 `npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。两个公开插件均推荐 `0.166.89`，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
+从 Open VSX 安装 `0.37.135`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.152`。执行 `npm i -g chainlesschain@0.166.90 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。Open VSX `0.37.135` 推荐 `0.166.90`，JetBrains 公开 `0.4.152` 仍推荐 `0.166.89`，请分别按制品清单配对，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
 
 ## 图片草稿、长回复与诊断
 
@@ -14,13 +14,13 @@
 
 ## 公开版：Doctor 与慢初始化
 
-公开 VS Code `0.37.134` / JetBrains `0.4.152` 提供基于实际会话能力的诊断：先检查版本和推荐 CLI，再区分 confirmed 与 degraded/unconfirmed。尚无会话观察时，静态配置不能证明功能实际可用；启动聊天宿主后重跑 Diagnose Bridge，检查报告中的会话能力和故障原因。
+公开 VS Code `0.37.135` / JetBrains `0.4.152` 提供基于实际会话能力的诊断：先检查版本和推荐 CLI，再区分 confirmed 与 degraded/unconfirmed。尚无会话观察时，静态配置不能证明功能实际可用；启动聊天宿主后重跑 Diagnose Bridge，检查报告中的会话能力和故障原因。
 
 初始化超过 30 秒时继续等待，最多 120 秒；期限内握手完成才按当前会话提交。超时保留文本与附件草稿并取消本次提交，迟到 init 不补发。升级 CLI 后重启宿主；仍未就绪时保留草稿并查看诊断，检查实际会话诊断后再重新发送。见[最新设计](/design/agent-runtime-update-2026-10-05)。
 
 ## 公开版：JetBrains CLI 身份诊断与显式采集
 
-JetBrains `0.4.152` 源码会检查发现的命令输出首个非空行是否以可选 v 和三段数字版本开头（允许后续说明）；系统 C 编译器也可能叫 `cc`，发现同名命令不代表 CLI 已安装。显式路径无效时不会自动切换 managed CLI。出现发现或版本探测错误时，在设置中明确选择 ChainlessChain CLI 路径，或按安装/修复提示配置后重试；设置页会显示探测状态。该改动已进入公开 Marketplace `0.4.152`。协议/UI 采集仍默认关闭，须显式配置。后续候选 `0.37.135/0.4.153` 修复流式诊断边界、选区替换与过期帧，尚未公开。源码诊断采集使用隔离 profile 与受控 peer，结果记录 commit、dirty 状态和关键文件 SHA-256，不证明公开 npm 安装或真实账号调用。
+JetBrains `0.4.152` 源码会检查发现的命令输出首个非空行是否以可选 v 和三段数字版本开头（允许后续说明）；系统 C 编译器也可能叫 `cc`，发现同名命令不代表 CLI 已安装。显式路径无效时不会自动切换 managed CLI。出现发现或版本探测错误时，在设置中明确选择 ChainlessChain CLI 路径，或按安装/修复提示配置后重试；设置页会显示探测状态。该改动已进入公开 Marketplace `0.4.152`。协议/UI 采集仍默认关闭，须显式配置。Open VSX `0.37.135` 已公开流式诊断边界、选区替换与过期帧修复；JetBrains `0.4.153` 仍在标签发布中，公开审核状态单独核验。源码诊断采集使用隔离 profile 与受控 peer，结果记录 commit、dirty 状态和关键文件 SHA-256，不证明公开 npm 安装或真实账号调用。
 
 ## 权限与评估边界
 

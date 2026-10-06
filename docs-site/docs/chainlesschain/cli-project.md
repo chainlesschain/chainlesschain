@@ -1,10 +1,10 @@
 # 项目管理（cc project）
 
-> **2026-10-06 核对**：公开 CLI `0.166.89` 保留项目 CRUD；候选 `0.166.90` 新增离线风险评估与描述预览。桌面候选另有个人项目受控动作，CLI 不提供 live execute。历史移动同步能力须按实际配对和同步服务状态判断，不承诺跨端零延迟。
+> **2026-10-06 核对**：公开 CLI `0.166.90` 保留项目 CRUD，并新增离线风险评估与描述预览。桌面源码另有个人项目受控动作，CLI 不提供 live execute。历史移动同步能力须按实际配对和同步服务状态判断，不承诺跨端零延迟。
 >
 > 详细操作与限制见[数据与项目指南](./data-actions-current)。
 >
-> `cc project` 的 CRUD 读写桌面共享 SQLite（`chainlesschain.db`），由实际桌面刷新显示。写入标记为待同步，移动端可见性取决于配对、同步服务和网络状态。候选离线命令只读取指定 JSON。
+> `cc project` 的 CRUD 读写桌面共享 SQLite（`chainlesschain.db`），由实际桌面刷新显示。写入标记为待同步，移动端可见性取决于配对、同步服务和网络状态。公开离线命令只读取指定 JSON。
 
 ## 概述
 
@@ -46,14 +46,14 @@ SQLite 驱动按级联回退：`better-sqlite3-multiple-ciphers` → `better-sql
    桌面 app UI（立刻可见）      手机端（服务可用时同步）
 ```
 
-## 候选：离线风险与任务描述预览
+## CLI 0.166.90：离线风险与任务描述预览
 
 ```bash
 cc project risk-evaluate --snapshot risk-snapshot.json --json
 cc project task-description-preview --snapshot task-description-snapshot.json --json
 ```
 
-候选命令只读本地 JSON（最多 2 MiB），不认证快照中的 DID、不改真实数据库。描述预览为 `unverified-snapshot`，没有 live execute 子命令。风险只识别逾期和直接依赖阻塞，数据不足返回 `insufficient-data` 和退出码 2。桌面原生受控动作限当前 DID 所有的个人项目待办描述，必须预览并明确确认；未知回执不能自动重放。见[操作与预算](./data-actions-current)。
+这些命令只读本地 JSON（最多 2 MiB），不认证快照中的 DID、不改真实数据库。描述预览为 `unverified-snapshot`，没有 live execute 子命令。风险只识别逾期和直接依赖阻塞，数据不足返回 `insufficient-data` 和退出码 2。桌面原生受控动作限当前 DID 所有的个人项目待办描述，必须预览并明确确认；未知回执不能自动重放。见[操作与预算](./data-actions-current)。
 
 ## 命令参考
 

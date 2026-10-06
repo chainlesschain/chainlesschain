@@ -1,10 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **更新 2026-10-06 | 公开 Open VSX `0.37.134` / JetBrains `0.4.152`**
+> **更新 2026-10-06 | 公开 Open VSX `0.37.135` / JetBrains `0.4.152`**
 >
-> 2026-10-06 核对：公开 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152** 的发行标签均指向 `02e1318aae`，两个 IDE 推荐 CLI `0.166.89`。最新已提交源码基线 `main@85181932ae` 为 CLI **0.166.90** / VS Code **0.37.135** / JetBrains **0.4.153** 候选；PDH **0.4.63**、Session Core **0.3.15** 同步准备，尚未公开发行。产品版保持独立 **v5.0.3.138**。 Microsoft Marketplace 未发行；操作见[IDE 指南](./ide-plugin)。
+> 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 Microsoft Marketplace 未发行；操作见[IDE 指南](./ide-plugin)。
 >
-> 公开版已包含图片解码预算、有界快照、实际会话能力诊断与慢初始化草稿保护。显式协议/UI 采集与 JetBrains CLI 身份诊断已随配对公开版发行；候选源码增加流式诊断修复。CLI/可信宿主持有执行、handoff、Skill 与 knowledge merge 权限；显式 Linux 持久权限宿主需管理员配置，跨进程/Worker 100 ms 轮询不构成即时停止。发布证据见[升级指南](./agent-platform-release)。
+> 公开版已包含图片解码预算、有界快照、实际会话能力诊断与慢初始化草稿保护。显式协议/UI 采集与 JetBrains CLI 身份诊断已随配对公开版发行；Open VSX `0.37.135` 已公开流式诊断修复，JetBrains `0.4.153` 发布仍在进行。CLI/可信宿主持有执行、handoff、Skill 与 knowledge merge 权限；显式 Linux 持久权限宿主需管理员配置，跨进程/Worker 100 ms 轮询不构成即时停止。发布证据见[升级指南](./agent-platform-release)。
 
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >

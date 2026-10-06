@@ -1,5 +1,7 @@
 # Agent SDK — TypeScript + Python 智能体接入套件
 
+> **2026-10-06 安装核对**：TypeScript SDK `0.2.13` 与 CLI `0.166.90` 已通过准确提交 `28cff6adc8` 的三平台完整门禁和 OIDC 发布，SDK 每平台 83 项测试通过且无跳过，构建及 protocol check 成功。本次 SDK 更新测试依赖 Vitest `4.1.11`，移除旧 Tinypool；不代表协议大版本变化。Python SDK 保持独立 `0.2.9`，Agent Protocol 为 `0.1.12`。安装与渠道状态见[发布指南](./agent-platform-release)；以下较早版本记录保留其功能引入时点。
+
 > **更新: 2026-09-04 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.2.8` / PyPI `chainlesschain-agent-sdk==0.2.8` / npm `@chainlesschain/agent-protocol@0.1.8` / CLI `chainlesschain@0.166.21`） | 协议版本 Agent Protocol v1 | TypeScript + Python SDK，多语言生成协议**
 >
 > Agent SDK 把 `cc agent` 的 stream-json 双工协议固化为**带类型的正式契约**：Node/浏览器使用 TypeScript 包，Python 自动化与 CI 使用 PyPI 包；流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析。VS Code 扩展、web-panel 已迁移到 TypeScript SDK；JetBrains 插件（Kotlin/Java）对齐同一份语言中立协议。
@@ -90,20 +92,20 @@ packages/agent-protocol (canonical schema + baseline)
 ### TypeScript / Node
 
 ```bash
-npm install "@chainlesschain/agent-sdk@0.2.8"
+npm install "@chainlesschain/agent-sdk@0.2.13"
 ```
 
 ### Python
 
 ```bash
-python -m pip install "chainlesschain-agent-sdk==0.2.8"
+python -m pip install "chainlesschain-agent-sdk==0.2.9"
 ```
 
 Python 包已在 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) 公开发布，支持
 Python 3.10、3.11、3.12、3.13。SDK 通过子进程驱动 `cc agent`，因此 CLI 需要单独安装：
 
 ```bash
-npm install --global "chainlesschain@0.166.21"
+npm install --global "chainlesschain@0.166.90"
 cc --version
 ```
 

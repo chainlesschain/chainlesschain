@@ -1,6 +1,6 @@
 # ChainlessChain CLI 安装指南
 
-> **2026-10-06 安装版本**：`npm install -g chainlesschain@0.166.89 --registry https://registry.npmjs.org`，发行提交 `02e1318aae`。Open VSX `0.37.134` 与 JetBrains `0.4.152` 均已公开并推荐 CLI `0.166.89`。执行 `cc --version` 后重启聊天宿主。`0.166.90/0.37.135/0.4.153` 仍是源码候选；安装范围见[发布指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)。
+> **2026-10-06 安装版本**：`npm install -g chainlesschain@0.166.90 --registry https://registry.npmjs.org`，发行提交 `28cff6adc8`。Open VSX `0.37.135` 推荐 CLI `0.166.90`；JetBrains 公开 `0.4.152` 仍推荐 `0.166.89`，`0.4.153` 发布进行中。执行 `cc --version` 后重启宿主；渠道状态及桌面安装边界见[发布指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)。
 
 > 2026-10-02：npm `latest` 为 `0.166.84`。需要固定本次核验版本时，使用 `npm install -g chainlesschain@0.166.84 --registry https://registry.npmjs.org`，执行 `cc --version` 后重启 IDE 聊天宿主。配套 Open VSX `0.37.126` 与 JetBrains `0.4.146` 均已公开；权限撤销范围见[发布与升级指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)。
 

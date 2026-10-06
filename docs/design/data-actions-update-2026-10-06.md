@@ -1,17 +1,19 @@
 # 数据投影恢复与项目受控动作增量设计（2026-10-06）
 
-本次核对基线为已提交 `main@85181932ae178a537d409331e386ba882d47544f`。公开安装版本为 CLI **0.166.89**、Open VSX **0.37.134**、JetBrains **0.4.152**，发行标签均指向 `02e1318aae747f977b8d3cb9372acc3a1d84d303`，两个 IDE 推荐 CLI `0.166.89`。下文新增实现属于 CLI **0.166.90**、PDH **0.4.63**、Session Core **0.3.15**、VS Code **0.37.135**、JetBrains **0.4.153** 源码候选；尚未公开发行，桌面产品安装包仍独立为 `v5.0.3.138`。操作说明见[用户指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)。
+2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains 当前公开 **0.4.152**，其制品仍推荐 CLI `0.166.89`；`0.4.153` 标签发布进行中，尚未确认公开上架。文档核对源码为 `main@f6f9998654`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 操作说明见[用户指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)。
 
 ## Git 变更与设计范围
 
-| 提交                                                      | 已实现范围                                               |
-| --------------------------------------------------------- | -------------------------------------------------------- |
-| `59e3107d95`                                              | 企业能力真实状态、RAG 内容更新与删除顺序、CLI 审计脱敏   |
-| `736427f984`                                              | PDH 耐久投影意图与恢复、共享业务对象契约                 |
-| `afd099a51a`                                              | 任务描述受控动作、确定性风险评估、退休 consumer 回执清理 |
-| `9f28073673`                                              | 项目任务抽屉、主进程身份及确认、风险检查历史             |
-| `2c3e3ca851`                                              | 相关子包、CLI 和 IDE 的版本及精确依赖准备                |
-| `3d234bd884` / `2f96e07a57` / `50496cb9b0` / `85181932ae` | PDH 三平台原生及跨包 CI 门，拒绝隐式跳过关键用例         |
+| 提交                                                      | 已实现范围                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `59e3107d95`                                              | 企业能力真实状态、RAG 内容更新与删除顺序、CLI 审计脱敏                   |
+| `736427f984`                                              | PDH 耐久投影意图与恢复、共享业务对象契约                                 |
+| `afd099a51a`                                              | 任务描述受控动作、确定性风险评估、退休 consumer 回执清理                 |
+| `9f28073673`                                              | 项目任务抽屉、主进程身份及确认、风险检查历史                             |
+| `2c3e3ca851`                                              | 相关子包、CLI 和 IDE 的版本及精确依赖准备                                |
+| `01dad7e9ba` / `28cff6adc8`                               | proxy-addr 与 SDK 测试依赖安全更新；PDH 可移植性合同对齐与完整发布门绑定 |
+| `f6f9998654`                                              | 记录子 npm 包与 CLI OIDC 发布、签名来源及公开归档核验                    |
+| `3d234bd884` / `2f96e07a57` / `50496cb9b0` / `85181932ae` | PDH 三平台原生及跨包 CI 门，拒绝隐式跳过关键用例                         |
 
 业务对象契约定义版本化 Project、Task、Document、Person、Decision、ActionRun 引用，以及动作请求和运行回执。契约和摘要绑定内容；它们不授予身份或执行权限，也不代表完整企业业务本体已经落地。
 
@@ -110,7 +112,9 @@ sequenceDiagram
 
 已有测试覆盖真实 SQLite 事务、加密 Vault 派生恢复、权限和版本变化、未知回执、回滚、consumer 清理保护、IPC 及 Vue 交互。不将单元/组件测试称为真实 Electron GUI E2E，不将离线风险规则称为业务效果验证。
 
-2026-10-06 公共版本和 Actions 回读见[版本观察记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-release-status-2026-10-06.json)。历史候选 `2f96e07a57` 的 Strict Sandbox 通过，CLI CI/IDE 尚未闭合且保留失败和取消记录；后续 `50496cb9b0` 修正完整性测试的 pin 计数，`85181932ae` 进一步规范化临时路径并兼容 macOS Bash；新候选，必须核对自身完整发布门，不能沿用前一个提交结果。发布资格仍未满足。必须在准确提交的 Linux/Windows/macOS 全矩阵通过后，依次核验子 npm 包 → CLI OIDC 发布 → IDE 发布及商店公开可用性。
+准确发行提交 `28cff6adc8` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585)（70 成功）、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644409)（5/5）和 [IDE 宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37407686847)（18 成功）通过；条件跳过项不计为通过。[质量与安全](https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385)（9/9）、[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340)及 [Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37414359683)成功。PDH 原生完整测试在 Linux、Windows、macOS 各 4482 项通过、0 失败，125 项显式停用的历史用例跳过；Session Core 各 709 项、SDK 各 83 项通过且无跳过。CLI 公开归档精确依赖 Session Core `0.3.15` 与 PDH `0.4.63`，签名来源绑定本次标签、提交和发布工作流。
+
+本轮完整门禁和 npm 发布证明均绑定 `28cff6adc8`；历史失败/取消记录保留。Open VSX `0.37.135` 已公开，JetBrains `0.4.153` 发布与公开审批仍分别核验。公共状态见[发布后版本观察](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-release-sync-20261006/docs/research/cli/evidence/documentation-release-status-2026-10-06-after-release.json)。设计中的桌面 IPC/UI 接线属于本轮源码，不能借 CLI/IDE 发布声明旧桌面安装包已包含新功能。
 
 ## 关键文件
 
