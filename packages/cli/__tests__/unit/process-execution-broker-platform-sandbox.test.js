@@ -6738,6 +6738,59 @@ describe("platform sandbox adapter contract", () => {
     });
   });
 
+  it("rejects invalid Windows wall-time limits before preparing a native adapter", () => {
+    const spawnSync = vi.fn(() => {
+      throw new Error("must not launch");
+    });
+    for (const wallTimeMs of [
+      null,
+      0,
+      -1,
+      0.5,
+      "1500",
+      NaN,
+      Infinity,
+      3600001,
+    ]) {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        {
+          profileName: "strict",
+          limits: { wallTimeMs },
+        },
+        { platform: "win32", spawnSync },
+      );
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "windows_wall_time_limit_invalid",
+        guarantees: [],
+      });
+    }
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("does not silently translate native wall time into Linux CPU limits or macOS Seatbelt", () => {
+    for (const platform of ["linux", "darwin"]) {
+      const plan = applySandbox(
+        "node",
+        ["task.js"],
+        {},
+        {
+          profile: "strict",
+          limits: { wallTimeMs: 1500 },
+        },
+        { platform },
+      );
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "native_wall_time_limit_unsupported",
+        guarantees: [],
+      });
+    }
+  });
+
   it("returns the Windows Job Object + restricted-token wrapper plan", () => {
     const harness = createWindowsAdapterHarness();
     const options = { windowsHide: true, env: { PATH: "C:\\Windows" } };
@@ -6745,7 +6798,7 @@ describe("platform sandbox adapter contract", () => {
       "tool.exe",
       ["run"],
       options,
-      { profileName: "strict" },
+      { profileName: "strict", limits: { wallTimeMs: 1500 } },
       {
         platform: "win32",
         fs: harness.fsRuntime,
@@ -6775,6 +6828,7 @@ describe("platform sandbox adapter contract", () => {
     });
     const payload = decodeWindowsLaunchSpec(harness, plan);
     expect(payload).toMatchObject({
+      wallTimeMs: 1500,
       cpuSeconds: 0,
       processMemoryBytes: 256 * 1024 * 1024,
       activeProcessLimit: 16,
@@ -7142,6 +7196,7 @@ describe("platform sandbox adapter contract", () => {
             },
             job: {
               killOnClose: true,
+              wallTimeMs: 0,
               activeProcessLimit: 16,
               cpuSeconds: 0,
               processMemoryBytes: 256 * 1024 * 1024,
@@ -9999,7 +10054,7 @@ describe("platform sandbox adapter contract", () => {
     const runSource = windowsSandboxSource.slice(runStart, runEnd);
 
     expect(windowsSandboxSource).toContain(
-      "private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token)",
+      "private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token, bool includeDisabled = false)",
     );
     expect(windowsSandboxSource).toContain(
       "private static bool TokenWasFiltered(IntPtr token)",
@@ -10014,6 +10069,9 @@ describe("platform sandbox adapter contract", () => {
       "private static void AssertRestrictedTokenPolicy(",
     );
     expect(runSource).toContain("UInt32 restrictedTokenFlags = 0;");
+    expect(runSource).toContain(
+      "TokenHasUnexpectedEnabledPrivileges(sourceToken, useAppContainer)",
+    );
     expect(runSource).toMatch(
       /!sourceTokenWasFiltered \|\|\s+sourceTokenHasUnexpectedEnabledPrivileges/,
     );
@@ -11705,6 +11763,40 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxGuarantees: [],
       sandboxState: "ready",
     });
+  });
+
+  it("requires native wall-time enforcement before dispatch even when ordinary fallback is allowed", () => {
+    const nativeSpawn = vi.fn();
+    const apply = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = { applySandbox: apply };
+    for (const wallTimeMs of [
+      null,
+      0,
+      -1,
+      1.2,
+      "2000",
+      NaN,
+      Infinity,
+      3600001,
+    ]) {
+      expect(() =>
+        executionBroker.spawn("node", [], {
+          origin: "test:wall-time",
+          policy: "allow",
+          sandboxPolicy: { limits: { wallTimeMs } },
+        }),
+      ).toThrow(/Native wall-time limit must be/);
+    }
+    expect(() =>
+      executionBroker.spawn("node", [], {
+        origin: "test:wall-time",
+        policy: "allow",
+        sandboxPolicy: { limits: { wallTimeMs: 1500 } },
+      }),
+    ).toThrow(/built-in Windows supervisor/);
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it("does not dispatch an injected adapter through its mutable call property", () => {

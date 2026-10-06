@@ -6,8 +6,6 @@ using System.IO;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -405,45 +403,6 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("userenv.dll", CharSet = CharSet.Unicode)]
         private static extern Int32 DeleteAppContainerProfile(
             string appContainerName);
-
-        [DllImport("FirewallAPI.dll")]
-        private static extern UInt32 NetworkIsolationGetAppContainerConfig(out UInt32 count, out IntPtr sids);
-
-        [DllImport("kernel32.dll")]
-        private static extern IntPtr GetProcessHeap();
-
-        [DllImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool HeapFree(IntPtr heap, UInt32 flags, IntPtr memory);
-
-        private static void AssertNoLoopbackExemption(IntPtr appSid)
-        {
-            UInt32 count;
-            IntPtr entries;
-            UInt32 result = NetworkIsolationGetAppContainerConfig(out count, out entries);
-            if (result != 0) throw new Win32Exception(checked((int)result), "Cannot attest AppContainer loopback exclusions");
-            // SID_AND_ATTRIBUTES contains a pointer and DWORD; x64 tail padding
-            // makes each entry two pointer widths. Free each SID and the array
-            // with the process heap, as documented by this API.
-            int stride = IntPtr.Size == 8 ? 16 : 8;
-            try
-            {
-                if (count > 65536 || (count > 0 && entries == IntPtr.Zero))
-                    throw new InvalidDataException("Invalid AppContainer loopback configuration");
-                for (UInt32 index = 0; index < count; index++)
-                    if (EqualSid(Marshal.ReadIntPtr(entries, checked((int)index * stride)), appSid))
-                        throw new InvalidDataException("Native evaluator SID has a loopback exemption");
-            }
-            finally
-            {
-                if (entries != IntPtr.Zero)
-                {
-                    for (UInt32 index = 0; index < Math.Min(count, 65536U); index++)
-                        HeapFree(GetProcessHeap(), 0, Marshal.ReadIntPtr(entries, checked((int)index * stride)));
-                    HeapFree(GetProcessHeap(), 0, entries);
-                }
-            }
-        }
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr _get_osfhandle(Int32 fileDescriptor);
@@ -1036,7 +995,7 @@ namespace ChainlessChain.WindowsSandbox
                 "restriction status");
         }
 
-        private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token, bool includeDisabled = false)
+        private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token)
         {
             IntPtr privilegesBuffer = IntPtr.Zero;
             try
@@ -1090,11 +1049,11 @@ namespace ChainlessChain.WindowsSandbox
                         privilegeName.ToString(),
                         "SeChangeNotifyPrivilege",
                         StringComparison.Ordinal) &&
-                        (includeDisabled || (
+                        (
                             privilege.Attributes &
                             (
                                 SE_PRIVILEGE_ENABLED |
-                                SE_PRIVILEGE_ENABLED_BY_DEFAULT)) != 0))
+                                SE_PRIVILEGE_ENABLED_BY_DEFAULT)) != 0)
                     {
                         return true;
                     }
@@ -1285,8 +1244,7 @@ namespace ChainlessChain.WindowsSandbox
                         StringComparison.Ordinal))
                     {
                         throw new InvalidDataException(
-                            "Target AppContainer token retained an unexpected privilege: " + privilegeName +
-                            " (attributes=" + privilege.Attributes + ")");
+                            "Target AppContainer token retained an unexpected privilege");
                     }
                 }
                 return SidToString(actualAppContainerSid);
@@ -2207,14 +2165,13 @@ namespace ChainlessChain.WindowsSandbox
         }
 
         private static LaunchPathFileIdentity ReadLaunchPathFileIdentity(
-            IntPtr handle,
-            bool allowDirectory = false)
+            IntPtr handle)
         {
             BY_HANDLE_FILE_INFORMATION basic;
             if (!GetFileInformationByHandle(handle, out basic))
                 ThrowLastError("GetFileInformationByHandle(launch path)");
             if (
-                (!allowDirectory && (basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
+                (basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
                 (basic.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
             {
                 throw new InvalidDataException(
@@ -3246,168 +3203,6 @@ namespace ChainlessChain.WindowsSandbox
             }
         }
 
-        [DataContract]
-        public sealed class EvaluatorPathSpec
-        {
-            [DataMember] public string path { get; set; }
-            [DataMember] public string dev { get; set; }
-            [DataMember] public string ino { get; set; }
-            [DataMember] public long bytes { get; set; }
-            [DataMember] public string sha256 { get; set; }
-        }
-
-        [DataContract]
-        public sealed class NativeEvaluatorSpec
-        {
-            [DataMember] public int version { get; set; }
-            [DataMember] public string root { get; set; }
-            [DataMember] public string workspace { get; set; }
-            [DataMember] public string control { get; set; }
-            [DataMember] public string scratch { get; set; }
-            [DataMember] public string check { get; set; }
-            [DataMember] public int wallTimeMs { get; set; }
-            [DataMember] public string manifestDigest { get; set; }
-            [DataMember] public EvaluatorPathSpec runtime { get; set; }
-            [DataMember] public EvaluatorPathSpec[] directories { get; set; }
-            [DataMember] public EvaluatorPathSpec[] files { get; set; }
-        }
-
-        private static bool SameEvaluatorPath(string left, string right)
-        {
-            return String.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static IntPtr HoldEvaluatorPath(string file, bool directory, List<IntPtr> guards)
-        {
-            ValidateExistingLocalPath(file, "Native evaluator path", false);
-            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
-            attributes.nLength = checked((UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
-            // Directory handles block rename/deletion; read-only file handles
-            // block writes and deletion for the complete target Job lifetime.
-            IntPtr handle = CreateFile(file, directory ? FILE_READ_ATTRIBUTES : GENERIC_READ,
-                directory ? FILE_SHARE_READ | FILE_SHARE_WRITE : FILE_SHARE_READ,
-                ref attributes, OPEN_EXISTING, directory ? 0x02200000U : 0x00200000U, IntPtr.Zero);
-            if (IsInvalidHandle(handle)) ThrowLastError("CreateFile(native evaluator guard)");
-            guards.Add(handle);
-            return handle;
-        }
-
-        private static void VerifyEvaluatorPath(EvaluatorPathSpec expected, IntPtr handle, bool directory)
-        {
-            LaunchPathFileIdentity actual = ReadLaunchPathFileIdentity(handle, directory);
-            UInt64 device, inode;
-            if (!UInt64.TryParse(expected.dev, out device) || !UInt64.TryParse(expected.ino, out inode) ||
-                !MatchesExpectedNodeFileIdentity(actual, device, inode) ||
-                !SameEvaluatorPath(NormalizeFinalPath(actual.FinalPath), expected.path) ||
-                (((actual.Attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) != directory))
-                throw new InvalidDataException("Native evaluator path identity changed");
-            if (directory) return;
-            if (actual.Links != 1 || actual.Bytes != (UInt64)expected.bytes || !IsLowercaseSha256(expected.sha256))
-                throw new InvalidDataException("Native evaluator file identity or link count changed");
-            using (SafeFileHandle safe = new SafeFileHandle(handle, false))
-            using (FileStream stream = new FileStream(safe, FileAccess.Read))
-            using (SHA256 algorithm = SHA256.Create())
-            {
-                string digest = BitConverter.ToString(algorithm.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-                if (digest != expected.sha256) throw new InvalidDataException("Native evaluator file digest changed");
-            }
-        }
-
-        private static void PrepareNativeEvaluator(NativeEvaluatorSpec spec, string application,
-            string[] arguments, string workingDirectory, string appSid, int wallTimeMs,
-            List<IntPtr> guards, ref bool rootAttested)
-        {
-            if (spec.version != 1 || !IsLowercaseSha256(spec.manifestDigest) || spec.runtime == null ||
-                spec.directories == null || spec.directories.Length < 4 || spec.directories.Length > 128 ||
-                spec.files == null || spec.files.Length < 2 || spec.files.Length > 65 ||
-                wallTimeMs < 1 || spec.wallTimeMs != wallTimeMs || String.IsNullOrWhiteSpace(appSid))
-                throw new InvalidDataException("Native evaluator manifest is incomplete");
-            string root = NormalizeLocalDosPath(spec.root, null, "Native evaluator stage");
-            string expectedParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
-            if (!SameEvaluatorPath(Path.GetDirectoryName(root), expectedParent) ||
-                !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(root), "^cc-native-evaluator-[A-Za-z0-9_-]{6}$") ||
-                !SameEvaluatorPath(spec.workspace, Path.Combine(root, "workspace")) ||
-                !SameEvaluatorPath(spec.control, Path.Combine(root, "control")) ||
-                !SameEvaluatorPath(spec.scratch, Path.Combine(root, "scratch")) ||
-                !SameEvaluatorPath(spec.check, Path.Combine(spec.control, "check.cjs")) ||
-                !SameEvaluatorPath(spec.runtime.path, Path.Combine(spec.control, "node.exe")) ||
-                !SameEvaluatorPath(application, spec.runtime.path) || arguments.Length != 5 ||
-                arguments[0] != "--preserve-symlinks" || arguments[1] != "--preserve-symlinks-main" ||
-                !SameEvaluatorPath(arguments[2], spec.check) || !SameEvaluatorPath(arguments[3], spec.workspace) ||
-                !SameEvaluatorPath(arguments[4], spec.scratch) || !SameEvaluatorPath(workingDirectory, spec.scratch) ||
-                !SameEvaluatorPath(spec.directories[0].path, root))
-                throw new InvalidDataException("Native evaluator launch or private stage binding changed");
-            string ancestor = Path.GetPathRoot(root);
-            foreach (string part in root.Substring(ancestor.Length).Split(Path.DirectorySeparatorChar))
-            {
-                ancestor = Path.Combine(ancestor, part);
-                if (!SameEvaluatorPath(ancestor, root)) HoldEvaluatorPath(ancestor, true, guards);
-            }
-            HashSet<string> expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (EvaluatorPathSpec directory in spec.directories)
-            {
-                string full = Path.GetFullPath(directory.path);
-                if ((!SameEvaluatorPath(full, root) && !full.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase)) || !expected.Add(full))
-                    throw new InvalidDataException("Native evaluator directory is outside the private stage or duplicated");
-                VerifyEvaluatorPath(directory, HoldEvaluatorPath(full, true, guards), true);
-                if (SameEvaluatorPath(full, root)) rootAttested = true;
-            }
-            long total = 0;
-            foreach (EvaluatorPathSpec file in spec.files)
-            {
-                string full = Path.GetFullPath(file.path);
-                if ((!full.StartsWith(spec.workspace + "\\", StringComparison.OrdinalIgnoreCase) && !SameEvaluatorPath(full, spec.check)) ||
-                    !expected.Add(full) || file.bytes < 0 || file.bytes > 1024 * 1024)
-                    throw new InvalidDataException("Native evaluator file is outside its read-only roots or exceeds bounds");
-                total = checked(total + file.bytes);
-                if (total > 8 * 1024 * 1024) throw new InvalidDataException("Native evaluator tree exceeds byte bound");
-                VerifyEvaluatorPath(file, HoldEvaluatorPath(full, false, guards), false);
-            }
-            if (!expected.Contains(spec.check) || !expected.Contains(spec.workspace) || !expected.Contains(spec.control) || !expected.Contains(spec.scratch))
-                throw new InvalidDataException("Native evaluator manifest omits a required path");
-            if (spec.runtime.bytes < 1 || spec.runtime.bytes > 128 * 1024 * 1024 || !expected.Add(spec.runtime.path))
-                throw new InvalidDataException("Native evaluator runtime exceeds byte bound or duplicates a path");
-            VerifyEvaluatorPath(spec.runtime, HoldEvaluatorPath(application, false, guards), false);
-            foreach (EvaluatorPathSpec directory in spec.directories)
-                foreach (string child in Directory.GetFileSystemEntries(directory.path))
-                    if (!expected.Contains(child)) throw new InvalidDataException("Native evaluator tree has an unlisted entry");
-            if (Directory.GetFileSystemEntries(spec.scratch).Length != 0)
-                throw new InvalidDataException("Native evaluator scratch must start empty");
-            SecurityIdentifier sid = new SecurityIdentifier(appSid);
-            SecurityIdentifier owner = WindowsIdentity.GetCurrent().User;
-            SecurityIdentifier system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
-            foreach (EvaluatorPathSpec directory in spec.directories)
-            {
-                DirectorySecurity security = new DirectorySecurity();
-                security.SetAccessRuleProtection(true, false);
-                security.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl,
-                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-                security.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl,
-                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-                bool scratch = SameEvaluatorPath(directory.path, spec.scratch);
-                security.AddAccessRule(new FileSystemAccessRule(sid,
-                    scratch ? FileSystemRights.Modify : FileSystemRights.ReadAndExecute,
-                    scratch ? InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit : InheritanceFlags.None,
-                    PropagationFlags.None, AccessControlType.Allow));
-                Directory.SetAccessControl(directory.path, security);
-            }
-            foreach (EvaluatorPathSpec file in spec.files)
-            {
-                FileSecurity security = new FileSecurity();
-                security.SetAccessRuleProtection(true, false);
-                security.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, AccessControlType.Allow));
-                security.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
-                security.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
-                File.SetAccessControl(file.path, security);
-            }
-            FileSecurity runtimeSecurity = new FileSecurity();
-            runtimeSecurity.SetAccessRuleProtection(true, false);
-            runtimeSecurity.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, AccessControlType.Allow));
-            runtimeSecurity.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
-            runtimeSecurity.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
-            File.SetAccessControl(spec.runtime.path, runtimeSecurity);
-        }
-
         // This timer belongs to the native supervisor, not the JavaScript
         // caller. It also covers a target that stops reading its entry pipe.
         // The gate prevents a queued callback from touching a closed/reused
@@ -3493,8 +3288,7 @@ namespace ChainlessChain.WindowsSandbox
             byte[] entrySnapshotOverride,
             string snapshotTestGateToken,
             string snapshotTestGateReleasePath,
-            int wallTimeMs = 0,
-            NativeEvaluatorSpec nativeEvaluator = null)
+            int wallTimeMs = 0)
         {
             if (wallTimeMs < 0 || wallTimeMs > 3600000)
                 throw new ArgumentOutOfRangeException("wallTimeMs");
@@ -3565,8 +3359,6 @@ namespace ChainlessChain.WindowsSandbox
             int targetExitCode = 125;
             Exception launchError = null;
             JobWallTimeWatchdog wallTimeWatchdog = null;
-            List<IntPtr> evaluatorGuards = new List<IntPtr>();
-            bool evaluatorRootAttested = false;
 
             try
             {
@@ -3636,19 +3428,6 @@ namespace ChainlessChain.WindowsSandbox
                     }
                     ConfigureAppContainerEnvironment(targetEnvironment);
                 }
-                if (nativeEvaluator != null)
-                {
-                    if (!useAppContainer || nodeIpcFd >= 0 || detached || entrySnapshot != null)
-                        throw new InvalidDataException("Native evaluator requires a synchronous AppContainer launch");
-                    AssertNoLoopbackExemption(appContainerSid);
-                    PrepareNativeEvaluator(nativeEvaluator, application, arguments, workingDirectory,
-                        expectedAppContainerSid, wallTimeMs, evaluatorGuards, ref evaluatorRootAttested);
-                    targetEnvironment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    targetEnvironment["SystemRoot"] = Path.GetDirectoryName(Environment.SystemDirectory);
-                    targetEnvironment["WINDIR"] = Path.GetDirectoryName(Environment.SystemDirectory);
-                    targetEnvironment["PATH"] = Path.GetDirectoryName(application);
-                    ConfigureAppContainerEnvironment(targetEnvironment);
-                }
                 environmentBuffer =
                     BuildEnvironmentBlock(targetEnvironment);
 
@@ -3677,12 +3456,8 @@ namespace ChainlessChain.WindowsSandbox
                 // an exact primary-token duplicate instead of filtering again.
                 bool sourceTokenWasFiltered =
                     TokenWasFiltered(sourceToken);
-                // A UAC-filtered token can retain disabled privileges. The
-                // AppContainer attestation requires their removal, not merely
-                // that they are disabled. Compatibility workers retain their
-                // existing enabled-only predicate for nested token support.
                 bool sourceTokenHasUnexpectedEnabledPrivileges =
-                    TokenHasUnexpectedEnabledPrivileges(sourceToken, useAppContainer);
+                    TokenHasUnexpectedEnabledPrivileges(sourceToken);
                 bool sourceTokenHasEnabledAdministratorSid =
                     disableAdministratorSids &&
                     TokenHasEnabledAdministratorSid(sourceToken);
@@ -4050,11 +3825,6 @@ namespace ChainlessChain.WindowsSandbox
                 foreach (IntPtr handle in ownedStandardHandles)
                     CloseHandle(handle);
                 if (limitBuffer != IntPtr.Zero) Marshal.FreeHGlobal(limitBuffer);
-                if (nativeEvaluator != null && !IsInvalidHandle(appContainerSid))
-                {
-                    try { AssertNoLoopbackExemption(appContainerSid); }
-                    catch (Exception error) { cleanupError = error; }
-                }
                 if (!IsInvalidHandle(appContainerSid)) FreeSid(appContainerSid);
                 if (restrictedToken != IntPtr.Zero) CloseHandle(restrictedToken);
                 if (sourceToken != IntPtr.Zero) CloseHandle(sourceToken);
@@ -4089,37 +3859,10 @@ namespace ChainlessChain.WindowsSandbox
                                 launchError,
                                 cleanupError);
                 }
-                if (nativeEvaluator != null && evaluatorRootAttested && cleanupError == null)
-                {
-                    try
-                    {
-                        PublishTargetIdentity(Path.Combine(nativeEvaluator.root, "settlement.json"),
-                            JsonCodec.SerializeObject("manifestDigest", nativeEvaluator.manifestDigest,
-                                "cleanupConfirmed", true, "capabilityCount", 0,
-                                "loopbackExemptionAbsent", true,
-                                "targetPid", processInfo.dwProcessId,
-                                "appContainerSid", expectedAppContainerSid,
-                                "wallTimeMs", wallTimeMs,
-                                "targetExitCode", targetExitCode,
-                                "supervisorUserSidSha256", HashEvaluatorUserSid(),
-                                "executionFailed", launchError != null));
-                    }
-                    catch (Exception error) { launchError = error; }
-                }
-                foreach (IntPtr guard in evaluatorGuards) CloseHandle(guard);
-                evaluatorGuards.Clear();
             }
             if (launchError != null)
                 throw launchError;
             return targetExitCode;
-        }
-
-        private static string HashEvaluatorUserSid()
-        {
-            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-            using (SHA256 algorithm = SHA256.Create())
-                return BitConverter.ToString(algorithm.ComputeHash(Encoding.UTF8.GetBytes(identity.User.Value)))
-                    .Replace("-", "").ToLowerInvariant();
         }
     }
 
@@ -4131,8 +3874,6 @@ namespace ChainlessChain.WindowsSandbox
         [DataContract]
         public sealed class LaunchSpec
         {
-            [DataMember]
-            public Native.NativeEvaluatorSpec nativeEvaluator { get; set; }
             [DataMember]
             public int wallTimeMs { get; set; }
             [DataMember]
@@ -4504,8 +4245,7 @@ namespace ChainlessChain.WindowsSandbox
                     null,
                     spec.snapshotTestGateToken,
                     spec.snapshotTestGateReleasePath,
-                    spec.wallTimeMs,
-                    spec.nativeEvaluator);
+                    spec.wallTimeMs);
             }
             catch (Exception error)
             {

@@ -1,0 +1,50 @@
+{
+  "schema": "chainlesschain.windows-native-wall-time-diagnostic/v1",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "sourceSha256": "ada5ef52e83f5a5ae2a20743dd86f280b34e267b807c391584a32ae674d69971",
+  "helperExeSha256": "2117c0af888a83b364796f98607367d9be0a7008ffe69d821addd5107ae8644f",
+  "helperDllSha256": "3d78386c176ff247daaac82796a222abf4fd14a68328125d2cb09aa4f3baba96",
+  "adapterSha256": "90ca58d172971864a525035d5353490a91dd980e61f44643ce47cf570846a548",
+  "brokerSha256": "2d702c043fa3c687c6528aad3d14706af6eba0ae63cfe8e1efb5be5c0e584eea",
+  "nativeReviewAcceptance": false,
+  "durableAuthorityAssessed": false,
+  "receipts": [
+    {
+      "kind": "compiled-source-identity",
+      "ready": true,
+      "hostRuntime": "managed-executable-v1",
+      "sourceSha256": "ada5ef52e83f5a5ae2a20743dd86f280b34e267b807c391584a32ae674d69971"
+    },
+    {
+      "kind": "wall-time-expired",
+      "elapsedMs": 3770,
+      "exitCode": 125,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"parent\":19968,\"descendant\":13984}\n",
+      "stderr": "CC_WINDOWS_SANDBOX_ERROR: Windows sandbox wall-time limit exceeded\r\n",
+      "identities": {
+        "parent": 19968,
+        "descendant": 13984
+      },
+      "allObservedProcessesAbsent": true,
+      "backend": "windows-job-restricted-token"
+    },
+    {
+      "kind": "normal-exit",
+      "elapsedMs": 2897,
+      "exitCode": 7,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"parent\":8960,\"descendant\":25228}\n",
+      "stderr": "",
+      "identities": {
+        "parent": 8960,
+        "descendant": 25228
+      },
+      "allObservedProcessesAbsent": true,
+      "backend": "windows-job-restricted-token"
+    }
+  ]
+}

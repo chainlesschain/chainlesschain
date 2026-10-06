@@ -1,0 +1,42 @@
+{
+  "schema": "chainlesschain.windows-native-wall-time-stage-readback/v1",
+  "checkedAt": "2026-10-06T09:21:49.455Z",
+  "stage": 1,
+  "files": [
+    {
+      "path": "snapshot/windows-sandbox.cs",
+      "sha256": "ada5ef52e83f5a5ae2a20743dd86f280b34e267b807c391584a32ae674d69971",
+      "bytes": 171665
+    },
+    {
+      "path": "snapshot/windows-sandbox-helper.exe",
+      "sha256": "2117c0af888a83b364796f98607367d9be0a7008ffe69d821addd5107ae8644f",
+      "bytes": 67584
+    },
+    {
+      "path": "snapshot/windows-sandbox-helper.dll",
+      "sha256": "3d78386c176ff247daaac82796a222abf4fd14a68328125d2cb09aa4f3baba96",
+      "bytes": 67072
+    },
+    {
+      "path": "snapshot/platform-sandbox.js",
+      "sha256": "90ca58d172971864a525035d5353490a91dd980e61f44643ce47cf570846a548",
+      "bytes": 323022
+    },
+    {
+      "path": "snapshot/index.js",
+      "sha256": "2d702c043fa3c687c6528aad3d14706af6eba0ae63cfe8e1efb5be5c0e584eea",
+      "bytes": 214793
+    }
+  ],
+  "allFiveSourceHashesMatchedAtArchive": true,
+  "compiledSourceIdentityMatched": true,
+  "nativeScenariosPassed": 3,
+  "unitTestsPassedAcrossFinalRuns": 355,
+  "deadlineMs": 2000,
+  "outerTimeoutMs": 20000,
+  "cleanupFenceMaxMs": 10000,
+  "nativeReviewAcceptance": false,
+  "durableAuthorityAssessed": false,
+  "currentStage2SourceCovered": false
+}

@@ -46,7 +46,6 @@ import {
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
 import { normalizeLinuxCgroupPolicy } from "./linux-cgroup-v2.js";
-import { consumeWindowsNativeEvaluatorPolicy } from "./windows-native-evaluator.js";
 import { acquireLinuxSubreaperHelper } from "./linux-subreaper-helper.js";
 import { spawnLinuxSubreaperChild } from "./linux-subreaper-process.js";
 import {
@@ -1642,31 +1641,11 @@ class ProcessExecutionBroker extends EventEmitter {
         requiredBoundaries.push(SANDBOX_BOUNDARIES.RESOURCE_LIMITS);
       }
     }
-    const windowsNativeEvaluator =
-      rawPolicy?.windowsNativeEvaluator === undefined
-        ? null
-        : consumeWindowsNativeEvaluatorPolicy(
-            rawPolicy.windowsNativeEvaluator,
-            launch,
-            options,
-          );
-    if (windowsNativeEvaluator) {
-      for (const boundary of [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-        SANDBOX_BOUNDARIES.PROCESS_TREE,
-        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
-      ]) {
-        if (!requiredBoundaries.includes(boundary))
-          requiredBoundaries.push(boundary);
-      }
-    }
     return {
       profile,
       requiredBoundaries,
       linuxCgroup,
       executionContract,
-      ...(windowsNativeEvaluator ? { windowsNativeEvaluator } : {}),
       ...(wallTimeMs !== undefined ? { wallTimeMs } : {}),
     };
   }
@@ -3706,9 +3685,6 @@ class ProcessExecutionBroker extends EventEmitter {
       ...(sandboxPolicy.wallTimeMs !== undefined
         ? { limits: Object.freeze({ wallTimeMs: sandboxPolicy.wallTimeMs }) }
         : {}),
-      ...(sandboxPolicy.windowsNativeEvaluator
-        ? { windowsNativeEvaluator: sandboxPolicy.windowsNativeEvaluator }
-        : {}),
     });
     // Keep the legacy string profile in argument four. The built-in adapter
     // reserves argument five for runtime injection, so the typed request is
@@ -3757,27 +3733,7 @@ class ProcessExecutionBroker extends EventEmitter {
       ) {
         throw this._sandboxBoundaryError(
           "native_wall_time_limit_unavailable",
-          `The requested native wall-time limit was not enforced: ${rawPlan?.reason || "unattested_plan"}`,
-          {
-            requiredBoundaries,
-            actualGuarantees: rawPlan?.guarantees || [],
-            sandboxBackend: rawPlan?.backend,
-            sandboxCandidateBackend: rawPlan?.candidateBackend,
-            sandboxRuntimeProbe: rawPlan?.runtimeProbe,
-            sandboxCandidateReason: rawPlan?.reason,
-          },
-        );
-      }
-      if (
-        sandboxPolicy.windowsNativeEvaluator &&
-        (rawPlan.backend !== "windows-appcontainer-job-restricted-token" ||
-          rawPlan.policyAttested !== true ||
-          rawPlan.windowsNativeEvaluatorDigest !==
-            sandboxPolicy.windowsNativeEvaluator.manifestDigest)
-      ) {
-        throw this._sandboxBoundaryError(
-          "native_evaluator_plan_unattested",
-          "The staged native evaluator policy was not enforced",
+          "The requested native wall-time limit was not enforced",
         );
       }
       plan = this._validateSandboxPlan(rawPlan, {

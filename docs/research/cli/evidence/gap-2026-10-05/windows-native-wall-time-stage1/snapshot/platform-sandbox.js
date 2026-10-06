@@ -784,7 +784,6 @@ function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
     requiredBoundaries,
     sync: request.sync === true,
     wallTimeMs: request.limits?.wallTimeMs,
-    windowsNativeEvaluator: request.windowsNativeEvaluator || null,
     pty: request.pty === true,
     linuxCgroup: normalizeLinuxCgroupPolicy(request.linuxCgroup),
     executionContract:
@@ -4218,9 +4217,6 @@ function windowsAppContainerPolicyDigest({
         cpuSeconds: launchSpec.cpuSeconds,
         processMemoryBytes: launchSpec.processMemoryBytes,
       },
-      ...(launchSpec.nativeEvaluator
-        ? { nativeEvaluator: launchSpec.nativeEvaluator }
-        : {}),
       execution: {
         contractKind: executionContract?.kind || null,
         contentSnapshot: snapshotLocks.length > 0,
@@ -4538,9 +4534,6 @@ export function applyWindowsSandbox(
     windowsHide: invocation.options.windowsHide === true,
     workingDirectory: targetWorkingDirectory,
     environment: targetEnvironment,
-    ...(sandboxOpts.windowsNativeEvaluator
-      ? { nativeEvaluator: sandboxOpts.windowsNativeEvaluator }
-      : {}),
   };
   if (entrySnapshot.locks) {
     launchSpec.launchPathLocks = entrySnapshot.locks;
@@ -4943,8 +4936,6 @@ export function applyWindowsSandbox(
     policyDigest: appContainerPolicyDigest,
     adapterTempRootAttestation: adapterSource.tempRootAttestation,
     windowsWallTimeMs: wallTimeMs || null,
-    windowsNativeEvaluatorDigest:
-      sandboxOpts.windowsNativeEvaluator?.manifestDigest || null,
     runtimeProbe: entrySnapshotRuntimeProbe,
     guarantees: [
       ...(requiresAppContainer
@@ -10019,7 +10010,6 @@ export function applySandbox(
     pty: sandboxRequest.pty,
     linuxCgroup: sandboxRequest.linuxCgroup,
     executionContract: sandboxRequest.executionContract,
-    windowsNativeEvaluator: sandboxRequest.windowsNativeEvaluator,
   };
   if (sandboxRequest.wallTimeMs !== undefined) {
     profile.limits = {
