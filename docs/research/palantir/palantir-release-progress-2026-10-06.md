@@ -2,6 +2,31 @@
 
 更新日期：2026-10-06。用户已授权直接提交主分支、推送 GitHub Actions，测试通过后按依赖顺序发布，并持续修复发布失败。
 
+## 最新门禁状态
+
+当前工作目录为 `main`，并行文档更新已提交。Security Audit 发现真实依赖漏洞，需以本次安全修复提交重新绑定全部发布门禁。npm 尚未发布本轮版本。
+
+### Security Audit 依赖修复
+
+用户指出的 [Security Audit](https://github.com/chainlesschain/chainlesschain/actions/runs/37405057910/job/112080724554) 和 [文档提交上的重复失败](https://github.com/chainlesschain/chainlesschain/actions/runs/37406700794/job/112085761252) 均由同一组依赖漏洞阻塞：`proxy-addr 2.0.7` 的 IP 信任漏洞，以及 Agent SDK 的 Vitest 3 带入 `tinypool 1.1.1` 的两项 RCE 漏洞；`vitest` 是后者的依赖链标记。
+
+修复将 root 和 desktop 的 `proxy-addr` 锁定 `2.0.8`，Agent SDK 测试依赖改为 `Vitest ^4.1.11`，清除旧 Tinypool 依赖，更新三个锁文件和 vendored SDK 清单。SDK 公开清单发生变更，因此版本递增为 `0.2.13`，用户已要求也先发布此子包。CLI CI 新增 SDK 构建和全套测试的 Linux、Windows、macOS 门禁。本地 SDK 构建和 83 项全套测试通过，CI 完整性 51 项通过；没有扩大漏洞豁免，复查 JSON 中原来的三个阻塞项均消失。仅剩仓库既有 `decompress` critical 豁免，不能将本次结果描述为全部依赖零漏洞。最终安全和发布结果仍以修复提交的 Actions 为准。
+
+以下为上轮候选 `85181932ae178a537d409331e386ba882d47544f` 的测试证据，不能替代新安全修复提交的门禁。
+
+| 检查                  | 状态          | 依据                                                                                                                                                                                 |
+| --------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PDH Linux 原生测试    | 通过          | 4482 项通过、0 失败；两个 SQLite 驱动实际加载                                                                                                                                        |
+| PDH macOS 原生测试    | 通过          | 4482 项通过、0 失败；Bash 3.2 修复已验证                                                                                                                                             |
+| PDH Windows 原生测试  | 通过          | 4482 项通过、0 失败；Git Bash 临时路径修复已验证                                                                                                                                     |
+| CLI 完整矩阵          | 运行 / 排队中 | [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37405058068)；含 Session Core 三平台测试                                                                      |
+| CLI Strict Sandbox    | 运行 / 排队中 | [严格沙箱](https://github.com/chainlesschain/chainlesschain/actions/runs/37405104768)                                                                                                |
+| IDE 测试              | 运行 / 排队中 | [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37405110614)、[IDE Safety](https://github.com/chainlesschain/chainlesschain/actions/runs/37405116443) |
+| macOS MCP Launcher    | 通过          | [发布门禁](https://github.com/chainlesschain/chainlesschain/actions/runs/37405057992)                                                                                                |
+| 子包 → CLI → IDE 发布 | 待完整门禁    | 全部 npm 包使用 GitHub Actions OIDC；逐包下载核验后继续下游                                                                                                                          |
+
+三平台 PDH 报告均已下载核验，原先隐式漏跑的 20 项跨包测试及新增 35 项派生恢复测试全部执行通过。每个平台另有 125 项源码显式停用的历史 Evolution ingress 测试跳过，未计为通过。当前排队任务未执行完毕，不计为通过；旧候选活动任务已取消。Astra 协助复核日志和排队情况，目前没有证据需要缩减矩阵或放宽门禁。
+
 上一轮候选：`main@2f96e07a57d4ae80ec0c438fbbbb912f0649d37b`（因下述完整性断言修复而替代）。工作流：
 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37366164477)、
 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37366163952)、
@@ -27,11 +52,12 @@ GitHub 官方 Actions 分配故障于 `2026-10-05T22:49:42Z` 报告已解决。�
 | 阶段               | 目标版本 / 范围                            | 状态                                       | 验证依据                                                                   |
 | ------------------ | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------- |
 | 功能实现           | 四批 Palantir 对照改进                     | 已提交                                     | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
-| 子包核对           | PDH、Session Core                          | 已确认必须更新                             | 两包实现均不同于公开版本；其余子包无实现变更                               |
+| 子包核对           | PDH、Session Core、Agent SDK               | 已确认必须更新                             | 前两包实现更新；SDK 公开清单升级测试依赖，不能复用旧 npm 包字节            |
 | 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                          | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
 | GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 修复 PDH helper 跨平台兼容性后重启完整检查 | Bash 3.2 空数组和 Windows tar 路径问题已定位；须最新提交全部通过后发布     |
 | Session Core       | `0.3.14` → `0.3.15`                        | 待门禁通过                                 | GitHub Actions OIDC 发布；公开包下载核验                                   |
 | Personal Data Hub  | `0.4.62` → `0.4.63`                        | 待门禁通过                                 | 新增三平台完整 PDH 原生测试，声明的 SQLCipher 依赖必须实际加载             |
+| Agent SDK          | `0.2.12` → `0.2.13`                        | 待门禁通过                                 | Vitest 4.1.11 移除旧 Tinypool；SDK 构建和全套测试须三平台通过              |
 | CLI                | `0.166.89` → `0.166.90`                    | 待子包发布和核验                           | 精确依赖对齐、公开子包逐包校验后 OIDC 发布                                 |
 | VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 待 CLI 公开可用                            | 配对 CLI `0.166.90`；三平台 IDE 测试和发布工作流                           |
 | JetBrains          | 候选 `0.4.153`                             | 待 CLI 公开可用                            | 旧 `0.4.152` 发布仍在进行，候选不复用其版本；上传与公开审核状态分别记录    |

@@ -18,7 +18,7 @@ on:
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
-      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - "packages/agent-sdk/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
@@ -59,7 +59,7 @@ on:
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
-      - "packages/agent-sdk/__fixtures__/protocol/**"
+      - "packages/agent-sdk/**"
       - "tests/fixtures/claude-2.1.221-238-security-map.json"
       - "tests/fixtures/claude-code-increment-audit-contract.json"
       - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
@@ -201,6 +201,12 @@ jobs:
       - name: Test Session Core release payload source
         working-directory: packages/session-core
         run: npm test -- --maxWorkers=1
+      - name: Test Agent SDK release payload source
+        working-directory: packages/agent-sdk
+        run: |
+          npm run protocol:check
+          npm run build
+          npm test -- --maxWorkers=1
       - name: Run mapped Claude security delta tests
         shell: bash
         run: >-

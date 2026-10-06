@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publish Personal Data Hub `0.4.63` and Session Core `0.3.15` before the CLI,
   with exact dependency pins and public tarball verification. Require the full
   PDH suite with its declared native SQLCipher driver on Linux, Windows and macOS.
+- Publish Agent SDK `0.2.13` with Vitest `4.1.11` test tooling to remove the
+  vulnerable Tinypool dependency, and upgrade the workspace proxy-addr to
+  `2.0.8`. Require SDK build and tests on the exact Linux, Windows and macOS
+  release commit before OIDC publication.
 - Persist PDH projection receipts, recover incomplete derivations and support
   bounded receipt retention. Harden RAG updates, audit redaction and capability
   reporting so unavailable sources do not appear as successful live collection.
