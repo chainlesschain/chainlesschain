@@ -429,7 +429,13 @@ export const useAppStore = defineStore("app", {
     },
 
     // 登出
-    logout(): void {
+    async logout(): Promise<void> {
+      const auth = window.electronAPI?.auth;
+      if (typeof auth?.logout !== "function") {
+        throw new Error("AUTH_LOGOUT_UNAVAILABLE");
+      }
+      // Keep the UI session until the main process has revoked background work.
+      await auth.logout();
       this.isAuthenticated = false;
       this.ukeyStatus = { detected: false, unlocked: false };
       this.deviceId = null;

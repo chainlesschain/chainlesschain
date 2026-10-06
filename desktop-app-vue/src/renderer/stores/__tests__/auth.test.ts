@@ -19,10 +19,15 @@ import { useAppStore } from "../app";
 describe("useAuthStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    vi.stubGlobal("electronAPI", undefined);
+    window.electronAPI = {
+      auth: { logout: vi.fn().mockResolvedValue(undefined) },
+    } as any;
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   // -------------------------------------------------------------------------
@@ -61,17 +66,48 @@ describe("useAuthStore", () => {
   // -------------------------------------------------------------------------
 
   describe("logout", () => {
-    it("clears the app store's auth state", () => {
+    it("clears the app store's auth state after main-process logout", async () => {
       const app = useAppStore();
       app.setAuthenticated(true);
       app.setDeviceId("device-123");
 
       const auth = useAuthStore();
-      auth.logout();
+      await auth.logout();
 
+      expect(window.electronAPI.auth.logout).toHaveBeenCalledOnce();
       expect(app.isAuthenticated).toBe(false);
       expect(app.deviceId).toBeNull();
       expect(auth.currentUser).toBeNull();
+    });
+
+    it("retains visible authentication until main-process revocation completes", async () => {
+      let release!: () => void;
+      window.electronAPI.auth.logout = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      );
+      const app = useAppStore();
+      app.setAuthenticated(true);
+      app.setDeviceId("device-123");
+      const pending = useAuthStore().logout();
+      expect(app.isAuthenticated).toBe(true);
+      release();
+      await pending;
+      expect(app.isAuthenticated).toBe(false);
+    });
+
+    it("does not report logout when the main process rejects revocation", async () => {
+      window.electronAPI.auth.logout = vi
+        .fn()
+        .mockRejectedValue(new Error("unavailable"));
+      const app = useAppStore();
+      app.setAuthenticated(true);
+      app.setDeviceId("device-123");
+      await expect(useAuthStore().logout()).rejects.toThrow("unavailable");
+      expect(app.isAuthenticated).toBe(true);
+      expect(app.deviceId).toBe("device-123");
     });
   });
 });

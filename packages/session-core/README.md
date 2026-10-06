@@ -24,8 +24,9 @@ retain their original Graph, configuration, home and native driver assembly.
 The shared runtime requires live authorization and an injected Graph Authority
 or explicitly selected legacy Graph mode. The shared store requires a host
 driver, a separate database file and synchronous storage protection before and
-after opening. Desktop monitoring and lifecycle integration remain a separate
-task; these entries do not load the CLI Graph or configuration stack.
+after opening. `./scheduler-authority-resolver` supplies the shared policy
+binding, non-mutating availability checks and durable reservations. These
+entries do not load the CLI Graph or configuration stack.
 
 `./goal-contract` and `./goal-repository` define bounded, versioned goal records
 and storage adapters with compare-and-swap updates. `./project-goal-service`
@@ -37,6 +38,24 @@ the host's current authorization and usage ledger. Completion verification is
 disabled unless the host supplies an independent trusted checker. See the
 [implementation progress](../../docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md)
 for the current boundary, legacy compatibility and test evidence.
+
+`./project-goal-monitoring` provides explicitly enabled personal-project risk
+checks through the shared scheduler. Native project transactions commit each
+review, occurrence-bound check evidence and goal usage together. A separate
+scheduler ledger can recover a committed check without another review or debit.
+Per-goal run/time limits, current principal policy and current project ownership
+are rechecked before work and before domain commit. Manual request IDs bind
+durably to a goal/control/policy version; fresh intents can bind a new policy
+without changing prior replay identities. Timer periods coalesce after downtime.
+Historical and terminal results revalidate the saved authorized risk evidence.
+
+The desktop host protects its separate scheduler database, drains work on exit,
+and derives monitoring identity from successful main-process password/UKey login
+handlers. Locking or removing a UKey and logging out revoke the relevant session.
+Loading a default DID does not authenticate a session. The project risk panel
+exposes explicit start/stop/check/status controls and saved evidence. This first
+adapter runs deterministic rules with zero model usage; business writes,
+notifications and independent goal completion remain separate work.
 
 The source also exports `./business-object-contract`: immutable references for
 Project, Task, Document, Person, Decision and ActionRun; version-bound action

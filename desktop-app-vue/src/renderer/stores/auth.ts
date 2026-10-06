@@ -35,10 +35,9 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    logout(): void {
+    async logout(): Promise<void> {
       const appStore = useAppStore();
-      appStore.setAuthenticated(false);
-      appStore.setDeviceId(null);
+      await appStore.logout();
     },
   },
 });

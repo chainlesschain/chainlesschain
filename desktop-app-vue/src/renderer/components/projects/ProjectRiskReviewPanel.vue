@@ -143,11 +143,18 @@
         模型费用：未知。这里展示历史来源与操作记录，当前风险需重新检查。
       </p>
     </div>
+    <ProjectGoalMonitoringPanel
+      :project-id="projectId"
+      :identity-key="identityKey"
+      @review-id="selectReview"
+      @authority-error="failure(new Error('GOAL_NOT_FOUND_OR_DENIED'), '')"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import ProjectGoalMonitoringPanel from "./ProjectGoalMonitoringPanel.vue";
 import {
   isAuthorityError,
   riskReason,

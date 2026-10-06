@@ -901,6 +901,10 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:get-files",
   "project:goal-create",
   "project:goal-list",
+  "project:goal-monitor-check",
+  "project:goal-monitor-start",
+  "project:goal-monitor-status",
+  "project:goal-monitor-stop",
   "project:goal-read",
   "project:goal-revise",
   "project:import-file",
@@ -1461,6 +1465,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   auth: {
     verifyPassword: (username, password) =>
       ipcRenderer.invoke("auth:verify-password", username, password),
+    logout: () => ipcRenderer.invoke("auth:logout"),
   },
 
   specializedAgents: {
@@ -2849,6 +2854,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     listGoals: (params) => ipcRenderer.invoke("project:goal-list", params),
     readGoal: (params) => ipcRenderer.invoke("project:goal-read", params),
     reviseGoal: (params) => ipcRenderer.invoke("project:goal-revise", params),
+    startGoalMonitoring: (params) => ipcRenderer.invoke("project:goal-monitor-start", params),
+    stopGoalMonitoring: (params) => ipcRenderer.invoke("project:goal-monitor-stop", params),
+    checkGoalNow: (params) => ipcRenderer.invoke("project:goal-monitor-check", params),
+    getGoalMonitoringStatus: (params) => ipcRenderer.invoke("project:goal-monitor-status", params),
     evaluateRisk: (params) =>
       ipcRenderer.invoke("project:risk-evaluate", params),
     getRiskReview: (params) =>

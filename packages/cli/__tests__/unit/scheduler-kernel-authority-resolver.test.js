@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
+  checkSchedulerAuthorityPolicy,
 } from "../../src/lib/scheduler-kernel/authority-resolver.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -242,6 +243,76 @@ describe("scheduler shared permission and budget resolver", () => {
       reason: "scheduler_authority_budget_state_invalid",
     });
     expect(f.store.getAuthorityReservation(second.id)).toBeNull();
+  });
+
+  it("reports non-mutating budget availability with the same reservation ledger", async () => {
+    const f = fixture();
+    const bound = bindSchedulerAuthorityPolicy(f.store, authority(), {
+      windowMs: 60_000,
+      maxRuns: 1,
+      maxUnits: 1,
+    });
+    expect(
+      checkSchedulerAuthorityPolicy(f.store, bound, { checkBudget: true })
+        .allowed,
+    ).toBe(true);
+    expect(
+      f.store.db
+        .prepare(
+          "SELECT COUNT(*) AS total FROM scheduler_authority_reservations",
+        )
+        .get().total,
+    ).toBe(0);
+    const job = createJob(f.store, bound);
+    const occurrence = enqueueAndClaim(f.store, job.id, 1, f.now);
+    const resolve = createSchedulerAuthorityResolver({
+      store: f.store,
+      validate: () => ({ allowed: true }),
+    });
+    await resolve({ job, occurrence });
+    expect(
+      checkSchedulerAuthorityPolicy(f.store, bound, { checkBudget: true }),
+    ).toMatchObject({
+      allowed: false,
+      reason: "scheduler_authority_budget_exhausted",
+    });
+    expect(checkSchedulerAuthorityPolicy(f.store, bound).allowed).toBe(true);
+    f.now += 60_000;
+    expect(
+      checkSchedulerAuthorityPolicy(f.store, bound, { checkBudget: true })
+        .allowed,
+    ).toBe(true);
+  });
+
+  it("rechecks policy after an asynchronous units estimator even for existing reservations", async () => {
+    const f = fixture();
+    const bound = bindSchedulerAuthorityPolicy(f.store, authority());
+    const job = createJob(f.store, bound);
+    const occurrence = enqueueAndClaim(f.store, job.id, 1, f.now);
+    const original = createSchedulerAuthorityResolver({
+      store: f.store,
+      validate: () => ({ allowed: true }),
+    });
+    await original({ job, occurrence });
+    const resolver = createSchedulerAuthorityResolver({
+      store: f.store,
+      validate: () => ({ allowed: true }),
+      units: async () => {
+        f.store.setAuthorityPolicy(bound.principal, {
+          capabilities: ["agent.execute"],
+          windowMs: 60_000,
+          maxRuns: 100,
+          maxUnits: 100,
+          enabled: false,
+          expectedRevision: 1,
+        });
+        return 1;
+      },
+    });
+    expect(await resolver({ job, occurrence })).toMatchObject({
+      allowed: false,
+      reason: "scheduler_authority_policy_required",
+    });
   });
 
   it("fails closed for an unbound legacy job and enforces a bound run limit", async () => {

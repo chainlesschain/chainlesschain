@@ -3925,6 +3925,7 @@ class SchedulerStore {
   listRuntimeControlOccurrences({
     statuses = RUNTIME_CONTROL_OCCURRENCE_STATUSES,
     jobKinds = RUNTIME_CONTROL_JOB_KINDS,
+    jobIdPrefix,
     limit = 50,
   } = {}) {
     this._assertOpen();
@@ -3944,6 +3945,10 @@ class SchedulerStore {
     const boundedLimit = Math.min(limit, MAX_RUNTIME_CONTROL_OCCURRENCES);
     const statusParameters = selectedStatuses.map(() => "?").join(", ");
     const kindParameters = selectedJobKinds.map(() => "?").join(", ");
+    const prefix =
+      jobIdPrefix === undefined
+        ? null
+        : normalizeIdentifier(jobIdPrefix, "jobIdPrefix");
     const rows = this.db
       .prepare(
         `SELECT o.occurrence_id, o.job_id, j.kind AS job_kind,
@@ -3965,6 +3970,7 @@ class SchedulerStore {
          LEFT JOIN scheduler_occurrence_controls c
            ON c.occurrence_id = o.occurrence_id
          WHERE j.kind IN (${kindParameters})
+           ${prefix === null ? "" : "AND substr(o.job_id,1,length(?))=?"}
            AND (
              (o.status = 'running' AND c.occurrence_id IS NULL)
              OR (o.status = 'running' AND c.state = 'pause_requested')
@@ -3979,7 +3985,12 @@ class SchedulerStore {
          ORDER BY o.updated_at DESC, o.occurrence_id ASC
          LIMIT ?`,
       )
-      .all(...selectedJobKinds, ...selectedStatuses, boundedLimit);
+      .all(
+        ...selectedJobKinds,
+        ...(prefix === null ? [] : [prefix, prefix]),
+        ...selectedStatuses,
+        boundedLimit,
+      );
     return rows.map(mapRuntimeControlOccurrence);
   }
 
@@ -5724,6 +5735,54 @@ class SchedulerStore {
     );
   }
 
+  _authorityUsage(principal, policy, now) {
+    const windowStartedAt = Math.floor(now / policy.windowMs) * policy.windowMs;
+    const usage = this.db
+      .prepare(
+        `SELECT runs,units FROM scheduler_authority_usage
+      WHERE principal_type=? AND principal_id=? AND policy_revision=? AND window_started_at=?`,
+      )
+      .get(principal.type, principal.id, policy.revision, windowStartedAt) ?? {
+      runs: 0,
+      units: 0,
+    };
+    const reservations = this.db
+      .prepare(
+        `SELECT COUNT(*) AS runs,COALESCE(SUM(units),0) AS units
+      FROM scheduler_authority_reservations WHERE principal_type=? AND principal_id=? AND policy_revision=? AND window_started_at=?`,
+      )
+      .get(principal.type, principal.id, policy.revision, windowStartedAt);
+    if (reservations.runs !== usage.runs || reservations.units !== usage.units)
+      throw new SchedulerKernelError(
+        "SCHEDULER_AUTHORITY_BUDGET_STATE_INVALID",
+        `Scheduler authority usage does not match reservations: ${principal.type}:${principal.id}`,
+        { usage, reservations },
+      );
+    return { windowStartedAt, usage };
+  }
+
+  getAuthorityBudget(principal) {
+    const actor = normalizeAuthorityPrincipal(principal);
+    return this._write(() => {
+      const policy = this.getAuthorityPolicy(actor);
+      if (!policy) return null;
+      const { windowStartedAt, usage } = this._authorityUsage(
+        actor,
+        policy,
+        this._now(),
+      );
+      return {
+        policyRevision: policy.revision,
+        windowStartedAt,
+        windowEndsAt: windowStartedAt + policy.windowMs,
+        usedRuns: usage.runs,
+        usedUnits: usage.units,
+        maxRuns: policy.maxRuns,
+        maxUnits: policy.maxUnits,
+      };
+    });
+  }
+
   reserveAuthority({ occurrenceId, policyRevision, units = 1 } = {}) {
     const id = normalizeIdentifier(occurrenceId, "occurrenceId");
     const expectedPolicyRevision = normalizeAuthorityBudgetLimit(
@@ -5805,38 +5864,11 @@ class SchedulerStore {
           { denied },
         );
       }
-      const windowStartedAt =
-        Math.floor(now / policy.windowMs) * policy.windowMs;
-      const usage = this.db
-        .prepare(
-          `SELECT runs, units FROM scheduler_authority_usage
-           WHERE principal_type = ? AND principal_id = ?
-             AND policy_revision = ? AND window_started_at = ?`,
-        )
-        .get(
-          principal.type,
-          principal.id,
-          policy.revision,
-          windowStartedAt,
-        ) ?? { runs: 0, units: 0 };
-      const reservations = this.db
-        .prepare(
-          `SELECT COUNT(*) AS runs, COALESCE(SUM(units), 0) AS units
-           FROM scheduler_authority_reservations
-           WHERE principal_type = ? AND principal_id = ?
-             AND policy_revision = ? AND window_started_at = ?`,
-        )
-        .get(principal.type, principal.id, policy.revision, windowStartedAt);
-      if (
-        reservations.runs !== usage.runs ||
-        reservations.units !== usage.units
-      ) {
-        throw new SchedulerKernelError(
-          "SCHEDULER_AUTHORITY_BUDGET_STATE_INVALID",
-          `Scheduler authority usage does not match reservations: ${principal.type}:${principal.id}`,
-          { usage, reservations },
-        );
-      }
+      const { windowStartedAt, usage } = this._authorityUsage(
+        principal,
+        policy,
+        now,
+      );
       const nextRuns = usage.runs + 1;
       const nextUnits = usage.units + requestedUnits;
       if (nextRuns > policy.maxRuns || nextUnits > policy.maxUnits) {

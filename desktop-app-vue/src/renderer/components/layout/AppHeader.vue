@@ -125,10 +125,14 @@ function toggleNotificationPanel() {
   socialStore.toggleNotificationPanel();
 }
 
-function handleLogout() {
-  store.logout();
-  router.push("/login");
-  message.success("已退出登录");
+async function handleLogout() {
+  try {
+    await store.logout();
+    router.push("/login");
+    message.success("已退出登录");
+  } catch {
+    message.error("退出登录未完成，请重试。");
+  }
 }
 </script>
 

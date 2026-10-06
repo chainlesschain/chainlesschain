@@ -146,6 +146,16 @@ jobs:
         run: |
           git fetch origin ${{ github.base_ref || 'main' }}:refs/remotes/origin/${{ github.base_ref || 'main' }}
 
+      # Run governed boundaries regardless of the selector's chosen subset.
+      # Normal dependency installation supplies happy-dom beside Vitest.
+      - name: Verify governed project host boundaries
+        working-directory: ./desktop-app-vue
+        run: npm exec --offline -- vitest run --config vitest.business-actions.config.mjs
+
+      - name: Verify governed project controls
+        working-directory: ./desktop-app-vue
+        run: npm exec --offline -- vitest run --config vitest.business-actions-renderer.config.mjs
+
       - name: Run intelligent test selection
         id: test-selector
         working-directory: ./desktop-app-vue

@@ -109,6 +109,7 @@ test("packed goal and scheduler entries run without CLI dependencies", () => {
       "lib/scheduler-contract.js",
       "lib/scheduler-service.js",
       "lib/scheduler-runtime.js",
+      "lib/scheduler-authority-resolver.js",
       "lib/scheduler-store.js",
       "lib/scheduler-source-path.js",
       "lib/private-storage.js",
@@ -116,13 +117,16 @@ test("packed goal and scheduler entries run without CLI dependencies", () => {
       "lib/goal-contract.js",
       "lib/goal-repository.js",
       "lib/project-goal-service.js",
+      "lib/project-goal-monitoring.js",
+      "lib/project-risk-review-service.js",
+      "lib/project-risk-evaluation.js",
       "lib/business-object-contract.js",
     ]) {
       const destination = path.join(isolatedPackage, file);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.writeFileSync(destination, tarEntry(archive, `package/${file}`));
     }
-    for (const name of ["contract", "service"]) {
+    for (const name of ["contract", "service", "authority-resolver"]) {
       fs.copyFileSync(
         path.join(cliKernel, `${name}.js`),
         path.join(fixtureRoot, `${name}.mjs`),
@@ -137,6 +141,8 @@ const { GoalRepository } = require("@chainlesschain/session-core/goal-repository
 const { PersonalProjectGoalService } = require("@chainlesschain/session-core/project-goal-service");
 const { openSchedulerStore } = require("@chainlesschain/session-core/scheduler-store");
 const { SchedulerRuntime } = require("@chainlesschain/session-core/scheduler-runtime");
+const authority = require("@chainlesschain/session-core/scheduler-authority-resolver");
+const monitoring = require("@chainlesschain/session-core/project-goal-monitoring");
 const privateStorage = require("@chainlesschain/session-core/private-storage");
 (async () => {
   assert.equal((await import("@chainlesschain/session-core/goal-repository")).GoalRepository, GoalRepository);
@@ -154,6 +160,10 @@ const privateStorage = require("@chainlesschain/session-core/private-storage");
   assert.equal(typeof privateStorage.ensurePrivateDirectory,"function");
   const cliContract = await import("./contract.mjs");
   const cliService = await import("./service.mjs");
+  const cliAuthority = await import("./authority-resolver.mjs");
+  assert.equal(cliAuthority.createSchedulerAuthorityResolver, authority.createSchedulerAuthorityResolver);
+  assert.equal((await import("@chainlesschain/session-core/project-goal-monitoring")).ProjectGoalMonitoringEngine, monitoring.ProjectGoalMonitoringEngine);
+  assert.throws(() => new monitoring.ProjectGoalMonitoringState({db:{},getActor:()=>"did:owner"}), (error) => error.code==="GOAL_NATIVE_DATABASE_REQUIRED");
   assert.equal(cliContract.SchedulerKernelError, contract.SchedulerKernelError);
   assert.equal(cliService.SchedulerService, service.SchedulerService);
   for (const [key, value] of Object.entries(contract)) assert.equal(cliContract[key], value);

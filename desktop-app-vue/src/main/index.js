@@ -1056,6 +1056,10 @@ class ChainlessChainApp {
       setCurrentUserProvider(
         () => this.didManager?.getCurrentIdentity?.()?.did || null,
       );
+      require("./task/project-goal-auth-session").configureProjectGoalAuth({
+        getDid: () => this.didManager?.getCurrentIdentity?.()?.did || null,
+        getUKeyManager: () => this.ukeyManager || null,
+      });
     } catch (e) {
       logger.warn("[Main] current-user provider wiring failed:", e.message);
     }
@@ -2954,6 +2958,16 @@ class ChainlessChainApp {
   async onWillQuit(event) {
     event.preventDefault();
     logger.info("[Main] 应用退出中...");
+    require("./task/project-goal-auth-session").disposeProjectGoalAuth();
+
+    if (this.projectGoalHost) {
+      try {
+        await this.projectGoalHost.close();
+      } catch (error) {
+        logger.error("[Main] Goal monitoring cleanup error:", error);
+      }
+      this.projectGoalHost = null;
+    }
 
     // v5.0.3.37 — 停掉托盘内存使用周期 update（10s interval），否则后续 quit
     // 流程里 trayManager 已 null 时还会 fire 一次 setInterval 回调（被内部 guard

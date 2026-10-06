@@ -367,50 +367,66 @@ class ProjectRiskReviewService {
 
   evaluate(input) {
     const projectId = inputId(input, "projectId");
-    return this._transaction(() => {
-      const actor = this._actor();
-      const project = this._ownedProject(projectId, actor);
-      const columns = this._taskColumns();
-      this._checkProjectTaskScope(projectId, columns);
-      const at = this.now();
-      if (!Number.isSafeInteger(at) || at < 0 || at > 253402300799999)
-        fail("PROJECT_RISK_INVALID_CLOCK");
-      const createdAt = new Date(at).toISOString();
-      const sourceSnapshot = this._snapshot(project, actor, createdAt, columns);
-      const sourceJson = JSON.stringify(sourceSnapshot);
-      if (Buffer.byteLength(sourceJson, "utf8") > MAX_PROJECT_RISK_REVIEW_BYTES)
-        fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
-      const evaluation = deriveReviewEvaluation(sourceSnapshot);
-      const review = {
-        id: randomUUID(),
-        projectId,
-        actorDid: actor,
-        createdAt,
-      };
-      const result = { review, sourceSnapshot, evaluation };
-      const evaluationJson = JSON.stringify(evaluation);
-      if (
-        Buffer.byteLength(JSON.stringify(result), "utf8") >
-        MAX_PROJECT_RISK_REVIEW_BYTES
-      )
-        fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
-      this.db
-        .prepare(
-          `INSERT INTO cc_project_risk_reviews
+    return this._transaction(() => this._evaluateProject(projectId));
+  }
+
+  /** Trusted native-domain composition only. The caller owns the surrounding
+   * immediate transaction; project ownership and source validation still run. */
+  evaluateInTransaction(input) {
+    const projectId = inputId(input, "projectId");
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    return this._evaluateProject(projectId);
+  }
+
+  getReviewInTransaction(input) {
+    const reviewId = inputId(input, "reviewId");
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    return this._readReview(reviewId, this._actor());
+  }
+
+  _evaluateProject(projectId) {
+    const actor = this._actor();
+    const project = this._ownedProject(projectId, actor);
+    const columns = this._taskColumns();
+    this._checkProjectTaskScope(projectId, columns);
+    const at = this.now();
+    if (!Number.isSafeInteger(at) || at < 0 || at > 253402300799999)
+      fail("PROJECT_RISK_INVALID_CLOCK");
+    const createdAt = new Date(at).toISOString();
+    const sourceSnapshot = this._snapshot(project, actor, createdAt, columns);
+    const sourceJson = JSON.stringify(sourceSnapshot);
+    if (Buffer.byteLength(sourceJson, "utf8") > MAX_PROJECT_RISK_REVIEW_BYTES)
+      fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
+    const evaluation = deriveReviewEvaluation(sourceSnapshot);
+    const review = {
+      id: randomUUID(),
+      projectId,
+      actorDid: actor,
+      createdAt,
+    };
+    const result = { review, sourceSnapshot, evaluation };
+    const evaluationJson = JSON.stringify(evaluation);
+    if (
+      Buffer.byteLength(JSON.stringify(result), "utf8") >
+      MAX_PROJECT_RISK_REVIEW_BYTES
+    )
+      fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
+    this.db
+      .prepare(
+        `INSERT INTO cc_project_risk_reviews
         (id,actor_did,project_id,created_at,source_json,evaluation_json,content_digest)
         VALUES (?,?,?,?,?,?,?)`,
-        )
-        .run(
-          review.id,
-          actor,
-          projectId,
-          createdAt,
-          sourceJson,
-          evaluationJson,
-          digest(result),
-        );
-      return immutable(result);
-    });
+      )
+      .run(
+        review.id,
+        actor,
+        projectId,
+        createdAt,
+        sourceJson,
+        evaluationJson,
+        digest(result),
+      );
+    return immutable(result);
   }
 
   _checkHistoricalTasks(snapshot, columns) {

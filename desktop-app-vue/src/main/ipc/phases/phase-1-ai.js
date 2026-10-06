@@ -262,7 +262,13 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
   safeRegister("Team Task Management IPC", {
     register: () => {
       const { registerTaskIPC } = require("../../task/task-ipc");
-      registerTaskIPC(database);
+      const projectGoalHost = registerTaskIPC(database);
+      if (app) app.projectGoalHost = projectGoalHost;
+      // Restore only explicitly persisted monitors, using current main-process
+      // identity. Monitoring failures leave ordinary task IPC available.
+      projectGoalHost.initializeMonitoring().catch((error) => {
+        logger.error("[Goals] Monitoring initialization failed:", error);
+      });
     },
     handlers: 49,
     subDetails: [
