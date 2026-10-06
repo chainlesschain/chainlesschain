@@ -98,6 +98,7 @@ export function openRrsiHistoryStore(
     crashHook = null,
     settlementEnabled = true,
     now = null,
+    campaignOverrides = {},
   } = {},
 ) {
   const keyPath = path.join(root, "test-control", "settlement-private.pem");
@@ -118,8 +119,12 @@ export function openRrsiHistoryStore(
       "TEST ONLY independent settlement policy",
     ),
   });
+  const campaign = buildRrsiCampaign({
+    ...rrsiCampaignInput(),
+    ...campaignOverrides,
+  });
   const store = openEvolutionDurableStore(path.join(root, "store"), {
-    tenantId: "synthetic-tenant",
+    tenantId: campaign.tenantId,
     artifactTenantId: "rrsi-artifacts",
     audience: "rrsi-runtime",
     crashHook,
@@ -129,16 +134,15 @@ export function openRrsiHistoryStore(
     artifactPorts: store.artifactPorts,
     ledgerArtifactResolver: store.resolver,
     descriptor: {
-      tenantId: "synthetic-tenant",
+      tenantId: campaign.tenantId,
       artifactTenantId: "rrsi-artifacts",
-      goalId: "pm-task-change-export",
+      goalId: campaign.goalId,
       audience: "rrsi-runtime",
       purpose: "evolution-ledger",
     },
     settlementVerifier: settlementEnabled ? settlementVerifier : null,
     now: now ?? store.clock,
   });
-  const campaign = buildRrsiCampaign(rrsiCampaignInput());
   const candidate = buildRrsiCandidate(campaign, rrsiCandidateInput(campaign));
   const request = (overrides = {}) => ({
     campaignDigest: campaign.campaignDigest,

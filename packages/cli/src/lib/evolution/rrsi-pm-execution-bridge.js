@@ -1,6 +1,7 @@
 /** RRSI accounting around an existing PM host. No provider or signing factory. */
 import { isProxy } from "node:util/types";
 import { captureRrsiHistoryLedgerAdapter } from "./rrsi-history-ledger-adapter.js";
+import { recheckRrsiEffectiveParent } from "./rrsi-parent-binding.js";
 import { verifyRrsiCampaign, RRSI_BUDGET_FIELDS } from "./rrsi-contracts.js";
 import {
   RRSI_PREPARATION_RESERVATION_SCHEMA_V2,
@@ -70,6 +71,44 @@ function stateFor(bridge) {
   const state = BRIDGES.get(bridge);
   if (!state) rrsiFail("a branded RRSI PM bridge is required");
   return state;
+}
+
+/** Root-owned composition, once per host. Direct bridge calls retain the binding. */
+export function bindRrsiPmRuntime(bridge, parentBinding, mode) {
+  const state = stateFor(bridge);
+  if (!["off", "shadow"].includes(mode))
+    rrsiFail(
+      "enforced RRSI runtime requires complete production admission",
+      "CC_RRSI_COMPOSITION_UNAVAILABLE",
+    );
+  recheckRrsiEffectiveParent(parentBinding);
+  if (parentBinding.descriptor.campaignDigest !== state.campaign.campaignDigest)
+    rrsiFail("effective parent is bound to another campaign");
+  if (
+    state.runtimeBinding &&
+    (state.runtimeBinding.parentBinding !== parentBinding ||
+      state.runtimeBinding.mode !== mode)
+  )
+    rrsiFail("PM bridge runtime binding is immutable");
+  state.runtimeBinding ??= Object.freeze({ parentBinding, mode });
+  return Object.freeze({
+    descriptor: bridge.descriptor,
+    mode,
+    parentBindingDigest: parentBinding.descriptor.parentBindingDigest,
+    inspectHistory: state.history.inspect,
+    reserveBroadRound: (journal, input) =>
+      reserveRrsiPmBroadRound(bridge, journal, input),
+    executeBroadRound: (response) => executeRrsiPmBroadRound(bridge, response),
+  });
+}
+
+function checkRuntime(state) {
+  const binding = state.runtimeBinding;
+  if (!binding) return; // Legacy local bridge has no production admission claims.
+  if (binding.mode === "off")
+    rrsiFail("RRSI runtime is off", "CC_RRSI_RUNTIME_OFF");
+  // Re-read the actual captured Registry; never accept a replayable JSON readback.
+  recheckRrsiEffectiveParent(binding.parentBinding);
 }
 
 function checkHistory(state) {
@@ -207,6 +246,7 @@ function assertJournal(bridge, state, journal, round) {
 /** Reserve all host-accessible training sources and the complete PM plan caps. */
 export function reserveRrsiPmBroadRound(bridge, journal, input) {
   const state = stateFor(bridge);
+  checkRuntime(state);
   const value = snapshotRrsiData(input);
   rrsiExact(
     value,
@@ -246,6 +286,7 @@ export function reserveRrsiPmBroadRound(bridge, journal, input) {
   const task = state.mapping.mappings.find(
     (row) => row.pmTaskId === round.taskId,
   );
+  checkRuntime(state);
   const response = state.history.reservePreparation({
     campaignDigest: state.campaign.campaignDigest,
     phase: "exploration",
@@ -350,6 +391,7 @@ export async function executeRrsiPmBroadRound(bridge, response) {
   };
   try {
     try {
+      checkRuntime(state);
       checkHistory(state);
       const before = assertJournal(
         bridge,
@@ -378,6 +420,9 @@ export async function executeRrsiPmBroadRound(bridge, response) {
           "PM dispatch was already recorded",
           "CC_RRSI_REPLAY_FORBIDDEN",
         );
+      // Ledger I/O can outlast the earlier parent read. Recheck after durable
+      // dispatch, before entering the host; failure retains unknown accounting.
+      checkRuntime(state);
       hostInvoked = true;
       result = await executePmExplorationRound(
         state.host,
@@ -397,6 +442,8 @@ export async function executeRrsiPmBroadRound(bridge, response) {
         "CC_RRSI_HISTORY_HOLD",
         "CC_RRSI_BUDGET_EXCEEDED",
         "CC_RRSI_REPLAY_FORBIDDEN",
+        "CC_RRSI_PARENT_DRIFT",
+        "CC_RRSI_RUNTIME_OFF",
       ];
       failureCode = known.includes(error?.code)
         ? error.code.toLowerCase()

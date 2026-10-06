@@ -39,7 +39,7 @@ import {
   createPmExplorationExecutionHost,
 } from "../../src/lib/evolution/pm-exploration-execution-host.js";
 
-export function rrsiPmBridgeData(planOverrides = {}) {
+export function rrsiPmBridgeData(planOverrides = {}, campaignOverrides = {}) {
   const suite = buildPmExplorationSuite({
     suiteId: "rrsi-pm-local-suite",
     datasetVersion: "test-only-v1",
@@ -71,6 +71,7 @@ export function rrsiPmBridgeData(planOverrides = {}) {
   });
   const campaign = buildRrsiCampaign({
     ...rrsiCampaignInput(),
+    ...campaignOverrides,
     dataset: buildRrsiDatasetManifest(dataset),
   });
   const plan = buildPmExplorationRoundPlan(suite, {
@@ -97,10 +98,15 @@ export function openRrsiPmBridgeFixture(
     grade = null,
     crashHook = null,
     planOverrides = {},
+    campaignOverrides = {},
   } = {},
 ) {
-  const base = openRrsiHistoryStore(root, { initialize, crashHook });
-  const data = rrsiPmBridgeData(planOverrides);
+  const base = openRrsiHistoryStore(root, {
+    initialize,
+    crashHook,
+    campaignOverrides,
+  });
+  const data = rrsiPmBridgeData(planOverrides, campaignOverrides);
   function signer(role) {
     const file = path.join(root, "test-control", `pm-${role}.pem`);
     if (initialize) {
