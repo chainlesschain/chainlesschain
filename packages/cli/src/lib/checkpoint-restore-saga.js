@@ -464,6 +464,16 @@ function isMissingPathError(error) {
   return error?.code === "ENOENT" || error?.cause?.code === "ENOENT";
 }
 
+function hasMissingLockPathCause(error) {
+  // A bounded owner read wraps secure-parent errors, which themselves wrap
+  // ENOENT when a cooperating process detaches its released lock directory.
+  // Only unlocked lock inspection uses this; losing our held owner still fails.
+  for (let depth = 0; error && depth < 8; depth++, error = error.cause) {
+    if (error.code === "ENOENT") return true;
+  }
+  return false;
+}
+
 function attachCommitState(error, details) {
   if (!error || typeof error !== "object") return error;
   for (const [key, value] of Object.entries(details)) {
@@ -1887,7 +1897,7 @@ export class CheckpointRestoreSagaStore {
       // The same valid release can happen after readdir observed owner.json
       // but before its lstat/read. Only tolerate absence during the unlocked
       // pre/postflight inspection; losing our own owner still fails closed.
-      if (isMissingPathError(cause) && !requireOwner) return null;
+      if (hasMissingLockPathCause(cause) && !requireOwner) return null;
       throw sagaError(
         CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LOCK_FAILED,
         "Saga state lock owner is corrupt or unbounded",

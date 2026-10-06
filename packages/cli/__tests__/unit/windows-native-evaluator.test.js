@@ -4,7 +4,7 @@ import path from "node:path";
 import net from "node:net";
 import { once } from "node:events";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -14,6 +14,30 @@ import {
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import { resetWindowsSandboxAdapterCache } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { installWindowsSandboxAdapterTestRoot } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
+
+const windowsDirectory = process.env.SystemRoot || "C:\\Windows";
+const frameworkHost = path.join(
+  windowsDirectory,
+  "System32",
+  "WindowsPowerShell",
+  "v1.0",
+  "powershell.exe",
+);
+const coreHost =
+  process.env.CC_WINDOWS_NATIVE_EVALUATOR_TEST_PWSH ||
+  path.join(
+    path.parse(windowsDirectory).root,
+    "Program Files",
+    "PowerShell",
+    "7",
+    "pwsh.exe",
+  );
+const nativeRuntimeHosts = [
+  { label: ".NET Framework", command: frameworkHost },
+  ...(fs.existsSync(coreHost)
+    ? [{ label: ".NET Core", command: coreHost }]
+    : []),
+];
 
 describe.runIf(process.platform === "win32")(
   "private staged Windows native evaluator",
@@ -203,8 +227,10 @@ try {
       });
     });
 
-    it("executes a real staged Node check with immutable source/control and writable scratch", async () => {
-      const evaluator = create(`
+    it.each(nativeRuntimeHosts)(
+      "executes a real staged Node check with immutable source/control and writable scratch on $label",
+      async ({ command }) => {
+        const evaluator = create(`
       const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
       const workspace=process.argv[2],scratch=process.argv[3];
       assert.equal(require(path.join(workspace,'math.cjs'))(2,3),5);
@@ -223,25 +249,49 @@ try {
       assert.equal(process.env.VOLCENGINE_API_KEY,undefined);
       console.log(JSON.stringify({sum:5,sourceWriteDenied:true,checkWriteDenied:true,scratchWritable:true}));
     `);
-      const outcome = await execute(evaluator, "readonly-check");
-      expect(outcome.result.status, outcome.result.stderr).toBe(0);
-      expect(JSON.parse(outcome.result.stdout)).toMatchObject({
-        sum: 5,
-        sourceWriteDenied: true,
-        checkWriteDenied: true,
-        scratchWritable: true,
-      });
-      expect(outcome.receipt).toMatchObject({
-        cleanupConfirmed: true,
-        capabilityCount: 0,
-        executionFailed: false,
-      });
-      await expect(evaluator.execute()).rejects.toThrow(/already consumed/);
-      expect(fs.readFileSync(path.join(sourceRoot, "math.cjs"), "utf8")).toBe(
-        "module.exports = (a,b) => a+b;\n",
-      );
-      evaluator.dispose();
-    }, 30000);
+        const originalNative = executionBroker._native;
+        let hostLaunches = 0;
+        executionBroker._native = {
+          ...originalNative,
+          spawnSync: (requested, args, options) => {
+            expect(["powershell.exe", "pwsh.exe"]).toContain(
+              path.basename(requested).toLowerCase(),
+            );
+            expect(args).toContain("-EncodedCommand");
+            hostLaunches++;
+            // Exercise the unchanged byte-loaded helper/bootstrap and target
+            // policy in each installed CLR, including portable pwsh for local
+            // reproduction. No helper or AppContainer boundary is mocked.
+            return spawnSync(command, args, options);
+          },
+        };
+        let outcome;
+        try {
+          outcome = await execute(evaluator, "readonly-check");
+        } finally {
+          executionBroker._native = originalNative;
+        }
+        expect(hostLaunches).toBe(1);
+        expect(outcome.result.status, outcome.result.stderr).toBe(0);
+        expect(JSON.parse(outcome.result.stdout)).toMatchObject({
+          sum: 5,
+          sourceWriteDenied: true,
+          checkWriteDenied: true,
+          scratchWritable: true,
+        });
+        expect(outcome.receipt).toMatchObject({
+          cleanupConfirmed: true,
+          capabilityCount: 0,
+          executionFailed: false,
+        });
+        await expect(evaluator.execute()).rejects.toThrow(/already consumed/);
+        expect(fs.readFileSync(path.join(sourceRoot, "math.cjs"), "utf8")).toBe(
+          "module.exports = (a,b) => a+b;\n",
+        );
+        evaluator.dispose();
+      },
+      30000,
+    );
 
     it("preserves supervisor diagnostics when native settlement is missing", async () => {
       const evaluator = create("throw new Error('must never run');");

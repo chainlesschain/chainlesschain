@@ -625,6 +625,13 @@ namespace ChainlessChain.WindowsSandbox
             UInt32 desiredAccess,
             out IntPtr token);
 
+        [DllImport("advapi32.dll", EntryPoint = "SetFileSecurityW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetFileSecurity(
+            string path,
+            UInt32 securityInformation,
+            byte[] securityDescriptor);
+
         [DllImport("advapi32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CreateRestrictedToken(
@@ -3393,7 +3400,7 @@ namespace ChainlessChain.WindowsSandbox
                     scratch ? FileSystemRights.Modify : FileSystemRights.ReadAndExecute,
                     scratch ? InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit : InheritanceFlags.None,
                     PropagationFlags.None, AccessControlType.Allow));
-                Directory.SetAccessControl(directory.path, security);
+                SetEvaluatorAccessControl(directory.path, security);
             }
             foreach (EvaluatorPathSpec file in spec.files)
             {
@@ -3402,14 +3409,29 @@ namespace ChainlessChain.WindowsSandbox
                 security.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, AccessControlType.Allow));
                 security.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
                 security.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
-                File.SetAccessControl(file.path, security);
+                SetEvaluatorAccessControl(file.path, security);
             }
             FileSecurity runtimeSecurity = new FileSecurity();
             runtimeSecurity.SetAccessRuleProtection(true, false);
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, AccessControlType.Allow));
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
-            File.SetAccessControl(spec.runtime.path, runtimeSecurity);
+            SetEvaluatorAccessControl(spec.runtime.path, runtimeSecurity);
+        }
+
+        private static void SetEvaluatorAccessControl(string path, FileSystemSecurity security)
+        {
+            // Directory/File.SetAccessControl exist only in .NET Framework.
+            // Persist the same protected DACL through Win32 so the byte-loaded
+            // assembly enforces identical ACLs in Windows PowerShell and pwsh.
+            if (!security.AreAccessRulesProtected)
+                throw new InvalidDataException("Native evaluator DACL must be protected");
+            const UInt32 DACL_SECURITY_INFORMATION = 0x00000004;
+            const UInt32 PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000;
+            if (!SetFileSecurity(path,
+                DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                security.GetSecurityDescriptorBinaryForm()))
+                ThrowLastError("SetFileSecurity(native evaluator protected DACL)");
         }
 
         // This timer belongs to the native supervisor, not the JavaScript

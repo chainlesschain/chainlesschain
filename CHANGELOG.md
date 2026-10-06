@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regenerate the bundled CLI changelog from its canonical source.
 - Capture JetBrains transcript snapshots on the event dispatch thread during
   cross-platform host validation, retaining the full transcript assertions.
+- Preserve equivalent protected Windows evaluator ACLs across .NET Framework
+  and PowerShell's .NET runtime through the native security API.
+- Retry cooperative lock release during nested safe owner reads without treating
+  it as corruption; losing a held lock still fails closed.
 - Publish Session Core `0.3.16` and Personal Data Hub `0.4.64` before CLI
   `0.166.91`, with exact dependency pins and public package verification.
 - Pair VS Code `0.37.136` and JetBrains `0.4.154` with CLI `0.166.91` after

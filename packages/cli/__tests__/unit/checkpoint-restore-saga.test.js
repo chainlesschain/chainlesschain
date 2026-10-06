@@ -3321,7 +3321,7 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(testFixture.store.load(saga.operationId).seq).toBe(2);
   });
 
-  it.each(["directory entries", "owner file"])(
+  it.each(["directory entries", "owner file", "owner parent"])(
     "retries when a valid lock disappears while inspecting %s",
     (racePoint) => {
       const testFixture = fixture();
@@ -3345,8 +3345,26 @@ describe("CheckpointRestoreSagaStore", () => {
       );
 
       let released = false;
+      let parentReads = 0;
       const racingFs = {
         ...fs,
+        realpathSync: Object.assign((...args) => fs.realpathSync(...args), {
+          native(target, options) {
+            if (
+              !released &&
+              racePoint === "owner parent" &&
+              path.resolve(target) === path.resolve(lockDirectory) &&
+              ++parentReads === 2
+            ) {
+              released = true;
+              fs.rmSync(lockDirectory, { recursive: true, force: true });
+              const error = new Error("lock owner released before parent read");
+              error.code = "ENOENT";
+              throw error;
+            }
+            return fs.realpathSync.native(target, options);
+          },
+        }),
         opendirSync(target, options) {
           if (
             !released &&
@@ -3389,6 +3407,48 @@ describe("CheckpointRestoreSagaStore", () => {
       expect(fs.existsSync(lockDirectory)).toBe(false);
     },
   );
+
+  it("fails closed when its held lock disappears during the bounded owner read", () => {
+    const testFixture = fixture();
+    const saga = testFixture.store.create({ operationId: "lost_held_parent" });
+    const lockDirectory = path.join(
+      testFixture.store.lockRoot,
+      `${saga.operationId}.lock`,
+    );
+    let parentReads = 0;
+    let released = false;
+    const racingFs = {
+      ...fs,
+      realpathSync: Object.assign((...args) => fs.realpathSync(...args), {
+        native(target, options) {
+          if (
+            !released &&
+            path.resolve(target) === path.resolve(lockDirectory) &&
+            ++parentReads === 2
+          ) {
+            released = true;
+            fs.rmSync(lockDirectory, { recursive: true, force: true });
+            const error = new Error("held owner parent disappeared");
+            error.code = "ENOENT";
+            throw error;
+          }
+          return fs.realpathSync.native(target, options);
+        },
+      }),
+    };
+    const peer = new CheckpointRestoreSagaStore({
+      workspaceRoot: testFixture.workspaceRoot,
+      stateDir: testFixture.baseStateDir,
+      fs: racingFs,
+      secureDirectory,
+      secureAuthorityPaths,
+    });
+    expect(() => peer.load(saga.operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LOCK_FAILED),
+    );
+    expect(released).toBe(true);
+    expect(testFixture.store.load(saga.operationId).seq).toBe(saga.seq);
+  });
 
   it("recovers a strict operation lock only after its exact owner is dead", () => {
     const testFixture = fixture({ lockTimeoutMs: 25, lockRetryMs: 1 });
