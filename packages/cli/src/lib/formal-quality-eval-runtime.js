@@ -1,3 +1,4 @@
+import { isFormalQualityHermeticRuntime } from "@chainlesschain/session-core/host-storage-environment";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -23,20 +24,7 @@ export const FORMAL_QUALITY_FILE_TOOLS = Object.freeze([
  * headless boundary through a launcher-only environment marker. Keep the
  * check exact so inherited or malformed values never change normal CLI runs.
  */
-export function isFormalQualityHermeticRuntime(environment = process.env) {
-  if (environment?.[FORMAL_QUALITY_HERMETIC_ENV] !== "1") return false;
-  const configuredHome = String(environment?.CHAINLESSCHAIN_HOME || "").trim();
-  if (!configuredHome) return false;
-  const temporaryRoot = path.resolve(os.tmpdir());
-  const resolvedHome = path.resolve(configuredHome);
-  const relation = path.relative(temporaryRoot, resolvedHome);
-  return Boolean(
-    relation &&
-    relation !== ".." &&
-    !relation.startsWith(`..${path.sep}`) &&
-    !path.isAbsolute(relation),
-  );
-}
+export { isFormalQualityHermeticRuntime };
 
 function formalQualityIsolationRoot(environment) {
   if (!isFormalQualityHermeticRuntime(environment)) return null;

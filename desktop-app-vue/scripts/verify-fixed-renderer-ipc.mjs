@@ -27,6 +27,10 @@ const ignoredDirectories = new Set([
 // Preserve these fixed governed capabilities even when their callers are
 // composed dynamically. They still require an exact main registration.
 const retainedGovernedChannels = [
+  "project:goal-create",
+  "project:goal-list",
+  "project:goal-read",
+  "project:goal-revise",
   "browser:action:cancel-download",
   "browser:action:discard-download-artifact",
   "browser:action:download-url",

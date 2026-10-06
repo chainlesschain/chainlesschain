@@ -16,6 +16,28 @@ The package exports its public modules through `package.json`, including
 `./structured-evolution-memory`, and the session, approval, policy, and
 recovery contracts used by the host products.
 
+The unreleased DMM foundation adds public `./scheduler-contract`,
+`./scheduler-service`, `./scheduler-runtime`, `./scheduler-store`,
+`./scheduler-source-path`, `./private-storage` and `./host-storage-environment`
+entry points for CommonJS hosts and ESM consumers. CLI compatibility entries
+retain their original Graph, configuration, home and native driver assembly.
+The shared runtime requires live authorization and an injected Graph Authority
+or explicitly selected legacy Graph mode. The shared store requires a host
+driver, a separate database file and synchronous storage protection before and
+after opening. Desktop monitoring and lifecycle integration remain a separate
+task; these entries do not load the CLI Graph or configuration stack.
+
+`./goal-contract` and `./goal-repository` define bounded, versioned goal records
+and storage adapters with compare-and-swap updates. `./project-goal-service`
+stores personal project goals in the host's existing native SQLite database,
+rechecking current host identity and project ownership within immediate
+transactions. Metadata IPC cannot launch work or claim verified completion.
+Budgets and authorization references describe intent; execution must still use
+the host's current authorization and usage ledger. Completion verification is
+disabled unless the host supplies an independent trusted checker. See the
+[implementation progress](../../docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md)
+for the current boundary, legacy compatibility and test evidence.
+
 The source also exports `./business-object-contract`: immutable references for
 Project, Task, Document, Person, Decision and ActionRun; version-bound action
 requests; and action run records containing evidence references. Content versions

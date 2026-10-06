@@ -209,6 +209,8 @@ jobs:
       - name: Test Session Core release payload source
         working-directory: packages/session-core
         run: npm test -- --maxWorkers=1
+      - name: Verify packed scheduler host boundary
+        run: node --test packages/session-core/__tests__/scheduler-host-boundary.node.cjs
       - name: Test Agent SDK release payload source
         working-directory: packages/agent-sdk
         run: |

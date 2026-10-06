@@ -60,6 +60,7 @@ function registerTaskIPC(database) {
   require("./task-description-ipc").registerTaskDescriptionIPC(
     resolveDatabase(database),
   );
+  require("./project-goal-ipc").registerProjectGoalIPC(resolveDatabase(database));
 
   // ========================================
   // Board Management (8 handlers)

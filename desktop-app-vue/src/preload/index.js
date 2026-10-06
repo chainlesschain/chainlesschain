@@ -899,6 +899,10 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:get",
   "project:get-all",
   "project:get-files",
+  "project:goal-create",
+  "project:goal-list",
+  "project:goal-read",
+  "project:goal-revise",
   "project:import-file",
   "project:move-file",
   "project:risk-evaluate",
@@ -2841,6 +2845,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // 项目管理
   project: {
+    createGoal: (params) => ipcRenderer.invoke("project:goal-create", params),
+    listGoals: (params) => ipcRenderer.invoke("project:goal-list", params),
+    readGoal: (params) => ipcRenderer.invoke("project:goal-read", params),
+    reviseGoal: (params) => ipcRenderer.invoke("project:goal-revise", params),
     evaluateRisk: (params) =>
       ipcRenderer.invoke("project:risk-evaluate", params),
     getRiskReview: (params) =>
