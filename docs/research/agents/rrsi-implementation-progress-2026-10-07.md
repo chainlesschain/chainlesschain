@@ -227,21 +227,35 @@ PM host 强制执行三类资源限制；货币和全部内部重试/模型调�
 
 [批次本地验证记录](./evidence/rrsi-native-batch-local-controls-2026-10-07.json) 保存源码/测试摘要、逐文件回归结果与限制。八个相关文件最终 **169/169** 通过；新增 24 项 unit 和 4 项真实进程/迁移用例，覆盖完整分母、非对称费用、不完整计数下界、签名/归属篡改、跨批重放、跨 campaign finalist、旧接口预算绕过、持续 unknown 的恢复槽，以及真实并发、硬退出和 Ledger v2 journal。ESLint、Prettier 和 Astra 只读复核已通过；未执行真实 Actor、付费请求或 A/B/C 实验。
 
-## 12 下一批工作及完成审计
+## 12 原生签名登记与准入
 
-下一步用版本化 RRSI enrollment 绑定 campaign root、冻结 query 子队列、native plan/request 与双臂 reservation，再消费 Gate 产生的 admission、runId/runNonce 和原始签名行；旧 PM-only enrollment 不能替代这条路径。随后实现保留全部三角重复及 target strata 的统计 v2 与选择/泛化回执。继续完善真实运行权威、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+[rrsi-cohort-registration.js](../../../packages/cli/src/lib/evolution/rrsi-cohort-registration.js) 从 genuine History 的根登记及已预留批次推导 enrollment 声明。campaign root 固定 Ledger identity、最初登记引用、policy/model/budget/experiment 摘要及全局 query 上限；root 事件身份不随 signer/key 或调用方 stream 改名释放。query stream 由 root digest、全 History selection ordinal 和阶段确定，包含旧 selection 的已消耗额度；generalization 继承被选候选的 ordinal。新候选使用新的确定性子 stream，继续共享同一 History quota 和来源闭包。
 
-| 必需条件            | 当前证据                                                   | 未完成的工程或外部条件                                                      |
-| ------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现         | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
-| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                            | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
-| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                         | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
-| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装            | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
-| 五池真实派发与统计  | 原生三角计划、批次预留、原 Eval 签名行、描述统计及有限模拟 | enrollment/原生行接线、launch 权威、统计 v2、全部扰动执行及正式校准         |
-| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                               | 可信 receipt、逐轮停止条件和锚点回归                                        |
-| 晋级无降级绕过      | 既有发布门保持原行为                                       | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
-| Workbench 与回滚    | 既有底座可复用                                             | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
-| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                       | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
-| CLI 扩展与交付      | 原发行门仍适用                                             | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
+既有 [cohort enrollment](../../../packages/cli/src/lib/evolution/evolution-eval-cohort-enrollment.js) 新增静态 RRSI v2 分支，PM v1 保留原签名字节和语义。五字段 SLOT_KEYS 不变，slot 的 `evaluationPlanDigest` 仍为原生矩阵摘要；RRSI 摘要保存在独立 synopsis，不能替代原生计划。签名 manifest 绑定 batch、实际 reservation event/ref/sequence、双臂 reservation digests、完整 sibling cohort 清单，以及 validation/test 对应的完整分区分母。新协议不借用旧 PM test-only denominator，也不接受可注入的 plan verifier。
+
+每个 query 的全部 cohort 必须先登记，才允许第一次 admission。新鲜子任务能力由原 WeakMap 验证，预算派发在 admission 捕获 CAS head 之前完成，并绑定 Gate 提供的 run ID、nonce 和完整 request；两次 `assertOpen` 只读核对 live permit、开放状态、配额及双臂 intent。签名、CAS 或读回失败会保留费用/来源占用并尝试记录 unknown，不能重发能力或回滚成未开始；普通重放被拒绝时不改写先前成功的 intent。恢复得到的 authority 可 resolve/seal，不能 admit。
+
+[Eval Ledger capture](../../../packages/cli/src/lib/evolution/evolution-eval-ledger-capture.js) 捕获真正 v1 原型方法或 branded v2 journal 的 own methods，始终使用同一个 backend.ledger。完整读取显式使用 250,000-event 上限并校验前后 head、epoch 与连续覆盖，修复旧默认 10,000 条截断；同一 native 屏障共享已验证 census，末尾重新核对 head。typed artifact ref 仅复制原 schema/ref/digest 的自有字符串字段，以支持 v2 的 null-prototype JSON，不放宽 rrsi-data。History 预留前和 resolver 使用同一有界合并模板，包含实际 event 引用及最长后续状态；不复制重复的完整 reservation 对象。
+
+本层只认证登记及准入清单，不认证 Actor、生命周期、扰动执行、实际费用和生产预算。完整 runtime 的有效父版本/模式检查、按分类执行单位强制预算、provider/reset profile 和官方账单仍需接入；原生签名行收集与统计 v2 尚未完成。真实 v2 文件日志流程较慢，本地迁移回归使用独立长时限；尚未据此验证生产时延或 Gate 的真实执行窗口。
+
+[登记与准入本地验证记录](./evidence/rrsi-native-enrollment-local-controls-2026-10-07.json) 保存八个源码/测试文件摘要和七文件最终 **282/282** 的逐项结果。联合回归先通过 281 项，真实迁移 v2 用例使用启动时加载的旧 180 秒时限超时；生产源码不变，以当前独立 300 秒时限单独重跑通过，实际用例耗时约 195 秒。记录同时保留初次报告和重跑摘要，不把超时报为通过。本轮新增 14 项用例，覆盖完整历史 census、原生 root/分母、fresh capability、stream 配额、未知派发、迁移/恢复与旧错误契约。ESLint、Prettier 和 Astra 只读复核通过；未执行真实原生 Actor、付费请求或 A/B/C 实验。
+
+## 13 下一批工作及完成审计
+
+下一步连接原生 admission、runId/runNonce、variant 来源与最终签名行，再实现保留全部三角重复及 target strata 的统计 v2 与选择/泛化回执。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+
+| 必需条件            | 当前证据                                                    | 未完成的工程或外部条件                                                      |
+| ------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现          | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
+| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                             | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
+| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                          | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
+| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装             | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
+| 五池真实派发与统计  | 原生三角计划、批次预留、签名登记/准入、原 Eval 行及描述统计 | 原生行接线、生产 launch 权威、统计 v2、全部扰动执行及正式校准               |
+| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                                | 可信 receipt、逐轮停止条件和锚点回归                                        |
+| 晋级无降级绕过      | 既有发布门保持原行为                                        | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
+| Workbench 与回滚    | 既有底座可复用                                              | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
+| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                        | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
+| CLI 扩展与交付      | 原发行门仍适用                                              | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
 
 真实父版本与数据清单的登记独立于合成例子。待受信部署和来源可核验后，以新冻结合同开启真实实验；不把示例摘要重新标为生产身份。

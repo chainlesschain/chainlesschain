@@ -10,8 +10,11 @@ import {
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
-  EvolutionLedger,
 } from "./evolution-ledger.js";
+import {
+  captureEvolutionEvalLedger,
+  readEvolutionEvalLedger,
+} from "./evolution-eval-ledger-capture.js";
 
 export const EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA =
   "chainlesschain.evolution-eval-launch-admission/v1";
@@ -112,11 +115,13 @@ function text(value, label) {
 }
 
 function digest(value, label) {
-  if (!DIGEST.test(value ?? "")) fail(`${label} must be a sha256 digest`);
+  if (typeof value !== "string" || !DIGEST.test(value))
+    fail(`${label} must be a sha256 digest`);
   return value;
 }
 
 function timestamp(value, label) {
+  if (typeof value !== "string") fail(`${label} is invalid`);
   const parsed = Date.parse(value);
   if (
     typeof value !== "string" ||
@@ -248,13 +253,11 @@ function eventId(state) {
 }
 
 function events(state) {
-  return EvolutionLedger.prototype.read
-    .call(state.ledger)
-    .filter(
-      (event) =>
-        event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
-        event.eventId === eventId(state),
-    );
+  return readEvolutionEvalLedger(state.ledgerMethods).filter(
+    (event) =>
+      event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
+      event.eventId === eventId(state),
+  );
 }
 
 function resolveEvent(state, event) {
@@ -270,7 +273,7 @@ function resolveEvent(state, event) {
       canonical(state.enrollment ? [state.enrollment.enrollmentRef] : [])
   )
     fail("admission ledger event is substituted");
-  const identity = EvolutionLedger.prototype.verify.call(state.ledger);
+  const identity = state.ledgerMethods.verify();
   const resolution = state.resolveArtifact({
     epoch: identity.epoch,
     ledgerId: identity.ledgerId,
@@ -332,13 +335,20 @@ export function createEvolutionEvalLaunchAdmissionAuthority({
   if (
     !(artifactPorts instanceof EvolutionArtifactPorts) ||
     isProxy(artifactPorts) ||
-    !(ledger instanceof EvolutionLedger) ||
     isProxy(ledger) ||
     !isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)
   )
     fail(
       "admission requires real artifact ports, Ledger and a branded resolver",
     );
+  let ledgerMethods;
+  try {
+    ledgerMethods = captureEvolutionEvalLedger(ledger);
+  } catch {
+    fail(
+      "admission requires real artifact ports, Ledger and a branded resolver",
+    );
+  }
   if (typeof now !== "function" || isProxy(now) || !signer || isProxy(signer))
     fail("admission signer and clock are required");
   const sign = Object.getOwnPropertyDescriptor(signer, "sign")?.value;
@@ -357,6 +367,7 @@ export function createEvolutionEvalLaunchAdmissionAuthority({
     sign: sign.bind(signer),
     artifactPorts,
     ledger,
+    ledgerMethods,
     resolveArtifact: ledgerArtifactResolver,
     now,
     enrollment:
@@ -389,6 +400,12 @@ export function captureEvolutionEvalLaunchAdmissionBinding(authority) {
     enrollmentDigest: state.enrollment?.enrollmentDigest ?? null,
     cohortCompletenessAuthenticated: false,
     promotionAuthority: false,
+    ...(state.enrollment?.registrationKind
+      ? {
+          registrationKind: state.enrollment.registrationKind,
+          historyBinding: state.enrollment.historyBinding,
+        }
+      : {}),
   });
 }
 
@@ -402,85 +419,102 @@ function authorityState(authority) {
 export async function admitEvolutionEvalLaunch(authority, input) {
   const state = authorityState(authority);
   const captured = request(input, state, true);
-  // Capture head BEFORE the occupancy read: a concurrent append cannot escape CAS.
-  const head = EvolutionLedger.prototype.verify.call(state.ledger);
-  if (state.enrollment) state.enrollment.assertOpen(captured);
-  if (events(state).length !== 0) fail("admission slot is already occupied");
-  const core = {
-    schema: state.enrollment
-      ? EVOLUTION_EVAL_ENROLLED_LAUNCH_ADMISSION_SCHEMA
-      : EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA,
-    descriptorDigest: state.descriptorDigest,
-    ...captured,
-    ...(state.enrollment
-      ? {
-          enrollmentDigest: state.enrollment.enrollmentDigest,
-          descriptor: state.descriptor,
-        }
-      : {}),
-  };
-  const signature = state.sign(
-    Object.freeze({ message: message(core).toString("utf8") }),
-  );
-  const evidence = verifyEvidence(
-    {
-      ...core,
-      attestation: {
-        algorithm: "ed25519",
-        issuer: state.descriptor.authorityId,
-        keyId: state.descriptor.keyId,
-        trustPolicyDigest: state.descriptor.trustPolicyDigest,
-        value: signature,
+  let nativePrepared = false;
+  try {
+    // A native claim appends its paired budget intent before the admission CAS
+    // snapshot. Both subsequent assertOpen calls are strictly read-only.
+    if (state.enrollment?.prepare) {
+      state.enrollment.prepare(captured);
+      nativePrepared = true;
+    }
+    // Capture head BEFORE the occupancy read: a concurrent append cannot escape CAS.
+    const head = state.ledgerMethods.verify();
+    if (state.enrollment) state.enrollment.assertOpen(captured);
+    if (events(state).length !== 0) fail("admission slot is already occupied");
+    const core = {
+      schema: state.enrollment
+        ? EVOLUTION_EVAL_ENROLLED_LAUNCH_ADMISSION_SCHEMA
+        : EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA,
+      descriptorDigest: state.descriptorDigest,
+      ...captured,
+      ...(state.enrollment
+        ? {
+            enrollmentDigest: state.enrollment.enrollmentDigest,
+            descriptor: state.descriptor,
+          }
+        : {}),
+    };
+    const signature = state.sign(
+      Object.freeze({ message: message(core).toString("utf8") }),
+    );
+    const evidence = verifyEvidence(
+      {
+        ...core,
+        attestation: {
+          algorithm: "ed25519",
+          issuer: state.descriptor.authorityId,
+          keyId: state.descriptor.keyId,
+          trustPolicyDigest: state.descriptor.trustPolicyDigest,
+          value: signature,
+        },
       },
-    },
-    state,
-  );
-  request(captured, state, true);
-  const published = EvolutionArtifactPorts.prototype.putCanonical.call(
-    state.artifactPorts,
-    ARTIFACT_TYPE,
-    evidence,
-    {
-      audience: state.descriptor.audience,
-      purpose: state.descriptor.purpose,
-      retention: "ledger",
-    },
-  );
-  if (
-    published?.receipt?.persisted !== true ||
-    published.receipt.readbackVerified !== true ||
-    published.receipt.integrityVerified !== true ||
-    published.receipt.retention !== "ledger"
-  )
-    fail("admission artifact persistence failed");
-  request(captured, state, true);
-  if (state.enrollment) state.enrollment.assertOpen(captured);
-  const receipt = EvolutionLedger.prototype.appendDomainEvent.call(
-    state.ledger,
-    {
-      type: EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE,
-      eventId: eventId(state),
-      tenantId: state.descriptor.tenantId,
-      artifactTenantId: state.descriptor.artifactTenantId,
-      correlationId: state.descriptor.streamId,
-      decision: "accepted",
-      skillName: "evolution-eval",
-      reason: "signed attempt admission; Actor execution is unproven",
-      sourceRefs: state.enrollment ? [state.enrollment.enrollmentRef] : [],
-      subjectRef: published.ref,
-      timestamp: captured.admittedAt,
-    },
-    { expectedHeadDigest: head.headDigest, expectedSequence: head.sequence },
-  );
-  if (receipt?.authenticated !== true || receipt.durable !== true)
-    fail("admission ledger append failed");
-  const matches = events(state);
-  if (matches.length !== 1) fail("admission slot is absent or ambiguous");
-  const result = resolveEvent(state, matches[0]);
-  if (canonical(result.evidence) !== canonical(evidence))
-    fail("admission readback differs from signed bytes");
-  request(captured, state, true);
-  return result;
+      state,
+    );
+    request(captured, state, true);
+    const published = EvolutionArtifactPorts.prototype.putCanonical.call(
+      state.artifactPorts,
+      ARTIFACT_TYPE,
+      evidence,
+      {
+        audience: state.descriptor.audience,
+        purpose: state.descriptor.purpose,
+        retention: "ledger",
+      },
+    );
+    if (
+      published?.receipt?.persisted !== true ||
+      published.receipt.readbackVerified !== true ||
+      published.receipt.integrityVerified !== true ||
+      published.receipt.retention !== "ledger"
+    )
+      fail("admission artifact persistence failed");
+    request(captured, state, true);
+    if (state.enrollment) state.enrollment.assertOpen(captured);
+    const receipt = state.ledgerMethods.appendDomainEvent(
+      {
+        type: EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE,
+        eventId: eventId(state),
+        tenantId: state.descriptor.tenantId,
+        artifactTenantId: state.descriptor.artifactTenantId,
+        correlationId: state.descriptor.streamId,
+        decision: "accepted",
+        skillName: "evolution-eval",
+        reason: "signed attempt admission; Actor execution is unproven",
+        sourceRefs: state.enrollment ? [state.enrollment.enrollmentRef] : [],
+        subjectRef: published.ref,
+        timestamp: captured.admittedAt,
+      },
+      { expectedHeadDigest: head.headDigest, expectedSequence: head.sequence },
+    );
+    if (receipt?.authenticated !== true || receipt.durable !== true)
+      fail("admission ledger append failed");
+    const matches = events(state);
+    if (matches.length !== 1) fail("admission slot is absent or ambiguous");
+    const result = resolveEvent(state, matches[0]);
+    if (canonical(result.evidence) !== canonical(evidence))
+      fail("admission readback differs from signed bytes");
+    request(captured, state, true);
+    return result;
+  } catch (error) {
+    if (nativePrepared && state.enrollment?.recordFailure) {
+      try {
+        state.enrollment.recordFailure();
+      } catch {
+        /* Preserve the original failure; durable intent and ceilings remain. */
+      }
+    }
+    throw error;
+  }
 }
 
 /** Durable audit/recovery may outlive the execution deadline; it grants no execution permit. */

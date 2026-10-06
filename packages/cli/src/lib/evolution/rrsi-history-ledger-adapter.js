@@ -13,6 +13,7 @@ import {
   EVOLUTION_LEDGER_MAX_EVENTS,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
+  EVOLUTION_ARTIFACT_REF_SCHEMA,
 } from "./evolution-ledger.js";
 import { captureEvolutionLedgerFileBackend } from "./evolution-ledger-file-backend.js";
 import { isEvolutionLedgerV2Journal } from "./evolution-ledger-v2-journal.js";
@@ -139,6 +140,38 @@ function digestList(value, label) {
   if (new Set(result).size !== result.length)
     rrsiFail(`${label} contains duplicate digests`);
   return result;
+}
+
+/** Genuine v2 journals use null-prototype JSON refs. Copy their exact typed fields. */
+function copyRetainedRef(input) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    isProxy(input) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(input)) ||
+    Reflect.ownKeys(input).length !== 3
+  )
+    rrsiFail("history artifact reference is invalid");
+  const output = Object.fromEntries(
+    ["schema", "ref", "digest"].map((name) => {
+      const field = Object.getOwnPropertyDescriptor(input, name);
+      if (
+        !field?.enumerable ||
+        !("value" in field) ||
+        typeof field.value !== "string"
+      )
+        rrsiFail("history artifact reference must be own data");
+      return [name, field.value];
+    }),
+  );
+  if (
+    output.schema !== EVOLUTION_ARTIFACT_REF_SCHEMA ||
+    output.ref.length > 2048 ||
+    !/^[a-z][a-z0-9+.-]*:[^\\\s]+$/iu.test(output.ref)
+  )
+    rrsiFail("history artifact reference scope differs");
+  rrsiDigest(output.digest, "history artifact reference digest");
+  return output;
 }
 
 /** Trusted composition pins this independent public key; no caller callbacks. */
@@ -590,6 +623,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
       nativeInvocationNonces: new Set(),
       nativeRequestContexts: new Set(),
       nativeCandidateOwners: new Map(),
+      nativeQueryOrdinals: new Map(),
       slots: new Set(),
       candidates: new Map(),
       finalCandidates: new Map(),
@@ -1022,6 +1056,19 @@ export function createRrsiHistoryLedgerAdapter(input) {
     state.nativeBatches.set(batch.batchDigest, batch);
     state.candidates.set(candidate.contentDigest, candidate);
     if (stage === "selection") state.selectionQueries++;
+    state.nativeQueryOrdinals.set(
+      batch.batchDigest,
+      stage === "selection"
+        ? state.selectionQueries
+        : state.nativeQueryOrdinals.get(
+            [...state.nativeBatches.values()].find(
+              (entry) =>
+                entry.stage === "selection" &&
+                entry.campaignDigest === batch.campaignDigest &&
+                entry.candidate.contentDigest === batch.candidate.contentDigest,
+            ).batchDigest,
+          ),
+    );
     for (const key of keys)
       state.sources.set(key, {
         campaignDigest: campaign.campaignDigest,
@@ -1826,7 +1873,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
         const resolution = options.ledgerArtifactResolver({
           epoch: before.epoch,
           ledgerId: before.ledgerId,
-          ref: event.subjectRef,
+          ref: copyRetainedRef(event.subjectRef),
           tenantId: descriptor.artifactTenantId,
         });
         if (
@@ -1914,7 +1961,12 @@ export function createRrsiHistoryLedgerAdapter(input) {
           record.payload,
           record.acceptedAt,
         );
-        state.operations.set(record.operationId, { record, result });
+        state.operations.set(record.operationId, {
+          record,
+          result,
+          ref: copyRetainedRef(event.subjectRef),
+          sequence: event.sequence,
+        });
         state.lastRecordDigest = record.recordDigest;
       }
       if (!sameIdentity(before, methods.verify())) continue;
@@ -1927,6 +1979,54 @@ export function createRrsiHistoryLedgerAdapter(input) {
   }
   function operationEventId(operationId) {
     return `rrsi.${rrsiHash("chainlesschain.rrsi-history-operation/v1", { scopeDigest, operationId }).slice(7)}`;
+  }
+  function nativeBatchResolution(state, batchDigest, reservationRecord) {
+    const batch = state.nativeBatches.get(batchDigest);
+    if (!batch) rrsiFail("native batch is not registered");
+    const result = {
+      batch,
+      campaign: campaignFor(state, batch.campaignDigest),
+      queryOrdinal: state.nativeQueryOrdinals.get(batch.batchDigest),
+      reservationRecord,
+      identity: state.identity,
+      budgetOverrun: state.overrun,
+      recoveryEventsHeld: [...state.nativeRecoveryHolds.values()].reduce(
+        (sum, amount) => sum + amount,
+        0,
+      ),
+      children: batch.children.map((child) => {
+        const group = state.nativeChildren.get(child.childId);
+        return {
+          bindings: group.bindings,
+          states: group.reservations.map((reservation) => {
+            const entry = state.reservations.get(
+              reservation.bindings.executionId,
+            );
+            return {
+              arm: reservation.bindings.arm,
+              status: entry.status,
+              dispatched: entry.dispatched,
+            };
+          }),
+        };
+      }),
+      historyAuthenticated: true,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    };
+    // Reserve enough byte/node space for the longest later status as well as
+    // the actual retained event reference. Do not admit an unreadable batch.
+    snapshotRrsiData({
+      ...result,
+      children: result.children.map((child) => ({
+        ...child,
+        states: child.states.map((arm) => ({
+          ...arm,
+          status: "dispatch-intent",
+        })),
+      })),
+    });
+    return freezeRrsiData(result);
   }
   function commitUnlocked(kind, operationId, input) {
     const payload = snapshotRrsiData(input);
@@ -2000,7 +2100,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
         const resolution = options.ledgerArtifactResolver({
           epoch: head.epoch,
           ledgerId: head.ledgerId,
-          ref: published.ref,
+          ref: copyRetainedRef(published.ref),
           tenantId: descriptor.artifactTenantId,
         });
         if (!resolution?.found || !Buffer.isBuffer(resolution.bytes))
@@ -2011,6 +2111,12 @@ export function createRrsiHistoryLedgerAdapter(input) {
           ),
         );
       }
+      if (kind === "reserve-native-batch")
+        nativeBatchResolution(state, payload.batch.batchDigest, {
+          recordDigest: record.recordDigest,
+          ref: copyRetainedRef(published.ref),
+          sequence: head.sequence + 1,
+        });
       try {
         const receipt = methods.appendDomainEvent(
           {
@@ -2078,6 +2184,50 @@ export function createRrsiHistoryLedgerAdapter(input) {
 
   const adapter = Object.freeze({
     descriptor,
+    resolveCampaignRoot() {
+      return withHistoryLock(() => {
+        const { state } = load();
+        if (!state.root) rrsiFail("RRSI root campaign is not registered");
+        const operation = [...state.operations.values()].find(
+          (entry) =>
+            entry.record.kind === "register" &&
+            entry.record.payload.campaign.campaignDigest ===
+              state.root.campaignDigest,
+        );
+        return freezeRrsiData({
+          descriptor,
+          identity: state.identity,
+          campaign: state.root,
+          registrationRecord: {
+            recordDigest: operation.record.recordDigest,
+            ref: operation.ref,
+            sequence: operation.sequence,
+          },
+          historyAuthenticated: true,
+          productionBudgetAuthorityVerified: false,
+        });
+      });
+    },
+    resolveNativeBatch(input) {
+      const lookup = snapshotRrsiData(input);
+      rrsiExact(lookup, ["batchDigest"], "native batch lookup");
+      rrsiDigest(lookup.batchDigest, "native batch digest");
+      return withHistoryLock(() => {
+        const { state } = load();
+        const batch = state.nativeBatches.get(lookup.batchDigest);
+        if (!batch) rrsiFail("native batch is not registered");
+        const operation = [...state.operations.values()].find(
+          (entry) =>
+            entry.record.kind === "reserve-native-batch" &&
+            entry.record.payload.batch.batchDigest === batch.batchDigest,
+        );
+        return nativeBatchResolution(state, batch.batchDigest, {
+          recordDigest: operation.record.recordDigest,
+          ref: operation.ref,
+          sequence: operation.sequence,
+        });
+      });
+    },
     registerCampaign(campaign) {
       const normalized = verifyRrsiCampaign(campaign);
       const result = commit(
@@ -2375,6 +2525,25 @@ export function createRrsiHistoryLedgerAdapter(input) {
     adapter,
     Object.freeze({
       descriptor,
+      ledger,
+      artifactPorts: options.artifactPorts,
+      ledgerArtifactResolver: options.ledgerArtifactResolver,
+      resolveCampaignRoot: adapter.resolveCampaignRoot,
+      resolveNativeBatch: adapter.resolveNativeBatch,
+      assertNativeFreshChild(response, expectedBindings) {
+        const bindings = freshNativeChildren.get(response);
+        if (!bindings)
+          rrsiFail(
+            "native admission requires this process's fresh child capability",
+            "CC_RRSI_REPLAY_FORBIDDEN",
+          );
+        if (
+          rrsiCanonical(bindings) !==
+          rrsiCanonical(snapshotRrsiData(expectedBindings))
+        )
+          rrsiFail("fresh native child differs from signed enrollment");
+        return bindings;
+      },
       inspect: adapter.inspect,
       reservePreparation: adapter.reservePreparation,
       reserveNativeBatch: adapter.reserveNativeBatch,

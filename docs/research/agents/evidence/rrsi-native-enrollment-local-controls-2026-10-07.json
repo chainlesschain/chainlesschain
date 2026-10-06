@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.rrsi-native-enrollment-local-controls/v1",
+  "recordedAt": "2026-10-06T23:35:40.552Z",
+  "baseCommit": "e8b5c87951b1054d1b79b86ee251f91ece8d04c4",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-eval-ledger-capture.js",
+      "digest": "sha256:5430019469bbd79741bc25c78702d7ab833f119591793c64051c68e843c8abab"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-cohort-registration.js",
+      "digest": "sha256:f58f79ab786aa1feecb01c320303923c039bce8fe20fb8983e5aa107fb4dd184"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "digest": "sha256:a0609ec1b45d7170afdf683afc27bc2498d433b60aa4c42bbe8ff02bae9cb48e"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-eval-cohort-enrollment.js",
+      "digest": "sha256:a474bc68030720825dce9dd1ed78a6ff2f2be9b842e1f520c128d226ae9a5606"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-eval-launch-admission.js",
+      "digest": "sha256:aea6dc4e953e57ea7ef2900fba5c7a42b7485d293e599d8fcbad9b1d0411a649"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-ledger-capture.test.js",
+      "digest": "sha256:f74df497c1090707b37cd081258a48d1f4544a4606d026affbb1f1452ece0d12"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-cohort-enrollment.test.js",
+      "digest": "sha256:a928e7bfc818d124cebb3e5e5e4ed9f5c1f2a8d2add0288ccda4fd727b5f4d2d"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-launch-admission.test.js",
+      "digest": "sha256:3d4aec38dd7e9dfe426516ab59107fc16cc920a68da3a954b1931dfe3c5d7c9b"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-cohort-final-tests.json",
+      "digest": "sha256:115cb87e6dd1c808e13840ed570f0de8361bbdd12c4408915c7b9fb5a6c68b4d"
+    },
+    {
+      "file": ".work/rrsi-cohort-final-v2-tests.json",
+      "digest": "sha256:41ff485d353b36dd201e80c816198c1a08da42944fba4be39b67e81d6cf0fa38"
+    }
+  ],
+  "files": [
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-cohort-enrollment.test.js",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "passed": 191,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-launch-admission.test.js",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-ledger-capture.test.js",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-cohort-enrollment.test.js",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 7,
+    "passed": 282,
+    "failed": 0,
+    "skipped": 0
+  },
+  "attempts": [
+    {
+      "file": ".work/rrsi-cohort-final-tests.json",
+      "passed": 281,
+      "failed": 1,
+      "skipped": 0
+    },
+    {
+      "file": ".work/rrsi-cohort-final-v2-tests.json",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 8
+    }
+  ],
+  "migratedV2TestTimeoutMs": 300000,
+  "testTimeoutAdjustmentOnly": "The concurrent matrix loaded the old 180000ms migrated v2 timeout; rerun validates the unchanged production code under its current independent 300000ms test timeout.",
+  "newCasesInIncrement": 14,
+  "lint": "ESLint passed for all five changed source files and three changed/new test files",
+  "formatting": "Prettier passed for source/tests/docs/evidence",
+  "independentReadOnlyReview": "Astra confirmed genuine v1/v2 census, static signed root and manifests, full query barrier, fresh paired dispatch before admission CAS, read-only permits, failure accounting, and preserved PM v1 semantics. No new blocking finding; reviewer did not run tests or edit files.",
+  "controls": {
+    "genuineV1AndV2LedgerMethodsCaptured": true,
+    "completeLedgerCensusWithIdentityAndHeadChecks": true,
+    "genuineHistoryCompositionRequired": true,
+    "signedStaticCampaignRootImplemented": true,
+    "globalHistoryQueryOrdinalsBound": true,
+    "nativeOriginalPlanDigestsPreserved": true,
+    "completeValidationAndTestDenominatorsBound": true,
+    "allSiblingCohortsEnrollmentBarrier": true,
+    "freshPairedBudgetDispatchBeforeAdmissionCas": true,
+    "admittedRunIdNonceAndRequestBound": true,
+    "restoredAuthorityAuditOnly": true,
+    "uncertainAdmissionKeepsBudgetAndAttemptsUnknown": true,
+    "realMigratedV2EnrollmentDispatchAdmissionSealTested": true,
+    "legacyPmV1ProtocolPreserved": true
+  },
+  "localOnly": true,
+  "rrsiEnrollmentV2Implemented": true,
+  "nativeSignedRowCollectorImplemented": false,
+  "nativeStatisticsV2Implemented": false,
+  "nativeLaunchRuntimeImplemented": false,
+  "paidProviderRequestsExecuted": false,
+  "signedNativeActorsExecuted": false,
+  "actualRequestCostGraphVerified": false,
+  "sharedCostOwnershipVerified": false,
+  "nativeContentDerivationVerified": false,
+  "nativeExecutionDenominatorVerified": false,
+  "productionBudgetAuthorityVerified": false,
+  "productionLatencyValidated": false,
+  "billingComplete": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}
