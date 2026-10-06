@@ -8,6 +8,8 @@ set -euo pipefail
 : "${RUNNER_TEMP:?RUNNER_TEMP is required}"
 test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"
 PDH_SCRATCH=$(mktemp -d "${RUNNER_TEMP}/pdh-native.XXXXXX")
+# GitHub supplies a Windows path on Git Bash; tar needs the POSIX form.
+PDH_SCRATCH=$(cd "$PDH_SCRATCH" && pwd -P)
 mkdir -p "$PDH_EVIDENCE_DIR"
 # Archive tracked source only: never copy workspace node_modules or Electron
 # bindings. Include the real CLI executable and its exact local child candidates,
@@ -70,13 +72,14 @@ fs.writeFileSync(path.join(process.env.PDH_EVIDENCE_DIR, 'native-identity.json')
 console.log(json);
 NODE
 
-VITEST_ARGS=()
+# Bash 3.2 treats empty arrays as unset under nounset (the macOS runner).
+VITEST_ARGS=(--reporter=default --reporter=json)
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   # Bound native filesystem contention while retaining every test file.
   VITEST_ARGS+=(--pool=forks --maxWorkers=2)
 fi
-npx vitest run --reporter=default --reporter=json \
-  --outputFile.json="$PDH_EVIDENCE_DIR/vitest-results.json" "${VITEST_ARGS[@]}"
+npx vitest run "${VITEST_ARGS[@]}" \
+  --outputFile.json="$PDH_EVIDENCE_DIR/vitest-results.json"
 
 # These suites must execute, not silently skip because the scratch layout lost
 # its CLI binary, Python bridge, or native dependencies.

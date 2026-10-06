@@ -6,7 +6,9 @@
 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37366164477)、
 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37366163952)、
 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37366189246)。
-最新候选为本次完整性断言修复提交，需重新绑定其三平台测试；尚未发布本轮版本。
+完整性断言修复 `50496cb9b0` 已直接推送 main。该轮 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37404709208)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37404714522)、[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/37404720763) 已启动；旧候选活动任务已取消。
+
+该轮暴露 PDH helper 两个跨平台问题：macOS Bash 3.2 在 `set -u` 下展开空数组报 `VITEST_ARGS[@]: unbound variable`；Windows `mktemp` 返回反斜杠路径，`tar -C` 无法打开目录。最新修复将 Vitest 通用参数放入非空数组，并通过 `pwd -P` 将临时目录正规化为 Git Bash POSIX 路径。修复仍需重新绑定完整三平台测试；尚未发布本轮版本。
 
 ## 截图失败项排查与处理
 
@@ -22,17 +24,17 @@
 
 GitHub 官方 Actions 分配故障于 `2026-10-05T22:49:42Z` 报告已解决。本轮先重试已核实的基础设施失败，同时修复上述真实计数断言遗漏；完整发布结果仍以修复后的新提交矩阵为准。
 
-| 阶段               | 目标版本 / 范围                            | 状态                                | 验证依据                                                                   |
-| ------------------ | ------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
-| 功能实现           | 四批 Palantir 对照改进                     | 已提交                              | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
-| 子包核对           | PDH、Session Core                          | 已确认必须更新                      | 两包实现均不同于公开版本；其余子包无实现变更                               |
-| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                   | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
-| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 修复 PDH 跨包测试布局后重启完整检查 | 解析错误和隐式跳过缺口已修复；须最新提交全部通过后发布                     |
-| Session Core       | `0.3.14` → `0.3.15`                        | 待门禁通过                          | GitHub Actions OIDC 发布；公开包下载核验                                   |
-| Personal Data Hub  | `0.4.62` → `0.4.63`                        | 待门禁通过                          | 新增三平台完整 PDH 原生测试，声明的 SQLCipher 依赖必须实际加载             |
-| CLI                | `0.166.89` → `0.166.90`                    | 待子包发布和核验                    | 精确依赖对齐、公开子包逐包校验后 OIDC 发布                                 |
-| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 待 CLI 公开可用                     | 配对 CLI `0.166.90`；三平台 IDE 测试和发布工作流                           |
-| JetBrains          | 候选 `0.4.153`                             | 待 CLI 公开可用                     | 旧 `0.4.152` 发布仍在进行，候选不复用其版本；上传与公开审核状态分别记录    |
+| 阶段               | 目标版本 / 范围                            | 状态                                       | 验证依据                                                                   |
+| ------------------ | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------- |
+| 功能实现           | 四批 Palantir 对照改进                     | 已提交                                     | 第四批 `9f28073673`；本地 330 项通过，历史证据保留                         |
+| 子包核对           | PDH、Session Core                          | 已确认必须更新                             | 两包实现均不同于公开版本；其余子包无实现变更                               |
+| 发布准备           | 版本、精确依赖、锁文件、变更说明           | 完成，已推送 main                          | `2c3e3ca851`；两个锁文件同步，CLI 锁定 PDH `0.4.63`、Session Core `0.3.15` |
+| GitHub Actions     | CLI CI、CLI Strict Sandbox、IDE Extensions | 修复 PDH helper 跨平台兼容性后重启完整检查 | Bash 3.2 空数组和 Windows tar 路径问题已定位；须最新提交全部通过后发布     |
+| Session Core       | `0.3.14` → `0.3.15`                        | 待门禁通过                                 | GitHub Actions OIDC 发布；公开包下载核验                                   |
+| Personal Data Hub  | `0.4.62` → `0.4.63`                        | 待门禁通过                                 | 新增三平台完整 PDH 原生测试，声明的 SQLCipher 依赖必须实际加载             |
+| CLI                | `0.166.89` → `0.166.90`                    | 待子包发布和核验                           | 精确依赖对齐、公开子包逐包校验后 OIDC 发布                                 |
+| VS Code / Open VSX | `0.37.134` → `0.37.135`                    | 待 CLI 公开可用                            | 配对 CLI `0.166.90`；三平台 IDE 测试和发布工作流                           |
+| JetBrains          | 候选 `0.4.153`                             | 待 CLI 公开可用                            | 旧 `0.4.152` 发布仍在进行，候选不复用其版本；上传与公开审核状态分别记录    |
 
 发布标签依次为 `v-npm-0-166-90`、`ide-vscode-v0.37.135`、`ide-jetbrains-v0.4.153`。npm 工作流先发布缺失的子包并核验公开归档，再发布 CLI。仅本地测试、部分矩阵或旧提交检查均不能满足发布条件。
 
