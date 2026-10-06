@@ -1,0 +1,874 @@
+{
+  "schema": "chainlesschain.rrsi-durable-controls-local-validation/v1",
+  "baselineCommit": "3238aa30cc",
+  "sourceTreeDirty": true,
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "nodeVersion": "v22.22.2"
+  },
+  "sourceFileDigests": {
+    "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js": "sha256:92fe6f81c3fea12739ad33d67dac566933c42283642a4b76bda8a43f53dc712b",
+    "packages/cli/src/lib/evolution/evolution-artifact-ports.js": "sha256:ebfd4d831c0a6de7a23386162f181da087211fbeb4162067fe8df66d57025158",
+    "packages/cli/__tests__/fixtures/rrsi-history-store.js": "sha256:d43bc45d98f7f9bb2b130c15586dc4d564055b64bfb0286386132d41cdfd0d0a",
+    "packages/cli/__tests__/fixtures/rrsi-history-process.mjs": "sha256:ffa61c2ef27ce865a5c21ebaf882c375842a60c541130b2d6c6016e531334fce",
+    "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js": "sha256:01f702ecfc48ebf6a48aa19464b745b71a2235d295c8883cd32fea3de321cefb",
+    "packages/cli/__tests__/integration/rrsi-history-process.test.js": "sha256:322dac19ed2c0cf72035db43222a9db4030b3d3998101ef8ab6d960d43f3f514",
+    "packages/cli/__tests__/unit/evolution-artifact-ports.test.js": "sha256:98f25ea6ec274d9e9125e2fff52ac6edc690b7d7a1db4a0d538cd16578dae363"
+  },
+  "testReportDigest": "sha256:a585267b5d7a370be859061c6c128bd4d6472cb704e191cebefc4436ee91c9e7",
+  "localValidation": {
+    "passed": 158,
+    "failed": 0,
+    "skipped": 1,
+    "testFiles": 6,
+    "eslint": "passed",
+    "prettier": "passed",
+    "authority": "local-supplementary-only"
+  },
+  "testResults": [
+    {
+      "file": "rrsi-history-process.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "preserves a real migrated v2 journal through registration and reopen",
+          "status": "passed",
+          "durationMs": 12154.5877
+        },
+        {
+          "title": "preserves a reserved budget when the first process exits normally",
+          "status": "passed",
+          "durationMs": 3467.226199999999
+        },
+        {
+          "title": "recovers a committed reservation after hard exit before returning the receipt",
+          "status": "passed",
+          "durationMs": 2923.5338999999985
+        },
+        {
+          "title": "permits exactly one of two real processes to claim the same slot",
+          "status": "passed",
+          "durationMs": 3353.5121
+        },
+        {
+          "title": "deduplicates the same execution across two competing processes",
+          "status": "passed",
+          "durationMs": 2858.8415999999997
+        },
+        {
+          "title": "does not hide an uncertain append outcome by issuing another reservation",
+          "status": "passed",
+          "durationMs": 2120.7769000000008
+        }
+      ]
+    },
+    {
+      "file": "rrsi-offline-replay.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "runs a reproducible synthetic demonstration in a real child",
+          "status": "passed",
+          "durationMs": 306.70969999999994
+        },
+        {
+          "title": "checks a separately supplied campaign digest and keeps unknown costs HOLD",
+          "status": "passed",
+          "durationMs": 759.8277
+        },
+        {
+          "title": "rejects invalid options without echoing private paths 0",
+          "status": "passed",
+          "durationMs": 108.21879999999987
+        },
+        {
+          "title": "rejects invalid options without echoing private paths 1",
+          "status": "passed",
+          "durationMs": 104.21350000000007
+        },
+        {
+          "title": "rejects invalid options without echoing private paths 2",
+          "status": "passed",
+          "durationMs": 109.04899999999998
+        },
+        {
+          "title": "rejects oversized and malformed UTF-8 inputs with a bounded read",
+          "status": "passed",
+          "durationMs": 240.4016999999999
+        }
+      ]
+    },
+    {
+      "file": "evolution-artifact-ports.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+          "status": "passed",
+          "durationMs": 290.63610000000017
+        },
+        {
+          "title": "returns the existing exact envelope and locator after a response-loss retry",
+          "status": "passed",
+          "durationMs": 293.1863999999998
+        },
+        {
+          "title": "provides a short read-only EvolutionLedger resolver without write authority",
+          "status": "passed",
+          "durationMs": 164.70990000000006
+        },
+        {
+          "title": "rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+          "status": "passed",
+          "durationMs": 12.43040000000019
+        },
+        {
+          "title": "rejects every Proxy before reflective traps or persistence can run",
+          "status": "passed",
+          "durationMs": 9.825199999999768
+        },
+        {
+          "title": "rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+          "status": "passed",
+          "durationMs": 155.18780000000015
+        },
+        {
+          "title": "rejects expired envelopes and fails closed after ArtifactStore removal",
+          "status": "passed",
+          "durationMs": 164.29340000000002
+        },
+        {
+          "title": "fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+          "status": "passed",
+          "durationMs": 164.20150000000012
+        },
+        {
+          "title": "rechecks current revocation and exact policy on every resolution",
+          "status": "passed",
+          "durationMs": 145.72900000000027
+        },
+        {
+          "title": "supports only the approved ledger-retention types without an envelope TTL",
+          "status": "passed",
+          "durationMs": 19681.787099999998
+        },
+        {
+          "title": "lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+          "status": "passed",
+          "durationMs": 235.07200000000012
+        },
+        {
+          "title": "rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+          "status": "passed",
+          "durationMs": 15.933499999999185
+        },
+        {
+          "title": "denies caller-selected infinite retention without an approved type, purpose, and authority",
+          "status": "passed",
+          "durationMs": 17.212399999996705
+        },
+        {
+          "title": "rejects a signed envelope replayed with a mutated core",
+          "status": "passed",
+          "durationMs": 128.72819999999774
+        },
+        {
+          "title": "rejects stored-byte replacement even when the index still advertises the original hash",
+          "status": "passed",
+          "durationMs": 188.19119999999748
+        },
+        {
+          "title": "rejects index recordDigest and exact-lineage replacement",
+          "status": "passed",
+          "durationMs": 138.3237999999983
+        },
+        {
+          "title": "rejects traversal in a tampered index before following the stored path",
+          "status": "passed",
+          "durationMs": 130.02189999999973
+        },
+        {
+          "title": "rejects a hard-linked ArtifactStore index before trusting repository API output",
+          "status": "passed",
+          "durationMs": 128.21649999999863
+        },
+        {
+          "title": "rejects an ArtifactStore index replaced by a symlink",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "title": "rejects an ArtifactStore files directory replaced by a symlink or junction",
+          "status": "passed",
+          "durationMs": 134.4786000000022
+        },
+        {
+          "title": "rejects replacement of the captured ArtifactStore root identity",
+          "status": "passed",
+          "durationMs": 138.66439999999784
+        },
+        {
+          "title": "rejects a replaced lineage envelope before releasing bytes",
+          "status": "passed",
+          "durationMs": 132.1913999999997
+        },
+        {
+          "title": "requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+          "status": "passed",
+          "durationMs": 156.6875
+        },
+        {
+          "title": "resolves ledger bytes without list/get locks while rejecting an index change during readback",
+          "status": "passed",
+          "durationMs": 155.15169999999853
+        },
+        {
+          "title": "resolves a bounded ledger batch with fresh authority for every item",
+          "status": "passed",
+          "durationMs": 285.2057999999997
+        },
+        {
+          "title": "rechecks every decision lease at the end of a ledger batch",
+          "status": "passed",
+          "durationMs": 259.8107999999993
+        },
+        {
+          "title": "rejects index replacement during authority lookup in a single descriptor read",
+          "status": "passed",
+          "durationMs": 137.41150000000198
+        },
+        {
+          "title": "rejects index replacement during authority lookup in a batch descriptor read",
+          "status": "passed",
+          "durationMs": 139.90040000000226
+        },
+        {
+          "title": "rejects missing through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 132.34639999999854
+        },
+        {
+          "title": "rejects missing through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 129.20059999999648
+        },
+        {
+          "title": "rejects duplicate-id through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 129.04880000000048
+        },
+        {
+          "title": "rejects duplicate-id through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 132.09830000000147
+        },
+        {
+          "title": "rejects duplicate-digest through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 142.28880000000208
+        },
+        {
+          "title": "rejects duplicate-digest through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 157.9938000000002
+        },
+        {
+          "title": "rejects lineage through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 186.42499999999927
+        },
+        {
+          "title": "rejects lineage through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 156.4992999999995
+        },
+        {
+          "title": "rejects payload through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 188.08560000000216
+        },
+        {
+          "title": "rejects payload through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 245.82210000000123
+        },
+        {
+          "title": "rejects revocation through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 195.74109999999928
+        },
+        {
+          "title": "rejects revocation through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "durationMs": 163.98109999999724
+        },
+        {
+          "title": "cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+          "status": "passed",
+          "durationMs": 391.8251999999993
+        },
+        {
+          "title": "captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+          "status": "passed",
+          "durationMs": 310.77900000000227
+        },
+        {
+          "title": "fails putCanonical when a store mutates bytes before immediate readback",
+          "status": "passed",
+          "durationMs": 121.38899999999921
+        }
+      ]
+    },
+    {
+      "file": "rrsi-contracts.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "detaches and deeply freezes policy inputs without creating authority",
+          "status": "passed",
+          "durationMs": 8.084299999999985
+        },
+        {
+          "title": "rejects forged authenticated flags",
+          "status": "passed",
+          "durationMs": 1.5457000000000107
+        },
+        {
+          "title": "rejects forged readyForExecution flags",
+          "status": "passed",
+          "durationMs": 0.8472000000000435
+        },
+        {
+          "title": "rejects forged qualifiesForPromotion flags",
+          "status": "passed",
+          "durationMs": 0.9269999999999641
+        },
+        {
+          "title": "rejects an invalid positive budget scale 0",
+          "status": "passed",
+          "durationMs": 0.5244999999999891
+        },
+        {
+          "title": "rejects an invalid positive budget scale -1",
+          "status": "passed",
+          "durationMs": 0.3976999999999862
+        },
+        {
+          "title": "rejects an invalid positive budget scale Infinity",
+          "status": "passed",
+          "durationMs": 0.2727999999999611
+        },
+        {
+          "title": "rejects an invalid positive budget scale NaN",
+          "status": "passed",
+          "durationMs": 0.23579999999998336
+        },
+        {
+          "title": "rejects an invalid positive budget scale -0",
+          "status": "passed",
+          "durationMs": 0.6345999999999776
+        },
+        {
+          "title": "rejects an invalid positive budget scale 9007199254740992",
+          "status": "passed",
+          "durationMs": 0.3251000000000204
+        },
+        {
+          "title": "rejects getters and proxies without running input code",
+          "status": "passed",
+          "durationMs": 3.877200000000016
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 0",
+          "status": "passed",
+          "durationMs": 0.5577000000000112
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 1",
+          "status": "passed",
+          "durationMs": 0.39289999999999736
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 2",
+          "status": "passed",
+          "durationMs": 0.44589999999999463
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 3",
+          "status": "passed",
+          "durationMs": 0.5908999999999764
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 4",
+          "status": "passed",
+          "durationMs": 0.3242999999999938
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 5",
+          "status": "passed",
+          "durationMs": 0.4397000000000162
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 6",
+          "status": "passed",
+          "durationMs": 0.4371999999999616
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 7",
+          "status": "passed",
+          "durationMs": 0.4249999999999545
+        },
+        {
+          "title": "rejects hostile or ambiguous plain-data shape 8",
+          "status": "passed",
+          "durationMs": 0.41320000000001755
+        },
+        {
+          "title": "rejects excessive nesting and arrays before normalization",
+          "status": "passed",
+          "durationMs": 2.4938999999999965
+        },
+        {
+          "title": "counts transitive source components rather than repeated tasks",
+          "status": "passed",
+          "durationMs": 65.10399999999993
+        },
+        {
+          "title": "rejects cross-pool overlap in template",
+          "status": "passed",
+          "durationMs": 12.32000000000005
+        },
+        {
+          "title": "rejects cross-pool overlap in project",
+          "status": "passed",
+          "durationMs": 14.563800000000015
+        },
+        {
+          "title": "rejects cross-pool overlap in principal",
+          "status": "passed",
+          "durationMs": 8.533400000000029
+        },
+        {
+          "title": "rejects cross-pool overlap in timeWindow",
+          "status": "passed",
+          "durationMs": 10.216200000000072
+        },
+        {
+          "title": "rejects copied task content even under a new ID and source claims",
+          "status": "passed",
+          "durationMs": 8.454000000000065
+        },
+        {
+          "title": "projects only training refs without hidden task IDs or source groups",
+          "status": "passed",
+          "durationMs": 26.95060000000001
+        },
+        {
+          "title": "freezes equal three-arm budgets, comparison alpha and perturbation reserves",
+          "status": "passed",
+          "durationMs": 61.37689999999998
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 0",
+          "status": "passed",
+          "durationMs": 37.1472
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 1",
+          "status": "passed",
+          "durationMs": 31.762699999999995
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 2",
+          "status": "passed",
+          "durationMs": 30.154100000000085
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 3",
+          "status": "passed",
+          "durationMs": 25.25649999999996
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 4",
+          "status": "passed",
+          "durationMs": 33.73339999999996
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 5",
+          "status": "passed",
+          "durationMs": 27.07929999999999
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 6",
+          "status": "passed",
+          "durationMs": 27.54819999999995
+        },
+        {
+          "title": "rejects an inconsistent frozen campaign 7",
+          "status": "passed",
+          "durationMs": 26.802299999999946
+        },
+        {
+          "title": "rejects unsafe arithmetic across stage allocations",
+          "status": "passed",
+          "durationMs": 25.274799999999914
+        },
+        {
+          "title": "does not mistake many repeated tasks for independent source groups",
+          "status": "passed",
+          "durationMs": 35.247100000000046
+        },
+        {
+          "title": "binds candidates to campaign and only permits training sources",
+          "status": "passed",
+          "durationMs": 117.15960000000007
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path ../grader.js",
+          "status": "passed",
+          "durationMs": 46.437599999999975
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path C:/grader.json",
+          "status": "passed",
+          "durationMs": 47.22510000000011
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path //server/share.json",
+          "status": "passed",
+          "durationMs": 49.21960000000013
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/pm-task-change-export/../grader.json",
+          "status": "passed",
+          "durationMs": 46.72499999999991
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/pm-task-change-export/strategy.md:stream",
+          "status": "passed",
+          "durationMs": 45.34870000000001
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/pm-task-change-export/sub./strategy.md",
+          "status": "passed",
+          "durationMs": 45.82080000000019
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/pm-task-change-export/NUL.json",
+          "status": "passed",
+          "durationMs": 48.23780000000011
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/pm-task-change-export/runtime.js",
+          "status": "passed",
+          "durationMs": 62.35259999999994
+        },
+        {
+          "title": "rejects an out-of-scope or aliased artifact path skills/other-skill/strategy.md",
+          "status": "passed",
+          "durationMs": 51.81750000000011
+        },
+        {
+          "title": "rejects case-colliding artifacts and total artifact size overflow",
+          "status": "passed",
+          "durationMs": 73.21149999999989
+        },
+        {
+          "title": "uses content identity independent of IDs, hypothesis and size assertions",
+          "status": "passed",
+          "durationMs": 67.58339999999998
+        }
+      ]
+    },
+    {
+      "file": "rrsi-history-ledger-adapter.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "registers idempotently and reopens the same root without resetting scope",
+          "status": "passed",
+          "durationMs": 1516.2454
+        },
+        {
+          "title": "durably charges five ceilings before returning a fresh reservation",
+          "status": "passed",
+          "durationMs": 2437.2693
+        },
+        {
+          "title": "rejects changed payload under the same execution identity",
+          "status": "passed",
+          "durationMs": 1509.7285000000002
+        },
+        {
+          "title": "refuses forged, foreign, and changed receipt bindings before releasing budget",
+          "status": "passed",
+          "durationMs": 2461.792299999999
+        },
+        {
+          "title": "only independent complete settlement replaces ceilings with actual usage",
+          "status": "passed",
+          "durationMs": 3199.377699999999
+        },
+        {
+          "title": "keeps ceilings and unknown state for incomplete signed settlement 0",
+          "status": "passed",
+          "durationMs": 3758.8577000000005
+        },
+        {
+          "title": "keeps ceilings and unknown state for incomplete signed settlement 1",
+          "status": "passed",
+          "durationMs": 4238.471099999999
+        },
+        {
+          "title": "keeps ceilings and unknown state for incomplete signed settlement 2",
+          "status": "passed",
+          "durationMs": 3657.2739
+        },
+        {
+          "title": "retains independently signed overruns and blocks further admission",
+          "status": "passed",
+          "durationMs": 3305.9363999999987
+        },
+        {
+          "title": "revalidates historic accepted settlement at its original acceptance time",
+          "status": "passed",
+          "durationMs": 3105.2934999999998
+        },
+        {
+          "title": "rejects expired new evidence and insufficient successful denominators",
+          "status": "passed",
+          "durationMs": 2340.1031000000003
+        },
+        {
+          "title": "does not turn signed not-started status into completed evaluation",
+          "status": "passed",
+          "durationMs": 2526.128199999999
+        },
+        {
+          "title": "cannot reset policy or budgets by registering a new campaign ID",
+          "status": "passed",
+          "durationMs": 881.2313999999969
+        },
+        {
+          "title": "persists unknown executions and never grants dispatch on reopen",
+          "status": "passed",
+          "durationMs": 2702.0841
+        },
+        {
+          "title": "prevents renamed candidate identities from obtaining another query",
+          "status": "passed",
+          "durationMs": 1521.4820999999938
+        },
+        {
+          "title": "enforces pending resource totals across unrelated slots",
+          "status": "passed",
+          "durationMs": 1658.2757999999958
+        },
+        {
+          "title": "permits one finalist and never restores final-pool queries after settlement",
+          "status": "passed",
+          "durationMs": 6219.8505000000005
+        },
+        {
+          "title": "checks exposed holdout content/source identities across renamed manifests",
+          "status": "passed",
+          "durationMs": 11307.2725
+        },
+        {
+          "title": "allows no refunds without an independent configured verifier",
+          "status": "passed",
+          "durationMs": 2142.850099999996
+        },
+        {
+          "title": "records training exposure across campaigns before any query starts",
+          "status": "passed",
+          "durationMs": 4305.835800000001
+        },
+        {
+          "title": "does not retire previously queried holdouts to training implicitly",
+          "status": "passed",
+          "durationMs": 4209.454299999998
+        },
+        {
+          "title": "cannot freeze with an unresolved competitor even after selected execution settles",
+          "status": "passed",
+          "durationMs": 3317.483800000002
+        },
+        {
+          "title": "binds reservation and settlement identity to the actual Ledger root",
+          "status": "passed",
+          "durationMs": 4144.571199999991
+        },
+        {
+          "title": "cannot assign one source receipt to different executions",
+          "status": "passed",
+          "durationMs": 4993.349900000001
+        },
+        {
+          "title": "rejects forged storage/verification composition and changed pinned authority",
+          "status": "passed",
+          "durationMs": 825.1682000000001
+        }
+      ]
+    },
+    {
+      "file": "rrsi-selector.test.js",
+      "status": "passed",
+      "assertions": [
+        {
+          "title": "rejects the train-only gain and shadow-selects the robust candidate",
+          "status": "passed",
+          "durationMs": 200.36370000000005
+        },
+        {
+          "title": "produces the same replay digest after candidate/observation reordering",
+          "status": "passed",
+          "durationMs": 252.78359999999998
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor candidateCostMicrounits",
+          "status": "passed",
+          "durationMs": 142.71949999999993
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor costComplete",
+          "status": "passed",
+          "durationMs": 159.65920000000006
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor cleanupConfirmed",
+          "status": "passed",
+          "durationMs": 154.87509999999997
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor completedSlots",
+          "status": "passed",
+          "durationMs": 131.30970000000002
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor independentGroups",
+          "status": "passed",
+          "durationMs": 173.30809999999997
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor selectionDelta",
+          "status": "passed",
+          "durationMs": 127.0802000000001
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor wallClockMs",
+          "status": "passed",
+          "durationMs": 146.18900000000008
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor executions",
+          "status": "passed",
+          "durationMs": 136.22039999999993
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor executions",
+          "status": "passed",
+          "durationMs": 132.40430000000015
+        },
+        {
+          "title": "HOLDs the entire campaign on incomplete competitor environmentMatches",
+          "status": "passed",
+          "durationMs": 122.49479999999994
+        },
+        {
+          "title": "retains hard rejection and HOLDs campaign when a rejected attempt lacks costs",
+          "status": "passed",
+          "durationMs": 146.56719999999996
+        },
+        {
+          "title": "cannot score around hard failure safetyViolations",
+          "status": "passed",
+          "durationMs": 162.38059999999996
+        },
+        {
+          "title": "cannot score around hard failure permissionViolations",
+          "status": "passed",
+          "durationMs": 159.63190000000031
+        },
+        {
+          "title": "cannot score around hard failure dataLeakage",
+          "status": "passed",
+          "durationMs": 143.3058000000001
+        },
+        {
+          "title": "cannot score around hard failure ancestorPassed",
+          "status": "passed",
+          "durationMs": 145.72659999999996
+        },
+        {
+          "title": "HOLDs missing observations and cannot invent independent groups",
+          "status": "passed",
+          "durationMs": 208.04730000000018
+        },
+        {
+          "title": "rejects registered perturbation regression even when clean gain is positive",
+          "status": "passed",
+          "durationMs": 134.54269999999997
+        },
+        {
+          "title": "does not silently omit a registered perturbation",
+          "status": "passed",
+          "durationMs": 136.95229999999992
+        },
+        {
+          "title": "rejects all copies of identical content independently of input order",
+          "status": "passed",
+          "durationMs": 258.40549999999985
+        },
+        {
+          "title": "checks aggregate selection budget including rejected attempts for candidateTokens",
+          "status": "passed",
+          "durationMs": 132.9022
+        },
+        {
+          "title": "checks aggregate selection budget including rejected attempts for candidateToolCalls",
+          "status": "passed",
+          "durationMs": 132.36110000000008
+        },
+        {
+          "title": "checks aggregate selection budget including rejected attempts for wallClockMs",
+          "status": "passed",
+          "durationMs": 129.2537999999995
+        },
+        {
+          "title": "checks aggregate selection budget including rejected attempts for executions",
+          "status": "passed",
+          "durationMs": 124.0010000000002
+        },
+        {
+          "title": "checks aggregate cost budget before choosing individually eligible candidates",
+          "status": "passed",
+          "durationMs": 157.61290000000008
+        },
+        {
+          "title": "handles zero baseline costs without division or false free-price inference",
+          "status": "passed",
+          "durationMs": 107.28340000000026
+        },
+        {
+          "title": "only returns HOLD when policy calibration is still pending",
+          "status": "passed",
+          "durationMs": 89.15350000000035
+        }
+      ]
+    }
+  ],
+  "trustBoundary": {
+    "ledgerAuthority": "TEST-ONLY HMAC",
+    "settlementAuthority": "TEST-ONLY independent Ed25519",
+    "physicalPowerLossProven": false,
+    "productionAuthorityAdmitted": false,
+    "controlBudgetCoverage": "selection-and-final-only",
+    "qualityVerdictVerified": false
+  },
+  "formalExperimentStatus": "NOT_RUN",
+  "releaseMatrixStatus": "NOT_RUN",
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}
