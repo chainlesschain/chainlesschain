@@ -99,6 +99,7 @@ describe("CLI release workflow contracts", () => {
       'test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"',
     );
     expect(script).toContain('mktemp -d "${RUNNER_TEMP}/pdh-native.XXXXXX"');
+    expect(script).toContain('PDH_SCRATCH=$(cd "$PDH_SCRATCH" && pwd -P)');
     expect(script).not.toMatch(/rm\s+-rf/u);
     expect(script).toContain(
       "['better-sqlite3-multiple-ciphers', 'better-sqlite3']",
@@ -138,8 +139,10 @@ describe("CLI release workflow contracts", () => {
       expect(script).toContain(`await import('../cli/src/lib/${module}')`);
     }
     expect(script).toContain(
-      "npx vitest run --reporter=default --reporter=json",
+      "VITEST_ARGS=(--reporter=default --reporter=json)",
     );
+    expect(script).not.toContain("VITEST_ARGS=()");
+    expect(script).toContain('npx vitest run "${VITEST_ARGS[@]}"');
     expect(script).not.toMatch(
       /--(?:exclude|testNamePattern|passWithNoTests)|\|\| true/u,
     );
