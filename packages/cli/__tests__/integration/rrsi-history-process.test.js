@@ -10,6 +10,7 @@ import { rrsiCandidateInput } from "../fixtures/rrsi-shadow-fixture.js";
 import { openLedgerV2Fixture } from "../fixtures/evolution-ledger-v2-store.js";
 import { isEvolutionLedgerV2Journal } from "../../src/lib/evolution/evolution-ledger-v2-journal.js";
 import { createRrsiHistoryLedgerAdapter } from "../../src/lib/evolution/rrsi-history-ledger-adapter.js";
+import { rrsiNativeBatchFixture } from "../fixtures/rrsi-native-batch.js";
 
 const worker = fileURLToPath(
   new URL("../fixtures/rrsi-history-process.mjs", import.meta.url),
@@ -100,6 +101,108 @@ afterEach(() => {
 });
 
 describe("RRSI actual file and process recovery", () => {
+  it("preserves native batches and atomic dispatch through a real migrated v2 journal", () => {
+    const request = rrsiNativeBatchFixture();
+    const value = fixture();
+    const open = () => {
+      const store = openLedgerV2Fixture(
+        path.join(value.root, "native-v2-store"),
+        {
+          tenantId: request.planContext.context.campaign.tenantId,
+          artifactTenantId: "rrsi-artifacts",
+          audience: "rrsi-runtime",
+        },
+      );
+      const adapter = createRrsiHistoryLedgerAdapter({
+        backend: store.backend,
+        artifactPorts: store.artifactPorts,
+        ledgerArtifactResolver: store.resolver,
+        descriptor: {
+          tenantId: request.planContext.context.campaign.tenantId,
+          artifactTenantId: "rrsi-artifacts",
+          goalId: request.planContext.context.campaign.goalId,
+          audience: "rrsi-runtime",
+          purpose: "evolution-ledger",
+        },
+        settlementVerifier: value.settlementVerifier,
+        now: store.clock,
+      });
+      return { store, adapter };
+    };
+    const first = open();
+    first.adapter.registerCampaign(request.planContext.context.campaign);
+    const batch = first.adapter.reserveNativeBatch(request);
+    first.adapter.recordNativeDispatch(batch.children[0]);
+    const reopened = open();
+    expect(isEvolutionLedgerV2Journal(reopened.store.backend.ledger)).toBe(
+      true,
+    );
+    const recovered = reopened.adapter.reserveNativeBatch(request);
+    expect(recovered.newlyCommitted).toBe(false);
+    expect(() =>
+      reopened.adapter.recordNativeDispatch(recovered.children[0]),
+    ).toThrow(/fresh child/);
+    expect(
+      reopened.adapter.inspect().executions.filter((entry) => entry.dispatched),
+    ).toHaveLength(2);
+    expect(
+      reopened.adapter.inspect().chargedResourcesByArm.rrsi.maxCostMicrounits,
+    ).toBe("8000");
+  });
+  it("recovers every native arm ceiling after a hard exit before the batch response", () => {
+    const request = rrsiNativeBatchFixture();
+    const value = fixture();
+    value.adapter.registerCampaign(request.planContext.context.campaign);
+    const file = path.join(value.root, "native-request.json");
+    fs.writeFileSync(file, JSON.stringify(request));
+    expect(invoke(value.root, "crash-native", file).status).toBe(71);
+    const recovered = invoke(value.root, "recover-native", file);
+    expect(recovered.status).toBe(0);
+    expect(JSON.parse(recovered.stdout)).toMatchObject({
+      replayDenied: true,
+      response: { newlyCommitted: false },
+    });
+    const status = openRrsiHistoryStore(value.root).adapter.inspect();
+    expect(status).toMatchObject({
+      selectionQueries: 1,
+      nativeBatches: [{ childCount: 12 }],
+      chargedResourcesByArm: { rrsi: { maxCostMicrounits: "8000" } },
+    });
+    expect(status.executions).toHaveLength(24);
+  });
+  it("retains both native dispatch intents after a hard exit and denies replay", () => {
+    const request = rrsiNativeBatchFixture();
+    const value = fixture();
+    value.adapter.registerCampaign(request.planContext.context.campaign);
+    const file = path.join(value.root, "native-request.json");
+    fs.writeFileSync(file, JSON.stringify(request));
+    expect(invoke(value.root, "crash-native-dispatch", file).status).toBe(71);
+    const recovered = invoke(value.root, "recover-native", file);
+    expect(recovered.status).toBe(0);
+    expect(JSON.parse(recovered.stdout).replayDenied).toBe(true);
+    const status = openRrsiHistoryStore(value.root).adapter.inspect();
+    expect(status.executions.filter((entry) => entry.dispatched)).toHaveLength(
+      2,
+    );
+    expect(
+      status.executions
+        .filter((entry) => entry.dispatched)
+        .every((entry) => entry.status === "dispatch-intent"),
+    ).toBe(true);
+  });
+  it("lets only one competing process receive fresh native child capabilities", async () => {
+    const request = rrsiNativeBatchFixture();
+    const value = fixture();
+    value.adapter.registerCampaign(request.planContext.context.campaign);
+    const results = await race(value.root, [request, request], "race-native");
+    expect(results.every((entry) => entry.ok)).toBe(true);
+    expect(results.map((entry) => entry.result.newlyCommitted).sort()).toEqual([
+      false,
+      true,
+    ]);
+    expect(value.adapter.inspect().selectionQueries).toBe(1);
+    expect(value.adapter.inspect().executions).toHaveLength(24);
+  });
   it("preserves a real migrated v2 journal through registration and reopen", () => {
     const value = fixture();
     const root = path.join(value.root, "v2-store");

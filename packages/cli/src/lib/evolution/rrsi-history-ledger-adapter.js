@@ -49,6 +49,15 @@ import {
   freezeRrsiData,
   rrsiFail,
 } from "./rrsi-data.js";
+import {
+  RRSI_NATIVE_RESERVATION_SCHEMA,
+  RRSI_NATIVE_SETTLEMENT_SCHEMA,
+  RRSI_NATIVE_EXECUTION_UNITS,
+  isRrsiNativeReservation,
+  rrsiNativeUnitCount,
+  buildRrsiNativeEvaluationBatch,
+  normalizeRrsiNativeEvaluationBatch,
+} from "./rrsi-native-evaluation-batch.js";
 
 export const RRSI_HISTORY_EVENT_SCHEMA = "chainlesschain.rrsi-history-event/v1";
 export const RRSI_HISTORY_STATUS_SCHEMA =
@@ -169,6 +178,124 @@ export function createRrsiSettlementVerifier(input) {
 
 function settlementCore(input) {
   const value = snapshotRrsiData(input);
+  if (value.schema === RRSI_NATIVE_SETTLEMENT_SCHEMA) {
+    rrsiExact(
+      value,
+      [
+        "schema",
+        "receiptId",
+        "bindings",
+        "statusByArm",
+        "cleanupConfirmedByArm",
+        "usageByArm",
+        "executionUnitsByArm",
+        "sourceReceiptDigests",
+        "issuedAt",
+        "validUntil",
+      ],
+      "native child settlement core",
+    );
+    rrsiId(value.receiptId, "native receipt ID");
+    rrsiExact(
+      value.bindings,
+      [
+        "tenantId",
+        "scopeId",
+        "ledgerId",
+        "identityDigest",
+        "epoch",
+        "campaignDigest",
+        "batchDigest",
+        "childId",
+        "requestDigest",
+        "evaluationContextDigest",
+        "attributionDigest",
+        "armReservationDigests",
+      ],
+      "native child settlement bindings",
+    );
+    for (const name of ["tenantId", "scopeId", "childId"])
+      rrsiId(value.bindings[name], name);
+    for (const name of ["ledgerId", "epoch"])
+      if (
+        typeof value.bindings[name] !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u.test(value.bindings[name])
+      )
+        rrsiFail(`invalid native ${name}`);
+    for (const name of [
+      "identityDigest",
+      "campaignDigest",
+      "batchDigest",
+      "requestDigest",
+      "evaluationContextDigest",
+      "attributionDigest",
+    ])
+      rrsiDigest(value.bindings[name], name);
+    const arms = Object.keys(value.bindings.armReservationDigests ?? {});
+    if (
+      arms.length !== 2 ||
+      arms.some((arm) => !["baseline", "rsi", "rrsi"].includes(arm))
+    )
+      rrsiFail("native child settlement needs both frozen arms");
+    rrsiExact(
+      value.bindings.armReservationDigests,
+      arms,
+      "native arm reservations",
+    );
+    for (const digest of Object.values(value.bindings.armReservationDigests))
+      rrsiDigest(digest, "arm reservation digest");
+    for (const name of [
+      "statusByArm",
+      "cleanupConfirmedByArm",
+      "usageByArm",
+      "executionUnitsByArm",
+    ])
+      rrsiExact(value[name], arms, name);
+    for (const arm of arms) {
+      if (
+        ![
+          "succeeded",
+          "failed",
+          "cancelled",
+          "not-started",
+          "unknown",
+        ].includes(value.statusByArm[arm])
+      )
+        rrsiFail("invalid native settlement status");
+      rrsiBoolean(value.cleanupConfirmedByArm[arm], "native cleanup");
+      rrsiExact(value.usageByArm[arm], USAGE_FIELDS, "native arm usage");
+      for (const amount of Object.values(value.usageByArm[arm]))
+        if (amount !== null) rrsiInteger(amount, "native usage");
+      rrsiExact(
+        value.executionUnitsByArm[arm],
+        RRSI_NATIVE_EXECUTION_UNITS,
+        "native settlement execution units",
+      );
+      for (const amount of Object.values(value.executionUnitsByArm[arm]))
+        if (amount !== null) rrsiInteger(amount, "native execution units");
+      const complete = RRSI_NATIVE_EXECUTION_UNITS.every(
+        (name) => value.executionUnitsByArm[arm][name] !== null,
+      );
+      if (
+        complete
+          ? value.usageByArm[arm].executions !==
+            rrsiNativeUnitCount(value.executionUnitsByArm[arm])
+          : value.usageByArm[arm].executions !== null
+      )
+        rrsiFail(
+          "native execution usage must match the typed charged-unit vector",
+        );
+    }
+    value.sourceReceiptDigests = digestList(
+      value.sourceReceiptDigests,
+      "native child source receipts",
+    );
+    timestamp(value.issuedAt, "issuedAt");
+    timestamp(value.validUntil, "validUntil");
+    if (Date.parse(value.validUntil) < Date.parse(value.issuedAt))
+      rrsiFail("native settlement validity window is reversed");
+    return value;
+  }
   rrsiExact(
     value,
     [
@@ -290,7 +417,9 @@ function verifySettlement(verifier, input, reservation, acceptanceTime) {
   const core = settlementCore(evidence.core);
   const expectedSchema = isRrsiPreparationReservation(reservation)
     ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
-    : RRSI_SETTLEMENT_SCHEMA;
+    : isRrsiNativeReservation(reservation)
+      ? RRSI_NATIVE_SETTLEMENT_SCHEMA
+      : RRSI_SETTLEMENT_SCHEMA;
   if (core.schema !== expectedSchema)
     rrsiFail(
       "settlement domain differs from reservation",
@@ -415,6 +544,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
       rrsiFail("RRSI history requires the branded backend's original journal");
   }
   const freshReservations = new WeakMap();
+  const freshNativeChildren = new WeakMap();
   // ArtifactPorts correctly rejects changing descriptor snapshots. Serialize
   // all RRSI read/publish/CAS/readback on this backend, without weakening it.
   const withHistoryLock = (operation) =>
@@ -451,6 +581,15 @@ export function createRrsiHistoryLedgerAdapter(input) {
       campaigns: new Map(),
       operations: new Map(),
       reservations: new Map(),
+      nativeBatches: new Map(),
+      nativeChildren: new Map(),
+      nativeControls: null,
+      nativeRecoveryHolds: new Map(),
+      nativeInvocations: new Set(),
+      nativeInvocationIds: new Set(),
+      nativeInvocationNonces: new Set(),
+      nativeRequestContexts: new Set(),
+      nativeCandidateOwners: new Map(),
       slots: new Set(),
       candidates: new Map(),
       finalCandidates: new Map(),
@@ -483,19 +622,39 @@ export function createRrsiHistoryLedgerAdapter(input) {
       rrsiFail("reserved execution binding differs");
     return value;
   }
-  function charges(state, stage = null) {
+  function charges(state, stage = null, arm = null) {
+    if (arm === null && state.nativeBatches.size) {
+      const perArm = ["baseline", "rsi", "rrsi"].map((name) =>
+        charges(state, stage, name),
+      );
+      return Object.fromEntries(
+        RRSI_BUDGET_FIELDS.map((name) => [
+          name,
+          perArm.reduce(
+            (max, total) => (total[name] > max ? total[name] : max),
+            0n,
+          ),
+        ]),
+      );
+    }
     const totals = Object.fromEntries(
       RRSI_BUDGET_FIELDS.map((key) => [key, 0n]),
     );
     for (const entry of state.reservations.values()) {
+      const native = isRrsiNativeReservation(entry.reservation);
+      if (native && arm !== entry.reservation.bindings.arm) continue;
       if (
         stage &&
         stage !==
-          (entry.reservation.bindings.partition === "train"
-            ? "proposal"
-            : entry.reservation.bindings.partition === "select"
+          (native
+            ? entry.reservation.bindings.stage === "selection"
               ? "selection"
-              : "final")
+              : "final"
+            : entry.reservation.bindings.partition === "train"
+              ? "proposal"
+              : entry.reservation.bindings.partition === "select"
+                ? "selection"
+                : "final")
       )
         continue;
       for (const [usage, ceiling] of Object.entries(USAGE_TO_BUDGET)) {
@@ -509,9 +668,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
     }
     return totals;
   }
-  function checkBudget(state, reserved, stage) {
-    const total = charges(state);
-    const staged = charges(state, stage);
+  function checkBudget(state, reserved, stage, arm = null) {
+    const total = charges(state, null, arm);
+    const staged = charges(state, stage, arm);
     const cap =
       stage === "proposal"
         ? state.root.budget.proposalPerExploringArm
@@ -541,6 +700,349 @@ export function createRrsiHistoryLedgerAdapter(input) {
         "unresolved preparation requires independent settlement",
         "CC_RRSI_HISTORY_HOLD",
       );
+  }
+  function reserveNativeBatch(state, payload) {
+    rrsiExact(payload, ["batch"], "native batch reservation");
+    const campaign = campaignFor(state, payload.batch?.campaignDigest);
+    const batch = normalizeRrsiNativeEvaluationBatch(payload.batch, campaign);
+    if (state.finalCandidates.size > 1)
+      rrsiFail(
+        "native history requires a unique global finalist",
+        "CC_RRSI_HISTORY_HOLD",
+      );
+    if (state.overrun)
+      rrsiFail(
+        "history contains a resource overrun",
+        "CC_RRSI_BUDGET_EXCEEDED",
+      );
+    if (
+      rrsiCanonical(campaign.experiment) !==
+      rrsiCanonical(state.root.experiment)
+    )
+      rrsiFail("native experiment cannot reset the frozen statistical design");
+    if (
+      [...state.reservations.values()].some(
+        (entry) => entry.status !== "settled",
+      )
+    )
+      rrsiFail(
+        "native batch requires complete preceding history accounting",
+        "CC_RRSI_HISTORY_HOLD",
+      );
+    const slot = `${descriptor.scopeId}:native:${batch.queryId}`;
+    if (state.slots.has(slot))
+      rrsiFail("native query slot is already occupied", "CC_RRSI_SLOT_USED");
+    const candidate = batch.candidate;
+    for (const identity of [
+      batch.versions.rrsi,
+      batch.nativeCandidateContents.rrsi,
+    ]) {
+      const owner = state.nativeCandidateOwners.get(identity);
+      if (owner && owner !== candidate.contentDigest)
+        rrsiFail(
+          "native candidate identity is already bound to another RRSI content",
+          "CC_RRSI_DUPLICATE_CONTENT",
+        );
+    }
+    for (const child of batch.children) {
+      const contextKey = rrsiCanonical(child.request.evaluationContext);
+      if (
+        state.nativeInvocations.has(child.invocationDigest) ||
+        state.nativeInvocationIds.has(child.invocationIdDigest) ||
+        state.nativeInvocationNonces.has(child.invocationNonceDigest) ||
+        state.nativeRequestContexts.has(contextKey)
+      )
+        rrsiFail(
+          "native invocation or original request context has already been consumed",
+          "CC_RRSI_QUERY_USED",
+        );
+    }
+    const prior = state.candidates.get(candidate.contentDigest);
+    if (prior && prior.candidateDigest !== candidate.candidateDigest)
+      rrsiFail(
+        "content is already bound to another candidate identity",
+        "CC_RRSI_DUPLICATE_CONTENT",
+      );
+    const stage = batch.stage === "selection" ? "selection" : "final";
+    if (stage === "selection") {
+      if (state.finalCandidates.size)
+        rrsiFail("frozen finalist prohibits further native selection");
+      if (prior)
+        rrsiFail(
+          "candidate selection query has already been consumed",
+          "CC_RRSI_QUERY_USED",
+        );
+      if (
+        state.selectionQueries >=
+          state.root.policy.limits.maxSelectionQueries ||
+        state.candidates.size >= state.root.policy.limits.maxCandidates
+      )
+        rrsiFail(
+          "history selection quota is exhausted",
+          "CC_RRSI_QUERY_EXHAUSTED",
+        );
+    } else {
+      if (
+        state.finalCandidates.get(campaign.campaignDigest) !==
+        candidate.contentDigest
+      )
+        rrsiFail("native final requires the unique frozen candidate");
+      const selected = [...state.nativeBatches.values()].find(
+        (entry) =>
+          entry.stage === "selection" &&
+          entry.campaignDigest === campaign.campaignDigest &&
+          entry.candidate.contentDigest === candidate.contentDigest,
+      );
+      if (!selected)
+        rrsiFail("native final cannot relabel legacy selection evidence");
+      for (const field of [
+        "versions",
+        "nativeCandidateContents",
+        "lifecycleDigests",
+        "parentIdentity",
+        "targetIdentity",
+      ])
+        if (rrsiCanonical(batch[field]) !== rrsiCanonical(selected[field]))
+          rrsiFail(
+            "native final changes frozen selection artifacts or runtime",
+          );
+      if (
+        [...state.nativeBatches.values()].some(
+          (entry) =>
+            entry.stage === "generalization" &&
+            entry.campaignDigest === campaign.campaignDigest,
+        ) ||
+        [...state.reservations.values()].some(
+          (entry) =>
+            !isRrsiNativeReservation(entry.reservation) &&
+            entry.reservation.bindings.campaignDigest ===
+              campaign.campaignDigest &&
+            ["gate-validation", "gate-test", "audit"].includes(
+              entry.reservation.bindings.partition,
+            ),
+        )
+      )
+        rrsiFail(
+          "final partitions have already been consumed",
+          "CC_RRSI_QUERY_USED",
+        );
+    }
+    const controls = {
+      versions: { baseline: batch.versions.baseline, rsi: batch.versions.rsi },
+      nativeRsiContentDigest: batch.nativeCandidateContents.rsi,
+      lifecycles: {
+        baseline: batch.lifecycleDigests.baseline,
+        rsi: batch.lifecycleDigests.rsi,
+      },
+      parentIdentity: batch.parentIdentity,
+      targetIdentity: batch.targetIdentity,
+    };
+    if (
+      state.nativeControls &&
+      rrsiCanonical(controls) !== rrsiCanonical(state.nativeControls)
+    )
+      rrsiFail("native control arms or target scope cannot be reset");
+    const partitions =
+      stage === "selection"
+        ? ["select"]
+        : ["gate-validation", "gate-test", "audit"];
+    const keys = [
+      ...new Set(
+        partitions.flatMap((partition) => sourceKeys(campaign, partition)),
+      ),
+    ];
+    for (const key of keys) {
+      const previous = state.sources.get(key);
+      if (
+        previous &&
+        (previous.stage !== stage ||
+          (stage === "final" &&
+            previous.campaignDigest !== campaign.campaignDigest))
+      )
+        rrsiFail(
+          "previously exposed source cannot be treated as unseen",
+          "CC_RRSI_HOLDOUT_USED",
+        );
+    }
+    const totals = Object.fromEntries(
+      campaign.experiment.arms.map((arm) => [
+        arm,
+        Object.fromEntries(RRSI_BUDGET_FIELDS.map((field) => [field, 0])),
+      ]),
+    );
+    for (const child of batch.children)
+      for (const [arm, allocation] of Object.entries(child.byArm))
+        for (const field of RRSI_BUDGET_FIELDS)
+          totals[arm][field] += allocation.budget[field];
+    for (const [arm, ceiling] of Object.entries(totals))
+      checkBudget(state, ceiling, stage, arm);
+    // One reservation event, plus capacity for dispatch, unknown and two settlement
+    // attempts per child. Do not admit work that cannot retain its minimum recovery graph.
+    if (state.operations.size + 1 + 4 * batch.children.length > 5000)
+      rrsiFail(
+        "native batch exceeds remaining history recovery capacity",
+        "CC_RRSI_HISTORY_HOLD",
+      );
+    const result = [];
+    for (const child of batch.children) {
+      const reservations = Object.entries(child.byArm).map(
+        ([arm, allocation]) => {
+          const executionId = `eval.${rrsiHash("chainlesschain.rrsi-native-arm-execution/v1", { batchDigest: batch.batchDigest, childId: child.childId, arm }).slice(7)}`;
+          if (state.reservations.has(executionId))
+            rrsiFail(
+              "native arm execution is already occupied",
+              "CC_RRSI_SLOT_USED",
+            );
+          const partition =
+            child.role === "selection"
+              ? "select"
+              : child.role === "gate"
+                ? "gate-validation"
+                : "audit";
+          const core = {
+            tenantId: descriptor.tenantId,
+            scopeId: descriptor.scopeId,
+            ...state.identity,
+            campaignDigest: campaign.campaignDigest,
+            candidateDigest: candidate.candidateDigest,
+            contentDigest: candidate.contentDigest,
+            executionDigest: rrsiHash(
+              "chainlesschain.rrsi-execution-bindings/v1",
+              campaign.execution,
+            ),
+            executionId,
+            slotId: child.slotId,
+            partition,
+            queryId: batch.queryId,
+            childId: child.childId,
+            batchDigest: batch.batchDigest,
+            stage: batch.stage,
+            role: child.role,
+            variant: child.variant,
+            pairId: child.pairId,
+            arm,
+            cohortId: child.cohortId,
+            nativePlanDigest: child.nativePlanDigest,
+            requestDigest: child.requestDigest,
+            evaluationContextDigest: child.evaluationContextDigest,
+            invocationDigest: child.invocationDigest,
+            nativeArtifactId: batch.versions[arm],
+            nativeContentDigest:
+              arm === "baseline"
+                ? batch.parentIdentity.contentDigest
+                : batch.nativeCandidateContents[arm],
+            lifecycleDigest: batch.lifecycleDigests[arm],
+            executionUnitsDigest: rrsiHash(
+              "chainlesschain.rrsi-native-execution-units/v1",
+              allocation.executionUnits,
+            ),
+            costInventoryDigest: allocation.costInventoryDigest,
+          };
+          const plannedExecutions = rrsiNativeUnitCount(
+            allocation.executionUnits,
+          );
+          const reservationDigest = rrsiHash(RRSI_NATIVE_RESERVATION_SCHEMA, {
+            bindings: core,
+            budget: allocation.budget,
+            plannedExecutions,
+            executionUnits: allocation.executionUnits,
+            coveredPartitions: Object.keys(
+              child.plannedObservationsPerArmByPartition,
+            ).sort(),
+          });
+          const reservation = freezeRrsiData({
+            schema: RRSI_NATIVE_RESERVATION_SCHEMA,
+            bindings: { ...core, reservationDigest },
+            budget: allocation.budget,
+            plannedExecutions,
+            executionUnits: allocation.executionUnits,
+            coveredPartitions: Object.keys(
+              child.plannedObservationsPerArmByPartition,
+            ).sort(),
+            reservationDigest,
+          });
+          state.reservations.set(executionId, {
+            reservation,
+            status: "reserved",
+            knownUsage: Object.fromEntries(
+              USAGE_FIELDS.map((name) => [name, null]),
+            ),
+            knownExecutionUnits: Object.fromEntries(
+              RRSI_NATIVE_EXECUTION_UNITS.map((name) => [name, null]),
+            ),
+            settlement: null,
+            dispatched: false,
+          });
+          return reservation;
+        },
+      );
+      const bindings = freezeRrsiData({
+        tenantId: descriptor.tenantId,
+        scopeId: descriptor.scopeId,
+        ...state.identity,
+        campaignDigest: campaign.campaignDigest,
+        batchDigest: batch.batchDigest,
+        childId: child.childId,
+        requestDigest: child.requestDigest,
+        evaluationContextDigest: child.evaluationContextDigest,
+        attributionDigest: rrsiHash(
+          "chainlesschain.rrsi-native-cost-attribution/v1",
+          { method: batch.costAttribution, byArm: child.byArm },
+        ),
+        armReservationDigests: Object.fromEntries(
+          reservations.map((reservation) => [
+            reservation.bindings.arm,
+            reservation.reservationDigest,
+          ]),
+        ),
+      });
+      if (state.nativeChildren.has(child.childId))
+        rrsiFail("native child is already occupied", "CC_RRSI_SLOT_USED");
+      state.nativeChildren.set(child.childId, { bindings, reservations });
+      state.nativeRecoveryHolds.set(child.childId, 4);
+      result.push(
+        freezeRrsiData({ childId: child.childId, bindings, reservations }),
+      );
+    }
+    state.slots.add(slot);
+    for (const identity of [
+      batch.versions.rrsi,
+      batch.nativeCandidateContents.rrsi,
+    ])
+      state.nativeCandidateOwners.set(identity, candidate.contentDigest);
+    for (const child of batch.children) {
+      state.nativeInvocations.add(child.invocationDigest);
+      state.nativeInvocationIds.add(child.invocationIdDigest);
+      state.nativeInvocationNonces.add(child.invocationNonceDigest);
+      state.nativeRequestContexts.add(
+        rrsiCanonical(child.request.evaluationContext),
+      );
+    }
+    state.nativeControls ??= controls;
+    state.nativeBatches.set(batch.batchDigest, batch);
+    state.candidates.set(candidate.contentDigest, candidate);
+    if (stage === "selection") state.selectionQueries++;
+    for (const key of keys)
+      state.sources.set(key, {
+        campaignDigest: campaign.campaignDigest,
+        stage,
+      });
+    const response = { batchDigest: batch.batchDigest, children: result };
+    snapshotRrsiData({
+      ...response,
+      children: result.map((child) => ({
+        ...child,
+        newlyCommitted: true,
+        historyAuthenticated: true,
+        readyForExecution: false,
+        qualifiesForPromotion: false,
+      })),
+      newlyCommitted: true,
+      historyAuthenticated: true,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    });
+    return freezeRrsiData(response);
   }
   function apply(state, kind, payload, acceptedAt, liveAdmission = false) {
     if (kind === "register") {
@@ -594,6 +1096,193 @@ export function createRrsiHistoryLedgerAdapter(input) {
       return campaign;
     }
     if (!state.root) rrsiFail("RRSI history has no registered root campaign");
+    if (kind === "reserve-native-batch")
+      return reserveNativeBatch(state, payload);
+    if (kind === "dispatch-native" || kind === "unknown-native") {
+      rrsiExact(payload, ["childId", "batchDigest"], "native child transition");
+      const child = state.nativeChildren.get(payload.childId);
+      if (!child || child.bindings.batchDigest !== payload.batchDigest)
+        rrsiFail("native child binding differs");
+      if (kind === "dispatch-native") {
+        if (state.overrun)
+          rrsiFail(
+            "history contains a resource overrun",
+            "CC_RRSI_BUDGET_EXCEEDED",
+          );
+        checkPreparationHold(state);
+      }
+      for (const reservation of child.reservations) {
+        const entry = state.reservations.get(reservation.bindings.executionId);
+        if (kind === "dispatch-native") {
+          if (entry.status !== "reserved" || entry.dispatched)
+            rrsiFail(
+              "native child cannot be dispatched twice",
+              "CC_RRSI_REPLAY_FORBIDDEN",
+            );
+          entry.dispatched = true;
+          entry.status = "dispatch-intent";
+        } else if (entry.status !== "settled") entry.status = "unknown";
+      }
+      state.nativeRecoveryHolds.set(
+        payload.childId,
+        child.reservations.every(
+          (reservation) =>
+            state.reservations.get(reservation.bindings.executionId).status ===
+            "settled",
+        )
+          ? 0
+          : Math.max(1, state.nativeRecoveryHolds.get(payload.childId) - 1),
+      );
+      return child.bindings;
+    }
+    if (kind === "settle-native") {
+      rrsiExact(payload, ["evidence"], "native child settlement");
+      const child = state.nativeChildren.get(
+        payload.evidence?.core?.bindings?.childId,
+      );
+      if (!child) rrsiFail("native settlement child is not reserved");
+      const checked = verifySettlement(
+        options.settlementVerifier,
+        payload.evidence,
+        { schema: RRSI_NATIVE_RESERVATION_SCHEMA, bindings: child.bindings },
+        acceptedAt,
+      );
+      const core = checked.core;
+      if (
+        child.reservations.every(
+          (reservation) =>
+            state.reservations.get(reservation.bindings.executionId).status ===
+            "settled",
+        )
+      )
+        rrsiFail(
+          "native child is already settled",
+          "CC_RRSI_OPERATION_CONFLICT",
+        );
+      if (state.receiptIds.has(core.receiptId))
+        rrsiFail("native settlement receipt ID is already used");
+      const owner = rrsiHash(
+        "chainlesschain.rrsi-native-child-settlement-owner/v1",
+        child.bindings,
+      );
+      for (const digest of core.sourceReceiptDigests) {
+        if (
+          state.sourceReceiptOwners.has(digest) &&
+          state.sourceReceiptOwners.get(digest) !== owner
+        )
+          rrsiFail(
+            "source receipt is already bound to another child or reservation",
+            "CC_RRSI_SETTLEMENT_INVALID",
+          );
+        state.sourceReceiptOwners.set(digest, owner);
+      }
+      for (const reservation of child.reservations) {
+        const entry = state.reservations.get(reservation.bindings.executionId);
+        const arm = reservation.bindings.arm;
+        const usage = core.usageByArm[arm],
+          units = core.executionUnitsByArm[arm],
+          status = core.statusByArm[arm];
+        if (entry.status === "settled") {
+          const prior = entry.settlement.core;
+          if (
+            rrsiCanonical([
+              usage,
+              units,
+              status,
+              core.cleanupConfirmedByArm[arm],
+            ]) !==
+            rrsiCanonical([
+              prior.usageByArm[arm],
+              prior.executionUnitsByArm[arm],
+              prior.statusByArm[arm],
+              prior.cleanupConfirmedByArm[arm],
+            ])
+          )
+            rrsiFail("settled native arm cannot be rewritten");
+          continue;
+        }
+        for (const name of RRSI_NATIVE_EXECUTION_UNITS) {
+          if (
+            units[name] !== null &&
+            entry.knownExecutionUnits[name] !== null &&
+            units[name] < entry.knownExecutionUnits[name]
+          )
+            rrsiFail("native execution units cannot decrease known totals");
+          if (units[name] !== null)
+            entry.knownExecutionUnits[name] = units[name];
+          if (
+            status === "succeeded" &&
+            units[name] !== null &&
+            units[name] < reservation.executionUnits[name]
+          )
+            rrsiFail(
+              "successful native settlement omits a frozen execution category",
+            );
+        }
+        for (const name of USAGE_FIELDS) {
+          if (
+            usage[name] !== null &&
+            entry.knownUsage[name] !== null &&
+            usage[name] < entry.knownUsage[name]
+          )
+            rrsiFail("native usage cannot decrease known totals");
+          if (usage[name] !== null) entry.knownUsage[name] = usage[name];
+          if (
+            usage[name] !== null &&
+            usage[name] > reservation.budget[USAGE_TO_BUDGET[name]]
+          )
+            state.overrun = true;
+        }
+        const knownUnitFloor = rrsiNativeUnitCount(
+          Object.fromEntries(
+            RRSI_NATIVE_EXECUTION_UNITS.map((name) => [
+              name,
+              entry.knownExecutionUnits[name] ?? 0,
+            ]),
+          ),
+        );
+        entry.knownUsage.executions = Math.max(
+          entry.knownUsage.executions ?? 0,
+          knownUnitFloor,
+        );
+        if (knownUnitFloor > reservation.budget.maxExecutions)
+          state.overrun = true;
+        if (
+          status === "not-started" &&
+          (entry.dispatched ||
+            Object.values(usage).some((amount) => amount !== 0) ||
+            Object.values(units).some((amount) => amount !== 0))
+        )
+          rrsiFail(
+            "native not-started settlement contradicts dispatch or usage",
+          );
+        if (!["not-started", "unknown"].includes(status) && !entry.dispatched)
+          rrsiFail("native terminal settlement has no durable dispatch intent");
+        entry.settlement = checked.evidence;
+        entry.status =
+          status !== "unknown" &&
+          core.cleanupConfirmedByArm[arm] &&
+          Object.values(usage).every((amount) => amount !== null) &&
+          Object.values(units).every((amount) => amount !== null)
+            ? "settled"
+            : "unknown";
+      }
+      state.nativeRecoveryHolds.set(
+        child.bindings.childId,
+        child.reservations.every(
+          (reservation) =>
+            state.reservations.get(reservation.bindings.executionId).status ===
+            "settled",
+        )
+          ? 0
+          : Math.max(
+              1,
+              state.nativeRecoveryHolds.get(child.bindings.childId) - 1,
+            ),
+      );
+      state.receiptIds.add(core.receiptId);
+      return child.bindings;
+    }
     if (kind === "register-preparation-plan") {
       const campaign = campaignFor(state, payload.campaignDigest);
       const plan = normalizeRrsiPreparationPlan(payload, state.root);
@@ -707,6 +1396,33 @@ export function createRrsiHistoryLedgerAdapter(input) {
         );
       checkPreparationHold(state);
       const campaign = campaignFor(state, payload.campaignDigest);
+      if (
+        state.nativeBatches.size &&
+        state.finalCandidates.size &&
+        payload.partition === "select"
+      )
+        rrsiFail("frozen native finalist prohibits legacy selection fallback");
+      if (
+        payload.partition !== "select" &&
+        [...state.nativeBatches.values()].some(
+          (batch) => batch.campaignDigest === campaign.campaignDigest,
+        )
+      )
+        rrsiFail(
+          "native candidate cannot fall back to legacy final reservations",
+        );
+      if (
+        [...state.nativeBatches.values()].some(
+          (batch) =>
+            batch.stage === "generalization" &&
+            batch.campaignDigest === campaign.campaignDigest,
+        ) &&
+        payload.partition !== "select"
+      )
+        rrsiFail(
+          "native final partitions have already been consumed",
+          "CC_RRSI_QUERY_USED",
+        );
       const candidate = verifyRrsiCandidate(campaign, payload.candidate);
       if (
         !RRSI_PARTITIONS.includes(payload.partition) ||
@@ -838,6 +1554,12 @@ export function createRrsiHistoryLedgerAdapter(input) {
         "candidate freeze",
       );
       const campaign = campaignFor(state, payload.campaignDigest);
+      if (
+        liveAdmission &&
+        state.nativeBatches.size &&
+        state.finalCandidates.size
+      )
+        rrsiFail("native history already has its unique global finalist");
       rrsiDigest(payload.contentDigest, "frozen content digest");
       if (
         state.overrun ||
@@ -856,10 +1578,39 @@ export function createRrsiHistoryLedgerAdapter(input) {
           entry.reservation.bindings.contentDigest === payload.contentDigest &&
           entry.reservation.bindings.partition === "select",
       );
+      const nativeSelection = [...state.nativeBatches.values()].find(
+        (batch) =>
+          batch.stage === "selection" &&
+          batch.campaignDigest === campaign.campaignDigest &&
+          batch.candidate.contentDigest === payload.contentDigest,
+      );
+      if (
+        nativeSelection &&
+        nativeSelection.children.some((child) => {
+          const group = state.nativeChildren.get(child.childId);
+          return group.reservations.some((reservation) => {
+            const entry = state.reservations.get(
+              reservation.bindings.executionId,
+            );
+            return (
+              entry.status !== "settled" ||
+              entry.settlement.core.statusByArm[reservation.bindings.arm] !==
+                "succeeded"
+            );
+          });
+        })
+      )
+        rrsiFail(
+          "native candidate freeze requires every planned paired arm to settle successfully",
+        );
       if (
         !selected ||
         selected.status !== "settled" ||
-        selected.settlement.core.status !== "succeeded"
+        (nativeSelection
+          ? selected.settlement.core.statusByArm[
+              selected.reservation.bindings.arm
+            ] !== "succeeded"
+          : selected.settlement.core.status !== "succeeded")
       )
         rrsiFail(
           "candidate requires independently settled successful selection before freezing",
@@ -880,6 +1631,8 @@ export function createRrsiHistoryLedgerAdapter(input) {
         payload.executionId,
         payload.reservationDigest,
       );
+      if (isRrsiNativeReservation(entry.reservation))
+        rrsiFail("native arms require the atomic child transition");
       if (kind === "dispatch") {
         // New admission guards must not erase authenticated pre-upgrade costs.
         // Old v1 dispatch history remains readable; every new dispatch rechecks.
@@ -953,6 +1706,8 @@ export function createRrsiHistoryLedgerAdapter(input) {
         bindings?.executionId,
         bindings?.reservationDigest,
       );
+      if (isRrsiNativeReservation(entry.reservation))
+        rrsiFail("native arms require a paired child settlement");
       const checked = verifySettlement(
         options.settlementVerifier,
         payload.evidence,
@@ -1192,6 +1947,27 @@ export function createRrsiHistoryLedgerAdapter(input) {
       }
       const acceptedAt = now();
       const result = apply(state, kind, payload, acceptedAt, true);
+      if (
+        state.nativeBatches.size &&
+        (state.operations.size +
+          1 +
+          [...state.nativeRecoveryHolds.values()].reduce(
+            (sum, amount) => sum + amount,
+            0,
+          ) >
+          5000 ||
+          head.sequence +
+            1 +
+            [...state.nativeRecoveryHolds.values()].reduce(
+              (sum, amount) => sum + amount,
+              0,
+            ) >
+            EVOLUTION_LEDGER_MAX_EVENTS)
+      )
+        rrsiFail(
+          "history must retain native recovery capacity",
+          "CC_RRSI_HISTORY_HOLD",
+        );
       const record = rrsiEnvelope(RRSI_HISTORY_EVENT_SCHEMA, "recordDigest", {
         descriptor,
         ledgerId: head.ledgerId,
@@ -1202,6 +1978,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
         previousRecordDigest: state.lastRecordDigest,
         acceptedAt,
       });
+      if (kind.includes("native")) snapshotRrsiData(record);
       const published = EvolutionArtifactPorts.prototype.putCanonical.call(
         options.artifactPorts,
         ARTIFACT_TYPE,
@@ -1219,6 +1996,21 @@ export function createRrsiHistoryLedgerAdapter(input) {
         published.receipt.retention !== "ledger"
       )
         rrsiFail("RRSI history artifact was not durably retained");
+      if (kind.includes("native")) {
+        const resolution = options.ledgerArtifactResolver({
+          epoch: head.epoch,
+          ledgerId: head.ledgerId,
+          ref: published.ref,
+          tenantId: descriptor.artifactTenantId,
+        });
+        if (!resolution?.found || !Buffer.isBuffer(resolution.bytes))
+          rrsiFail("native history wrapper cannot be read back");
+        snapshotRrsiData(
+          JSON.parse(
+            new TextDecoder("utf-8", { fatal: true }).decode(resolution.bytes),
+          ),
+        );
+      }
       try {
         const receipt = methods.appendDomainEvent(
           {
@@ -1311,6 +2103,62 @@ export function createRrsiHistoryLedgerAdapter(input) {
       );
       return reservationResponse(result);
     },
+    reserveNativeBatch(input) {
+      const batch = buildRrsiNativeEvaluationBatch(input);
+      const result = commit(
+        "reserve-native-batch",
+        `reserve-native.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", batch.queryId).slice(7)}`,
+        { batch },
+      );
+      const response = freezeRrsiData({
+        batchDigest: result.result.batchDigest,
+        children: result.result.children.map((child) => {
+          const value = freezeRrsiData({
+            ...child,
+            newlyCommitted: result.newlyCommitted,
+            historyAuthenticated: true,
+            readyForExecution: false,
+            qualifiesForPromotion: false,
+          });
+          if (result.newlyCommitted)
+            freshNativeChildren.set(value, child.bindings);
+          return value;
+        }),
+        newlyCommitted: result.newlyCommitted,
+        historyAuthenticated: true,
+        readyForExecution: false,
+        qualifiesForPromotion: false,
+      });
+      return response;
+    },
+    recordNativeDispatch(response) {
+      const bindings = freshNativeChildren.get(response);
+      if (!bindings)
+        rrsiFail(
+          "native dispatch requires this process's fresh child reservation",
+          "CC_RRSI_REPLAY_FORBIDDEN",
+        );
+      freshNativeChildren.delete(response);
+      const result = commit(
+        "dispatch-native",
+        `dispatch-native.${rrsiHash("chainlesschain.rrsi-native-child-operation/v1", bindings.childId).slice(7)}`,
+        { childId: bindings.childId, batchDigest: bindings.batchDigest },
+      );
+      return freezeRrsiData({
+        newlyCommitted: result.newlyCommitted,
+        historyAuthenticated: true,
+        readyForExecution: false,
+        qualifiesForPromotion: false,
+      });
+    },
+    markNativeUnknown(input) {
+      const value = snapshotRrsiData(input);
+      return commit(
+        "unknown-native",
+        `unknown-native.${rrsiHash("chainlesschain.rrsi-native-child-operation/v1", value.childId).slice(7)}`,
+        value,
+      ).newlyCommitted;
+    },
     registerPreparationPlan(input) {
       const result = commit(
         "register-preparation-plan",
@@ -1392,7 +2240,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
         "settlement receipt ID",
       );
       return commit(
-        "settle",
+        evidence.core.schema === RRSI_NATIVE_SETTLEMENT_SCHEMA
+          ? "settle-native"
+          : "settle",
         `settle.${rrsiHash("rrsi-settlement-id/v1", receiptId).slice(7)}`,
         { evidence },
       ).newlyCommitted;
@@ -1434,6 +2284,53 @@ export function createRrsiHistoryLedgerAdapter(input) {
             ]),
           ),
           budgetOverrun: state.overrun,
+          ...(state.nativeBatches.size
+            ? {
+                nativeBatches: [...state.nativeBatches.values()].map(
+                  (batch) => ({
+                    batchDigest: batch.batchDigest,
+                    queryId: batch.queryId,
+                    stage: batch.stage,
+                    nativeEvaluationPlanDigest:
+                      batch.nativeEvaluationPlanDigest,
+                    childCount: batch.children.length,
+                  }),
+                ),
+                legacyCostAttribution: "conservatively-charged-to-every-arm/v1",
+                nativeRecoveryEventHolds: [
+                  ...state.nativeRecoveryHolds.values(),
+                ].reduce((sum, amount) => sum + amount, 0),
+                chargedResourcesInterpretation:
+                  "componentwise-maximum-of-arm-charges/v1",
+                chargedResourcesByArm: Object.fromEntries(
+                  ["baseline", "rsi", "rrsi"].map((arm) => [
+                    arm,
+                    Object.fromEntries(
+                      Object.entries(charges(state, null, arm)).map(
+                        ([name, amount]) => [name, amount.toString()],
+                      ),
+                    ),
+                  ]),
+                ),
+                chargedResourcesByStageByArm: Object.fromEntries(
+                  ["baseline", "rsi", "rrsi"].map((arm) => [
+                    arm,
+                    Object.fromEntries(
+                      ["proposal", "selection", "final"].map((stage) => [
+                        stage,
+                        Object.fromEntries(
+                          Object.entries(charges(state, stage, arm)).map(
+                            ([name, amount]) => [name, amount.toString()],
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
+                requestCostGraphVerified: false,
+                billingComplete: false,
+              }
+            : {}),
           executions: [...state.reservations.values()]
             .map((entry) => ({
               reservation: entry.reservation,
@@ -1443,9 +2340,24 @@ export function createRrsiHistoryLedgerAdapter(input) {
               executionObservation: entry.observation ?? null,
               settlementSignatureVerified: entry.settlement !== null,
               executionEvidenceVerified:
+                !isRrsiNativeReservation(entry.reservation) &&
                 entry.status === "settled" &&
                 entry.settlement.core.usage.executions > 0,
-              costEvidenceVerified: entry.status === "settled",
+              costEvidenceVerified:
+                !isRrsiNativeReservation(entry.reservation) &&
+                entry.status === "settled",
+              ...(isRrsiNativeReservation(entry.reservation)
+                ? {
+                    knownExecutionUnits: entry.knownExecutionUnits,
+                    executionCountKnowledge: RRSI_NATIVE_EXECUTION_UNITS.every(
+                      (name) => entry.knownExecutionUnits[name] !== null,
+                    )
+                      ? "signed-category-total"
+                      : "known-category-lower-bound",
+                    budgetSettlementVerified: entry.status === "settled",
+                    nativeExecutionDenominatorVerified: false,
+                  }
+                : {}),
             }))
             .sort((a, b) =>
               a.reservation.bindings.executionId <
@@ -1465,6 +2377,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
       descriptor,
       inspect: adapter.inspect,
       reservePreparation: adapter.reservePreparation,
+      reserveNativeBatch: adapter.reserveNativeBatch,
+      recordNativeDispatch: adapter.recordNativeDispatch,
+      markNativeUnknown: adapter.markNativeUnknown,
       recordDispatch: adapter.recordDispatch,
       markUnknown: adapter.markUnknown,
       recordPreparationObservation: adapter.recordPreparationObservation,

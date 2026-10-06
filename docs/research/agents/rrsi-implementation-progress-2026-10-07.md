@@ -2,7 +2,7 @@
 
 日期：2026-10-07。承接 [RRSI 实施方案](./rrsi-implementation-plan-2026-10-07.md)。工程基线为 `1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`，初始实施分支为 `feature/rrsi-foundation-2026-10-07`。本轮新增文件的摘要及离线结果见 [合成回放记录](./evidence/rrsi-rr01-synthetic-replay-2026-10-07.json)。
 
-首批合同与离线回放已提交为 `3238aa30cc`，第二批耐久控制已提交为 `c885bd7cb6`，准备阶段计账已提交为 `80591450ad`，PM broad 桥接已提交为 `1b278b14b6`，RR-03 五池映射与统计已提交为 `4abe03f44d`，位于共享工作区当前的 `feature/dots-muse-mods-foundation` 分支。各批仅提交本页所列 RRSI 文件及有限的产物类型注册；其他任务的工作区修改继续独立保留。
+首批合同与离线回放已提交为 `3238aa30cc`，第二批耐久控制已提交为 `c885bd7cb6`，准备阶段计账已提交为 `80591450ad`，PM broad 桥接已提交为 `1b278b14b6`，RR-03 五池映射与统计已提交为 `4abe03f44d`，有效父版本与运行组装为 `7879476ee2`，原生测量图为 `3f94d1f33f`，位于共享工作区当前的 `feature/dots-muse-mods-foundation` 分支。各批仅提交本页所列 RRSI 文件及有限的产物类型注册；其他任务的工作区修改继续独立保留。
 
 ## 1 当前交付
 
@@ -12,32 +12,33 @@
 
 准备阶段的声明与耐久计账覆盖课程规划、探索、候选提议、记忆蒸馏、失败重试和环境重置，具有不可退还的尝试次数、跨改名请求去重、独立准备结算签名域，以及准备/筛选间的未结算阻断。本轮新增既有 PM host 的 broad round 桥接与结构训练映射；真实来源、模型、价格、父版本及生产隔离认证仍未完成。
 
-| 批次  | 状态                           | 已交付                                                                         | 尚需完成                                                                 |
-| ----- | ------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| RR-01 | 部分完成                       | 严格合同、五池隔离、公共预算、统计计划、只读有效父版本绑定及合成回放           | 父版本生产权威/锚点稳定性、独立私有来源、operator 签发和部署准入         |
-| RR-02 | 耐久控制与 PM broad 接线已实施 | 三阶段预占、签名结算、不可退还尝试、PM host/journal 接线及 off/shadow 初步组装 | 其他准备操作、生产隔离与完整账单接线、逐轮停止判定、完整生产权威组装     |
-| RR-03 | 五池映射与描述统计已实施       | 原 Eval 签名行映射、训练投影、完整分母、组级外包络与两类合成模拟               | 可信 launch/实验组/扰动/预占绑定、真实来源认证、正式统计校准与端到端执行 |
-| RR-04 | 待实施                         | 现有正式晋级门保持原语义                                                       | Release Train、Review、Workbench、Pilot 与回滚接线                       |
-| RR-05 | 待目标条件就绪                 | 合成三组计划可冻结                                                             | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用                  |
-| RR-06 | 待实施                         | 原准确提交的 CI 与 OIDC 发行要求继续适用                                       | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                       |
+| 批次  | 状态                           | 已交付                                                                          | 尚需完成                                                              |
+| ----- | ------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| RR-01 | 部分完成                       | 严格合同、五池隔离、公共预算、统计计划、只读有效父版本绑定及合成回放            | 父版本生产权威/锚点稳定性、独立私有来源、operator 签发和部署准入      |
+| RR-02 | 耐久控制与 PM broad 接线已实施 | 三阶段预占、原生三角批次/逐臂记账、签名结算、PM host/journal 及 off/shadow 组装 | 其他准备操作、生产隔离与完整账单接线、逐轮停止判定、完整生产权威组装  |
+| RR-03 | 原生测量图与耐久批次已实施     | 五池双射、三角测量图、逐臂预算、原 Eval 行映射、组级描述统计及合成模拟          | 原生签名准入/行接线、统计 v2、真实来源/费用认证、正式校准及端到端执行 |
+| RR-04 | 待实施                         | 现有正式晋级门保持原语义                                                        | Release Train、Review、Workbench、Pilot 与回滚接线                    |
+| RR-05 | 待目标条件就绪                 | 合成三组计划可冻结                                                              | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用               |
+| RR-06 | 待实施                         | 原准确提交的 CI 与 OIDC 发行要求继续适用                                        | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                    |
 
 ## 2 代码落点
 
-| 文件                                                                                                     | 行为                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [rrsi-data.js](../../../packages/cli/src/lib/evolution/rrsi-data.js)                                     | 有界、独立复制的 plain-data 校验；拒绝 Proxy、getter、非有限数字、负零、稀疏数组和循环；提供规范化摘要与不可变结构标记 |
-| [rrsi-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-contracts.js)                           | Policy、Dataset、Campaign、Candidate 的构造与回读；绑定五池、父版本、模型、价格、环境、grader、预算与统计计划          |
-| [rrsi-selector.js](../../../packages/cli/src/lib/evolution/rrsi-selector.js)                             | 合成指标硬条件、正则项及贡献、确定性排序和全局预算/HOLD 判断                                                           |
-| [rrsi-shadow-fixture.js](../../../packages/cli/__tests__/fixtures/rrsi-shadow-fixture.js)                | 220 个合成任务引用、四维合成来源、两个候选与固定合成观察；所有部署身份均明确为 fixture                                 |
-| [rrsi-offline-replay.mjs](../../../packages/cli/scripts/rrsi-offline-replay.mjs)                         | 仓库内离线入口；内置 demo 或读取有界 JSON 并核对独立保存的 campaign digest                                             |
-| [rrsi-history-ledger-adapter.js](../../../packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js) | 真实 v1/v2 Ledger 的历史回读、原子控制、来源暴露、签名结算与预算恢复                                                   |
-| [rrsi-preparation-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-preparation-contracts.js)   | 准备计划与尝试上限冻结、六种阶段、训练来源和输入规范化、独立预占及结算域                                               |
-| [rrsi-pm-training-mapping.js](../../../packages/cli/src/lib/evolution/rrsi-pm-training-mapping.js)       | PM Suite/plan 的结构校验、独立内容摘要、完整可访问训练来源映射；不认证来源权威                                         |
-| [rrsi-pm-execution-bridge.js](../../../packages/cli/src/lib/evolution/rrsi-pm-execution-bridge.js)       | 既有品牌化 PM host/journal 的 broad round 接线，先预占、一次派发、状态变化检测与观察留证                               |
-| [rrsi-evaluation-adapter.js](../../../packages/cli/src/lib/evolution/rrsi-evaluation-adapter.js)         | 五池到既有 Eval Suite 的内容/来源双射，训练专用投影及原 final receipt 签名行验证                                       |
-| [rrsi-group-statistics.js](../../../packages/cli/src/lib/evolution/rrsi-group-statistics.js)             | 固定来源连通分量与任务权重、全比较家族、完整槽位分母和 bootstrap/Hoeffding 外包络                                      |
-| [rrsi-statistics-simulation.js](../../../packages/cli/src/lib/evolution/rrsi-statistics-simulation.js)   | 完整方法小网格及明确标记的 Hoeffding-only 辅助网格，独立报告同时 Monte Carlo 界及 HOLD                                 |
-| [evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js)       | 仅新增 `rrsi-history-event` 有限类型，长期保留用途固定为 `evolution-ledger`                                            |
+| 文件                                                                                                       | 行为                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [rrsi-data.js](../../../packages/cli/src/lib/evolution/rrsi-data.js)                                       | 有界、独立复制的 plain-data 校验；拒绝 Proxy、getter、非有限数字、负零、稀疏数组和循环；提供规范化摘要与不可变结构标记 |
+| [rrsi-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-contracts.js)                             | Policy、Dataset、Campaign、Candidate 的构造与回读；绑定五池、父版本、模型、价格、环境、grader、预算与统计计划          |
+| [rrsi-selector.js](../../../packages/cli/src/lib/evolution/rrsi-selector.js)                               | 合成指标硬条件、正则项及贡献、确定性排序和全局预算/HOLD 判断                                                           |
+| [rrsi-shadow-fixture.js](../../../packages/cli/__tests__/fixtures/rrsi-shadow-fixture.js)                  | 220 个合成任务引用、四维合成来源、两个候选与固定合成观察；所有部署身份均明确为 fixture                                 |
+| [rrsi-offline-replay.mjs](../../../packages/cli/scripts/rrsi-offline-replay.mjs)                           | 仓库内离线入口；内置 demo 或读取有界 JSON 并核对独立保存的 campaign digest                                             |
+| [rrsi-history-ledger-adapter.js](../../../packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js)   | 真实 v1/v2 Ledger 的历史回读、原子控制、来源暴露、签名结算与预算恢复                                                   |
+| [rrsi-native-evaluation-batch.js](../../../packages/cli/src/lib/evolution/rrsi-native-evaluation-batch.js) | 从原生上下文编译完整请求清单、逐 child/arm 预算及分类执行单位；输出引用，不复制私有题目                                |
+| [rrsi-preparation-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-preparation-contracts.js)     | 准备计划与尝试上限冻结、六种阶段、训练来源和输入规范化、独立预占及结算域                                               |
+| [rrsi-pm-training-mapping.js](../../../packages/cli/src/lib/evolution/rrsi-pm-training-mapping.js)         | PM Suite/plan 的结构校验、独立内容摘要、完整可访问训练来源映射；不认证来源权威                                         |
+| [rrsi-pm-execution-bridge.js](../../../packages/cli/src/lib/evolution/rrsi-pm-execution-bridge.js)         | 既有品牌化 PM host/journal 的 broad round 接线，先预占、一次派发、状态变化检测与观察留证                               |
+| [rrsi-evaluation-adapter.js](../../../packages/cli/src/lib/evolution/rrsi-evaluation-adapter.js)           | 五池到既有 Eval Suite 的内容/来源双射，训练专用投影及原 final receipt 签名行验证                                       |
+| [rrsi-group-statistics.js](../../../packages/cli/src/lib/evolution/rrsi-group-statistics.js)               | 固定来源连通分量与任务权重、全比较家族、完整槽位分母和 bootstrap/Hoeffding 外包络                                      |
+| [rrsi-statistics-simulation.js](../../../packages/cli/src/lib/evolution/rrsi-statistics-simulation.js)     | 完整方法小网格及明确标记的 Hoeffding-only 辅助网格，独立报告同时 Monte Carlo 界及 HOLD                                 |
+| [evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js)         | 仅新增 `rrsi-history-event` 有限类型，长期保留用途固定为 `evolution-ledger`                                            |
 
 每个 Policy、Dataset、Campaign、Candidate 和 Replay 输出均保留 `structuralOnly:true`、`authenticated:false`、`readyForExecution:false`、`qualifiesForPromotion:false`。候选入选状态使用 `shadow-selected`，没有请求模型、启动真实 Actor 或写正式版本的能力。
 
@@ -210,21 +211,37 @@ PM host 强制执行三类资源限制；货币和全部内部重试/模型调�
 
 [本地验证记录](./evidence/rrsi-native-evaluation-local-controls-2026-10-07.json) 保存源码摘要和四文件 **39/39** 回归结果：新增 variant 13 项、native plan 13 项，以及旧 Eval/训练映射 13 项。ESLint、Prettier 通过。Astra 只读复核后补上跨池碰撞、stage 转换、完整矩阵和自身输出上限反例；未执行真实原生 Actor、付费请求或 A/B/C 实验。
 
-## 11 下一批工作及完成审计
+## 11 原生批次、逐臂记账及对子结算
 
-下一步接入有效父版本与真实运行权威，在派发前绑定实验组、variant、launch slot 和 reservation，再把认证原始行接入统计与选择回执。继续完善其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+[rrsi-native-evaluation-batch.js](../../../packages/cli/src/lib/evolution/rrsi-native-evaluation-batch.js) 从原生 contextual compiler 重建全部 role × variant × pair × target，生成紧凑引用清单。History 一次原子预留整批，消耗一次 selection query，并登记完整来源闭包；generalization 同时占用 gate-validation、gate-test、audit。失败、取消、未开始或进程退出均不返还 query、候选及来源暴露记录。新的原生命名空间保持旧 v1 reservation、preparation 和 settlement 的字节及读回规则。
 
-| 必需条件            | 当前证据                                           | 未完成的工程或外部条件                                                      |
-| ------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
-| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现 | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
-| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                    | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
-| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                 | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
-| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装    | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
-| 五池真实派发与统计  | 签名 final rows、描述统计、有限模拟                | launch/variant/arm/reservation 权威、全部扰动、正式统计校准                 |
-| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                       | 可信 receipt、逐轮停止条件和锚点回归                                        |
-| 晋级无降级绕过      | 既有发布门保持原行为                               | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
-| Workbench 与回滚    | 既有底座可复用                                     | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
-| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                               | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
-| CLI 扩展与交付      | 原发行门仍适用                                     | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
+每个 child 是完整 paired Eval attempt，内含两份逐臂 reservation；新鲜 child capability 只能原子记录一次双臂派发意图。序列化副本、重启读回、幂等 reserve 及不确定提交不能重新获得 capability。独立 Ed25519 结算在同一签名中固定两臂 bindings、费用、清理和分类执行单位；一张 paired 回执归该 child，不能再次认领到其他 child 或旧 reservation。完整结算不能用新 receipt ID 改写，部分结算的已确认单位和费用不能降低。
+
+分类向量为 Actor、grade、safety、reset、provider。每臂 Actor/grade/safety 均须保留非训练任务数 × seeds；reset/provider 及逐臂 cost inventory 摘要必须显式声明。新 `executions` 是明确注册的 stage + provider 计费节点数，包含嵌套层次，不能冒充物理 provider 请求数，也不能拿旧 Gate 的 Actor-only count 作为新结算总量。增加 provider 次数不能弥补缺失 Actor。未知类别不补零，保留 ceiling/HOLD；已知类别合计形成下界，超过预算也会阻止新派发。
+
+旧无 arm 的消耗保守计入每个新 arm，后续旧接口同样核对这些逐臂开销。全 History 固定 control arms、目标范围及 native/RRSI 两套候选身份，分别消耗 invocation ID、nonce 和原生 request context，避免换 query/campaign/candidate 名称重放。native 路径启用后，live freeze 只允许一个全局 finalist；旧事件回放仍保持原语义。native 候选不能降级到旧 final reservation。冻结只确认声明结算及子任务终态齐全，质量选择回执仍待接线。
+
+最低恢复图在 admission 前预留容量，未结清 child 始终保留至少一个最终对账槽；RRSI writer 同时检查自身 5,000-event 和完整 Ledger 剩余容量。实际 Artifact wrapper 及返回 envelope 在 Ledger append 前检查同一数据上限，拒绝超限而不裁剪分母。容量预留只约束遵循此 History 协议的 writer；其他 Ledger writer 尚无共享容量租约。去重和预算范围也限于同 tenant/goal 的同一权威 Ledger，不能宣称任意新 backend/epoch 已全球闭合。
+
+费用归属目前仅冻结每 child/arm 的 inventory 引用，不验证其实际请求、共享费用 owner、provider/reset profile 或官方账单；native Skill content 与 RRSI aggregate content 保留独立身份，不认证两者的派生关系。已签名预算声明不升级成原生执行证明：`executionEvidenceVerified`、`costEvidenceVerified`、`nativeExecutionDenominatorVerified`、`requestCostGraphVerified` 和 `billingComplete` 均保持 false；不提供 Gate launch、生产预算或晋级授权。
+
+[批次本地验证记录](./evidence/rrsi-native-batch-local-controls-2026-10-07.json) 保存源码/测试摘要、逐文件回归结果与限制。八个相关文件最终 **169/169** 通过；新增 24 项 unit 和 4 项真实进程/迁移用例，覆盖完整分母、非对称费用、不完整计数下界、签名/归属篡改、跨批重放、跨 campaign finalist、旧接口预算绕过、持续 unknown 的恢复槽，以及真实并发、硬退出和 Ledger v2 journal。ESLint、Prettier 和 Astra 只读复核已通过；未执行真实 Actor、付费请求或 A/B/C 实验。
+
+## 12 下一批工作及完成审计
+
+下一步用版本化 RRSI enrollment 绑定 campaign root、冻结 query 子队列、native plan/request 与双臂 reservation，再消费 Gate 产生的 admission、runId/runNonce 和原始签名行；旧 PM-only enrollment 不能替代这条路径。随后实现保留全部三角重复及 target strata 的统计 v2 与选择/泛化回执。继续完善真实运行权威、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+
+| 必需条件            | 当前证据                                                   | 未完成的工程或外部条件                                                      |
+| ------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现         | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
+| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                            | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
+| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                         | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
+| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装            | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
+| 五池真实派发与统计  | 原生三角计划、批次预留、原 Eval 签名行、描述统计及有限模拟 | enrollment/原生行接线、launch 权威、统计 v2、全部扰动执行及正式校准         |
+| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                               | 可信 receipt、逐轮停止条件和锚点回归                                        |
+| 晋级无降级绕过      | 既有发布门保持原行为                                       | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
+| Workbench 与回滚    | 既有底座可复用                                             | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
+| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                       | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
+| CLI 扩展与交付      | 原发行门仍适用                                             | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
 
 真实父版本与数据清单的登记独立于合成例子。待受信部署和来源可核验后，以新冻结合同开启真实实验；不把示例摘要重新标为生产身份。

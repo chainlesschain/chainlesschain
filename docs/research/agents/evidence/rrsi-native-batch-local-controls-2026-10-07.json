@@ -1,0 +1,141 @@
+{
+  "schema": "chainlesschain.rrsi-native-batch-local-controls/v1",
+  "recordedAt": "2026-10-06T22:41:51.150Z",
+  "baseCommit": "3f94d1f33fd84f57391ab79036cf889ad934bd35",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-evaluation-batch.js",
+      "digest": "sha256:e44f0e1d216cc5f0daa1d4e2471fcf2abb8251411af1c3074db18fe5a7029e20"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "digest": "sha256:981ba9afae619f51c983970e551483365f9e6b2c8a4394201fae600dfc167b24"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-batch.js",
+      "digest": "sha256:50ca693af169c24acd339cc874ecc3049d3a24921add02fee2dd9fa9167ddeef"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-evaluation.js",
+      "digest": "sha256:fd7f9622b72e339fd47ceb62f6ed986a3209499464adf805626f84b275cc41e3"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-history-process.mjs",
+      "digest": "sha256:76ab9b1a2091abfb00a57c7efa92d37f7e850f7aa000d2b4a3f52768ac7cbe6a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "digest": "sha256:322b76a0826c6bc4ad6953ee2f934375834808749cfe7b670fbdf9657bc5ecd9"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/rrsi-history-process.test.js",
+      "digest": "sha256:3dad5f4008317b8cf001383bf297935815b099dbeb83def9fd1566fc71f5cdc3"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-native-batch-final-tests.json",
+      "digest": "sha256:89dd3a3148958c29d0c5a36f0d962363978d2daf9d56f93e09afdf34f7c7afcb"
+    },
+    {
+      "file": ".work/rrsi-native-batch-compatibility-tests.json",
+      "digest": "sha256:cff1c276c47a8673707a53bf726e6268bce3b65b6afaa623fbc369c2881fac6b"
+    }
+  ],
+  "files": [
+    {
+      "file": "packages/cli/__tests__/integration/rrsi-history-process.test.js",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/integration/rrsi-pm-bridge-process.test.js",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-evaluation-plan.test.js",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-pm-execution-bridge.test.js",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-preparation-history.test.js",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 8,
+    "passed": 169,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": 28,
+  "lint": "ESLint passed on all seven changed source/test/fixture files",
+  "formatting": "Prettier passed on source/tests/fixtures/docs/evidence",
+  "independentReadOnlyReview": "Astra reviewed complete paired child accounting, conservative legacy costs, cross-batch invocation and candidate identities, global finalist uniqueness, signature/receipt ownership, unknown recovery and remaining Ledger capacity",
+  "controls": {
+    "completeTriangleBatchReservationImplemented": true,
+    "atomicPairedChildDispatchImplemented": true,
+    "singleSignatureChildSettlementImplemented": true,
+    "irreversibleQueryAndSourceConsumptionImplemented": true,
+    "legacyCostsChargedToEveryArm": true,
+    "globalInvocationIdNonceAndRequestContextConsumption": true,
+    "globalUniqueFinalistAfterNativeActivation": true,
+    "partialUnitLowerBoundsRetained": true,
+    "unsettledChildRetainsFinalRecoverySlot": true,
+    "boundedHistoryWrapperReadbackPreflight": true,
+    "legacyV1ReadbackPreserved": true,
+    "actualLedgerV2JournalPreserved": true
+  },
+  "executionCountSemantics": "actor-grade-safety-reset-and-provider-nodes/v1",
+  "scope": "same-tenant-goal-and-authoritative-Ledger-only",
+  "legacyCostAttribution": "conservatively-charged-to-every-arm/v1",
+  "costAttribution": "frozen-per-arm-request-inventory-references-only",
+  "capacityLimit": "RRSI writers preserve minimum native recovery slots; unrelated Ledger writers have no shared capacity lease",
+  "localOnly": true,
+  "declaredBudgetSettlementOnly": true,
+  "paidProviderRequestsExecuted": false,
+  "signedNativeActorsExecuted": false,
+  "actualRequestCostGraphVerified": false,
+  "sharedCostOwnershipVerified": false,
+  "nativeContentDerivationVerified": false,
+  "nativeExecutionDenominatorVerified": false,
+  "productionBudgetAuthorityVerified": false,
+  "billingComplete": false,
+  "rrsiEnrollmentV2Implemented": false,
+  "nativeStatisticsV2Implemented": false,
+  "nativeLaunchRuntimeImplemented": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

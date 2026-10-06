@@ -2,14 +2,24 @@ import fs from "node:fs";
 import { openRrsiHistoryStore } from "./rrsi-history-store.js";
 
 const [root, mode, inputFile] = process.argv.slice(2);
+let nativeDispatchCrashArmed = false;
 try {
   const input = inputFile
     ? JSON.parse(fs.readFileSync(inputFile, "utf8"))
     : null;
   const fixture = openRrsiHistoryStore(root, {
-    crashHook: ["crash-reserve", "crash-preparation"].includes(mode)
+    crashHook: [
+      "crash-reserve",
+      "crash-preparation",
+      "crash-native",
+      "crash-native-dispatch",
+    ].includes(mode)
       ? (phase) => {
-          if (phase === "after-head") process.exit(71);
+          if (
+            phase === "after-head" &&
+            (mode !== "crash-native-dispatch" || nativeDispatchCrashArmed)
+          )
+            process.exit(71);
         }
       : null,
   });
@@ -17,6 +27,31 @@ try {
     if (mode === "inspect") return fixture.adapter.inspect();
     if (["reserve", "crash-reserve", "race-reserve"].includes(mode))
       return fixture.adapter.reserve(input ?? fixture.request());
+    if (
+      [
+        "reserve-native",
+        "crash-native",
+        "race-native",
+        "recover-native",
+        "crash-native-dispatch",
+      ].includes(mode)
+    ) {
+      const response = fixture.adapter.reserveNativeBatch(input);
+      if (mode === "crash-native-dispatch") {
+        nativeDispatchCrashArmed = true;
+        fixture.adapter.recordNativeDispatch(response.children[0]);
+      }
+      if (mode !== "recover-native") return response;
+      try {
+        fixture.adapter.recordNativeDispatch(response.children[0]);
+        return { response, replayDenied: false };
+      } catch (error) {
+        return {
+          response,
+          replayDenied: error.code === "CC_RRSI_REPLAY_FORBIDDEN",
+        };
+      }
+    }
     if (
       [
         "reserve-preparation",
@@ -41,7 +76,7 @@ try {
     }
     throw new Error("unsupported test mode");
   };
-  if (["race-reserve", "race-preparation"].includes(mode)) {
+  if (["race-reserve", "race-preparation", "race-native"].includes(mode)) {
     process.send({ ready: true });
     process.once("message", () => {
       try {

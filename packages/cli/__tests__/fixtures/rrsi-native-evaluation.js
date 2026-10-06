@@ -23,24 +23,28 @@ export function rrsiNativeEvaluationFixture({
   stage = "generalization",
   targetCount = 1,
   fullBudget = true,
+  campaignOverrides = {},
 } = {}) {
   const defaults = rrsiCampaignInput();
   const value = rrsiEvaluationFixture({
-    campaignOverrides: fullBudget
-      ? {
-          budget: {
-            ...defaults.budget,
-            totalPerArm: {
-              ...defaults.budget.totalPerArm,
-              maxExecutions: 10000 + 3000 * targetCount,
+    campaignOverrides: {
+      ...(fullBudget
+        ? {
+            budget: {
+              ...defaults.budget,
+              totalPerArm: {
+                ...defaults.budget.totalPerArm,
+                maxExecutions: 10000 + 3000 * targetCount,
+              },
+              finalEvaluationPerArm: {
+                ...defaults.budget.finalEvaluationPerArm,
+                maxExecutions: 3000 * targetCount,
+              },
             },
-            finalEvaluationPerArm: {
-              ...defaults.budget.finalEvaluationPerArm,
-              maxExecutions: 3000 * targetCount,
-            },
-          },
-        }
-      : {},
+          }
+        : {}),
+      ...campaignOverrides,
+    },
   });
   const variants = [
     "clean",
