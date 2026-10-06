@@ -8,6 +8,7 @@
 
 - [差距分析](./rsiagent-gap-analysis-2026-09-17.md)
 - [项目经验](./rsiagent-project-lessons-2026-09-17.md)
+- [RRSI 实施方案](../../research/agents/rrsi-implementation-plan-2026-10-07.md)：承接现有 RSI 探索与治理底座，设计正则化筛选、未见集隔离和真实效果验收。
 
 ## 批次导航
 
