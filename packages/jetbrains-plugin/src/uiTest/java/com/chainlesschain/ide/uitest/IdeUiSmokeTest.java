@@ -1030,8 +1030,12 @@ final class IdeUiSmokeTest {
         // Use the chooser's own Enter action. A physical click can dismiss a
         // native popup without invoking its chosen-item callback on ARM64.
         System.out.println("[ui-smoke] activating popup item " + label);
-        list.runJs(
-                "var model = component.getModel(), index = -1;"
+        list.runJs(popupActivationScript(label, prefix), true);
+        waitUntilHidden(list, "popup item " + label, FIND_BUDGET);
+    }
+
+    static String popupActivationScript(String label, boolean prefix) {
+        return "var model = component.getModel(), index = -1;"
                         + "for (var i = 0; i < model.getSize(); i++) {"
                         + "var item = String(model.getElementAt(i));"
                         + "if (" + (prefix ? "item.indexOf(" + jsString(label) + ") === 0"
@@ -1042,10 +1046,15 @@ final class IdeUiSmokeTest {
                         + "var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);"
                         + "var action = component.getActionForKeyStroke(enter);"
                         + "if (action == null) throw new Error('Popup Enter action unavailable');"
-                        + "action.actionPerformed(new java.awt.event.ActionEvent(component,"
-                        + "java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));",
-                true);
-        waitUntilHidden(list, "popup item " + label, FIND_BUDGET);
+                        // Opening/closing native popups or entering a modal action can
+                        // outlive this Robot request. Dispatch through the IDE after
+                        // returning, so the client can observe and drive the next stage.
+                        // Capture this fixture: a later request must not retarget the action.
+                        + "var target = component;"
+                        + "Packages.com.intellij.openapi.application.ApplicationManager.getApplication()"
+                        + ".invokeLater(new java.lang.Runnable({run:function(){"
+                        + "action.actionPerformed(new java.awt.event.ActionEvent(target,"
+                        + "java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));}}));";
     }
 
     private static void send(
