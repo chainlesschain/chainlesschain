@@ -1,0 +1,169 @@
+{
+  "schema": "chainlesschain.rrsi-rr03-local-controls/v1",
+  "recordedAt": "2026-10-06T21:25:14.404Z",
+  "baseCommit": "ae8b2c5b572a7d0e87e7fe1878611668b37ac391",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-pm-training-mapping.js",
+      "digest": "sha256:668d5914d29e0f7b38c9beeb548c0484839e617e3b9efa26ef2789c934aa446a"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-evaluation-adapter.js",
+      "digest": "sha256:eed1db17e7fa098b3b3825299d7680d377cb26b86e25baf2721d7326d56953fc"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-group-statistics.js",
+      "digest": "sha256:7bb5c8430e1ddb3405ada44c406a81aba9ee3f71d3db3d3ecc6ac40e54168cea"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-statistics-simulation.js",
+      "digest": "sha256:89d967b110aabfd74a675f9830ee2cd4f93d5d99e73ef9b53c23a5c7b05d4e8c"
+    },
+    {
+      "file": "packages/cli/scripts/rrsi-statistics-simulation.mjs",
+      "digest": "sha256:5a939039a969202507c56c0a6efb7cb07369b1e8886a51b75c458938260cd69f"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-evaluation.js",
+      "digest": "sha256:ed7cd7ef69116dbe2335df88dfb1cb66e017700459bf0827689a4dbf32d9a1b8"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-group-statistics.js",
+      "digest": "sha256:b048f779e57ca07b778d059ae9420d04b931ecb766d2f9a25432ea15e6603a19"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-adapter.test.js",
+      "digest": "sha256:11fd566973533b0b19b6d5b009ad5733f5b16509873157fb67b62a4d3c7e14bf"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-group-statistics.test.js",
+      "digest": "sha256:43ec6c5be73428790301c3bf718baa7d3f50e7bad08114e47753c55dc780a323"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-statistics-simulation.test.js",
+      "digest": "sha256:96d9966b0a05c959961a19ca2883c2a52fc7ed3cc08364c8104d9fb6bb174682"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "digest": "sha256:41e0e3f3ba073aeaa13e04283d037266e6b8106f6d2c0da11e5515401c994f03"
+    }
+  ],
+  "runs": [
+    {
+      "sourceReport": ".work/rrsi-rr03-full-tests.json",
+      "sourceReportDigest": "sha256:2c357622a2f01621e5287a2045cb04b93420873799af5bd3fada742123dcd1b4",
+      "passedTests": 487,
+      "files": [
+        {
+          "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+          "passed": 191,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/pm-exploration-benchmark.test.js",
+          "passed": 80,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/pm-exploration-execution-host.test.js",
+          "passed": 7,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/pm-exploration-rounds.test.js",
+          "passed": 21,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-contracts.test.js",
+          "passed": 51,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-evaluation-adapter.test.js",
+          "passed": 6,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-group-statistics.test.js",
+          "passed": 21,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+          "passed": 25,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-pm-execution-bridge.test.js",
+          "passed": 16,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-pm-training-mapping.test.js",
+          "passed": 7,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-preparation-history.test.js",
+          "passed": 30,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-selector.test.js",
+          "passed": 28,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/unit/rrsi-statistics-simulation.test.js",
+          "passed": 4,
+          "skipped": 0
+        }
+      ]
+    },
+    {
+      "sourceReport": ".work/rrsi-rr03-process-tests.json",
+      "sourceReportDigest": "sha256:5273882f634df061b307ed1aa814cbbbff5b76ee505635b29963dc936c2e9ca6",
+      "passedTests": 19,
+      "files": [
+        {
+          "file": "packages/cli/__tests__/integration/rrsi-history-process.test.js",
+          "passed": 10,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/integration/rrsi-offline-replay.test.js",
+          "passed": 6,
+          "skipped": 0
+        },
+        {
+          "file": "packages/cli/__tests__/integration/rrsi-pm-bridge-process.test.js",
+          "passed": 3,
+          "skipped": 0
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "files": 16,
+    "passed": 506,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": 34,
+  "formatting": "Prettier check passed on source/tests/docs/simulation artifact",
+  "lint": "ESLint passed on RR-03 source and tests",
+  "independentReadOnlyReview": "Astra reviewed shared primitive, full context binding, simultaneous Monte Carlo grid bounds and authentication boundaries",
+  "simulationArtifact": "docs/research/agents/evidence/rrsi-rr03-statistics-synthetic-grid-2026-10-07.json",
+  "simulationArtifactDigest": "sha256:4e033aff6863b7b220bfc3adbcfeef77cef6f934baae965f46bd6d391d583925",
+  "fullMethodGridVerdict": "hold",
+  "auxiliaryBoundOnlyGridVerdict": "hold",
+  "localOnly": true,
+  "productionCoverageValidated": false,
+  "productionPowerValidated": false,
+  "actualABCExperimentExecuted": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "sourceProvenanceVerified": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

@@ -19,8 +19,8 @@ export const RRSI_PM_TRAINING_MAPPING_SCHEMA =
 const DIMENSIONS = ["template", "project", "principal", "timeWindow"];
 const PREFIXES = ["template", "project", "principal", "time-window"];
 
-/** No task prompt or private expected answer leaves this projection. */
-export function projectRrsiPmTrainingReferences(input) {
+/** Operator-only hash references; never supply holdout references to the proposer. */
+export function projectRrsiPmTaskReferences(input) {
   const suite = verifyEvolutionEvalSuite(snapshotRrsiData(input));
   const training = projectPmExplorationTrainingView(suite);
   return freezeRrsiData({
@@ -28,9 +28,9 @@ export function projectRrsiPmTrainingReferences(input) {
     pmTrainingPartitionDigest: training.trainingPartitionDigest,
     provenanceAuthenticated: false,
     tasks: suite.tasks
-      .filter((task) => task.split === "training")
       .map((task) => ({
         pmTaskId: task.id,
+        split: task.split,
         pmTaskDigest: task.taskDigest,
         // Eval taskDigest includes IDs and split. This content identity does not.
         contentDigest: rrsiHash("chainlesschain.rrsi-pm-task-content/v1", {
@@ -47,6 +47,23 @@ export function projectRrsiPmTrainingReferences(input) {
         ),
       }))
       .sort((left, right) => (left.pmTaskId < right.pmTaskId ? -1 : 1)),
+  });
+}
+
+/** Preserve the original training-only envelope and digest semantics. */
+export function projectRrsiPmTrainingReferences(input) {
+  const projected = projectRrsiPmTaskReferences(input);
+  return freezeRrsiData({
+    suiteDigest: projected.suiteDigest,
+    pmTrainingPartitionDigest: projected.pmTrainingPartitionDigest,
+    provenanceAuthenticated: false,
+    tasks: projected.tasks
+      .filter((task) => task.split === "training")
+      .map((task) => {
+        const reference = { ...task };
+        delete reference.split;
+        return reference;
+      }),
   });
 }
 

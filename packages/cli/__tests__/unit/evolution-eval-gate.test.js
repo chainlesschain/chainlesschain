@@ -16,6 +16,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { replicaAuthority } from "../fixtures/skill-revocation-release-registry.js";
 import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
+import { rrsiEvaluationFixture } from "../fixtures/rrsi-evaluation.js";
+import { rrsiCampaignInput } from "../fixtures/rrsi-shadow-fixture.js";
+import { collectRrsiEvalRowEvidence } from "../../src/lib/evolution/rrsi-evaluation-adapter.js";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -6414,5 +6417,125 @@ describe("Evolution Eval Gate P0 foundation", () => {
       policy({ maxWallClockMs: 60_001, portReceiptTtlMs: 60_000 }),
     ).toThrow();
     expect(() => policy({ maxExecutions: 0 })).toThrow();
+  });
+});
+
+describe("RRSI signed Eval row adapter", () => {
+  let fixture, harness, exported, registeredRequest;
+  beforeAll(async () => {
+    const original = rrsiCampaignInput();
+    fixture = rrsiEvaluationFixture({
+      campaignOverrides: {
+        tenantId: TENANT_ID,
+        execution: {
+          ...original.execution,
+          environmentDigest: ENVIRONMENT_DIGEST,
+        },
+      },
+      versions: { baseline: BASELINE_ID, rsi: PLAN_DIGEST, rrsi: CANDIDATE_ID },
+    });
+    harness = makeHarness({
+      suite: fixture.context.suites.gate,
+      evalPolicy: fixture.context.policies.gate,
+      primaryGraderId: "pm-objective-outcome-v1",
+    });
+    registeredRequest = {
+      ...RUN_REQUEST,
+      evaluationContext: {
+        ...RUN_REQUEST.evaluationContext,
+        planDigest: fixture.mapping.evaluationMappingDigest,
+      },
+    };
+    exported = await runEvolutionEvalGateWithEvidence(
+      harness.gate,
+      registeredRequest,
+    );
+  }, FULL_EVALUATION_TEST_TIMEOUT_MS);
+
+  function adapterInput() {
+    return {
+      context: fixture.context,
+      mapping: fixture.mapping,
+      role: "gate",
+      bundle: { ...exported, suite: harness.suite, policy: harness.evalPolicy },
+      expectedReceipt: expectedReceiptContext(exported.receipt),
+      evaluationContext: evaluationContextForReceipt(exported.receipt, {
+        ...registeredRequest.evaluationContext,
+      }),
+      armBindings: { baseline: "baseline", candidate: "rrsi" },
+    };
+  }
+
+  it("uses the existing signed final receipt without treating rows as full RRSI admission", async () => {
+    const collected = await collectRrsiEvalRowEvidence(
+      harness.receiptVerifier,
+      adapterInput(),
+    );
+    expect(collected.rows).toHaveLength(480);
+    expect(collected).toMatchObject({
+      finalReceiptRowsAuthenticated: true,
+      armLifecycleVerified: false,
+      perturbationIdentityVerified: false,
+      launchSlotVerified: false,
+      underlyingExecutionReceiptsReverified: false,
+      sourceProvenanceVerified: false,
+      completeLifecycleCostVerified: false,
+      cleanupReverified: false,
+      qualityVerdictVerified: false,
+      qualifiesForPromotion: false,
+    });
+    expect(new Set(collected.rows.map((row) => row.rrsiPartition))).toEqual(
+      new Set(["gate-validation", "gate-test"]),
+    );
+    expect(
+      collected.rows.every(
+        (row) => row.versionDigest === fixture.context.versions[row.arm],
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(collected)).not.toContain("privateExpected");
+  });
+
+  it("rejects renamed arms, changed signed data, a foreign pool and forged signatures", async () => {
+    const wrongArm = adapterInput();
+    wrongArm.armBindings.candidate = "rsi";
+    await expect(
+      collectRrsiEvalRowEvidence(harness.receiptVerifier, wrongArm),
+    ).rejects.toThrow(/arms, tenant/);
+    const changed = structuredClone(adapterInput());
+    changed.bundle.resultEvidence.test.candidate[0].pass = false;
+    await expect(
+      collectRrsiEvalRowEvidence(harness.receiptVerifier, changed),
+    ).rejects.toThrow(/signed comparison/);
+    const wrongPool = adapterInput();
+    wrongPool.role = "selection";
+    await expect(
+      collectRrsiEvalRowEvidence(harness.receiptVerifier, wrongPool),
+    ).rejects.toThrow(/five-pool mapping/);
+    const oldContext = adapterInput();
+    oldContext.evaluationContext = RUN_REQUEST.evaluationContext;
+    await expect(
+      collectRrsiEvalRowEvidence(harness.receiptVerifier, oldContext),
+    ).rejects.toThrow(/not bound to the frozen RRSI mapping/);
+    const forged = structuredClone(adapterInput());
+    forged.bundle.receipt.attestation.value = "0".repeat(64);
+    await expect(
+      collectRrsiEvalRowEvidence(harness.receiptVerifier, forged),
+    ).rejects.toMatchObject({ code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE });
+  });
+
+  it("snapshots every input before asynchronous authority verification", async () => {
+    const mutable = structuredClone(adapterInput());
+    const pending = collectRrsiEvalRowEvidence(
+      harness.receiptVerifier,
+      mutable,
+    );
+    mutable.armBindings.candidate = "rsi";
+    mutable.bundle.resultEvidence.test.candidate[0].pass = false;
+    mutable.context.versions.rrsi = PLAN_DIGEST;
+    const collected = await pending;
+    expect(collected.finalReceiptRowsAuthenticated).toBe(true);
+    expect(collected.rows.filter((row) => row.arm === "rrsi")).toHaveLength(
+      240,
+    );
   });
 });

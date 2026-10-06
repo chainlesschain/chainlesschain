@@ -1,0 +1,3111 @@
+{
+  "scope": "TEST ONLY synthetic development grids",
+  "simulations": [
+    {
+      "plan": {
+        "schema": "chainlesschain.rrsi-statistics-simulation-plan/v1",
+        "comparisonCount": 2,
+        "familyAlpha": 0.05,
+        "qualityThreshold": 0.05,
+        "targetPower": 0.8,
+        "randomnessSeedDigest": "sha256:3803810df236e2d015ba34002dc1ac81601a6e79d8642fc29c2f438b8ba1b3bd",
+        "intervalMethod": "outer-envelope-of-cluster-bootstrap-and-conditional-bounded-interval/v1",
+        "bootstrapSamples": 2000,
+        "trialCount": 100,
+        "clusterCounts": [20, 100],
+        "laws": [
+          {
+            "id": "symmetric-null",
+            "negative": -1,
+            "positive": 1,
+            "positiveProbability": 0.5,
+            "mean": 0
+          },
+          {
+            "id": "rare-negative-null",
+            "negative": -0.95,
+            "positive": 0.05,
+            "positiveProbability": 0.95,
+            "mean": 0
+          },
+          {
+            "id": "moderate-positive",
+            "negative": -0.25,
+            "positive": 0.75,
+            "positiveProbability": 0.5,
+            "mean": 0.25
+          },
+          {
+            "id": "strong-positive",
+            "negative": 0.6,
+            "positive": 1,
+            "positiveProbability": 0.5,
+            "mean": 0.8
+          }
+        ],
+        "weightProfiles": ["equal-task-counts", "one-dominant-component"],
+        "operations": 384000000,
+        "operationLimit": 500000000,
+        "bootstrapAlgorithm": "direct-uniform-cluster-picks-xorshift32/v1",
+        "monteCarloIntervalMethod": "wilson-score-95/v1",
+        "simultaneousMonteCarloMethod": "bonferroni-hoeffding-all-grid-rates-95/v1",
+        "simultaneousRateCount": 64,
+        "contrastJointLaw": "independent-synthetic-contrast-deltas-not-three-arm-outcomes",
+        "hypothesisScope": "one-synthetic-pool-and-variant-per-family",
+        "bootstrapIndexCoupling": "same-stream-for-contrasts-within-each-trial",
+        "stoppingRule": "run-every-preregistered-scenario-no-interim-selection",
+        "structuralOnly": true,
+        "authenticated": false,
+        "readyForExecution": false,
+        "qualifiesForPromotion": false,
+        "simulationPlanDigest": "sha256:974b14f265808276d0b5ca8b68ddb3af75384ba38e9865025b10131eb20b8335"
+      },
+      "report": {
+        "schema": "chainlesschain.rrsi-statistics-simulation-report/v1",
+        "simulationPlanDigest": "sha256:974b14f265808276d0b5ca8b68ddb3af75384ba38e9865025b10131eb20b8335",
+        "scope": "preregistered-synthetic-independent-cluster-grid-only",
+        "intervalMethod": "outer-envelope-of-cluster-bootstrap-and-conditional-bounded-interval/v1",
+        "fullAnalysisMethodSimulated": true,
+        "hoeffdingOnlyPowerCannotSelectFullMethodSampleSize": false,
+        "familyAlpha": 0.05,
+        "comparisonCount": 2,
+        "trialCountPerScenario": 100,
+        "status": "hold",
+        "scenarios": [
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 99,
+              "trials": 100,
+              "estimate": 0.99,
+              "monteCarlo95": {
+                "lower": 0.9455138038212946,
+                "upper": 0.9982325679358593
+              },
+              "simultaneousGrid95": {
+                "lower": 0.7919121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 1,
+              "trials": 100,
+              "estimate": 0.01,
+              "monteCarlo95": {
+                "lower": 0.0017674320641406505,
+                "upper": 0.054486196178705315
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.20808789131940408
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 62,
+              "trials": 100,
+              "estimate": 0.62,
+              "monteCarlo95": {
+                "lower": 0.5220975529551107,
+                "upper": 0.7090240074752127
+              },
+              "simultaneousGrid95": {
+                "lower": 0.4219121086805959,
+                "upper": 0.8180878913194041
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 90,
+              "trials": 100,
+              "estimate": 0.9,
+              "monteCarlo95": {
+                "lower": 0.8256343384950865,
+                "upper": 0.9447708629393249
+              },
+              "simultaneousGrid95": {
+                "lower": 0.701912108680596,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 54,
+              "trials": 100,
+              "estimate": 0.54,
+              "monteCarlo95": {
+                "lower": 0.44264860323368227,
+                "upper": 0.6343919169097589
+              },
+              "simultaneousGrid95": {
+                "lower": 0.34191210868059596,
+                "upper": 0.7380878913194041
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 99,
+              "trials": 100,
+              "estimate": 0.99,
+              "monteCarlo95": {
+                "lower": 0.9455138038212946,
+                "upper": 0.9982325679358593
+              },
+              "simultaneousGrid95": {
+                "lower": 0.7919121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 1,
+              "trials": 100,
+              "estimate": 0.01,
+              "monteCarlo95": {
+                "lower": 0.0017674320641406505,
+                "upper": 0.054486196178705315
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.20808789131940408
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 1,
+              "trials": 100,
+              "estimate": 0.01,
+              "monteCarlo95": {
+                "lower": 0.0017674320641406505,
+                "upper": 0.054486196178705315
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.20808789131940408
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 3,
+              "trials": 100,
+              "estimate": 0.03,
+              "monteCarlo95": {
+                "lower": 0.010254524024038925,
+                "upper": 0.0845193642905276
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.22808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 100,
+              "trials": 100,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9630065017930143,
+                "upper": 1
+              },
+              "simultaneousGrid95": {
+                "lower": 0.8019121086805959,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 100,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 3.469446951953614e-18,
+                "upper": 0.03699349820698568
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.19808789131940407
+              }
+            }
+          }
+        ],
+        "powerEstimates": [
+          {
+            "distribution": "moderate-positive",
+            "weightProfile": "equal-task-counts",
+            "minimumGridGroupCountMeetingPower": null
+          },
+          {
+            "distribution": "moderate-positive",
+            "weightProfile": "one-dominant-component",
+            "minimumGridGroupCountMeetingPower": null
+          },
+          {
+            "distribution": "strong-positive",
+            "weightProfile": "equal-task-counts",
+            "minimumGridGroupCountMeetingPower": 100
+          },
+          {
+            "distribution": "strong-positive",
+            "weightProfile": "one-dominant-component",
+            "minimumGridGroupCountMeetingPower": null
+          }
+        ],
+        "coverageCheckedOnGrid": false,
+        "monteCarloIntervalsAreApproximate": true,
+        "pointwiseWilsonIntervalsAreNotSimultaneous": true,
+        "sampleGridSelectionUsesSimultaneousBounds": true,
+        "simultaneousBoundsConditionalOnIndependentMonteCarloTrials": true,
+        "syntheticRngIsNotProductionEvidence": true,
+        "threeArmExperimentPowerValidated": false,
+        "mathematicalGuaranteeConditionalOnIndependentBoundedClusters": true,
+        "productionCoverageValidated": false,
+        "productionPowerValidated": false,
+        "sourceIndependenceVerified": false,
+        "statisticalProtocolValidated": false,
+        "structuralOnly": true,
+        "authenticated": false,
+        "readyForExecution": false,
+        "qualifiesForPromotion": false,
+        "simulationReportDigest": "sha256:d2d9abb9d475f26ec8ecc815e81b12ed1e223915bf9bf31b81b2ad75fd4ea375"
+      }
+    },
+    {
+      "plan": {
+        "schema": "chainlesschain.rrsi-statistics-simulation-plan/v1",
+        "comparisonCount": 2,
+        "familyAlpha": 0.05,
+        "qualityThreshold": 0.05,
+        "targetPower": 0.8,
+        "randomnessSeedDigest": "sha256:3803810df236e2d015ba34002dc1ac81601a6e79d8642fc29c2f438b8ba1b3bd",
+        "intervalMethod": "weighted-independent-bounded-clusters-hoeffding-two-sided/v1",
+        "bootstrapSamples": null,
+        "trialCount": 2000,
+        "clusterCounts": [20, 40, 100, 400],
+        "laws": [
+          {
+            "id": "symmetric-null",
+            "negative": -1,
+            "positive": 1,
+            "positiveProbability": 0.5,
+            "mean": 0
+          },
+          {
+            "id": "rare-negative-null",
+            "negative": -0.95,
+            "positive": 0.05,
+            "positiveProbability": 0.95,
+            "mean": 0
+          },
+          {
+            "id": "moderate-positive",
+            "negative": -0.25,
+            "positive": 0.75,
+            "positiveProbability": 0.5,
+            "mean": 0.25
+          },
+          {
+            "id": "strong-positive",
+            "negative": 0.6,
+            "positive": 1,
+            "positiveProbability": 0.5,
+            "mean": 0.8
+          }
+        ],
+        "weightProfiles": ["equal-task-counts", "one-dominant-component"],
+        "operations": 17920000,
+        "operationLimit": 50000000,
+        "bootstrapAlgorithm": null,
+        "monteCarloIntervalMethod": "wilson-score-95/v1",
+        "simultaneousMonteCarloMethod": "bonferroni-hoeffding-all-grid-rates-95/v1",
+        "simultaneousRateCount": 128,
+        "contrastJointLaw": "independent-synthetic-contrast-deltas-not-three-arm-outcomes",
+        "hypothesisScope": "one-synthetic-pool-and-variant-per-family",
+        "bootstrapIndexCoupling": "same-stream-for-contrasts-within-each-trial",
+        "stoppingRule": "run-every-preregistered-scenario-no-interim-selection",
+        "structuralOnly": true,
+        "authenticated": false,
+        "readyForExecution": false,
+        "qualifiesForPromotion": false,
+        "simulationPlanDigest": "sha256:55d94e6471c239fd672309f8629fd33c21eb7e848be4270a4e75d9aa0b726174"
+      },
+      "report": {
+        "schema": "chainlesschain.rrsi-statistics-simulation-report/v1",
+        "simulationPlanDigest": "sha256:55d94e6471c239fd672309f8629fd33c21eb7e848be4270a4e75d9aa0b726174",
+        "scope": "preregistered-synthetic-independent-cluster-grid-only",
+        "intervalMethod": "weighted-independent-bounded-clusters-hoeffding-two-sided/v1",
+        "fullAnalysisMethodSimulated": false,
+        "hoeffdingOnlyPowerCannotSelectFullMethodSampleSize": true,
+        "familyAlpha": 0.05,
+        "comparisonCount": 2,
+        "trialCountPerScenario": 2000,
+        "status": "hold",
+        "scenarios": [
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 1988,
+              "trials": 2000,
+              "estimate": 0.994,
+              "monteCarlo95": {
+                "lower": 0.9895415516630582,
+                "upper": 0.9965644056230637
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9477914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 8,
+              "trials": 2000,
+              "estimate": 0.004,
+              "monteCarlo95": {
+                "lower": 0.0020282466069651696,
+                "upper": 0.007873464296037741
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.05020852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 1188,
+              "trials": 2000,
+              "estimate": 0.594,
+              "monteCarlo95": {
+                "lower": 0.5723173497075364,
+                "upper": 0.6153222454035878
+              },
+              "simultaneousGrid95": {
+                "lower": 0.5477914788214512,
+                "upper": 0.6402085211785488
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 19.99999999999999,
+            "taskCount": 20,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 1901,
+              "trials": 2000,
+              "estimate": 0.9505,
+              "monteCarlo95": {
+                "lower": 0.9400999950103993,
+                "upper": 0.9591727453891917
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9042914788214512,
+                "upper": 0.9967085211785488
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 1209,
+              "trials": 2000,
+              "estimate": 0.6045,
+              "monteCarlo95": {
+                "lower": 0.5828901539119635,
+                "upper": 0.6257091832062547
+              },
+              "simultaneousGrid95": {
+                "lower": 0.5582914788214512,
+                "upper": 0.6507085211785488
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 20,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 1.4134145124263893,
+            "taskCount": 119,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 39.99999999999997,
+            "taskCount": 40,
+            "familyCoverage": {
+              "successes": 1994,
+              "trials": 2000,
+              "estimate": 0.997,
+              "monteCarlo95": {
+                "lower": 0.9934700849260646,
+                "upper": 0.9986243700763698
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9507914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 3,
+              "trials": 2000,
+              "estimate": 0.0015,
+              "monteCarlo95": {
+                "lower": 0.0005102635836384819,
+                "upper": 0.004401032555770693
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04770852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 39.99999999999997,
+            "taskCount": 40,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 494,
+              "trials": 2000,
+              "estimate": 0.247,
+              "monteCarlo95": {
+                "lower": 0.22859615967613203,
+                "upper": 0.2663738662481819
+              },
+              "simultaneousGrid95": {
+                "lower": 0.20079147882145126,
+                "upper": 0.29320852117854873
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 39.99999999999997,
+            "taskCount": 40,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 39.99999999999997,
+            "taskCount": 40,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.9245940830760073,
+            "taskCount": 139,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 1.9245940830760073,
+            "taskCount": 139,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 499,
+              "trials": 2000,
+              "estimate": 0.2495,
+              "monteCarlo95": {
+                "lower": 0.23102772088526663,
+                "upper": 0.26893271980264105
+              },
+              "simultaneousGrid95": {
+                "lower": 0.20329147882145127,
+                "upper": 0.29570852117854873
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 1.9245940830760073,
+            "taskCount": 139,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 40,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 1.9245940830760073,
+            "taskCount": 139,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 1983,
+              "trials": 2000,
+              "estimate": 0.9915,
+              "monteCarlo95": {
+                "lower": 0.9864293102622139,
+                "upper": 0.9946862322603145
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9452914788214513,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 10,
+              "trials": 2000,
+              "estimate": 0.005,
+              "monteCarlo95": {
+                "lower": 0.0027181808584985597,
+                "upper": 0.009179695949941846
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.051208521178548745
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 27,
+              "trials": 2000,
+              "estimate": 0.0135,
+              "monteCarlo95": {
+                "lower": 0.009294493997659236,
+                "upper": 0.019570793006999862
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.059708521178548746
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 100.00000000000006,
+            "taskCount": 100,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 28,
+              "trials": 2000,
+              "estimate": 0.014,
+              "monteCarlo95": {
+                "lower": 0.009703783146220175,
+                "upper": 0.020159586811157672
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.060208521178548746
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 100,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 3.921279334587624,
+            "taskCount": 199,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "equal-task-counts",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 399.9999999999988,
+            "taskCount": 400,
+            "familyCoverage": {
+              "successes": 1989,
+              "trials": 2000,
+              "estimate": 0.9945,
+              "monteCarlo95": {
+                "lower": 0.9901779372483848,
+                "upper": 0.9969261029904561
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9482914788214513,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 6,
+              "trials": 2000,
+              "estimate": 0.003,
+              "monteCarlo95": {
+                "lower": 0.0013756299236301083,
+                "upper": 0.006529915073935308
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04920852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "equal-task-counts",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 399.9999999999988,
+            "taskCount": 400,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "equal-task-counts",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 399.9999999999988,
+            "taskCount": 400,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 1909,
+              "trials": 2000,
+              "estimate": 0.9545,
+              "monteCarlo95": {
+                "lower": 0.9444626753715425,
+                "upper": 0.9627947286497985
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9082914788214512,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "equal-task-counts",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 399.9999999999988,
+            "taskCount": 400,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "one-dominant-component",
+            "distribution": "symmetric-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 23.944706221751513,
+            "taskCount": 499,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "one-dominant-component",
+            "distribution": "rare-negative-null",
+            "trueDelta": 0,
+            "effectiveGroupCount": 23.944706221751513,
+            "taskCount": 499,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "one-dominant-component",
+            "distribution": "moderate-positive",
+            "trueDelta": 0.25,
+            "effectiveGroupCount": 23.944706221751513,
+            "taskCount": 499,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          },
+          {
+            "groupCount": 400,
+            "weightProfile": "one-dominant-component",
+            "distribution": "strong-positive",
+            "trueDelta": 0.8,
+            "effectiveGroupCount": 23.944706221751513,
+            "taskCount": 499,
+            "familyCoverage": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "familyThresholdPower": {
+              "successes": 2000,
+              "trials": 2000,
+              "estimate": 1,
+              "monteCarlo95": {
+                "lower": 0.9980829527187469,
+                "upper": 0.9999999999999998
+              },
+              "simultaneousGrid95": {
+                "lower": 0.9537914788214512,
+                "upper": 1
+              }
+            },
+            "unsupportedPositiveFamilyRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            },
+            "zeroSpreadDiagnosticMissRate": {
+              "successes": 0,
+              "trials": 2000,
+              "estimate": 0,
+              "monteCarlo95": {
+                "lower": 1.0842021724855044e-19,
+                "upper": 0.001917047281252934
+              },
+              "simultaneousGrid95": {
+                "lower": 0,
+                "upper": 0.04620852117854875
+              }
+            }
+          }
+        ],
+        "powerEstimates": [
+          {
+            "distribution": "moderate-positive",
+            "weightProfile": "equal-task-counts",
+            "minimumGridGroupCountMeetingPower": 400
+          },
+          {
+            "distribution": "moderate-positive",
+            "weightProfile": "one-dominant-component",
+            "minimumGridGroupCountMeetingPower": null
+          },
+          {
+            "distribution": "strong-positive",
+            "weightProfile": "equal-task-counts",
+            "minimumGridGroupCountMeetingPower": 20
+          },
+          {
+            "distribution": "strong-positive",
+            "weightProfile": "one-dominant-component",
+            "minimumGridGroupCountMeetingPower": 400
+          }
+        ],
+        "coverageCheckedOnGrid": false,
+        "monteCarloIntervalsAreApproximate": true,
+        "pointwiseWilsonIntervalsAreNotSimultaneous": true,
+        "sampleGridSelectionUsesSimultaneousBounds": true,
+        "simultaneousBoundsConditionalOnIndependentMonteCarloTrials": true,
+        "syntheticRngIsNotProductionEvidence": true,
+        "threeArmExperimentPowerValidated": false,
+        "mathematicalGuaranteeConditionalOnIndependentBoundedClusters": true,
+        "productionCoverageValidated": false,
+        "productionPowerValidated": false,
+        "sourceIndependenceVerified": false,
+        "statisticalProtocolValidated": false,
+        "structuralOnly": true,
+        "authenticated": false,
+        "readyForExecution": false,
+        "qualifiesForPromotion": false,
+        "simulationReportDigest": "sha256:0909789b76ab4eed40c50dc9be81bd369077aa91766243dfa548885040e10b89"
+      }
+    }
+  ]
+}
