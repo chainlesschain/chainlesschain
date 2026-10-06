@@ -14,6 +14,7 @@ import {
   validateVerify01Review,
 } from "../src/lib/eval/verify01-contracts.js";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
+import { assertNativeReviewReady, readNativeReviewBundle } from "./verify01-native-review-admission.mjs";
 
 const defaultPlan = fileURLToPath(
   new URL(
@@ -31,7 +32,16 @@ export function generateReviewPack({
   outputDir,
   planDir = defaultPlan,
   imageId,
+  backend = "linux-docker",
+  nativeAdmission,
 }) {
+  if (!["linux-docker", "windows-native"].includes(backend))
+    throw new Error("unsupported review backend; explicit platform review is required");
+  if (backend === "windows-native") {
+    if (imageId !== undefined)
+      throw new Error("Windows native review cannot accept a Docker image binding");
+    assertNativeReviewReady(readNativeReviewBundle(planDir), nativeAdmission);
+  }
   if (!/^sha256:[a-f0-9]{64}$/u.test(imageId || ""))
     throw new Error(
       "--image-id must be an independently pinned Docker sha256 image ID",
@@ -179,21 +189,32 @@ if (
         "output-dir": { type: "string" },
         "plan-dir": { type: "string" },
         "image-id": { type: "string" },
+        backend: { type: "string", default: "linux-docker" },
+        capabilities: { type: "string" },
+        "capabilities-digest": { type: "string" },
+        pool: { type: "string", default: "forks" },
         help: { type: "boolean" },
       },
     });
     if (values.help)
       console.log(
-        "Generate all 36 self-contained operator evaluators; no task/model execution.\n--output-dir NEW_EXTERNAL_DIR --image-id sha256:IMAGE_ID [--plan-dir DIR]\nLinux Docker acceptance only. Generation is not independent human approval.",
+        "Generate all 36 self-contained operator evaluators; no task/model execution.\n--backend linux-docker --output-dir NEW_EXTERNAL_DIR --image-id sha256:IMAGE_ID [--plan-dir DIR]\nWindows native admission: --backend windows-native [--capabilities FILE --capabilities-digest sha256:BYTES --pool forks|threads]; incomplete prerequisites reject before generating scripts. Generation is not independent human approval.",
       );
     else {
-      if (!values["output-dir"]) throw new Error("--output-dir is required");
+      if (values.backend === "linux-docker" && !values["output-dir"])
+        throw new Error("--output-dir is required");
       console.log(
         JSON.stringify(
           generateReviewPack({
             outputDir: values["output-dir"],
             planDir: values["plan-dir"],
             imageId: values["image-id"],
+            backend: values.backend,
+            nativeAdmission: {
+              pool: values.pool,
+              capabilityBytes: values.capabilities ? fs.readFileSync(values.capabilities) : undefined,
+              capabilityDigest: values["capabilities-digest"],
+            },
           }),
           null,
           2,
@@ -201,7 +222,9 @@ if (
       );
     }
   } catch (error) {
+    if (error.code === "VERIFY01_NATIVE_REVIEW_NOT_READY")
+      console.log(JSON.stringify(error.admission, null, 2));
     console.error(`VERIFY-01 review pack rejected: ${error.message}`);
-    process.exitCode = 1;
+    process.exitCode = error.code === "VERIFY01_NATIVE_REVIEW_NOT_READY" ? 2 : 1;
   }
 }
