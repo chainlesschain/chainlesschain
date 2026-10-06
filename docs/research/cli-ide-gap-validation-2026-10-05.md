@@ -281,6 +281,8 @@ CLI Strict Sandbox 与 IDE Roadmap Safety Matrix 的三系统生产任务均在 
 
 随后 Safety 汇总也已成功，工作流整体为 **completed/success**，详见[后续完成回执](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/ci-completion.json)。因此原始七项失败在准确提交 `266718e8b5` 已全部关闭；较早的 queued 快照原样保留。附加 macOS latest capability 仍排队，Strict 全工作流与本轮新源码提交不借用这七项的通过结论。
 
+最终附加 macOS latest 的真实 Seatbelt 探针与证据上传也已成功；准确提交 `266718e8b5` 的 **CLI Strict Sandbox 与 IDE Roadmap Safety Matrix 两个完整工作流均 completed/success**。五个 Strict job 与四个 Safety job、workflow 元数据及摘要见[最终完成回执](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/ci-full-completion.json)。上述排队快照保留历史时点；新原生代码和 PDH 修复仍须验证自己的提交。
+
 ### 10.2 Windows 后端的逐题只读准入
 
 `verify01-review-pack.mjs` 新增显式 `--backend windows-native`；在生成文件前读取冻结合同，返回结构化 `NOT_READY` / exit **2**，不执行 setup、check 或模型。原 Linux Docker 默认后端和生成的 runtime 字节保留。Windows 模式拒绝 Docker image 绑定，缺工具链时拒绝生成。

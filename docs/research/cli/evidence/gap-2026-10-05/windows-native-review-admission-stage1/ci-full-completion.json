@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.ci-security-map-full-completion/v1",
+  "checkedAt": "2026-10-06T11:56:31.898Z",
+  "testedCommit": "266718e8b53864338619eb8f1a963fa9523640b4",
+  "strictRun": 37456050925,
+  "strictCompleted": true,
+  "strictConclusion": "success",
+  "safetyRun": 37456050953,
+  "safetyCompleted": true,
+  "safetyConclusion": "success",
+  "originalSevenChecksPassed": true,
+  "additionalArm64Passed": true,
+  "additionalMacLatestPassed": true,
+  "newNativeCommitAttested": false,
+  "releaseAttested": false,
+  "artifacts": [
+    {
+      "name": "ci-strict-266-completed.json",
+      "bytes": 20235,
+      "digest": "sha256:55dc18b0a209cab86c80f5be4157b7fba13a9346f473e21bf0461c81600448f0"
+    },
+    {
+      "name": "ci-strict-266-completed-run.json",
+      "bytes": 13200,
+      "digest": "sha256:3669b65b48d40c823f68830475ede77a852efa3f781c850ef6be6da7f07e469a"
+    },
+    {
+      "name": "ci-safety-266-completed-run.json",
+      "bytes": 13206,
+      "digest": "sha256:f0099cce0e765ada88a0b2da8e71d9b96bae2e657473773753f95a16e350e672"
+    }
+  ],
+  "note": "Final workflow-level completion supersedes the earlier queued snapshots only for commit 266718e8. The subsequent native review admission/source changes and SQLite watchdog repair still require their own exact-commit Actions."
+}
