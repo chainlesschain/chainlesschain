@@ -83,7 +83,7 @@ function fetchPartialIndexDdls(db) {
   return out;
 }
 
-function verifyAllPartial(ddls, label) {
+function verifyAllPartial(ddls, label, requireAccountScope = true) {
   const failures = [];
   for (const t of EXPECTED_TABLES) {
     const name = `uniq_${t}_source`;
@@ -97,7 +97,7 @@ function verifyAllPartial(ddls, label) {
         `${label}: index ${name} DDL missing 'WHERE source_original_id IS NOT NULL':\n    ${ddl}`,
       );
     }
-    if (!SCOPED_SOURCE_TUPLE_RE.test(ddl)) {
+    if (requireAccountScope && !SCOPED_SOURCE_TUPLE_RE.test(ddl)) {
       failures.push(
         `${label}: index ${name} is not account-scoped by ` +
           "(source_adapter, source_scope, source_original_id):\n" +
@@ -130,37 +130,19 @@ function scenarioFreshVault(BetterSqlite3, applyMigrations) {
 
 // ── Scenario B: drift fix — old non-partial index → migration v4 replaces ──
 
-function scenarioDriftFix(BetterSqlite3, applyMigrations) {
+function scenarioDriftFix(BetterSqlite3, applyMigrations, migrations) {
   console.log("");
   console.log(
     "Scenario B: simulated pre-v4 vault drift → migrations.v4 replaces non-partial",
   );
   const db = new BetterSqlite3(":memory:");
   try {
-    // Build the base tables (mirrors migration v1 just enough for index creation).
-    for (const t of [...EXPECTED_TABLES, "topics"]) {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS ${t} (
-          id TEXT PRIMARY KEY,
-          source_adapter TEXT NOT NULL,
-          source_original_id TEXT,
-          extra TEXT
-        )
-      `);
+    // Reuse the complete baseline schema: later migrations also need audit_log,
+    // retention tables and other dependencies omitted by the old tiny fixture.
+    for (const migration of migrations.filter((entry) => entry.version <= 3)) {
+      db.transaction(() => migration.up(db))();
     }
-    db.exec(`
-      CREATE TABLE raw_events (
-        adapter TEXT NOT NULL,
-        original_id TEXT NOT NULL,
-        captured_at INTEGER NOT NULL,
-        payload TEXT NOT NULL,
-        PRIMARY KEY (adapter, original_id)
-      )
-    `);
-    // Stamp _meta to "version 3" so migrations.applyMigrations runs only v4.
-    db.exec(
-      `CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
-    );
+    // Stamp version 3, then inject the old non-partial indices explicitly.
     db.prepare(
       `INSERT INTO _meta (key, value, updated_at) VALUES ('schema_version', '3', ?)`,
     ).run(Date.now());
@@ -168,6 +150,7 @@ function scenarioDriftFix(BetterSqlite3, applyMigrations) {
     // Create the OLD (non-partial) index for each table — this is what a
     // pre-44c4188a8 vault has on disk.
     for (const t of EXPECTED_TABLES) {
+      db.exec(`DROP INDEX IF EXISTS uniq_${t}_source`);
       db.exec(
         `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`,
       );
@@ -188,7 +171,18 @@ function scenarioDriftFix(BetterSqlite3, applyMigrations) {
       ];
     }
 
-    // Apply migrations — v4 should DROP + CREATE all 4 as partial.
+    // Check v4 independently so a later index rebuild cannot hide its failure.
+    const migrationV4 = migrations.find((entry) => entry.version === 4);
+    db.transaction(() => migrationV4.up(db))();
+    const v4Failures = verifyAllPartial(
+      fetchPartialIndexDdls(db),
+      "drift-fix-v4",
+      false,
+    );
+    if (v4Failures.length) return v4Failures;
+
+    // Run the normal upgrade path (including idempotent v4) through the latest
+    // schema, which must preserve partial indices and add account scoping.
     applyMigrations(db);
 
     const after = fetchPartialIndexDdls(db);
@@ -205,12 +199,14 @@ function scenarioDriftFix(BetterSqlite3, applyMigrations) {
 // ── Entry ──────────────────────────────────────────────────────────────────
 
 const BetterSqlite3 = loadBetterSqlite3();
-const { applyMigrations } = loadMigrations();
+const { applyMigrations, MIGRATIONS } = loadMigrations();
 
 const allFailures = [];
 try {
   allFailures.push(...scenarioFreshVault(BetterSqlite3, applyMigrations));
-  allFailures.push(...scenarioDriftFix(BetterSqlite3, applyMigrations));
+  allFailures.push(
+    ...scenarioDriftFix(BetterSqlite3, applyMigrations, MIGRATIONS),
+  );
 } catch (err) {
   console.error("");
   console.error(`✘ schema runtime check threw: ${err.message}`);

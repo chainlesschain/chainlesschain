@@ -30,20 +30,22 @@ name: PDH Partial Index Lint (hard gate, trap #25)
 on:
   pull_request:
     paths:
-      - 'packages/personal-data-hub/lib/migrations.js'
-      - 'packages/personal-data-hub/lib/vault.js'
-      - 'scripts/lint-pdh-partial-index.mjs'
-      - 'scripts/__tests__/lint-pdh-partial-index.test.mjs'
-      - 'scripts/check-pdh-schema-runtime.mjs'
-      - '.github/workflows/pdh-partial-index-lint.yml'
+      - "packages/personal-data-hub/lib/migrations.js"
+      - "packages/personal-data-hub/lib/vault.js"
+      - "scripts/lint-pdh-partial-index.mjs"
+      - "scripts/__tests__/lint-pdh-partial-index.test.mjs"
+      - "scripts/check-pdh-schema-runtime.mjs"
+      - ".github/workflows/pdh-partial-index-lint.yml"
   push:
     branches:
       - main
     paths:
-      - 'packages/personal-data-hub/lib/migrations.js'
-      - 'packages/personal-data-hub/lib/vault.js'
-      - 'scripts/lint-pdh-partial-index.mjs'
-      - 'scripts/check-pdh-schema-runtime.mjs'
+      - "packages/personal-data-hub/lib/migrations.js"
+      - "packages/personal-data-hub/lib/vault.js"
+      - "scripts/lint-pdh-partial-index.mjs"
+      - "scripts/check-pdh-schema-runtime.mjs"
+      - "scripts/__tests__/lint-pdh-partial-index.test.mjs"
+      - ".github/workflows/pdh-partial-index-lint.yml"
 
 permissions:
   contents: read
@@ -61,7 +63,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Run lint unit tests
         run: node --test scripts/__tests__/lint-pdh-partial-index.test.mjs
@@ -78,16 +80,19 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install plain better-sqlite3 (no SQLCipher)
+        id: install
         # Standalone install — bypasses workspace lifecycle scripts and the
         # bs3mc Electron ABI 140 path. Partial-index WHERE semantics are pure
         # SQLite, so plain better-sqlite3 is the right tool here.
-        run: npm install better-sqlite3@^11 --no-save --no-audit --no-fund --no-package-lock
+        run: npm install --prefix "$RUNNER_TEMP/pdh-schema-runtime" --workspaces=false better-sqlite3@11.10.0 --no-save --no-audit --no-fund --no-package-lock
 
       - name: Run runtime schema check
         id: check
+        env:
+          NODE_PATH: ${{ runner.temp }}/pdh-schema-runtime/node_modules
         run: node scripts/check-pdh-schema-runtime.mjs
 
       - name: Notify on success
@@ -108,8 +113,11 @@ jobs:
           {
             echo "## ⚠️ Runtime schema check FAILED (advisory)"
             echo ""
-            echo "Static regex (mandatory \`lint\` job) and runtime schema disagree."
-            echo "Mandatory gate may have passed by accident — investigate before merge."
+            if [ "${{ steps.install.outcome }}" != "success" ]; then
+              echo "The isolated SQLite dependency installation failed; runtime schema was not checked."
+            else
+              echo "The runtime schema check failed; inspect its output before merge."
+            fi
             echo ""
             echo "See: \`docs/internal/hidden-risk-traps.md\` #25, memory"
             echo "\`pdh_partial_index_if_not_exists_drift.md\`."
