@@ -2,20 +2,21 @@
 
 更新日期：2026-10-07。工作分支：`feature/dots-muse-mods-foundation`。开始实施时基线：`1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`。
 
-依据：[分析与实施计划](./chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。B0/B1 目标基础与公共持久调度模块已提交为 `f74ae00de0`。随后实现 B2 的首个风险巡检 adapter，并接入 B3 的目标卡片、主进程登录态和应用生命周期。各批原始证据分别保存；动作、记忆、通知、扩展及业务验收仍需继续交付。
+依据：[分析与实施计划](./chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。B0/B1 目标基础与公共持久调度模块已提交为 `f74ae00de0`，首个风险巡检宿主与目标面板提交为 `ae8b2c5b57`。本批接通持久建议、原生审批、动作回执、跨域预算及真实进程恢复；独立完成检查器、记忆、通知、扩展及业务验收仍需继续交付。
 
-**最新监控与界面回归：36 个互不重叠的测试文件，705 项通过，0 失败、0 跳过。** 第一批基础验证为 21 个文件、412 项，第二批共享调度器为 27 个文件、521 项；历史结果不与最新集合相加。测试覆盖原生 SQLite、真实 UKey 管理器/登录 handler、Windows ACL、Vue 交互与隔离包加载。跨库恢复以注入结算失败和真实数据库重开验证；尚未运行真实进程强制崩溃、Electron GUI 旅程、真实业务效果评测或候选提交的远端发行矩阵。
+**本批动作与恢复回归：26 个互不重叠的测试文件，453 项通过，0 失败、0 跳过。** 包含 13 项真实 Node 子进程/SQLite 恢复用例、32 项目标动作服务、23 项使用量账本、51 项监控回归及桌面/界面/隔离打包验证。上一批监控证据仍为 36 个文件、705 项，第一批基础为 21 个文件、412 项，第二批共享调度器为 27 个文件、521 项；各批有重叠，不相加。Electron 窗口和对话框在宿主测试中为替身，尚未运行真实 Electron GUI、真实业务效果评测或候选提交的远端发行矩阵。
 
-| 任务                       | 本轮状态                       | 已实现                                                                                                            | 仍需实施或验收                                                                               |
-| -------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| DMM-00 宿主接入            | 公共模块与首个桌面宿主完成     | 共享调度器与授权额度；主进程派生私有独立调度库；当前原生驱动、连接轮换和退出 draining；隔离 npm pack 加载         | 实际桌面应用打包、完整 GUI 旅程及远端候选提交验证                                            |
-| DMM-01 目标合同            | 合同与首个运行投影完成         | 版本/控制代次、个人引用与独立完成证据；跨运行风险检查 usage、控制状态和校验历史                                   | 完成检查器、其他执行域及模型/动作 usage                                                      |
-| DMM-02 存储适配            | CLI 与原生项目 SQLite 基础完成 | 同一 CLI 文件、严格锁内 CAS、旧数据安全缺省值、超限旧历史兼容、原生事务内身份/归属复核、当前权限读取、IPC/preload | 用户显式导入 CLI 目标到项目的备份/映射/回退流程；进程级并发及故障恢复演练；真实 GUI 使用入口 |
-| DMM-03 持续调度            | 首个只读风险 adapter 完成      | 显式开启、manual/timer occurrence 去重、期限/次数/时间预算、principal 额度、离线合并、暂停确认、跨库结算恢复      | 实际进程强制崩溃、多实例恢复演练、其他 adapter 和 canonical Graph 接入                       |
-| DMM-04/05 动作、记忆与通知 | 待实施                         | 本轮字段仅为描述，未授予动作权限                                                                                  | 目标→review→admission→ActionRun 链路、可信完成检查器、记忆撤销和通知投递                     |
-| DMM-06 工作区闭环          | 目标卡片与本地交互回归完成     | 现有风险面板中的目标保存/开启/暂停/重启、同请求重试、额度/历史与 review 联动；真实主进程会话撤销                  | 真正 Electron GUI 旅程、剩余动作闭环与最终产品验收                                           |
-| DMM-07/08 扩展与场景包     | 待实施                         | 沿用既有插件能力，不开放新扩展执行                                                                                | 声明式事件/UI SDK、项目交付助手包、安装升级及禁用处理                                        |
-| DMM-09/10 效果与发行       | 待业务与发行验收               | CLI CI 隔离包测试；Desktop CI 固定宿主/renderer 回归配置；本地 705 项验证证据                                     | 实际业务样本、准确候选提交三平台 CI、灰度和回退；需要发行时遵守 OIDC 与子包→CLI→IDE 顺序     |
+| 任务                   | 本轮状态                        | 已实现                                                                                                                                                              | 仍需实施或验收                                                                                          |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| DMM-00 宿主接入        | 公共模块与首个桌面宿主完成      | 共享调度器与授权额度；主进程派生私有独立调度库；当前原生驱动、连接轮换和退出 draining；隔离 npm pack 加载                                                           | 实际桌面应用打包、完整 GUI 旅程及远端候选提交验证                                                       |
+| DMM-01 目标合同        | 合同、监控与原生动作 usage 完成 | 版本/控制代次、个人引用；风险检查和原生动作共享生命周期预算；模型 usage 保留未知费用与实际下界                                                                      | 独立业务完成检查器、真实模型调用 adapter 及其他执行域                                                   |
+| DMM-02 存储适配        | CLI 与原生项目 SQLite 基础完成  | 同一 CLI 文件、严格锁内 CAS、旧数据安全缺省值、超限旧历史兼容、原生事务内身份/归属复核、当前权限读取、IPC/preload                                                   | 用户显式导入 CLI 目标到项目的备份/映射/回退流程；进程级并发及故障恢复演练；真实 GUI 使用入口            |
+| DMM-03 持续调度        | 风险 adapter 与实际进程恢复完成 | 真实 SIGKILL、双进程抢占、迟到 fence、撤权恢复和首次 job 并发创建；共享跨域预算、离线合并和暂停确认                                                                 | 停止单次执行与结束跟进的独立控制、其他 adapter 和 canonical Graph 接入                                  |
+| DMM-04 受控动作        | 持久建议到原生动作回执已接通    | goal→risk review→intent/admission→ActionRun；描述修改与创建任务；当前版本预览、原生确认、同事务血缘与 usage；暂停/修订/到期/撤权/退出阻止旧确认；未知结果不换键重放 | 独立业务完成检查器、真实 Electron 旅程及更完整的审计展示                                                |
+| DMM-05 记忆与通知      | 待实施                          | 本轮未将目标文本自动写入长期记忆；建议按语义风险信号去重，但尚不等于通知投递                                                                                        | Memory Kernel 版本引用、修正/删除/撤权、输出复核；持久应用内通知、静默时段和已读状态                    |
+| DMM-06 工作区闭环      | 目标与待处理动作界面回归完成    | 目标卡片内的建议分页、范围设置、持久草稿恢复、当前预览、原生确认入口、回执/未知状态与风险证据；跨目标/身份/版本丢弃迟到响应                                         | 真正 Electron GUI 旅程、独立完成与结束跟进控制、最终产品验收                                            |
+| DMM-07/08 扩展与场景包 | 待实施                          | 沿用既有插件能力，不开放新扩展执行                                                                                                                                  | 声明式事件/UI SDK、项目交付助手包、安装升级及禁用处理                                                   |
+| DMM-09/10 效果与发行   | 恢复演练已补，待业务与发行验收  | 13 项真实进程演练；CLI 默认单元/集成用例集合及桌面固定配置包含新回归；本批 453 项独立证据                                                                           | 实际业务样本、准确候选提交三平台 CI、默认关闭开关、灰度和迁移/回退；发行时遵守 OIDC 与子包→CLI→IDE 顺序 |
 
 ## 公共契约和加载边界
 
@@ -33,6 +34,8 @@
 - `@chainlesschain/session-core/goal-repository`
 - `@chainlesschain/session-core/project-goal-service`
 - `@chainlesschain/session-core/project-goal-monitoring`
+- `@chainlesschain/session-core/goal-usage-ledger`
+- `@chainlesschain/session-core/project-goal-workflow`
 
 [调度契约](../../../packages/session-core/lib/scheduler-contract.js)和[调度服务](../../../packages/session-core/lib/scheduler-service.js)复用原实现；CLI 原 `scheduler-kernel/contract.js` 与 `service.js` 现在是薄入口。CJS 宿主和 ESM CLI 的构造器、常量、错误实例保持一致。隔离包测试只安装公共入口及其依赖闭包，未加载 CLI 私有模块、整个 Session Core index 或原生数据库驱动。
 
@@ -123,7 +126,28 @@ const current = await window.electronAPI.project.getGoalMonitoringStatus({
 });
 ```
 
-## 验证与证据
+## 本批受控动作与恢复
+
+[工作流服务](../../../packages/session-core/lib/project-goal-workflow.js)在风险检查的原生事务内保存建议。语义签名排除检查时间与行更新时间；同一目标控制代次中的同一风险/动作建议只消费一次。每目标分别保留最多 500 条建议与 500 条意图，单次检查最多新增 100 条建议；容量不足明确记录省略数量，仍保存完整风险检查。准备时先持久化 requestId、参数与幂等身份，再读取当前原生版本并保存精确预览；中断后沿原请求恢复。
+
+执行通过既有 TaskDescriptionActionService / TaskCreateActionService，严格原生确认后再次检查目标 revision/control、到期、身份、归属、风险来源和对象版本。动作变更、ActionRun、风险血缘、目标意图及 usage 在同一项目 SQLite 事务提交；关联保存失败则回滚业务写入，保留未解决的 admission。桌面窗口、来源导航、连接或身份变化均阻止旧确认。目标的允许动作列表仅作为范围上限，不能代替当前业务授权与原生确认。
+
+[使用量账本](../../../packages/session-core/lib/goal-usage-ledger.js)共享风险检查和原生动作的次数/时间预算，并为未来模型 adapter 保存真实或未知 quantities。未知费用不能写成零；已报告实际量是不可降低的下界；终态预留不能重新用作派发许可。原生动作没有模型调用，因此 token/模型费用为零，但未知动作耗时保持 null。真实崩溃后的恢复只核查原 ActionRun 并标记未知时间，不重新确认或写入；同进程正在等待确认的操作保留活跃预留，另一进程恢复后的迟到确认失效。
+
+新增桌面固定通道为 `project:goal-proposals`、`project:goal-intent-prepare`、`project:goal-intent-execute`、`project:goal-intent-read`，对应 preload 的 `listGoalProposals`、`prepareGoalIntent`、`executeGoalIntent`、`readGoalIntent`。执行接口只接收已持久化的 intentId，不接收 renderer 提供的审批。现有目标卡片内的[动作面板](../../../desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue)提供范围设置、当前预览、原生确认入口、草稿恢复、未知状态和回执查询。描述修改或新建任务不修改截止时间与依赖字段；复查仍可能命中原风险，也不表示目标完成。
+
+本批证据：[CLI 226 项](./evidence/dmm-workflow-2026-10-07/cli-tests.json)、[Desktop 158 项](./evidence/dmm-workflow-2026-10-07/desktop-tests.json)、[Renderer 67 项](./evidence/dmm-workflow-2026-10-07/renderer-tests.json)、[隔离打包 2 项](./evidence/dmm-workflow-2026-10-07/packed-host.tap)、[来源与汇总](./evidence/dmm-workflow-2026-10-07/summary.json)。汇总保存源码文件 SHA-256、宿主/依赖、场景和真实/替身边界；不将这些本地证据视为候选提交的远端发行门。
+
+两份真实进程测试分别覆盖 [10 项巡检恢复](../../../packages/cli/__tests__/integration/project-goal-process-recovery.test.js)与 [3 项动作恢复](../../../packages/cli/__tests__/integration/project-goal-workflow-process-recovery.test.js)。父进程先独立读库确认 admission/项目结果已提交，再强制终止存活子进程；动作恢复用例在 kill 后确认 usage 仍为 reserved，证明未经过正常 catch 清理。检查计时、租约时钟和审批等待屏障是测试控制；它们不代替真实 Electron 或业务样本验收。
+
+```powershell
+# 从 packages/cli 运行；完整批次的精确选择见证据中的 cli-command.json。
+node ../../node_modules/vitest/vitest.mjs run __tests__/unit/project-goal-workflow.test.js __tests__/unit/goal-usage-ledger.test.js __tests__/unit/project-goal-monitoring.test.js __tests__/integration/project-goal-process-recovery.test.js __tests__/integration/project-goal-workflow-process-recovery.test.js
+```
+
+Astra 完成真实进程用例与独立复核，已修复未知时间误报零、建议容量回滚完整检查、大风险快照摘要边界、跨目标恢复分页和持久草稿缺少继续入口的问题。npm pack 初次因沙箱外缓存写入失败，获准重跑后通过；该环境重试与业务失败分开记录。
+
+## 上一批监控验证与证据
 
 | 验证                  | 最新结果   | 范围                                                                         |
 | --------------------- | ---------- | ---------------------------------------------------------------------------- |
@@ -134,7 +158,7 @@ const current = await window.electronAPI.project.getGoalMonitoringStatus({
 | Node 打包 1 个文件    | 2 项通过   | 真实 npm pack、CJS/ESM 新公共模块及 CLI shim 身份、隔离宿主加载              |
 | 固定 IPC 能力与差异   | 通过       | 固定 renderer 能力清单及 git diff --check                                    |
 
-最新证据：[CLI](./evidence/dmm-monitoring-2026-10-07/cli-tests.json)、[Session Core](./evidence/dmm-monitoring-2026-10-07/session-core-tests.json)、[Desktop](./evidence/dmm-monitoring-2026-10-07/desktop-tests.json)、[Renderer](./evidence/dmm-monitoring-2026-10-07/renderer-tests.json)、[打包 TAP](./evidence/dmm-monitoring-2026-10-07/packed-host.tap)、[来源与汇总](./evidence/dmm-monitoring-2026-10-07/summary.json)。保留 [foundation](./evidence/dmm-foundation-2026-10-07/) 和 [neutral scheduler](./evidence/dmm-neutral-scheduler-2026-10-07/) 历史证据。
+历史证据：[CLI](./evidence/dmm-monitoring-2026-10-07/cli-tests.json)、[Session Core](./evidence/dmm-monitoring-2026-10-07/session-core-tests.json)、[Desktop](./evidence/dmm-monitoring-2026-10-07/desktop-tests.json)、[Renderer](./evidence/dmm-monitoring-2026-10-07/renderer-tests.json)、[打包 TAP](./evidence/dmm-monitoring-2026-10-07/packed-host.tap)、[来源与汇总](./evidence/dmm-monitoring-2026-10-07/summary.json)。保留 [foundation](./evidence/dmm-foundation-2026-10-07/) 和 [neutral scheduler](./evidence/dmm-neutral-scheduler-2026-10-07/) 历史证据。
 
 本机使用已准备的工作区依赖与 Node 22.22.2。Renderer 的 Happy DOM 位于工作区 junction，而 Vitest 实际位于 npm cache，本地通过仅重定位该现有依赖的 Node import hook 运行标准环境；额外 Pinia 安装在 Windows Temp，并以工作区 junction 提供。未改项目 dependency manifest/lockfile。正常依赖安装环境直接运行：
 
@@ -150,4 +174,4 @@ node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs
 
 Astra 独立复核了调度权限、恢复和真实锁定链路；已修复旧手动 job 换版、终态证据绕过、预算耗尽持续入队、分页误报停止及 UKey 锁定仍保留 DID 的问题。本地结果不代表远端三平台发行门通过。
 
-下一批仍需交付：目标关联 review→admission→ActionRun 的待确认业务动作、独立完成检查器、记忆/通知、声明式扩展及场景包；同时完成实际 Electron GUI、真正进程崩溃/多实例恢复、CLI 显式导入与真实业务样本验收。发行时仍必须通过准确提交的三平台 CI，并遵循 OIDC 和子包→CLI→IDE 顺序。
+后续仍需交付：独立完成检查器、停止本次执行/结束持续跟进的独立控制、canonical Graph、记忆/通知、声明式扩展及场景包；同时完成实际 Electron GUI、CLI 显式导入、真实模型 adapter、真实业务样本和默认关闭/迁移/回退验收。真实业务样本尚待用户提供项目来源与独立预期。发行时仍必须通过准确提交的三平台 CI，并遵循 OIDC 和子包→CLI→IDE 顺序；总体实施目标保持进行中。

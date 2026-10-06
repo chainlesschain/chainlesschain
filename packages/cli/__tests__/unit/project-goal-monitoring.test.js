@@ -133,6 +133,31 @@ describe("native personal goal monitoring with an independent scheduler ledger",
     });
     expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 0 });
   });
+  it("retains complete risk checks when proposal generation or lifetime capacity is truncated", async () => {
+    const insert = db.prepare(
+      "INSERT INTO project_tasks VALUES (?,?,?,?,0,?,NULL,NULL,NULL)",
+    );
+    db.transaction(() => {
+      for (let i = 2; i <= 501; i++)
+        insert.run(`t${i}`, "p1", "pending", instant, instant - 1);
+    }).immediate();
+    const g = goal();
+    for (let i = 0; i < 6; i++) {
+      const outcome = await engine.checkNow(request(g, `capacity-${i}`));
+      expect(outcome.error).toBeNull();
+      expect(outcome).toMatchObject({ status: "succeeded" });
+      expect(outcome.result.riskTaskCount).toBe(501);
+    }
+    expect(counts().checks).toBe(6);
+    expect(count("cc_project_goal_workflow")).toBe(500);
+    expect(engine.state.workflow.list({ goalId: g.id }).summary).toMatchObject({
+      candidateCount: 1002,
+      savedCount: 500,
+      omittedCount: 502,
+      newCount: 0,
+      status: "truncated",
+    });
+  });
   it("explicitly checks live facts, records evidence and reserves existing authority units", async () => {
     const g = goal();
     const outcome = await engine.checkNow(request(g));
@@ -228,6 +253,146 @@ describe("native personal goal monitoring with an independent scheduler ledger",
       "GOAL_MONITOR_EXPIRED",
     );
     expect(() => start(g)).toThrow("GOAL_MONITOR_EXPIRED");
+  });
+  function reserveUsage(g, operationId, extra = {}) {
+    return db
+      .transaction(() =>
+        engine.state.usageLedger.reserve({
+          goal: g,
+          actor: owner,
+          operationId,
+          ...extra,
+        }),
+      )
+      .immediate();
+  }
+  function settleUsage(g, operationId, status, usage = null) {
+    return db
+      .transaction(() =>
+        engine.state.usageLedger.settle({
+          goalId: g.id,
+          actor: owner,
+          operationId,
+          status,
+          usage,
+        }),
+      )
+      .immediate();
+  }
+  it("shares lifetime runs with actions and blocks previously queued checks", async () => {
+    const g = goal({ budgetPolicy: { maxRuns: 1 } });
+    start(g);
+    queue(g);
+    reserveUsage(g, "action");
+    await engine.tick();
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 1 });
+    expect(engine.status({ id: g.id })).toMatchObject({
+      blockedReason: "GOAL_MONITOR_BUDGET_EXHAUSTED",
+      usage: { totalRuns: 1, checks: 0, reservedRuns: 1 },
+    });
+    settleUsage(g, "action", "released");
+    expect((await engine.checkNow(request(g, "after-release"))).status).toBe(
+      "succeeded",
+    );
+    expect(() => reserveUsage(g, "another-action")).toThrow(
+      "GOAL_USAGE_BUDGET_EXHAUSTED",
+    );
+  });
+  it("shows partial unknown model usage and blocks finite budget monitoring across restart", async () => {
+    const g = goal({
+      budgetPolicy: { maxTokens: 100, maxCostUsd: 2, maxTimeMs: 100 },
+    });
+    start(g);
+    reserveUsage(g, "model", {
+      domain: "model",
+      estimate: { runs: 1, tokens: 20, costUsd: 1, elapsedMs: 10 },
+    });
+    settleUsage(g, "model", "unknown", {
+      runs: 1,
+      tokens: 10,
+      costUsd: 0.5,
+      elapsedMs: 5,
+    });
+    await reopen();
+    await engine.tick();
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 0 });
+    expect(engine.status({ id: g.id })).toMatchObject({
+      blockedReason: "GOAL_USAGE_UNKNOWN",
+      usage: {
+        modelTokens: null,
+        modelCostUsd: null,
+        elapsedMs: null,
+        knownModelTokens: 10,
+        knownModelCostUsd: 0.5,
+        knownElapsedMs: 5,
+      },
+    });
+    await expect(engine.checkNow(request(g))).rejects.toThrow(
+      "GOAL_USAGE_UNKNOWN",
+    );
+  });
+  it.each(["maxTokens", "maxCostUsd"])(
+    "blocks monitoring after actual model usage exceeds %s",
+    async (dimension) => {
+      const g = goal({ budgetPolicy: { [dimension]: 1 } });
+      reserveUsage(g, "model", {
+        domain: "model",
+        estimate: { runs: 1, tokens: 1, costUsd: 1, elapsedMs: 0 },
+      });
+      settleUsage(g, "model", "settled", {
+        runs: 1,
+        tokens: 2,
+        costUsd: 2,
+        elapsedMs: 0,
+      });
+      await expect(engine.checkNow(request(g))).rejects.toThrow(
+        "GOAL_MONITOR_BUDGET_EXHAUSTED",
+      );
+      expect(counts().checks).toBe(0);
+    },
+  );
+  it("includes held action time in the atomic monitoring duration check", async () => {
+    const g = goal({ budgetPolicy: { maxTimeMs: 10 } });
+    reserveUsage(g, "action", {
+      estimate: { runs: 1, tokens: 0, costUsd: 0, elapsedMs: 8 },
+    });
+    const evaluate = engine.state.risk.evaluateInTransaction.bind(
+      engine.state.risk,
+    );
+    vi.spyOn(engine.state.risk, "evaluateInTransaction").mockImplementation(
+      (input) => {
+        const result = evaluate(input);
+        now += 3;
+        return result;
+      },
+    );
+    expect((await engine.checkNow(request(g))).status).toBe("dead_letter");
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 1 });
+    expect(engine.status({ id: g.id }).usage).toMatchObject({
+      totalRuns: 1,
+      reservedElapsedMs: 8,
+      knownElapsedMs: 0,
+    });
+  });
+  it("replays a committed check without extra debit after another domain exhausts the budget", async () => {
+    const g = goal({ budgetPolicy: { maxRuns: 2 } });
+    const first = await engine.checkNow(request(g));
+    reserveUsage(g, "action");
+    settleUsage(g, "action", "settled", {
+      runs: 1,
+      tokens: 0,
+      costUsd: 0,
+      elapsedMs: 2,
+    });
+    await reopen();
+    const replay = await engine.checkNow(request(g));
+    expect(replay.result).toEqual(first.result);
+    expect(counts()).toEqual({ reviews: 1, checks: 1, occurrences: 1 });
+    expect(engine.status({ id: g.id }).usage).toMatchObject({
+      totalRuns: 2,
+      checks: 1,
+      knownElapsedMs: 2,
+    });
   });
   it("enforces time budget on the actual atomic check and rolls back overruns", async () => {
     const g = goal({ budgetPolicy: { maxTimeMs: 5 } });

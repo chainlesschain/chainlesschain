@@ -12,12 +12,25 @@ const CHANNELS = Object.freeze({
   stop: "project:goal-monitor-stop",
   check: "project:goal-monitor-check",
   status: "project:goal-monitor-status",
+  proposals: "project:goal-proposals",
+  prepareIntent: "project:goal-intent-prepare",
+  executeIntent: "project:goal-intent-execute",
+  readIntent: "project:goal-intent-read",
 });
 function error(code) {
   return Object.assign(new Error(code), { code });
 }
 
-/** Authorized commands and metadata. No completion verifier or task writer. */
+function display(value) {
+  return JSON.stringify(value).replace(
+    /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+    (character) =>
+      `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
+/** Fixed personal goal endpoints. Writes use a persisted native intent and a
+ * live trusted renderer window; the background monitoring host has no dialog. */
 function createProjectGoalHost({
   database,
   electron = null,
@@ -29,6 +42,8 @@ function createProjectGoalHost({
   clock = Date.now,
 } = {}) {
   const getElectron = () => electron || require("electron");
+  const currentDatabase = () =>
+    database?.getDatabase ? database.getDatabase() : database;
   function currentWindow(event) {
     if (validateSender(event)?.trusted !== true)
       throw error("GOAL_UNTRUSTED_SENDER");
@@ -51,6 +66,71 @@ function createProjectGoalHost({
       getActor,
       now: () => new Date(clock()).toISOString(),
     });
+  }
+  function workflow(event) {
+    currentWindow(event);
+    const db = currentDatabase();
+    const getActor = () => {
+      currentWindow(event);
+      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      const actor = getCurrentUserDid();
+      if (!actor) throw error("GOAL_IDENTITY_REQUIRED");
+      return actor;
+    };
+    getActor();
+    const {
+      ApprovalGate,
+    } = require("@chainlesschain/session-core/approval-gate");
+    const {
+      ProjectGoalWorkflow,
+    } = require("@chainlesschain/session-core/project-goal-workflow");
+    const gate = new ApprovalGate({
+      confirm: async ({ request, before, after, actorDid }) => {
+        const parent = currentWindow(event);
+        if (getActor() !== actorDid) throw error("GOAL_IDENTITY_CHANGED");
+        const goal = hostWorkflow.goals.get({
+          id: request.input.goalIntent.goalId,
+        });
+        const creation = request.actionType === "task.create";
+        const result = await getElectron().dialog.showMessageBox(parent, {
+          type: "question",
+          title: creation ? "确认目标建议：创建任务" : "确认目标建议：修改描述",
+          message: creation
+            ? "为该目标保存以下待处理任务？"
+            : "按该目标建议修改任务描述？",
+          detail: [
+            `目标：${display(goal.objective)}`,
+            `目标版本：${goal.revision}`,
+            `当前身份：${display(actorDid)}`,
+            `对象：${display(request.target.id)}`,
+            `对象版本：${request.expectedVersion}`,
+            ...(creation ? [`任务类型：${display(after.taskType)}`] : []),
+            `修改前：${display(before.description)}`,
+            `修改后：${display(after.description)}`,
+            `风险检查：${display(request.input.riskReview.id)}`,
+            `风险来源摘要：${request.input.riskReview.contentDigest}`,
+            `意图：${display(request.input.goalIntent.id)}`,
+            `操作摘要：${request.actionDigest}`,
+            "保存动作只证明该操作完成；原风险与目标验收需要再次检查。",
+          ].join("\n\n"),
+          buttons: ["取消", creation ? "确认创建" : "确认修改"],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true,
+        });
+        return result?.response === 1;
+      },
+    });
+    const hostWorkflow = new ProjectGoalWorkflow({
+      db,
+      getActor,
+      clock,
+      approvalGate: Object.freeze({
+        decide: (context) =>
+          gate.decide({ ...context, policy: "strict", riskLevel: "high" }),
+      }),
+    });
+    return hostWorkflow;
   }
   const controller =
     monitoringController ||
@@ -84,6 +164,10 @@ function createProjectGoalHost({
     stop: async (event, params) => (await monitor(event)).stop(params),
     check: async (event, params) => (await monitor(event)).checkNow(params),
     status: async (event, params) => (await monitor(event)).status(params),
+    proposals: (event, params) => workflow(event).list(params),
+    prepareIntent: (event, params) => workflow(event).prepare(params),
+    executeIntent: (event, params) => workflow(event).execute(params),
+    readIntent: (event, params) => workflow(event).getIntent(params),
     initializeMonitoring: () => controller.initialize(),
     close: () => controller.close(),
   });

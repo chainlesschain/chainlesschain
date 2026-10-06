@@ -52,6 +52,10 @@
         已检查 {{ item.usage.checks }} 次 /
         {{ item.goal.budgetPolicy.maxRuns ?? 1000 }} 次
       </p>
+      <p v-if="item.usage.totalRuns !== undefined">
+        检查与操作累计 {{ item.usage.totalRuns }} 次；预留
+        {{ item.usage.reservedRuns ?? 0 }} 次。
+      </p>
       <div class="actions">
         <template v-if="item.goal.status === 'active'">
           <label
@@ -107,6 +111,13 @@
           </button>
         </li>
       </ul>
+      <ProjectGoalActionsPanel
+        :goal="item.goal"
+        :identity-key="identityKey"
+        @review-id="emit('review-id', $event)"
+        @goal-changed="loadGoals()"
+        @authority-error="emit('authority-error')"
+      />
     </article>
     <button
       v-if="afterId"
@@ -122,12 +133,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
+import ProjectGoalActionsPanel from "./ProjectGoalActionsPanel.vue";
 type Goal = {
   id: string;
   revision: number;
   status: string;
   objective: string;
   ownerRef: string;
+  allowedActionTypes?: string[];
   projectRef: { id: string; scope: { kind: string; id: string } };
   budgetPolicy: { maxRuns: number | null };
 };
@@ -136,7 +149,7 @@ type Status = {
   executionState: string;
   blockedReason: string | null;
   monitor: { enabled: number } | null;
-  usage: { checks: number };
+  usage: { checks: number; totalRuns?: number; reservedRuns?: number };
   history: Array<{
     occurrenceId: string;
     reviewId: string;

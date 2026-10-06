@@ -1,0 +1,11 @@
+{
+  "cwd": "desktop-app-vue",
+  "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs --reporter=default --reporter=json --outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-workflow-2026-10-07\\renderer-tests.json",
+  "exitCode": 0,
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64",
+  "startedAt": "2026-10-06T23:25:05.239Z",
+  "completedAt": "2026-10-06T23:25:34.269Z",
+  "environment": "Workspace Happy DOM resolver hook; mocked IPC; no Electron GUI"
+}

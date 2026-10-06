@@ -16,6 +16,7 @@ export default defineConfig({
       "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
       "src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
       "src/renderer/stores/__tests__/auth.test.ts",
     ],
   },

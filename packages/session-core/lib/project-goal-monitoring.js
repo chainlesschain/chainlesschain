@@ -2,6 +2,7 @@
 
 const { createHash } = require("node:crypto");
 const { PersonalProjectGoalService } = require("./project-goal-service.js");
+const { GoalUsageLedger } = require("./goal-usage-ledger.js");
 const {
   ProjectRiskReviewService,
 } = require("./project-risk-review-service.js");
@@ -10,6 +11,8 @@ const {
   digestBusinessObjectContent: digest,
 } = require("./business-object-contract.js");
 const { SchedulerRuntime } = require("./scheduler-runtime.js");
+const { normalizeAuthorityEnvelope } = require("./scheduler-contract.js");
+const { ProjectGoalWorkflow } = require("./project-goal-workflow.js");
 const { createSchedulerService } = require("./scheduler-service.js");
 const {
   bindSchedulerAuthorityPolicy,
@@ -122,6 +125,15 @@ class ProjectGoalMonitoringState {
     this.adapter = this.goals.adapter;
     this.db = db;
     this.risk = new ProjectRiskReviewService({ db, getActor, now: clock });
+    this.usageLedger = new GoalUsageLedger({ db });
+    this.workflow = new ProjectGoalWorkflow({
+      db,
+      getActor,
+      clock,
+      goals: this.goals,
+      risk: this.risk,
+      usage: this.usageLedger,
+    });
     this.adapter._transaction(() =>
       db.exec(`
       CREATE TABLE IF NOT EXISTS cc_project_goal_monitors (
@@ -179,27 +191,7 @@ class ProjectGoalMonitoringState {
     return row ?? null;
   }
   _usage(goal, actor) {
-    const usage = this.db
-      .prepare(
-        `SELECT COUNT(*) AS checks,COALESCE(SUM(elapsed_ms),0) AS elapsedMs,
-      COALESCE(SUM(CASE WHEN elapsed_ms<0 OR typeof(elapsed_ms)!='integer' THEN 1 ELSE 0 END),0) AS invalid
-      FROM cc_project_goal_checks WHERE goal_id=? AND actor_did=?`,
-      )
-      .get(goal.id, actor);
-    if (
-      usage.invalid ||
-      !Number.isSafeInteger(usage.checks) ||
-      usage.checks > MAX_CHECKS ||
-      !Number.isSafeInteger(usage.elapsedMs) ||
-      usage.elapsedMs < 0
-    )
-      throw goalError("GOAL_MONITOR_CHECK_CORRUPT");
-    return {
-      checks: usage.checks,
-      elapsedMs: usage.elapsedMs,
-      modelTokens: 0,
-      modelCostUsd: 0,
-    };
+    return this.usageLedger.summary(goal, actor);
   }
   _blocked(goal, actor, usage = this._usage(goal, actor)) {
     if (goal.status !== "active") return "GOAL_MONITOR_NOT_ACTIVE";
@@ -215,12 +207,25 @@ class ProjectGoalMonitoringState {
     )
       return "GOAL_MONITOR_EXPIRED";
     if (
-      usage.checks >=
+      usage.totalRuns >=
         Math.min(goal.budgetPolicy.maxRuns ?? MAX_CHECKS, MAX_CHECKS) ||
       (goal.budgetPolicy.maxTimeMs !== null &&
-        usage.elapsedMs >= goal.budgetPolicy.maxTimeMs)
+        usage.knownElapsedMs + usage.reservedElapsedMs >=
+          goal.budgetPolicy.maxTimeMs) ||
+      (goal.budgetPolicy.maxTokens !== null &&
+        usage.knownModelTokens + usage.reservedTokens >
+          goal.budgetPolicy.maxTokens) ||
+      (goal.budgetPolicy.maxCostUsd !== null &&
+        usage.knownModelCostUsd + usage.reservedCostUsd >
+          goal.budgetPolicy.maxCostUsd)
     )
       return "GOAL_MONITOR_BUDGET_EXHAUSTED";
+    if (
+      (goal.budgetPolicy.maxTimeMs !== null && usage.unknownTime) ||
+      (goal.budgetPolicy.maxTokens !== null && usage.unknownTokens) ||
+      (goal.budgetPolicy.maxCostUsd !== null && usage.unknownCost)
+    )
+      return "GOAL_USAGE_UNKNOWN";
     return null;
   }
   configure(value, resolvePolicy) {
@@ -507,6 +512,9 @@ class ProjectGoalMonitoringState {
           occurrence.authority.principal.id !== actor ||
           occurrence.authority.principal.type !== "user" ||
           occurrence.authority.workspaceId !== actor ||
+          parseSchedulerAuthorityPolicyReference(
+            occurrence.authority.authorizationRefs.schedulerPolicyRevision,
+          ) !== occurrence.payload.schedulerPolicyRevision ||
           JSON.stringify(occurrence.authority.requestedCapabilities) !==
             JSON.stringify([CAPABILITY])
         )
@@ -559,12 +567,17 @@ class ProjectGoalMonitoringState {
       const review = this.risk.evaluateInTransaction({
         projectId: goal.projectRef.id,
       });
+      this.workflow.observeInTransaction({
+        goalId: goal.id,
+        reviewId: review.review.id,
+      });
       renew();
       const finished = epoch(this.clock());
       if (finished < started) throw goalError("GOAL_CLOCK_MOVED_BACKWARDS");
       if (
         goal.budgetPolicy.maxTimeMs !== null &&
-        usage.elapsedMs + finished - started > goal.budgetPolicy.maxTimeMs
+        usage.knownElapsedMs + usage.reservedElapsedMs + finished - started >
+          goal.budgetPolicy.maxTimeMs
       )
         throw goalError("GOAL_MONITOR_BUDGET_EXHAUSTED");
       if (goal.expiresAt !== null && finished >= Date.parse(goal.expiresAt))
@@ -736,14 +749,36 @@ class ProjectGoalMonitoringEngine {
         ),
       },
     };
-    return this.store.createJob({
+    const definition = {
       id: key,
       kind: KIND,
       trigger: { type: "domain-intent" },
       payload,
       authority,
       maxAttempts: 3,
-    });
+    };
+    try {
+      return this.store.createJob(definition);
+    } catch (error) {
+      if (error?.code !== "SCHEDULER_CONFLICT") throw error;
+      const raced = this.store.getJob(key);
+      if (
+        !raced ||
+        raced.kind !== KIND ||
+        digest(raced.payload) !== digest(payload) ||
+        digest(raced.authority) !==
+          digest(normalizeAuthorityEnvelope(authority))
+      )
+        throw goalError("GOAL_MONITOR_JOB_MISMATCH");
+      if (
+        raced.authority.principal.id !== goal.ownerRef ||
+        parseSchedulerAuthorityPolicyReference(
+          raced.authority.authorizationRefs.schedulerPolicyRevision,
+        ) !== payload.schedulerPolicyRevision
+      )
+        throw goalError("GOAL_MONITOR_JOB_MISMATCH");
+      return raced;
+    }
   }
   start(value) {
     this._assertOpen();
@@ -792,6 +827,7 @@ class ProjectGoalMonitoringEngine {
     return this._track((linked) => this._tick(linked), signal);
   }
   async _tick(signal) {
+    this.state.workflow.recoverUnresolved();
     const actor = this.getActor();
     if (typeof actor !== "string" || !actor.startsWith("did:"))
       return { status: "waiting", reason: "identity-locked" };
