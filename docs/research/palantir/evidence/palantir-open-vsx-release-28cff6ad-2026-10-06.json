@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "version": "0.37.135",
+  "sourceCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "sha256": "ba905abfa806bebfef726dde4941dacf24fc4ef39ffe571896d7f585238b8408",
+  "bytes": 714045,
+  "immutableCandidateMatched": true,
+  "checkedAt": "2026-10-06 04:57:15 UTC",
+  "channel": "Open VSX",
+  "publicationStatus": "publicly available and downloadable",
+  "workflowRun": 37414359683,
+  "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37414359683",
+  "workflowConclusion": "success",
+  "metadataUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135",
+  "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.135/file/chainlesschain.chainlesschain-ide-0.37.135.vsix",
+  "listingUrl": "https://open-vsx.org/extension/chainlesschain/chainlesschain-ide/0.37.135",
+  "notes": [
+    "Exact release workflow passed every applicable test/build/publication gate.",
+    "Independent unauthenticated public download SHA256 equals the immutable tested VSIX.",
+    "Microsoft Marketplace is an optional backfill requiring VSCE_PAT; this release publishes to the configured Open VSX channel."
+  ]
+}
