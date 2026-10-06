@@ -14,15 +14,82 @@ import {
 } from "../../src/lib/evolution/rrsi-contracts.js";
 import {
   RRSI_SETTLEMENT_SCHEMA,
+  RRSI_HISTORY_EVENT_SCHEMA,
+  RRSI_HISTORY_EVENT_TYPE,
   buildRrsiSettlementMessage,
   createRrsiSettlementVerifier,
   createRrsiHistoryLedgerAdapter,
 } from "../../src/lib/evolution/rrsi-history-ledger-adapter.js";
 import {
+  RRSI_PREPARATION_RESERVATION_SCHEMA,
+  RRSI_PREPARATION_SETTLEMENT_SCHEMA,
+} from "../../src/lib/evolution/rrsi-preparation-contracts.js";
+import {
   rrsiCampaignInput,
   rrsiCandidateInput,
   rrsiFixtureDigest,
 } from "./rrsi-shadow-fixture.js";
+import { rrsiEnvelope, rrsiHash } from "../../src/lib/evolution/rrsi-data.js";
+
+/** Reconstruct a v1 dispatch admitted by the pre-preparation release. */
+export function appendPreUpgradeRrsiDispatch(value, reservation) {
+  const { store, adapter } = value;
+  const head = store.backend.ledger.verify();
+  const events = store.backend.ledger.read({ afterSequence: 0, limit: 1000 });
+  const last = events.at(-1);
+  const resolution = store.resolver({
+    epoch: head.epoch,
+    ledgerId: head.ledgerId,
+    ref: last.subjectRef,
+    tenantId: adapter.descriptor.artifactTenantId,
+  });
+  const previousRecordDigest = JSON.parse(resolution.bytes.toString("utf8"))
+    .value.recordDigest;
+  const operationId = `dispatch.${rrsiHash("rrsi-execution-id/v1", reservation.bindings.executionId).slice(7)}`;
+  const scopeDigest = rrsiHash(
+    "chainlesschain.rrsi-history-descriptor/v1",
+    adapter.descriptor,
+  );
+  const acceptedAt = new Date(store.clock()).toISOString();
+  const record = rrsiEnvelope(RRSI_HISTORY_EVENT_SCHEMA, "recordDigest", {
+    descriptor: adapter.descriptor,
+    ledgerId: head.ledgerId,
+    epoch: head.epoch,
+    operationId,
+    kind: "dispatch",
+    payload: {
+      executionId: reservation.bindings.executionId,
+      reservationDigest: reservation.reservationDigest,
+    },
+    previousRecordDigest,
+    acceptedAt,
+  });
+  const published = store.artifactPorts.putCanonical(
+    "rrsi-history-event",
+    record,
+    {
+      audience: adapter.descriptor.audience,
+      purpose: "evolution-ledger",
+      retention: "ledger",
+    },
+  );
+  return store.backend.ledger.appendDomainEvent(
+    {
+      type: RRSI_HISTORY_EVENT_TYPE,
+      eventId: `rrsi.${rrsiHash("chainlesschain.rrsi-history-operation/v1", { scopeDigest, operationId }).slice(7)}`,
+      tenantId: adapter.descriptor.tenantId,
+      artifactTenantId: adapter.descriptor.artifactTenantId,
+      correlationId: adapter.descriptor.scopeId,
+      skillName: adapter.descriptor.goalId,
+      decision: "accepted",
+      reason: "TEST ONLY pre-upgrade v1 dispatch compatibility",
+      sourceRefs: [],
+      subjectRef: published.ref,
+      timestamp: acceptedAt,
+    },
+    { expectedHeadDigest: head.headDigest, expectedSequence: head.sequence },
+  );
+}
 
 export function openRrsiHistoryStore(
   root,
@@ -90,7 +157,10 @@ export function openRrsiHistoryStore(
   });
   const signSettlement = (reservation, overrides = {}) => {
     const core = {
-      schema: RRSI_SETTLEMENT_SCHEMA,
+      schema:
+        reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA
+          ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
+          : RRSI_SETTLEMENT_SCHEMA,
       receiptId: "settlement-1",
       bindings: reservation.bindings,
       status: "succeeded",
@@ -129,6 +199,41 @@ export function openRrsiHistoryStore(
     campaign,
     candidate,
     request,
+    preparationPlan: (overrides = {}) => ({
+      campaignDigest: campaign.campaignDigest,
+      maxAttempts: 4,
+      planDigest: rrsiFixtureDigest("TEST ONLY PM preparation plan"),
+      manifestDigest: rrsiFixtureDigest("TEST ONLY PM preparation manifest"),
+      trainingMappingDigest: rrsiFixtureDigest(
+        "TEST ONLY unverified source mapping",
+      ),
+      pmTrainingPartitionDigest: rrsiFixtureDigest(
+        "TEST ONLY PM training partition",
+      ),
+      ...overrides,
+    }),
+    preparationRequest: (overrides = {}) => ({
+      campaignDigest: campaign.campaignDigest,
+      phase: "candidate-proposal",
+      sourceTaskIds: ["train-task-0"],
+      inputs: {
+        instructionDigest: rrsiFixtureDigest("TEST ONLY proposal instruction"),
+        memoryDigest: rrsiFixtureDigest("TEST ONLY input memory"),
+        artifactDigests: [],
+      },
+      roundId: "round-1",
+      branchId: "branch-1",
+      slotId: "preparation-slot-1",
+      executionId: "preparation-execution-1",
+      budget: {
+        maxTokens: 10_000,
+        maxToolCalls: 100,
+        maxWallClockMs: 10_000,
+        maxCostMicrounits: 100_000,
+        maxExecutions: 1,
+      },
+      ...overrides,
+    }),
     signSettlement,
     settlementVerifier,
   };

@@ -30,11 +30,11 @@ const invoke = (root, mode, inputFile) =>
     [worker, root, mode, ...(inputFile ? [inputFile] : [])],
     { encoding: "utf8", timeout: 20_000 },
   );
-async function race(root, requests) {
+async function race(root, requests, mode = "race-reserve") {
   const controls = requests.map((request, index) => {
     const file = path.join(root, `request-${index}.json`);
     fs.writeFileSync(file, JSON.stringify(request));
-    const child = fork(worker, [root, "race-reserve", file], {
+    const child = fork(worker, [root, mode, file], {
       stdio: ["ignore", "pipe", "pipe", "ipc"],
     });
     children.add(child);
@@ -128,6 +128,20 @@ describe("RRSI actual file and process recovery", () => {
     const first = open();
     expect(isEvolutionLedgerV2Journal(first.store.backend.ledger)).toBe(true);
     first.adapter.registerCampaign(value.campaign);
+    first.adapter.registerPreparationPlan(value.preparationPlan());
+    const prep = first.adapter.reservePreparation(value.preparationRequest());
+    first.adapter.settle(
+      value.signSettlement(prep.reservation, {
+        status: "not-started",
+        usage: {
+          tokens: 0,
+          toolCalls: 0,
+          wallClockMs: 0,
+          costMicrounits: 0,
+          executions: 0,
+        },
+      }),
+    );
     first.adapter.reserve(value.request());
     const reopened = open();
     expect(isEvolutionLedgerV2Journal(reopened.store.backend.ledger)).toBe(
@@ -136,8 +150,13 @@ describe("RRSI actual file and process recovery", () => {
     expect(reopened.adapter.reserve(value.request()).newlyCommitted).toBe(
       false,
     );
+    expect(
+      reopened.adapter.reservePreparation(value.preparationRequest())
+        .newlyCommitted,
+    ).toBe(false);
     expect(reopened.adapter.inspect()).toMatchObject({
       selectionQueries: 1,
+      preparationAttempts: 1,
       chargedResources: { maxCostMicrounits: "100000" },
     });
   });
@@ -221,5 +240,87 @@ describe("RRSI actual file and process recovery", () => {
       /fresh reservation/,
     );
     expect(reopened.adapter.inspect().selectionQueries).toBe(1);
+  });
+
+  it("recovers preparation after hard exit without granting dispatch or resetting attempts", () => {
+    const value = fixture();
+    value.adapter.registerCampaign(value.campaign);
+    value.adapter.registerPreparationPlan(value.preparationPlan());
+    const crashed = invoke(value.root, "crash-preparation");
+    expect(crashed.status).toBe(71);
+    const recovered = invoke(value.root, "recover-preparation");
+    expect(recovered.status).toBe(0);
+    expect(JSON.parse(recovered.stdout)).toMatchObject({
+      replayDenied: true,
+      response: { newlyCommitted: false },
+    });
+    expect(value.adapter.inspect()).toMatchObject({
+      preparationAttempts: 1,
+      selectionQueries: 0,
+      chargedResources: { maxCostMicrounits: "100000" },
+      executions: [{ status: "reserved", dispatched: false }],
+    });
+  });
+
+  it("recovers preparation after an uncertain append response", () => {
+    const value = fixture();
+    value.adapter.registerCampaign(value.campaign);
+    value.adapter.registerPreparationPlan(value.preparationPlan());
+    const failing = openRrsiHistoryStore(value.root, {
+      crashHook: (phase) => {
+        if (phase === "after-head")
+          throw new Error("TEST preparation response loss");
+      },
+    });
+    expect(() =>
+      failing.adapter.reservePreparation(failing.preparationRequest()),
+    ).toThrow(/requires readback/);
+    const recovered = invoke(value.root, "recover-preparation");
+    expect(JSON.parse(recovered.stdout)).toMatchObject({
+      replayDenied: true,
+      response: { newlyCommitted: false },
+    });
+    expect(value.adapter.inspect().preparationAttempts).toBe(1);
+  });
+
+  it("serializes semantic preparation claims from two real processes", async () => {
+    const value = fixture();
+    value.adapter.registerCampaign(value.campaign);
+    value.adapter.registerPreparationPlan(value.preparationPlan());
+    const results = await race(
+      value.root,
+      [
+        value.preparationRequest(),
+        value.preparationRequest({
+          executionId: "renamed-preparation",
+          slotId: "renamed-slot",
+        }),
+      ],
+      "race-preparation",
+    );
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(results.find((result) => !result.ok).code).toBe(
+      "CC_RRSI_HISTORY_HOLD",
+    );
+    expect(value.adapter.inspect()).toMatchObject({
+      preparationAttempts: 1,
+      chargedResources: { maxCostMicrounits: "100000" },
+    });
+  });
+
+  it("deduplicates identical preparation execution requests across processes", async () => {
+    const value = fixture();
+    value.adapter.registerCampaign(value.campaign);
+    value.adapter.registerPreparationPlan(value.preparationPlan());
+    const results = await race(
+      value.root,
+      [value.preparationRequest(), value.preparationRequest()],
+      "race-preparation",
+    );
+    expect(results.every((result) => result.ok)).toBe(true);
+    expect(
+      results.map((result) => result.result.newlyCommitted).sort(),
+    ).toEqual([false, true]);
+    expect(value.adapter.inspect().preparationAttempts).toBe(1);
   });
 });

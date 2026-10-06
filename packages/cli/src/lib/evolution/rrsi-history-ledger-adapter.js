@@ -28,6 +28,15 @@ import {
   verifyRrsiCandidate,
 } from "./rrsi-contracts.js";
 import {
+  RRSI_PREPARATION_RESERVATION_SCHEMA,
+  RRSI_PREPARATION_SETTLEMENT_SCHEMA,
+  RRSI_PREPARATION_PHASES,
+  RRSI_PREPARATION_BINDING_FIELDS,
+  normalizeRrsiPreparationPlan,
+  normalizeRrsiPreparationRequest,
+  rrsiTrainingSourcesDigest,
+} from "./rrsi-preparation-contracts.js";
+import {
   snapshotRrsiData,
   rrsiExact,
   rrsiId,
@@ -167,7 +176,8 @@ function settlementCore(input) {
     ],
     "settlement core",
   );
-  if (value.schema !== RRSI_SETTLEMENT_SCHEMA)
+  const preparation = value.schema === RRSI_PREPARATION_SETTLEMENT_SCHEMA;
+  if (!preparation && value.schema !== RRSI_SETTLEMENT_SCHEMA)
     rrsiFail("RRSI settlement schema differs");
   rrsiId(value.receiptId, "settlement receipt ID");
   rrsiExact(
@@ -179,8 +189,9 @@ function settlementCore(input) {
       "identityDigest",
       "epoch",
       "campaignDigest",
-      "candidateDigest",
-      "contentDigest",
+      ...(preparation
+        ? RRSI_PREPARATION_BINDING_FIELDS
+        : ["candidateDigest", "contentDigest"]),
       "executionDigest",
       "reservationDigest",
       "executionId",
@@ -189,7 +200,13 @@ function settlementCore(input) {
     ],
     "settlement bindings",
   );
-  for (const key of ["tenantId", "scopeId", "executionId", "slotId"])
+  for (const key of [
+    "tenantId",
+    "scopeId",
+    "executionId",
+    "slotId",
+    ...(preparation ? ["roundId", "branchId"] : []),
+  ])
     rrsiId(value.bindings[key], key);
   for (const key of ["ledgerId", "epoch"])
     if (
@@ -200,15 +217,19 @@ function settlementCore(input) {
   rrsiDigest(value.bindings.identityDigest, "ledger identity digest");
   for (const key of [
     "campaignDigest",
-    "candidateDigest",
-    "contentDigest",
+    ...(preparation
+      ? RRSI_PREPARATION_BINDING_FIELDS.filter((key) => key.endsWith("Digest"))
+      : ["candidateDigest", "contentDigest"]),
     "executionDigest",
     "reservationDigest",
   ])
     rrsiDigest(value.bindings[key], key);
   if (
-    !RRSI_PARTITIONS.includes(value.bindings.partition) ||
-    value.bindings.partition === "train"
+    preparation
+      ? value.bindings.partition !== "train" ||
+        !RRSI_PREPARATION_PHASES.includes(value.bindings.phase)
+      : !RRSI_PARTITIONS.includes(value.bindings.partition) ||
+        value.bindings.partition === "train"
   )
     rrsiFail("invalid settlement partition");
   if (
@@ -233,6 +254,7 @@ function settlementCore(input) {
 }
 
 export function buildRrsiSettlementMessage(core, authorityInput) {
+  const normalized = settlementCore(core);
   const authority = snapshotRrsiData(authorityInput);
   rrsiExact(
     authority,
@@ -243,7 +265,7 @@ export function buildRrsiSettlementMessage(core, authorityInput) {
   rrsiDigest(authority.trustPolicyDigest, "signed policy digest");
   rrsiDigest(authority.publicKeyDigest, "signed public key digest");
   return Buffer.from(
-    `${RRSI_SETTLEMENT_SCHEMA}\0${rrsiCanonical(authority)}\0${rrsiCanonical(settlementCore(core))}`,
+    `${normalized.schema}\0${rrsiCanonical(authority)}\0${rrsiCanonical(normalized)}`,
     "utf8",
   );
 }
@@ -258,6 +280,15 @@ function verifySettlement(verifier, input, reservation, acceptanceTime) {
   const evidence = snapshotRrsiData(input);
   rrsiExact(evidence, ["core", "attestation"], "signed settlement");
   const core = settlementCore(evidence.core);
+  const expectedSchema =
+    reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA
+      ? RRSI_PREPARATION_SETTLEMENT_SCHEMA
+      : RRSI_SETTLEMENT_SCHEMA;
+  if (core.schema !== expectedSchema)
+    rrsiFail(
+      "settlement domain differs from reservation",
+      "CC_RRSI_SETTLEMENT_INVALID",
+    );
   rrsiExact(
     evidence.attestation,
     ["authorityId", "trustPolicyDigest", "publicKeyDigest", "signature"],
@@ -420,6 +451,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
       receiptIds: new Set(),
       sourceReceiptOwners: new Map(),
       selectionQueries: 0,
+      preparationPlan: null,
+      preparationAttempts: 0,
+      preparationRequests: new Set(),
       overrun: false,
       lastRecordDigest: null,
     };
@@ -450,9 +484,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
       if (
         stage &&
         stage !==
-          (entry.reservation.bindings.partition === "select"
-            ? "selection"
-            : "final")
+          (entry.reservation.bindings.partition === "train"
+            ? "proposal"
+            : entry.reservation.bindings.partition === "select"
+              ? "selection"
+              : "final")
       )
         continue;
       for (const [usage, ceiling] of Object.entries(USAGE_TO_BUDGET)) {
@@ -470,9 +506,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
     const total = charges(state);
     const staged = charges(state, stage);
     const cap =
-      stage === "selection"
-        ? state.root.budget.selectionPerExploringArm
-        : state.root.budget.finalEvaluationPerArm;
+      stage === "proposal"
+        ? state.root.budget.proposalPerExploringArm
+        : stage === "selection"
+          ? state.root.budget.selectionPerExploringArm
+          : state.root.budget.finalEvaluationPerArm;
     for (const key of RRSI_BUDGET_FIELDS)
       if (
         total[key] + BigInt(reserved[key]) >
@@ -484,7 +522,20 @@ export function createRrsiHistoryLedgerAdapter(input) {
           "CC_RRSI_BUDGET_EXCEEDED",
         );
   }
-  function apply(state, kind, payload, acceptedAt) {
+  function checkPreparationHold(state) {
+    if (
+      [...state.reservations.values()].some(
+        (entry) =>
+          entry.reservation.schema === RRSI_PREPARATION_RESERVATION_SCHEMA &&
+          entry.status !== "settled",
+      )
+    )
+      rrsiFail(
+        "unresolved preparation requires independent settlement",
+        "CC_RRSI_HISTORY_HOLD",
+      );
+  }
+  function apply(state, kind, payload, acceptedAt, liveAdmission = false) {
     if (kind === "register") {
       rrsiExact(payload, ["campaign"], "campaign registration");
       const campaign = verifyRrsiCampaign(payload.campaign);
@@ -536,6 +587,99 @@ export function createRrsiHistoryLedgerAdapter(input) {
       return campaign;
     }
     if (!state.root) rrsiFail("RRSI history has no registered root campaign");
+    if (kind === "register-preparation-plan") {
+      const campaign = campaignFor(state, payload.campaignDigest);
+      const plan = normalizeRrsiPreparationPlan(payload, state.root);
+      if (state.finalCandidates.size)
+        rrsiFail("frozen finalist prohibits preparation plan registration");
+      if (rrsiTrainingSourcesDigest(campaign) !== plan.trainingSourcesDigest)
+        rrsiFail("preparation plan training sources differ from root");
+      if (state.preparationPlan)
+        rrsiFail(
+          "preparation plan is already frozen",
+          "CC_RRSI_OPERATION_CONFLICT",
+        );
+      state.preparationPlan = plan;
+      return plan;
+    }
+    if (kind === "reserve-preparation") {
+      if (state.overrun)
+        rrsiFail(
+          "history contains a resource overrun",
+          "CC_RRSI_BUDGET_EXCEEDED",
+        );
+      if (!state.preparationPlan)
+        rrsiFail(
+          "preparation plan has not been durably registered",
+          "CC_RRSI_UNREGISTERED",
+        );
+      if (state.finalCandidates.size)
+        rrsiFail("frozen finalist prohibits further preparation");
+      checkPreparationHold(state);
+      if (
+        [...state.reservations.values()].some(
+          (entry) => entry.status !== "settled",
+        )
+      )
+        rrsiFail(
+          "unresolved query prohibits preparation admission",
+          "CC_RRSI_HISTORY_HOLD",
+        );
+      const campaign = campaignFor(state, payload.campaignDigest);
+      const normalized = normalizeRrsiPreparationRequest(
+        payload,
+        campaign,
+        state.preparationPlan,
+      );
+      if (state.preparationRequests.has(normalized.bindings.requestDigest))
+        rrsiFail(
+          "semantic preparation request has already been consumed",
+          "CC_RRSI_PREPARATION_USED",
+        );
+      if (state.preparationAttempts >= state.preparationPlan.maxAttempts)
+        rrsiFail(
+          "preparation attempt limit is exhausted",
+          "CC_RRSI_PREPARATION_EXHAUSTED",
+        );
+      const slot = `${descriptor.scopeId}:preparation:${payload.slotId}`;
+      if (state.slots.has(slot) || state.reservations.has(payload.executionId))
+        rrsiFail("execution or slot is already occupied", "CC_RRSI_SLOT_USED");
+      checkBudget(state, normalized.budget, "proposal");
+      const core = {
+        tenantId: descriptor.tenantId,
+        scopeId: descriptor.scopeId,
+        ...state.identity,
+        campaignDigest: campaign.campaignDigest,
+        executionDigest: state.preparationPlan.executionDigest,
+        executionId: payload.executionId,
+        slotId: payload.slotId,
+        partition: "train",
+        ...normalized.bindings,
+      };
+      const reservationDigest = rrsiHash(RRSI_PREPARATION_RESERVATION_SCHEMA, {
+        bindings: core,
+        budget: normalized.budget,
+        plannedExecutions: 1,
+      });
+      const reservation = freezeRrsiData({
+        schema: RRSI_PREPARATION_RESERVATION_SCHEMA,
+        bindings: { ...core, reservationDigest },
+        budget: normalized.budget,
+        plannedExecutions: 1,
+        reservationDigest,
+      });
+      state.reservations.set(payload.executionId, {
+        reservation,
+        status: "reserved",
+        knownUsage: Object.fromEntries(USAGE_FIELDS.map((key) => [key, null])),
+        settlement: null,
+        dispatched: false,
+      });
+      state.slots.add(slot);
+      state.preparationAttempts++;
+      state.preparationRequests.add(normalized.bindings.requestDigest);
+      return reservation;
+    }
     if (kind === "reserve") {
       rrsiExact(
         payload,
@@ -554,6 +698,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
           "history contains a resource overrun",
           "CC_RRSI_BUDGET_EXCEEDED",
         );
+      checkPreparationHold(state);
       const campaign = campaignFor(state, payload.campaignDigest);
       const candidate = verifyRrsiCandidate(campaign, payload.candidate);
       if (
@@ -729,6 +874,17 @@ export function createRrsiHistoryLedgerAdapter(input) {
         payload.reservationDigest,
       );
       if (kind === "dispatch") {
+        // New admission guards must not erase authenticated pre-upgrade costs.
+        // Old v1 dispatch history remains readable; every new dispatch rechecks.
+        if (liveAdmission) {
+          if (state.overrun)
+            rrsiFail(
+              "history contains a resource overrun",
+              "CC_RRSI_BUDGET_EXCEEDED",
+            );
+          if (entry.reservation.schema !== RRSI_PREPARATION_RESERVATION_SCHEMA)
+            checkPreparationHold(state);
+        }
         if (entry.status !== "reserved" || entry.dispatched)
           rrsiFail(
             "execution cannot be dispatched twice",
@@ -989,7 +1145,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
         return { result: existing.result, newlyCommitted: false };
       }
       const acceptedAt = now();
-      const result = apply(state, kind, payload, acceptedAt);
+      const result = apply(state, kind, payload, acceptedAt, true);
       const record = rrsiEnvelope(RRSI_HISTORY_EVENT_SCHEMA, "recordDigest", {
         descriptor,
         ledgerId: head.ledgerId,
@@ -1069,6 +1225,19 @@ export function createRrsiHistoryLedgerAdapter(input) {
     return withHistoryLock(() => commitUnlocked(kind, operationId, input));
   }
 
+  function reservationResponse(result) {
+    const response = freezeRrsiData({
+      reservation: result.result,
+      newlyCommitted: result.newlyCommitted,
+      historyAuthenticated: true,
+      executionEvidenceVerified: false,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    });
+    if (result.newlyCommitted) freshReservations.set(response, result.result);
+    return response;
+  }
+
   const adapter = Object.freeze({
     descriptor,
     registerCampaign(campaign) {
@@ -1094,16 +1263,32 @@ export function createRrsiHistoryLedgerAdapter(input) {
         `reserve.${rrsiHash("rrsi-execution-id/v1", value.executionId).slice(7)}`,
         value,
       );
-      const response = freezeRrsiData({
-        reservation: result.result,
+      return reservationResponse(result);
+    },
+    registerPreparationPlan(input) {
+      const result = commit(
+        "register-preparation-plan",
+        "register.preparation-plan",
+        input,
+      );
+      return freezeRrsiData({
+        plan: result.result,
         newlyCommitted: result.newlyCommitted,
         historyAuthenticated: true,
-        executionEvidenceVerified: false,
+        mappingAuthenticated: false,
         readyForExecution: false,
         qualifiesForPromotion: false,
       });
-      if (result.newlyCommitted) freshReservations.set(response, result.result);
-      return response;
+    },
+    reservePreparation(input) {
+      const value = snapshotRrsiData(input);
+      return reservationResponse(
+        commit(
+          "reserve-preparation",
+          `reserve.${rrsiHash("rrsi-execution-id/v1", value.executionId).slice(7)}`,
+          value,
+        ),
+      );
     },
     recordDispatch(response) {
       const reservation = freshReservations.get(response);
@@ -1163,7 +1348,22 @@ export function createRrsiHistoryLedgerAdapter(input) {
         const { state, head } = load();
         const charged = charges(state);
         return rrsiEnvelope(RRSI_HISTORY_STATUS_SCHEMA, "statusDigest", {
-          controlBudgetCoverage: "selection-and-final-only",
+          controlBudgetCoverage: state.preparationPlan
+            ? "preparation-selection-and-final"
+            : "selection-and-final-only",
+          preparationPlan: state.preparationPlan,
+          preparationAttempts: state.preparationAttempts,
+          chargedResourcesByStage: Object.fromEntries(
+            ["proposal", "selection", "final"].map((stage) => [
+              stage,
+              Object.fromEntries(
+                Object.entries(charges(state, stage)).map(([key, value]) => [
+                  key,
+                  value.toString(),
+                ]),
+              ),
+            ]),
+          ),
           qualityVerdictVerified: false,
           descriptor,
           ledgerId: head.ledgerId,

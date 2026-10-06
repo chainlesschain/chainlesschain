@@ -2,7 +2,7 @@
 
 日期：2026-10-07。承接 [RRSI 实施方案](./rrsi-implementation-plan-2026-10-07.md)。工程基线为 `1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`，初始实施分支为 `feature/rrsi-foundation-2026-10-07`。本轮新增文件的摘要及离线结果见 [合成回放记录](./evidence/rrsi-rr01-synthetic-replay-2026-10-07.json)。
 
-首批合同与离线回放已提交为 `3238aa30cc`，位于共享工作区当前的 `feature/dots-muse-mods-foundation` 分支。第二批仅提交本页所列 RRSI 文件及有限的产物类型注册；其他任务的工作区修改继续独立保留。
+首批合同与离线回放已提交为 `3238aa30cc`，第二批耐久控制已提交为 `c885bd7cb6`，位于共享工作区当前的 `feature/dots-muse-mods-foundation` 分支。各批仅提交本页所列 RRSI 文件及有限的产物类型注册；其他任务的工作区修改继续独立保留。
 
 ## 1 当前交付
 
@@ -10,14 +10,16 @@
 
 第二批已增加基于真实文件 Ledger 的耐久选择与终评控制，包括候选及槽位预占、五种资源记账、独立签名结算、来源暴露记录和进程恢复。真实预算权威、provider、grader 和生产签发仍需通过后续组装接入。
 
-| 批次  | 状态                     | 已交付                                                              | 尚需完成                                                          |
-| ----- | ------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| RR-01 | 部分完成                 | 严格合同、五池隔离、A/B/C 公共预算、统计计划、候选登记与合成回放    | 真实有效父版本、独立私有任务来源、operator 签发和目标部署就绪登记 |
-| RR-02 | 耐久选择与终评控制已实施 | Ledger 历史、原子预占、独立签名结算、来源暴露、进程恢复及原筛选计算 | 提议与蒸馏费用接线、逐轮质量/无收益停止判定、真实权威与执行器组装 |
-| RR-03 | 待实施                   | 原 Eval 与 PM 合同保持兼容                                          | 真实五池执行映射、来源认证、组级校正统计与覆盖率验证              |
-| RR-04 | 待实施                   | 现有正式晋级门保持原语义                                            | Release Train、Review、Workbench、Pilot 与回滚接线                |
-| RR-05 | 待目标条件就绪           | 合成三组计划可冻结                                                  | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用           |
-| RR-06 | 待实施                   | 原准确提交的 CI 与 OIDC 发行要求继续适用                            | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                |
+本轮继续补齐准备阶段的声明与耐久计账，包括课程规划、探索、候选提议、记忆蒸馏、失败重试和环境重置。新增不可退还的尝试次数、跨改名请求去重、独立准备结算签名域，以及准备/筛选间的未结算阻断；真实 PM 执行桥接尚未接入。
+
+| 批次  | 状态                           | 已交付                                                                              | 尚需完成                                                          |
+| ----- | ------------------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| RR-01 | 部分完成                       | 严格合同、五池隔离、A/B/C 公共预算、统计计划、候选登记与合成回放                    | 真实有效父版本、独立私有任务来源、operator 签发和目标部署就绪登记 |
+| RR-02 | 准备、选择与终评耐久控制已实施 | Ledger 历史、三阶段预占与签名结算、不可退还尝试次数、来源暴露、进程恢复及原筛选计算 | 真实 PM 执行与账单接线、逐轮质量/无收益停止判定、真实权威组装     |
+| RR-03 | 待实施                         | 原 Eval 与 PM 合同保持兼容                                                          | 真实五池执行映射、来源认证、组级校正统计与覆盖率验证              |
+| RR-04 | 待实施                         | 现有正式晋级门保持原语义                                                            | Release Train、Review、Workbench、Pilot 与回滚接线                |
+| RR-05 | 待目标条件就绪                 | 合成三组计划可冻结                                                                  | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用           |
+| RR-06 | 待实施                         | 原准确提交的 CI 与 OIDC 发行要求继续适用                                            | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                |
 
 ## 2 代码落点
 
@@ -29,6 +31,7 @@
 | [rrsi-shadow-fixture.js](../../../packages/cli/__tests__/fixtures/rrsi-shadow-fixture.js)                | 220 个合成任务引用、四维合成来源、两个候选与固定合成观察；所有部署身份均明确为 fixture                                 |
 | [rrsi-offline-replay.mjs](../../../packages/cli/scripts/rrsi-offline-replay.mjs)                         | 仓库内离线入口；内置 demo 或读取有界 JSON 并核对独立保存的 campaign digest                                             |
 | [rrsi-history-ledger-adapter.js](../../../packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js) | 真实 v1/v2 Ledger 的历史回读、原子控制、来源暴露、签名结算与预算恢复                                                   |
+| [rrsi-preparation-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-preparation-contracts.js)   | 准备计划与尝试上限冻结、六种阶段、训练来源和输入规范化、独立预占及结算域                                               |
 | [evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js)       | 仅新增 `rrsi-history-event` 有限类型，长期保留用途固定为 `evolution-ledger`                                            |
 
 每个 Policy、Dataset、Campaign、Candidate 和 Replay 输出均保留 `structuralOnly:true`、`authenticated:false`、`readyForExecution:false`、`qualifiesForPromotion:false`。候选入选状态使用 `shadow-selected`，没有请求模型、启动真实 Actor 或写正式版本的能力。
@@ -106,10 +109,28 @@ v1 与已迁移 v2 使用原后端的品牌化 journal 方法；没有在 v2 失
 
 测试使用真正的 ArtifactStore、Ledger、witness 文件、子进程和独立 Ed25519 验签，但 Ledger HMAC 与签发密钥均为测试权威。既有 Windows 目录 fsync 兼容适配不作为物理断电持久性证明。正式 provider、业务效果、真实账户账单和准确提交的完整 Actions 尚未由这些测试认证。
 
-当前 `controlBudgetCoverage` 为 `selection-and-final-only`；提议、课程规划和蒸馏的真实费用尚未接入这份耐久计账。额度隔离已经可验证，不能据此宣称完整生命周期成本或 RRSI 效果已通过。
+第二批提交时 `controlBudgetCoverage` 为 `selection-and-final-only`。本轮扩展后的声明范围见下一节；额度隔离可验证，但真实 provider 的完整账单与 RRSI 效果仍待实际执行认证。
 
-## 6 下一批工作
+## 6 准备阶段耐久计账
 
-下一步把 RR-02 控制接到受治理的真实执行器和预算入口，补提议/蒸馏阶段的耐久费用，再进入 RR-03 的五池执行映射、来源认证和组级校正统计。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+`registerPreparationPlan` 在租户/目标作用域首次冻结尝试上限、PM plan/manifest、训练映射和 PM 训练分区摘要。上限不得超过 campaign 已冻结的提议执行配置；新 campaign、重开 Ledger 或退款均不能重置该计划。RRSI 与 PM 的训练分区摘要分开保留，`mappingAuthenticated:false` 明确表示尚未认证真实映射。
+
+`reservePreparation` 只接受训练池任务，尚未存在的候选不使用虚构 candidate ID。六类阶段共享 `proposalPerExploringArm` 与总预算，每次预占至少覆盖一个执行，并不可逆地消耗一次准备尝试。记账覆盖 token、工具调用、墙钟、费用和执行次数；真实重试/子执行用量仍须由独立签发者报告。签名完整的未启动、失败或取消结算可以退还资源差额，不能恢复尝试次数或重放已消费请求。
+
+请求身份从阶段、规范化训练内容/来源、instruction/memory/artifact 摘要、冻结计划和执行环境派生。任务、campaign、execution、slot、round 和 branch ID 不参与去重身份；输入列表顺序也不影响身份。更换输入摘要仍是声明的新输入，真实字节、语义等价和来源真实性需由后续执行组装认证。
+
+准备和筛选共用执行 ID、结算回执 ID、原始费用回执归属与总资源记账。准备结算使用独立的 `rrsi-preparation-settlement/v1` 域，旧 query settlement 的签名字节不变。历史完整回读继续复验签名与实际 Ledger 身份，不允许准备与筛选相互使用费用回执。
+
+未结清的准备执行阻断下一次准备、筛选和冻结；未结清的筛选执行也阻断准备，以免已取得的筛选派发凭据与准备执行交叠。最终候选冻结后不得登记或执行准备计划。实时派发重新检查超支和准备 HOLD；旧版本已接受的派发历史继续可读、可结算费用，不产生新的派发权限。超时、未知状态、缺费用或未确认清理保留全额预占；后续完整签名只能对账同一执行，不能重跑。已知用量不得被较低的晚到回执覆盖。
+
+本轮由 Astra 复核并修正了旧派发凭据绕过准备 HOLD 和超支停止条件的时序问题。验证记录见 [准备阶段验证记录](./evidence/rrsi-preparation-controls-2026-10-07.json)，包括实际 v2 重开、head 写入后的硬退出、响应丢失、两个进程的准备预占竞争和旧回执域兼容性。测试仍使用测试密钥与声明的 PM 摘要，不证明生产来源、provider 隔离或真实账单。
+
+本轮新增 **34 项通过**：30 个准备控制测试与 4 个进程测试。七个相关测试文件的最新结果合计 **192 项通过、1 项既有 Windows 平台跳过**；ESLint、Prettier 通过。完整回归首轮的签名域测试先触发了共享回执 ID 去重；修正测试回执 ID 并增加双向跨域检查后，准备文件 **30/30** 复测通过。生产源码和其余六个已通过的测试文件未再变动，未重复整套测试；验证记录保留两次报告的摘要。
+
+登记准备计划后的 inspect 返回 `controlBudgetCoverage:preparation-selection-and-final`，表示控制 API 的覆盖范围；未登记的历史保留 `selection-and-final-only`。`qualityVerdictVerified:false`、`readyForExecution:false`、`qualifiesForPromotion:false` 不变，真实实验仍为 `NOT_RUN`。
+
+## 7 下一批工作
+
+下一步把 RR-02 控制接到既有品牌化 `PmExplorationExecutionHost`、验证的 plan/manifest、journal 和真实 Suite 训练映射，再进入 RR-03 的五池执行映射、来源认证和组级校正统计。现有低层预算执行器的回调与超时结果不证明生产准入、清理或完整成本；PM 执行回执也不能自动当作五资源结算证据。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
 
 真实父版本与数据清单的登记独立于合成例子。待受信部署和来源可核验后，以新冻结合同开启真实实验；不把示例摘要重新标为生产身份。
