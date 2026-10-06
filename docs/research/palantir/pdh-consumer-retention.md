@@ -71,4 +71,26 @@ const result = store.pruneRetiredConsumers({
 
 CLI wiring 测试使用真实 `AdapterRegistry` 和隔离的 vault/外部适配器替身，验证成功初始化后注册钩子、显式关闭、重复初始化、退出事件的零/非零状态、忙碌保留以及 minimal hub 关闭；不将这些事件级测试描述为真实进程崩溃恢复测试。
 
-本次减少正常关闭内存代的多实体回执积累，仍保留每代生命周期标记。崩溃代及升级前历史回执的人工核查、跨进程关闭协调、保留策略审批、全局磁盘配额、归档与压缩仍待实现，不能据此认定 PAL-OPS 已完成。规范化实体删除也不等价于原始归档的隐私擦除。
+本次减少正常关闭内存代的多实体回执积累，仍保留每代生命周期标记。下述新增入口支持崩溃疑似代及升级前历史回执的人工核查与容量前置检查；跨进程关闭协调、保留策略审批、全局硬磁盘配额、归档与压缩仍待实现，不能据此认定 PAL-OPS 已完成。规范化实体删除也不等价于原始归档的隐私擦除。
+
+## 历史代核查、清理预览与容量预算
+
+```bash
+cc hub derivation-consumers --audit --limit 100 --json
+cc hub derivation-consumers --audit --after <nextAfterConsumerId> --limit 100 --json
+cc hub prune-derivations --consumer <retired-consumer-id> --limit 100 --dry-run --json
+cc hub derivation-status --storage --max-vault-bytes 1073741824 --min-free-bytes 268435456 --json
+cc hub retry-derivations --limit 100 --max-vault-bytes 1073741824 --min-free-bytes 268435456 --reserve-bytes 16777216 --json
+```
+
+`--audit` 使用与回执同库的一致性读取，返回注册消费者与仅存在历史回执的消费者；按 ID 分页，包含 `hasMore` / `nextAfterConsumerId`。输出不含源实体正文、错误正文、claim 或 retirement token。该模式不能同时指定 `--kind` / `--state`，避免遗漏未知历史代。已退役且无回执的标记也会列出。
+
+每代输出总回执数、running 数、最早/最晚回执时间、可清理数量和保留理由。未登记代为 `kind: unknown` / `state: unregistered`；活跃 ephemeral 代为 `liveness: unknown` / `reviewReason: active-process-unverified`，表示需要核查宿主，不能据此断言已经崩溃。没有心跳或进程所有权证据时，时间戳不证明进程死亡。Persistent、active、未知历史代均不允许清理；running 始终保留。`auditConsumers()` 只观察，不退役、不重放，也不将未知代重新归类为 ephemeral。
+
+`--dry-run` 校验所选 ID 均为已退役 ephemeral，返回 `receiptBudget`、`wouldDeleteReceipts`、`retainedRunning` 和零删除数量，不需要 `--confirm`。真正删除仍需另一次带 `--confirm` 的请求，并重新在事务中验证资格；预览不是授权令牌。每次清理上限仍为 1,000 行，选择最多 100 个 ID，不能用预览结果保证以后相同数量。查询和预览通过 minimal hub 打开，不启动注册器及索引重建；vault 本身仍可能应用既有迁移并写入打开审计。
+
+`LocalVault.inspectStorage()` 统计本 vault 的 database、WAL、SHM 文件实际字节及所在磁盘可用空间；`reusableDatabaseBytes` 是库内可重用页，不是已经返还操作系统的空间。`assertStorageBudget({ maxVaultBytes, minFreeBytes, reserveBytes })` 在当前文件总量加预估额外字节超过上限，或预留后磁盘空间不足时抛出 `VAULT_STORAGE_BUDGET_EXCEEDED`。预算参数只接受非负安全整数；没有配置的最大文件量不视为零。`derivation-status --storage` 只返回存储报告，不建立索引注册器。retry 在 full hub 初始化前以及显式重试前检查预算，失败时不启动本次派生重试；打开 vault 的迁移/审计仍发生在检查前。
+
+这是调用者可配置的操作前置预算，不是磁盘预留或跨进程硬配额。其他进程、初始化后的索引恢复或本次任务实际写入仍可能改变空间；`reserveBytes` 由调用者估算，无法精确推导 SQLCipher/WAL 增长。统计范围不包括其他 vault、导出文件及外部向量库。系统不自动清理原始数据、不自动 VACUUM，也不把删除回执行数换算成释放字节。CLI 的这些本地维护选项沿用现有 vault 授权，没有新增 WS/IPC 远程维护通道。
+
+新增专项覆盖：真实 SQLCipher 文件重开后历史/活跃/持久/退役代分页与保留、dry-run 不变性、running 保留、实际 WAL 统计、字节预算拒绝，以及 CLI 预算失败前阻止重试。2026-10-06 本地使用 SQLCipher 驱动 `12.11.1`、Node `22.22.2`、Vitest `4.1.10`：PDH 三文件 38 项通过，CLI hub 命令及既有 WS/IPC 协议两文件 40 项通过，均零失败、零跳过。已发布候选的三平台 4,482 项证据见[发布进度](./palantir-release-progress-2026-10-06.md)，不将旧候选门禁作为本次源码的新门禁。

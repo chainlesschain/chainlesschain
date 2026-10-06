@@ -28,6 +28,8 @@
     "./envelope-sse": "./lib/envelope-sse.js",
     "./quality-gate": "./lib/quality-gate.js",
     "./runtime-claims": "./lib/runtime-claims.js",
+    "./audit-data-policy": "./lib/audit-data-policy.js",
+    "./restricted-audit-store": "./lib/restricted-audit-store.js",
     "./business-object-contract": "./lib/business-object-contract.js",
     "./task-description-action-service": "./lib/task-description-action-service.js",
     "./project-risk-evaluation": "./lib/project-risk-evaluation.js",

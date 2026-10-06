@@ -226,6 +226,69 @@ class DerivationStore {
       .all(...params, limit);
   }
 
+  // Inventory includes pre-lifecycle receipts. Absence of a live process cannot
+  // be inferred from age; these records remain active with unknown liveness.
+  auditConsumers({ afterConsumerId, limit = 100 } = {}) {
+    boundedLimit(limit);
+    if (afterConsumerId !== undefined)
+      identifier(afterConsumerId, "afterConsumerId");
+    return this.db.transaction(() => {
+      const ids = this.db
+        .prepare(
+          `SELECT consumer_id FROM (
+        SELECT consumer_id FROM derivation_consumers
+        UNION SELECT consumer_id FROM derivation_deliveries
+      ) WHERE consumer_id > ? ORDER BY consumer_id LIMIT ?`,
+        )
+        .all(afterConsumerId ?? "", limit + 1);
+      const hasMore = ids.length > limit;
+      const consumers = ids
+        .slice(0, limit)
+        .map(({ consumer_id: consumerId }) => {
+          const consumer = this.getConsumer(consumerId);
+          const receipts = this.db
+            .prepare(
+              `SELECT COUNT(*) AS total,
+          COALESCE(SUM(status='running'),0) AS running,
+          MIN(updated_at) AS oldestUpdatedAt, MAX(updated_at) AS newestUpdatedAt
+          FROM derivation_deliveries WHERE consumer_id=?`,
+            )
+            .get(consumerId);
+          const eligible =
+            consumer?.kind === "ephemeral" && consumer.state === "retired";
+          return {
+            consumerId,
+            kind: consumer?.kind ?? "unknown",
+            state: consumer?.state ?? "unregistered",
+            registeredAt: consumer?.registeredAt ?? null,
+            retiredAt: consumer?.retiredAt ?? null,
+            liveness: "unknown",
+            reviewReason: !consumer
+              ? "unregistered-history"
+              : consumer.state === "active" && consumer.kind === "ephemeral"
+                ? "active-process-unverified"
+                : receipts.running
+                  ? "unresolved-running"
+                  : null,
+            retentionReason: !consumer
+              ? "unknown-consumer-kind"
+              : consumer.kind === "persistent"
+                ? "persistent-index"
+                : consumer.state === "active"
+                  ? "active-generation"
+                  : "retired-generation",
+            receipts,
+            prunableReceipts: eligible ? receipts.total - receipts.running : 0,
+          };
+        });
+      return {
+        consumers,
+        hasMore,
+        nextAfterConsumerId: hasMore ? consumers.at(-1).consumerId : null,
+      };
+    })();
+  }
+
   registerConsumer({ consumerId, kind } = {}) {
     identifier(consumerId, "consumerId");
     if (!["ephemeral", "persistent"].includes(kind)) {
@@ -300,9 +363,17 @@ class DerivationStore {
       .immediate();
   }
 
-  pruneRetiredConsumers({ consumerIds, activeConsumerId, limit = 100 } = {}) {
-    identifier(activeConsumerId, "activeConsumerId");
+  pruneRetiredConsumers({
+    consumerIds,
+    activeConsumerId,
+    limit = 100,
+    dryRun = false,
+  } = {}) {
+    if (!dryRun || activeConsumerId !== undefined)
+      identifier(activeConsumerId, "activeConsumerId");
     boundedLimit(limit);
+    if (typeof dryRun !== "boolean")
+      throw new TypeError("dryRun must be boolean");
     if (
       !Array.isArray(consumerIds) ||
       consumerIds.length < 1 ||
@@ -315,7 +386,7 @@ class DerivationStore {
     ];
     return this.db
       .transaction(() => {
-        if (this.getConsumer(activeConsumerId)?.state !== "active") {
+        if (!dryRun && this.getConsumer(activeConsumerId)?.state !== "active") {
           throw new Error("Pruning requires a registered active consumer");
         }
         for (const id of selected) {
@@ -331,6 +402,24 @@ class DerivationStore {
           }
         }
         const placeholders = selected.map(() => "?").join(",");
+        if (dryRun) {
+          const counts = this.db
+            .prepare(
+              `SELECT COUNT(*) AS total,
+            COALESCE(SUM(status='running'),0) AS running
+            FROM derivation_deliveries WHERE consumer_id IN (${placeholders})`,
+            )
+            .get(...selected);
+          return {
+            dryRun: true,
+            selectedConsumers: selected.length,
+            receiptBudget: limit,
+            wouldDeleteReceipts: Math.min(limit, counts.total - counts.running),
+            retainedRunning: counts.running,
+            remainingReceipts: counts.total,
+            deletedReceipts: 0,
+          };
+        }
         const deleted = this.db
           .prepare(
             `DELETE FROM derivation_deliveries WHERE rowid IN (

@@ -1,7 +1,10 @@
 "use strict";
 
 const { createHash, randomUUID } = require("node:crypto");
-const { digestBusinessObjectContent } = require("./business-object-contract");
+const {
+  digestBusinessObjectContent,
+  validateBusinessActionRun,
+} = require("./business-object-contract");
 const { evaluateProjectRiskSnapshot } = require("./project-risk-evaluation");
 
 const MAX_PROJECT_RISK_REVIEW_BYTES = 2 * 1024 * 1024;
@@ -45,6 +48,29 @@ function inputId(input, name) {
   )
     fail("PROJECT_RISK_INVALID_REQUEST");
   return identifier(input[name]);
+}
+
+function options(input, required, optional = []) {
+  try {
+    digestBusinessObjectContent(input);
+  } catch {
+    fail("PROJECT_RISK_INVALID_REQUEST");
+  }
+  if (
+    !input ||
+    Array.isArray(input) ||
+    required.some((key) => !Object.hasOwn(input, key)) ||
+    Object.keys(input).some((key) => ![...required, ...optional].includes(key))
+  )
+    fail("PROJECT_RISK_INVALID_REQUEST");
+  return input;
+}
+
+function pageLimit(value) {
+  const limit = value === undefined ? 10 : value;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 20)
+    fail("PROJECT_RISK_INVALID_REQUEST");
+  return limit;
 }
 
 function canonical(value) {
@@ -91,8 +117,9 @@ function deriveReviewEvaluation(snapshot) {
 /**
  * Authorized selected-field project risk reads and durable rule evidence.
  * The host supplies current identity and a native synchronous SQLite handle.
- * This service neither authorizes nor links business actions. Risk references
- * remain selected-field versions; they are never full-row action revisions.
+ * Risk references remain selected-field versions, never full-row action
+ * revisions. Action admission binds a verified review inside the same native
+ * transaction; manual feedback is append-only and never rewrites rule facts.
  */
 class ProjectRiskReviewService {
   constructor({ db, getActor, now = () => Date.now() } = {}) {
@@ -117,7 +144,28 @@ class ProjectRiskReviewService {
       source_json TEXT NOT NULL,
       evaluation_json TEXT NOT NULL,
       content_digest TEXT NOT NULL
-    )`),
+    );
+    CREATE INDEX IF NOT EXISTS idx_cc_project_risk_reviews_actor_project
+      ON cc_project_risk_reviews(actor_did,project_id);
+    CREATE TABLE IF NOT EXISTS cc_project_risk_action_links (
+      review_id TEXT NOT NULL,
+      run_id TEXT NOT NULL UNIQUE,
+      actor_did TEXT NOT NULL,
+      content_digest TEXT NOT NULL,
+      invocation_digest TEXT NOT NULL,
+      PRIMARY KEY(review_id,run_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_cc_project_risk_action_links_review
+      ON cc_project_risk_action_links(review_id);
+    CREATE TABLE IF NOT EXISTS cc_project_risk_feedback (
+      id TEXT PRIMARY KEY,
+      review_id TEXT NOT NULL,
+      actor_did TEXT NOT NULL,
+      feedback_json TEXT NOT NULL,
+      content_digest TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cc_project_risk_feedback_review
+      ON cc_project_risk_feedback(review_id,actor_did)`),
     );
   }
 
@@ -395,66 +443,496 @@ class ProjectRiskReviewService {
 
   getReview(input) {
     const reviewId = inputId(input, "reviewId");
-    return this._transaction(() => {
-      const actor = this._actor();
-      const meta = this.db
-        .prepare(
-          `SELECT id,actor_did,project_id,created_at,
+    return this._transaction(() => this._readReview(reviewId, this._actor()));
+  }
+
+  _readReview(reviewId, actor) {
+    const meta = this.db
+      .prepare(
+        `SELECT id,actor_did,project_id,created_at,
         length(CAST(source_json AS BLOB)) AS source_bytes,
         length(CAST(evaluation_json AS BLOB)) AS evaluation_bytes
         FROM cc_project_risk_reviews WHERE id=? AND actor_did=?`,
-        )
-        .get(reviewId, actor);
-      if (!meta) fail("PROJECT_RISK_NOT_FOUND_OR_DENIED");
-      this._ownedProject(meta.project_id, actor);
-      const columns = this._taskColumns();
-      this._checkProjectTaskScope(meta.project_id, columns);
+      )
+      .get(reviewId, actor);
+    if (!meta) fail("PROJECT_RISK_NOT_FOUND_OR_DENIED");
+    this._ownedProject(meta.project_id, actor);
+    const columns = this._taskColumns();
+    this._checkProjectTaskScope(meta.project_id, columns);
+    if (
+      !Number.isSafeInteger(meta.source_bytes) ||
+      !Number.isSafeInteger(meta.evaluation_bytes) ||
+      meta.source_bytes + meta.evaluation_bytes > MAX_PROJECT_RISK_REVIEW_BYTES
+    )
+      fail("PROJECT_RISK_REVIEW_CORRUPT");
+    const row = this.db
+      .prepare(
+        "SELECT source_json,evaluation_json,content_digest FROM cc_project_risk_reviews WHERE id=? AND actor_did=?",
+      )
+      .get(reviewId, actor);
+    let result;
+    try {
+      const sourceSnapshot = JSON.parse(row.source_json);
+      const evaluation = JSON.parse(row.evaluation_json);
+      result = {
+        review: {
+          id: meta.id,
+          projectId: meta.project_id,
+          actorDid: meta.actor_did,
+          createdAt: meta.created_at,
+        },
+        sourceSnapshot,
+        evaluation,
+      };
       if (
-        !Number.isSafeInteger(meta.source_bytes) ||
-        !Number.isSafeInteger(meta.evaluation_bytes) ||
-        meta.source_bytes + meta.evaluation_bytes >
+        sourceSnapshot.sourceSchema !== SOURCE_SCHEMA ||
+        !["complete", "schema-incomplete", "task-limit-exceeded"].includes(
+          sourceSnapshot.readStatus,
+        ) ||
+        sourceSnapshot.project.id !== meta.project_id ||
+        sourceSnapshot.scope.kind !== "personal" ||
+        sourceSnapshot.scope.id !== actor ||
+        sourceSnapshot.asOf !== meta.created_at ||
+        row.content_digest !== digest(result) ||
+        canonical(deriveReviewEvaluation(sourceSnapshot)) !==
+          canonical(evaluation) ||
+        Buffer.byteLength(JSON.stringify(result), "utf8") >
           MAX_PROJECT_RISK_REVIEW_BYTES
       )
         fail("PROJECT_RISK_REVIEW_CORRUPT");
-      const row = this.db
-        .prepare(
-          "SELECT source_json,evaluation_json,content_digest FROM cc_project_risk_reviews WHERE id=? AND actor_did=?",
-        )
-        .get(reviewId, actor);
-      let result;
-      try {
-        const sourceSnapshot = JSON.parse(row.source_json);
-        const evaluation = JSON.parse(row.evaluation_json);
-        result = {
-          review: {
-            id: meta.id,
-            projectId: meta.project_id,
-            actorDid: meta.actor_did,
-            createdAt: meta.created_at,
-          },
-          sourceSnapshot,
-          evaluation,
-        };
-        if (
-          sourceSnapshot.sourceSchema !== SOURCE_SCHEMA ||
-          !["complete", "schema-incomplete", "task-limit-exceeded"].includes(
-            sourceSnapshot.readStatus,
-          ) ||
-          sourceSnapshot.project.id !== meta.project_id ||
-          sourceSnapshot.scope.kind !== "personal" ||
-          sourceSnapshot.scope.id !== actor ||
-          sourceSnapshot.asOf !== meta.created_at ||
-          row.content_digest !== digest(result) ||
-          canonical(deriveReviewEvaluation(sourceSnapshot)) !==
-            canonical(evaluation) ||
-          Buffer.byteLength(JSON.stringify(result), "utf8") >
-            MAX_PROJECT_RISK_REVIEW_BYTES
-        )
-          fail("PROJECT_RISK_REVIEW_CORRUPT");
-      } catch {
-        fail("PROJECT_RISK_REVIEW_CORRUPT");
+    } catch {
+      fail("PROJECT_RISK_REVIEW_CORRUPT");
+    }
+    this._checkHistoricalTasks(result.sourceSnapshot, columns);
+    return immutable(result);
+  }
+
+  listReviews(input) {
+    const value = options(input, ["projectId"], ["beforeId", "limit"]);
+    identifier(value.projectId);
+    if (value.beforeId !== undefined) identifier(value.beforeId);
+    const limit = pageLimit(value.limit);
+    return this._transaction(() => {
+      const actor = this._actor();
+      this._ownedProject(value.projectId, actor);
+      let cursor;
+      if (value.beforeId !== undefined) {
+        cursor = this.db
+          .prepare(
+            "SELECT rowid FROM cc_project_risk_reviews WHERE id=? AND actor_did=? AND project_id=?",
+          )
+          .get(value.beforeId, actor, value.projectId);
+        if (!cursor) fail("PROJECT_RISK_INVALID_CURSOR");
       }
-      this._checkHistoricalTasks(result.sourceSnapshot, columns);
+      const rows = this.db
+        .prepare(
+          `SELECT id FROM cc_project_risk_reviews
+        WHERE actor_did=? AND project_id=? ${cursor ? "AND rowid<?" : ""}
+        ORDER BY rowid DESC LIMIT ?`,
+        )
+        .all(
+          actor,
+          value.projectId,
+          ...(cursor ? [cursor.rowid] : []),
+          limit + 1,
+        );
+      const reviews = rows.slice(0, limit).map(({ id }) => {
+        const result = this._readReview(id, actor);
+        return {
+          review: result.review,
+          status: result.evaluation.status,
+          summary: result.evaluation.summary,
+          reasonCodes: result.evaluation.reasonCodes,
+          contentDigest: digest(result),
+        };
+      });
+      return immutable({
+        reviews,
+        nextCursor: rows.length > limit ? reviews.at(-1).review.id : null,
+      });
+    });
+  }
+
+  _actionContext(value, actor, requireFresh = true) {
+    const result = this._readReview(value.reviewId, actor);
+    const contentDigest = digest(result);
+    if (
+      value.contentDigest !== undefined &&
+      value.contentDigest !== contentDigest
+    )
+      fail("PROJECT_RISK_REVIEW_CONFLICT");
+    if (
+      result.evaluation.status !== "evaluated" ||
+      !result.sourceSnapshot.tasks.some((task) => task.id === value.taskId)
+    )
+      fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
+    if (requireFresh) {
+      const project = this._ownedProject(result.review.projectId, actor);
+      const columns = this._taskColumns();
+      this._checkProjectTaskScope(project.id, columns);
+      const current = this._snapshot(
+        project,
+        actor,
+        result.review.createdAt,
+        columns,
+      );
+      if (canonical(current) !== canonical(result.sourceSnapshot))
+        fail("PROJECT_RISK_REVIEW_STALE");
+    }
+    return immutable({ id: result.review.id, contentDigest });
+  }
+
+  getActionContext(input) {
+    const value = options(input, ["reviewId", "taskId"]);
+    identifier(value.reviewId);
+    identifier(value.taskId);
+    // This may be used by the action service during its preview transaction.
+    if (this.db.inTransaction) return this._actionContext(value, this._actor());
+    return this._transaction(() => this._actionContext(value, this._actor()));
+  }
+
+  verifyActionContext(input) {
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    const value = options(input, ["reviewId", "taskId", "contentDigest"]);
+    identifier(value.reviewId);
+    identifier(value.taskId);
+    return this._actionContext(value, this._actor());
+  }
+
+  bindActionRun(input) {
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    const value = options(input, ["reviewId", "run", "contentDigest"]);
+    const actor = this._actor();
+    let run;
+    try {
+      run = validateBusinessActionRun(value.run);
+    } catch {
+      fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
+    }
+    if (
+      run.actionType !== "task.update-description" ||
+      run.target.type !== "Task" ||
+      run.target.scope.kind !== "personal" ||
+      run.target.scope.id !== actor
+    )
+      fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
+    this._actionContext({ ...value, taskId: run.target.id }, actor, false);
+    const row = this.db
+      .prepare(
+        "SELECT actor_did,invocation_digest,run_json FROM cc_business_action_runs WHERE id=?",
+      )
+      .get(run.id);
+    if (
+      !row ||
+      row.actor_did !== actor ||
+      row.invocation_digest !== run.invocationDigest ||
+      row.run_json !== JSON.stringify(run)
+    )
+      fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
+    const previous = this.db
+      .prepare("SELECT * FROM cc_project_risk_action_links WHERE run_id=?")
+      .get(run.id);
+    if (previous) {
+      if (
+        previous.review_id !== value.reviewId ||
+        previous.actor_did !== actor ||
+        previous.content_digest !== value.contentDigest ||
+        previous.invocation_digest !== run.invocationDigest
+      )
+        fail("PROJECT_RISK_REVIEW_CONFLICT");
+      return;
+    }
+    this.db
+      .prepare(
+        `INSERT INTO cc_project_risk_action_links
+      (review_id,run_id,actor_did,content_digest,invocation_digest) VALUES (?,?,?,?,?)`,
+      )
+      .run(
+        value.reviewId,
+        run.id,
+        actor,
+        value.contentDigest,
+        run.invocationDigest,
+      );
+  }
+
+  recordFeedback(input) {
+    const value = options(
+      input,
+      ["reviewId", "taskId", "verdict", "reasonCodes"],
+      ["comment"],
+    );
+    identifier(value.reviewId);
+    identifier(value.taskId);
+    const allowedReasons = [
+      "OVERDUE_INCOMPLETE_TASK",
+      "BLOCKED_BY_INCOMPLETE_DEPENDENCY",
+    ];
+    if (
+      !["affirmed", "dismissed", "needs-review"].includes(value.verdict) ||
+      !Array.isArray(value.reasonCodes) ||
+      value.reasonCodes.length > 2 ||
+      new Set(value.reasonCodes).size !== value.reasonCodes.length ||
+      value.reasonCodes.some((code) => !allowedReasons.includes(code)) ||
+      (value.verdict === "dismissed" && value.reasonCodes.length !== 0) ||
+      (value.comment !== undefined &&
+        (typeof value.comment !== "string" ||
+          Buffer.byteLength(value.comment, "utf8") > 4096))
+    )
+      fail("PROJECT_RISK_INVALID_REQUEST");
+    return this._transaction(() => {
+      const actor = this._actor();
+      this._actionContext(value, actor, false);
+      const at = this.now();
+      if (!Number.isSafeInteger(at) || at < 0 || at > 253402300799999)
+        fail("PROJECT_RISK_INVALID_CLOCK");
+      const feedback = {
+        id: randomUUID(),
+        reviewId: value.reviewId,
+        taskId: value.taskId,
+        actorDid: actor,
+        createdAt: new Date(at).toISOString(),
+        verdict: value.verdict,
+        reasonCodes: [...value.reasonCodes].sort(),
+        comment: value.comment ?? "",
+      };
+      this.db
+        .prepare(
+          `INSERT INTO cc_project_risk_feedback
+        (id,review_id,actor_did,feedback_json,content_digest) VALUES (?,?,?,?,?)`,
+        )
+        .run(
+          feedback.id,
+          value.reviewId,
+          actor,
+          JSON.stringify(feedback),
+          digest(feedback),
+        );
+      return immutable({ feedback, contentDigest: digest(feedback) });
+    });
+  }
+
+  _lineageRun(row, context, actor) {
+    try {
+      if (!row.run_json || !row.evidence_json) throw new Error();
+      const run = validateBusinessActionRun(JSON.parse(row.run_json));
+      const evidence = JSON.parse(row.evidence_json);
+      if (
+        run.id !== row.run_id ||
+        row.actor_did !== actor ||
+        run.target.scope.id !== actor ||
+        run.target.scope.kind !== "personal" ||
+        run.target.sourceKind !== "desktop.project-task" ||
+        row.receipt_actor !== actor ||
+        row.receipt_target !== run.target.id ||
+        row.receipt_idempotency !== run.idempotencyDigest ||
+        row.receipt_invocation !== run.invocationDigest ||
+        row.invocation_digest !== run.invocationDigest ||
+        !Array.isArray(evidence) ||
+        evidence.length !== run.evidenceRefs.length ||
+        new Set(evidence.map((item) => item.id)).size !== evidence.length
+      )
+        throw new Error();
+      for (const item of evidence) {
+        const ref = run.evidenceRefs.find((entry) => entry.id === item.id);
+        if (
+          !ref ||
+          ref.digest !== digestBusinessObjectContent(item) ||
+          item.actorDid !== actor ||
+          item.invocationDigest !== run.invocationDigest
+        )
+          throw new Error();
+      }
+      const source = evidence.filter(
+        (item) => item.kind === "project-risk-review",
+      );
+      if (
+        source.length !== 1 ||
+        source[0].reviewId !== context.review.id ||
+        source[0].contentDigest !== digest(context) ||
+        source[0].actionDigest !== run.actionDigest ||
+        source[0].expectedVersion !== run.expectedVersion ||
+        row.content_digest !== digest(context) ||
+        run.actionType !== "task.update-description" ||
+        run.target.type !== "Task" ||
+        !context.sourceSnapshot.tasks.some((task) => task.id === run.target.id)
+      )
+        throw new Error();
+      const approval = evidence.find((item) => item.id === run.approvalRef?.id);
+      const execution = evidence.find(
+        (item) => item.id === run.executionRef?.id,
+      );
+      if (
+        (run.approvalRef &&
+          (!approval ||
+            approval.actionDigest !== run.actionDigest ||
+            approval.expectedVersion !== run.expectedVersion)) ||
+        (run.executionRef && !execution)
+      )
+        throw new Error();
+      if (
+        run.status === "succeeded" &&
+        (approval?.kind !== "local-user-confirmation" ||
+          approval.decision !== "allow" ||
+          approval.via !== "user-confirm" ||
+          approval.policy !== "strict" ||
+          approval.riskLevel !== "high" ||
+          execution?.kind !== "sqlite-task-description-update" ||
+          execution.affectedRows !== 1 ||
+          execution.beforeVersion !== run.expectedVersion ||
+          execution.afterVersion !== run.afterVersion)
+      )
+        throw new Error();
+      return { run, evidence };
+    } catch {
+      fail("PROJECT_RISK_LINEAGE_CORRUPT");
+    }
+  }
+
+  getLineage(input) {
+    const value = options(
+      input,
+      ["reviewId"],
+      ["beforeId", "feedbackBeforeId", "limit"],
+    );
+    identifier(value.reviewId);
+    for (const key of ["beforeId", "feedbackBeforeId"])
+      if (value[key] !== undefined) identifier(value[key]);
+    const limit = pageLimit(value.limit);
+    return this._transaction(() => {
+      const actor = this._actor();
+      const context = this._readReview(value.reviewId, actor);
+      const cursorFor = (table, key, cursor) => {
+        if (cursor === undefined) return undefined;
+        const row = this.db
+          .prepare(
+            `SELECT rowid FROM ${table} WHERE ${key}=? AND review_id=? AND actor_did=?`,
+          )
+          .get(cursor, value.reviewId, actor);
+        if (!row) fail("PROJECT_RISK_INVALID_CURSOR");
+        return row.rowid;
+      };
+      const cursor = cursorFor(
+        "cc_project_risk_action_links",
+        "run_id",
+        value.beforeId,
+      );
+      const feedbackCursor = cursorFor(
+        "cc_project_risk_feedback",
+        "id",
+        value.feedbackBeforeId,
+      );
+      let actionRows = [];
+      if (this._hasTable("cc_business_action_runs")) {
+        actionRows = this.db
+          .prepare(
+            `SELECT l.run_id,l.actor_did,l.content_digest,l.invocation_digest,
+          r.actor_did AS receipt_actor,r.target_id AS receipt_target,
+          r.idempotency_digest AS receipt_idempotency,r.invocation_digest AS receipt_invocation,
+          CASE WHEN length(CAST(r.run_json AS BLOB))<=65536 THEN r.run_json ELSE NULL END AS run_json,
+          CASE WHEN length(CAST(r.evidence_json AS BLOB))<=65536 THEN r.evidence_json ELSE NULL END AS evidence_json
+          FROM cc_project_risk_action_links l LEFT JOIN cc_business_action_runs r ON r.id=l.run_id
+          WHERE l.review_id=? AND l.actor_did=? ${cursor !== undefined ? "AND l.rowid<?" : ""}
+          ORDER BY l.rowid DESC LIMIT ?`,
+          )
+          .all(
+            value.reviewId,
+            actor,
+            ...(cursor !== undefined ? [cursor] : []),
+            limit + 1,
+          );
+      } else if (
+        this.db
+          .prepare(
+            "SELECT 1 FROM cc_project_risk_action_links WHERE review_id=? LIMIT 1",
+          )
+          .get(value.reviewId)
+      )
+        fail("PROJECT_RISK_LINEAGE_CORRUPT");
+      const rows = this.db
+        .prepare(
+          `SELECT id,content_digest,
+        CASE WHEN length(CAST(feedback_json AS BLOB))<=8192 THEN feedback_json ELSE NULL END AS feedback_json
+        FROM cc_project_risk_feedback WHERE review_id=? AND actor_did=?
+        ${feedbackCursor !== undefined ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
+        )
+        .all(
+          value.reviewId,
+          actor,
+          ...(feedbackCursor !== undefined ? [feedbackCursor] : []),
+          limit + 1,
+        );
+      const feedback = rows.slice(0, limit).map((row) => {
+        try {
+          if (!row.feedback_json) throw new Error();
+          const item = JSON.parse(row.feedback_json);
+          options(item, [
+            "id",
+            "reviewId",
+            "taskId",
+            "actorDid",
+            "createdAt",
+            "verdict",
+            "reasonCodes",
+            "comment",
+          ]);
+          identifier(item.id);
+          identifier(item.taskId);
+          if (
+            typeof item.createdAt !== "string" ||
+            !Number.isFinite(Date.parse(item.createdAt)) ||
+            new Date(item.createdAt).toISOString() !== item.createdAt ||
+            !["affirmed", "dismissed", "needs-review"].includes(item.verdict) ||
+            !Array.isArray(item.reasonCodes) ||
+            item.reasonCodes.length > 2 ||
+            new Set(item.reasonCodes).size !== item.reasonCodes.length ||
+            item.reasonCodes.some(
+              (code) =>
+                ![
+                  "OVERDUE_INCOMPLETE_TASK",
+                  "BLOCKED_BY_INCOMPLETE_DEPENDENCY",
+                ].includes(code),
+            ) ||
+            (item.verdict === "dismissed" && item.reasonCodes.length !== 0) ||
+            typeof item.comment !== "string" ||
+            Buffer.byteLength(item.comment, "utf8") > 4096
+          )
+            throw new Error();
+          if (
+            item.id !== row.id ||
+            item.reviewId !== value.reviewId ||
+            item.actorDid !== actor ||
+            row.content_digest !== digest(item) ||
+            !context.sourceSnapshot.tasks.some(
+              (task) => task.id === item.taskId,
+            )
+          )
+            throw new Error();
+          return { feedback: item, contentDigest: row.content_digest };
+        } catch {
+          fail("PROJECT_RISK_FEEDBACK_CORRUPT");
+        }
+      });
+      const result = {
+        review: context.review,
+        contentDigest: digest(context),
+        evaluation: context.evaluation,
+        actionRuns: actionRows
+          .slice(0, limit)
+          .map((row) => this._lineageRun(row, context, actor)),
+        feedback,
+        nextCursor:
+          actionRows.length > limit ? actionRows[limit - 1].run_id : null,
+        nextFeedbackCursor: rows.length > limit ? rows[limit - 1].id : null,
+        proof: "local-content-binding",
+        modelUsage: null,
+        cost: { status: "unknown" },
+      };
+      if (
+        Buffer.byteLength(JSON.stringify(result), "utf8") >
+        MAX_PROJECT_RISK_REVIEW_BYTES
+      )
+        fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
       return immutable(result);
     });
   }

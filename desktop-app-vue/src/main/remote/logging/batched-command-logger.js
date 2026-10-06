@@ -16,7 +16,15 @@ const SqlSecurity = require("../../database/sql-security.js");
 const {
   deserializeRemoteCommandAuditValue,
   serializeRemoteCommandAuditValue,
+  projectRemoteAuditEnvelope,
+  projectStoredRemoteAuditEnvelope,
 } = require("./remote-command-audit-redaction");
+const {
+  RestrictedAuditStore,
+} = require("@chainlesschain/session-core/restricted-audit-store");
+const {
+  validateAuditRetention,
+} = require("@chainlesschain/session-core/audit-data-policy");
 
 const logger = createRemoteLogRedactor(remoteLogSink, "BatchedCommandLogger");
 
@@ -31,6 +39,7 @@ class BatchedCommandLogger extends EventEmitter {
     super();
 
     this.database = database;
+    this.diagnostics = new RestrictedAuditStore(database, options.diagnostics);
 
     // 配置
     this.config = {
@@ -46,6 +55,7 @@ class BatchedCommandLogger extends EventEmitter {
       enableAutoCleanup: getConfig("logging.enableAutoCleanup", true),
       ...options,
     };
+    validateAuditRetention(this.config);
 
     // 批处理缓冲区
     this.logBuffer = [];
@@ -150,6 +160,7 @@ class BatchedCommandLogger extends EventEmitter {
    * @param {Object} logEntry - 日志条目
    */
   log(logEntry) {
+    logEntry = { ...logEntry, ...projectRemoteAuditEnvelope(logEntry) };
     // 验证必要字段
     if (
       !logEntry.requestId ||
@@ -195,6 +206,14 @@ class BatchedCommandLogger extends EventEmitter {
     }
 
     return normalizedEntry;
+  }
+
+  captureDiagnostic(requestId, details, context) {
+    return this.diagnostics.capture(requestId, details, context);
+  }
+
+  readDiagnostic(id, context) {
+    return this.diagnostics.read(id, context);
   }
 
   /**
@@ -376,7 +395,7 @@ class BatchedCommandLogger extends EventEmitter {
 
       // 解析 JSON 字段
       const parsedLogs = logs.map((log) => ({
-        ...log,
+        ...projectStoredRemoteAuditEnvelope(log),
         params: deserializeRemoteCommandAuditValue("params", log.params),
         result: deserializeRemoteCommandAuditValue("result", log.result),
         error: deserializeRemoteCommandAuditValue("error", log.error),
@@ -423,11 +442,12 @@ class BatchedCommandLogger extends EventEmitter {
    */
   cleanup() {
     try {
+      this.diagnostics.purgeExpired();
       const cutoffTime = Date.now() - this.config.maxLogAge;
 
       // 删除过期日志
       const deleteStmt = this.database.prepare(
-        "DELETE FROM remote_command_logs WHERE timestamp < ?",
+        "DELETE FROM remote_command_logs WHERE created_at < ?",
       );
       const result1 = deleteStmt.run(cutoffTime);
 
@@ -442,7 +462,7 @@ class BatchedCommandLogger extends EventEmitter {
           DELETE FROM remote_command_logs
           WHERE id IN (
             SELECT id FROM remote_command_logs
-            ORDER BY timestamp ASC
+            ORDER BY created_at ASC, id ASC
             LIMIT ?
           )
         `);

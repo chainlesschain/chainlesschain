@@ -29,6 +29,13 @@
         </button>
       </div>
       <p v-if="!riskAvailable" class="muted">当前版本未提供项目风险检查。</p>
+      <ProjectTaskCreateForm
+        v-if="createAvailable"
+        :project-id="projectId"
+        :identity-key="identityKey"
+        @created="loadTasks()"
+        @authority-error="failure($event, '无法访问当前项目。')"
+      />
       <p v-if="loadingList" role="status">正在读取任务…</p>
       <p v-else-if="!error && tasks.length === 0" data-testid="empty-tasks">
         暂无已保存任务。
@@ -56,32 +63,13 @@
         加载更多任务
       </button>
 
-      <section v-if="risk" class="section" data-testid="risk-result">
-        <h3>交付风险检查</h3>
-        <p v-if="risk.evaluation.status !== 'evaluated'" class="notice">
-          数据不足，暂不能完成风险检查。
-        </p>
-        <p v-else-if="risk.evaluation.summary?.riskTaskCount === 0">
-          未发现所选规则信号。
-        </p>
-        <template v-else>
-          <p>
-            发现
-            {{ risk.evaluation.summary?.riskTaskCount }} 个任务有待检查信号。
-          </p>
-          <ul>
-            <li v-for="item in risk.evaluation.tasks" :key="item.taskRef.id">
-              {{ item.taskRef.id }}：{{
-                item.reasonCodes.map(riskReason).join("；")
-              }}
-            </li>
-          </ul>
-        </template>
-        <p class="muted">仅检查逾期与未完成的直接依赖，不预测交付结果。</p>
-        <p class="muted">补充任务描述不会消除这些风险信号。</p>
-        <p class="muted">来源时间：{{ risk.evaluation.asOf || "未提供" }}</p>
-        <p class="muted">检查记录：{{ risk.review.id }}</p>
-      </section>
+      <ProjectRiskReviewPanel
+        :project-id="projectId"
+        :identity-key="identityKey"
+        :review="risk"
+        @review="risk = $event"
+        @authority-error="clearAll()"
+      />
 
       <p v-if="loadingTask" role="status">正在读取任务详情…</p>
       <section v-if="task" class="section" data-testid="task-editor">
@@ -177,11 +165,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import ProjectRiskReviewPanel from "./ProjectRiskReviewPanel.vue";
+import ProjectTaskCreateForm from "./ProjectTaskCreateForm.vue";
 import {
   actionCode,
   isAuthorityError,
   isDefiniteActionRejection,
-  riskReason,
   runLabel,
   taskRestriction,
   taskStatus,
@@ -258,6 +247,11 @@ const attemptKey = () =>
   JSON.stringify([props.identityKey || "", props.projectId, selectedId.value]);
 const riskAvailable = computed(
   () => typeof apis()?.project?.evaluateRisk === "function",
+);
+const createAvailable = computed(
+  () =>
+    typeof (apis()?.task as unknown as { previewControlledCreate?: unknown })
+      ?.previewControlledCreate === "function",
 );
 const descriptionBytes = computed(
   () => new TextEncoder().encode(draft.value).length,
@@ -420,12 +414,20 @@ async function previewDescription() {
         description: draft.value,
         attempted: false,
       };
+    const intentKey = intent.key,
+      reviewId = risk.value?.review.id;
     const result = await taskApi().previewDescriptionUpdate({
       taskId: task.value.taskId,
       description: draft.value,
       idempotencyKey: intent.key,
+      ...(reviewId ? { reviewId } : {}),
     });
-    if (current(stamp)) prepared.value = result;
+    if (
+      current(stamp) &&
+      intent?.key === intentKey &&
+      risk.value?.review.id === reviewId
+    )
+      prepared.value = result;
   } catch (value) {
     if (current(stamp)) {
       if (actionCode(value) === "ACTION_UNRESOLVED_ACTION")
@@ -588,6 +590,16 @@ watch(draft, () => {
   )
     prepared.value = null;
 });
+watch(
+  () => risk.value?.review.id,
+  () => {
+    if (!intent?.attempted) {
+      prepared.value = null;
+      intent = null;
+    }
+  },
+  { flush: "sync" },
+);
 watch(
   () => [props.open, props.projectId, props.identityKey],
   (next, previous) => {

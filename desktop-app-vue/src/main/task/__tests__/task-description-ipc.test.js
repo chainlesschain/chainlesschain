@@ -86,6 +86,100 @@ describe("personal task description desktop authority", () => {
 
   afterEach(() => db.close());
 
+  it.each([
+    "update-task",
+    "delete-task",
+    "move-task",
+    "assign-task",
+    "set-priority",
+    "set-due-date",
+    "add-label",
+    "link-tasks",
+    "create-subtask",
+    "convert-to-subtask",
+  ])("closes the old %s canonical task bypass", async (operation) => {
+    const Module = require("node:module");
+    const load = Module._load;
+    const handlers = new Map();
+    electron.ipcMain.handle.mockImplementation((name, handler) =>
+      handlers.set(name, handler),
+    );
+    Module._load = function (name, ...args) {
+      if (name === "electron") return electron;
+      if (name === "../utils/logger.js")
+        return { logger: { info() {}, error() {} } };
+      return load.call(this, name, ...args);
+    };
+    try {
+      delete require.cache[require.resolve("../task-ipc.js")];
+      require("../task-ipc.js").registerTaskIPC({ getDatabase: () => db });
+    } finally {
+      Module._load = load;
+    }
+    await expect(
+      handlers.get(`task:${operation}`)(event, {
+        taskId: "task-1",
+        parentTaskId: "task-1",
+        actorDid: owner,
+        updates: { description: "Bypass" },
+      }),
+    ).rejects.toThrow("ACTION_CONTROLLED_TASK_REQUIRED");
+    expect(description()).toBe("Original description");
+  });
+
+  it("creates canonical pending tasks with native confirmation and project history", async () => {
+    const preview = host.previewCreate(event, {
+      projectId: "project-1",
+      taskType: "analyze_data",
+      description: "Persist this plan",
+      idempotencyKey: "create-task-1",
+      actorDid: "did:attacker",
+    });
+    const result = await host.executeCreate(event, {
+      request: preview.request,
+    });
+    expect(result.run.status).toBe("succeeded");
+    const created = result.evidence.find(
+      (item) => item.kind === "sqlite-task-create",
+    ).createdTaskRef;
+    expect(host.readTask(event, { taskId: created.id })).toMatchObject({
+      description: "Persist this plan",
+      status: "pending",
+      editable: true,
+    });
+    expect(
+      host.listCreateRuns(event, { projectId: "project-1" }).runs[0].run,
+    ).toEqual(result.run);
+    expect(electron.dialog.showMessageBox.mock.calls[0][1]).toMatchObject({
+      title: "确认创建项目任务",
+      defaultId: 0,
+      cancelId: 0,
+    });
+    expect(electron.dialog.showMessageBox.mock.calls[0][1].detail).toContain(
+      "analyze_data",
+    );
+  });
+
+  it("binds an authorized risk review through admission, confirmation and execution", async () => {
+    db.prepare("UPDATE project_tasks SET due_date=1, blocked_by='[]'").run();
+    const risk = host.evaluateRisk(event, { projectId: "project-1" });
+    const prepared = preview({ reviewId: risk.review.id });
+    expect(prepared.request.input.riskReview.id).toBe(risk.review.id);
+    const result = await host.execute(event, { request: prepared.request });
+    expect(result.run.status).toBe("succeeded");
+    expect(
+      result.evidence.find((item) => item.kind === "project-risk-review"),
+    ).toMatchObject({
+      reviewId: risk.review.id,
+      actionDigest: prepared.request.actionDigest,
+      expectedVersion: prepared.request.expectedVersion,
+    });
+    expect(
+      db.prepare("SELECT run_id FROM cc_project_risk_action_links").get()
+        .run_id,
+    ).toBe(result.run.id);
+  });
+
   it("previews and executes the real shared service with a native owner confirmation", async () => {
     const result = preview();
     expect(description()).toBe("Original description");

@@ -3,6 +3,7 @@
 const { randomUUID } = require("node:crypto");
 const {
   createBusinessObjectRef,
+  validateBusinessObjectRef,
   createBusinessActionRequest,
   validateBusinessActionRequest,
   createBusinessActionRun,
@@ -19,6 +20,12 @@ const MAX_RECEIPT_BYTES = 65536;
 const RECEIPT_COLUMNS = `id,actor_did,target_id,idempotency_digest,invocation_digest,
   CASE WHEN length(CAST(run_json AS BLOB))<=${MAX_RECEIPT_BYTES} THEN run_json ELSE NULL END AS run_json,
   CASE WHEN length(CAST(evidence_json AS BLOB))<=${MAX_RECEIPT_BYTES} THEN evidence_json ELSE NULL END AS evidence_json`;
+
+function receiptTarget(type) {
+  // Malformed candidates remain visible to the receipt validator and fail
+  // closed; an actual other object type must never cross this history boundary.
+  return `CASE WHEN json_valid(run_json) THEN COALESCE(json_extract(run_json,'$.target.type')='${type}',1) ELSE 1 END`;
+}
 
 function readOptions(input, required, optional) {
   try {
@@ -98,12 +105,20 @@ function validateRequest(value) {
     request.target.type !== "Task" ||
     request.target.sourceKind !== SOURCE_KIND ||
     request.target.scope.kind !== "personal" ||
-    Object.keys(request.input).length !== 1 ||
+    Object.keys(request.input).some(
+      (key) => !["description", "riskReview"].includes(key),
+    ) ||
     !Object.hasOwn(request.input, "description")
   ) {
     fail("ACTION_UNSUPPORTED_REQUEST");
   }
   description(request.input.description);
+  if (Object.hasOwn(request.input, "riskReview")) {
+    readOptions(request.input.riskReview, ["id", "contentDigest"], []);
+    id(request.input.riskReview.id);
+    if (!/^sha256:[a-f0-9]{64}$/.test(request.input.riskReview.contentDigest))
+      fail("ACTION_INVALID_REQUEST");
+  }
   return request;
 }
 
@@ -203,7 +218,8 @@ function createTaskDescriptionPreview(input) {
  * Native SQLite implementation for a deliberately narrow personal-task action.
  * Authority comes from the host's current unlocked identity, never the request.
  * Organizations/workspaces are unsupported until their RBAC/workflow adapter is
- * available. Existing mutable project/task entrypoints are not replaced here.
+ * available. The desktop adapter routes canonical legacy reads and rejects
+ * ungoverned canonical writes; team-board and ancillary models remain separate.
  *
  * An admission receipt is durable before confirmation. No transaction spans an
  * await. Final ownership/version checks, mutation and success evidence commit in
@@ -358,7 +374,7 @@ class TaskDescriptionActionService {
     // Validate candidates in JS too; SQL safely handles malformed JSON first.
     const row = this.db
       .prepare(
-        `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE target_id=? AND
+        `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE target_id=? AND ${receiptTarget(this._targetType())} AND
       CASE WHEN json_valid(run_json) THEN
         COALESCE(json_extract(run_json,'$.status') NOT IN ('succeeded','failed','cancelled','denied'),1)
       ELSE 1 END LIMIT 1`,
@@ -368,6 +384,10 @@ class TaskDescriptionActionService {
       this._readRun(row);
       fail("ACTION_UNRESOLVED_ACTION");
     }
+  }
+
+  _targetType() {
+    return "Task";
   }
 
   _readTransaction(operation) {
@@ -569,7 +589,7 @@ class TaskDescriptionActionService {
       if (options.beforeId !== undefined) {
         const cursor = this.db
           .prepare(
-            "SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=?",
+            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${receiptTarget("Task")}`,
           )
           .get(options.beforeId, actor, options.taskId);
         if (!cursor) fail("ACTION_INVALID_CURSOR");
@@ -579,7 +599,7 @@ class TaskDescriptionActionService {
       if (beforeRowId !== undefined) params.push(beforeRowId);
       const rows = this.db
         .prepare(
-          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=?
+          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${receiptTarget("Task")}
         ${beforeRowId !== undefined ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
         )
         .all(...params, limit + 1);
@@ -634,23 +654,54 @@ class TaskDescriptionActionService {
     if (
       !input ||
       Array.isArray(input) ||
-      Object.keys(input).sort().join(",") !==
-        "description,idempotencyKey,taskId"
+      !["description", "idempotencyKey", "taskId"].every((key) =>
+        Object.hasOwn(input, key),
+      ) ||
+      Object.keys(input).some(
+        (key) =>
+          !["description", "idempotencyKey", "taskId", "reviewId"].includes(
+            key,
+          ),
+      )
     )
       fail("ACTION_INVALID_REQUEST");
     description(input.description);
     id(input.idempotencyKey);
+    const riskContext =
+      input.reviewId === undefined
+        ? null
+        : this._riskService().getActionContext({
+            reviewId: input.reviewId,
+            taskId: input.taskId,
+          });
     return this._transaction(() => {
       const actor = this._actor();
       this._ownedTask(input.taskId, actor, { metadataOnly: true });
       this._assertNoUnresolvedTask(input.taskId);
       const snapshot = this._snapshot(input.taskId, actor, true);
+      const riskReview = riskContext;
+      if (riskReview)
+        this._riskService().verifyActionContext({
+          reviewId: riskReview.id,
+          taskId: input.taskId,
+          contentDigest: riskReview.contentDigest,
+        });
       const request = createBusinessActionRequest({
         actionType: ACTION_TYPE,
         actionVersion: 1,
         target: snapshot.ref,
         expectedVersion: snapshot.ref.version,
-        input: { description: input.description },
+        input: {
+          description: input.description,
+          ...(riskReview
+            ? {
+                riskReview: {
+                  id: riskReview.id,
+                  contentDigest: riskReview.contentDigest,
+                },
+              }
+            : {}),
+        },
         idempotencyKey: input.idempotencyKey,
       });
       return Object.freeze({
@@ -671,6 +722,17 @@ class TaskDescriptionActionService {
       )
         fail("ACTION_RECEIPT_CORRUPT");
       const run = validateBusinessActionRun(JSON.parse(row.run_json));
+      if (
+        ![ACTION_TYPE, "task.create"].includes(run.actionType) ||
+        run.target.type !==
+          (run.actionType === "task.create" ? "Project" : "Task") ||
+        run.target.scope.kind !== "personal" ||
+        run.target.sourceKind !==
+          (run.actionType === "task.create"
+            ? "desktop.project-task-owner"
+            : SOURCE_KIND)
+      )
+        fail("ACTION_RECEIPT_CORRUPT");
       const evidence = JSON.parse(row.evidence_json);
       // Evidence must be exactly the records bound by the stored run, including
       // its host-observed actor and action binding. Never accept supplied proof.
@@ -708,6 +770,31 @@ class TaskDescriptionActionService {
       };
       const approval = resolveEvidence(run.approvalRef);
       const execution = resolveEvidence(run.executionRef);
+      const sources = evidence.filter(
+        (item) => item.kind === "project-risk-review",
+      );
+      if (
+        sources.length > 1 ||
+        sources.some(
+          (item) =>
+            run.actionType !== ACTION_TYPE ||
+            item.actionDigest !== run.actionDigest ||
+            item.expectedVersion !== run.expectedVersion ||
+            typeof item.reviewId !== "string" ||
+            !/^sha256:[a-f0-9]{64}$/.test(item.contentDigest),
+        )
+      )
+        fail("ACTION_RECEIPT_CORRUPT");
+      if (run.status === "succeeded" && run.actionType === "task.create") {
+        const created = validateBusinessObjectRef(execution?.createdTaskRef);
+        if (
+          created.type !== "Task" ||
+          created.sourceKind !== SOURCE_KIND ||
+          created.scope.kind !== "personal" ||
+          created.scope.id !== row.actor_did
+        )
+          fail("ACTION_RECEIPT_CORRUPT");
+      }
       if (
         approval &&
         (approval.actionDigest !== run.actionDigest ||
@@ -721,7 +808,10 @@ class TaskDescriptionActionService {
           approval.via !== "user-confirm" ||
           approval.policy !== "strict" ||
           approval.riskLevel !== "high" ||
-          execution?.kind !== "sqlite-task-description-update" ||
+          execution?.kind !==
+            (run.actionType === "task.create"
+              ? "sqlite-task-create"
+              : "sqlite-task-description-update") ||
           execution.affectedRows !== 1 ||
           execution.beforeVersion !== run.expectedVersion ||
           execution.afterVersion !== run.afterVersion)
@@ -742,8 +832,11 @@ class TaskDescriptionActionService {
         )
         .get(id(runId), actor);
       if (!row) fail("ACTION_NOT_FOUND_OR_DENIED");
-      this._ownedTask(row.target_id, actor, { metadataOnly: true });
-      return this._readRun(row);
+      const result = this._readRun(row);
+      if (result.run.actionType === "task.create")
+        this._ownedProject(row.target_id, actor);
+      else this._ownedTask(row.target_id, actor, { metadataOnly: true });
+      return result;
     });
   }
 
@@ -778,13 +871,68 @@ class TaskDescriptionActionService {
         );
       if (saved.changes !== 1) fail("ACTION_RECEIPT_CONFLICT");
     }
+    for (const item of (insert ? evidence : []).filter(
+      (item) => item.kind === "project-risk-review",
+    )) {
+      this._riskService().bindActionRun({
+        reviewId: item.reviewId,
+        contentDigest: item.contentDigest,
+        run,
+      });
+    }
+  }
+
+  _riskService() {
+    const {
+      ProjectRiskReviewService,
+    } = require("./project-risk-review-service");
+    return (this.riskService ||= new ProjectRiskReviewService({
+      db: this.db,
+      getActor: this.getActor,
+      now: this.now,
+    }));
+  }
+
+  _validateRequest(input) {
+    return validateRequest(input);
+  }
+  _authorizeRequest(request, actor) {
+    this._ownedTask(request.target.id, actor, { metadataOnly: true });
+  }
+  _requestSnapshot(request, actor) {
+    return this._snapshot(request.target.id, actor, true);
+  }
+  _applyRequest(request, actor, latest) {
+    const updatedAt = Math.max(this.now(), latest.task.updated_at + 1);
+    if (!Number.isSafeInteger(updatedAt)) fail("ACTION_SOURCE_INVALID");
+    const result = this.db
+      .prepare(
+        "UPDATE project_tasks SET description=?,updated_at=?,sync_status='pending' WHERE id=? AND description=? AND updated_at=?",
+      )
+      .run(
+        request.input.description,
+        updatedAt,
+        request.target.id,
+        latest.task.description,
+        latest.task.updated_at,
+      );
+    if (result.changes !== 1) fail("ACTION_VERSION_CONFLICT");
+    const afterSnapshot = this._snapshot(request.target.id, actor);
+    if (afterSnapshot.task.description !== request.input.description)
+      fail("ACTION_POSTCONDITION_FAILED");
+    return {
+      afterVersion: afterSnapshot.ref.version,
+      affectedRows: result.changes,
+      kind: "sqlite-task-description-update",
+    };
   }
 
   async execute(input) {
-    const request = validateRequest(input);
+    const request = this._validateRequest(input);
+    if (request.input.riskReview) this._riskService();
     const admitted = this._transaction(() => {
       const actor = this._actor();
-      this._ownedTask(request.target.id, actor, { metadataOnly: true });
+      this._authorizeRequest(request, actor);
       if (request.target.scope.id !== actor) fail("ACTION_NOT_FOUND_OR_DENIED");
       const previous = this.db
         .prepare(
@@ -800,18 +948,51 @@ class TaskDescriptionActionService {
         return { previous: this._readRun(previous) };
       }
       this._assertNoUnresolvedTask(request.target.id);
-      const current = this._snapshot(request.target.id, actor, true);
+      const current = this._requestSnapshot(request, actor);
+      const riskContext = request.input.riskReview;
+      if (riskContext)
+        this._riskService().verifyActionContext({
+          reviewId: riskContext.id,
+          contentDigest: riskContext.contentDigest,
+          taskId: request.target.id,
+        });
       if (current.ref.version !== request.expectedVersion)
         fail("ACTION_VERSION_CONFLICT");
       const startedAt = new Date(this.now()).toISOString();
+      const sourceEvidence = riskContext
+        ? [
+            {
+              id: randomUUID(),
+              kind: "project-risk-review",
+              reviewId: riskContext.id,
+              contentDigest: riskContext.contentDigest,
+              actionDigest: request.actionDigest,
+              expectedVersion: request.expectedVersion,
+              actorDid: actor,
+              invocationDigest: request.invocationDigest,
+            },
+          ]
+        : [];
+      const sourceRefs = sourceEvidence.map((item) => ({
+        id: item.id,
+        digest: digestBusinessObjectContent(item),
+      }));
       const run = createBusinessActionRun({
         id: randomUUID(),
         request,
         status: "running",
         startedAt,
+        evidenceRefs: sourceRefs,
       });
-      this._save(run, [], actor, true);
-      return { actor, current, startedAt, runId: run.id };
+      this._save(run, sourceEvidence, actor, true);
+      return {
+        actor,
+        current,
+        startedAt,
+        runId: run.id,
+        sourceEvidence,
+        sourceRefs,
+      };
     });
     if (admitted.previous)
       return {
@@ -824,7 +1005,8 @@ class TaskDescriptionActionService {
           : "recorded",
       };
 
-    const { actor, current, startedAt, runId } = admitted;
+    const { actor, current, startedAt, runId, sourceEvidence, sourceRefs } =
+      admitted;
     let decision;
     try {
       decision = await this.approvalGate.decide(
@@ -832,7 +1014,7 @@ class TaskDescriptionActionService {
           sessionId: "business-actions",
           policy: "strict",
           riskLevel: "high",
-          tool: ACTION_TYPE,
+          tool: request.actionType,
           request,
           actorDid: actor,
           before: Object.freeze({ description: current.task.description }),
@@ -895,7 +1077,13 @@ class TaskDescriptionActionService {
       return this._transaction(() => {
         const currentActor = this._actor();
         if (currentActor !== actor) fail("ACTION_AUTHORITY_CHANGED");
-        const latest = this._snapshot(request.target.id, actor, true);
+        const latest = this._requestSnapshot(request, actor);
+        if (request.input.riskReview)
+          this._riskService().verifyActionContext({
+            reviewId: request.input.riskReview.id,
+            contentDigest: request.input.riskReview.contentDigest,
+            taskId: request.target.id,
+          });
         if (latest.ref.version !== request.expectedVersion)
           fail("ACTION_VERSION_CONFLICT");
         const row = this.db
@@ -903,37 +1091,24 @@ class TaskDescriptionActionService {
           .get(runId);
         if (!row || this._readRun(row).run.status !== "running")
           fail("ACTION_RECEIPT_CONFLICT");
-        const evidence = [approval];
-        const evidenceRefs = [approvalRef];
+        const evidence = [...sourceEvidence, approval];
+        const evidenceRefs = [...sourceRefs, approvalRef];
         let afterVersion = null,
           executionRef = null;
         if (approved) {
-          const updatedAt = Math.max(this.now(), latest.task.updated_at + 1);
-          if (!Number.isSafeInteger(updatedAt)) fail("ACTION_SOURCE_INVALID");
-          const result = this.db
-            .prepare(
-              "UPDATE project_tasks SET description=?,updated_at=?,sync_status='pending' WHERE id=? AND description=? AND updated_at=?",
-            )
-            .run(
-              request.input.description,
-              updatedAt,
-              request.target.id,
-              latest.task.description,
-              latest.task.updated_at,
-            );
-          if (result.changes !== 1) fail("ACTION_VERSION_CONFLICT");
-          const afterSnapshot = this._snapshot(request.target.id, actor);
-          if (afterSnapshot.task.description !== request.input.description)
-            fail("ACTION_POSTCONDITION_FAILED");
-          afterVersion = afterSnapshot.ref.version;
+          const mutation = this._applyRequest(request, actor, latest);
+          afterVersion = mutation.afterVersion;
           const execution = {
             id: randomUUID(),
-            kind: "sqlite-task-description-update",
+            kind: mutation.kind,
+            ...(mutation.createdTaskRef
+              ? { createdTaskRef: mutation.createdTaskRef }
+              : {}),
             actorDid: actor,
             invocationDigest: request.invocationDigest,
             beforeVersion: request.expectedVersion,
             afterVersion,
-            affectedRows: result.changes,
+            affectedRows: mutation.affectedRows,
             at: new Date(this.now()).toISOString(),
           };
           executionRef = {
@@ -961,6 +1136,7 @@ class TaskDescriptionActionService {
       // A changed identity/version is a known precondition failure before any
       // write. Other DB/commit errors retain running (unknown) and are not retried.
       if (
+        /^PROJECT_RISK_/.test(error.code || "") ||
         [
           "ACTION_AUTHORITY_CHANGED",
           "ACTION_VERSION_CONFLICT",
@@ -982,9 +1158,9 @@ class TaskDescriptionActionService {
             startedAt,
             completedAt: new Date(this.now()).toISOString(),
             approvalRef,
-            evidenceRefs: [approvalRef],
+            evidenceRefs: [...sourceRefs, approvalRef],
           });
-          this._save(denied, [approval], actor);
+          this._save(denied, [...sourceEvidence, approval], actor);
         });
         throw error;
       }
@@ -993,8 +1169,173 @@ class TaskDescriptionActionService {
   }
 }
 
+/** Creation uses the owning Project as its existing, versioned action target.
+ * The new Task reference is durable execution evidence, never a renderer ID. */
+class TaskCreateActionService extends TaskDescriptionActionService {
+  _targetType() {
+    return "Project";
+  }
+  _projectSnapshot(projectId, actor) {
+    const project = this._ownedProject(projectId, actor);
+    if (!["draft", "active"].includes(project.status))
+      fail("ACTION_TARGET_NOT_EDITABLE");
+    if (!Number.isSafeInteger(project.updated_at))
+      fail("ACTION_SOURCE_INVALID");
+    const { projectRef } = snapshotReferences(
+      { id: "prospective-task" },
+      project,
+    );
+    return { ref: projectRef, project, task: { description: "" } };
+  }
+
+  preview(input) {
+    readOptions(
+      input,
+      ["projectId", "taskType", "description", "idempotencyKey"],
+      [],
+    );
+    description(input.description);
+    id(input.idempotencyKey);
+    if (
+      ![
+        "create_file",
+        "edit_file",
+        "query_info",
+        "analyze_data",
+        "export_file",
+        "deploy_project",
+      ].includes(input.taskType)
+    )
+      fail("ACTION_INVALID_TASK_TYPE");
+    return this._transaction(() => {
+      const snapshot = this._projectSnapshot(input.projectId, this._actor());
+      this._assertNoUnresolvedTask(input.projectId);
+      const request = createBusinessActionRequest({
+        actionType: "task.create",
+        actionVersion: 1,
+        target: snapshot.ref,
+        expectedVersion: snapshot.ref.version,
+        input: { taskType: input.taskType, description: input.description },
+        idempotencyKey: input.idempotencyKey,
+      });
+      return { request, before: { description: "" }, after: request.input };
+    });
+  }
+
+  _validateRequest(input) {
+    let request;
+    try {
+      request = validateBusinessActionRequest(input);
+    } catch {
+      fail("ACTION_INVALID_REQUEST");
+    }
+    if (
+      request.actionType !== "task.create" ||
+      request.actionVersion !== 1 ||
+      request.target.type !== "Project" ||
+      request.target.sourceKind !== "desktop.project-task-owner" ||
+      request.target.scope.kind !== "personal"
+    )
+      fail("ACTION_UNSUPPORTED_REQUEST");
+    readOptions(request.input, ["taskType", "description"], []);
+    description(request.input.description);
+    if (
+      ![
+        "create_file",
+        "edit_file",
+        "query_info",
+        "analyze_data",
+        "export_file",
+        "deploy_project",
+      ].includes(request.input.taskType)
+    )
+      fail("ACTION_INVALID_TASK_TYPE");
+    return request;
+  }
+
+  _authorizeRequest(request, actor) {
+    this._ownedProject(request.target.id, actor);
+  }
+  _requestSnapshot(request, actor) {
+    return this._projectSnapshot(request.target.id, actor);
+  }
+  _applyRequest(request, actor, latest) {
+    const taskId = randomUUID();
+    const updatedAt = Math.max(this.now(), latest.project.updated_at + 1);
+    if (!Number.isSafeInteger(updatedAt)) fail("ACTION_SOURCE_INVALID");
+    const result = this.db
+      .prepare(
+        `INSERT INTO project_tasks
+      (id,project_id,task_type,description,status,created_at,updated_at,sync_status)
+      VALUES (?,?,?,?,'pending',?,?,'pending')`,
+      )
+      .run(
+        taskId,
+        request.target.id,
+        request.input.taskType,
+        request.input.description,
+        updatedAt,
+        updatedAt,
+      );
+    // Advance the Project version in the same transaction as the new row and
+    // receipt, so separately prepared creation requests cannot share a revision.
+    const updated = this.db
+      .prepare(
+        "UPDATE projects SET updated_at=? WHERE id=? AND updated_at=? AND user_id=?",
+      )
+      .run(updatedAt, request.target.id, latest.project.updated_at, actor);
+    if (updated.changes !== 1) fail("ACTION_VERSION_CONFLICT");
+    const created = this._snapshot(taskId, actor, true);
+    if (
+      created.task.description !== request.input.description ||
+      created.task.task_type !== request.input.taskType ||
+      created.task.project_id !== request.target.id
+    )
+      fail("ACTION_POSTCONDITION_FAILED");
+    return {
+      kind: "sqlite-task-create",
+      affectedRows: result.changes,
+      afterVersion: this._projectSnapshot(request.target.id, actor).ref.version,
+      createdTaskRef: created.ref,
+    };
+  }
+
+  listProjectRuns(input) {
+    readOptions(input, ["projectId"], ["beforeId", "limit"]);
+    const limit = pageLimit(input.limit, 20, 50);
+    return this._readTransaction(() => {
+      const actor = this._actor();
+      this._ownedProject(input.projectId, actor);
+      let cursor;
+      if (input.beforeId !== undefined) {
+        cursor = this.db
+          .prepare(
+            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${receiptTarget("Project")}`,
+          )
+          .get(id(input.beforeId), actor, input.projectId);
+        if (!cursor) fail("ACTION_INVALID_CURSOR");
+      }
+      const rows = this.db
+        .prepare(
+          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${receiptTarget("Project")} ${cursor ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
+        )
+        .all(
+          actor,
+          input.projectId,
+          ...(cursor ? [cursor.rowid] : []),
+          limit + 1,
+        );
+      return {
+        runs: rows.slice(0, limit).map((row) => this._readRun(row)),
+        nextCursor: rows.length > limit ? rows[limit - 1].id : null,
+      };
+    });
+  }
+}
+
 module.exports = {
   TaskDescriptionActionService,
+  TaskCreateActionService,
   createTaskDescriptionPreview,
   ACTION_TYPE,
   MAX_DESCRIPTION_BYTES,

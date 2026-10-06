@@ -68,6 +68,7 @@ export interface TaskDescriptionApi {
     taskId: string;
     description: string;
     idempotencyKey: string;
+    reviewId?: string;
   }): Promise<DescriptionPreview>;
   executeDescriptionUpdate(input: {
     request: DescriptionPreview["request"];
@@ -110,6 +111,13 @@ export function isDefiniteActionRejection(error: unknown): boolean {
     "ACTION_ORGANIZATION_UNSUPPORTED",
     "ACTION_AUTHORITY_CHANGED",
     "ACTION_AUTHENTICATION_REQUIRED",
+    "ACTION_INVALID_TASK_TYPE",
+    "PROJECT_RISK_REVIEW_STALE",
+    "PROJECT_RISK_REVIEW_CONFLICT",
+    "PROJECT_RISK_ACTION_SOURCE_INVALID",
+    "PROJECT_RISK_NOT_FOUND_OR_DENIED",
+    "PROJECT_RISK_ORGANIZATION_UNSUPPORTED",
+    "PROJECT_RISK_AUTHENTICATION_REQUIRED",
   ]).has(actionCode(error));
 }
 

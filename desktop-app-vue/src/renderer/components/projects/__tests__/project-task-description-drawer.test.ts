@@ -594,6 +594,48 @@ describe("project task description drawer", () => {
     expect(result.text()).not.toContain("无风险");
   });
 
+  it("invalidates an unconfirmed description preview when the selected review changes", async () => {
+    await open();
+    await select();
+    await prepare();
+    expect(wrapper.find('[data-testid="description-preview"]').exists()).toBe(
+      true,
+    );
+    await wrapper.get('[data-testid="evaluate-risk"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="description-preview"]').exists()).toBe(
+      false,
+    );
+    await wrapper.get('[data-testid="preview-description"]').trigger("click");
+    await flushPromises();
+    expect(api.previewDescriptionUpdate.mock.calls.at(-1)?.[0].reviewId).toBe(
+      "review-1",
+    );
+  });
+
+  it("discards a late preview prepared against a previously selected risk review", async () => {
+    const pending = deferred();
+    api.previewDescriptionUpdate.mockReturnValue(pending.promise);
+    await open();
+    await select();
+    await wrapper
+      .get('[data-testid="task-description"]')
+      .setValue("New description");
+    await wrapper.get('[data-testid="preview-description"]').trigger("click");
+    await wrapper.get('[data-testid="evaluate-risk"]').trigger("click");
+    await flushPromises();
+    pending.resolve({
+      request: { invocationDigest: "old-review" },
+      before: { description: "Original task-1" },
+      after: { description: "New description" },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="description-preview"]').exists()).toBe(
+      false,
+    );
+    expect(api.executeDescriptionUpdate).not.toHaveBeenCalled();
+  });
+
   it("keeps insufficient risk data separate from zero matching signals", async () => {
     riskApi.mockResolvedValue({
       review: { id: "review-1", projectId: "project-1" },

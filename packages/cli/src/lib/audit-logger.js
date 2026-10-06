@@ -7,6 +7,17 @@ import crypto from "crypto";
 import { safeJsonParse } from "./safe-json.js";
 import { escapeLike } from "./sql-like.js";
 import { sanitizeAuditDetails } from "./audit-sanitizer.js";
+import auditDataPolicy from "@chainlesschain/session-core/audit-data-policy";
+import restrictedAudit from "@chainlesschain/session-core/restricted-audit-store";
+
+const { projectAuditMetadata, projectAuditField, validateRetentionDays } =
+  auditDataPolicy;
+
+// Host API: authorization must come from the invoking host, never event details.
+// No general audit query/export includes this separate store.
+export function createAuditDiagnostics(db, options) {
+  return new restrictedAudit.RestrictedAuditStore(db, options);
+}
 
 /**
  * Event types for audit logging.
@@ -117,7 +128,7 @@ export function sanitizeDetails(details) {
 }
 
 function sanitizeErrorMessage(value) {
-  const sanitized = sanitizeDetails(value);
+  const sanitized = projectAuditMetadata(value);
   if (sanitized == null) return null;
   return typeof sanitized === "object"
     ? JSON.stringify(sanitized)
@@ -131,23 +142,24 @@ export function logEvent(db, event) {
   ensureAuditTables(db);
 
   const id = crypto.randomUUID();
-  const sanitized = sanitizeDetails(event.details);
-  const risk =
-    event.riskLevel || assessRisk(event.eventType, event.operation, sanitized);
+  const sanitized = projectAuditMetadata(event.details);
+  const risk = Object.values(RISK_LEVELS).includes(event.riskLevel)
+    ? event.riskLevel
+    : assessRisk(event.eventType, event.operation || "unknown", sanitized);
 
   db.prepare(
     `INSERT INTO audit_log (id, event_type, operation, actor, target, details, risk_level, ip_address, user_agent, success, error_message)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
-    event.eventType || EVENT_TYPES.SYSTEM,
-    event.operation || "unknown",
-    event.actor || null,
-    event.target || null,
+    projectAuditField("eventType", event.eventType || EVENT_TYPES.SYSTEM),
+    projectAuditField("operation", event.operation || "unknown"),
+    projectAuditField("actor", event.actor || null),
+    projectAuditField("target", event.target || null),
     sanitized == null ? null : JSON.stringify(sanitized),
     risk,
-    event.ipAddress || null,
-    event.userAgent || null,
+    event.ipAddress ? projectAuditField("ipAddress", event.ipAddress) : null,
+    event.userAgent ? projectAuditField("userAgent", event.userAgent) : null,
     event.success !== false ? 1 : 0,
     sanitizeErrorMessage(event.errorMessage),
   );
@@ -220,8 +232,21 @@ export function queryLogs(db, filters = {}) {
   const rows = db.prepare(sql).all(...params);
   return rows.map((r) => ({
     ...r,
+    event_type: projectAuditField("eventType", r.event_type),
+    operation: projectAuditField("operation", r.operation),
     // One corrupt details cell must not throw out of the whole query.
-    details: safeJsonParse(r.details, null),
+    details: projectAuditMetadata(safeJsonParse(r.details, null)),
+    error_message: sanitizeErrorMessage(
+      safeJsonParse(r.error_message, r.error_message),
+    ),
+    actor: projectAuditField("actor", r.actor),
+    target: projectAuditField("target", r.target),
+    ip_address: r.ip_address
+      ? projectAuditField("ipAddress", r.ip_address)
+      : null,
+    user_agent: r.user_agent
+      ? projectAuditField("userAgent", r.user_agent)
+      : null,
     success: r.success === 1,
   }));
 }
@@ -333,6 +358,7 @@ export function exportLogs(db, format = "json", filters = {}) {
  * Delete old audit logs.
  */
 export function purgeLogs(db, daysToKeep = 90) {
+  validateRetentionDays(daysToKeep);
   ensureAuditTables(db);
 
   const cutoff = new Date();
@@ -502,7 +528,7 @@ export function logEventV2(
   if (_logStatesV2.has(logId)) {
     throw new Error(`Log already registered: ${logId}`);
   }
-  const sanitized = sanitizeDetails(details);
+  const sanitized = projectAuditMetadata(details);
   const risk = riskLevel || assessRisk(eventType, operation, sanitized);
   if (!RISK_LEVELS_V2.includes(risk)) {
     throw new Error(`Invalid riskLevel: ${risk}`);
@@ -510,14 +536,14 @@ export function logEventV2(
   const now = Date.now();
   const entry = {
     logId,
-    eventType,
-    operation,
-    actor: actor || null,
-    target: target || null,
+    eventType: projectAuditField("eventType", eventType),
+    operation: projectAuditField("operation", operation),
+    actor: projectAuditField("actor", actor || null),
+    target: projectAuditField("target", target || null),
     details: sanitized ?? null,
     riskLevel: risk,
-    ipAddress: ipAddress || null,
-    userAgent: userAgent || null,
+    ipAddress: ipAddress ? projectAuditField("ipAddress", ipAddress) : null,
+    userAgent: userAgent ? projectAuditField("userAgent", userAgent) : null,
     success: success !== false,
     errorMessage: sanitizeErrorMessage(errorMessage),
     status: LOG_STATUS_V2.ACTIVE,
@@ -539,8 +565,8 @@ export function logEventV2(
       _alertStatesV2.set(alertId, {
         alertId,
         logId,
-        actor,
-        operation,
+        actor: entry.actor,
+        operation: entry.operation,
         riskLevel: risk,
         status: ALERT_STATUS_V2.OPEN,
         reason: null,

@@ -58,7 +58,7 @@ describe("enterprise capability IPC results", () => {
     const builder = new AppBuilder();
     await builder.initialize(db);
     const app = builder.createApp({ name: "Capability check" });
-    const ds = builder.addDataSource(app.id, "REST", "rest", {
+    const ds = builder.addDataSource(app.id, "SQL", "mysql", {
       url: "https://invalid.example.invalid",
     });
     registerLowCodeIPC({ appBuilder: builder, ipcMain });

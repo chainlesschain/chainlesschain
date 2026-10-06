@@ -116,10 +116,14 @@ function registerLowCodeIPC({ appBuilder, ipcMain: injectedIpcMain } = {}) {
       if (!appBuilder) {
         return { success: false, error: "Not available" };
       }
-      const data = appBuilder.testConnection(dataSourceId);
+      const data = await appBuilder.testConnection(dataSourceId);
       return { success: data.success === true, data, error: data.error };
     } catch (err) {
-      return { success: false, error: err.message };
+      return {
+        success: false,
+        error: "Connection probe failed",
+        errorCode: "DATASOURCE_PROBE_FAILED",
+      };
     }
   });
 

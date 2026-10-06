@@ -4,6 +4,7 @@
  */
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+const { probeRestConnection } = require("./rest-connection-probe.js");
 
 class AppBuilder extends EventEmitter {
   constructor() {
@@ -312,9 +313,11 @@ class AppBuilder extends EventEmitter {
   }
 
   addDataSource(appId, name, type, config) {
+    if (!this._apps.has(appId)) {
+      throw new Error("App not found");
+    }
     const id = `ds-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const ds = { id, app_id: appId, name, type, config, status: "configured" };
-    this._dataSources.set(id, ds);
     try {
       this.db
         .prepare(
@@ -322,12 +325,14 @@ class AppBuilder extends EventEmitter {
         )
         .run(id, appId, name, type, JSON.stringify(config), ds.status);
     } catch (error) {
-      logger.error("[AppBuilder] DataSource persist failed:", error.message);
+      logger.error("[AppBuilder] DataSource persistence failed");
+      throw new Error("DataSource configuration could not be persisted");
     }
+    this._dataSources.set(id, ds);
     return ds;
   }
 
-  testConnection(dataSourceId) {
+  async testConnection(dataSourceId) {
     const ds = this._dataSources.get(dataSourceId);
     if (!ds) {
       return {
@@ -335,6 +340,15 @@ class AppBuilder extends EventEmitter {
         status: "not-found",
         probed: false,
         error: "DataSource not found",
+        errorCode: "DATASOURCE_NOT_FOUND",
+      };
+    }
+    if (ds.type === "rest") {
+      return {
+        ...(await probeRestConnection(ds.config)),
+        configured: true,
+        dataSourceId,
+        type: ds.type,
       };
     }
     return {
@@ -345,6 +359,7 @@ class AppBuilder extends EventEmitter {
       dataSourceId,
       type: ds.type,
       error: "Connection probing is not available for this data source",
+      errorCode: "DATASOURCE_PROBE_UNSUPPORTED",
     };
   }
 

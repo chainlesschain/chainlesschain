@@ -72,6 +72,9 @@ describe("project task drawer through the real native host and database", () => 
         listDescriptionActionRuns: bridge("listRuns"),
         previewDescriptionUpdate: bridge("preview"),
         executeDescriptionUpdate: bridge("execute"),
+        previewControlledCreate: bridge("previewCreate"),
+        executeControlledCreate: bridge("executeCreate"),
+        listControlledCreateRuns: bridge("listCreateRuns"),
       },
       project: { evaluateRisk: bridge("evaluateRisk") },
     };
@@ -99,6 +102,76 @@ describe("project task drawer through the real native host and database", () => 
     await wrapper.get('[data-task-id="task-1"]').trigger("click");
     await flushPromises();
   }
+
+  it("creates a saved canonical task through cloned preview and native confirmation", async () => {
+    await openAndSelect();
+    await wrapper
+      .get('[data-testid="create-description"]')
+      .setValue("Created from project UI");
+    await wrapper.get('[data-testid="preview-create"]').trigger("click");
+    await flushPromises();
+    expect(
+      db.prepare("SELECT COUNT(*) AS count FROM project_tasks").get().count,
+    ).toBe(1);
+    await wrapper.get('[data-testid="execute-create"]').trigger("click");
+    await flushPromises();
+    expect(
+      db.prepare("SELECT COUNT(*) AS count FROM project_tasks").get().count,
+    ).toBe(2);
+    expect(wrapper.text()).toContain("Created from project UI");
+    expect(dialog.mock.calls[0][1].title).toBe("确认创建项目任务");
+  });
+
+  it("records cancelled task creation without saving the prospective task", async () => {
+    await openAndSelect();
+    dialog.mockResolvedValue({ response: 0 });
+    await wrapper
+      .get('[data-testid="create-description"]')
+      .setValue("Cancelled creation");
+    await wrapper.get('[data-testid="preview-create"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="execute-create"]').trigger("click");
+    await flushPromises();
+    expect(
+      db.prepare("SELECT COUNT(*) AS count FROM project_tasks").get().count,
+    ).toBe(1);
+    expect(
+      wrapper.get('[data-testid="controlled-task-create"]').text(),
+    ).toContain("已取消");
+    expect(wrapper.find('[data-testid="new-create-intent"]').exists()).toBe(
+      true,
+    );
+  });
+
+  it("recovers a lost creation response by reading evidence without replay", async () => {
+    await openAndSelect();
+    const original = (window as any).electronAPI.task.executeControlledCreate;
+    (window as any).electronAPI.task.executeControlledCreate = async (
+      input: unknown,
+    ) => {
+      await original(input);
+      throw new Error("Transport unavailable");
+    };
+    await wrapper
+      .get('[data-testid="create-description"]')
+      .setValue("Creation response lost");
+    await wrapper.get('[data-testid="preview-create"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="execute-create"]').trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="controlled-task-create"]').text(),
+    ).toContain("创建结果待核实");
+    await wrapper.get('[data-testid="refresh-create-runs"]').trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="controlled-task-create"]').text(),
+    ).not.toContain("创建结果待核实");
+    expect(
+      db.prepare("SELECT COUNT(*) AS count FROM project_tasks").get().count,
+    ).toBe(2);
+    expect(dialog).toHaveBeenCalledTimes(1);
+  });
 
   it("lists, reads, previews, confirms, commits and reads durable history and risk evidence", async () => {
     await openAndSelect();

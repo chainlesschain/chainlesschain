@@ -253,7 +253,6 @@ describe("audit credential redaction", () => {
       expect(typeof persisted.error_message).toBe("string");
       expect(persisted.error_message).toBe(v2.errorMessage);
       expect(JSON.parse(persisted.error_message)).toMatchObject({
-        message: "password=[REDACTED]",
         context: { access_token: "[REDACTED]", status: 401 },
       });
       expect(persisted.error_message).not.toContain("secret");
@@ -282,7 +281,7 @@ describe("audit credential redaction", () => {
     const v2 = logEventV2(db, { ...event, logId: "redaction-v2" });
     expect(persisted.details).toEqual(v2.details);
     expect(persisted.error_message).toBe(v2.errorMessage);
-    expect(persisted.details.count).toBe("3");
+    expect(persisted.details.count).toBe(3);
     expect(JSON.stringify([persisted, v2])).not.toContain("secret");
     expect(event.details.request.headers.AUTHORIZATION).toBe(
       "Bearer persisted-secret",

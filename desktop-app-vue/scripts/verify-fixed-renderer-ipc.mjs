@@ -45,8 +45,14 @@ const retainedGovernedChannels = [
   "task:controlled-list",
   "task:controlled-read",
   "task:controlled-description-runs",
+  "task:controlled-create-preview",
+  "task:controlled-create-execute",
+  "task:controlled-create-runs",
   "project:risk-evaluate",
   "project:risk-review",
+  "project:risk-reviews",
+  "project:risk-feedback",
+  "project:risk-lineage",
 ];
 
 function listFiles(directory) {

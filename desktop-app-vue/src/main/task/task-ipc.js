@@ -30,6 +30,28 @@ function resolveDatabase(database) {
   }
 }
 
+// The old enterprise TaskManager assumes a different project_tasks schema and
+// accepts renderer-supplied actors. Canonical rows must use governed actions.
+function rejectLegacyProjectMutation(database, params) {
+  const wrapper = resolveDatabase(database);
+  const db = wrapper?.getDatabase ? wrapper.getDatabase() : wrapper;
+  if (!db) throw new Error("ACTION_AUTHORITY_UNAVAILABLE");
+  for (const taskId of [
+    params?.taskId,
+    params?.parentTaskId,
+    params?.dependsOnTaskId,
+  ]) {
+    if (
+      typeof taskId === "string" &&
+      db.prepare("SELECT 1 FROM project_tasks WHERE id=?").get(taskId)
+    ) {
+      const error = new Error("ACTION_CONTROLLED_TASK_REQUIRED");
+      error.code = "ACTION_CONTROLLED_TASK_REQUIRED";
+      throw error;
+    }
+  }
+}
+
 /**
  * Register all team task management IPC handlers
  */
@@ -146,7 +168,7 @@ function registerTaskIPC(database) {
   // Task Query (3 handlers)
   // ========================================
 
-  ipcMain.handle("task:get-tasks", async (_event, params) => {
+  ipcMain.handle("task:get-tasks", async (event, params) => {
     try {
       if (params.boardId) {
         const { getTeamTaskManager } = require("./team-task-manager");
@@ -154,12 +176,17 @@ function registerTaskIPC(database) {
         return await manager.getTasks(params.boardId, params.options || {});
       }
 
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      const tasks = await manager.getTasks(
-        params.options || params.filters || {},
-      );
-      return { success: true, tasks };
+      const options = params.options || params.filters || params;
+      const projectId = options.projectId || options.project_id;
+      if (!projectId) throw new Error("ACTION_CONTROLLED_TASK_REQUIRED");
+      const result = require("./task-description-ipc")
+        .createTaskDescriptionHost({ database: resolveDatabase(database) })
+        .listTasks(event, {
+          projectId,
+          afterId: options.afterId,
+          limit: options.limit,
+        });
+      return { success: true, ...result };
     } catch (error) {
       logger.error("[IPC] task:get-tasks failed:", error);
       throw error;
@@ -203,7 +230,7 @@ function registerTaskIPC(database) {
   // Task CRUD (12 handlers)
   // ========================================
 
-  ipcMain.handle("task:create-task", async (_event, params) => {
+  ipcMain.handle("task:create-task", async (event, params) => {
     try {
       // If boardId is provided, create a team task (board task)
       if (params.boardId) {
@@ -211,10 +238,10 @@ function registerTaskIPC(database) {
         const manager = getTeamTaskManager(resolveDatabase(database));
         return await manager.createTask(params);
       } else {
-        // Otherwise, create a project task
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.createTask(params);
+        if (!params.request) throw new Error("ACTION_CONTROLLED_TASK_REQUIRED");
+        return await require("./task-description-ipc")
+          .createTaskDescriptionHost({ database: resolveDatabase(database) })
+          .executeCreate(event, { request: params.request });
       }
     } catch (error) {
       logger.error("[IPC] task:create-task failed:", error);
@@ -222,8 +249,20 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-task", async (_event, params) => {
+  ipcMain.handle("task:get-task", async (event, params) => {
     try {
+      const db = resolveDatabase(database).getDatabase();
+      if (
+        db.prepare("SELECT 1 FROM project_tasks WHERE id=?").get(params.taskId)
+      ) {
+        const task = require("./task-description-ipc")
+          .createTaskDescriptionHost({ database: resolveDatabase(database) })
+          .readTask(event, { taskId: params.taskId });
+        return {
+          success: true,
+          task: { ...task, id: task.taskId, project_id: task.projectId },
+        };
+      }
       // Try team task first
       try {
         const { getTeamTaskManager } = require("./team-task-manager");
@@ -231,10 +270,13 @@ function registerTaskIPC(database) {
         const task = await manager.getTask(params.taskId);
         return { success: true, task };
       } catch (teamTaskError) {
-        // Fall back to project task
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return { success: true, task: await manager.getTask(params.taskId) };
+        const task = require("./task-description-ipc")
+          .createTaskDescriptionHost({ database: resolveDatabase(database) })
+          .readTask(event, { taskId: params.taskId });
+        return {
+          success: true,
+          task: { ...task, id: task.taskId, project_id: task.projectId },
+        };
       }
     } catch (error) {
       logger.error("[IPC] task:get-task failed:", error);
@@ -242,8 +284,16 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:update-task", async (_event, params) => {
+  ipcMain.handle("task:update-task", async (event, params) => {
     try {
+      if (params?.request) {
+        if (params.taskId !== params.request.target?.id)
+          throw new Error("ACTION_INVALID_REQUEST");
+        return await require("./task-description-ipc")
+          .createTaskDescriptionHost({ database: resolveDatabase(database) })
+          .execute(event, { request: params.request });
+      }
+      rejectLegacyProjectMutation(database, params);
       // Try team task first (check if task exists in team_tasks)
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -275,6 +325,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-task", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
         .prepare("SELECT id FROM team_tasks WHERE id = ?")
@@ -297,6 +348,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:move-task", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -330,6 +382,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:assign-task", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       // Check if it's a team task
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -363,6 +416,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:set-priority", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -394,6 +448,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:set-due-date", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -425,6 +480,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:add-label", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.addLabel(
@@ -440,6 +496,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:link-tasks", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.linkTasks(
@@ -456,6 +513,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:create-subtask", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.createSubtask(
@@ -470,6 +528,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:convert-to-subtask", async (_event, params) => {
     try {
+      rejectLegacyProjectMutation(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.convertToSubtask(

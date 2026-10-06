@@ -563,6 +563,80 @@ class LocalVault {
     return new DerivationStore(this._requireOpen());
   }
 
+  /** File sizes include WAL/SHM; free pages are reusable, not reclaimed bytes.
+   * A preflight is an observation, never a reservation or global hard quota.
+   */
+  inspectStorage() {
+    const db = this._requireOpen();
+    const files = ["", "-wal", "-shm"].map((suffix) => {
+      try {
+        return {
+          component: suffix ? suffix.slice(1) : "database",
+          bytes: fs.statSync(this.path + suffix).size,
+        };
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+        return { component: suffix ? suffix.slice(1) : "database", bytes: 0 };
+      }
+    });
+    const disk = fs.statfsSync(path.dirname(path.resolve(this.path)), {
+      bigint: true,
+    });
+    const free = disk.bavail * disk.bsize;
+    return {
+      files,
+      totalBytes: files.reduce((sum, file) => sum + file.bytes, 0),
+      freeDiskBytes: Number(
+        free > BigInt(Number.MAX_SAFE_INTEGER)
+          ? BigInt(Number.MAX_SAFE_INTEGER)
+          : free,
+      ),
+      reusableDatabaseBytes:
+        db.pragma("freelist_count", { simple: true }) *
+        db.pragma("page_size", { simple: true }),
+      measuredAt: Date.now(),
+      scope: "vault-database-wal-shm",
+      reservation: false,
+    };
+  }
+
+  assertStorageBudget({
+    maxVaultBytes,
+    minFreeBytes = 0,
+    reserveBytes = 0,
+  } = {}) {
+    for (const [name, value] of Object.entries({
+      maxVaultBytes,
+      minFreeBytes,
+      reserveBytes,
+    })) {
+      if (name === "maxVaultBytes" && value === undefined) continue;
+      if (!Number.isSafeInteger(value) || value < 0)
+        throw new RangeError(`${name} must be a non-negative safe integer`);
+    }
+    const storage = this.inspectStorage();
+    if (
+      (maxVaultBytes !== undefined &&
+        reserveBytes > maxVaultBytes - storage.totalBytes) ||
+      reserveBytes > storage.freeDiskBytes - minFreeBytes
+    ) {
+      const error = new Error(
+        "Vault storage budget exceeded before work started",
+      );
+      error.code = "VAULT_STORAGE_BUDGET_EXCEEDED";
+      throw error;
+    }
+    return {
+      ...storage,
+      budget: {
+        maxVaultBytes: maxVaultBytes ?? null,
+        minFreeBytes,
+        reserveBytes,
+      },
+      admitted: true,
+    };
+  }
+
   /** Remove a normalized entity; SQL triggers durably enqueue both deletions.
    * This is not raw-archive erasure. An explicit later source import/rederive
    * may restore the entity and produces a newer projection revision.

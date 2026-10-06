@@ -209,9 +209,9 @@ describe("AppBuilder", () => {
       status: "design-published",
       dataSources: [{ status: "configured" }],
     });
-    expect(builder.testConnection("source")).toMatchObject({
+    expect(await builder.testConnection("source")).toMatchObject({
       success: false,
-      status: "unsupported",
+      status: "invalid-config",
       probed: false,
     });
   });
@@ -238,13 +238,34 @@ describe("AppBuilder", () => {
   });
 
   // ── testConnection ───────────────────────────────────────────────────────
+  it("does not expose an unpersisted data source after a database failure", async () => {
+    await builder.initialize(db);
+    const app = builder.createApp({ name: "Test" });
+    db._prep.run.mockImplementation(() => {
+      throw new Error("database private details");
+    });
+    expect(() =>
+      builder.addDataSource(app.id, "REST", "rest", {
+        url: "http://localhost",
+      }),
+    ).toThrow("configuration could not be persisted");
+    expect(builder.exportApp(app.id).dataSources).toEqual([]);
+  });
+
+  it("rejects data sources for missing apps", async () => {
+    await builder.initialize(db);
+    expect(() => builder.addDataSource("missing", "REST", "rest", {})).toThrow(
+      "App not found",
+    );
+  });
+
   it("reports unsupported probing even when a data source is configured", async () => {
     await builder.initialize(db);
     const app = builder.createApp({ name: "Test" });
     const ds = builder.addDataSource(app.id, "DB", "mysql", {
       url: "https://invalid.example.invalid",
     });
-    const result = builder.testConnection(ds.id);
+    const result = await builder.testConnection(ds.id);
     expect(result).toMatchObject({
       success: false,
       configured: true,
@@ -258,7 +279,7 @@ describe("AppBuilder", () => {
 
   it("should fail connection test for unknown data source", async () => {
     await builder.initialize(db);
-    const result = builder.testConnection("unknown");
+    const result = await builder.testConnection("unknown");
     expect(result.success).toBe(false);
   });
 

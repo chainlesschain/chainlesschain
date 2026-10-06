@@ -46,6 +46,112 @@ describe("durable source projections in the encrypted LocalVault", () => {
     fs.rmSync(folder, { recursive: true, force: true });
   });
 
+  it("inventories unregistered and potentially crashed generations without retiring or replaying them", () => {
+    vault.putPerson(person());
+    store.registerConsumer({ consumerId: "active", kind: "ephemeral" });
+    store.registerConsumer({ consumerId: "persistent", kind: "persistent" });
+    const retired = store.registerConsumer({
+      consumerId: "retired",
+      kind: "ephemeral",
+    });
+    for (const id of ["active", "history", "persistent", "retired"]) {
+      const job = store.listPending({ consumerId: id })[0];
+      const claim = store.claim(job, { consumerId: id });
+      if (id === "retired") store.complete(claim, { success: true });
+    }
+    store.retireConsumer(retired);
+    reopen();
+    const first = store.auditConsumers({ limit: 2 });
+    expect(first).toMatchObject({
+      hasMore: true,
+      nextAfterConsumerId: "history",
+    });
+    expect(first.consumers[0]).toMatchObject({
+      state: "active",
+      liveness: "unknown",
+      reviewReason: "active-process-unverified",
+      prunableReceipts: 0,
+    });
+    expect(first.consumers[1]).toMatchObject({
+      kind: "unknown",
+      state: "unregistered",
+      reviewReason: "unregistered-history",
+      receipts: { running: 1 },
+      prunableReceipts: 0,
+    });
+    const second = store.auditConsumers({
+      afterConsumerId: first.nextAfterConsumerId,
+      limit: 2,
+    });
+    expect(second).toMatchObject({ hasMore: false, nextAfterConsumerId: null });
+    expect(second.consumers[0].retentionReason).toBe("persistent-index");
+    expect(second.consumers[1].prunableReceipts).toBe(1);
+    expect(JSON.stringify(first)).not.toContain("retirementToken");
+    expect(store.getConsumer("active").state).toBe("active");
+    expect(store.summary({ consumerId: "history" }).running).toBe(1);
+    expect(() => store.auditConsumers({ limit: 1001 })).toThrow();
+  });
+
+  it("previews an explicit receipt budget while retaining running results and source intents", () => {
+    vault.putPerson(person());
+    const handle = store.registerConsumer({
+      consumerId: "old",
+      kind: "ephemeral",
+    });
+    const jobs = store.listPending({ consumerId: "old" });
+    store.complete(store.claim(jobs[0], { consumerId: "old" }), {
+      success: true,
+    });
+    store.claim(jobs[1], { consumerId: "old" });
+    store.retireConsumer(handle);
+    const before = vault.db
+      .prepare("SELECT * FROM derivation_deliveries")
+      .all();
+    expect(
+      store.pruneRetiredConsumers({
+        consumerIds: ["old"],
+        limit: 1,
+        dryRun: true,
+      }),
+    ).toMatchObject({
+      wouldDeleteReceipts: 1,
+      retainedRunning: 1,
+      deletedReceipts: 0,
+    });
+    expect(
+      vault.db.prepare("SELECT * FROM derivation_deliveries").all(),
+    ).toEqual(before);
+    expect(vault.getPerson("person-a")).not.toBeNull();
+    expect(() =>
+      store.pruneRetiredConsumers({ consumerIds: ["missing"], dryRun: true }),
+    ).toThrow();
+  });
+
+  it("checks actual vault/WAL storage and byte budgets without deleting or compacting data", () => {
+    vault.putPerson(person());
+    const storage = vault.inspectStorage();
+    expect(storage.totalBytes).toBe(
+      storage.files.reduce((sum, f) => sum + f.bytes, 0),
+    );
+    expect(storage.totalBytes).toBeGreaterThan(0);
+    expect(
+      storage.files.find((f) => f.component === "wal").bytes,
+    ).toBeGreaterThan(0);
+    expect(storage.reservation).toBe(false);
+    expect(() =>
+      vault.assertStorageBudget({ maxVaultBytes: storage.totalBytes - 1 }),
+    ).toThrow(
+      expect.objectContaining({ code: "VAULT_STORAGE_BUDGET_EXCEEDED" }),
+    );
+    expect(() =>
+      vault.assertStorageBudget({ minFreeBytes: Number.MAX_SAFE_INTEGER }),
+    ).toThrow();
+    expect(() => vault.assertStorageBudget({ reserveBytes: -1 })).toThrow();
+    expect(() => vault.assertStorageBudget({ maxVaultBytes: 1.5 })).toThrow();
+    expect(vault.assertStorageBudget({ reserveBytes: 0 }).admitted).toBe(true);
+    expect(vault.getPerson("person-a")).not.toBeNull();
+  });
+
   it("persists intents for direct entity writes and failed target receipts across reopen", () => {
     vault.putPerson(person());
     const jobs = store.listPending({ consumerId });

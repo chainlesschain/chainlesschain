@@ -1,0 +1,664 @@
+{
+  "schema": "chainlesschain.palantir-implementation-validation/v1",
+  "date": "2026-10-06",
+  "batch": 5,
+  "baseline": "b418df56b4557b0cae4a545c223dd19a3caccf89",
+  "branch": "feature/palantir-remaining-governance",
+  "state": "pre-commit-working-tree",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "nodeAbi": "127",
+  "vitestVersion": "4.1.10",
+  "nativeDrivers": {
+    "sqlite": {
+      "name": "better-sqlite3",
+      "testedVersion": "12.11.1"
+    },
+    "sqlcipher": {
+      "name": "better-sqlite3-multiple-ciphers",
+      "testedVersion": "12.11.1",
+      "availability": "actual-native-open",
+      "testNodePath": "<Temp>/pdh-native.EB8gpn/packages/personal-data-hub/node_modules",
+      "productionDependenciesChanged": false
+    }
+  },
+  "totals": {
+    "files": 62,
+    "passed": 1481,
+    "failed": 0,
+    "skipped": 0
+  },
+  "testRuns": {
+    "core": {
+      "cwd": "packages/session-core",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "__tests__/agent-bundle-loader.test.js",
+        "__tests__/agent-bundle-resolver.test.js",
+        "__tests__/agent-bundle-schema.test.js",
+        "__tests__/agent-definition.test.js",
+        "__tests__/agent-group.test.js",
+        "__tests__/approval-gate.test.js",
+        "__tests__/beta-flags.test.js",
+        "__tests__/business-object-contract.test.js",
+        "__tests__/envelope-sse.test.js",
+        "__tests__/evolvable-artifact.test.js",
+        "__tests__/file-adapters.test.js",
+        "__tests__/idle-parker.test.js",
+        "__tests__/mcp-policy.test.js",
+        "__tests__/memory-consolidator.test.js",
+        "__tests__/memory-store.test.js",
+        "__tests__/nostr-crypto.test.js",
+        "__tests__/project-risk-evaluation.test.js",
+        "__tests__/quality-gate.test.js",
+        "__tests__/runtime-claims.test.js",
+        "__tests__/sandbox-policy.test.js",
+        "__tests__/service-envelope.test.js",
+        "__tests__/session-handle.test.js",
+        "__tests__/session-manager.test.js",
+        "__tests__/shared-task-list.test.js",
+        "__tests__/skill-invocation-receipt.test.js",
+        "__tests__/stream-router.test.js",
+        "__tests__/structured-evolution-memory.test.js",
+        "__tests__/trace-store.test.js",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 709,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:08:46.557Z",
+      "reportSha256": "f5fca9ce8374f56f6cbf0117e510b13d2844f190ef8ba204e9d20f992d918a0c",
+      "perFile": [
+        {
+          "file": "packages/session-core/__tests__/agent-bundle-loader.test.js",
+          "status": "passed",
+          "tests": 9,
+          "sha256": "370d82fb061cbae6c4b5cc6a6fe1b321f05552e9f0de8966cc1c205ac3290441"
+        },
+        {
+          "file": "packages/session-core/__tests__/agent-bundle-resolver.test.js",
+          "status": "passed",
+          "tests": 17,
+          "sha256": "124c7a185c465090934ffb32e97e0fc847257ecf846443377ff4aa4e1701bbb1"
+        },
+        {
+          "file": "packages/session-core/__tests__/agent-bundle-schema.test.js",
+          "status": "passed",
+          "tests": 18,
+          "sha256": "690d5141f66e8dc8e115080694c9eb61974cf9f21e0a6bfc2b26a64b03f7d155"
+        },
+        {
+          "file": "packages/session-core/__tests__/agent-definition.test.js",
+          "status": "passed",
+          "tests": 30,
+          "sha256": "dc0f2e33943dcd595397b58a1f01892b72ca5bf362ed18c80e3a540ffe3ff1f6"
+        },
+        {
+          "file": "packages/session-core/__tests__/agent-group.test.js",
+          "status": "passed",
+          "tests": 26,
+          "sha256": "eeeaa241588e3c918c5ba9af7aef66f7ae762f71aef6e0269138f2f840928051"
+        },
+        {
+          "file": "packages/session-core/__tests__/approval-gate.test.js",
+          "status": "passed",
+          "tests": 44,
+          "sha256": "6addee38675a60fbf1819c2f73f7af6c9d016b3f44d930ee2e903df9dbde7de4"
+        },
+        {
+          "file": "packages/session-core/__tests__/beta-flags.test.js",
+          "status": "passed",
+          "tests": 18,
+          "sha256": "0652842ebe29433722274ee68d30b5519718cd16764ab703c8724d060a60905f"
+        },
+        {
+          "file": "packages/session-core/__tests__/business-object-contract.test.js",
+          "status": "passed",
+          "tests": 74,
+          "sha256": "eeeeb71f5c75edc7ee6ffd96b8de27f12de6b8147a92316dd77708f6978bf57a"
+        },
+        {
+          "file": "packages/session-core/__tests__/envelope-sse.test.js",
+          "status": "passed",
+          "tests": 9,
+          "sha256": "9ce02ba83f8a78091fc9c9aa5f80d77ea80f55795b478cc9ab0d022e0632bcda"
+        },
+        {
+          "file": "packages/session-core/__tests__/evolvable-artifact.test.js",
+          "status": "passed",
+          "tests": 11,
+          "sha256": "fe969d142b0cad11ae57c8ad7a99ef620bae003cf2aa89ff3ebb18a408f358fb"
+        },
+        {
+          "file": "packages/session-core/__tests__/file-adapters.test.js",
+          "status": "passed",
+          "tests": 13,
+          "sha256": "0e182926a123ab7f4dc83c52636692516d58dfaecf01695af0ac688a05cc09bb"
+        },
+        {
+          "file": "packages/session-core/__tests__/idle-parker.test.js",
+          "status": "passed",
+          "tests": 14,
+          "sha256": "d4f05e14f71e955f139950c49f66060144bcb9d2f405cf5726b4f5afd5dfd58e"
+        },
+        {
+          "file": "packages/session-core/__tests__/mcp-policy.test.js",
+          "status": "passed",
+          "tests": 24,
+          "sha256": "785724a36d351aa701a518d45582457aa49115ae601cb1b403b3cdccf7484e5a"
+        },
+        {
+          "file": "packages/session-core/__tests__/memory-consolidator.test.js",
+          "status": "passed",
+          "tests": 16,
+          "sha256": "33c8083e770a87e35ead55a40ce553f5c73b58cf38be626cc02079bcf8836eca"
+        },
+        {
+          "file": "packages/session-core/__tests__/memory-store.test.js",
+          "status": "passed",
+          "tests": 42,
+          "sha256": "ed88b307de0e6315e60c05bb798409aea57189efc54be38b386b11a9c497ec2f"
+        },
+        {
+          "file": "packages/session-core/__tests__/nostr-crypto.test.js",
+          "status": "passed",
+          "tests": 26,
+          "sha256": "8f4e1e0a316ba155c05d88b5416bf2f60f4055ab696e50600365071c82ee463c"
+        },
+        {
+          "file": "packages/session-core/__tests__/project-risk-evaluation.test.js",
+          "status": "passed",
+          "tests": 72,
+          "sha256": "ff56760aaf0398d93cd68bd0f72b009424e442127a1f0350521110bb2af6736b"
+        },
+        {
+          "file": "packages/session-core/__tests__/quality-gate.test.js",
+          "status": "passed",
+          "tests": 41,
+          "sha256": "6aaccf7c92c07aaa00f875f926a662e59afc7a3c41f6d936d84c4e4b3257db95"
+        },
+        {
+          "file": "packages/session-core/__tests__/runtime-claims.test.js",
+          "status": "passed",
+          "tests": 3,
+          "sha256": "b000b7ff84596400699bca4e9a558b91e935c9643f5012f98cfb30588347ac40"
+        },
+        {
+          "file": "packages/session-core/__tests__/sandbox-policy.test.js",
+          "status": "passed",
+          "tests": 26,
+          "sha256": "ff17a1832fd78299bbb7d3985cb13cf00dfc45a87348b798aa801f5781202cdd"
+        },
+        {
+          "file": "packages/session-core/__tests__/service-envelope.test.js",
+          "status": "passed",
+          "tests": 22,
+          "sha256": "2780ed9294c09eb97183f54ec73a800cb420adbfb5ed40ee043a81cdc7e3cca7"
+        },
+        {
+          "file": "packages/session-core/__tests__/session-handle.test.js",
+          "status": "passed",
+          "tests": 25,
+          "sha256": "d3af3d00b64f5ce33d1ceca7b77f922fcd9124d0babcfa2ea80bc8569e22e8be"
+        },
+        {
+          "file": "packages/session-core/__tests__/session-manager.test.js",
+          "status": "passed",
+          "tests": 25,
+          "sha256": "82c9d90ffd9104e5199fe4934d6b56ddab46d7055b37a1e9a3b7afa37b0ddbd8"
+        },
+        {
+          "file": "packages/session-core/__tests__/shared-task-list.test.js",
+          "status": "passed",
+          "tests": 31,
+          "sha256": "b6ee5a7a3ffe3ea0f1c3e6e8db882a929dedfcb048118881c4dad2e63408f955"
+        },
+        {
+          "file": "packages/session-core/__tests__/skill-invocation-receipt.test.js",
+          "status": "passed",
+          "tests": 9,
+          "sha256": "8ff7604257f556a2778aff988f7dd189178890811a6b865717361877da6f09b2"
+        },
+        {
+          "file": "packages/session-core/__tests__/stream-router.test.js",
+          "status": "passed",
+          "tests": 19,
+          "sha256": "9602ee58f7876fbb76a7ff0cdff3c816e8c5bdf929890bb4c5503ad038f3b354"
+        },
+        {
+          "file": "packages/session-core/__tests__/structured-evolution-memory.test.js",
+          "status": "passed",
+          "tests": 21,
+          "sha256": "2e81a9f20520302f61537e46f50b8c11d23b20fd0c923ad73ac35e8fd3f5ddfd"
+        },
+        {
+          "file": "packages/session-core/__tests__/trace-store.test.js",
+          "status": "passed",
+          "tests": 24,
+          "sha256": "0da614c2976b19955fc0f1ef6580d18b08ec983e1d2990c24c12b83106ba96b8"
+        }
+      ]
+    },
+    "cli": {
+      "cwd": "packages/cli",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "__tests__/integration/project-offline-cli.test.js",
+        "__tests__/unit/audit-data-policy.test.js",
+        "__tests__/unit/audit-logger.test.js",
+        "__tests__/unit/audit-sanitization.test.js",
+        "__tests__/unit/hub-command.test.js",
+        "__tests__/unit/pdh-derivation-protocol.test.js",
+        "__tests__/unit/project-risk-lineage-audit.test.js",
+        "__tests__/unit/project-risk-lineage.test.js",
+        "__tests__/unit/project-risk-review-service.test.js",
+        "__tests__/unit/project-snapshot.test.js",
+        "__tests__/unit/task-create-action-service.test.js",
+        "__tests__/unit/task-description-action-service.test.js",
+        "__tests__/unit/task-description-read-service.test.js",
+        "__tests__/unit/lib/audit-logger-v2.test.js",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 334,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:10:38.079Z",
+      "reportSha256": "26ec7c29ec5422ddb61dd77840b44bb52376f5cda8e77b582bfa324d8dbb4376",
+      "perFile": [
+        {
+          "file": "packages/cli/__tests__/integration/project-offline-cli.test.js",
+          "status": "passed",
+          "tests": 9,
+          "sha256": "d8411ab42925bd6db613f3a09ee7f9718dae1ccf6665095568665d5f26982314"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/audit-data-policy.test.js",
+          "status": "passed",
+          "tests": 19,
+          "sha256": "489e9d3d554bb6962e9f9a805b606902e2f4bb826af8ea9bf241fc5db3276730"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/audit-logger.test.js",
+          "status": "passed",
+          "tests": 75,
+          "sha256": "1c9785fe0b68f77d04166d3b3faee46a1146b756d16a5df6668244f6bbc6338c"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/audit-sanitization.test.js",
+          "status": "passed",
+          "tests": 10,
+          "sha256": "e2cc01ae4012112dd310f2264cf61c2bea8533a43cb2218af71ba51f4471eef8"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/hub-command.test.js",
+          "status": "passed",
+          "tests": 30,
+          "sha256": "a2f1c123dc939c48b675eaf68821550829dbc90d1e3b05df7364a3f04cc305c9"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/pdh-derivation-protocol.test.js",
+          "status": "passed",
+          "tests": 10,
+          "sha256": "13847f9fccb18baa5feb6ecac527a5a171b0bd862736b979eaa98896fad8612b"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/project-risk-lineage-audit.test.js",
+          "status": "passed",
+          "tests": 4,
+          "sha256": "76e6740df6af585d07f0ccc267e38ee242d87833826ea9e569035a543075aa0b"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/project-risk-lineage.test.js",
+          "status": "passed",
+          "tests": 24,
+          "sha256": "acc663a83b5478f86f80fdcc82ebb95b80ab680fa94ee4b7fbac8469a8edce75"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+          "status": "passed",
+          "tests": 44,
+          "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/project-snapshot.test.js",
+          "status": "passed",
+          "tests": 12,
+          "sha256": "7d813d935decc01b1fec05a8c9f688deea137b4718e09ce5aeb661ba7b67f06e"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+          "status": "passed",
+          "tests": 12,
+          "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+          "status": "passed",
+          "tests": 22,
+          "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+          "status": "passed",
+          "tests": 19,
+          "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a"
+        },
+        {
+          "file": "packages/cli/__tests__/unit/lib/audit-logger-v2.test.js",
+          "status": "passed",
+          "tests": 44,
+          "sha256": "1bb1ccd426d704cefb037a3b0767336af67f4b350c9190eb299a0276517bbd68"
+        }
+      ]
+    },
+    "pdh": {
+      "cwd": "packages/personal-data-hub",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "__tests__/entity-resolver.test.js",
+        "__tests__/registry-derivation.test.js",
+        "__tests__/registry.test.js",
+        "__tests__/vault-derivation.test.js",
+        "__tests__/vault-search.test.js",
+        "__tests__/vault.test.js",
+        "__tests__/integration/derivation-projections.test.js",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 211,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:11:03.379Z",
+      "reportSha256": "844de8ce06bdfd7cd955633d5812f99b2ab1fd35fd2ace8eadae6182fa0f0174",
+      "perFile": [
+        {
+          "file": "packages/personal-data-hub/__tests__/entity-resolver.test.js",
+          "status": "passed",
+          "tests": 38,
+          "sha256": "0413324c68dda61214a421a52ce497b81c60d10942227e1d89945bfcd2e356c6"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/registry-derivation.test.js",
+          "status": "passed",
+          "tests": 17,
+          "sha256": "3bcd57754d6c624d0f9a954dadf30c0a1d96adadf2a651a6e7e6d12b4a5ef586"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/registry.test.js",
+          "status": "passed",
+          "tests": 21,
+          "sha256": "c3317ef23f79204ef28787c77280475aaecb170665c8d6ae1edbf2e28c6bc236"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/vault-derivation.test.js",
+          "status": "passed",
+          "tests": 20,
+          "sha256": "135835f45a4562361ffbce8d8eaf203eac5a0dd8e2eefd9a960623bc17020974"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/vault-search.test.js",
+          "status": "passed",
+          "tests": 27,
+          "sha256": "5933aa9da427062b728052f56bea703873b1d7dd18c2680611e4bcb5eed63962"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/vault.test.js",
+          "status": "passed",
+          "tests": 87,
+          "sha256": "c5ce78859dbcb97ce913b7c3ccfb642c9314bb0d86fbf4ea77d7d41fb0bc6e9b"
+        },
+        {
+          "file": "packages/personal-data-hub/__tests__/integration/derivation-projections.test.js",
+          "status": "passed",
+          "tests": 1,
+          "sha256": "176c1116aa2cf888562c8b8f60a405578908f7dbea4692c61e6f8c1c900be776"
+        }
+      ]
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "src/preload/__tests__/legacy-ipc-policy.test.js",
+        "src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "src/main/task/__tests__/task-description-ipc.test.js",
+        "--config",
+        "vitest.business-actions.config.mjs",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:11:14.577Z",
+      "reportSha256": "c7040edd74fa7b501a54df83f0cf5cc81bb34f4dc23e7c3f6d746c42e33f7737",
+      "perFile": [
+        {
+          "file": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+          "status": "passed",
+          "tests": 6,
+          "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb"
+        },
+        {
+          "file": "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+          "status": "passed",
+          "tests": 27,
+          "sha256": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a"
+        },
+        {
+          "file": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+          "status": "passed",
+          "tests": 28,
+          "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+        }
+      ]
+    },
+    "renderer": {
+      "cwd": "desktop-app-vue",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+        "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+        "--config",
+        "vitest.business-actions-renderer.config.mjs",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:11:16.264Z",
+      "reportSha256": "9d6d20374ac6515f56f5d8ad524f69212644e4c16b1774199e1e084f630f0f90",
+      "perFile": [
+        {
+          "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+          "status": "passed",
+          "tests": 9,
+          "sha256": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1"
+        },
+        {
+          "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+          "status": "passed",
+          "tests": 29,
+          "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52"
+        },
+        {
+          "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+          "status": "passed",
+          "tests": 5,
+          "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251"
+        }
+      ]
+    },
+    "remoteAudit": {
+      "cwd": "desktop-app-vue",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "tests/unit/remote/remote-command-audit-redaction.test.js",
+        "--config",
+        "vitest.audit-policy.config.mjs",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:08:05.593Z",
+      "reportSha256": "5962841d560cfe60a9c48ee651288d7ebcac4843b44098ccf2acd8bc62e0dca1",
+      "perFile": [
+        {
+          "file": "desktop-app-vue/tests/unit/remote/remote-command-audit-redaction.test.js",
+          "status": "passed",
+          "tests": 5,
+          "sha256": "9b3894fd3d85b26572ea52df92206ecf0585baf01b732dd532d8f79d1f3de0bf"
+        }
+      ]
+    },
+    "rest": {
+      "cwd": "desktop-app-vue",
+      "runner": "node <isolated Vitest 4.1.10>/vitest.mjs run",
+      "args": [
+        "tests/unit/enterprise/capability-ipc.test.js",
+        "tests/unit/enterprise/scim-ipc.test.js",
+        "tests/unit/enterprise/scim-sync.test.js",
+        "src/main/enterprise/automation/__tests__/automation-engine.test.js",
+        "src/main/enterprise/low-code/__tests__/app-builder.test.js",
+        "src/main/enterprise/low-code/__tests__/rest-connection-probe.test.js",
+        "--config",
+        "vitest.enterprise-capabilities.config.mjs",
+        "--reporter=json",
+        "--outputFile=<temporary report>"
+      ],
+      "success": true,
+      "passed": 118,
+      "failed": 0,
+      "skipped": 0,
+      "startedAt": "2026-10-06T11:11:04.513Z",
+      "reportSha256": "12f93d8e67f7f040bdbefd8203f45fafbfb6ac0f64008213643ebfa760c4dde3",
+      "perFile": [
+        {
+          "file": "desktop-app-vue/tests/unit/enterprise/capability-ipc.test.js",
+          "status": "passed",
+          "tests": 2,
+          "sha256": "5c83bee07b923adea328d43f5b81bca884ee97945846142fbb6921292aef5766"
+        },
+        {
+          "file": "desktop-app-vue/tests/unit/enterprise/scim-ipc.test.js",
+          "status": "passed",
+          "tests": 13,
+          "sha256": "5f2e8a6ba19aba096f15fff03fc563f507bd6c23a66db4dff4496b40386542ea"
+        },
+        {
+          "file": "desktop-app-vue/tests/unit/enterprise/scim-sync.test.js",
+          "status": "passed",
+          "tests": 29,
+          "sha256": "c2837f7428ff0bcc69fdc8d3a7d22577556445df4635996740e9ed82c2c4a127"
+        },
+        {
+          "file": "desktop-app-vue/src/main/enterprise/automation/__tests__/automation-engine.test.js",
+          "status": "passed",
+          "tests": 26,
+          "sha256": "e31e18465b83c22bc00938d7866794b1e5134d51ab8b6a89cccbb302cb584c50"
+        },
+        {
+          "file": "desktop-app-vue/src/main/enterprise/low-code/__tests__/app-builder.test.js",
+          "status": "passed",
+          "tests": 27,
+          "sha256": "36f100664782d5cea156fbc38359f54b12170eb12e0c20b436c37f0d59d1eee9"
+        },
+        {
+          "file": "desktop-app-vue/src/main/enterprise/low-code/__tests__/rest-connection-probe.test.js",
+          "status": "passed",
+          "tests": 21,
+          "sha256": "aea9b8d9552cb1239161aab1b842d78731ae4d9ab2de7455e7e02ece2d75f6fc"
+        }
+      ]
+    }
+  },
+  "sourceHashes": {
+    "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs": "fc59f97abcca45cf0a18de26259ee0989f9bde7535af13b4422b9e191e4d9652",
+    "desktop-app-vue/src/main/enterprise/low-code/__tests__/app-builder.test.js": "36f100664782d5cea156fbc38359f54b12170eb12e0c20b436c37f0d59d1eee9",
+    "desktop-app-vue/src/main/enterprise/low-code/__tests__/rest-connection-probe.test.js": "aea9b8d9552cb1239161aab1b842d78731ae4d9ab2de7455e7e02ece2d75f6fc",
+    "desktop-app-vue/src/main/enterprise/low-code/app-builder.js": "d1a68df4ab8db2236d371ada80e1b9181637fd1bb3dd6fcebd392e03a85f12e2",
+    "desktop-app-vue/src/main/enterprise/low-code/low-code-ipc.js": "7ef57f9b1294b7dd8d5c94e018546dba1a2cfb0b758a8815a1a310f44c96262b",
+    "desktop-app-vue/src/main/enterprise/low-code/rest-connection-probe.js": "0ed889eb6d227e11d9bd3836fb9d889d478bf84c98de6d5f32045d26aa3d3db3",
+    "desktop-app-vue/src/main/remote/logging/batched-command-logger.js": "79e15e6d12bc56184316d3520447a02e311e11fa2ee229f9fccde8e4def9323d",
+    "desktop-app-vue/src/main/remote/logging/command-logger.js": "645065aa11dd0a00ad2852dcf361451aaaf705b2250c805a7b819a36ce457021",
+    "desktop-app-vue/src/main/remote/logging/remote-command-audit-redaction.js": "ae86cd58a77404e32b64108c346b801036273f6e199696210d67160357685064",
+    "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110",
+    "desktop-app-vue/src/main/task/task-description-ipc.js": "5e919fb7ce99c65c780de47a6556391f0395e5907673987fa581fcb3c7bdcbe6",
+    "desktop-app-vue/src/main/task/task-ipc.js": "b5e30e4a3019aa9ae037bb427a3893090ccff5ab07960fadf5ef8ae6c9ee4bb9",
+    "desktop-app-vue/src/preload/index.js": "afe58632109a95f6fa3ea5831243454e06abaee6f4e1e54a3fa4cbb572a7f19a",
+    "desktop-app-vue/src/preload/renderer-ipc-capabilities.json": "1456afcf63eb3d1c114e62dece1c0c10507eebed40fff3b93c6139acabc4bbeb",
+    "desktop-app-vue/src/renderer/components/projects/ProjectRiskReviewPanel.vue": "71db4531e29a682b896a6da0108adf222b0089ecf2b38586a9196a16d382eca4",
+    "desktop-app-vue/src/renderer/components/projects/ProjectTaskCreateForm.vue": "f0af610d83def791f9debce852bb60c7d9b1d93efc4c641a75902b313c2db067",
+    "desktop-app-vue/src/renderer/components/projects/ProjectTaskDescriptionDrawer.vue": "ece038499326fd84ddfff955869024e73fa5c43adbda8df6fd232ca47dd535d7",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+    "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts": "761080d3b52defcd5869202613a8a4abe44504b40e95c91fb4787d457c88967f",
+    "desktop-app-vue/tests/unit/enterprise/capability-ipc.test.js": "5c83bee07b923adea328d43f5b81bca884ee97945846142fbb6921292aef5766",
+    "desktop-app-vue/vitest.audit-policy.config.mjs": "71e0a6faf0fc4620f3826ce867a22982f5c1ff8280e9411af9c1eec8f74bbfa5",
+    "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "680965bb6a2dd9ed67eb9eecf48c17e4d1cdfca33940c05baf25420ca23706dd",
+    "desktop-app-vue/vitest.enterprise-capabilities.config.mjs": "3442c64f562747e255b690f4983eb55f6e6357fa70effa527cc8ae44231d3836",
+    "docs/research/palantir/audit-data-governance.md": "b44f85af9709ca5843036420dcf2f82a7c4af49bcfe994f8138d7bd2b2b67132",
+    "docs/research/palantir/controlled-project-task-creation.md": "ccf51d116f94bc287edf2412b9a9ce3d28af80c74554c7d60f0a6ef5c19677f3",
+    "docs/research/palantir/low-code-rest-probe.md": "23e83d8556de49ba762f24b6b6a68964e891afe61f42e7d3b0514cf1fbc00aed",
+    "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md": "0c14cb58187a0a20e013badc09468a5d1ec8b0197feef3d1018d42fdadf2a0be",
+    "docs/research/palantir/pdh-consumer-retention.md": "c08f797fb472c627740b71826793669000ac478c8adf78a983b2dceb3080bb67",
+    "docs/research/palantir/project-risk-action-lineage.md": "fdde786387544e8c11022fed068344189b65cec2e6f0666fb0256fb94700ae32",
+    "docs/research/palantir/project-task-review-workbench.md": "c86c2081b415fdd3178aaa713473cc90d412d22beb04e24e5daa556cc06b2223",
+    "packages/cli/__tests__/unit/audit-data-policy.test.js": "489e9d3d554bb6962e9f9a805b606902e2f4bb826af8ea9bf241fc5db3276730",
+    "packages/cli/__tests__/unit/audit-logger.test.js": "1c9785fe0b68f77d04166d3b3faee46a1146b756d16a5df6668244f6bbc6338c",
+    "packages/cli/__tests__/unit/audit-sanitization.test.js": "e2cc01ae4012112dd310f2264cf61c2bea8533a43cb2218af71ba51f4471eef8",
+    "packages/cli/__tests__/unit/hub-command.test.js": "a2f1c123dc939c48b675eaf68821550829dbc90d1e3b05df7364a3f04cc305c9",
+    "packages/cli/__tests__/unit/project-risk-lineage-audit.test.js": "76e6740df6af585d07f0ccc267e38ee242d87833826ea9e569035a543075aa0b",
+    "packages/cli/__tests__/unit/project-risk-lineage.test.js": "acc663a83b5478f86f80fdcc82ebb95b80ab680fa94ee4b7fbac8469a8edce75",
+    "packages/cli/__tests__/unit/task-create-action-service.test.js": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260",
+    "packages/cli/src/commands/hub.js": "c24898081f8edf04d0393e131f408e7ae543de3becf03573636649b336a169b1",
+    "packages/cli/src/lib/audit-logger.js": "ab19c900176b9436fc1ffbf6a6c625404c27478a74e9e4943224ed8dc611061c",
+    "packages/personal-data-hub/__tests__/vault-derivation.test.js": "135835f45a4562361ffbce8d8eaf203eac5a0dd8e2eefd9a960623bc17020974",
+    "packages/personal-data-hub/lib/derivation-store.js": "4fb078c94e93196955438fb64dc2b597c72e7c5cca67bdfdddea2cfb6013a7d9",
+    "packages/personal-data-hub/lib/vault.js": "eb55415d7237c38ad9b5b9068ab9c893a7e840e39a8b8f052b65e06966e62222",
+    "packages/session-core/lib/audit-data-policy.js": "addd75102ba51045d059df5f52422a747bbd21381abdcc72c4df4dedff777f2b",
+    "packages/session-core/lib/project-risk-review-service.js": "9b7472bb07282dea37b7d531a554f58ccd1e8d85e7dc1080f35846a3525b0468",
+    "packages/session-core/lib/restricted-audit-store.js": "9e3519152b6a875618a953dee0643d9e2afd9fefba7504262b1e4fceb21c97fb",
+    "packages/session-core/lib/task-description-action-service.js": "0366e4995f9bf0697670166ec11e702f4b3379a5ebae235823760d242fd46226",
+    "packages/session-core/package.json": "56abc11e1a87a211791a693afb5344b0f15283c52e056fa1e2da8b8e0e61066e"
+  },
+  "checks": {
+    "cliManifest": true,
+    "cliHelpIndex": true,
+    "cliCompletions": true,
+    "cliReference": true,
+    "rendererIpc": true,
+    "syntax": true,
+    "prettier": true,
+    "gitDiffCheck": true
+  },
+  "limits": [
+    "Local Windows validation; new exact-commit Linux/macOS release gates not run",
+    "Electron dialogs/windows injected; real GUI journey not run",
+    "REST test proves unauthenticated HEAD reachability only; no runtime deployment",
+    "Organization mapping, synchronous final-write authority and version-bound single-use multi-step approval remain unimplemented",
+    "Risk/action content binding is local, not independently signed cross-service proof",
+    "Synthetic isolated samples; real business labels/results, model usage and costs not accepted",
+    "Diagnostics require trusted production host authorization injection; other service loggers not all migrated",
+    "Storage checks are preflight budgets, not global hard quota or crash recovery proof",
+    "No IdP tenant, authenticated datasource, deployment target or production vector sink supplied",
+    "Unrelated concurrent verify01/native-evaluator changes excluded"
+  ],
+  "collectedAt": "2026-10-06T11:19:54.578Z",
+  "parentCommit": "d558e6c71e4da77bec3a9abcc5f413a7db10d74e"
+}

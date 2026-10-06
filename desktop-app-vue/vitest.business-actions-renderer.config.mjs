@@ -10,6 +10,7 @@ export default defineConfig({
     include: [
       "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
       "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+      "src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
     ],
   },
 });

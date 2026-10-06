@@ -192,7 +192,7 @@ describe("Audit Logger", () => {
 
       const logs = db.data.get("audit_log");
       expect(logs[0].success).toBe(0);
-      expect(logs[0].error_message).toBe("Invalid password");
+      expect(logs[0].error_message).toBe("[Content omitted]");
     });
 
     it("should handle null details", () => {
@@ -255,7 +255,7 @@ describe("Audit Logger", () => {
         details: { key: "value" },
       });
       const logs = queryLogs(db, { operation: "test" });
-      expect(logs[0].details).toEqual({ key: "value" });
+      expect(logs[0].details).toEqual({});
     });
 
     it("should convert success to boolean", () => {

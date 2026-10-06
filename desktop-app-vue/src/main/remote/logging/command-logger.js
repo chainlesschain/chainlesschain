@@ -18,7 +18,15 @@ const {
   createRemoteCommandAuditProjection,
   deserializeRemoteCommandAuditValue,
   serializeRemoteCommandAuditValue,
+  projectRemoteAuditEnvelope,
+  projectStoredRemoteAuditEnvelope,
 } = require("./remote-command-audit-redaction");
+const {
+  RestrictedAuditStore,
+} = require("@chainlesschain/session-core/restricted-audit-store");
+const {
+  validateAuditRetention,
+} = require("@chainlesschain/session-core/audit-data-policy");
 
 const logger = createRemoteLogRedactor(remoteLogSink, "CommandLogger");
 
@@ -42,6 +50,7 @@ class CommandLogger extends EventEmitter {
     super();
 
     this.database = database;
+    this.diagnostics = new RestrictedAuditStore(database, options.diagnostics);
 
     // 配置
     this.config = {
@@ -51,6 +60,7 @@ class CommandLogger extends EventEmitter {
       enableAutoCleanup: true,
       ...options,
     };
+    validateAuditRetention(this.config);
 
     // 自动清理定时器
     this.cleanupTimer = null;
@@ -114,6 +124,7 @@ class CommandLogger extends EventEmitter {
    * @returns {number} 日志 ID
    */
   log(logEntry) {
+    const safeEnvelope = projectRemoteAuditEnvelope(logEntry);
     const {
       requestId,
       deviceDid,
@@ -127,7 +138,7 @@ class CommandLogger extends EventEmitter {
       level = LogLevel.INFO,
       duration = 0,
       timestamp = Date.now(),
-    } = logEntry;
+    } = { ...logEntry, ...safeEnvelope };
 
     try {
       // 验证必填字段
@@ -168,7 +179,7 @@ class CommandLogger extends EventEmitter {
       // 发出日志记录事件
       this.emit("log", {
         id: info.lastInsertRowid,
-        ...logEntry,
+        ...safeEnvelope,
         params: createRemoteCommandAuditProjection("params", params),
         result:
           result === null || result === undefined
@@ -185,6 +196,15 @@ class CommandLogger extends EventEmitter {
       logger.error("[CommandLogger] 记录日志失败:", err);
       throw err;
     }
+  }
+
+  // Main-process host entry; disabled unless the host injects an authorizer.
+  captureDiagnostic(requestId, details, context) {
+    return this.diagnostics.capture(requestId, details, context);
+  }
+
+  readDiagnostic(id, context) {
+    return this.diagnostics.read(id, context);
   }
 
   /**
@@ -307,7 +327,7 @@ class CommandLogger extends EventEmitter {
 
       // 解析 JSON 字段
       const formattedLogs = logs.map((log) => ({
-        ...log,
+        ...projectStoredRemoteAuditEnvelope(log),
         params: deserializeRemoteCommandAuditValue("params", log.params),
         result: deserializeRemoteCommandAuditValue("result", log.result),
         error: deserializeRemoteCommandAuditValue("error", log.error),
@@ -380,7 +400,7 @@ class CommandLogger extends EventEmitter {
       }
 
       return {
-        ...log,
+        ...projectStoredRemoteAuditEnvelope(log),
         params: deserializeRemoteCommandAuditValue("params", log.params),
         result: deserializeRemoteCommandAuditValue("result", log.result),
         error: deserializeRemoteCommandAuditValue("error", log.error),
@@ -430,11 +450,12 @@ class CommandLogger extends EventEmitter {
    */
   cleanup() {
     try {
+      this.diagnostics.purgeExpired();
       const cutoffTime = Date.now() - this.config.maxLogAge;
 
       // 删除超过保留期的日志
       const stmt1 = this.database.prepare(
-        "DELETE FROM remote_command_logs WHERE timestamp < ?",
+        "DELETE FROM remote_command_logs WHERE created_at < ?",
       );
       const result1 = stmt1.run(cutoffTime);
 
@@ -447,7 +468,7 @@ class CommandLogger extends EventEmitter {
         const excessCount = total - this.config.maxLogCount;
         const stmt2 = this.database.prepare(`
           DELETE FROM remote_command_logs WHERE id IN (
-            SELECT id FROM remote_command_logs ORDER BY timestamp ASC LIMIT ?
+            SELECT id FROM remote_command_logs ORDER BY created_at ASC, id ASC LIMIT ?
           )
         `);
         const result2 = stmt2.run(excessCount);

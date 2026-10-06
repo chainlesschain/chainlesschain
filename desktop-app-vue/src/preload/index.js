@@ -902,7 +902,10 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:import-file",
   "project:move-file",
   "project:risk-evaluate",
+  "project:risk-feedback",
+  "project:risk-lineage",
   "project:risk-review",
+  "project:risk-reviews",
   "project:stats:get",
   "project:stats:update",
   "project:update",
@@ -1079,6 +1082,9 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "system:open-external",
   "system:restart",
   "task:complete-sprint",
+  "task:controlled-create-execute",
+  "task:controlled-create-preview",
+  "task:controlled-create-runs",
   "task:controlled-description-execute",
   "task:controlled-description-preview",
   "task:controlled-description-run",
@@ -2839,6 +2845,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("project:risk-evaluate", params),
     getRiskReview: (params) =>
       ipcRenderer.invoke("project:risk-review", params),
+    listRiskReviews: (params) =>
+      ipcRenderer.invoke("project:risk-reviews", params),
+    recordRiskFeedback: (params) =>
+      ipcRenderer.invoke("project:risk-feedback", params),
+    getRiskLineage: (params) =>
+      ipcRenderer.invoke("project:risk-lineage", params),
     // 项目CRUD
     getAll: (userId) => ipcRenderer.invoke("project:get-all", userId),
     get: (projectId) => ipcRenderer.invoke("project:get", projectId),
@@ -4740,6 +4752,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:update-task", removeUndefined(params)),
     previewDescriptionUpdate: (params) =>
       ipcRenderer.invoke("task:controlled-description-preview", params),
+    previewControlledCreate: (params) =>
+      ipcRenderer.invoke("task:controlled-create-preview", params),
+    executeControlledCreate: (params) =>
+      ipcRenderer.invoke("task:controlled-create-execute", params),
+    listControlledCreateRuns: (params) =>
+      ipcRenderer.invoke("task:controlled-create-runs", params),
     executeDescriptionUpdate: (params) =>
       ipcRenderer.invoke("task:controlled-description-execute", params),
     getDescriptionActionRun: (params) =>

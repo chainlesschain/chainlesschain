@@ -3,6 +3,11 @@
 const {
   redactBrowserLogValue,
 } = require("../../browser/browser-log-redaction");
+const {
+  projectAuditField,
+  projectAuditMetadata,
+  AUDIT_POLICY_VERSION,
+} = require("@chainlesschain/session-core/audit-data-policy");
 
 const SCHEMA = "remote-command-audit-redaction/v1";
 const LABELS = new Set(["params", "result", "error"]);
@@ -24,6 +29,8 @@ function createRemoteCommandAuditProjection(label, value) {
     schema: SCHEMA,
     label,
     redacted: true,
+    policyVersion: AUDIT_POLICY_VERSION,
+    metadata: projectAuditMetadata(value),
     valueDigest: redaction.valueDigest,
     byteLength: redaction.byteLength,
   });
@@ -71,6 +78,8 @@ function deserializeRemoteCommandAuditValue(label, raw) {
       schema: SCHEMA,
       label,
       redacted: true,
+      policyVersion: AUDIT_POLICY_VERSION,
+      metadata: projectAuditMetadata(parsed.metadata ?? null),
       valueDigest: parsed.valueDigest,
       byteLength: parsed.byteLength,
     });
@@ -83,4 +92,49 @@ module.exports = {
   createRemoteCommandAuditProjection,
   deserializeRemoteCommandAuditValue,
   serializeRemoteCommandAuditValue,
+  projectRemoteAuditEnvelope,
+  projectStoredRemoteAuditEnvelope,
 };
+
+function projectRemoteAuditEnvelope(entry) {
+  const result = {};
+  for (const key of [
+    "requestId",
+    "deviceDid",
+    "deviceName",
+    "namespace",
+    "action",
+    "status",
+    "level",
+    "duration",
+    "timestamp",
+    "createdAt",
+  ]) {
+    const descriptor = Object.getOwnPropertyDescriptor(entry, key);
+    if (descriptor && "value" in descriptor)
+      result[key] = projectAuditField(key, descriptor.value);
+  }
+  return result;
+}
+
+function projectStoredRemoteAuditEnvelope(entry) {
+  const result = {};
+  for (const key of [
+    "id",
+    "request_id",
+    "device_did",
+    "device_name",
+    "command_namespace",
+    "command_action",
+    "status",
+    "level",
+    "duration",
+    "timestamp",
+    "created_at",
+  ]) {
+    if (key === "id") result.id = entry.id;
+    else
+      result[key] = projectAuditField(key.replace("command_", ""), entry[key]);
+  }
+  return result;
+}

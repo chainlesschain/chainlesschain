@@ -9,6 +9,7 @@ export default {
     include: [
       "src/main/enterprise/automation/__tests__/automation-engine.test.js",
       "src/main/enterprise/low-code/__tests__/app-builder.test.js",
+      "src/main/enterprise/low-code/__tests__/rest-connection-probe.test.js",
       "tests/unit/enterprise/scim-sync.test.js",
       "tests/unit/enterprise/scim-ipc.test.js",
       "tests/unit/enterprise/capability-ipc.test.js",

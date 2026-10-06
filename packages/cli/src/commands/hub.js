@@ -3464,7 +3464,11 @@ async function cmdDerivation(operation, reference, options = {}) {
         "Normalized entity deletion requires --confirm; raw archive is retained",
       );
     }
-    if (operation === "prune" && options.confirm !== true) {
+    if (
+      operation === "prune" &&
+      options.confirm !== true &&
+      options.dryRun !== true
+    ) {
       throw new Error("Retired derivation receipt pruning requires --confirm");
     }
     if (
@@ -3482,23 +3486,73 @@ async function cmdDerivation(operation, reference, options = {}) {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       throw new Error("Derivation limit must be between 1 and 1000");
     }
-    const hub = await (options._getHub || getHub)();
+    const budget = {};
+    for (const name of ["maxVaultBytes", "minFreeBytes", "reserveBytes"]) {
+      if (options[name] === undefined) continue;
+      const value = Number(options[name]);
+      if (!Number.isSafeInteger(value) || value < 0)
+        throw new Error(`${name} must be a non-negative safe integer`);
+      budget[name] = value;
+    }
+    if (options.audit && (options.state || options.kind)) {
+      throw new Error(
+        "Consumer audit includes all kinds and states; omit --kind and --state",
+      );
+    }
+    if (
+      operation === "status" &&
+      Object.keys(budget).length &&
+      !options.storage
+    ) {
+      throw new Error(
+        "Storage budget options require --storage for derivation-status",
+      );
+    }
+    // Check before constructing a registry: full hub startup may rebuild indexes.
+    if (operation === "retry" && Object.keys(budget).length) {
+      const minimal = await (options._getHub || getHubMinimal)();
+      minimal.vault.assertStorageBudget(budget);
+    }
+    if (operation === "status" && options.storage) {
+      if (options.adapter !== undefined || options.scope !== undefined) {
+        throw new Error(
+          "Storage reports cover the whole vault; omit --adapter and --scope",
+        );
+      }
+      const minimal = await (options._getHub || getHubMinimal)();
+      const result = { storage: minimal.vault.assertStorageBudget(budget) };
+      printJson(result);
+      return result;
+    }
+    const hub = await (
+      options._getHub ||
+      (operation === "consumers" || (operation === "prune" && options.dryRun)
+        ? getHubMinimal
+        : getHub)
+    )();
     const filters = { adapter: options.adapter, scope: options.scope };
     let result;
     if (operation === "consumers") {
-      result = hub.vault.getDerivationStore().listConsumers({
-        state: options.state,
-        kind: options.kind,
-        afterConsumerId: options.after,
-        limit,
-      });
+      result = options.audit
+        ? hub.vault.getDerivationStore().auditConsumers({
+            afterConsumerId: options.after,
+            limit,
+          })
+        : hub.vault.getDerivationStore().listConsumers({
+            state: options.state,
+            kind: options.kind,
+            afterConsumerId: options.after,
+            limit,
+          });
     } else if (operation === "prune") {
       result = hub.vault.getDerivationStore().pruneRetiredConsumers({
         consumerIds: options.consumer,
-        activeConsumerId: hub.registry.consumerId,
+        activeConsumerId: hub.registry?.consumerId,
         limit,
+        ...(options.dryRun ? { dryRun: true } : {}),
       });
     } else if (operation === "retry") {
+      if (Object.keys(budget).length) hub.vault.assertStorageBudget(budget);
       result = await hub.registry.retryDerivations({ ...filters, limit });
     } else if (operation === "state") {
       result = hub.vault
@@ -3668,8 +3722,23 @@ export function registerHubCommand(program, dependencies = {}) {
       .option("--adapter <name>", "Filter by source adapter")
       .option("--scope <scope>", "Filter by source scope")
       .option("--json", "Output JSON");
+    command
+      .option("--max-vault-bytes <n>", "Preflight maximum DB + WAL + SHM bytes")
+      .option(
+        "--min-free-bytes <n>",
+        "Preflight minimum free disk bytes after reserve",
+      )
+      .option(
+        "--reserve-bytes <n>",
+        "Caller-estimated extra bytes for preflight (not a reservation)",
+      );
     if (operation === "retry")
       command.option("--limit <n>", "Maximum deliveries (1-1000)", "100");
+    else
+      command.option(
+        "--storage",
+        "Inspect storage only and check the supplied byte budget",
+      );
     command.action((options) => cmdDerivation(operation, null, options));
   }
 
@@ -3679,6 +3748,10 @@ export function registerHubCommand(program, dependencies = {}) {
       "List registered derivation consumers without retirement tokens",
     )
     .option("--state <state>", "Filter by active or retired")
+    .option(
+      "--audit",
+      "Inventory registered and historical consumers with retention reasons and receipt counts",
+    )
     .option("--kind <kind>", "Filter by ephemeral or persistent")
     .option("--after <id>", "Continue after a consumer ID")
     .option("--limit <n>", "Maximum consumers (1-1000)", "100")
@@ -3693,6 +3766,10 @@ export function registerHubCommand(program, dependencies = {}) {
     .requiredOption("--consumer <ids...>", "Retired consumer IDs (1-100)")
     .option("--limit <n>", "Maximum receipts removed (1-1000)", "100")
     .option("--confirm", "Confirm removal of these retired projection receipts")
+    .option(
+      "--dry-run",
+      "Validate IDs and preview bounded receipt cleanup without deletion",
+    )
     .option("--json", "Output JSON")
     .action((options) => cmdDerivation("prune", null, options));
 

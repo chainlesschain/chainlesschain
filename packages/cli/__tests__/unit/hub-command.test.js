@@ -414,6 +414,110 @@ describe("cc hub command surface", () => {
 });
 
 describe("cc hub derivation commands", () => {
+  it("audits historical consumers and previews cleanup without requiring a registry or confirmation", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const auditConsumers = vi.fn(() => ({ consumers: [], hasMore: false }));
+    const pruneRetiredConsumers = vi.fn(() => ({ deletedReceipts: 0 }));
+    const _getHub = async () => ({
+      vault: {
+        getDerivationStore: () => ({ auditConsumers, pruneRetiredConsumers }),
+      },
+    });
+    try {
+      await _internal.cmdDerivation("consumers", null, {
+        audit: true,
+        after: "old",
+        limit: "5",
+        _getHub,
+      });
+      expect(auditConsumers).toHaveBeenCalledWith({
+        afterConsumerId: "old",
+        limit: 5,
+      });
+      await _internal.cmdDerivation("prune", null, {
+        consumer: ["old"],
+        dryRun: true,
+        limit: "2",
+        _getHub,
+      });
+      expect(pruneRetiredConsumers).toHaveBeenCalledWith({
+        consumerIds: ["old"],
+        activeConsumerId: undefined,
+        dryRun: true,
+        limit: 2,
+      });
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("rejects an exceeded or malformed storage budget before retry side effects", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    const retryDerivations = vi.fn();
+    const assertStorageBudget = vi.fn(() => {
+      throw new Error("budget exceeded");
+    });
+    const _getHub = vi.fn(async () => ({
+      registry: { retryDerivations },
+      vault: { assertStorageBudget },
+    }));
+    try {
+      await _internal.cmdDerivation("retry", null, {
+        maxVaultBytes: "0",
+        _getHub,
+        json: true,
+      });
+      expect(assertStorageBudget).toHaveBeenCalledWith({ maxVaultBytes: 0 });
+      expect(retryDerivations).not.toHaveBeenCalled();
+      _getHub.mockClear();
+      await _internal.cmdDerivation("retry", null, {
+        reserveBytes: "NaN",
+        _getHub,
+        json: true,
+      });
+      expect(_getHub).not.toHaveBeenCalled();
+      expect(exit).toHaveBeenCalledWith(1);
+    } finally {
+      log.mockRestore();
+      exit.mockRestore();
+    }
+  });
+
+  it("reports storage without a registry and rechecks admitted work immediately before retry", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const sequence = [];
+    const assertStorageBudget = vi.fn(() => {
+      sequence.push("budget");
+      return { admitted: true };
+    });
+    const retryDerivations = vi.fn(async () => {
+      sequence.push("retry");
+      return { succeeded: 1 };
+    });
+    try {
+      const report = await _internal.cmdDerivation("status", null, {
+        storage: true,
+        _getHub: async () => ({ vault: { assertStorageBudget } }),
+      });
+      expect(report).toEqual({ storage: { admitted: true } });
+      sequence.length = 0;
+      await _internal.cmdDerivation("retry", null, {
+        reserveBytes: "123",
+        _getHub: async () => ({
+          vault: { assertStorageBudget },
+          registry: { retryDerivations },
+        }),
+      });
+      expect(sequence).toEqual(["budget", "budget", "retry"]);
+      expect(assertStorageBudget).toHaveBeenLastCalledWith({
+        reserveBytes: 123,
+      });
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it("prints scoped status and validates retry limits before loading the hub", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const exit = vi.spyOn(process, "exit").mockImplementation(() => {});

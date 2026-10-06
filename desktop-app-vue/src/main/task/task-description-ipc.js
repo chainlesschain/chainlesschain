@@ -12,6 +12,12 @@ const CHANNELS = Object.freeze({
   runs: "task:controlled-description-runs",
   evaluateRisk: "project:risk-evaluate",
   riskReview: "project:risk-review",
+  riskReviews: "project:risk-reviews",
+  riskFeedback: "project:risk-feedback",
+  riskLineage: "project:risk-lineage",
+  createPreview: "task:controlled-create-preview",
+  createExecute: "task:controlled-create-execute",
+  createRuns: "task:controlled-create-runs",
 });
 
 function hostError(code) {
@@ -67,7 +73,7 @@ function createTaskDescriptionHost({
     return { db, getActor };
   }
 
-  function createService(event) {
+  function createService(event, creation = false) {
     const { db, getActor } = createAuthority(event);
     const gate = new ApprovalGate({
       defaultPolicy: "strict",
@@ -78,16 +84,25 @@ function createTaskDescriptionHost({
         }
         const result = await getElectron().dialog.showMessageBox(parent, {
           type: "question",
-          title: "确认修改任务描述",
-          message: "修改以下任务的描述？",
+          title: creation ? "确认创建项目任务" : "确认修改任务描述",
+          message: creation
+            ? "创建以下待处理任务？此操作仅保存任务。"
+            : "修改以下任务的描述？",
           detail: [
             `当前身份：${display(actorDid)}`,
             `任务：${display(request.target.id)}`,
+            ...(creation ? [`任务类型：${display(after.taskType)}`] : []),
             `修改前：${display(before.description)}`,
             `修改后：${display(after.description)}`,
             `操作摘要：${request.actionDigest}`,
+            ...(request.input.riskReview
+              ? [
+                  `风险检查：${display(request.input.riskReview.id)}`,
+                  `风险来源摘要：${request.input.riskReview.contentDigest}`,
+                ]
+              : []),
           ].join("\n\n"),
-          buttons: ["取消", "确认修改"],
+          buttons: ["取消", creation ? "确认创建" : "确认修改"],
           defaultId: 0,
           cancelId: 0,
           noLink: true,
@@ -97,8 +112,12 @@ function createTaskDescriptionHost({
     });
     const {
       TaskDescriptionActionService,
+      TaskCreateActionService,
     } = require("@chainlesschain/session-core/task-description-action-service");
-    return new TaskDescriptionActionService({
+    const Service = creation
+      ? TaskCreateActionService
+      : TaskDescriptionActionService;
+    return new Service({
       db,
       getActor,
       // Keep the gate private. Renderer input cannot select a weaker policy or
@@ -132,10 +151,31 @@ function createTaskDescriptionHost({
         taskId: params?.taskId,
         description: params?.description,
         idempotencyKey: params?.idempotencyKey,
+        ...(params?.reviewId === undefined
+          ? {}
+          : { reviewId: params.reviewId }),
       });
     },
     execute(event, params = {}) {
       return createService(event).execute(params?.request);
+    },
+    previewCreate(event, params = {}) {
+      return createService(event, true).preview(
+        selectedParams(params, [
+          "projectId",
+          "taskType",
+          "description",
+          "idempotencyKey",
+        ]),
+      );
+    },
+    executeCreate(event, params = {}) {
+      return createService(event, true).execute(params?.request);
+    },
+    listCreateRuns(event, params = {}) {
+      return createService(event, true).listProjectRuns(
+        selectedParams(params, ["projectId", "beforeId", "limit"]),
+      );
     },
     getRun(event, params = {}) {
       return createService(event).getRun(params?.runId);
@@ -160,6 +200,32 @@ function createTaskDescriptionHost({
     },
     getRiskReview(event, params = {}) {
       return createRiskService(event).getReview({ reviewId: params?.reviewId });
+    },
+    listRiskReviews(event, params = {}) {
+      return createRiskService(event).listReviews(
+        selectedParams(params, ["projectId", "beforeId", "limit"]),
+      );
+    },
+    recordRiskFeedback(event, params = {}) {
+      return createRiskService(event).recordFeedback(
+        selectedParams(params, [
+          "reviewId",
+          "taskId",
+          "verdict",
+          "reasonCodes",
+          "comment",
+        ]),
+      );
+    },
+    getRiskLineage(event, params = {}) {
+      return createRiskService(event).getLineage(
+        selectedParams(params, [
+          "reviewId",
+          "beforeId",
+          "feedbackBeforeId",
+          "limit",
+        ]),
+      );
     },
   });
 }
@@ -196,6 +262,24 @@ function registerTaskDescriptionIPC(database, dependencies = {}) {
   );
   electron.ipcMain.handle("project:risk-review", (event, params) =>
     host.getRiskReview(event, params),
+  );
+  electron.ipcMain.handle("project:risk-reviews", (event, params) =>
+    host.listRiskReviews(event, params),
+  );
+  electron.ipcMain.handle("project:risk-feedback", (event, params) =>
+    host.recordRiskFeedback(event, params),
+  );
+  electron.ipcMain.handle("project:risk-lineage", (event, params) =>
+    host.getRiskLineage(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-create-preview", (event, params) =>
+    host.previewCreate(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-create-execute", (event, params) =>
+    host.executeCreate(event, params),
+  );
+  electron.ipcMain.handle("task:controlled-create-runs", (event, params) =>
+    host.listCreateRuns(event, params),
   );
 }
 
