@@ -192,7 +192,25 @@ PM host 强制执行三类资源限制；货币和全部内部重试/模型调�
 
 [父版本与运行控制验证记录](./evidence/rrsi-parent-runtime-local-controls-2026-10-07.json) 保存六个相关文件 **128/128** 的本地回归结果；本轮新增 13 项父版本/模式/派发反例，包含真实 Registry 提交、真实文件损坏、签名 host、独立结算和进程重开。ESLint、Prettier 通过。Registry 的 Ledger/权限、callback、密钥和业务输入仍为测试配置，不能据此认证生产父版本、收费准入或目标隔离。
 
-## 10 下一批工作及完成审计
+## 10 扰动来源与原生测量图
+
+[rrsi-evaluation-variants.js](../../../packages/cli/src/lib/evolution/rrsi-evaluation-variants.js) 将 clean、paraphrase、tool-order、tool-delay 对应到真正严格 Eval Suite。原 task ID、split、四维来源组、grader 和隐藏评分目标固定，training 内容不可改。paraphrase 只允许 PM prompt 变化；非文本扰动保留原 Suite 身份，工具执行变换仍待独立 runtime 接线。原始/派生三份 suite 及多个 variant 之间统一检查可精确识别的跨五池 publicInput 重复；训练投影只给出原 train 引用。
+
+原 Eval 的 native training context digest 包含整个 suiteDigest，改写留出题即使不改 training 也会产生新摘要。本模块同时保存 base/derived native 摘要，不复贴旧 provenance 回执；RRSI train 来源摘要和任务仍不变。`hiddenObjectivesUnchanged` 仅证明字段未变，不能证明改写的语义等价、未夹带答案或 recipe 确实执行。这些认证标志均为 false。
+
+[rrsi-native-evaluation-plan.js](../../../packages/cli/src/lib/evolution/rrsi-native-evaluation-plan.js) 编译选择或泛化阶段全部 role×variant×原生 pair。新测量图在观察结果之前固定 C–B、C–A、B–A 三角采集，每 task×seed×arm×variant×target 有两份计划观察；第三个 pair 的 A/B 结果进入主 arm 均值测量，并非可丢弃的诊断数据，也不自动新增 B–A 零假设。未来统计 v2 需先在任务内聚合固定重复，再按来源组求差；不能增加独立组数，也不能用 pooled 改善覆盖原 C–A/C–B Gate 的拒绝。
+
+原生 `SkillTargetMatrixEvalPlan.planDigest` 保持原义，4 字段 request context、12 字段 expected context 和 request digest 从其真实 cell 生成，不改成 mapping 或 RRSI plan digest。声明的 typed lock/manifest/target matrix 与每个 case 的全部 cellId/runtime/environment 必须一致；所有 case 同步删同一 cell 也会拒绝。这里只校验声明矩阵完整性，不认证矩阵部署或签名权威。缺 pair、缺 variant、换产物/父版本/调用身份均拒绝；stage 对象的隐式转换不执行。
+
+完整观察计数包括 validation/test、全部 seed、全部 variant、全部目标和重复 arm。单目标泛化图有 24 个 native cases，每 arm 2,880 个 Actor 观察；默认 v1 的 clean-only 最终预算 400 不足，编译必须拒绝，不能修改已冻结历史来补额度。两目标图有 48 个 slots、每 arm 5,760 个观察。确认性 family 包括原已登记比较×池×variant×target；三角采集不代表已实现统计 v2、等实际费用或完整成本图。
+
+私有源上下文分别有界复制，输出只保留引用及原生计划，不含题目和隐藏目标；生成 envelope 也必须通过同一 2 MiB/节点上限，否则拒绝而不裁剪矩阵。现有 40-target 合成反例能稳定触发这一界限，较大图需继续设计分块/引用协议。
+
+本批仍没有原生派发能力、独立付费预算、生命周期/recipe 执行认证或 admission inventory。下一层必须用版本化 batch/child 预占绑定完整三角图和各 arm 的全请求费用，再将这些根签入 enrollment v2；由 Gate 自己产生 runId/runNonce 后，连接实际 admission 与最终签名回执。旧单 partition reservation、PM-only enrollment 和单观察统计不能自动升级为这条新协议。
+
+[本地验证记录](./evidence/rrsi-native-evaluation-local-controls-2026-10-07.json) 保存源码摘要和四文件 **39/39** 回归结果：新增 variant 13 项、native plan 13 项，以及旧 Eval/训练映射 13 项。ESLint、Prettier 通过。Astra 只读复核后补上跨池碰撞、stage 转换、完整矩阵和自身输出上限反例；未执行真实原生 Actor、付费请求或 A/B/C 实验。
+
+## 11 下一批工作及完成审计
 
 下一步接入有效父版本与真实运行权威，在派发前绑定实验组、variant、launch slot 和 reservation，再把认证原始行接入统计与选择回执。继续完善其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
 

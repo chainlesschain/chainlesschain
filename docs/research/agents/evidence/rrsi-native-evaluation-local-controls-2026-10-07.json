@@ -1,0 +1,92 @@
+{
+  "schema": "chainlesschain.rrsi-native-evaluation-local-controls/v1",
+  "recordedAt": "2026-10-06T22:12:36.919Z",
+  "baseCommit": "7879476ee2e9ef1a56b582c766a4b79419413557",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-evaluation-variants.js",
+      "digest": "sha256:f99b22e3039bbdaf8d46573ece6515b8423e39aec82002b0c6d0fd22cdce6f88"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-evaluation-plan.js",
+      "digest": "sha256:5ec94641008ae06ea34653d0e40a0e9d3304541b41d44f32ec4a891092b4e38a"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-evaluation.js",
+      "digest": "sha256:9230425a7ef05581225d087a27c3c6c04a71baf0ae9d37c0cac04767aea80fd2"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-variants.test.js",
+      "digest": "sha256:5bac72b1f7bd3ddd25ef833c8aa6455f90a9dec24452b59224ff388a00e6f2c3"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-evaluation-plan.test.js",
+      "digest": "sha256:a900bc91828098972fb6e74ad1bc46643734f10dfca3f0540c6993a946cacfb5"
+    }
+  ],
+  "sourceReport": ".work/rrsi-native-evaluation-full-tests.json",
+  "sourceReportDigest": "sha256:2356af10d7c381f16981e71d61281b290b82ec40433fe7a5045c4ae7386080b7",
+  "files": [
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-adapter.test.js",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-variants.test.js",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-evaluation-plan.test.js",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-pm-training-mapping.test.js",
+      "passed": 7,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 4,
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": 26,
+  "lint": "ESLint passed on all five changed source/test/fixture files",
+  "formatting": "Prettier passed on source/tests/docs",
+  "independentReadOnlyReview": "Astra reviewed cross-pool/cross-variant exact input leakage, training context digest, triangle estimand, typed matrix completeness, stage coercion and generated graph/readback bounds",
+  "measurementDesign": {
+    "nativePairs": ["rrsi-vs-rsi", "rrsi-vs-baseline", "rsi-vs-baseline"],
+    "thirdPairContributesToConfirmatoryArmMeans": true,
+    "thirdPairDoesNotAutomaticallyAddANullHypothesis": true,
+    "singleTargetGeneralization": {
+      "nativeCases": 24,
+      "actorObservationsPerArm": 2880,
+      "hypotheses": 24
+    },
+    "twoTargetGeneralization": {
+      "slots": 48,
+      "actorObservationsPerArm": 5760,
+      "hypotheses": 48
+    }
+  },
+  "localOnly": true,
+  "compilationOnly": true,
+  "signedNativeActorsExecuted": false,
+  "declaredMatrixCompletenessChecked": true,
+  "sourceSemanticReviewVerified": false,
+  "nativeMatrixAuthorityVerified": false,
+  "lifecycleProvenanceVerified": false,
+  "recipeExecutionVerified": false,
+  "completeRequestCostGraphVerified": false,
+  "nativeBatchReservationImplemented": false,
+  "rrsiEnrollmentV2Implemented": false,
+  "nativeStatisticsV2Implemented": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}
