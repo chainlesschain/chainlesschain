@@ -302,6 +302,7 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
     systemProperty("ui.onboarding.root", System.getProperty("ui.onboarding.root") ?: "")
     systemProperty("ui.cold.root", System.getProperty("ui.cold.root") ?: "")
+    systemProperty("ui.cold.boundaries", System.getProperty("ui.cold.boundaries") ?: "false")
     systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
     for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace")) {
         System.getProperty("ui.verify01.$name")?.let { systemProperty("ui.verify01.$name", it) }

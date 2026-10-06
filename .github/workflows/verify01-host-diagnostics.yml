@@ -73,6 +73,7 @@ jobs:
           scripts/__tests__/verify01-diagnostic-command-drain.test.mjs
           scripts/__tests__/verify01-onboarding-fixture.test.mjs
           scripts/__tests__/verify01-cold-evidence.test.mjs
+          scripts/__tests__/verify01-cold-boundaries.test.mjs
           scripts/__tests__/verify01-init-gate.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
       - name: Install Linux virtual display
@@ -142,6 +143,8 @@ jobs:
           fi
           "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \
             --journey cold --ide-version 2024.2 --artifact-dir verify01-artifacts/cold
+          "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \
+            --journey cold-boundaries --ide-version 2024.2 --artifact-dir verify01-artifacts/cold-boundaries
       - name: Preserve successful and failed attempts
         if: always()
         uses: actions/upload-artifact@v6

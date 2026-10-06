@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "boundaries-failed",
+  "checkedAt": "2026-10-06T06:45:29.884Z",
+  "passed": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:f3876d16ecea365c9d64c4f488c8b75f803226b1adad3d25bb58a2292df32bbc",
+      "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:5cf491f4bcd6df4f6f2cb0c09569e2b62875c5cf03ae5806649807602fb38666",
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a"
+    }
+  },
+  "sourceMatches": {
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "current": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "matchesCurrent": false
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": {
+      "expected": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "current": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": {
+      "expected": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "current": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": {
+      "expected": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "current": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": {
+      "expected": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "current": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": {
+      "expected": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "current": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/build.gradle.kts": {
+      "expected": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "current": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": {
+      "expected": "sha256:f3876d16ecea365c9d64c4f488c8b75f803226b1adad3d25bb58a2292df32bbc",
+      "current": "sha256:da382c3c8ead4c9f02ce8841f66f41e12c2449b977a6c07f8299e577e725a89a",
+      "matchesCurrent": false
+    },
+    "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": {
+      "expected": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "current": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/init-gate.mjs": {
+      "expected": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "current": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": {
+      "expected": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "current": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-cold-evidence.mjs": {
+      "expected": "sha256:5cf491f4bcd6df4f6f2cb0c09569e2b62875c5cf03ae5806649807602fb38666",
+      "current": "sha256:7ce9341ce0e8a6f4713fb95478a87ba6fea2a5790c8a788933d9730a1dc90315",
+      "matchesCurrent": false
+    },
+    "scripts/lib/verify01-diagnostic-process.mjs": {
+      "expected": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+      "current": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+      "matchesCurrent": true
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 2991,
+      "digest": "sha256:79d030f41b4517f83e74f44a25e2c7bbb80dfc6ec81162f5e802a925a9e79631"
+    },
+    {
+      "file": "diagnostic-scope.json",
+      "bytes": 2480,
+      "digest": "sha256:b4642170a97e032171012083587057ecb33c79571481787d6661295802365184"
+    },
+    {
+      "file": "fake-cli-protocol.jsonl",
+      "bytes": 8462,
+      "digest": "sha256:dc75154a1f6b567ceb01d1f8746bc1fc24d6870671c4aaef348335bc228d1b39"
+    },
+    {
+      "file": "cold-boundaries-failure.json",
+      "bytes": 8768,
+      "digest": "sha256:f6a1a21b2e4fb1d7cc56a178918b5e6016747c4f7372387a6e9f54f0a32e8451"
+    },
+    {
+      "file": "cold-boundary-never-init-restart.json",
+      "bytes": 6638,
+      "digest": "sha256:f6c049898475daac44e93554c01113053bbbf0f42d86a2df2c43cc66b04858fb"
+    },
+    {
+      "file": "cold-boundary-exit-before-init.json",
+      "bytes": 1760,
+      "digest": "sha256:db0bb329637e0c3e11f663f64a6948d4ad2fd2c2bc2bf85be547193bb8e32840"
+    },
+    {
+      "file": "ide-cold-boundaries.log.cleanup.json",
+      "bytes": 2344,
+      "digest": "sha256:ce13165bae9848df0e1eb439b570581cd612f66b9740c7abcf3c5e0cef1d6efb"
+    }
+  ],
+  "error": "Error: cold-boundaries UI capture exited 1/null\n    at requireSuccess (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:448:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async main (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:270:9)",
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

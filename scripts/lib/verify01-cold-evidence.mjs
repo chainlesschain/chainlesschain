@@ -229,3 +229,202 @@ export function readColdEvidence(root) {
       .map(JSON.parse),
   );
 }
+
+export function verifyColdBoundaries(observations, trace) {
+  const expected = ["never-init-restart", "exit-before-init"];
+  requireThat(
+    Array.isArray(observations) && observations.length === 2,
+    "two replacement boundary cases required",
+  );
+  requireThat(Array.isArray(trace), "raw child ledger required");
+  const ideProcesses = new Set(),
+    sessions = new Set();
+  const results = observations.map((proof, index) => {
+    const {
+      waiting,
+      preparing,
+      held,
+      stopped,
+      replacementWaiting: next,
+      replacementReleased: released,
+      completed,
+    } = proof;
+    requireThat(
+      proof.case === expected[index] &&
+        typeof proof.prompt === "string" &&
+        proof.prompt.length > 0 &&
+        typeof proof.sessionId === "string" &&
+        proof.sessionId &&
+        !sessions.has(proof.sessionId),
+      "unique ordered replacement sessions required",
+    );
+    sessions.add(proof.sessionId);
+    for (const record of [waiting, next, released])
+      requireThat(
+        record?.sessionId === proof.sessionId &&
+          record.processInstanceId &&
+          Number.isSafeInteger(record.processId) &&
+          record.processId > 0 &&
+          typeof record.nonce === "string" &&
+          record.nonce &&
+          trace.some((r) => JSON.stringify(r) === JSON.stringify(record)),
+        "actual nonce-bound child records required",
+      );
+    requireThat(
+      waiting.command === "init-gate-waiting" &&
+        next.command === "init-gate-waiting" &&
+        released.command === "init-gate-released" &&
+        next.nonce === released.nonce &&
+        next.nonce !== waiting.nonce &&
+        next.processInstanceId === released.processInstanceId &&
+        next.processId === released.processId &&
+        next.processInstanceId !== waiting.processInstanceId,
+      "replacement must use a different initialized process instance",
+    );
+    for (const state of [preparing, held, stopped, completed]) {
+      requireThat(
+        state?.visible === true &&
+          state.sessionId === proof.sessionId &&
+          state.initializationTimeoutSeconds === 120,
+        "real GUI session and unchanged initialization constant required",
+      );
+      requireThat(
+        typeof state.processId === "string" && state.processId,
+        "IDE process identity required",
+      );
+      ideProcesses.add(state.processId);
+      time(state.observedAt);
+    }
+    requireThat(
+      preparing.childRunning === true &&
+        preparing.receiptReady === false &&
+        preparing.sendInFlight === true &&
+        preparing.childProcessIds?.includes(String(waiting.processId)) &&
+        held.inputText === proof.prompt &&
+        held.editable === true &&
+        held.sendInFlight === false &&
+        stopped.childRunning === false &&
+        stopped.childProcessId === "" &&
+        proof.oldNodeAliveAfterStop === false,
+      "draft and actual old-child exit must precede replacement",
+    );
+    requireThat(
+      time(proof.submittedAt) <= time(waiting.at) &&
+        time(preparing.observedAt) >= time(waiting.at) &&
+        time(held.observedAt) >= time(preparing.observedAt) &&
+        time(stopped.observedAt) >= time(held.observedAt) &&
+        time(proof.explicitRetryAt) >= time(stopped.observedAt) &&
+        time(next.at) >= time(proof.explicitRetryAt) &&
+        time(released.at) >= time(next.at),
+      "confirmed-exit then explicit retry time order required",
+    );
+    const old = trace.filter(
+      (r) => r.processInstanceId === waiting.processInstanceId,
+    );
+    requireThat(
+      !old.some(
+        (r) =>
+          r.event?.subtype === "init" ||
+          (r.direction === "in" && r.event?.type === "user"),
+      ),
+      "old child must never initialize or receive the saved input",
+    );
+    if (proof.case === "never-init-restart") {
+      requireThat(
+        held.childRunning === true &&
+          held.childProcessId === preparing.childProcessId &&
+          held.childProcessIds?.includes(String(waiting.processId)) &&
+          held.receiptReady === false &&
+          time(held.observedAt) - time(proof.submittedAt) >= 120_000 &&
+          held.text?.includes("Agent initialization did not finish in time") &&
+          !old.some((r) => r.command === "init-gate-released") &&
+          time(proof.restartRequestedAt) >= time(held.observedAt) &&
+          time(stopped.observedAt) >= time(proof.restartRequestedAt),
+        "never-init must time out and stop without releasing its gate",
+      );
+    } else {
+      requireThat(
+        held.childRunning === false &&
+          held.text?.includes("Agent exited before input acknowledgement") &&
+          held.text?.includes("agent exited (86)") &&
+          old.some(
+            (r) => r.command === "init-gate-exit-before-init" && r.code === 86,
+          ),
+        "actual nonzero exit must be distinguished from initialization timeout",
+      );
+    }
+    const init = trace.filter(
+      (r) =>
+        r.processInstanceId === next.processInstanceId &&
+        r.direction === "out" &&
+        r.event?.subtype === "init" &&
+        r.event.session_id === proof.sessionId,
+    );
+    const inputs = trace.filter(
+      (r) =>
+        r.direction === "in" &&
+        r.event?.type === "user" &&
+        (r.processInstanceId === waiting.processInstanceId ||
+          r.processInstanceId === next.processInstanceId ||
+          r.sessionId === proof.sessionId ||
+          r.event.text === proof.prompt),
+    );
+    requireThat(
+      init.length === 1 &&
+        init[0].processId === next.processId &&
+        time(init[0].at) >= time(released.at) &&
+        inputs.length === 1 &&
+        inputs[0].event.text === proof.prompt &&
+        inputs[0].sessionId === proof.sessionId &&
+        inputs[0].processInstanceId === next.processInstanceId &&
+        inputs[0].processId === next.processId &&
+        time(inputs[0].at) >= time(init[0].at),
+      "exactly one explicit user input to the new initialized child required",
+    );
+    requireThat(
+      completed.childRunning === true &&
+        completed.receiptReady === true &&
+        completed.sendInFlight === false &&
+        completed.inputText === "" &&
+        completed.text?.includes(`probe=${proof.prompt}`) &&
+        completed.childProcessIds?.includes(String(next.processId)) &&
+        time(completed.observedAt) >= time(inputs[0].at),
+      "new child completion must be visible in the actual session",
+    );
+    return {
+      case: proof.case,
+      oldProcessInstanceId: waiting.processInstanceId,
+      newProcessInstanceId: next.processInstanceId,
+      oldUserInputs: 0,
+      newUserInputs: 1,
+      automaticResends: 0,
+      oldExitConfirmed: true,
+    };
+  });
+  requireThat(
+    ideProcesses.size === 1,
+    "both boundaries must use one actual IDE process",
+  );
+  return {
+    passed: true,
+    cases: results,
+    providerAssessed: false,
+    formalSample: false,
+    publicInstallationAssessed: false,
+    performanceGate: false,
+  };
+}
+
+export function readColdBoundaryEvidence(root) {
+  return verifyColdBoundaries(
+    JSON.parse(
+      fs.readFileSync(path.join(root, "cold-boundaries-ui.json"), "utf8"),
+    ),
+    fs
+      .readFileSync(path.join(root, "fake-cli-protocol.jsonl"), "utf8")
+      .trim()
+      .split(/\r?\n/u)
+      .filter(Boolean)
+      .map(JSON.parse),
+  );
+}

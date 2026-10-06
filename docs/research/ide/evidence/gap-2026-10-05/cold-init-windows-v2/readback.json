@@ -1,0 +1,193 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "cold",
+  "checkedAt": "2026-10-06T06:24:04.771Z",
+  "passed": true,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "3027b274540274a7b501e15384a6b80a290a60c3",
+    "dirty": false,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+      "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:a7a23e2d75bd6a32e4ba544aefa71e80f3ae0d28a2202ccce520468aacd33264"
+    }
+  },
+  "sourceMatches": {
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "current": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": {
+      "expected": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "current": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": {
+      "expected": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "current": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": {
+      "expected": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+      "current": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": {
+      "expected": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "current": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": {
+      "expected": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "current": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/build.gradle.kts": {
+      "expected": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "current": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": {
+      "expected": "sha256:a39eeef07452a80bee0771406f567d8abe76d9553b8f63ee08143af91c43bde3",
+      "current": "sha256:59fdc93b589e4548432f31826e875989ce6974e3c96bb87c465084eb110dbab6",
+      "matchesCurrent": false
+    },
+    "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": {
+      "expected": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "current": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/init-gate.mjs": {
+      "expected": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "current": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": {
+      "expected": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+      "current": "sha256:c96e7aeb634480df9a587c396fe3e757ad1688f595a46b9f2b33d0c7c96eee11",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-cold-evidence.mjs": {
+      "expected": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+      "current": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-diagnostic-process.mjs": {
+      "expected": "sha256:a7a23e2d75bd6a32e4ba544aefa71e80f3ae0d28a2202ccce520468aacd33264",
+      "current": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+      "matchesCurrent": false
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 3785,
+      "digest": "sha256:2d4146c8d98129ec1142d7dcef371bb8cb80b4bea59bb2cf35cea495582dcb8f"
+    },
+    {
+      "file": "diagnostic-scope.json",
+      "bytes": 2470,
+      "digest": "sha256:d73276fffb86c2a51527abfbae4f9b27c76e7d1e97682569000475e97cc70e71"
+    },
+    {
+      "file": "fake-cli-protocol.jsonl",
+      "bytes": 16015,
+      "digest": "sha256:de2f85c2aa5b231829ea8feec35e9831cd68f220797ac0e6a23432a4153aa775"
+    },
+    {
+      "file": "cold-ui.json",
+      "bytes": 24000,
+      "digest": "sha256:ac37e5ad91b1c3ae90cb03676615dc5ac6c9059e3f7c93b067e813389a16fc12"
+    },
+    {
+      "file": "cold-slow-init.json",
+      "bytes": 5644,
+      "digest": "sha256:402b352d986a94c1377d500c59eff5515aa3a9d4e7cd1723cf7555396d77ca34"
+    },
+    {
+      "file": "cold-timeout-late-init.json",
+      "bytes": 8200,
+      "digest": "sha256:e7609762c60e1e4ec679c558c80ac1a05b2eda4fc87afb59c3ff799ef31d6e43"
+    },
+    {
+      "file": "cold-stop-before-init.json",
+      "bytes": 8760,
+      "digest": "sha256:14fa8121ecba8eb8745bf230fb7d29334bdf48e3d8cf5fdb5e037145e084ce74"
+    },
+    {
+      "file": "ide-cold.log.cleanup.json",
+      "bytes": 3085,
+      "digest": "sha256:daf949d8d65c8ca43b1d403446739e901cd0970721ef8a255a165bbc4b22ee1d"
+    }
+  ],
+  "verifiedCapture": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "slow-init",
+        "sessionId": "panel-1791267561086-2a68fa",
+        "waitObservedMs": 30134,
+        "submissionElapsedMs": 32684,
+        "userInputs": 1,
+        "processInstanceId": "f7a84ec5-aa50-4f2d-9b5e-5f1dbbc4cf98",
+        "automaticResends": 0
+      },
+      {
+        "case": "timeout-late-init",
+        "sessionId": "panel-1791267607491-86e82c",
+        "waitObservedMs": 120038,
+        "submissionElapsedMs": 121335,
+        "userInputs": 1,
+        "processInstanceId": "0a42526f-e170-4334-95d9-d897d9b79b83",
+        "automaticResends": 0
+      },
+      {
+        "case": "stop-before-init",
+        "sessionId": "panel-1791267739277-a1eed2",
+        "waitObservedMs": 313,
+        "submissionElapsedMs": 1175,
+        "userInputs": 1,
+        "processInstanceId": "e809825f-a5b0-4188-a7e7-6e0899f3a675",
+        "automaticResends": 0
+      }
+    ],
+    "providerAssessed": false,
+    "formalSample": false,
+    "publicInstallationAssessed": false,
+    "performanceGate": false
+  },
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

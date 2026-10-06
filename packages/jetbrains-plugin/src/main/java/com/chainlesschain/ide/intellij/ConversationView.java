@@ -837,10 +837,12 @@ final class ConversationView {
                     if (saved != null && !dispatch.dispatched())
                         transcript.inputNotDispatched(saved.submission().id(), sentOwner);
                     drafts.finishSend(dispatch.dispatched() ? saved : null, draftRevision);
-                    if (!conv.modeState.current(modeRevision) || (sentOwner != null && sentOwner != sessionGeneration)) {
+                    if (!conv.modeState.current(modeRevision)) {
                         append("⚠ Approval mode changed during delivery. Check Saved inputs and the conversation before resending.\n");
                     } else if (err != null) {
                         append("⚠ could not send message: " + err + "\n");
+                    } else if (sentOwner != null && sentOwner != sessionGeneration) {
+                        append("⚠ Agent session changed during delivery. Check Saved inputs and the conversation before resending.\n");
                     } else if (ok) {
                         AgentChatSession session = liveSession();
                         turnActive = session != null && session.hasPendingTurns();

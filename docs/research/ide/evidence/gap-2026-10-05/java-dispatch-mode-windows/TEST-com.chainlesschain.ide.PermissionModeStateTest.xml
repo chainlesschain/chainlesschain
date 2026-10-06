@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PermissionModeStateTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-06T06:53:03" hostname="DESKTOP-MTMV2RE" time="0.013">
+  <properties/>
+  <testcase name="oldCliMalformedAcknowledgementsAndTimeoutNeverPretendToBeEffective()" classname="com.chainlesschain.ide.PermissionModeStateTest" time="0.002"/>
+  <testcase name="onlyMatchingGenerationSessionRequestAndPolicyCanBecomeEffective()" classname="com.chainlesschain.ide.PermissionModeStateTest" time="0.003"/>
+  <testcase name="tighteningRemainsPendingAndShowsTheOldModeUntilExitConfirmation()" classname="com.chainlesschain.ide.PermissionModeStateTest" time="0.004"/>
+  <testcase name="rapidRequestsInvalidateQueuedLaunchesAndStaleFailures()" classname="com.chainlesschain.ide.PermissionModeStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

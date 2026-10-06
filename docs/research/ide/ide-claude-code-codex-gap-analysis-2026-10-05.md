@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-06 继续实施**：JetBrains 身份诊断解除 Windows-only 限制，隔离 PATH 仅作用于实际 IDE，三系统 CI 增加同进程八阶段身份旅程；新增真实 30 秒 init、生产 120 秒超时、迟到 init、Stop 与显式重试采集，并以原始子进程记录独立核对零自动补发。最新工程回归与实际宿主结果见[续做验证第 7 节](../cli-ide-gap-validation-2026-10-05.md#7-2026-10-06-剩余工程接线)。CLI `0.166.90` / Open VSX `0.37.135` / JetBrains `0.4.153` 已有[公开回读](../cli/evidence/documentation-release-status-2026-10-06-final.json)；正式 provider/首次安装、真人听测、8h/24h 与获批 SLO 仍独立验收，以下正文保留原审计时点。
+
 > **身份与 Actions 续做（2026-10-06）**：Windows IntelliJ 2024.2 / 插件 0.4.152 的八阶段身份旅程、`6196cd065d` 六宿主通过证据已归档；该提交 Docker 六分片通过 36/36 题与 42 个行为反例。`4f2c19281c` 的独立流式采集期限、真实可见帧与取消清理已接通，但 Windows/macOS warmup 均发现已有光标使 Chromium 忽略新增诊断选区。修复先清除旧 range，再建立并核验真实非折叠选区，清理时恢复原状态；保留 warmup、正式案例与性能验收边界。候选尚未发布，新准确提交仍须完整矩阵。原始失败与通过证据均保留，详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)，原审计快照与正式 36+9 边界保留。
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。

@@ -37,6 +37,72 @@ final class ColdInitializationJourney {
 
     private static String text(JsonObject value, String key) { return value.get(key).getAsString(); }
 
+    void runBoundaries() throws Exception {
+        try {
+            boundary("never-init-restart", true);
+            boundary("exit-before-init", false);
+            Files.writeString(root.resolve("cold-boundaries-ui.json"), JSON.toJson(results)+"\n", StandardOpenOption.CREATE_NEW);
+        } catch (Exception | AssertionError error) {
+            JsonObject failure = new JsonObject(); failure.addProperty("error", error.toString());
+            failure.add("completed", results);
+            Files.writeString(root.resolve("cold-boundaries-failure.json"), JSON.toJson(failure)+"\n", StandardOpenOption.CREATE_NEW);
+            throw error;
+        }
+    }
+
+    private void boundary(String name, boolean neverInit) throws Exception {
+        System.out.println("[cold-boundary] started " + name);
+        JsonObject tab = ui.newTab(), gate = new JsonObject(), proof = new JsonObject();
+        gate.addProperty("sessionId", text(tab, "sessionId"));
+        gate.addProperty("nonce", UUID.randomUUID().toString()); gate.addProperty("timeoutMs", 180000);
+        Path gateFile = root.resolve("init-gate.json"), release = root.resolve("init-gate.json.release");
+        Files.writeString(gateFile, JSON.toJson(gate));
+        String prompt = "journey:model cold-" + name + " 中文😀";
+        proof.addProperty("case", name); proof.addProperty("sessionId", text(gate, "sessionId"));
+        proof.addProperty("prompt", prompt); proof.addProperty("submittedAt", Instant.now().toString());
+        try {
+            ui.send(prompt); JsonObject waiting = waitGate(gate, "init-gate-waiting");
+            proof.add("waiting", waiting); proof.add("preparing", ui.snapshot());
+            JsonObject held;
+            if (neverInit) {
+                held = ui.waitFor("never init reaches bounded production timeout", s -> !s.get("sendInFlight").getAsBoolean()
+                        && s.get("editable").getAsBoolean() && text(s,"text").contains("Agent initialization did not finish in time"), Duration.ofSeconds(150));
+                assertTrue(held.get("childRunning").getAsBoolean());
+                proof.add("held", held);
+                // Native local command requests the existing, confirmed-exit
+                // replacement barrier. The stalled child is never released.
+                proof.addProperty("restartRequestedAt", Instant.now().toString());
+                ui.send("/normal");
+            } else {
+                JsonObject exit = gate.deepCopy(); exit.addProperty("exitBeforeInit", true);
+                Files.writeString(release, JSON.toJson(exit));
+                held = ui.waitFor("actual child exits before init", s -> !s.get("sendInFlight").getAsBoolean()
+                        && !s.get("childRunning").getAsBoolean() && s.get("editable").getAsBoolean()
+                        && text(s,"text").contains("Agent exited before input acknowledgement"));
+                proof.add("held", held);
+            }
+            assertEquals(prompt, text(held, "inputText"));
+            JsonObject stopped = ui.waitFor("prior child replacement barrier", s -> !s.get("childRunning").getAsBoolean()
+                    && text(s,"childProcessId").isEmpty() && !s.get("sendInFlight").getAsBoolean());
+            proof.add("stopped", stopped);
+            boolean oldNodeAlive = ProcessHandle.of(waiting.get("processId").getAsLong()).map(ProcessHandle::isAlive).orElse(false);
+            proof.addProperty("oldNodeAliveAfterStop", oldNodeAlive); assertFalse(oldNodeAlive);
+            JsonObject nextGate = gate.deepCopy(); nextGate.addProperty("nonce", UUID.randomUUID().toString());
+            Files.writeString(gateFile, JSON.toJson(nextGate)); Files.writeString(release, JSON.toJson(nextGate));
+            proof.addProperty("explicitRetryAt", Instant.now().toString()); ui.send(prompt);
+            proof.add("replacementWaiting", waitGate(nextGate, "init-gate-waiting"));
+            proof.add("replacementReleased", waitGate(nextGate, "init-gate-released"));
+            JsonObject completed = ui.waitFor("replacement receives only explicit retry", s -> !s.get("sendInFlight").getAsBoolean()
+                    && text(s,"text").contains("probe="+prompt) && text(s,"inputText").isEmpty());
+            assertTrue(completed.get("childRunning").getAsBoolean());
+            proof.add("completed", completed); results.add(proof);
+            System.out.println("[cold-boundary] completed " + name);
+        } finally {
+            Files.writeString(release, JSON.toJson(gate));
+            Files.writeString(root.resolve("cold-boundary-"+name+".json"), JSON.toJson(proof)+"\n", StandardOpenOption.CREATE_NEW);
+        }
+    }
+
     private JsonObject waitGate(JsonObject gate, String command) throws Exception {
         long until = Math.min(deadline, System.currentTimeMillis() + 60000);
         Path trace = root.resolve("fake-cli-protocol.jsonl");

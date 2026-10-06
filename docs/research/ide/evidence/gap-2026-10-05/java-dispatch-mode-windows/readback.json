@@ -1,0 +1,19 @@
+{
+  "scope": "local-windows-jdk21-targeted-junit",
+  "passed": true,
+  "tests": 14,
+  "failures": 0,
+  "skipped": 0,
+  "cleanCommitCi": false,
+  "artifacts": [
+    {
+      "file": "TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "digest": "sha256:90a7cc63c6a56bdd71a6b3b99406501d45c3fb800fbc27045c40362a1ed10152"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "digest": "sha256:2328700f08fc717e583f95a8822a994a8fbe8c65e2696a5f2b41e7c43fe3f921"
+    }
+  ],
+  "conversationViewDigest": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521"
+}

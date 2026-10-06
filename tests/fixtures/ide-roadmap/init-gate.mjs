@@ -34,6 +34,7 @@ export async function waitForInitGate(sessionId, trace) {
         command: "init-gate-released",
         ...identity,
       });
+      if (release.exitBeforeInit === true) return "exit-before-init";
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 25));

@@ -4,7 +4,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { createOnboardingFixture } from "../lib/verify01-onboarding-fixture.mjs";
+import {
+  createOnboardingFixture,
+  isolateOnboardingEnvironment,
+} from "../lib/verify01-onboarding-fixture.mjs";
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc identity's "));
@@ -77,4 +80,52 @@ test("non-version banners cannot configure a fixture CLI", (t) => {
     () => createOnboardingFixture({ ...f, version: "cc (GCC) 12.2.0" }),
     /bare fixture CLI version/u,
   );
+});
+
+test("PATH augmentation cannot resolve an alternate installed CLI name", (t) => {
+  const f = fixture(t);
+  const trap = path.join(f.root, "ambient-bin");
+  fs.mkdirSync(trap);
+  fs.copyFileSync(
+    f.goodCommand,
+    path.join(
+      trap,
+      process.platform === "win32" ? "chainlesschain.cmd" : "chainlesschain",
+    ),
+  );
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) if (/^path$/iu.test(key)) delete env[key];
+  env.PATH = `${f.idePath}${path.delimiter}${trap}`;
+  const output = run("chainlesschain", ["--version"], env);
+  assert.equal(output.status, 127);
+  assert.match(output.stderr, /fixture command not found/u);
+  assert.equal(output.stdout.trim(), "");
+});
+
+test("manager-path isolation preserves build PATH and the caller's environment", () => {
+  const base = {
+    PATH: "original-build-path",
+    NVM_BIN: "real-cli",
+    NVM_SYMLINK: "real-cli",
+    VOLTA_HOME: "real-cli",
+    FNM_MULTISHELL_PATH: "real-cli",
+    JAVA_HOME: "jdk",
+    HOME: "user-home",
+    PROGRAMFILES: "ambient-global-cli",
+  };
+  const isolated = isolateOnboardingEnvironment(base, "private-home");
+  assert.equal(isolated.PATH, base.PATH);
+  assert.equal(isolated.JAVA_HOME, base.JAVA_HOME);
+  assert.equal(isolated.HOME, "private-home");
+  for (const key of [
+    "NVM_BIN",
+    "NVM_SYMLINK",
+    "VOLTA_HOME",
+    "FNM_MULTISHELL_PATH",
+  ])
+    assert.equal(key in isolated, false);
+  assert.equal(base.NVM_BIN, "real-cli");
+  assert.equal(base.HOME, "user-home");
+  assert.equal("PROGRAMFILES" in isolated, false);
+  assert.notEqual(isolated.ProgramFiles, "ambient-global-cli");
 });

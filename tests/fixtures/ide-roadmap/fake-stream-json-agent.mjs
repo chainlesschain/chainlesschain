@@ -626,8 +626,19 @@ const fixtureAgentSessionId =
           : "ui-host-session",
       )
     : null;
-if (fixtureAgentSessionId !== null)
-  await waitForInitGate(fixtureAgentSessionId, trace);
+if (
+  fixtureAgentSessionId !== null &&
+  (await waitForInitGate(fixtureAgentSessionId, trace)) === "exit-before-init"
+) {
+  trace({
+    direction: "fixture",
+    command: "init-gate-exit-before-init",
+    sessionId: fixtureAgentSessionId,
+    processId: process.pid,
+    code: 86,
+  });
+  await exitAfterStdout(86);
+}
 
 const canonical = process.env.CC_UI_CANONICAL_ROOT
   ? await (

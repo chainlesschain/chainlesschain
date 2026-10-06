@@ -1,0 +1,144 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "onboarding",
+  "checkedAt": "2026-10-06T06:48:52.148Z",
+  "passed": true,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "build.gradle.kts": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "scripts/onboarding-diagnostic.mjs": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b"
+    },
+    "fixtureDigest": "sha256:5575775278e8f2065d29b78c7fc4fa71cc888286292731221fc66148b6422238"
+  },
+  "sourceMatches": {
+    "src/main/java/com/chainlesschain/ide/AgentChatSession.java": {
+      "expected": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "current": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/CliLauncher.java": {
+      "expected": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "current": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "current": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": {
+      "expected": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "current": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": {
+      "expected": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "current": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": {
+      "expected": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "current": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": {
+      "expected": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "current": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "matchesCurrent": true
+    },
+    "build.gradle.kts": {
+      "expected": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "current": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "matchesCurrent": true
+    },
+    "scripts/onboarding-diagnostic.mjs": {
+      "expected": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b",
+      "current": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b",
+      "matchesCurrent": true
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 2183,
+      "digest": "sha256:20a7de3d52442ea8cb8cbb13f3720408371fe37f2fdea0a3c2a37da8328f8547"
+    },
+    {
+      "file": "identity-trace.jsonl",
+      "bytes": 5640,
+      "digest": "sha256:66f410321d3b241e24a37840033251cdfec7381b90857cfc234073d5419d7e57"
+    },
+    {
+      "file": "capture/onboarding-ui.json",
+      "bytes": 14855,
+      "digest": "sha256:835e56b6b74e94e447fa4d459aa61fdc4bb17e8f600f5801693dbb6dce97066b"
+    },
+    {
+      "file": "ide.log.cleanup.json",
+      "bytes": 1736,
+      "digest": "sha256:9a6684837581d324455203428108f5d22212d429911a8004d66c20072c6566ec"
+    },
+    {
+      "file": "capture/manual-update-2.json",
+      "bytes": 735,
+      "digest": "sha256:5e48ddaedffbf6a272434e04eaee2d405e903d7a39cf51a74f5a6e8df3aefbf9"
+    },
+    {
+      "file": "capture/manual-update-5.json",
+      "bytes": 547,
+      "digest": "sha256:1227723a45bd234f19fd34ee0c25457566cdcf63960ef2cb002156c8f0904a4f"
+    },
+    {
+      "file": "capture/manual-menu-2.json",
+      "bytes": 263,
+      "digest": "sha256:391e8e24da3a1877d1cca627a916702991b318c881618164a682131a69f88a64"
+    },
+    {
+      "file": "capture/manual-menu-5.json",
+      "bytes": 263,
+      "digest": "sha256:0550f4f3c3929db71c4d834d54c3bc79f03fc7f0001e6a86d5c72c20f8db8ea2"
+    },
+    {
+      "file": "capture/manual-focus-2.json",
+      "bytes": 131,
+      "digest": "sha256:1126e86e7f5dbc68694823ec66e02c71bea46bc04237eafad720578c122dc31d"
+    },
+    {
+      "file": "capture/manual-focus-5.json",
+      "bytes": 133,
+      "digest": "sha256:6f8c128c787b490adfe983b31bae6747b880ab60eccdf1516bbc00f66d0a25af"
+    }
+  ],
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

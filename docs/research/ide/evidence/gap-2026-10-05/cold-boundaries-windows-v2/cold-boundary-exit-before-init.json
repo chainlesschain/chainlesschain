@@ -1,0 +1,203 @@
+{
+  "case": "exit-before-init",
+  "sessionId": "panel-1791269578247-16d5d2",
+  "prompt": "journey:model cold-exit-before-init 中文😀",
+  "submittedAt": "2026-10-06T06:52:58.496630800Z",
+  "waiting": {
+    "at": "2026-10-06T06:52:59.470Z",
+    "direction": "fixture",
+    "command": "init-gate-waiting",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "nonce": "47c4f519-6f06-4e57-b16b-a5cb89e065c5",
+    "processId": 22008,
+    "processInstanceId": "989059cc-25b4-40a7-9f56-10227c9131b4"
+  },
+  "preparing": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T06:52:59.526151600Z",
+    "processId": "24872",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-gimv6L\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "tabs": [
+      {
+        "id": "7debb4ab-9cbb-4f55-848e-816b37baad1b",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "5d6932c8-5a7c-4c1d-a6ac-12afdd78a8dd",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-exit-before-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "23556",
+    "childProcessIds": [
+      "23556",
+      "18864",
+      "22008"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  },
+  "held": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T06:52:59.767759100Z",
+    "processId": "24872",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-gimv6L\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "tabs": [
+      {
+        "id": "7debb4ab-9cbb-4f55-848e-816b37baad1b",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "5d6932c8-5a7c-4c1d-a6ac-12afdd78a8dd",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-exit-before-init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live turn stopped. Saved history is available from Latest saved messages.",
+    "binaryChoice": "cc",
+    "text": "\n── agent exited (86) — next message restarts ──\n⚠ could not send message: Agent exited before input acknowledgement\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "stopped": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T06:52:59.782767700Z",
+    "processId": "24872",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-gimv6L\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "tabs": [
+      {
+        "id": "7debb4ab-9cbb-4f55-848e-816b37baad1b",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "5d6932c8-5a7c-4c1d-a6ac-12afdd78a8dd",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-exit-before-init 中文😀",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": false,
+    "childProcessId": "",
+    "childProcessIds": [],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Draft saved · 0 saved input(s)",
+    "historyStatus": " Live turn stopped. Saved history is available from Latest saved messages.",
+    "binaryChoice": "cc",
+    "text": "\n── agent exited (86) — next message restarts ──\n⚠ could not send message: Agent exited before input acknowledgement\n",
+    "visible": true,
+    "savedRows": []
+  },
+  "oldNodeAliveAfterStop": false,
+  "explicitRetryAt": "2026-10-06T06:52:59.786747300Z",
+  "replacementWaiting": {
+    "at": "2026-10-06T06:53:00.629Z",
+    "direction": "fixture",
+    "command": "init-gate-waiting",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "nonce": "b48f3f1b-ebf0-4e9f-9540-d45f7e4e20f9",
+    "processId": 4312,
+    "processInstanceId": "ff97bfe5-ef77-4191-a065-db7d3372bb33"
+  },
+  "replacementReleased": {
+    "at": "2026-10-06T06:53:00.630Z",
+    "direction": "fixture",
+    "command": "init-gate-released",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "nonce": "b48f3f1b-ebf0-4e9f-9540-d45f7e4e20f9",
+    "processId": 4312,
+    "processInstanceId": "ff97bfe5-ef77-4191-a065-db7d3372bb33"
+  },
+  "completed": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T06:53:15.265322600Z",
+    "processId": "24872",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-gimv6L\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+    "sessionId": "panel-1791269578247-16d5d2",
+    "tabs": [
+      {
+        "id": "7debb4ab-9cbb-4f55-848e-816b37baad1b",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "5d6932c8-5a7c-4c1d-a6ac-12afdd78a8dd",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "35b16aa6-edd8-4316-872f-9aadb19869d1",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "",
+    "editable": true,
+    "sendInFlight": false,
+    "childRunning": true,
+    "childProcessId": "11896",
+    "childProcessIds": [
+      "11896",
+      "8952",
+      "4312"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": true,
+    "draftStatus": "Input accepted and stored by the CLI",
+    "historyStatus": " Loading saved conversation…",
+    "binaryChoice": "cc",
+    "text": "\n── agent exited (86) — next message restarts ──\n⚠ could not send message: Agent exited before input acknowledgement\n── deterministic-host-peer · ollama ──\n\nTurn 1, User message\n\nyou\u003e journey:model cold-exit-before-init 中文😀\nℹ Input accepted by the CLI; task completion is separate.\nTurn 1, Assistant response\nfixture model deterministic-host-peer; vision\u003dnone; probe\u003djourney:model cold-exit-before-init 中文😀\n",
+    "visible": true,
+    "savedRows": []
+  }
+}

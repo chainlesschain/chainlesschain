@@ -1,5 +1,7 @@
 # VERIFY-01 只读采集准入校验
 
+> **2026-10-06 工程回读**：冻结 Docker review pack 六分片已完整通过，36/36 题及 42 个原反例全部检出，详见[准确提交回执](../evidence/gap-2026-10-05/verify01-docker-ci-6196/tasks-readback.json)。以下整包未运行的早期描述不代表最新工程状态；独立人工预审、native Windows/macOS review 与正式 36+9 仍开放，采集器不会将宿主诊断或 fixture 导入为正式样本。
+
 `packages/cli/scripts/verify01-collection.mjs` 复用既有 Eval comparison/history 校验和 `buildOutcomeReport`，检查冻结目录、预审配置及导入记录之间的一致性。它不会运行 setup/check、shell、模型或 IDE，不会修改任务状态、写入 history/observations、生成终态证据或授权付费执行。36 个任务和 9 个首次旅程仍为 `NOT_RUN`。后续新增的 CLI 执行入口见文末；只读校验与实际执行是两个不同命令。
 
 在仓库根目录检查当前冻结目录：

@@ -1,0 +1,100 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 25960,
+      "parentPid": 17484,
+      "name": "cmd.exe",
+      "created": "639268650718223000"
+    },
+    {
+      "pid": 18472,
+      "parentPid": 25960,
+      "name": "java.exe",
+      "created": "639268650718562030"
+    },
+    {
+      "pid": 15560,
+      "parentPid": 18472,
+      "name": "java.exe",
+      "created": "639268650733295770"
+    },
+    {
+      "pid": 5932,
+      "parentPid": 15560,
+      "name": "java.exe",
+      "created": "639268651052834960"
+    },
+    {
+      "pid": 2248,
+      "parentPid": 5932,
+      "name": "conhost.exe",
+      "created": "639268651052973800"
+    },
+    {
+      "pid": 11880,
+      "parentPid": 5932,
+      "name": "fsnotifier.exe",
+      "created": "639268651070161590"
+    },
+    {
+      "pid": 15480,
+      "parentPid": 11880,
+      "name": "conhost.exe",
+      "created": "639268651072992240"
+    },
+    {
+      "pid": 12120,
+      "parentPid": 5932,
+      "name": "wsl.exe",
+      "created": "639268651146106520"
+    },
+    {
+      "pid": 24052,
+      "parentPid": 12120,
+      "name": "conhost.exe",
+      "created": "639268651146332110"
+    },
+    {
+      "pid": 20696,
+      "parentPid": 12120,
+      "name": "wsl.exe",
+      "created": "639268651147443250"
+    },
+    {
+      "pid": 8948,
+      "parentPid": 20696,
+      "name": "init",
+      "created": "639268651150755870"
+    },
+    {
+      "pid": 4240,
+      "parentPid": 8948,
+      "name": "init",
+      "created": "639268651154508370"
+    },
+    {
+      "pid": 20664,
+      "parentPid": 20696,
+      "name": "wslhost.exe",
+      "created": "639268651154784580"
+    },
+    {
+      "pid": 4056,
+      "parentPid": 20664,
+      "name": "conhost.exe",
+      "created": "639268651155443770"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

@@ -117,9 +117,59 @@ final class OnboardingIdentityJourney {
     }
 
     private void manualFailure(String expected) throws Exception {
-        find("//div[@text='⚙ LLM' and @visible='true']").runJs("component.doClick();", true);
-        find("//div[@text='Check for cc updates…' and @visible='true']").runJs("component.doClick();", true);
+        // Keep the native button -> popup -> item action on one EDT request:
+        // a second HTTP round trip can let the popup lose focus and disappear.
+        // This is Swing action evidence, not physical desktop/mouse evidence.
+        String frameState = String.valueOf((Object) frame.callJs("""
+            var windows=Packages.java.awt.Window.getWindows();
+            for(var i=0;i<windows.length;i++)
+                if(windows[i].isShowing() && windows[i] instanceof Packages.java.awt.Dialog
+                    && String(windows[i].getTitle())==='ChainlessChain') throw 'Stale update dialog';
+            component.setExtendedState(component.getExtendedState() & ~Packages.java.awt.Frame.ICONIFIED);
+            component.setVisible(true); component.toFront(); component.requestFocus();
+            JSON.stringify({frameIdentity:Number(Packages.java.lang.System.identityHashCode(component)),
+                showing:component.isShowing(), active:component.isActive(), focused:component.isFocused(),
+                at:String(java.time.Instant.now())});
+            """, true));
+        JsonObject focus = JsonParser.parseString(frameState).getAsJsonObject();
+        write("manual-focus-"+results.size()+".json", focus);
+        assertTrue(focus.get("showing").getAsBoolean());
+        String menuState = String.valueOf((Object) find("//div[@text='⚙ LLM' and @visible='true']").callJs("""
+            var button=component, tabs=Packages.javax.swing.SwingUtilities.getAncestorOfClass(
+                Packages.javax.swing.JTabbedPane,button);
+            if(tabs==null || !Packages.javax.swing.SwingUtilities.isDescendingFrom(button,tabs.getSelectedComponent()))
+                throw 'LLM button does not belong to selected conversation';
+            button.requestFocusInWindow(); button.doClick();
+            var selected=Packages.javax.swing.MenuSelectionManager.defaultManager().getSelectedPath(), popup=null, classes=[];
+            for(var i=0;i<selected.length;i++){
+                classes.push(String(selected[i].getClass().getName()));
+                if(selected[i] instanceof Packages.javax.swing.JPopupMenu) popup=selected[i];
+            }
+            if(popup==null || !button.equals(popup.getInvoker()) || !popup.isVisible() || !popup.isShowing())
+                throw 'Production popup is not showing for this LLM button';
+            var items=popup.getComponents(), chosen=null, matches=0;
+            for(var i=0;i<items.length;i++) if(items[i] instanceof Packages.javax.swing.JMenuItem
+                && String(items[i].getText())==='Check for cc updates…'){chosen=items[i];matches++;}
+            if(matches!==1 || !chosen.isShowing() || !chosen.isEnabled()) throw 'Unique visible update menu item required';
+            var evidence={at:String(java.time.Instant.now()), selectedPath:classes, invokerBound:true,
+                selectedViewBound:true, popupShowing:popup.isShowing(), itemShowing:chosen.isShowing(),
+                itemEnabled:chosen.isEnabled(), itemText:String(chosen.getText())};
+            chosen.doClick(); JSON.stringify(evidence);
+            """, true));
+        write("manual-menu-"+results.size()+".json", JsonParser.parseString(menuState));
         ComponentFixture dialog = find("//div[@class='MyDialog' and @visible='true']");
+        String ownership = String.valueOf((Object) dialog.callJs("""
+            var owner=component.getOwner(), found=false;
+            while(owner!=null){
+                if(Number(Packages.java.lang.System.identityHashCode(owner))===
+            """ + focus.get("frameIdentity").getAsInt() + """
+                )found=true; owner=owner.getOwner();
+            }
+            JSON.stringify({title:String(component.getTitle()), ownerFrameBound:found});
+            """, true));
+        JsonObject dialogIdentity = JsonParser.parseString(ownership).getAsJsonObject();
+        assertEquals("ChainlessChain", dialogIdentity.get("title").getAsString());
+        assertTrue(dialogIdentity.get("ownerFrameBound").getAsBoolean());
         String text = "";
         long until = System.currentTimeMillis() + 10000;
         do {
@@ -137,6 +187,7 @@ final class OnboardingIdentityJourney {
         screenshot(dialog, "manual-update-" + results.size() + ".png");
         assertTrue(text.contains(expected), "Manual update did not reject this identity: " + text);
         JsonObject evidence = new JsonObject(); evidence.addProperty("text", text);
+        evidence.add("identity", dialogIdentity);
         evidence.addProperty("at", Instant.now().toString());
         write("manual-update-" + results.size() + ".json", evidence);
         find("//div[@text='OK' and @visible='true']").runJs("component.doClick();", true);

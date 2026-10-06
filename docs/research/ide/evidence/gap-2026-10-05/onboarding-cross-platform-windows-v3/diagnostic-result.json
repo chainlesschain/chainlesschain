@@ -1,0 +1,41 @@
+{
+  "scope": "real-intellij-onboarding-local-command-fixtures",
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "passed": true,
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-onboard-8JdB3k",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "arch": "x64",
+  "hostVersion": "2024.2",
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:47a9d3b71191489c17f834f1c127e080e48f3ee6cc70f6062df1c26f75d75db4",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "build.gradle.kts": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "scripts/onboarding-diagnostic.mjs": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b"
+    },
+    "fixtureDigest": "sha256:5575775278e8f2065d29b78c7fc4fa71cc888286292731221fc66148b6422238"
+  },
+  "pluginVersion": "0.4.153",
+  "pluginDigest": "sha256:c89210c9da735f5f204e8f43a2bcca53c2f3fd479920a3892b7d07a4ece10ca2",
+  "cases": [
+    "valid",
+    "bad-explicit-with-managed",
+    "repaired-explicit",
+    "same-path-gcc",
+    "gcc-on-path",
+    "missing",
+    "managed-fallback",
+    "installed-on-path-without-restart"
+  ],
+  "commandInvocations": 54
+}

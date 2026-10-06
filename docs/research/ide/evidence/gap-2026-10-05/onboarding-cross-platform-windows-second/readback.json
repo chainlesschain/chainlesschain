@@ -1,0 +1,115 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "onboarding-failed",
+  "checkedAt": "2026-10-06T06:37:07.627Z",
+  "passed": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:3ddfa7f2bc748578aaab2e3b8720aed7e350cc8c542eecbcfb46c8f0030cd55e",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "build.gradle.kts": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "scripts/onboarding-diagnostic.mjs": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b"
+    },
+    "fixtureDigest": "sha256:45210e4a3d027acde18c1b23118c095c09d2c6ba312a186fa5636c8faa4f9806"
+  },
+  "sourceMatches": {
+    "src/main/java/com/chainlesschain/ide/AgentChatSession.java": {
+      "expected": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "current": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/CliLauncher.java": {
+      "expected": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "current": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "current": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "matchesCurrent": true
+    },
+    "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": {
+      "expected": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "current": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": {
+      "expected": "sha256:3ddfa7f2bc748578aaab2e3b8720aed7e350cc8c542eecbcfb46c8f0030cd55e",
+      "current": "sha256:3ddfa7f2bc748578aaab2e3b8720aed7e350cc8c542eecbcfb46c8f0030cd55e",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": {
+      "expected": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "current": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "matchesCurrent": true
+    },
+    "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": {
+      "expected": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "current": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "matchesCurrent": false
+    },
+    "build.gradle.kts": {
+      "expected": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "current": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "matchesCurrent": false
+    },
+    "scripts/onboarding-diagnostic.mjs": {
+      "expected": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b",
+      "current": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b",
+      "matchesCurrent": true
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 2307,
+      "digest": "sha256:1aefd661d3498a93c666431dd4558ef96416a3ef66267bdb385bbd7797bc1fa3"
+    },
+    {
+      "file": "identity-trace.jsonl",
+      "bytes": 1060,
+      "digest": "sha256:c5e93e22cb552fda487b4fd20b0d920f24238f58f0f1ffc7d4b1dfe6a0153d5f"
+    },
+    {
+      "file": "capture/onboarding-failure.json",
+      "bytes": 3440,
+      "digest": "sha256:f821ae70fc66cbefbe3708751af4413c69fff0de70ba8f36b5ccca694ad8b0cd"
+    },
+    {
+      "file": "ide.log.cleanup.json",
+      "bytes": 1972,
+      "digest": "sha256:d99de91f42190f121f412d2e0c955b06d281e6b7ba98a24ba1460085d05c937a"
+    }
+  ],
+  "error": "Error: onboarding UI journey exited 1/null\n    at requireSuccess (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:448:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs:215:3",
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

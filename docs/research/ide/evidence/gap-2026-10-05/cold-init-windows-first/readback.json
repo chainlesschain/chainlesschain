@@ -1,0 +1,116 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "cold-failed",
+  "checkedAt": "2026-10-06T06:24:04.526Z",
+  "passed": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "4807dfaa5eb246ae72b790b43047664cba829415",
+    "dirty": true,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:0a0683810787eecf816969cc4781879231eb7cb8181dd81e2d0027b9575a610a",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:449fec9cb84097644488a5e6e4c311fca3d36131f1fb40d265a960fb9905eebb",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:57b9495b9299a072be9c8d88801f4644abd2ed7257d0382269d1377665faff13"
+    }
+  },
+  "sourceMatches": {
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "current": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": {
+      "expected": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "current": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": {
+      "expected": "sha256:0a0683810787eecf816969cc4781879231eb7cb8181dd81e2d0027b9575a610a",
+      "current": "sha256:f9eb41d43a3bdf1dc2ba10da5808e8acbf65cff369d71169d7844c58ec74c38f",
+      "matchesCurrent": false
+    },
+    "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": {
+      "expected": "sha256:449fec9cb84097644488a5e6e4c311fca3d36131f1fb40d265a960fb9905eebb",
+      "current": "sha256:59fdc93b589e4548432f31826e875989ce6974e3c96bb87c465084eb110dbab6",
+      "matchesCurrent": false
+    },
+    "tests/fixtures/ide-roadmap/init-gate.mjs": {
+      "expected": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "current": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-cold-evidence.mjs": {
+      "expected": "sha256:57b9495b9299a072be9c8d88801f4644abd2ed7257d0382269d1377665faff13",
+      "current": "sha256:82cea889469ad4083fbb242fd74964139386a77b26ac0ae82a831906c4ca0eeb",
+      "matchesCurrent": false
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 2377,
+      "digest": "sha256:a095294168199dc1da6393e7a76385e0198e463f9dd0638aa62e2540e93cef2b"
+    },
+    {
+      "file": "diagnostic-scope.json",
+      "bytes": 1400,
+      "digest": "sha256:714104bc0b9207bf1c8b5e8552c594c9b6f53c9fe43751d24d47e1fef4aac365"
+    },
+    {
+      "file": "fake-cli-protocol.jsonl",
+      "bytes": 16023,
+      "digest": "sha256:ce59e3ee2f82f99bfebf82c23a7f3511d4b59bac106a5e4c293ccd31f3f29463"
+    },
+    {
+      "file": "cold-ui.json",
+      "bytes": 23419,
+      "digest": "sha256:e98d610525d8cb068d3e7a2abebf69587f8e4e0f7c89760cf5c9c647c622f662"
+    },
+    {
+      "file": "cold-slow-init.json",
+      "bytes": 5611,
+      "digest": "sha256:458d057efdd77d8ba8af9578059d81bd354a0a015672785ac5ddd7951832487c"
+    },
+    {
+      "file": "cold-timeout-late-init.json",
+      "bytes": 7947,
+      "digest": "sha256:b96e638a7a9bc43ff0d4ab039cd5e5481bac66d555c6d0b0c05767bb0c1cfe13"
+    },
+    {
+      "file": "cold-stop-before-init.json",
+      "bytes": 8499,
+      "digest": "sha256:965ea4238fad7bd7b123f716abfe6c1a13aac824a48daee3fe900d42891595da"
+    },
+    {
+      "file": "ide-cold.log.cleanup.json",
+      "bytes": 3086,
+      "digest": "sha256:abfe95d38ff9303388936293ce8bcddb93c70197ee4f7fa0a77d59c9bb5a1eae"
+    }
+  ],
+  "error": "Error: Cold initialization evidence: production 120-second timeout and accurate live-child guidance required\n    at requireThat (file:///C:/code/chainlesschain/scripts/lib/verify01-cold-evidence.mjs:6:25)\n    at file:///C:/code/chainlesschain/scripts/lib/verify01-cold-evidence.mjs:157:9\n    at Array.map (<anonymous>)\n    at verifyColdEvidence (file:///C:/code/chainlesschain/scripts/lib/verify01-cold-evidence.mjs:23:32)\n    at readColdEvidence (file:///C:/code/chainlesschain/scripts/lib/verify01-cold-evidence.mjs:195:10)\n    at main (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:303:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

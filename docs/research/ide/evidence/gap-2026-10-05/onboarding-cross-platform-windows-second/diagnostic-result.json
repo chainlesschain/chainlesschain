@@ -1,0 +1,31 @@
+{
+  "scope": "real-intellij-onboarding-local-command-fixtures",
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "passed": false,
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-onboard-8j8PA5",
+  "platform": "win32",
+  "node": "v22.22.2",
+  "arch": "x64",
+  "hostVersion": "2024.2",
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java": "sha256:6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192",
+      "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java": "sha256:e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java": "sha256:3ddfa7f2bc748578aaab2e3b8720aed7e350cc8c542eecbcfb46c8f0030cd55e",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:842557d4814cc9731c1d2bc444ce77eb35ee9d6ea0340aee52a40e02918b2ad5",
+      "build.gradle.kts": "sha256:d02da894b63f3576e86bd4f3d163a3e29416b5b0178df2237aba4e7c7a934fd9",
+      "scripts/onboarding-diagnostic.mjs": "sha256:6a576f3c88c6a10e08bd4b67379993893d744a48fb8f745b10dfc863bf410a5b"
+    },
+    "fixtureDigest": "sha256:45210e4a3d027acde18c1b23118c095c09d2c6ba312a186fa5636c8faa4f9806"
+  },
+  "pluginVersion": "0.4.153",
+  "pluginDigest": "sha256:1d9d4eaa584b127fdd3744129ad691370f15b752a34375d9d921dbe440f9f531",
+  "error": "Error: onboarding UI journey exited 1/null\n    at requireSuccess (file:///C:/code/chainlesschain/scripts/lib/verify01-diagnostic-process.mjs:448:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs:215:3"
+}

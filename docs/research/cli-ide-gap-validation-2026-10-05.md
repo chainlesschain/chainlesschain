@@ -85,3 +85,57 @@ Astra 使用真实 Chromium 确认诊断准备缺陷：已有 collapsed caret ra
 | CLOUD-02                  | 完整跨机器 resume 仍为需求条件项，现有 self-hosted handoff 不承担该支持声明                                |
 
 只读冻结计划回读仍为 `executionStatus:NOT_RUN` / `INSUFFICIENT_EVIDENCE`，真实进程退出码 **2**。任务 observed=0、missing=36；首次安装 observed=0、missing=9；总费用为 null。正式分母与预算 $72+$27=$99 不变。本轮没有付费调用、发布新候选或写入正式 observations。
+
+## 7. 2026-10-06 剩余工程接线
+
+本节续做从 `4807dfaa5e` 开始，保留上述历史失败和各自源码时点。工作期间共享仓库由另一进程提交了 `59da637285` 与 `3027b27454`；以下本地宿主材料绑定其实际启动时的提交及逐文件字节，部分诊断/清理辅助代码随后仍有修改，不能描述为当前新提交的干净 CI 或新发行。既有公开配对已更新为 CLI **0.166.90**、Open VSX **0.37.135**、JetBrains **0.4.153**，标签源码为 `28cff6adc8`，见[独立公开回读](./cli/evidence/documentation-release-status-2026-10-06-final.json)。本节新工程没有发布。
+
+### 7.1 BRIDGE-02 显式可信恢复入口
+
+新增 `cc agent process-ownership status --json` 和 `cc agent process-ownership recover <execution-uuid> --timeout-ms 5000 --json`。状态查询不 provision 权限域；恢复仅委托已有 Linux cgroup 身份验证、kill、空组 fence 和持久清理回执。非法 UUID、非整数/越界期限、非 Linux 及父 `agent` 参数混用均拒绝；执行结果错误或超时继续保留隔离，没有 reset、删除 ledger、按 PID 推断清理或自动重放任务。
+
+实际 CLI 子进程合同和恢复集成已接入 [Process Ownership Recovery](../../.github/workflows/process-ownership-recovery.yml) 的 Linux x64/arm64 真实 delegated cgroup job；新命令源码和测试路径均触发此门。Windows 定向合同 **55 项通过、15 项平台专用跳过**；WSL / Node 22.12.0 的三个原生 CLI 场景验证 help 不建 authority、空状态不 provision、旧 PID-only 记录拒绝恢复且字节不变。后者不具有 cgroup v2，不能当作新命令实际回收后代的证明。完整操作合同见[受控宿主指南](../cli/NET02_CONTROLLED_HOST.md#explicit-process-ownership-inspection-and-recovery)。
+
+### 7.2 跨平台身份与冷初始化宿主旅程
+
+`onboarding-diagnostic.mjs` 复用单独的私有命令夹具：Windows 使用 `.cmd`，Linux/macOS 使用可执行 POSIX shim；脚本固定绝对 Node 路径。仅实际 IDE 的 PATH 被隔离，Gradle 保留构建 PATH；另移除 Node 版本管理器的发现变量，按忽略大小写的唯一键提供私有 APPDATA/ProgramFiles，Windows 加入固定 PowerShell 目录以支持真实 ACL 初始化。主 `cc` shim 被物理移除；三个替代名字使用明确返回 command-not-found 的私有 sentinel，避免生产 `CliLauncher` 自动补入系统目录后逃逸到已安装 CLI。Linux/macOS 上真正的系统 C 编译器仍允许被探测并拒绝其身份，这不是删除系统编译器或宣称所有 OS 可执行文件物理缺失。
+
+实际 Windows 第一轮发现 Node manager 环境使诊断探测到真实 `chainlesschain`，见[保留的失败材料](./ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-first/readback.json)；第二轮[菜单定位失败](./ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-second/readback.json)也保留。菜单动作改为同一 EDT 的真实按钮 → 绑定当前选中视图的 production JPopupMenu → 唯一 showing/enabled JMenuItem，随后仍检查标题为 ChainlessChain、owner 链属于同一 IDE frame 的实际对话框及错误文本，没有反射调用生产更新方法。第三轮[八阶段完整回读](./ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-v3/readback.json)全部通过，两次手动更新也显示正确身份错误；记录的源码摘要与回读时文件全部一致，IDE 自然退出且所有记录身份消失。这个动作验证不证明鼠标导航或物理桌面可见性：前两轮截图存在黑屏/其他窗口遮挡，截图和完整日志均未进入公开归档。
+
+新增 IntelliJ `--journey cold`，使用实际安装的插件、原生 Send/Stop 与真实子进程，由确定性 peer 显式延迟 init。三场分别覆盖 30 秒后 init、生产 120 秒初始化期限耗尽后迟到 init、Stop 后迟到 init；超时/Stop 后保留草稿，直到显式重试才发送。独立校验原始 child ledger、session/nonce/process instance、实际加载的 120 秒常量、GUI 状态和时间顺序，要求每场只有一条原始 user 输入。重复派发、错误子进程、旧 retry 观察、缺失案例和缩短期限均有可执行负例。
+
+第一轮 GUI 三场和退出均通过，但旧校验器把 child 的 gate 时间当作插件计时起点：真实 child gate 在初始化等待开始后报告，超时观测约 **119.8 秒**，校验器错误拒绝。保留[原始失败材料](./ide/evidence/gap-2026-10-05/cold-init-windows-first/readback.json)，没有将其改写为通过。修正分别记录提交耗时与 child 等待观测；生产期限不变，实际加载常量仍为 120，同时要求迟到 init 后的 ready → beforeRetry → explicitRetry → 原始 user 时间链。第二轮[Windows IntelliJ 2024.2 / 插件 0.4.153 原始回读](./ide/evidence/gap-2026-10-05/cold-init-windows-v2/readback.json)全部通过：
+
+| 场景                  | child 等待观测 | 提交至 held 观测 | 原始 user 输入 | 自动补发 |
+| --------------------- | -------------: | ---------------: | -------------: | -------: |
+| 30 秒 init            |      30,134 ms |        32,684 ms |              1 |        0 |
+| 120 秒超时后迟到 init |     120,038 ms |       121,335 ms |              1 |        0 |
+| Stop 后迟到 init      |         313 ms |         1,175 ms |              1 |        0 |
+
+实际 IDE 自然退出，Gradle owner exit 0、taskkill 未使用、已记录进程身份全部消失。回读明确记录两份后续修改的辅助源码摘要差异；这是本地历史工作区验证，不是当前干净提交 CI，不是性能 SLO，也不代表真实 provider 的迁移/hooks 冷启动发生率。
+
+继续补齐 `--journey cold-boundaries`。首次[真实边界旅程](./ide/evidence/gap-2026-10-05/cold-boundaries-windows-first/readback.json)中，永不 init 的旧实例回收与显式重试通过；提前退出阶段暴露产品错误：onExit 清空 session generation 后，发送收尾把实例变化误判为审批变化，覆盖了 `Agent exited before input acknowledgement`。修复只调整提示分类：真实审批 revision 变化仍优先；同一 revision 保留实际错误；其他实例变化使用通用 session 提示，派发、保存、撤销和重试门不变。
+
+修复后的[两个边界完整回读](./ide/evidence/gap-2026-10-05/cold-boundaries-windows-v2/readback.json)通过：永不 init 的 gate 没有释放，生产期限耗尽后由真实 `/normal` 控件请求退出屏障；提前退出以真实 code 86 结束，显示准确原因且保留草稿。两场均确认旧 Node 已消失，旧实例 user 输入 **0**、新实例 **1**，替换发生在显式重试和退出确认之后，自动补发 **0**。源码逐文件摘要全部与回读时工作区匹配，IDE 正常退出、taskkill 未使用。Astra 审查发现的两个串扰反例（唯一输入改错 session、同实例追加其他会话输入）已增加实际负例，校验器同时绑定 session 与旧/新 processInstanceId。
+
+最终 Windows / Node 22.22.2 与 WSL / Node 22.12.0 的四个新增 Node 文件各 **23/23 通过**，包含实际 POSIX shim 删除/恢复、错误路径及真实 peer init 前 code 86 退出。Java `InputDispatchTest` **10/10**、`PermissionModeStateTest` **4/4** 通过，SDK 编译与插件构建通过。三系统身份、两组冷初始化 GUI 及证据负例均接入 [VERIFY01 Host Diagnostics](../../.github/workflows/verify01-host-diagnostics.yml)；新 Linux/macOS 实际宿主结果仍须矩阵回读。
+
+### 7.3 Windows 退出测试的准备阶段
+
+扩大宿主回归首次出现两项失败：hanging graceful request 没有观察到 abort，detached descendant 场景没有进入预期拒绝。原因是 Windows kernel 身份采集先消耗了已经启动的绝对 graceful deadline，测试实际走 taskkill 分支；沙箱内另有 CIM `PermissionDenied`，这些失败不作通过证据。
+
+新增显式 `captureOwnedProcessTree(handle)` 准备阶段，在 owner 活着时采集真实创建身份，然后才启动原 graceful 请求期限。普通调用仍由 `stopOwned` 执行采集；采集失败保存 `confirmed:false` 原始错误，不能确认清理。CIM 只查询四个所需字段，保留原 10 秒采集、6 秒请求、30 秒测试期限与持续采样；没有扩大 timeout 或删断言。Windows 沙箱外两项独立复验 **2/2 通过**，完整生命周期文件 **13 通过、3 项 POSIX 专用跳过、0 失败**。相关 JS 定向 ESLint、Prettier、两个工作流 actionlint 及 CLI 生成文件检查通过。
+
+### 7.4 仍需的环境与验收
+
+| 项目                         | 本轮后的状态                                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MODEL-03 / PERF-02           | 工程合同已有；GPT-6.1 Sol/Sonnet 5.5 官方账号 stream/tool/reasoning、usage/账单、token 估算事实保真仍需真实调用                                    |
+| VERIFY-02 / VERIFY-IDE-02    | Docker 36/36 与42反例已有准确证据；正式36+9、独立人工 review、native Windows/macOS review、公开安装与费用仍未完成                                  |
+| BRIDGE-02                    | 显式 CLI 接线及拒绝合同完成；新命令真实 Linux x64/arm64 cgroup 矩阵仍待运行，不覆盖旧 PID-only journal                                             |
+| IDE-ONBOARD-02 / IDE-COLD-02 | 跨平台 driver/CI 接线、Windows 八阶段身份、五场实际 IntelliJ 初始化/替换旅程完成；新三系统矩阵、公开安装及更广泛调度/物理桌面交互仍独立验收        |
+| PLATFORM-02 / NET-02         | Windows/macOS durable authority、持续网络撤销和崩溃恢复后端仍未实现；Linux dirfd/cgroup、Windows WFP 与 macOS 受信任服务不可互换，平台拒绝保持严格 |
+| 辅助技术与性能               | NVDA/VoiceOver/Orca 真人听测、8h/24h 覆盖回执及获批 SLO 仍开放，fixture 延迟不是性能验收                                                           |
+| CLOUD-02 / MAINT-02          | 完整跨机器 resume 仍是需求条件项；持续维护工时和真实任务收益仍需独立记录                                                                           |
+
+重新执行冻结 validator/fingerprint 和只读采集器，指纹仍为 `665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，原生进程退出码 **2**：task observed=0/missing=36，firstRun observed=0/missing=9，totalCost=null。冻结 provider 为 **Volcengine `deepseek-v4-flash-ga-260731` 与 OpenAI `gpt-6-astra`**；MODEL-03 的 Anthropic 官方端点验收是另一个项目，不能替换冻结 provider。当前仍需账户配置、费用授权和独立人工签核，未启动付费调用，也未写入正式 observations。

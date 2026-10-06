@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-06 继续实施**：补齐 BRIDGE-02 的显式 Linux `agent process-ownership status/recover` 入口，复用可信 cgroup 身份与持久清理回执；IDE 宿主诊断新增跨平台身份旅程和真实 IntelliJ 冷初始化采集，工程回归与实际宿主结果见[续做验证第 7 节](../cli-ide-gap-validation-2026-10-05.md#7-2026-10-06-剩余工程接线)。后续配对发行已为 CLI `0.166.90` / Open VSX `0.37.135` / JetBrains `0.4.153`，公开版本及标签源码见[最新发行回读](./evidence/documentation-release-status-2026-10-06-final.json)。Windows/macOS durable 后端、正式 36+9、账户账单、真人听测与长时观察仍开放；以下正文保留原审计时点。
+
 > **Actions 修复续做（2026-10-06）**：`6196cd065d` 的 Docker 六分片已完整通过：36/36 题、42 个行为反例全部检出，精确源码校验器保持严格。`4f2c19281c` 的流式采集有界期限、可见性、逐案例诊断与取消清理已接通，但 Windows/macOS 的 warmup 校验暴露了已有光标导致诊断选区未建立的问题。真实 Chromium 已复现，修复先清除旧 range，再建立并核验真实目标选区，结束后恢复原状态；原采样和断言合同保留。新准确提交仍须全系统 CLI 双门与完整 IDE 宿主矩阵，候选尚未发布。详见[续做验证记录](../cli-ide-gap-validation-2026-10-05.md)；正式 36+9、账号账单及人工验收仍开放。
 
 > **本轮发行（2026-10-05）**：CLI `0.166.88` 已通过 GitHub Actions OIDC 发布，VS Code `0.37.133` 已在 Open VSX 公开，JetBrains `0.4.151` 已公开上架。三项标签源码固定为 `7db17a12e1`，准确提交完整门及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.88/README.md)。36+9 仍为 `NOT_RUN`，真实验收状态不因发布改变。

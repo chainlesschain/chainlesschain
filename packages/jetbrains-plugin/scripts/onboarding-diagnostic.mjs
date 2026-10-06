@@ -21,7 +21,10 @@ import {
   readPluginVersion,
   findPluginArchive,
 } from "./run-ui-host-journey.mjs";
-import { createOnboardingFixture } from "../../../scripts/lib/verify01-onboarding-fixture.mjs";
+import {
+  createOnboardingFixture,
+  isolateOnboardingEnvironment,
+} from "../../../scripts/lib/verify01-onboarding-fixture.mjs";
 
 const pkg = path.resolve(import.meta.dirname, "..");
 const { values } = parseArgs({
@@ -60,14 +63,8 @@ fs.writeFileSync(
   ),
 );
 
-const env = {
-  ...process.env,
-  HOME: dirs.home,
-  USERPROFILE: dirs.home,
-  CHAINLESSCHAIN_HOME: path.join(dirs.home, ".chainlesschain"),
-};
+const env = isolateOnboardingEnvironment(process.env, dirs.home, root);
 for (const key of ["APPDATA", "LOCALAPPDATA", "ProgramFiles"]) {
-  env[key] = path.join(root, key);
   fs.mkdirSync(env[key]);
 }
 const gradle =
@@ -119,12 +116,20 @@ result.source = {
   dirty:
     execFileSync(
       "git",
-      ["status", "--porcelain", "--", "packages/jetbrains-plugin"],
+      [
+        "status",
+        "--porcelain",
+        "--",
+        "packages/jetbrains-plugin",
+        "scripts/lib/verify01-onboarding-fixture.mjs",
+        "scripts/lib/verify01-diagnostic-process.mjs",
+      ],
       { cwd: path.resolve(pkg, "../.."), encoding: "utf8", windowsHide: true },
     ).trim().length > 0,
   files: Object.fromEntries(
     [
       "src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "src/main/java/com/chainlesschain/ide/CliLauncher.java",
       "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
       "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java",
       "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java",

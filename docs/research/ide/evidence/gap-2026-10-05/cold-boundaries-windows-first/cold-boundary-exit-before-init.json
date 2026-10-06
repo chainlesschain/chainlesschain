@@ -1,0 +1,59 @@
+{
+  "case": "exit-before-init",
+  "sessionId": "panel-1791268891866-57ea22",
+  "prompt": "journey:model cold-exit-before-init 中文😀",
+  "submittedAt": "2026-10-06T06:41:32.100320400Z",
+  "waiting": {
+    "at": "2026-10-06T06:41:33.330Z",
+    "direction": "fixture",
+    "command": "init-gate-waiting",
+    "sessionId": "panel-1791268891866-57ea22",
+    "nonce": "a92e0048-5353-4632-9255-6f5954d3d83c",
+    "processId": 4720,
+    "processInstanceId": "afd3af47-6a51-4636-a412-aa5ddb64ac01"
+  },
+  "preparing": {
+    "initializationTimeoutSeconds": 120,
+    "observedAt": "2026-10-06T06:41:33.396824600Z",
+    "processId": "7868",
+    "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-verify01-jetbrains-nm3LA1\\IC-2024.2\\config_runIdeForUiTests",
+    "id": "4c79de1b-e68a-47ce-8084-b0fd4f53094a",
+    "sessionId": "panel-1791268891866-57ea22",
+    "tabs": [
+      {
+        "id": "7fc6351d-6a37-4914-a9ab-c149c1b27c7e",
+        "index": 0,
+        "selected": false
+      },
+      {
+        "id": "ca6f7d94-f6f6-46a2-8113-687e4f252ff3",
+        "index": 1,
+        "selected": false
+      },
+      {
+        "id": "4c79de1b-e68a-47ce-8084-b0fd4f53094a",
+        "index": 2,
+        "selected": true
+      }
+    ],
+    "inputText": "journey:model cold-exit-before-init 中文😀",
+    "editable": false,
+    "sendInFlight": true,
+    "childRunning": true,
+    "childProcessId": "22968",
+    "childProcessIds": [
+      "22968",
+      "23772",
+      "4720"
+    ],
+    "turnActive": false,
+    "interruptPending": false,
+    "receiptReady": false,
+    "draftStatus": "Saving draft…",
+    "historyStatus": " Live conversation",
+    "binaryChoice": "cc",
+    "text": "",
+    "visible": true,
+    "savedRows": []
+  }
+}

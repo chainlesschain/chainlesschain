@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.InputDispatchTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-06T06:52:31" hostname="DESKTOP-MTMV2RE" time="31.986">
+  <properties/>
+  <testcase name="stopWhileWaitingForThePipeMonitorPreventsALaterUserWrite()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.612"/>
+  <testcase name="thirtySecondColdStartDispatchesExactlyOnce()" classname="com.chainlesschain.ide.InputDispatchTest" time="30.015"/>
+  <testcase name="stopBeforeSessionExistsDoesNotCreateAPendingTurn()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.001"/>
+  <testcase name="aFailedPipeWriteRemainsDispatchedAndCannotBeRelabelledCancelled()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.045"/>
+  <testcase name="cancellationReleasesInitWaitWithoutPoisoningTheSessionCapability()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.004"/>
+  <testcase name="initTimeoutKeepsDraftAndCannotDispatchOnLateInit()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.021"/>
+  <testcase name="aReservedSubmissionCannotBeSentTwice()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.437"/>
+  <testcase name="cancellationInsideTheSessionMonitorStillWinsBeforeReservation()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.439"/>
+  <testcase name="earlyExitKeepsItsOwnFailureClassification()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.001"/>
+  <testcase name="stopAfterReservationStaysResponsiveAndFollowsTheBlockedUserWrite()" classname="com.chainlesschain.ide.InputDispatchTest" time="0.401"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

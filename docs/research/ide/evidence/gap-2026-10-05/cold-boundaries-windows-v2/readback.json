@@ -1,0 +1,179 @@
+{
+  "schema": "chainlesschain.local-host-diagnostic-readback/v1",
+  "kind": "boundaries",
+  "checkedAt": "2026-10-06T06:54:31.823Z",
+  "passed": true,
+  "formalSample": false,
+  "providerAssessed": false,
+  "publicInstallationAssessed": false,
+  "performanceGate": false,
+  "cleanCommitCi": false,
+  "source": {
+    "commit": "7694e165644f99ed8a03cf76c9459df72f32ed5d",
+    "dirty": true,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "packages/jetbrains-plugin/build.gradle.kts": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:da382c3c8ead4c9f02ce8841f66f41e12c2449b977a6c07f8299e577e725a89a",
+      "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:1a20d6648473ccb632c66b8a654c973e4f7763fbf91517c8c17665f6fe75c423",
+      "scripts/lib/verify01-diagnostic-process.mjs": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a"
+    }
+  },
+  "sourceMatches": {
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": {
+      "expected": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "current": "sha256:593ff3e0a45ff93b3cb7aed5a6b7a58482b5b08723db0a6913952a330819d521",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": {
+      "expected": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "current": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": {
+      "expected": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "current": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": {
+      "expected": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "current": "sha256:9326bc4dc406af346e8929d0e40cc872bea03eb967e0e4f82b47acfdfd0cf2ae",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java": {
+      "expected": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "current": "sha256:f791b48bcecb24b2605b6ba23051611fee9ae2012dfc4cc8c2033283f18f7783",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java": {
+      "expected": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "current": "sha256:4ae2edbaf0670e62b5a823e46ff48c7adb355e68560a23156211e3ac9cc31354",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/build.gradle.kts": {
+      "expected": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "current": "sha256:29fe48b0946cb6ebea99e46c04196170d7a7c94bfd2aa6355461e23ca65373b2",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": {
+      "expected": "sha256:da382c3c8ead4c9f02ce8841f66f41e12c2449b977a6c07f8299e577e725a89a",
+      "current": "sha256:da382c3c8ead4c9f02ce8841f66f41e12c2449b977a6c07f8299e577e725a89a",
+      "matchesCurrent": true
+    },
+    "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs": {
+      "expected": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "current": "sha256:9383a8fddf4509129532305b78d29d07c81bae35774fcb9e08df84a8b504107a",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/init-gate.mjs": {
+      "expected": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "current": "sha256:dc0a313990c8fa397eb8df6a68b2ce23c4eca2b99990b1ee493feccfe4d3d643",
+      "matchesCurrent": true
+    },
+    "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs": {
+      "expected": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "current": "sha256:75b431646bd6e5797a57be9ca19c755b41fcfb1e6cdf77f35b0959ddab0691cf",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-cold-evidence.mjs": {
+      "expected": "sha256:1a20d6648473ccb632c66b8a654c973e4f7763fbf91517c8c17665f6fe75c423",
+      "current": "sha256:1a20d6648473ccb632c66b8a654c973e4f7763fbf91517c8c17665f6fe75c423",
+      "matchesCurrent": true
+    },
+    "scripts/lib/verify01-diagnostic-process.mjs": {
+      "expected": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+      "current": "sha256:bae3b0611d7931ad9212373f65bba5ca4a807defcc96d4d2748a3495046e6b4a",
+      "matchesCurrent": true
+    }
+  },
+  "cleanup": {
+    "confirmed": true,
+    "graceful": {
+      "requested": true,
+      "acknowledged": true
+    },
+    "taskkill": null,
+    "remaining": [],
+    "ownerExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "artifacts": [
+    {
+      "file": "diagnostic-result.json",
+      "bytes": 3552,
+      "digest": "sha256:c1ec523315f3c988a022863e7b8a389a5d273f8ad753cd5869b5b341915a1051"
+    },
+    {
+      "file": "diagnostic-scope.json",
+      "bytes": 2480,
+      "digest": "sha256:2fcbee7132f842e7274348aed01a9523ecd59ac7a60a686529825d12e818552c"
+    },
+    {
+      "file": "fake-cli-protocol.jsonl",
+      "bytes": 12780,
+      "digest": "sha256:37d18dcd0c4aed1e9ca52e912b549272525e8ffdf191a7ee1f6e279ba23e2d10"
+    },
+    {
+      "file": "cold-boundaries-ui.json",
+      "bytes": 14461,
+      "digest": "sha256:4d5fcf59ee77b371e8a1a704823e6ba749e05507c14bfc897bddd4574fe2895b"
+    },
+    {
+      "file": "cold-boundary-never-init-restart.json",
+      "bytes": 6645,
+      "digest": "sha256:a1b60e9db521a1c8d6ac2ce43a6c5237632108ab1b6ff28b9edfd9ccb27ad1dd"
+    },
+    {
+      "file": "cold-boundary-exit-before-init.json",
+      "bytes": 7029,
+      "digest": "sha256:84d921ed9dd99fe9a92323b6ae8e524138c33bb074ffd657c27fac0699749240"
+    },
+    {
+      "file": "ide-cold-boundaries.log.cleanup.json",
+      "bytes": 2718,
+      "digest": "sha256:d3db868c372dc7cafd41ba52dd2bd72f49483aa7f178203c764a5500c91c1192"
+    }
+  ],
+  "verifiedCapture": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "never-init-restart",
+        "oldProcessInstanceId": "4b7af12f-3d42-47c8-85b7-d5f1bf9ac2f6",
+        "newProcessInstanceId": "453c91eb-5234-4bfd-aac0-8a3b1aa612d4",
+        "oldUserInputs": 0,
+        "newUserInputs": 1,
+        "automaticResends": 0,
+        "oldExitConfirmed": true
+      },
+      {
+        "case": "exit-before-init",
+        "oldProcessInstanceId": "989059cc-25b4-40a7-9f56-10227c9131b4",
+        "newProcessInstanceId": "ff97bfe5-ef77-4191-a065-db7d3372bb33",
+        "oldUserInputs": 0,
+        "newUserInputs": 1,
+        "automaticResends": 0,
+        "oldExitConfirmed": true
+      }
+    ],
+    "providerAssessed": false,
+    "formalSample": false,
+    "publicInstallationAssessed": false,
+    "performanceGate": false
+  },
+  "notes": [
+    "Original bytes copied independently; no screenshots, complete IDE logs, credentials or formal observations.",
+    "This is a local workspace diagnostic; source.dirty from early drivers covered only a subset of source paths. Per-file digests and sourceMatches determine its exact historical scope.",
+    "A later edit to provenance path coverage or equivalent loop syntax does not rewrite this earlier capture as clean-commit CI."
+  ]
+}

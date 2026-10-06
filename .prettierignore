@@ -9,3 +9,13 @@ packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-approval
 
 # Preserve downloaded CI report bytes for the evidence receipt's SHA-256.
 docs/research/cli/evidence/*.raw.json
+
+# Local diagnostic receipts bind exact original bytes, including JSON/XML.
+docs/research/ide/evidence/gap-2026-10-05/cold-boundaries-windows-first/**
+docs/research/ide/evidence/gap-2026-10-05/cold-boundaries-windows-v2/**
+docs/research/ide/evidence/gap-2026-10-05/cold-init-windows-first/**
+docs/research/ide/evidence/gap-2026-10-05/cold-init-windows-v2/**
+docs/research/ide/evidence/gap-2026-10-05/java-dispatch-mode-windows/**
+docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-first/**
+docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-second/**
+docs/research/ide/evidence/gap-2026-10-05/onboarding-cross-platform-windows-v3/**

@@ -1,0 +1,154 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 14028,
+      "parentPid": 18436,
+      "name": "cmd.exe",
+      "created": "639268642543822890"
+    },
+    {
+      "pid": 22728,
+      "parentPid": 14028,
+      "name": "java.exe",
+      "created": "639268642544344960"
+    },
+    {
+      "pid": 15508,
+      "parentPid": 22728,
+      "name": "java.exe",
+      "created": "639268642564993840"
+    },
+    {
+      "pid": 20168,
+      "parentPid": 15508,
+      "name": "java.exe",
+      "created": "639268642991369810"
+    },
+    {
+      "pid": 17492,
+      "parentPid": 20168,
+      "name": "conhost.exe",
+      "created": "639268642991503900"
+    },
+    {
+      "pid": 4356,
+      "parentPid": 20168,
+      "name": "fsnotifier.exe",
+      "created": "639268643010173590"
+    },
+    {
+      "pid": 21756,
+      "parentPid": 4356,
+      "name": "conhost.exe",
+      "created": "639268643013175020"
+    },
+    {
+      "pid": 19628,
+      "parentPid": 20168,
+      "name": "wsl.exe",
+      "created": "639268643105683480"
+    },
+    {
+      "pid": 12020,
+      "parentPid": 19628,
+      "name": "conhost.exe",
+      "created": "639268643111782750"
+    },
+    {
+      "pid": 24036,
+      "parentPid": 19628,
+      "name": "wsl.exe",
+      "created": "639268643122321510"
+    },
+    {
+      "pid": 3524,
+      "parentPid": 24036,
+      "name": "init",
+      "created": "639268643127414860"
+    },
+    {
+      "pid": 8556,
+      "parentPid": 3524,
+      "name": "init",
+      "created": "639268643130934210"
+    },
+    {
+      "pid": 25640,
+      "parentPid": 24036,
+      "name": "wslhost.exe",
+      "created": "639268643131654130"
+    },
+    {
+      "pid": 20580,
+      "parentPid": 25640,
+      "name": "conhost.exe",
+      "created": "639268643133087400"
+    },
+    {
+      "pid": 1704,
+      "parentPid": 20168,
+      "name": "cmd.exe",
+      "created": "639268643634898580"
+    },
+    {
+      "pid": 13404,
+      "parentPid": 1704,
+      "name": "conhost.exe",
+      "created": "639268643635664500"
+    },
+    {
+      "pid": 7868,
+      "parentPid": 1704,
+      "name": "node.exe",
+      "created": "639268643637712010"
+    },
+    {
+      "pid": 15008,
+      "parentPid": 20168,
+      "name": "cmd.exe",
+      "created": "639268644088998410"
+    },
+    {
+      "pid": 23340,
+      "parentPid": 15008,
+      "name": "conhost.exe",
+      "created": "639268644089182020"
+    },
+    {
+      "pid": 22328,
+      "parentPid": 15008,
+      "name": "node.exe",
+      "created": "639268644089833250"
+    },
+    {
+      "pid": 22524,
+      "parentPid": 20168,
+      "name": "cmd.exe",
+      "created": "639268645402360250"
+    },
+    {
+      "pid": 19004,
+      "parentPid": 22524,
+      "name": "conhost.exe",
+      "created": "639268645402580600"
+    },
+    {
+      "pid": 23608,
+      "parentPid": 22524,
+      "name": "node.exe",
+      "created": "639268645403035720"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

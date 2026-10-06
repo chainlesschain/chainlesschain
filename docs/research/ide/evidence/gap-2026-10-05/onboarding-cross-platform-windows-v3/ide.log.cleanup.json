@@ -1,0 +1,88 @@
+{
+  "scope": "known-diagnostic-process-tree",
+  "owned": [
+    {
+      "pid": 10752,
+      "parentPid": 2680,
+      "name": "cmd.exe",
+      "created": "639268658979912860"
+    },
+    {
+      "pid": 11332,
+      "parentPid": 10752,
+      "name": "java.exe",
+      "created": "639268658980405220"
+    },
+    {
+      "pid": 22196,
+      "parentPid": 11332,
+      "name": "java.exe",
+      "created": "639268658999795810"
+    },
+    {
+      "pid": 26340,
+      "parentPid": 22196,
+      "name": "java.exe",
+      "created": "639268659422482040"
+    },
+    {
+      "pid": 21864,
+      "parentPid": 26340,
+      "name": "conhost.exe",
+      "created": "639268659422646100"
+    },
+    {
+      "pid": 24976,
+      "parentPid": 26340,
+      "name": "fsnotifier.exe",
+      "created": "639268659447840400"
+    },
+    {
+      "pid": 15036,
+      "parentPid": 24976,
+      "name": "conhost.exe",
+      "created": "639268659451397780"
+    },
+    {
+      "pid": 3552,
+      "parentPid": 26340,
+      "name": "wsl.exe",
+      "created": "639268659541439730"
+    },
+    {
+      "pid": 1732,
+      "parentPid": 3552,
+      "name": "conhost.exe",
+      "created": "639268659544929480"
+    },
+    {
+      "pid": 15496,
+      "parentPid": 3552,
+      "name": "wsl.exe",
+      "created": "639268659548086420"
+    },
+    {
+      "pid": 4356,
+      "parentPid": 15496,
+      "name": "wslhost.exe",
+      "created": "639268659556873110"
+    },
+    {
+      "pid": 19344,
+      "parentPid": 4356,
+      "name": "conhost.exe",
+      "created": "639268659558941630"
+    }
+  ],
+  "taskkill": null,
+  "confirmed": true,
+  "graceful": {
+    "requested": true,
+    "acknowledged": true
+  },
+  "remaining": [],
+  "ownerExit": {
+    "code": 0,
+    "signal": null
+  }
+}

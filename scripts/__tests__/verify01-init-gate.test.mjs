@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { waitForInitGate } from "../../tests/fixtures/ide-roadmap/init-gate.mjs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 function gate(t, timeoutMs) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-init-gate-"));
@@ -59,4 +61,47 @@ test("invalid or unbounded fixture deadlines are refused", async (t) => {
       /1..180000/u,
     );
   }
+});
+
+test("the actual peer can exit before init with a drained nonzero process result", (t) => {
+  const { file, value } = gate(t, 1000);
+  fs.writeFileSync(
+    `${file}.release`,
+    JSON.stringify({ ...value, exitBeforeInit: true }),
+  );
+  const trace = path.join(path.dirname(file), "trace.jsonl");
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL(
+          "../../tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+          import.meta.url,
+        ),
+      ),
+      "agent",
+      "--resume",
+      value.sessionId,
+    ],
+    {
+      env: { ...process.env, CC_UI_FIXTURE_TRACE: trace },
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: 10000,
+    },
+  );
+  assert.equal(result.status, 86, result.stderr);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, "");
+  const records = fs
+    .readFileSync(trace, "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.ok(
+    records.some(
+      (r) => r.command === "init-gate-exit-before-init" && r.code === 86,
+    ),
+  );
+  assert.ok(!records.some((r) => r.event?.subtype === "init"));
 });

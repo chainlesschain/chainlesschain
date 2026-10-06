@@ -1,0 +1,25 @@
+{
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-verify01-jetbrains-34JHcl",
+  "scope": "real-jetbrains-host-with-deterministic-peer",
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "sourceCommit": null,
+  "hostVersion": "2024.2",
+  "journey": "cold",
+  "source": {
+    "commit": "4807dfaa5eb246ae72b790b43047664cba829415",
+    "dirty": true,
+    "files": {
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:dbab22f4e8826206c12a736e48fe3e4cbac9a029293677644dc5a0a75777c9f9",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java": "sha256:524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java": "sha256:0a0683810787eecf816969cc4781879231eb7cb8181dd81e2d0027b9575a610a",
+      "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs": "sha256:449fec9cb84097644488a5e6e4c311fca3d36131f1fb40d265a960fb9905eebb",
+      "tests/fixtures/ide-roadmap/init-gate.mjs": "sha256:a237c118dea7b1debece03eee797494313635a0903100ebc017cc22d31758d29",
+      "scripts/lib/verify01-cold-evidence.mjs": "sha256:57b9495b9299a072be9c8d88801f4644abd2ed7257d0382269d1377665faff13"
+    }
+  }
+}

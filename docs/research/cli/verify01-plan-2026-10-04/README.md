@@ -1,5 +1,7 @@
 # VERIFY-01：36 个真实项目任务的冻结计划
 
+> **2026-10-06 状态补充**：冻结项目的 setup/check 和 42 个原行为反例已在 `6196cd065d` 的 Linux Docker 六分片全部通过，见[原始回读](../evidence/gap-2026-10-05/verify01-docker-ci-6196/tasks-readback.json)。实际双 IDE driver、跨平台身份与冷初始化工程续做见[最新验证记录](../../cli-ide-gap-validation-2026-10-05.md)。这些工程结果不替代独立人工审阅、正式 provider、公开安装、账单或长时观察；本目录的计划、任务、身份、分母、预算、窗口与指纹保持冻结。正文中的早期“尚未整包实跑/GUI 未接入”保留为其原实施时点，当前执行状态仍为 `NOT_RUN`。
+
 本目录只关闭“选择任务并冻结计划”子项，**没有执行任务、安装产品、调用模型或观察维护窗口**。全部任务为 `NOT_RUN`，没有成功率、账单或性能通过结论。当前候选源码为 `b2aa3aba082873570e85dce39b00754e5504ff37`；产品公开安装仍须先完成其正式发布门。计划冻结不授权付费执行。
 
 已复查 [2026-09-15 outcome 实施合同](../../../reports/implementation/claude-code-codex/CLAUDE_CODE_CODEX_OUTCOME_METRICS_IMPLEMENTATION_2026-09-15.md)及[旧试点](../../../cli/evidence/outcome-metrics/2026-09-15/README.md)。旧试点只有内置 10 题，不重复扩充计数。本计划复用 `outcome-plan/v1`、`createEvalComparison`、`outcomeDigest` 和 `task-outcome-report.mjs`，不增加统计或证据系统。

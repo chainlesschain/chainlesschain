@@ -27,7 +27,10 @@ import {
   canonicalTraceOffset,
   waitForCanonicalCommands,
 } from "../../../scripts/lib/verify01-diagnostic-command-drain.mjs";
-import { readColdEvidence } from "../../../scripts/lib/verify01-cold-evidence.mjs";
+import {
+  readColdEvidence,
+  readColdBoundaryEvidence,
+} from "../../../scripts/lib/verify01-cold-evidence.mjs";
 import { execFileSync } from "node:child_process";
 
 const pkg = path.resolve(import.meta.dirname, "..");
@@ -87,13 +90,13 @@ export async function main(argv = process.argv.slice(2)) {
   });
   if (values.help) {
     console.log(
-      "Real IntelliJ diagnostic with deterministic local peer.\n--ide-version 2024.2 --journey capture|cold --artifact-dir NEW_DIRECTORY\nCold keeps the actual 120-second production deadline. Requires JDK 21; bounded preparation. No provider call or formal observations.",
+      "Real IntelliJ diagnostic with deterministic local peer.\n--ide-version 2024.2 --journey capture|cold|cold-boundaries --artifact-dir NEW_DIRECTORY\nCold keeps the actual 120-second production deadline. Requires JDK 21; bounded preparation. No provider call or formal observations.",
     );
     return;
   }
   if (!/^\d{4}\.\d+(?:\.\d+)?$/u.test(values["ide-version"]))
     throw new Error("Exact IntelliJ release required");
-  if (!["capture", "cold"].includes(values.journey))
+  if (!["capture", "cold", "cold-boundaries"].includes(values.journey))
     throw new Error("Unknown diagnostic journey");
   const destination = reserveArtifactDirectory(values["artifact-dir"]);
   const root = fs.realpathSync(
@@ -145,6 +148,8 @@ export async function main(argv = process.argv.slice(2)) {
           "packages/jetbrains-plugin",
           "tests/fixtures/ide-roadmap",
           "scripts/lib/verify01-cold-evidence.mjs",
+          "scripts/lib/verify01-diagnostic-process.mjs",
+          "scripts/lib/verify01-diagnostic-command-drain.mjs",
         ],
         {
           cwd: path.resolve(pkg, "../.."),
@@ -241,11 +246,14 @@ export async function main(argv = process.argv.slice(2)) {
       `-Dui.verify01.promptFile=${prompt}`,
       `-Dui.verify01.deadlineMs=${deadline}`,
       "-Dui.verify01.permissionMode=acceptEdits",
-      ...(values.journey === "cold" ? [`-Dui.cold.root=${root}`] : []),
+      ...(values.journey !== "capture" ? [`-Dui.cold.root=${root}`] : []),
+      ...(values.journey === "cold-boundaries"
+        ? ["-Dui.cold.boundaries=true"]
+        : []),
     ];
     const traceFile = path.join(root, "fake-cli-protocol.jsonl");
-    for (const phase of values.journey === "cold"
-      ? ["cold"]
+    for (const phase of values.journey !== "capture"
+      ? [values.journey]
       : ["initial", "restart"]) {
       const traceOffset = canonicalTraceOffset(traceFile);
       console.log(`Starting ${phase} actual IDE`);
@@ -308,7 +316,9 @@ export async function main(argv = process.argv.slice(2)) {
     result.capture =
       values.journey === "cold"
         ? readColdEvidence(root)
-        : verifyDiagnosticCapture(dirs.capture, "jetbrains");
+        : values.journey === "cold-boundaries"
+          ? readColdBoundaryEvidence(root)
+          : verifyDiagnosticCapture(dirs.capture, "jetbrains");
     result.passed = true;
   } catch (error) {
     result.error = error.stack;

@@ -1,0 +1,88 @@
+{
+  "error": "com.intellij.remoterobot.utils.WaitForConditionTimeoutException: Exceeded timeout (PT45S) for condition function (Failed to find \u0027ComponentFixture\u0027 by \u0027//div[@text\u003d\u0027Check for cc updates…\u0027 and @visible\u003d\u0027true\u0027]\u0027 in 45s) ",
+  "completed": [
+    {
+      "case": "valid",
+      "at": "2026-10-06T06:32:38.611037200Z",
+      "snapshot": {
+        "initializationTimeoutSeconds": 120,
+        "observedAt": "2026-10-06T06:32:38.603041700Z",
+        "processId": "5932",
+        "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-onboard-8j8PA5\\IC-2024.2\\config_runIdeForUiTests",
+        "id": "9b973c96-10ea-4106-894a-cbc5085bd9fb",
+        "sessionId": "panel-1791268356148-ecebd0",
+        "tabs": [
+          {
+            "id": "f2991b9e-97ef-4c79-b613-1c293b002aa7",
+            "index": 0,
+            "selected": false
+          },
+          {
+            "id": "9b973c96-10ea-4106-894a-cbc5085bd9fb",
+            "index": 1,
+            "selected": true
+          }
+        ],
+        "inputText": "",
+        "editable": true,
+        "sendInFlight": false,
+        "childRunning": false,
+        "childProcessId": "",
+        "childProcessIds": [],
+        "turnActive": false,
+        "interruptPending": false,
+        "receiptReady": false,
+        "draftStatus": "Saved input restored for editing; it has not been sent",
+        "historyStatus": " ",
+        "binaryChoice": "null",
+        "text": "LLM not configured yet — click ⚙ LLM at the bottom-right, pick a provider and enter the API key to start chatting.\n",
+        "visible": true,
+        "savedRows": []
+      }
+    },
+    {
+      "case": "bad-explicit-with-managed",
+      "at": "2026-10-06T06:32:42.776816300Z",
+      "snapshot": {
+        "initializationTimeoutSeconds": 120,
+        "observedAt": "2026-10-06T06:32:42.768655600Z",
+        "processId": "5932",
+        "profile": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\idea-sandbox\\cc-onboard-8j8PA5\\IC-2024.2\\config_runIdeForUiTests",
+        "id": "d75dc84a-9cd0-4922-925d-910e4afc7181",
+        "sessionId": "panel-1791268362464-2b2118",
+        "tabs": [
+          {
+            "id": "f2991b9e-97ef-4c79-b613-1c293b002aa7",
+            "index": 0,
+            "selected": false
+          },
+          {
+            "id": "9b973c96-10ea-4106-894a-cbc5085bd9fb",
+            "index": 1,
+            "selected": false
+          },
+          {
+            "id": "d75dc84a-9cd0-4922-925d-910e4afc7181",
+            "index": 2,
+            "selected": true
+          }
+        ],
+        "inputText": "",
+        "editable": true,
+        "sendInFlight": false,
+        "childRunning": false,
+        "childProcessId": "",
+        "childProcessIds": [],
+        "turnActive": false,
+        "interruptPending": false,
+        "receiptReady": false,
+        "draftStatus": "Saved input restored for editing; it has not been sent",
+        "historyStatus": " ",
+        "binaryChoice": "null",
+        "text": "The panel needs the cc CLI to work. The configured CLI path did not identify a usable ChainlessChain CLI: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-onboard-8j8PA5\\not-installed.cmd. Check Settings → Tools → ChainlessChain IDE. This explicit path is preserved; managed fallback is not used.\n",
+        "visible": true,
+        "savedRows": []
+      }
+    }
+  ]
+}
