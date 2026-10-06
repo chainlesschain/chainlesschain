@@ -156,10 +156,17 @@ export async function main(argv = process.argv.slice(2)) {
       [
         "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
         "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+        "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
         "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java",
+        "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+        "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+        "packages/jetbrains-plugin/build.gradle.kts",
         "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs",
+        "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
         "tests/fixtures/ide-roadmap/init-gate.mjs",
+        "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
         "scripts/lib/verify01-cold-evidence.mjs",
+        "scripts/lib/verify01-diagnostic-process.mjs",
       ].map((file) => [
         file,
         `sha256:${createHash("sha256")

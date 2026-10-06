@@ -128,6 +128,9 @@ result.source = {
       "src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
       "src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java",
       "src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "build.gradle.kts",
       "scripts/onboarding-diagnostic.mjs",
     ].map((file) => [
       file,
