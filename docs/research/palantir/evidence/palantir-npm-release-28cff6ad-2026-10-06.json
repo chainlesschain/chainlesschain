@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-06T04:37:06.358Z",
+  "sourceCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "verification": "Public npm archives downloaded independently; package identities, registry SRI and downstream versions verified. Cryptographic provenance/source checks are performed by the authoritative Actions release workflow.",
+  "packages": [
+    {
+      "package": "@chainlesschain/session-core",
+      "version": "0.3.15",
+      "filename": "chainlesschain-session-core-0.3.15.tgz",
+      "bytes": 87540,
+      "integrity": "sha512-mFv8NUifLolyI0G94Bb4mr1ThQR/HIxRePi4ksIVORqSxy2zL3lM+wF39Ogu1uQ02bn3dIduxgywvyeWbM3hPw==",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.15.tgz",
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fsession-core@0.3.15",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "sourceProof": null
+    },
+    {
+      "package": "@chainlesschain/agent-sdk",
+      "version": "0.2.13",
+      "filename": "chainlesschain-agent-sdk-0.2.13.tgz",
+      "bytes": 88710,
+      "integrity": "sha512-U20HIItLbpwV1Lhx3QkLDNmHu/hsHlq902vU+FNPu4ewDNHBu6oHhAdGiuBGX0MCWI2QjVqwzuuCOty2p6uWAw==",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/agent-sdk/-/agent-sdk-0.2.13.tgz",
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fagent-sdk@0.2.13",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "sourceProof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-06T04:25:02.370Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "@chainlesschain/agent-sdk",
+        "version": "0.2.13",
+        "sha512": "536d07208b4b6e9c15d4b871dd090b0cd987bbf86c1e5abdd36bd4f8534fbb87b00cd1c1bbaa078407468ae0465f4302588d908d5ab0ceeb823adcb6a7ab9603",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-90",
+        "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340/attempts/1",
+        "runId": 37413002340,
+        "attempt": 1,
+        "anchorMode": "exact-release",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        }
+      }
+    },
+    {
+      "package": "@chainlesschain/personal-data-hub",
+      "version": "0.4.63",
+      "filename": "chainlesschain-personal-data-hub-0.4.63.tgz",
+      "bytes": 889220,
+      "integrity": "sha512-s1wUdtmMm7KFXZgJt4cOHeVedJ4Qu+DmrkG4Hph7RczEoIUGLTkrGhI8sUKhTWBC0KweasyKPzceCeIANCs3zQ==",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.63.tgz",
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fpersonal-data-hub@0.4.63",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "sourceProof": null
+    },
+    {
+      "package": "chainlesschain",
+      "version": "0.166.90",
+      "filename": "chainlesschain-0.166.90.tgz",
+      "bytes": 9230903,
+      "integrity": "sha512-4jYwe45rFuOa3thhyiFBLrvj/8nowWMh0KOczO2XFY2cEdoCUF3yrdCRmxKTJydvSsLib6amt99WT5krNgpRqg==",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.90.tgz",
+      "provenance": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.90",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "sourceProof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-06T04:33:19.461Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "chainlesschain",
+        "version": "0.166.90",
+        "sha512": "e236307b8e6b16e39aded861ca21412ebbe3ffc9e8c16321d0a39ccced97158d9c11da02505df2add0919b129327276f4ac2e26fa6a6b7df564f992b360a51aa",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-90",
+        "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340/attempts/1",
+        "runId": 37413002340,
+        "attempt": 1,
+        "anchorMode": "exact-release",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        }
+      }
+    }
+  ],
+  "publishMode": "GitHub Actions OIDC Trusted Publishing",
+  "publishWorkflow": {
+    "id": 37413002340,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340",
+    "headSha": "28cff6adc82a4f358d785baada110e48884527ea",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "cliExactChildren": {
+    "@chainlesschain/session-core": "0.3.15",
+    "@chainlesschain/personal-data-hub": "0.4.63"
+  },
+  "publicChildByteComparison": "passed",
+  "registryOnlyCliDependencyInstall": "passed"
+}

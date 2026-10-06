@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "sourceCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "verifiedAt": "2026-10-06 04:17:05 UTC",
+  "repository": "chainlesschain/chainlesschain",
+  "workflows": [
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585",
+        "id": 37407644585,
+        "name": "CLI CI",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 71,
+        "success": 70,
+        "skipped": ["dry-run-publish"]
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644409",
+        "id": 37407644409,
+        "name": "CLI Strict Sandbox",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 5,
+        "success": 5,
+        "skipped": []
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407686847",
+        "id": 37407686847,
+        "name": "IDE Extensions",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 19,
+        "success": 18,
+        "skipped": ["JetBrains Marketplace (post-publish verification)"]
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644400",
+        "id": 37407644400,
+        "name": "IDE Roadmap Safety Matrix",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 4,
+        "success": 4,
+        "skipped": []
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644385",
+        "id": 37407644385,
+        "name": "Code Quality & Security",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 9,
+        "success": 9,
+        "skipped": []
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644417",
+        "id": 37407644417,
+        "name": "Full Test Automation with Diagnostics",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 4,
+        "success": 3,
+        "skipped": ["Create Issue on Failure"]
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644441",
+        "id": 37407644441,
+        "name": "CI Tests",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 14,
+        "success": 14,
+        "skipped": []
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644449",
+        "id": 37407644449,
+        "name": "E2E Tests",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 4,
+        "success": 4,
+        "skipped": []
+      }
+    },
+    {
+      "run": {
+        "conclusion": "success",
+        "head_sha": "28cff6adc82a4f358d785baada110e48884527ea",
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644396",
+        "id": 37407644396,
+        "name": "CLI macOS MCP Launcher Release Gate",
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "jobs": {
+        "total": 6,
+        "success": 2,
+        "skipped": [
+          "protected tag identity",
+          "exact-SHA CLI release gates",
+          "signed root live (${{ matrix.arch }})",
+          "sealed x64 + arm64 release evidence"
+        ]
+      }
+    }
+  ],
+  "childVerification": [
+    {
+      "os": "windows",
+      "version": {
+        "coreDb": "0.1.5",
+        "sessionCore": "0.3.15",
+        "agentSdk": "0.2.13"
+      },
+      "passed": {
+        "coreDb": 85,
+        "sessionCore": 709,
+        "agentSdk": 83
+      },
+      "testFiles": {
+        "coreDb": 5,
+        "sessionCore": 28,
+        "agentSdk": 9
+      },
+      "failed": 0,
+      "skipped": 0,
+      "agentSdkProtocolCheck": "success",
+      "agentSdkBuild": "success"
+    },
+    {
+      "os": "ubuntu",
+      "version": {
+        "coreDb": "0.1.5",
+        "sessionCore": "0.3.15",
+        "agentSdk": "0.2.13"
+      },
+      "passed": {
+        "coreDb": 85,
+        "sessionCore": 709,
+        "agentSdk": 83
+      },
+      "testFiles": {
+        "coreDb": 5,
+        "sessionCore": 28,
+        "agentSdk": 9
+      },
+      "failed": 0,
+      "skipped": 0,
+      "agentSdkProtocolCheck": "success",
+      "agentSdkBuild": "success"
+    },
+    {
+      "os": "macos",
+      "version": {
+        "coreDb": "0.1.5",
+        "sessionCore": "0.3.15",
+        "agentSdk": "0.2.13"
+      },
+      "passed": {
+        "coreDb": 85,
+        "sessionCore": 709,
+        "agentSdk": 83
+      },
+      "testFiles": {
+        "coreDb": 5,
+        "sessionCore": 28,
+        "agentSdk": 9
+      },
+      "failed": 0,
+      "skipped": 0,
+      "agentSdkProtocolCheck": "success",
+      "agentSdkBuild": "success"
+    }
+  ],
+  "releaseTag": "v-npm-0-166-90",
+  "releaseTagSource": "28cff6adc82a4f358d785baada110e48884527ea",
+  "publicationStatus": "OIDC workflow triggered; publication not yet verified",
+  "notes": [
+    "CLI CI: 70 required jobs succeeded, PR-only dry-run-publish conditionally skipped.",
+    "IDE branch workflow: all test/build/compatibility jobs succeeded; tag-only Marketplace job conditionally skipped.",
+    "Test counts were confirmed by Astra from completed exact-SHA verification job logs.",
+    "This snapshot records completed test gates and does not claim any npm or IDE version is published."
+  ]
+}

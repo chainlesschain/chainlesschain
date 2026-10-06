@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-06 03:32:15 UTC",
+  "sourceCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "workflowRun": 37407644585,
+  "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37407644585",
+  "scope": "PDH exact-source native full suite; supplementary readback of authoritative Actions artifacts",
+  "platforms": [
+    {
+      "os": "ubuntu",
+      "identity": {
+        "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+        "platform": "linux",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "abi": "127",
+        "packageVersion": "0.4.63",
+        "declaredCipherRange": "^12.5.0",
+        "drivers": {
+          "better-sqlite3-multiple-ciphers": "12.11.1",
+          "better-sqlite3": "11.10.0"
+        }
+      },
+      "passed": 4482,
+      "failed": 0,
+      "skipped": 125,
+      "required": [
+        {
+          "suite": "e2e/local-data-adapters-cli.e2e.test.js",
+          "passed": 13
+        },
+        {
+          "suite": "sidecar-supervisor.test.js",
+          "passed": 6
+        },
+        {
+          "suite": "sidecar-contacts-cross-validate.test.js",
+          "passed": 1
+        },
+        {
+          "suite": "vault-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "registry-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "integration/derivation-projections.test.js",
+          "passed": 1
+        }
+      ],
+      "artifact": "pdh-native-ubuntu-latest-28cff6adc82a4f358d785baada110e48884527ea-1"
+    },
+    {
+      "os": "windows",
+      "identity": {
+        "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v22.22.2",
+        "abi": "127",
+        "packageVersion": "0.4.63",
+        "declaredCipherRange": "^12.5.0",
+        "drivers": {
+          "better-sqlite3-multiple-ciphers": "12.11.1",
+          "better-sqlite3": "11.10.0"
+        }
+      },
+      "passed": 4482,
+      "failed": 0,
+      "skipped": 125,
+      "required": [
+        {
+          "suite": "e2e/local-data-adapters-cli.e2e.test.js",
+          "passed": 13
+        },
+        {
+          "suite": "sidecar-supervisor.test.js",
+          "passed": 6
+        },
+        {
+          "suite": "sidecar-contacts-cross-validate.test.js",
+          "passed": 1
+        },
+        {
+          "suite": "vault-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "registry-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "integration/derivation-projections.test.js",
+          "passed": 1
+        }
+      ],
+      "artifact": "pdh-native-windows-latest-28cff6adc82a4f358d785baada110e48884527ea-1"
+    },
+    {
+      "os": "macos",
+      "identity": {
+        "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+        "platform": "darwin",
+        "arch": "arm64",
+        "node": "v22.22.2",
+        "abi": "127",
+        "packageVersion": "0.4.63",
+        "declaredCipherRange": "^12.5.0",
+        "drivers": {
+          "better-sqlite3-multiple-ciphers": "12.11.1",
+          "better-sqlite3": "11.10.0"
+        }
+      },
+      "passed": 4482,
+      "failed": 0,
+      "skipped": 125,
+      "required": [
+        {
+          "suite": "e2e/local-data-adapters-cli.e2e.test.js",
+          "passed": 13
+        },
+        {
+          "suite": "sidecar-supervisor.test.js",
+          "passed": 6
+        },
+        {
+          "suite": "sidecar-contacts-cross-validate.test.js",
+          "passed": 1
+        },
+        {
+          "suite": "vault-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "registry-derivation.test.js",
+          "passed": 17
+        },
+        {
+          "suite": "integration/derivation-projections.test.js",
+          "passed": 1
+        }
+      ],
+      "artifact": "pdh-native-macos-latest-28cff6adc82a4f358d785baada110e48884527ea-1"
+    }
+  ],
+  "releaseDisposition": "PDH matrix passed; no package published at this verification; CLI/SDK/Session Core/IDE remaining gates still required."
+}
