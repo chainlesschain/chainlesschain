@@ -3,14 +3,27 @@
   "releases": [
     {
       "productVersion": null,
-      "cliVersion": "0.166.90",
-      "cliVersions": ["0.166.90"],
+      "cliVersion": "0.166.91",
+      "cliVersions": ["0.166.91"],
       "date": null,
       "title": "",
       "sections": [
         {
+          "heading": "Fixed - cc CLI 0.166.91: cross-platform release validation",
+          "body": "- Accept verified directory identities through the Windows Server 2025 native\n  file-information API, while retaining handle binding and reparse-point checks.\n- Preserve Windows native evaluator failure and cleanup evidence when the helper\n  cannot publish a settlement. Compare journal identities within their pathname\n  and descriptor domains on supported Node versions.\n- Keep literal audit search assertions independent of redacted operation text;\n  verify that unsafe legacy text remains omitted from query results.\n- Give the receipt signer deadline test enough admission time on hosted runners\n  and verify that the signer is actually invoked before its bounded timeout.\n- Regenerate the bundled CLI changelog from its canonical source.\n- Publish Session Core `0.3.16` and Personal Data Hub `0.4.64` before CLI\n  `0.166.91`, with exact dependency pins and public package verification.\n- Pair VS Code `0.37.136` and JetBrains `0.4.154` with CLI `0.166.91` after\n  the full exact-commit CLI and IDE validation workflows pass."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.90",
+      "cliVersions": ["0.166.90"],
+      "date": "2026-10-06",
+      "title": "",
+      "sections": [
+        {
           "heading": "Added - cc CLI 0.166.90: recoverable projections and project risk evidence",
-          "body": "- Publish Personal Data Hub `0.4.63` and Session Core `0.3.15` before the CLI,\n  with exact dependency pins and public tarball verification. Require the full\n  PDH suite with its declared native SQLCipher driver on Linux, Windows and macOS.\n- Publish Agent SDK `0.2.13` with Vitest `4.1.11` test tooling to remove the\n  vulnerable Tinypool dependency, and upgrade the workspace proxy-addr to\n  `2.0.8`. Require SDK build and tests on the exact Linux, Windows and macOS\n  release commit before OIDC publication.\n- Persist PDH projection receipts, recover incomplete derivations and support\n  bounded receipt retention. Harden RAG updates, audit redaction and capability\n  reporting so unavailable sources do not appear as successful live collection.\n- Add offline project risk evaluation and version-bound task description\n  previews. Session Core also supplies native SQLite action/read services and\n  saved rule/source reviews for the desktop project workbench; CLI previews\n  carry unverified snapshot authority and do not execute those desktop actions.\n- Pair VS Code `0.37.135` and JetBrains `0.4.153` with CLI `0.166.90` after\n  exact-commit release checks and public npm readback."
+          "body": "- Verified on 2026-10-06: exact release commit `28cff6adc8` passed complete\n  CLI CI, Strict Sandbox, IDE host and security gates. Session Core `0.3.15`,\n  Agent SDK `0.2.13`, PDH `0.4.63` and CLI `0.166.90` were published through\n  GitHub Actions OIDC with independent public archive verification. Open VSX\n  `0.37.135` and JetBrains `0.4.153` are public; both publication workflows\n  succeeded, and JetBrains approval/listing was independently read back.\n  Desktop workbench changes are outside the separate v5.0.3.138 installer.\n- Publish Personal Data Hub `0.4.63` and Session Core `0.3.15` before the CLI,\n  with exact dependency pins and public tarball verification. Require the full\n  PDH suite with its declared native SQLCipher driver on Linux, Windows and macOS.\n- Publish Agent SDK `0.2.13` with Vitest `4.1.11` test tooling to remove the\n  vulnerable Tinypool dependency, and upgrade the workspace proxy-addr to\n  `2.0.8`. Require SDK build and tests on the exact Linux, Windows and macOS\n  release commit before OIDC publication.\n- Persist PDH projection receipts, recover incomplete derivations and support\n  bounded receipt retention. Harden RAG updates, audit redaction and capability\n  reporting so unavailable sources do not appear as successful live collection.\n- Add offline project risk evaluation and version-bound task description\n  previews. Session Core also supplies native SQLite action/read services and\n  saved rule/source reviews for the desktop project workbench; CLI previews\n  carry unverified snapshot authority and do not execute those desktop actions.\n- Pair VS Code `0.37.135` and JetBrains `0.4.153` with CLI `0.166.90` after\n  exact-commit release checks and public npm readback."
         }
       ]
     },

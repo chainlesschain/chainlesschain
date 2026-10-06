@@ -1,5 +1,12 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)
+
+- Recommend CLI `0.166.91` after its public npm release and the plugin's
+  exact-commit release gates pass.
+- Include the current IDE source changes with the Windows native evaluator
+  compatibility fixes and refreshed Session Core and Personal Data Hub packages.
+
 ## [0.4.153] - Pair with CLI project and data recovery tools (2026-10-06)
 
 - Recommend CLI `0.166.90` after its public npm release and the plugin's

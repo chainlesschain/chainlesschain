@@ -491,7 +491,13 @@ describe.runIf(process.platform === "win32")(
         ).rejects.toThrow(/deadlines/);
       expect(createEvaluator).not.toHaveBeenCalled();
     });
-    it.each(["partial", "oversize", "hardlink"])(
+    it.each([
+      "partial",
+      "descriptor-projection",
+      "descriptor-substitution",
+      "oversize",
+      "hardlink",
+    ])(
       "retains a cleanup-confirmed incomplete stage and bounds %s journal reads",
       async (kind) => {
         const root = fs.mkdtempSync(
@@ -540,32 +546,49 @@ describe.runIf(process.platform === "win32")(
             manifest,
             manifestDigest: digest,
             dispose,
-            execute: vi
-              .fn()
-              .mockResolvedValue({
-                receipt: {
-                  manifestDigest: digest,
-                  cleanupConfirmed: true,
-                  capabilityCount: 0,
-                  loopbackExemptionAbsent: true,
-                  targetPid: 100,
-                  targetExitCode: 125,
-                  executionFailed: true,
-                  supervisorUserSidSha256: "a".repeat(64),
-                },
-                result: {
-                  status: 125,
-                  signal: null,
-                  stdout: "",
-                  stderr: "Windows sandbox wall-time limit exceeded",
-                },
-              }),
+            execute: vi.fn().mockResolvedValue({
+              receipt: {
+                manifestDigest: digest,
+                cleanupConfirmed: true,
+                capabilityCount: 0,
+                loopbackExemptionAbsent: true,
+                targetPid: 100,
+                targetExitCode: 125,
+                executionFailed: true,
+                supervisorUserSidSha256: "a".repeat(64),
+              },
+              result: {
+                status: 125,
+                signal: null,
+                stdout: "",
+                stderr: "Windows sandbox wall-time limit exceeded",
+              },
+            }),
           };
         });
         const evidenceDirectory = path.join(root, "evidence");
-        const report = await runWindowsNativeEvaluatorCapabilities({
-          evidenceDirectory,
-        });
+        const fstat = fs.fstatSync;
+        let reads = 0;
+        const statSpy = kind.startsWith("descriptor-")
+          ? vi.spyOn(fs, "fstatSync").mockImplementation((...args) => {
+              const stat = fstat(...args);
+              // Reproduce Windows' pathname/descriptor identity domains.
+              // A substitution changes only the second opened handle's ID.
+              stat.dev += 100n;
+              stat.ino += 100n;
+              if (kind === "descriptor-substitution" && ++reads === 2)
+                stat.ino += 1n;
+              return stat;
+            })
+          : null;
+        let report;
+        try {
+          report = await runWindowsNativeEvaluatorCapabilities({
+            evidenceDirectory,
+          });
+        } finally {
+          statSpy?.mockRestore();
+        }
         expect(report).toMatchObject({
           diagnosticCompleted: false,
           stageRetained: true,
@@ -574,8 +597,8 @@ describe.runIf(process.platform === "win32")(
         });
         expect(dispose).not.toHaveBeenCalled();
         expect(fs.existsSync(scratch)).toBe(true);
-        if (kind === "partial") {
-          expect(report.validation).toMatchObject({
+        if (["partial", "descriptor-projection"].includes(kind)) {
+          expect(report.validation, report.error).toMatchObject({
             failureKind: "execution-timeout",
             capabilities: {},
             journal: { lastPhase: "esm" },
@@ -588,7 +611,9 @@ describe.runIf(process.platform === "win32")(
           ).toBe(raw);
         } else {
           expect(report.error).toMatch(
-            /journal is linked or exceeds byte bound/,
+            kind === "descriptor-substitution"
+              ? /journal identity changed while opening/
+              : /journal is linked or exceeds byte bound/,
           );
           expect(report.journal).toBeUndefined();
           expect(

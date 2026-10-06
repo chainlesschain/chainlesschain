@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.91: cross-platform release validation
+
+- Accept verified directory identities through the Windows Server 2025 native
+  file-information API, while retaining handle binding and reparse-point checks.
+- Preserve Windows native evaluator failure and cleanup evidence when the helper
+  cannot publish a settlement. Compare journal identities within their pathname
+  and descriptor domains on supported Node versions.
+- Keep literal audit search assertions independent of redacted operation text;
+  verify that unsafe legacy text remains omitted from query results.
+- Give the receipt signer deadline test enough admission time on hosted runners
+  and verify that the signer is actually invoked before its bounded timeout.
+- Regenerate the bundled CLI changelog from its canonical source.
+- Publish Session Core `0.3.16` and Personal Data Hub `0.4.64` before CLI
+  `0.166.91`, with exact dependency pins and public package verification.
+- Pair VS Code `0.37.136` and JetBrains `0.4.154` with CLI `0.166.91` after
+  the full exact-commit CLI and IDE validation workflows pass.
+
 ### Added - cc CLI 0.166.90: recoverable projections and project risk evidence
 
 - Verified on 2026-10-06: exact release commit `28cff6adc8` passed complete

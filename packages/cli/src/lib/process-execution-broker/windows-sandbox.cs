@@ -2144,6 +2144,7 @@ namespace ChainlessChain.WindowsSandbox
             string finalPath,
             FILE_ID_INFO handleIdentity,
             UInt64 handlePathStatFileId,
+            bool allowDirectory,
             out NodeFileIdentityProjection fixedProjection,
             out NodeFileIdentityProjection node22Projection)
         {
@@ -2173,8 +2174,10 @@ namespace ChainlessChain.WindowsSandbox
             }
 
             UInt64 pathStatFileId = unchecked((UInt64)information.FileId);
+            // Evaluator guards also attest directories. Keep the caller's
+            // type restriction consistent across fast and legacy stat paths.
             if (
-                (information.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
+                (!allowDirectory && (information.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
                 (information.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 ||
                 information.VolumeSerialNumber !=
                     handleIdentity.VolumeSerialNumber ||
@@ -2244,6 +2247,7 @@ namespace ChainlessChain.WindowsSandbox
                     finalPath,
                     fileId,
                     handlePathStatFileId,
+                    allowDirectory,
                     out fixedFastNodeIdentity,
                     out node22FastNodeIdentity);
             }

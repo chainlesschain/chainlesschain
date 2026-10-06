@@ -243,7 +243,17 @@ export function createWindowsNativeEvaluator(options) {
           },
         },
       );
-      const receiptIdentity = identity(receiptPath);
+      let receiptIdentity;
+      try {
+        receiptIdentity = identity(receiptPath);
+      } catch (cause) {
+        const error = new Error(
+          `Windows native evaluator: native settlement unavailable; stage retained (${cause.message}); supervisor status=${result.status}, signal=${result.signal}, error=${result.error?.message || "none"}, stderr=${String(result.stderr || "").trim()}`,
+          { cause },
+        );
+        error.nativeEvaluator = { result, manifestDigest, stage: root };
+        throw error;
+      }
       requireCondition(
         receiptIdentity.bytes <= 16384,
         "invalid settlement size",

@@ -5875,25 +5875,29 @@ describe("Evolution Eval Gate P0 foundation", () => {
   );
 
   it("aborts a hanging final receipt signer and rechecks trusted time after final receipt verification", async () => {
+    // Allow admission to reach the receipt phase even on busy hosted runners.
+    // The signer must still be aborted at the original, bounded run deadline.
+    const receiptDeadlineMs = 1_000;
     const hangingSigner = makeHarness({
       suite: suiteWithCounts({ training: 29, validation: 20, test: 20 }),
       evalPolicy: policy({
-        maxWallClockMs: 100,
-        portReceiptTtlMs: 1_000,
+        maxWallClockMs: receiptDeadlineMs,
+        portReceiptTtlMs: 4_000,
       }),
       hangingReceiptSigner: true,
     });
     await expect(
       runEvolutionEvalGate(hangingSigner.gate, RUN_REQUEST),
     ).rejects.toMatchObject({ code: EVOLUTION_EVAL_AUTHORITY_FAILED_CODE });
+    expect(hangingSigner.crypto.receiptSigner.sign).toHaveBeenCalledOnce();
 
     const crossedDeadline = makeHarness({
       suite: suiteWithCounts({ training: 29, validation: 20, test: 20 }),
       evalPolicy: policy({
-        maxWallClockMs: 100,
-        portReceiptTtlMs: 1_000,
+        maxWallClockMs: receiptDeadlineMs,
+        portReceiptTtlMs: 4_000,
       }),
-      advanceClockOnReceiptVerifyMs: 100,
+      advanceClockOnReceiptVerifyMs: receiptDeadlineMs,
     });
     await expect(
       runEvolutionEvalGate(crossedDeadline.gate, RUN_REQUEST),

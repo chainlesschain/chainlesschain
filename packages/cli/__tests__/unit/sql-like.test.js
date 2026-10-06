@@ -149,16 +149,18 @@ describe("queryLogs — LIKE-wildcard safety (real db)", () => {
       ins.run("a3", "op", "login-success");
 
       // `cc audit search "50%"` must not also match "5000".
-      const s1 = queryLogs(db, { search: "50%" }).map((r) => r.operation);
-      expect(s1).toEqual(["discount-50%-applied"]);
+      const s1 = queryLogs(db, { search: "50%" });
+      expect(s1.map((r) => r.id)).toEqual(["a1"]);
+      // Unsafe legacy operation text remains omitted by the audit read policy.
+      expect(s1.map((r) => r.operation)).toEqual(["[Content omitted]"]);
 
       // `cc audit search "%"` (a bare wildcard) must not match every row.
-      const s2 = queryLogs(db, { search: "%" }).map((r) => r.operation);
-      expect(s2).toEqual(["discount-50%-applied"]);
+      const s2 = queryLogs(db, { search: "%" }).map((r) => r.id);
+      expect(s2).toEqual(["a1"]);
 
       // A plain substring still filters correctly.
-      const s3 = queryLogs(db, { search: "login" }).map((r) => r.operation);
-      expect(s3).toEqual(["login-success"]);
+      const s3 = queryLogs(db, { search: "login" }).map((r) => r.id);
+      expect(s3).toEqual(["a3"]);
     } finally {
       db.close();
     }

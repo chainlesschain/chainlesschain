@@ -202,6 +202,29 @@ function validateJournal(report, complete) {
   };
 }
 
+function sameJournalIdentity(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs &&
+    left.nlink === 1n &&
+    right.nlink === 1n &&
+    left.isFile() &&
+    right.isFile()
+  );
+}
+
+function journalDescriptorIdentity(file) {
+  const fd = fs.openSync(file, "r");
+  try {
+    return fs.fstatSync(fd, { bigint: true });
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function readJournalAfterSettlement(report) {
   requireCondition(
     report.settlement?.cleanupConfirmed === true &&
@@ -241,11 +264,13 @@ function readJournalAfterSettlement(report) {
   const fd = fs.openSync(file, "r");
   try {
     const opened = fs.fstatSync(fd, { bigint: true });
+    // Windows pathname and descriptor stat can expose different dev/ino
+    // projections. Bind the reader to another handle opened by name, and
+    // compare each stat domain only with itself before and after the read.
     requireCondition(
-      opened.dev === before.dev &&
-        opened.ino === before.ino &&
+      sameJournalIdentity(opened, journalDescriptorIdentity(file)) &&
         opened.size === before.size &&
-        opened.nlink === 1n,
+        opened.size <= BigInt(JOURNAL_MAX_BYTES),
       "journal identity changed while opening",
     );
     const bytes = Buffer.alloc(Number(opened.size));
@@ -264,12 +289,11 @@ function readJournalAfterSettlement(report) {
     const after = fs.fstatSync(fd, { bigint: true });
     const named = fs.lstatSync(file, { bigint: true });
     requireCondition(
-      after.size === opened.size &&
-        after.mtimeNs === opened.mtimeNs &&
-        after.ctimeNs === opened.ctimeNs &&
-        named.dev === opened.dev &&
-        named.ino === opened.ino &&
-        !named.isSymbolicLink(),
+      sameJournalIdentity(after, opened) &&
+        sameJournalIdentity(named, before) &&
+        sameJournalIdentity(after, journalDescriptorIdentity(file)) &&
+        !named.isSymbolicLink() &&
+        fs.realpathSync.native(file).toLowerCase() === file.toLowerCase(),
       "journal changed during bounded read",
     );
     const raw = bytes.toString("utf8");

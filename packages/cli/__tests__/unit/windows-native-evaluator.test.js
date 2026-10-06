@@ -4,7 +4,9 @@ import path from "node:path";
 import net from "node:net";
 import { once } from "node:events";
 import { createHash } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   createWindowsNativeEvaluator,
   consumeWindowsNativeEvaluatorPolicy,
@@ -150,6 +152,57 @@ describe.runIf(process.platform === "win32")(
       }
     });
 
+    it("attests native directory identity without accepting it as a regular file", () => {
+      const assembly = fileURLToPath(
+        new URL(
+          "../../src/lib/process-execution-broker/windows-sandbox-helper.dll",
+          import.meta.url,
+        ),
+      );
+      const quote = (value) => `'${value.replaceAll("'", "''")}'`;
+      const script = `
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$assembly = [Reflection.Assembly]::LoadFile(${quote(assembly)})
+$native = $assembly.GetType('ChainlessChain.WindowsSandbox.Native', $true)
+$flags = [Reflection.BindingFlags]'Static,NonPublic'
+$hold = $native.GetMethod('HoldEvaluatorPath', $flags)
+$read = $native.GetMethod('ReadLaunchPathFileIdentity', $flags)
+$close = $native.GetMethod('CloseHandle', $flags)
+$guards = [System.Collections.Generic.List[IntPtr]]::new()
+try {
+  $handle = $hold.Invoke($null, @(${quote(sourceRoot)}, $true, $guards.psobject.BaseObject))
+  $identity = $read.Invoke($null, @([IntPtr]$handle, $true))
+  $rejected = $false
+  try { $null = $read.Invoke($null, @([IntPtr]$handle, $false)) }
+  catch { $rejected = $_.Exception.InnerException.Message -match 'not a regular non-reparse file' }
+  @{directoryAttested = $null -ne $identity; fileOnlyRejected = $rejected} | ConvertTo-Json -Compress
+} finally {
+  foreach ($guard in $guards) { $null = $close.Invoke($null, @([IntPtr]$guard)) }
+}
+`;
+      const output = execFileSync(
+        path.join(
+          process.env.SystemRoot,
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe",
+        ),
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-EncodedCommand",
+          Buffer.from(script, "utf16le").toString("base64"),
+        ],
+        { encoding: "utf8", windowsHide: true, timeout: 15000 },
+      );
+      expect(JSON.parse(output)).toEqual({
+        directoryAttested: true,
+        fileOnlyRejected: true,
+      });
+    });
+
     it("executes a real staged Node check with immutable source/control and writable scratch", async () => {
       const evaluator = create(`
       const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
@@ -189,6 +242,38 @@ describe.runIf(process.platform === "win32")(
       );
       evaluator.dispose();
     }, 30000);
+
+    it("preserves supervisor diagnostics when native settlement is missing", async () => {
+      const evaluator = create("throw new Error('must never run');");
+      const result = {
+        status: 125,
+        signal: null,
+        stderr: "Path stat identity does not match the locked launch handle",
+        stdout: "",
+      };
+      const spawn = vi
+        .spyOn(executionBroker, "spawnSync")
+        .mockReturnValue(result);
+      try {
+        const error = await evaluator.execute().catch((value) => value);
+        expect(error.message).toContain(result.stderr);
+        expect(error.nativeEvaluator).toMatchObject({
+          result,
+          manifestDigest: evaluator.manifestDigest,
+          stage: evaluator.root,
+        });
+        expect(error.cause.code).toBe("ENOENT");
+        expect(() => evaluator.dispose()).toThrow(/unconfirmed native cleanup/);
+      } finally {
+        spawn.mockRestore();
+        // The mock never creates a native process. Remove only this factory's
+        // private stage after checking its canonical temp-root binding.
+        const stage = fs.realpathSync.native(evaluator.root);
+        expect(path.dirname(stage)).toBe(fs.realpathSync.native(os.tmpdir()));
+        expect(path.basename(stage)).toMatch(/^cc-native-evaluator-[\w-]{6}$/u);
+        fs.rmSync(stage, { recursive: true });
+      }
+    });
 
     it("rejects changed staged source before target creation instead of blessing its old digest", async () => {
       const evaluator = create("throw new Error('must never run');");

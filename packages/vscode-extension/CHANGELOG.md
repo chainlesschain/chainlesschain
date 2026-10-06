@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.136] - Pair with cross-platform CLI fixes (2026-10-06)
+
+- Recommend CLI `0.166.91` after its public npm release and the extension's
+  exact-commit release gates pass.
+- Include the current IDE source changes with the Windows native evaluator
+  compatibility fixes and refreshed Session Core and Personal Data Hub packages.
+
 ## [0.37.135] - Pair with CLI project and data recovery tools (2026-10-06)
 
 - Recommend CLI `0.166.90` after its public npm release and the extension's
