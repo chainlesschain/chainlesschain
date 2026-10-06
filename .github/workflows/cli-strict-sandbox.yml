@@ -474,6 +474,7 @@ jobs:
           --testTimeout=35000
           --outputFile.json=strict-sandbox-contract-result.json
           __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          __tests__/unit/windows-native-evaluator-capabilities.test.js
           __tests__/unit/linux-generic-bwrap.test.js
           __tests__/unit/linux-generic-bwrap-runtime.test.js
           __tests__/unit/process-execution-broker-linux-generic-pty.test.js

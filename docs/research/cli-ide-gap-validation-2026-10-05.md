@@ -266,5 +266,61 @@ Astra 协助在 launcher 启动前严格校验 `default/acceptEdits/bypassPermis
 | PLATFORM-02 / NET-02      | 最小检查器不扩张原平台准入；Linux authority/恢复合同保留                        | Windows 服务/WFP/durable 身份、macOS 受信任服务、持续撤销与崩溃恢复           |
 | MODEL-03 / PERF-02        | 火山已授权并有真实 usage、工具与事实保真                                        | 官方 OpenAI/Anthropic 新型号端点、完整校准矩阵与账单，不能以火山代替          |
 | VERIFY-02 / VERIFY-IDE-02 | 正式 36+9 保持 `NOT_RUN`，不把 Windows 10/Node 22.22.2 诊断填入冻结目标         | 正式目标环境、独立人工审查和逐样本完整证据；未知费用仍不能结案                |
-| 辅助技术、性能与维护      | 既有工程/宿主语义证据保留                                                       | NVDA/VoiceOver/Orca 真人听测、8h/24h、获批 SLO 与独立维护工时                 |
-| CLOUD-02                  | 现有 self-hosted handoff 继续可用，resume 明确未实现                            | 需求明确后实现跨机器连续恢复，不默认复制云账户/订阅                           |
+
+## 10. 2026-10-06 原生 review 准入与 Actions 修复
+
+### 10.1 七项失败的共同原因
+
+CLI Strict Sandbox 与 IDE Roadmap Safety Matrix 的三系统生产任务均在 mapped Claude security delta 步骤退出，Safety 汇总依赖失败：共七项。安全映射中 `cc-2.1.232-sandbox-binary-ripgrep-scope` 的生产者文件摘要仍为 `5519d1a7…`，实际测试文件已因原生期限与权限断言增量变为 `b3c11d16…`。映射对应的 652 字节测试块未变；独立核对全部 32 条映射、21 个生产者及测试 ID 后，仅更新这一摘要，不删断言或放宽门。
+
+修复已在 `d558e6c71e4da77bec3a9abcc5f413a7db10d74e` 提交并推送。该准确提交的本地映射执行器 **29 passed、0 failed、932 未选中**；未选中测试不算通过。前序 Actions 被后续提交的并发策略取消，不能作为完整矩阵。
+
+其后主分支 `266718e8b53864338619eb8f1a963fa9523640b4` 保留正确摘要：[CLI Strict Sandbox #37456050925](https://github.com/chainlesschain/chainlesschain/actions/runs/37456050925) 的 Linux、macOS、Windows、ARM64 整任务成功；[Safety Matrix #37456050953](https://github.com/chainlesschain/chainlesschain/actions/runs/37456050953) 三系统整任务成功。归档时 Safety 汇总与附加 macOS latest capability **尚未分配 runner**，仍为 queued；只保存六个目标系统任务的成功，不宣称七项全绿或新提交通过。元数据快照与范围见[本轮回读](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/readback.json)。
+
+另发现该提交的 PDH advisory watchdog 在依赖安装步骤失败，尚未检查 schema。安装原本位于 monorepo 根目录，与注释中的“standalone”不符；改为 runner 临时目录、关闭 workspace 解析并固定 `better-sqlite3@11.10.0`，用 `NODE_PATH` 供 CJS checker 加载。实际本地 checker 又暴露旧漂移夹具缺少 `audit_log` 等迁移依赖；复用完整 v1–v3 schema，显式注入四个旧非 partial 索引，先独立检查 v4 修复，再检查升级到最新 schema 后的 account scope，防止后续重建掩盖 v4 失效。修复已在 `be3058e297` 提交并推送；本地实际 SQLite 两场通过、静态单测 **10/10**、ESLint/Prettier/actionlint 通过，准确新提交的远端结果仍独立等待。
+
+随后 Safety 汇总也已成功，工作流整体为 **completed/success**，详见[后续完成回执](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/ci-completion.json)。因此原始七项失败在准确提交 `266718e8b5` 已全部关闭；较早的 queued 快照原样保留。附加 macOS latest capability 仍排队，Strict 全工作流与本轮新源码提交不借用这七项的通过结论。
+
+### 10.2 Windows 后端的逐题只读准入
+
+`verify01-review-pack.mjs` 新增显式 `--backend windows-native`；在生成文件前读取冻结合同，返回结构化 `NOT_READY` / exit **2**，不执行 setup、check 或模型。原 Linux Docker 默认后端和生成的 runtime 字节保留。Windows 模式拒绝 Docker image 绑定，缺工具链时拒绝生成。
+
+准入默认选择真正属于 Windows 的 **12 个任务**：`01,02,03,10,11,12,19,20,21,28,29,30`；计划总任务仍为 36。当前 Windows **10.0.19045 / Node 22.22.2** 与冻结 Windows 11 24H2 / Node 22.12.0 不符。单独的 [verify-17 平台审计](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/verify-17-platform-audit.json)读取冻结 Git blob：目标是 `darwin-vscode-openai`，唯一 `process-ownership-journal.test.js` 基线仅支持 Linux。平台分配不匹配与基线不能执行分别报告，不能把全部 pending 算通过。
+
+现有最小 evaluator v1 的 64 文件、单文件 1 MiB、总量 8 MiB、128 目录及 scoped 路径限制保留。完整 Vitest 依赖树、happy-dom、Vite 大文件、SQLite addon 和开发环境的外部缓存 junction 不能直接获得准入；需要独立版本化、lock/integrity/hash/ABI 绑定的只读工具链 capsule，以及 frozen setup/globalSetup 的原生支持。`forks` 为显式默认需求；`threads` 仅作为声明不同 pool 的诊断，不能自动替代 Docker forks。原生 CPU/进程限制也不宣称与 Docker 内存/CPU/PID 限制等价。
+
+只读命令：
+
+```powershell
+node packages/cli/scripts/verify01-native-review-admission.mjs
+node packages/cli/scripts/verify01-review-pack.mjs --backend windows-native
+```
+
+外部 capability JSON 必须同时提供其原始字节 `--capabilities-digest sha256:...`，且匹配当前 host/runtime；完整报告再经原始输出、manifest、PID、exit 与 settlement 严格回读。不完整报告一律不给能力。没有选项可将任意缓存或调用者“supported”声明当作受信任工具链。
+
+### 10.3 固定原生探针与保留的真实失败
+
+`windows-native-evaluator-capabilities.mjs --confirm-native --output NEW_ABSOLUTE_DIR` 只运行七个固定小夹具：scratch environment、ESM、worker threads、inherited/file/pipe stdio、fork IPC。仍通过原一次性 WeakMap factory 与零 capability AppContainer，使用复制的 Node、只读 workspace/control 与可写 scratch；在目标中派生 TEMP/HOME/AppData，不转发 provider 凭据，没有本机普通 spawn fallback。默认 Job wall-time **15,000 ms**、单 probe **1,200 ms**，ESM import 单独有界；JS timer 不能抢占同步阻塞，whole-Job watchdog 仍为最终边界。
+
+第一轮目标实际创建，但只有最终 stdout，15 秒超时无法定位阶段；不将其归因为 profile 创建失败。补齐早期 initialization 和每 probe 的 started/settled **同步 fsync JSONL**，最多 17 条、每条 16 KiB、总量 64 KiB；主进程仅在原生清理确认后读取唯一预定日志，核验 scratch 身份、拒绝 links/超限并用固定大小文件句柄回读。所有不完整 stage 保留，区分 `diagnostic-incomplete` 与 `cleanup-unconfirmed`。
+
+新的受限环境尝试在 native readiness/cleanup 验证前被拒绝；获准真实用户复跑启动 **PID 18708**，保留 13 条连续记录：
+
+| 阶段                                     | 真实观察                                                                             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| scratch / ESM / worker / inherited stdio | 四项已 settled 且返回支持结果；这是未完成诊断的 prefix                               |
+| file stdio                               | **2 ms** 返回 `EPERM`，保留真实错误                                                  |
+| pipe stdio                               | **217 ms** 时记录 started，之后无 settled；15 秒 Job watchdog 终止目标，exit **125** |
+| fork IPC                                 | 未到达，`NOT_OBSERVED`                                                               |
+
+最终 `cleanupConfirmed=true`、`capabilityCount=0`、`loopbackExemptionAbsent=true`，stage 保留。严格 partial validator 核对日志顺序、PID、字节摘要与目标失败，返回 **diagnosticCompleted=false、capabilities={}**；默认完整 validator 拒绝该报告。没有扩大原生期限或修改 C#/二进制来把失败变为成功。
+
+原始报告及 journal 在本地保留，归档文本仅脱敏用户/仓库绝对前缀；[回读与产物摘要](./cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/readback.json)分别记录原始和归档 SHA。内部 manifest/输出摘要仍绑定原始材料，脱敏归档不能直接作为 capability 准入输入，也不是原始不变的成功证据。
+
+### 10.4 验证与仍待完成的工作
+
+能力模块纯合同 **23/23** 与既有 Docker review-pack 回归 **8/8**，共 **31/31、零跳过**；新增 Node 准入 **8/8**，包含真实 CLI exit2、生成前拒绝、显式 pool、冻结人口、平台 mismatch、摘要与伪造能力反例。能力合同已接入 Strict Sandbox 的系统矩阵，Node 准入接入 CLI CI 的三系统校验。定向 ESLint、Prettier、三个工作流 actionlint 通过；这组纯测不替代 Windows 原生实测或新准确提交 CI。
+
+完整 native review 仍 **NOT_READY**：需要将有阻塞风险的探针隔离为各自原生 Job、完成未观察 IPC，并实现受信任工具链与 locked test support；其他平台的原生后端、独立人工 setup/check 预审也未关闭。现有检查没有启动正式任务或 provider；冻结 fingerprint 仍为 `665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，只读 collector exit **2**，task observed=0/missing=36、firstRun observed=0/missing=9、totalCost=null、预算 **$99** 不变。
+| 辅助技术、性能与维护 | 既有工程/宿主语义证据保留 | NVDA/VoiceOver/Orca 真人听测、8h/24h、获批 SLO 与独立维护工时 |
+| CLOUD-02 | 现有 self-hosted handoff 继续可用，resume 明确未实现 | 需求明确后实现跨机器连续恢复，不默认复制云账户/订阅 |

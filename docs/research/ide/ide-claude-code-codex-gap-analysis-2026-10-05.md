@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-06 原生 review 准入与 CI 修复**：Windows review 后端已有只读逐题准入与固定能力探针，完整 pack 仍缺受信任工具链及 locked setup 支持。逐阶段实测定位到管道 stdio 卡住，文件 stdio 返回 `EPERM`；不将部分记录作为正式验收能力。单独审计 `verify-17`：其冻结目标为 macOS VS Code，唯一 journal 基线却仅在 Linux 执行，必须分别保留平台不匹配与基线不支持。修正安全映射摘要后，`266718e8b5` 的 Strict/Safety 六个系统任务及 Safety 汇总通过，附加 macOS latest 门仍排队。新增测试与原始失败边界见[验证记录第 10 节](../cli-ide-gap-validation-2026-10-05.md#10-2026-10-06-原生-review-准入与-actions-修复)，正式 36+9 和人工/长时验收仍开放。
+
 > **2026-10-06 公开 IDE 实测续做**：市场 VS Code `0.37.135` / JetBrains `0.4.153` 配对公开 npm CLI `0.166.90`，在真实 VS Code `1.132.0` / IntelliJ `2024.2`、隔离 profile 和火山账号中完成写入/读回、tab 切换、终态显示及重启恢复；唯一输入和 durable receipt、自然 drained exit 0、零恢复重放均经原始协议核验。保留首轮不支持 `auto` 的失败，新增模式启动前校验；修复采集器误判合法 `system/end`，未知重试费用保留 null。源码及费用边界见[验证记录第 9 节](../cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。这是 Windows 10 / Node 22.22.2 诊断；正式 36+9、双平台完整 review、账单、真人听测与长时观察仍开放。
 
 > **2026-10-06 本轮续做**：已归档 `7694e16564` 的双 IDE 六宿主成功矩阵，包含 Linux/Windows/macOS 实际 IntelliJ 八阶段身份与三场冷初始化旅程；原始协议/UI、退出确认及源码摘要已独立回读。后续 `22236fcb09` 的永不 init/提前退出替换及菜单修复仍以其本地证据为准，不借用旧矩阵。用户授权火山真实采样后，两轮生产压缩与只读工具轨迹通过；正式 provider/首次安装 36+9、官方新模型、真人听测和长时性能验收仍未关闭。详见[续做记录第 8 节](../cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。

@@ -1,0 +1,375 @@
+{
+  "schema": "chainlesschain.windows-native-review-admission-stage1/v1",
+  "archivedAt": "2026-10-06T11:45:36.588Z",
+  "scope": "Read-only frozen sample admission and fixed capability diagnostics; no complete native review pack or model execution.",
+  "runtime": {
+    "platform": "win32",
+    "osRelease": "10.0.19045",
+    "nodeVersion": "v22.22.2",
+    "architecture": "x64"
+  },
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "observationsCreated": false,
+  "formalPlan": {
+    "digest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "executionStatus": "NOT_RUN",
+    "taskObserved": 0,
+    "taskMissing": 36,
+    "firstRunObserved": 0,
+    "firstRunMissing": 9,
+    "totalCost": null,
+    "budgetUsd": 99
+  },
+  "validation": {
+    "unitPassed": 31,
+    "unitFailed": 0,
+    "unitSkipped": 0,
+    "admissionNodePassed": 8,
+    "commandResults": [
+      {
+        "argv": [
+          "node",
+          "--test",
+          "packages/cli/test-node/verify01-native-review-admission.node-test.mjs"
+        ],
+        "exitCode": 0,
+        "artifact": "node-admission-tests.txt"
+      },
+      {
+        "argv": [
+          "node",
+          "docs/research/cli/verify01-plan-2026-10-04/validate-plan.mjs"
+        ],
+        "exitCode": 0,
+        "artifact": "validate-plan.txt"
+      },
+      {
+        "argv": [
+          "node",
+          "packages/cli/scripts/task-outcome-report.mjs",
+          "--plan",
+          "docs/research/cli/verify01-plan-2026-10-04/plan.json",
+          "--fingerprint"
+        ],
+        "exitCode": 0,
+        "artifact": "fingerprint.txt"
+      },
+      {
+        "argv": [
+          "node",
+          "packages/cli/scripts/verify01-collection.mjs",
+          "--plan-dir",
+          "docs/research/cli/verify01-plan-2026-10-04",
+          "--plan-digest",
+          "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0"
+        ],
+        "exitCode": 2,
+        "artifact": "collection.txt"
+      }
+    ]
+  },
+  "nativeExecution": {
+    "diagnosticCompleted": false,
+    "targetPid": 18708,
+    "targetExitCode": 125,
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "wallTimeMs": 15000,
+    "probeTimeoutMs": 1200,
+    "failureKind": "execution-timeout",
+    "lastPhase": "child-pipe-stdio",
+    "journalEvents": 13,
+    "observedPrefix": [
+      {
+        "id": "scratch-environment",
+        "status": "supported",
+        "elapsedMs": 10,
+        "code": 0,
+        "errorCode": null
+      },
+      {
+        "id": "esm",
+        "status": "supported",
+        "elapsedMs": 8,
+        "code": 0,
+        "errorCode": null
+      },
+      {
+        "id": "worker-threads",
+        "status": "supported",
+        "elapsedMs": 61,
+        "code": 0,
+        "errorCode": null
+      },
+      {
+        "id": "child-inherited-stdio",
+        "status": "supported",
+        "elapsedMs": 119,
+        "code": 0,
+        "errorCode": null
+      },
+      {
+        "id": "child-file-stdio",
+        "status": "blocked",
+        "elapsedMs": 2,
+        "code": null,
+        "errorCode": "EPERM"
+      }
+    ],
+    "childForkIpc": "NOT_OBSERVED",
+    "admissionCapabilities": {},
+    "stageRetained": true,
+    "retentionReason": "diagnostic-incomplete",
+    "originalReportDigest": "sha256:78ee2ec8cb3739aa2f544ef2ac5a90a7e8de14ad4cde304fda4044e53650715a",
+    "archivedReportIsAdmissionInput": false
+  },
+  "admission": {
+    "selectedWindowsTasks": 12,
+    "plannedTasks": 36,
+    "readyTasks": 0,
+    "capabilityStatus": "INCOMPLETE",
+    "missingTrustedToolchain": true,
+    "lockedTestSupportMissing": true,
+    "actualRuntimeMismatch": true,
+    "verify17Target": "darwin-vscode-openai",
+    "verify17BaselinePlatform": "linux"
+  },
+  "ci": {
+    "testedCommit": "266718e8b53864338619eb8f1a963fa9523640b4",
+    "digestRepairCommit": "d558e6c71e4da77bec3a9abcc5f413a7db10d74e",
+    "strictRun": 37456050925,
+    "safetyRun": 37456050953,
+    "targetOsJobs": [
+      {
+        "id": 112243940872,
+        "name": "strict native boundary (macos-15)",
+        "conclusion": "success"
+      },
+      {
+        "id": 112243940999,
+        "name": "strict native boundary (windows-latest)",
+        "conclusion": "success"
+      },
+      {
+        "id": 112243941939,
+        "name": "strict native boundary (ubuntu-24.04)",
+        "conclusion": "success"
+      },
+      {
+        "id": 112243814252,
+        "name": "P0-S formal recovery and handoff (ubuntu-latest)",
+        "conclusion": "success"
+      },
+      {
+        "id": 112243814501,
+        "name": "P0-S formal recovery and handoff (macos-latest)",
+        "conclusion": "success"
+      },
+      {
+        "id": 112243814576,
+        "name": "P0-S formal recovery and handoff (windows-latest)",
+        "conclusion": "success"
+      }
+    ],
+    "strictComplete": false,
+    "safetyComplete": false,
+    "pendingJobs": [
+      {
+        "id": 112243941039,
+        "name": "macOS latest native capability",
+        "status": "queued"
+      },
+      {
+        "id": 112247559469,
+        "name": "P0-S formal safety gate",
+        "status": "queued"
+      }
+    ],
+    "appliesToNewCommit": false,
+    "releaseAttested": false
+  },
+  "redaction": {
+    "method": "Only user-profile/repository absolute prefixes are redacted in text; internal native hashes bind the private originals, not transformed archive bytes.",
+    "originalReportsLocallyValidated": true,
+    "rawCredentialsRead": false,
+    "artifactsAreUnchangedSuccessEvidence": false,
+    "presentEnvironmentCredentialScanPassed": true,
+    "credentialPatternScanPassed": true
+  },
+  "sources": [
+    {
+      "path": "packages/cli/scripts/verify01-review-pack.mjs",
+      "digest": "sha256:04c0ff408c57724151fe9c06398a6aa5f1da9126ce8bb738e78a0bbc9e29d88a"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-native-review-admission.mjs",
+      "digest": "sha256:cbfa96078d0f69684efe4f758da089124e9599f3975af418aeb11061fabcee1b"
+    },
+    {
+      "path": "packages/cli/scripts/windows-native-evaluator-capabilities.mjs",
+      "digest": "sha256:2000eff8ddc50f9437a2a983325d84cc90e71743d06dc884c4fddd27576daccf"
+    },
+    {
+      "path": "packages/cli/test-node/verify01-native-review-admission.node-test.mjs",
+      "digest": "sha256:a3aff054cb2e415b724ee953ed20215e1fff359376303eacbca31364a409eb45"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/windows-native-evaluator-capabilities.test.js",
+      "digest": "sha256:91a0e1157e0a4834e68099417b4b60c2149e5320ad7dbf7bdf11af437d33b6d9"
+    },
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "digest": "sha256:95b832e828566f966b9bccaf1c5353703bea0ae072106c4cf6c3c53adb880be3"
+    },
+    {
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "digest": "sha256:71828a04e17c59550957182a3662260b31670b77b684589f4c297ebee90e6133"
+    },
+    {
+      "path": ".github/workflows/pdh-partial-index-lint.yml",
+      "digest": "sha256:009946044e45592fdac9256b3cf69af3fddf5167f2df9cce348ad743fb250a37"
+    },
+    {
+      "path": "scripts/check-pdh-schema-runtime.mjs",
+      "digest": "sha256:e917bad4e2e675a67449e31b0d7bbbaa4af4446f99e71a39e2bc8b382e6e20d3"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator-capabilities.js",
+      "digest": "sha256:b26140afea2d80e861fbc8e144df2fa1ca01b57d89cf92afc49923986d4046ee"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:db184ba5085d1cc2a4cb30bd4803532869496f7ba38dd080d57ac0cdfd3fc3d2"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/index.js",
+      "digest": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/platform-sandbox.js",
+      "digest": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e"
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/first-timeout-report.redacted.json",
+      "bytes": 7935,
+      "digest": "sha256:a08bb42dcc47293b039a4a04066735cdda5aab926d69a4c269a133c033c1ed21",
+      "originalDigest": "sha256:f4130a9db7d50c7cd3980cc018457f56bd66dd2ce6177633169bdafcdb148f12",
+      "redacted": true
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/restricted-readiness-report.redacted.json",
+      "bytes": 7613,
+      "digest": "sha256:8660cad1b0936603e17740a25db2faafbdb96e06d14e487be59914ec59b6eac4",
+      "originalDigest": "sha256:fa1e3a2408eea682be23a9e7a384a68056775ebbec68b5b723113ea3e60deae9",
+      "redacted": true
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/journal-timeout-report.redacted.json",
+      "bytes": 32599,
+      "digest": "sha256:61bc00752c1f0ebd318d3db945f90e252d2e4d4c383b96cfd54b27e60463c7ba",
+      "originalDigest": "sha256:78ee2ec8cb3739aa2f544ef2ac5a90a7e8de14ad4cde304fda4044e53650715a",
+      "redacted": true
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/capability-journal.redacted.jsonl",
+      "bytes": 6645,
+      "digest": "sha256:3bad254ae6908bc70e619463e31acbcf17277c7a8c56a3b8b4d901a69257ff6b",
+      "originalDigest": "sha256:2c6826edd419474f31a71fe87e4b1f9bbe1b4d4f2132408efc38d8371acc175f",
+      "redacted": true
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/stderr.txt",
+      "bytes": 68,
+      "digest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5",
+      "originalDigest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/unit-tests.redacted.json",
+      "bytes": 12786,
+      "digest": "sha256:1741d005a2da33adb51b77764d371cd4eacd1e0e8a6ddd5e613cab31dd1cfda8",
+      "originalDigest": "sha256:fcf9ec5cb7dee1d23ef6890e9219e9ef90d283a7bfa0bb8bfa785a4ae38a2779",
+      "redacted": true
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/ci-strict-266-snapshot.json",
+      "bytes": 18471,
+      "digest": "sha256:96b1b2948388f4c8ee307de5f2efaf90a8a336d4a392883ab18f4b7e48afdbbf",
+      "originalDigest": "sha256:96b1b2948388f4c8ee307de5f2efaf90a8a336d4a392883ab18f4b7e48afdbbf",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/ci-safety-266-snapshot.json",
+      "bytes": 11838,
+      "digest": "sha256:7267949b3f41acb61f076dec4c75eae7908cdb5c3cddc6522a4da2b60a26fd95",
+      "originalDigest": "sha256:7267949b3f41acb61f076dec4c75eae7908cdb5c3cddc6522a4da2b60a26fd95",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/admission.json",
+      "bytes": 27251,
+      "digest": "sha256:4fa2f6a3ca5ceed3f309bcfb3dcc7c198db305d6aff5d5e59219e5770f87eb22",
+      "originalDigest": "sha256:4fa2f6a3ca5ceed3f309bcfb3dcc7c198db305d6aff5d5e59219e5770f87eb22",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/verify-17-platform-audit.json",
+      "bytes": 3713,
+      "digest": "sha256:0f962ab79cbabb3c80e2fbf921c8e651760815d1876c23f9fb139002a40d7b36",
+      "originalDigest": "sha256:0f962ab79cbabb3c80e2fbf921c8e651760815d1876c23f9fb139002a40d7b36",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/node-admission-tests.txt",
+      "bytes": 2079,
+      "digest": "sha256:f1188c1cae0d40d5a19a1f65c2038011023755068720acb5b711481b69e4bb9a",
+      "originalDigest": "sha256:f1188c1cae0d40d5a19a1f65c2038011023755068720acb5b711481b69e4bb9a",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/validate-plan.txt",
+      "bytes": 207,
+      "digest": "sha256:d0091fc7f3e725af6b7e06947b9f48ad976d0f4442626775d6386a161f11d606",
+      "originalDigest": "sha256:d0091fc7f3e725af6b7e06947b9f48ad976d0f4442626775d6386a161f11d606",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/fingerprint.txt",
+      "bytes": 72,
+      "digest": "sha256:689c0f4fd8333d419a30ddb6162b18b0312c612f0e72957330a0bb52e6dd8f3f",
+      "originalDigest": "sha256:689c0f4fd8333d419a30ddb6162b18b0312c612f0e72957330a0bb52e6dd8f3f",
+      "redacted": false
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/windows-native-review-admission-stage1/collection.txt",
+      "bytes": 41145,
+      "digest": "sha256:1b2664b4fb400ab831e9d048d46c93d07373236b53cc4612e5e566f39e14d16f",
+      "originalDigest": "sha256:1b2664b4fb400ab831e9d048d46c93d07373236b53cc4612e5e566f39e14d16f",
+      "redacted": false
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: native admission selects the 12 frozen Windows task samples without reallocating the population
+ok 1 - native admission selects the 12 frozen Windows task samples without reallocating the population
+  ---
+  duration_ms: 36.2452
+  type: 'test'
+  ...
+# Subtest: matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+ok 2 - matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+  ---
+  duration_ms: 60.3523
+  type: 'test'
+  ...
+# Subtest: Windows 10 and a newer Node retain the actual frozen target mismatch
+ok 3 - Windows 10 and a newer Node retain the actual frozen target mismatch
+  ---
+  duration_ms: 20.2983
+  type: 'test'
+  ...
+# Subtest: foreign platforms and Linux-only journal baseline remain separate explicit blockers
+ok 4 - foreign platforms and Linux-only journal baseline remain separate explicit blockers
+  ---
+  duration_ms: 40.9538
+  type: 'test'
+  ...
+# Subtest: incomplete capability reports remain incomplete despite a caller's supported declarations
+ok 5 - incomplete capability reports remain incomplete despite a caller's supported declarations
+  ---
+  duration_ms: 65.8765
+  type: 'test'
+  ...
+# Subtest: input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+ok 6 - input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+  ---
+  duration_ms: 119.8754
+  type: 'test'
+  ...
+# Subtest: explicit Windows generation fails before creating scripts and rejects Docker bindings
+ok 7 - explicit Windows generation fails before creating scripts and rejects Docker bindings
+  ---
+  duration_ms: 33.2499
+  type: 'test'
+  ...
+# Subtest: real CLI exposes Windows admission without generating a Docker pack or starting a native task
+ok 8 - real CLI exposes Windows admission without generating a Docker pack or starting a native task
+  ---
+  duration_ms: 200.0762
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 763.9841

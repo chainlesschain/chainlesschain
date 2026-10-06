@@ -1,0 +1,167 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capabilities/v1",
+  "startedAt": "2026-10-06T11:37:54.330Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "diagnosticCompleted": false,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "observations": [],
+  "stageRetained": true,
+  "sourceFiles": [
+    {
+      "name": "esm-probe.mjs",
+      "bytes": 39,
+      "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+    },
+    {
+      "name": "worker-probe.cjs",
+      "bytes": 138,
+      "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+    },
+    {
+      "name": "child-probe.cjs",
+      "bytes": 207,
+      "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+    },
+    {
+      "name": "fork-probe.cjs",
+      "bytes": 171,
+      "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+    },
+    {
+      "name": "anchor.txt",
+      "bytes": 32,
+      "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+    }
+  ],
+  "brokerFiles": [
+    {
+      "name": "windows-native-evaluator-capabilities.js",
+      "sha256": "sha256:b26140afea2d80e861fbc8e144df2fa1ca01b57d89cf92afc49923986d4046ee"
+    },
+    {
+      "name": "windows-native-evaluator.js",
+      "sha256": "sha256:db184ba5085d1cc2a4cb30bd4803532869496f7ba38dd080d57ac0cdfd3fc3d2"
+    },
+    {
+      "name": "index.js",
+      "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "name": "platform-sandbox.js",
+      "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "name": "windows-sandbox.cs",
+      "sha256": "sha256:66694262ffdc525e96cefdd3fba9804bf78fa8e33b7e603500cc31ef37da290e"
+    },
+    {
+      "name": "windows-sandbox-helper.exe",
+      "sha256": "sha256:f544d5c0f6e10bff1a03df685f345bf55afad78d8c26725d2ffe1e26dc65da2e"
+    },
+    {
+      "name": "windows-sandbox-helper.dll",
+      "sha256": "sha256:b322f1d9e056daec5fd33793ce05cd93b84dfe5e3bdbb2ad086c05a9a89c990e"
+    }
+  ],
+  "checkSourceSha256": "sha256:2b953ec1da36828c08297eb396eba16e935fdaaf475056dd99689358bb4768b6",
+  "manifestDigest": "sha256:3e0f2dce91424f18228c154c724af8bf21d4d3919de7e6cf44b5a0667d8e0373",
+  "stage": {
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\scratch"
+  },
+  "manifest": {
+    "version": 1,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace",
+    "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\control",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\scratch",
+    "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "3659174703262385",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1",
+        "dev": "38182903",
+        "ino": "2251799819709101"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\control",
+        "dev": "38182903",
+        "ino": "2251799819709103"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\scratch",
+        "dev": "38182903",
+        "ino": "2251799819709104"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace",
+        "dev": "38182903",
+        "ino": "2251799819709102"
+      }
+    ],
+    "files": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace\\esm-probe.mjs",
+        "dev": "38182903",
+        "ino": "3659174703262386",
+        "bytes": 39,
+        "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace\\worker-probe.cjs",
+        "dev": "38182903",
+        "ino": "4222124656683699",
+        "bytes": 138,
+        "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace\\child-probe.cjs",
+        "dev": "38182903",
+        "ino": "4222124656683700",
+        "bytes": 207,
+        "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace\\fork-probe.cjs",
+        "dev": "38182903",
+        "ino": "5066549586815669",
+        "bytes": 171,
+        "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\workspace\\anchor.txt",
+        "dev": "38182903",
+        "ino": "6192449493658294",
+        "bytes": 32,
+        "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6KW5B1\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "4222124656683703",
+        "bytes": 7340,
+        "sha256": "2b953ec1da36828c08297eb396eba16e935fdaaf475056dd99689358bb4768b6"
+      }
+    ]
+  },
+  "error": "Error: The requested native wall-time limit was not enforced: windows_appcontainer_readiness_cleanup_unverified\n    at ProcessExecutionBroker._sandboxError (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/index.js:1705:19)\n    at ProcessExecutionBroker._sandboxBoundaryError (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/index.js:1712:24)\n    at ProcessExecutionBroker._prepareSandboxPlan (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/index.js:3758:20)\n    at ProcessExecutionBroker.spawnSync (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/index.js:5295:26)\n    at Object.execute (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js:209:38)\n    at async runWindowsNativeEvaluatorCapabilities (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/src/lib/process-execution-broker/windows-native-evaluator-capabilities.js:629:21)\n    at async main (file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/scripts/windows-native-evaluator-capabilities.mjs:33:18)\n    at async file:///<REPOSITORY>/.work/ci-security-map-b418/packages/cli/scripts/windows-native-evaluator-capabilities.mjs:62:24",
+  "errorCode": "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+  "failureKind": "cleanup-unconfirmed",
+  "retentionReason": "cleanup-unconfirmed",
+  "finishedAt": "2026-10-06T11:38:01.445Z"
+}

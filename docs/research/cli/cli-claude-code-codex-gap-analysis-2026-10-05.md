@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-06 原生 review 准入与 CI 修复**：新增 Windows 后端的只读逐题准入及固定能力探针，保留冻结 Windows 的 12 个任务与原分母；不完整探针不授予能力。真实零 capability AppContainer 的逐阶段记录定位到管道 stdio 卡住，文件 stdio 返回 `EPERM`，15 秒 watchdog 与空 Job 清理成立；完整 native review 仍 `NOT_READY`。安全映射的过期生产者摘要已在 `d558e6c71e` 修正，`266718e8b5` 的 Strict/Safety 六个系统任务及 Safety 汇总已通过，附加 macOS latest 门仍排队；另已提交 PDH 安装隔离与迁移夹具修复。工程测试、失败材料及后续条件见[验证记录第 10 节](../cli-ide-gap-validation-2026-10-05.md#10-2026-10-06-原生-review-准入与-actions-修复)。新改动须以自身准确提交的 Actions 验证，正式 36+9 仍未运行。
+
 > **2026-10-06 公开包与原生沙箱续做**：公开 npm CLI `0.166.90` 已在隔离 profile 中用火山完成真实写入/读回；补齐 registry lock 身份校验。Windows 原生执行期限与一次性只读 staged CJS 检查器已实现，5 文件 **360/360** 回归通过，旧失败和源码/二进制摘要均归档。公开 VS Code `0.37.135` 与 JetBrains `0.4.153` 的真实工具任务和重启恢复也通过，修复模式启动前校验与合法 `system/end` 被误判的采集器缺陷。范围及费用 unknown 见[验证记录第 9 节](../cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、Windows/macOS durable 后端、官方账号/账单、正式 36+9 与人工/长时验收仍开放，不将诊断写入正式 observations。
 
 > **2026-10-06 本轮续做**：已回读并归档 Linux x64/ARM64 显式进程恢复矩阵（各 31/31）与双 IDE 六宿主矩阵。按用户授权使用火山 `deepseek-v4-flash-ga-260731` 完成两轮共 24 个校准请求、两轮压缩及只读工具轨迹的 6 个请求，合计 30 次实际调用，usage 对应估算费用 **$0.01506344**。修复采样的正文超时、部分失败回执丢失，并记录实际输出超过请求限制；15 项回归通过且接入三系统 CI。原始回执、准确源码范围及剩余任务见[续做记录第 8 节](../cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。正式 36+9、官方新模型矩阵、账单、Windows/macOS durable 后端、真人听测与长时观察仍未完成；以下正文保留原审计时点。

@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.ci-security-map-completion/v1",
+  "checkedAt": "2026-10-06T11:48:44.976Z",
+  "testedCommit": "266718e8b53864338619eb8f1a963fa9523640b4",
+  "digestRepairCommit": "d558e6c71e4da77bec3a9abcc5f413a7db10d74e",
+  "safetyRun": 37456050953,
+  "safetyComplete": true,
+  "jobs": [
+    {
+      "id": 112243814252,
+      "name": "P0-S formal recovery and handoff (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 112243814501,
+      "name": "P0-S formal recovery and handoff (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 112243814576,
+      "name": "P0-S formal recovery and handoff (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 112247559469,
+      "name": "P0-S formal safety gate",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "priorStrictSnapshot": "ci-strict-266-snapshot.json",
+  "originalSevenChecksPassed": true,
+  "strictAdditionalMacLatestComplete": false,
+  "newNativeChangesAttested": false,
+  "releaseAttested": false,
+  "artifacts": [
+    {
+      "name": "ci-safety-266-completed.json",
+      "bytes": 13802,
+      "digest": "sha256:1b0408e7f436a10421c897bd3f505ba83344eec66b2d160184201d07c2967e2f"
+    }
+  ],
+  "note": "The initial readback retains its earlier queued snapshot. This later receipt confirms the seventh original safety aggregate; the additional macOS latest capability and new source commit still need their own results."
+}

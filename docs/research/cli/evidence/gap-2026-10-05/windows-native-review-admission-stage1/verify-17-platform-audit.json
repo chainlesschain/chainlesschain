@@ -1,0 +1,113 @@
+{
+  "schema": "chainlesschain.verify01-native-review-admission/v1",
+  "backend": "windows-native",
+  "scope": "read-only-operator-preparation",
+  "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "specsDigest": "sha256:684db51b1d768a36606a81b8944d235682b17306514335fff5fc07664d88d9fe",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "osRelease": "10.0.19045"
+  },
+  "requestedPool": "forks",
+  "poolDiffersFromDockerPack": false,
+  "capabilityCapture": {
+    "digest": null,
+    "status": "NOT_OBSERVED"
+  },
+  "plannedTasks": 36,
+  "selectedTasks": 1,
+  "readyTasks": 0,
+  "fullReviewPackReady": false,
+  "executionStatus": "NOT_RUN",
+  "tasks": [
+    {
+      "sampleId": "verify-17",
+      "taskId": "verify-17",
+      "stratum": "darwin-vscode-openai",
+      "target": {
+        "id": "darwin-vscode",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/process-ownership-journal.test.js"
+      ],
+      "platformBaseline": {
+        "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js",
+        "digest": "sha256:6ffd16023eb0ea46e992333af6360e7b7ec9ecf6fc5870fbd3bea30b4160f2fc",
+        "supportedPlatform": "linux"
+      },
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "NOT_OBSERVED"
+        },
+        {
+          "id": "esm",
+          "observed": "NOT_OBSERVED"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "NOT_OBSERVED"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "NOT_OBSERVED"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "SAMPLE_PLATFORM_MISMATCH",
+          "detail": "Frozen sample targets darwin; the Windows backend cannot impersonate it."
+        },
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is macOS 15/arm64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "BASELINE_PLATFORM_UNSUPPORTED",
+          "detail": "The sole journal baseline is explicitly skipped outside Linux; empty/pending tests cannot pass."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: NOT_OBSERVED."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: NOT_OBSERVED."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: NOT_OBSERVED."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: NOT_OBSERVED."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    }
+  ],
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "independentHumanReview": false,
+  "productionAttested": false
+}
