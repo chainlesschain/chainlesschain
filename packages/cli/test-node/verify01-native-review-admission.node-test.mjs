@@ -230,8 +230,10 @@ test("input validation cannot substitute first-install samples, missing IDs, or 
 });
 
 test("explicit Windows generation fails before creating scripts and rejects Docker bindings", () => {
-  const root = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-native-admission-test-"),
+  // Temp roots can use /var aliases on macOS and short names on Windows.
+  // Keep the cleanup guard bound to the canonical directory we created.
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-native-admission-test-")),
   );
   try {
     const outputDir = path.join(root, "uncreated");
