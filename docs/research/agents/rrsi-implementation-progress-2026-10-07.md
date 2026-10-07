@@ -477,3 +477,25 @@ Astra 查阅既有 deployment loader／config／profile 与 operator registry �
 两部分合计 **68 项不同用例通过**，零失败、零跳过：三个原生／故障模型文件完整 **38/38**（既有 runtime 单元 **18**、真实子进程 **16**、新增精度反例 **4**），锚契约 **30/30**。原生串行运行耗时约 28 分钟，所有既有行为时限、child watchdog 和 ACL helper 预算保持不变；新增精度 fixture 的两项准备 hook 各 60 秒，八阶段初始化 180 秒，行为各 60 秒。ESLint、Prettier、diff check 与 Astra 只读复核通过，六个源码／测试摘要及三个 reporter 的逐项结果见 [身份与锚契约验证记录](./evidence/rrsi-runtime-identity-anchor-local-controls-2026-10-07.json)。源码摘要检查点在原生回归运行期间、锚测试之后建立，后续未变；没有记录启动前快照，不将最终摘要独立当作每个 worker 所加载字节的证明。未进行 Linux／macOS 发行矩阵、真实模型／费用实验或生产晋级。
 
 后续须先闭合可信根与实际持久路由，再把真实 producer 输入／输出回执、限制历史完整承接与原 backend 回读接入部署锚；随后处理 candidate alias 和发布 lease／恢复的来源门。本批的签名契约不能解除索引与 Registry 的现有 HOLD，完整 RRSI 仍在实施。
+
+## 27 安装路由声明的连续性与严格只读打开
+
+[rrsi-installation-route-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-installation-route-contracts.js) 新增单 tenant 的 root、routes 和 highwater 合同。root 声明 installationId、tenant、installation scope、规范 Ed25519 SPKI 与公钥摘要；routes 绑定完整 root 摘要，保留最多 64 个真实签名 anchor，从 revision=1 开始严格逐次增加、精确关联前驱。highwater 绑定 root、完整 routes 摘要及尾部 anchor revision／digest、checkpoint 和完整限制历史摘要，不接受独立重算结构摘要的低高水位或冲突字段。
+
+纯续接检查先验证真正 Ed25519 签名，再要求 deployment／tenant／scope／index／journal／artifact scope／graph／root 不变。同 revision 只有同一完整 anchor 才幂等，不能重复追加到 routes；后继只接受 +1 和精确前驱。checkpoint 与 restrictionHistory 必须逐字段完全相同，数字增加或限制集合看似扩大均不是历史前缀证明。当前只准备声明，所有安装管理认可、root／pin／journal prefix／history transfer／tenant／generation 与 mutation／promotion 权威继续 false，decision:HOLD。
+
+installationId 本身未进入现有 anchor 的签名消息，root 亦只是未签名声明；相同 key／tenant 的签名包可原样重关联另一 installation 标签，并重算 routes／highwater。专用反例确认这种内部一致声明仍为 installationBindingSignatureVerified:false，不能称签名已经认证安装绑定。后续必须从独立管理主体取得根记录与初始 anchor 的认可，而不能从这三个本地文件推导该主体有权代表租户。
+
+[rrsi-installation-route-reader.js](../../../packages/cli/src/lib/evolution/rrsi-installation-route-reader.js) 仅接受显式绝对、规范目录及 installation／tenant／root 摘要选择，不读取 env、profile、backend 或 caller callback。目录恰好含 root.json、routes.json、highwater.json；逐层检查非链接祖先，捕获完整 BigInt dev／ino 与类型／权限元数据，文件额外比较 uid／gid、单链接、size、mtimeNs／ctimeNs 和实际字节摘要。根／高水位文件各不超过 16 KiB，routes 不超过 256 KiB，目录枚举第四项即拒绝。使用原 bounded descriptor reader 严格读取已检查长度并只探测一个 EOF 字节，再复验 path／fd 身份；拒绝增长、缩短、非规范 UTF-8／JSON、未知字段、硬链接、目录冒充文件和缺失。
+
+三个文件完整验签与交叉绑定后，再次有界读取全部文件并复查目录清单、祖先和完整元数据。reader 的后续 read 不接受替换 context，必须匹配首次捕获的目录／文件身份与字节，不自动接纳合法更新或恢复缺失文件。实现只有只读 filesystem API，没有 mkdir、写文件、锁、ACL 修复、bootstrap、删除或业务派发；ownerOnlyPermissionsVerified:false。该身份复查只检测检查时持续存在的替换，并非 handle-relative openat；共享 helper 的并发祖先保护前置条件尚无独立宿主边界，atomicSnapshotVerified:false，不承诺防任意替换后恢复的 ABA。
+
+Astra 发现 POSIX 的 lstat→open 窗口可被换成 FIFO，导致打开在有界读取前阻塞。文件打开现加 O_NONBLOCK；模块私有 directory fs 适配对原 identity helper 的父目录及 volume 打开统一加 O_NONBLOCK／O_DIRECTORY，随后保留原 fstat 类型和完整身份比较。共享 secure-file-identity 与 evolution-file-identity 源码未改，Windows 的窄 path／handle device 兼容仍按原规则执行，不放宽 inode 或元数据。
+
+真实文件反例覆盖三文件分别缺失／混合、每个文件同字节但不同 inode、同 inode 等长改字节、真实目录替换、保留叶目录 inode 的父目录替换、Windows junction／POSIX symlink 别名，以及一次读取中替换已经读完的另一文件。父目录反例是两次 read 之间的替换，不称中途祖先 race 实测；中途替换用例针对 highwater 文件。新进程可回读完整声明，但所有权威 false；已有 reader 拒绝整组回退，新进程仍可回读内部一致的旧声明且 crossProcessRollbackProtectionVerified:false，明确不认证跨重启防回滚或删除后重建。
+
+首轮六文件 **138/138** 通过；根据复核补强非阻塞打开与边界反例后，最终 Windows 六文件 **142 项通过、2 项 POSIX FIFO 条件跳过**，零失败。新增合同 **44**、reader **35**、子进程 **6**，既有 anchor **30**、evolution file identity **5** 和 secure file identity **22**；不重复计首轮。提交前七个新增源码／测试和八个未改依赖／回归文件均有测试启动前摘要检查点，最终 Vitest 与下述 WSL 检查后均未改变；没有放宽任何既有时限或原生 ACL helper。
+
+WSL Ubuntu 中另外执行 **2/2 个真实 POSIX FIFO 定向场景**：在 open 前分别把文件和父目录 rename 后创建真正 mkfifo，子进程确认已注入、实际目标为 FIFO、及时返回 HOLD 且未被 15 秒 watchdog 杀死。临时 Linux Node v22.22.2 仅解压到工作区 .work，使用官方 SHASUMS256 验证归档；初次沙箱访问 WSL 被拒，获准后确认 Ubuntu 未安装 Node，才使用该临时工具链。定向脚本直接运行仓库同一 child fixture 并核对全部最终源码摘要，不涉及 npm 安装、全 Linux Vitest、macOS 或发行矩阵；Windows 的两个条件跳过仍如实保留。
+
+ESLint、Prettier、diff check 与 Astra 收尾复核通过；首轮／最终 reporter、15 个源码／测试摘要、六处两轮间变更与 WSL 场景记录见 [安装路由本地控制验证记录](./evidence/rrsi-installation-route-local-controls-2026-10-07.json)。本批未建立独立可信安装根、受保护的持久 pin 或业务 router，也未接真实 producer、候选 alias、发布 lease／恢复的来源门和生产晋级。下一步先接入安装管理认可、可信状态存在性与原图／限制历史前缀，再开放依赖这些权威的路径；完整 RRSI 尚未完成。

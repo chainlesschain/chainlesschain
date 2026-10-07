@@ -332,6 +332,8 @@ PM 试点通过后，增加 CLI 的缺陷定位、跨文件修改、取消恢复
 
 后续保持 RR-01–RR-06 完整范围，优先接入有效父版本、独立来源与运行/预算权威，再补齐可信执行和晋级必需门。真实实验须另行冻结部署、私有五池、A/B/C 全生命周期预算和统计协议；最终以未见任务成功率、完整成本和回滚证据决定是否扩大使用，不把本地 fixture 作为整项完成依据。
 
+第 27 节新增单租户安装路由声明的三文件合同与严格只读 reader。它检查显式所选 root／routes／highwater 的内部一致性、相对公钥签名和首次打开后捕获的物理身份及字节；续接只接受原图、原 checkpoint 和原限制声明的连续修订，不自动接受更新。缺失、混合、同内容换 inode、低高水位与未知目录项均 HOLD，无生产初始化或写入入口。安装标签尚未由 anchor 签名绑定，整组跨重启回滚亦无独立见证，installationBindingSignatureVerified、routingPinVerified、atomicSnapshotVerified 与 crossProcessRollbackProtectionVerified 明确 false。后续须由独立安装管理主体认可根记录及初始 anchor、保护持久状态并强制所有业务入口走原路由，再接真实 journal 前缀和限制历史承接；本层不等于可信 pin 已完成。
+
 父版本接线已增加真正 Skill Registry/预期 Ledger 的回读绑定及 PM broad 的 off/shadow 初步组装，并将 Registry transaction ports、实际 History、原 ArtifactPorts/resolver 与真正 v1/v2 backend 关联。预占和实际 host 调用前重读当前父版本，父版本失效仍允许既有历史对账。它不认证生产 Ledger 权威、永久来源约束或锚点稳定性，不替代原 CAS；持久 store identity、writer floor、来源 cutover、完整生产准入、enforced 和晋级门仍待实施，参与写者的维护排他过渡层已接入实际写边界，首次旧部署排空仍需独立认证；详见进度第 9、19、20 节。
 
 新存储已新增前置 v2 store-policy 日志与 fresh pair 创建，按 prepared→markers-installed→committed 认证随机目录、配对标记与 writer floor；真正的 component binding 已接入当前 Registry 构造，保留 namespace 及其物理路径别名不允许无绑定的 v1 初始化，见进度第 21、22 节。第 23 节新增独立 runtime attachment，以八条原 Ledger 事件认证六个空运行目录；恢复仅续建完整登记前缀之后的缺失后缀，未登记残留、已登记目录丢失或替换均 HOLD。显式绑定后 Registry 仍为空只读模式，构造不创建目录、不恢复事务、不清理残留，业务写入和迁移保持 HOLD；旧绑定不会自动升级。它不升级既有 v1 存储，也不认证历史旧二进制已经排空。后续优先实现永久内容来源登记与 alias finalization，再接运行布局和业务写边界。Registry 文本 contentDigest 与 RRSI artifact manifest 的 contentDigest 语义不同，必须关联真实 UTF-8 Skill 内容，不能复用候选 ID 或 manifest 摘要当来源主键。保留 provisioning policy v1 的不可变摘要，后续来源能力通过独立的认证关联接入。

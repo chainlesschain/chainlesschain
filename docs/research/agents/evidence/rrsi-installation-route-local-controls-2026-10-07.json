@@ -1,0 +1,2129 @@
+{
+  "schema": "chainlesschain.rrsi-installation-route-local-controls/v1",
+  "recordedAt": "2026-10-07T13:08:05.838Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "evidenceKind": "selected-local-declarations-not-installation-authority",
+  "finalVitestPassedCases": 142,
+  "finalVitestFailedCases": 0,
+  "finalVitestSkippedCases": 2,
+  "newVitestPassedCases": 85,
+  "existingVitestPassedCases": 57,
+  "standalonePosixFifoProbesPassed": 2,
+  "counting": "Final Windows Vitest cases only; the first run is retained without double counting. WSL FIFO scenarios are separate targeted probes of the two Windows-skipped behaviors, not a Linux Vitest suite or release gate.",
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-installation-route-contracts.js",
+      "sha256": "e279dc49a46837993b2008b18e60ee06cc74feab04bf642738e968fe7a9755a5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-installation-route-reader.js",
+      "sha256": "93c914d4bdb068a720193eb4bcff84d57d631a92776eed94ed9588e698e5da87"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-installation-route.js",
+      "sha256": "42e0ad5b0c518704ca3b434bf2c158e34c9700cc4a4e833f847c5445aa658751"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-installation-route-process.mjs",
+      "sha256": "9d6ab85c36a0cced83470d2ba0ca41468b87fabd3f1713b584a471c34ec207f4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-installation-route-contracts.test.js",
+      "sha256": "c11da44fa187a925f1f812855cfc6bb96b1121bfde4c29821482eb18f34d44ac"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-installation-route-reader.test.js",
+      "sha256": "15165f969ea8e4206c9ddd8b82c59bfb1fc9752317506687c15ab0f4a5646158"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+      "sha256": "586aacf89b7e83950ffe747220de2e35985a69f8ccca65a69c38ca6052b076f2"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-contracts.js",
+      "sha256": "5cdbfc8f4e873fc1754289bf2e65d90bb6b63b343e8fac49f187a173ec56ffe3"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+    },
+    {
+      "path": "packages/cli/src/lib/secure-file-identity.js",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-data.js",
+      "sha256": "06226d8c01c0d3496aeb8e4327ac03fcf00140bb1ce488a77ad1a9b0818e6d1b"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+      "sha256": "333db00378c29b59d027afa7be817dd90d1ac9b2118367e0ac3a74ca9d1436a6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+      "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/secure-file-identity.test.js",
+      "sha256": "7f71b1a8610ba7b836c6ba92c5127c7a8467bb114a99f5cd4bf8e4c80ef8f3bd"
+    }
+  ],
+  "sourceCheckpoints": [
+    {
+      "localPath": ".work/rrsi-installation-route-first-source-sha.json",
+      "sha256": "331b2b631838af69c0f2d83bea87da48085b5ed1c24317fb8521686ccb885979",
+      "recordedAt": "2026-10-07T12:53:46.331Z",
+      "timing": "Recorded before the corresponding Vitest invocation"
+    },
+    {
+      "localPath": ".work/rrsi-installation-route-final-source-sha.json",
+      "sha256": "d390135f50261af232decb7e07637124292050a82d10bf53be9d81a3a6100703",
+      "recordedAt": "2026-10-07T12:58:56.802Z",
+      "timing": "Recorded before the corresponding Vitest invocation"
+    }
+  ],
+  "sourceChangesBetweenRuns": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-installation-route-contracts.js",
+      "firstSha256": "468eed809a9fbad43cef57f34cdc6bce21c8e737a0ade7f73e67ada44bb51649",
+      "finalSha256": "e279dc49a46837993b2008b18e60ee06cc74feab04bf642738e968fe7a9755a5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-installation-route-reader.js",
+      "firstSha256": "bd3241380ad8781719ba7e19d2542f5487710059e4bcd9395cc7be9f530d52c5",
+      "finalSha256": "93c914d4bdb068a720193eb4bcff84d57d631a92776eed94ed9588e698e5da87"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-installation-route-process.mjs",
+      "firstSha256": "b60fb80698ceb3f52fb2c98fd48a44bd722f9db7b64cabab8dad051675edbf1b",
+      "finalSha256": "9d6ab85c36a0cced83470d2ba0ca41468b87fabd3f1713b584a471c34ec207f4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-installation-route-contracts.test.js",
+      "firstSha256": "e93ae557b97730a95b6ac8e844750797d78912fcca1f20a1eef65303b105db49",
+      "finalSha256": "c11da44fa187a925f1f812855cfc6bb96b1121bfde4c29821482eb18f34d44ac"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-installation-route-reader.test.js",
+      "firstSha256": "2121917d7a86aba0f8ee8e02526dbedc5c474c9a56097622077281344c402958",
+      "finalSha256": "15165f969ea8e4206c9ddd8b82c59bfb1fc9752317506687c15ab0f4a5646158"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+      "firstSha256": "ce6c7f7fe4504bac332abad5c83ba83c3d44bfe49fa5c4a006e2b306227c72f9",
+      "finalSha256": "586aacf89b7e83950ffe747220de2e35985a69f8ccca65a69c38ca6052b076f2"
+    }
+  ],
+  "finalSourceUnchanged": true,
+  "runs": [
+    {
+      "localReporterPath": ".work/rrsi-installation-route-first.json",
+      "reporterSha256": "7ebd25e22119d20fe2dc77454a7e085d1e4e4999cbf9cf8f9060eaee29a46e37",
+      "success": true,
+      "total": 138,
+      "passed": 138,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791377628793,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377669659,
+          "endTime": 1791377670976.203,
+          "assertions": [
+            {
+              "name": "fresh-process selected installation declarations reads exact local declarations in a fresh process without acquiring installation authority",
+              "status": "passed",
+              "durationMs": 266.3528,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing root.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 176.76850000000002,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing routes.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 183.20990000000006,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing highwater.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 180.12389999999982,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations refuses a separately valid highwater from another graph in a fresh process",
+              "status": "passed",
+              "durationMs": 241.7577000000001,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations does not misrepresent a coherent whole-group rollback as externally protected",
+              "status": "passed",
+              "durationMs": 269.2029,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377641502,
+          "endTime": 1791377669104.839,
+          "assertions": [
+            {
+              "name": "evolution path/handle identity accepts affected path-device projection only against the held volume",
+              "status": "passed",
+              "durationMs": 11.492400000000089,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity shares one held parent authority across multiple child checks",
+              "status": "passed",
+              "durationMs": 8.15479999999934,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"win32\",\"uvVersion\":\"1.51.0\"}",
+              "status": "passed",
+              "durationMs": 7.025700000000143,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"linux\",\"uvVersion\":\"1.49.1\"}",
+              "status": "passed",
+              "durationMs": 4.342899999999645,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity reopens a real Workbench ledger under the affected Windows projection",
+              "status": "passed",
+              "durationMs": 27570.839200000002,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-installation-route-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377633038,
+          "endTime": 1791377634935.5725,
+          "assertions": [
+            {
+              "name": "selected installation route declarations checks genuinely signed declarations but retains every authority HOLD",
+              "status": "passed",
+              "durationMs": 68.11719999999991,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations accepts exact anchor idempotence without adding another route record",
+              "status": "passed",
+              "durationMs": 30.32669999999996,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations checks a single declared successor without claiming journal/history transfer",
+              "status": "passed",
+              "durationMs": 16.822900000000004,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed deploymentId",
+              "status": "passed",
+              "durationMs": 19.198499999999967,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed tenantId",
+              "status": "passed",
+              "durationMs": 14.878000000000043,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed ledgerIdentity",
+              "status": "passed",
+              "durationMs": 13.4067,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed artifactScope",
+              "status": "passed",
+              "durationMs": 15.667900000000031,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed storageGraphDigest",
+              "status": "passed",
+              "durationMs": 13.318399999999997,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses checkpoint changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 12.95620000000008,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-count changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 18.110500000000002,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-tail changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 21.047000000000025,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-set changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 23.451299999999947,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a same-revision checkpoint conflict rather than returning idempotence",
+              "status": "passed",
+              "durationMs": 18.495400000000018,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed rollback",
+              "status": "passed",
+              "durationMs": 19.83229999999992,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed jump",
+              "status": "passed",
+              "durationMs": 17.88480000000004,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed wrong-predecessor",
+              "status": "passed",
+              "durationMs": 21.544899999999984,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed shared-scope",
+              "status": "passed",
+              "durationMs": 14.089400000000069,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed different-key",
+              "status": "passed",
+              "durationMs": 12.856199999999944,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history no-genesis",
+              "status": "passed",
+              "durationMs": 18.49249999999995,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history empty",
+              "status": "passed",
+              "durationMs": 15.521100000000047,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history too-many",
+              "status": "passed",
+              "durationMs": 13.841599999999971,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history wrong-tenant",
+              "status": "passed",
+              "durationMs": 31.262699999999995,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history wrong-root",
+              "status": "passed",
+              "durationMs": 26.296800000000076,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history invalid-signature",
+              "status": "passed",
+              "durationMs": 13.645200000000045,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting installationId",
+              "status": "passed",
+              "durationMs": 29.63740000000007,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting tenantId",
+              "status": "passed",
+              "durationMs": 21.589899999999943,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting rootRecordDigest",
+              "status": "passed",
+              "durationMs": 29.03520000000003,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting routesDigest",
+              "status": "passed",
+              "durationMs": 29.728000000000065,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting anchorRevision",
+              "status": "passed",
+              "durationMs": 24.56569999999988,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting anchorDigest",
+              "status": "passed",
+              "durationMs": 22.84869999999978,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting checkpoint",
+              "status": "passed",
+              "durationMs": 29.96490000000017,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting restrictionHistory",
+              "status": "passed",
+              "durationMs": 20.715200000000095,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects an older complete highwater rather than adopting a lower routes tail",
+              "status": "passed",
+              "durationMs": 26.062200000000075,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with scope",
+              "status": "passed",
+              "durationMs": 14.4375,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with key-digest",
+              "status": "passed",
+              "durationMs": 18.31880000000001,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with noncanonical-key",
+              "status": "passed",
+              "durationMs": 13.800500000000056,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with wrong-type",
+              "status": "passed",
+              "durationMs": 10.760899999999992,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects accessors and proxies without invoking caller code",
+              "status": "passed",
+              "durationMs": 14.554300000000012,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a caller-selected index before it can be signed",
+              "status": "passed",
+              "durationMs": 19.12810000000013,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations checks the full 64-anchor bound without granting installer or history authority",
+              "status": "passed",
+              "durationMs": 1013.4891,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on root",
+              "status": "passed",
+              "durationMs": 21.176699999999983,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on routes",
+              "status": "passed",
+              "durationMs": 20.104299999999967,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on highwater",
+              "status": "passed",
+              "durationMs": 24.572599999999966,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-installation-route-reader.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377631063,
+          "endTime": 1791377632449.3213,
+          "assertions": [
+            {
+              "name": "open-only immutable route declaration reader reads real signed files with unchanged identities and no mutation APIs or permission claims",
+              "status": "passed",
+              "durationMs": 151.5534,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader holds an absent directory with the original ENOENT cause and creates nothing",
+              "status": "passed",
+              "durationMs": 28.605199999999968,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing root.json without recreating any path",
+              "status": "passed",
+              "durationMs": 35.83310000000006,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing routes.json without recreating any path",
+              "status": "passed",
+              "durationMs": 31.208599999999933,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing highwater.json without recreating any path",
+              "status": "passed",
+              "durationMs": 24.95679999999993,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of root.json after open",
+              "status": "passed",
+              "durationMs": 60.32989999999995,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of routes.json after open",
+              "status": "passed",
+              "durationMs": 57.21029999999996,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of highwater.json after open",
+              "status": "passed",
+              "durationMs": 53.99810000000002,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects a real same-byte directory replacement after open",
+              "status": "passed",
+              "durationMs": 68.5052999999998,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects changed bytes on the same inode even when byte length is preserved",
+              "status": "passed",
+              "durationMs": 56.17430000000013,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects root.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 57.69629999999984,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects routes.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 67.7219,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects highwater.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 68.85760000000005,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file empty",
+              "status": "passed",
+              "durationMs": 26.155399999999872,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file over-limit",
+              "status": "passed",
+              "durationMs": 31.730099999999993,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file pretty-json",
+              "status": "passed",
+              "durationMs": 33.75660000000016,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file duplicate-key",
+              "status": "passed",
+              "durationMs": 29.014599999999973,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file invalid-utf8",
+              "status": "passed",
+              "durationMs": 27.05079999999998,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file unknown-field",
+              "status": "passed",
+              "durationMs": 32.44440000000009,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file extra-newline",
+              "status": "passed",
+              "durationMs": 27.79449999999997,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader stops unbounded growth after the checked size with a one-byte EOF probe",
+              "status": "passed",
+              "durationMs": 22.50499999999988,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects a real file replacement between initial read and final readback",
+              "status": "passed",
+              "durationMs": 69.35749999999985,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory extra-file",
+              "status": "passed",
+              "durationMs": 26.835599999999886,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory extra-directory",
+              "status": "passed",
+              "durationMs": 25.04820000000018,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory hardlink",
+              "status": "passed",
+              "durationMs": 31.62850000000003,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory directory-instead-of-file",
+              "status": "passed",
+              "durationMs": 25.247700000000123,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects Number stat fields instead of accepting a rounded identity",
+              "status": "passed",
+              "durationMs": 21.917199999999866,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected installationId",
+              "status": "passed",
+              "durationMs": 37.92450000000008,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected tenantId",
+              "status": "passed",
+              "durationMs": 38.40970000000016,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected rootRecordDigest",
+              "status": "passed",
+              "durationMs": 37.31820000000016,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected relative-directory",
+              "status": "passed",
+              "durationMs": 27.586799999999812,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses getters, proxies, extra capabilities and read-time context replacement",
+              "status": "passed",
+              "durationMs": 50.32129999999961,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377635677,
+          "endTime": 1791377635819.6826,
+          "assertions": [
+            {
+              "name": "signed tenant index anchor declarations without root authority detaches and freezes the exact declaration without authenticating its checkpoint or pin",
+              "status": "passed",
+              "durationMs": 17.570499999999925,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into installation authority",
+              "status": "passed",
+              "durationMs": 9.10850000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into shared-tenant-authority authority",
+              "status": "passed",
+              "durationMs": 5.8040999999999485,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed deploymentId exactly",
+              "status": "passed",
+              "durationMs": 13.07899999999995,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed tenantId exactly",
+              "status": "passed",
+              "durationMs": 6.303700000000049,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed storageGraphDigest exactly",
+              "status": "passed",
+              "durationMs": 5.8559999999999945,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed rootPublicKeyDigest exactly",
+              "status": "passed",
+              "durationMs": 4.601200000000063,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed routingScope exactly",
+              "status": "passed",
+              "durationMs": 7.144700000000057,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed artifactScope exactly",
+              "status": "passed",
+              "durationMs": 9.60089999999991,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed ledgerIdentity exactly",
+              "status": "passed",
+              "durationMs": 7.43730000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed checkpoint exactly",
+              "status": "passed",
+              "durationMs": 4.791899999999941,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.tailRecordDigest exactly",
+              "status": "passed",
+              "durationMs": 6.191599999999994,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.restrictionsDigest exactly",
+              "status": "passed",
+              "durationMs": 4.808800000000019,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed revision exactly",
+              "status": "passed",
+              "durationMs": 5.292100000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged authenticated even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.3777000000000044,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged readyForExecution even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 0.9766999999999371,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged qualifiesForPromotion even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 0.9832000000000107,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects a different signer and a signature from another domain",
+              "status": "passed",
+              "durationMs": 8.747499999999945,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical publicKeySpki encodings",
+              "status": "passed",
+              "durationMs": 2.512200000000007,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical signature encodings",
+              "status": "passed",
+              "durationMs": 2.03570000000002,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 0",
+              "status": "passed",
+              "durationMs": 0.7405999999999722,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 1",
+              "status": "passed",
+              "durationMs": 0.6008000000000493,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 2",
+              "status": "passed",
+              "durationMs": 0.5984999999999445,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 3",
+              "status": "passed",
+              "durationMs": 0.6847999999999956,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 4",
+              "status": "passed",
+              "durationMs": 0.5731000000000677,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 5",
+              "status": "passed",
+              "durationMs": 1.0144999999999982,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 6",
+              "status": "passed",
+              "durationMs": 1.103399999999965,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority permits a declared successor but does not certify migration or preserved restrictions",
+              "status": "passed",
+              "durationMs": 4.178899999999999,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority accepts an explicit empty history only as an unverified declaration",
+              "status": "passed",
+              "durationMs": 3.4400000000000546,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects getters, proxy traps and arbitrary verifier callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 4.6825999999999794,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/secure-file-identity.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377630194,
+          "endTime": 1791377630274.7083,
+          "assertions": [
+            {
+              "name": "secure file identity limits the zero-device bridge to affected Windows libuv releases",
+              "status": "passed",
+              "durationMs": 7.5376999999999725,
+              "failures": []
+            },
+            {
+              "name": "secure file identity bridges any affected Windows path-device projection only to the anchored handle device",
+              "status": "passed",
+              "durationMs": 2.103900000000067,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when ino differs",
+              "status": "passed",
+              "durationMs": 1.2741999999999507,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when mode differs",
+              "status": "passed",
+              "durationMs": 0.5076999999999998,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when nlink differs",
+              "status": "passed",
+              "durationMs": 0.6162000000000489,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when size differs",
+              "status": "passed",
+              "durationMs": 0.7171999999999343,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when mtimeNs differs",
+              "status": "passed",
+              "durationMs": 0.7192000000000007,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when ctimeNs differs",
+              "status": "passed",
+              "durationMs": 0.5112000000000307,
+              "failures": []
+            },
+            {
+              "name": "secure file identity keeps append identity stable while allowing content fields to advance",
+              "status": "passed",
+              "durationMs": 2.573599999999942,
+              "failures": []
+            },
+            {
+              "name": "secure file identity keeps exact handle snapshots fail-closed",
+              "status": "passed",
+              "durationMs": 3.1861000000000104,
+              "failures": []
+            },
+            {
+              "name": "secure file identity normalizes ordinary Stats millisecond timestamps to nanoseconds",
+              "status": "passed",
+              "durationMs": 2.1020999999999503,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rechecks stable parent identity after child writes",
+              "status": "passed",
+              "durationMs": 8.731499999999983,
+              "failures": []
+            },
+            {
+              "name": "secure file identity does not treat parent metadata or link-count changes from a sibling file as identity changes",
+              "status": "passed",
+              "durationMs": 4.559799999999996,
+              "failures": []
+            },
+            {
+              "name": "secure file identity does not treat parent metadata or link-count changes from a child directory as identity changes",
+              "status": "passed",
+              "durationMs": 3.7110000000000127,
+              "failures": []
+            },
+            {
+              "name": "secure file identity anchors a Windows volume-root parent with a separate descriptor and closes both",
+              "status": "passed",
+              "durationMs": 2.013499999999908,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a parent handle outside the independently anchored volume device",
+              "status": "passed",
+              "durationMs": 2.724299999999971,
+              "failures": []
+            },
+            {
+              "name": "secure file identity anchors an extended Windows UNC parent to its canonical share root",
+              "status": "passed",
+              "durationMs": 0.8935999999999922,
+              "failures": []
+            },
+            {
+              "name": "secure file identity fails when the canonical parent identity changes before return",
+              "status": "passed",
+              "durationMs": 3.886799999999994,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects asynchronous parent callbacks",
+              "status": "passed",
+              "durationMs": 4.717599999999948,
+              "failures": []
+            },
+            {
+              "name": "secure file identity allows directory content metadata/link-count changes but not directory identity changes",
+              "status": "passed",
+              "durationMs": 0.6440000000000055,
+              "failures": []
+            },
+            {
+              "name": "secure file identity strictly rechecks two directory-handle snapshots on affected Windows runtimes",
+              "status": "passed",
+              "durationMs": 0.988399999999956,
+              "failures": []
+            },
+            {
+              "name": "secure file identity documents that complete parent ABA replacement is outside the helper contract",
+              "status": "passed",
+              "durationMs": 24.70830000000001,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localReporterPath": ".work/rrsi-installation-route-final.json",
+      "reporterSha256": "e01d5ae4f6548a367ef02d108c548388769d7d4eb7767460b6d435806a3f0eea",
+      "success": true,
+      "total": 144,
+      "passed": 142,
+      "failed": 0,
+      "pending": 2,
+      "todo": 0,
+      "startTime": 1791377939701,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377979445,
+          "endTime": 1791377980920.9368,
+          "assertions": [
+            {
+              "name": "fresh-process selected installation declarations reads exact local declarations in a fresh process without acquiring installation authority",
+              "status": "passed",
+              "durationMs": 329.2433000000001,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing root.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 208.47500000000014,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing routes.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 203.3043,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations holds missing highwater.json in a fresh process without bootstrap",
+              "status": "passed",
+              "durationMs": 211.4126000000001,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations refuses a separately valid highwater from another graph in a fresh process",
+              "status": "passed",
+              "durationMs": 247.49350000000004,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations does not misrepresent a coherent whole-group rollback as externally protected",
+              "status": "passed",
+              "durationMs": 275.9367000000002,
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations refuses a real POSIX fifo-file open race without blocking",
+              "status": "skipped",
+              "failures": []
+            },
+            {
+              "name": "fresh-process selected installation declarations refuses a real POSIX fifo-parent open race without blocking",
+              "status": "skipped",
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377944459,
+          "endTime": 1791377974592.6519,
+          "assertions": [
+            {
+              "name": "evolution path/handle identity accepts affected path-device projection only against the held volume",
+              "status": "passed",
+              "durationMs": 14.322000000000116,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity shares one held parent authority across multiple child checks",
+              "status": "passed",
+              "durationMs": 8.115200000000186,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"win32\",\"uvVersion\":\"1.51.0\"}",
+              "status": "passed",
+              "durationMs": 3.856300000000374,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"linux\",\"uvVersion\":\"1.49.1\"}",
+              "status": "passed",
+              "durationMs": 3.3320999999996275,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity reopens a real Workbench ledger under the affected Windows projection",
+              "status": "passed",
+              "durationMs": 30103.651899999997,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-installation-route-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377975158,
+          "endTime": 1791377976648.2385,
+          "assertions": [
+            {
+              "name": "selected installation route declarations checks genuinely signed declarations but retains every authority HOLD",
+              "status": "passed",
+              "durationMs": 57.396799999999985,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations accepts exact anchor idempotence without adding another route record",
+              "status": "passed",
+              "durationMs": 23.49789999999996,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations checks a single declared successor without claiming journal/history transfer",
+              "status": "passed",
+              "durationMs": 13.331499999999892,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed deploymentId",
+              "status": "passed",
+              "durationMs": 13.489400000000046,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed tenantId",
+              "status": "passed",
+              "durationMs": 12.386600000000044,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed ledgerIdentity",
+              "status": "passed",
+              "durationMs": 13.128100000000018,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed artifactScope",
+              "status": "passed",
+              "durationMs": 15.384900000000016,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a valid signature that changes fixed storageGraphDigest",
+              "status": "passed",
+              "durationMs": 13.659600000000069,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses checkpoint changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 13.719600000000014,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-count changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 12.720899999999915,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-tail changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 13.811599999999999,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations refuses restriction-set changes even with a real signature and increasing revision",
+              "status": "passed",
+              "durationMs": 23.496500000000083,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a same-revision checkpoint conflict rather than returning idempotence",
+              "status": "passed",
+              "durationMs": 13.069500000000062,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed rollback",
+              "status": "passed",
+              "durationMs": 14.279999999999973,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed jump",
+              "status": "passed",
+              "durationMs": 11.22950000000003,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed wrong-predecessor",
+              "status": "passed",
+              "durationMs": 12.700000000000045,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed shared-scope",
+              "status": "passed",
+              "durationMs": 13.000999999999976,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects genuinely signed different-key",
+              "status": "passed",
+              "durationMs": 12.607699999999909,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history no-genesis",
+              "status": "passed",
+              "durationMs": 11.491800000000012,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history empty",
+              "status": "passed",
+              "durationMs": 11.279099999999971,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history too-many",
+              "status": "passed",
+              "durationMs": 13.300399999999968,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history wrong-tenant",
+              "status": "passed",
+              "durationMs": 25.624500000000012,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history wrong-root",
+              "status": "passed",
+              "durationMs": 22.441599999999994,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects incomplete route history invalid-signature",
+              "status": "passed",
+              "durationMs": 12.225799999999936,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting installationId",
+              "status": "passed",
+              "durationMs": 19.622100000000046,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting tenantId",
+              "status": "passed",
+              "durationMs": 22.050299999999993,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting rootRecordDigest",
+              "status": "passed",
+              "durationMs": 21.17719999999997,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting routesDigest",
+              "status": "passed",
+              "durationMs": 19.557699999999954,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting anchorRevision",
+              "status": "passed",
+              "durationMs": 24.100500000000125,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting anchorDigest",
+              "status": "passed",
+              "durationMs": 19.836299999999937,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting checkpoint",
+              "status": "passed",
+              "durationMs": 26.269399999999905,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed highwater with conflicting restrictionHistory",
+              "status": "passed",
+              "durationMs": 23.557999999999993,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects an older complete highwater rather than adopting a lower routes tail",
+              "status": "passed",
+              "durationMs": 24.79860000000008,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with scope",
+              "status": "passed",
+              "durationMs": 11.676899999999932,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with key-digest",
+              "status": "passed",
+              "durationMs": 14.066800000000057,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with noncanonical-key",
+              "status": "passed",
+              "durationMs": 11.420799999999872,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects root declarations with wrong-type",
+              "status": "passed",
+              "durationMs": 9.147400000000061,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects accessors and proxies without invoking caller code",
+              "status": "passed",
+              "durationMs": 13.112800000000107,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a caller-selected index before it can be signed",
+              "status": "passed",
+              "durationMs": 14.035399999999981,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations checks the full 64-anchor bound without granting installer or history authority",
+              "status": "passed",
+              "durationMs": 739.3895,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations does not claim a signature binds the unsigned installation label",
+              "status": "passed",
+              "durationMs": 27.436300000000074,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on root",
+              "status": "passed",
+              "durationMs": 10.889499999999998,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on routes",
+              "status": "passed",
+              "durationMs": 12.95959999999991,
+              "failures": []
+            },
+            {
+              "name": "selected installation route declarations rejects a recomputed authenticated flag on highwater",
+              "status": "passed",
+              "durationMs": 24.238599999999906,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-installation-route-reader.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377977198,
+          "endTime": 1791377978678.6704,
+          "assertions": [
+            {
+              "name": "open-only immutable route declaration reader reads real signed files with unchanged identities and no mutation APIs or permission claims",
+              "status": "passed",
+              "durationMs": 129.32620000000003,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader holds an absent directory with the original ENOENT cause and creates nothing",
+              "status": "passed",
+              "durationMs": 22.200800000000072,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing root.json without recreating any path",
+              "status": "passed",
+              "durationMs": 27.55510000000004,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing routes.json without recreating any path",
+              "status": "passed",
+              "durationMs": 25.90910000000008,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses missing highwater.json without recreating any path",
+              "status": "passed",
+              "durationMs": 22.506399999999985,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of root.json after open",
+              "status": "passed",
+              "durationMs": 52.979600000000005,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of routes.json after open",
+              "status": "passed",
+              "durationMs": 57.5132000000001,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects real same-byte inode replacement of highwater.json after open",
+              "status": "passed",
+              "durationMs": 55.336400000000026,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects a real same-byte directory replacement after open",
+              "status": "passed",
+              "durationMs": 57.167299999999955,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects changed bytes on the same inode even when byte length is preserved",
+              "status": "passed",
+              "durationMs": 46.03359999999998,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects root.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 62.18909999999994,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects routes.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 52.705200000000104,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects highwater.json mixed from another genuinely signed snapshot",
+              "status": "passed",
+              "durationMs": 61.927599999999984,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file empty",
+              "status": "passed",
+              "durationMs": 26.08459999999991,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file over-limit",
+              "status": "passed",
+              "durationMs": 26.351499999999987,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file pretty-json",
+              "status": "passed",
+              "durationMs": 54.59140000000002,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file duplicate-key",
+              "status": "passed",
+              "durationMs": 39.82509999999979,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file invalid-utf8",
+              "status": "passed",
+              "durationMs": 26.68009999999981,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file unknown-field",
+              "status": "passed",
+              "durationMs": 28.062599999999975,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects malformed root file extra-newline",
+              "status": "passed",
+              "durationMs": 34.99569999999994,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader stops unbounded growth after the checked size with a one-byte EOF probe",
+              "status": "passed",
+              "durationMs": 29.101400000000012,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects a real file replacement between initial read and final readback",
+              "status": "passed",
+              "durationMs": 73.31389999999988,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory extra-file",
+              "status": "passed",
+              "durationMs": 36.44920000000002,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory extra-directory",
+              "status": "passed",
+              "durationMs": 25.391799999999876,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory hardlink",
+              "status": "passed",
+              "durationMs": 25.415500000000065,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses unsafe inventory directory-instead-of-file",
+              "status": "passed",
+              "durationMs": 24.38460000000009,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader rejects Number stat fields instead of accepting a rounded identity",
+              "status": "passed",
+              "durationMs": 19.5478999999998,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected installationId",
+              "status": "passed",
+              "durationMs": 32.96159999999986,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected tenantId",
+              "status": "passed",
+              "durationMs": 30.39339999999993,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected rootRecordDigest",
+              "status": "passed",
+              "durationMs": 33.346700000000055,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses mismatched selected relative-directory",
+              "status": "passed",
+              "durationMs": 18.158099999999877,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses getters, proxies, extra capabilities and read-time context replacement",
+              "status": "passed",
+              "durationMs": 43.99739999999997,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader requests nonblocking opens for files and directory-constrained opens for the helper",
+              "status": "passed",
+              "durationMs": 95.05500000000006,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader detects a real ancestor replacement after opening the snapshot",
+              "status": "passed",
+              "durationMs": 61.53710000000001,
+              "failures": []
+            },
+            {
+              "name": "open-only immutable route declaration reader refuses a real directory junction or symlink instead of following its alias",
+              "status": "passed",
+              "durationMs": 20.670499999999947,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377981515,
+          "endTime": 1791377981604.3184,
+          "assertions": [
+            {
+              "name": "signed tenant index anchor declarations without root authority detaches and freezes the exact declaration without authenticating its checkpoint or pin",
+              "status": "passed",
+              "durationMs": 8.421199999999999,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into installation authority",
+              "status": "passed",
+              "durationMs": 7.503100000000018,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into shared-tenant-authority authority",
+              "status": "passed",
+              "durationMs": 4.552699999999959,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed deploymentId exactly",
+              "status": "passed",
+              "durationMs": 6.738500000000045,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed tenantId exactly",
+              "status": "passed",
+              "durationMs": 3.8120999999999867,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed storageGraphDigest exactly",
+              "status": "passed",
+              "durationMs": 3.489900000000034,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed rootPublicKeyDigest exactly",
+              "status": "passed",
+              "durationMs": 2.2004000000000588,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed routingScope exactly",
+              "status": "passed",
+              "durationMs": 2.7175999999999476,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed artifactScope exactly",
+              "status": "passed",
+              "durationMs": 4.726800000000026,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed ledgerIdentity exactly",
+              "status": "passed",
+              "durationMs": 4.100299999999947,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed checkpoint exactly",
+              "status": "passed",
+              "durationMs": 2.3870000000000573,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.tailRecordDigest exactly",
+              "status": "passed",
+              "durationMs": 2.6358000000000175,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.restrictionsDigest exactly",
+              "status": "passed",
+              "durationMs": 2.9196000000000595,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed revision exactly",
+              "status": "passed",
+              "durationMs": 2.894999999999982,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged authenticated even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.9796999999999798,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged readyForExecution even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.5224000000000615,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged qualifiesForPromotion even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.070699999999988,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects a different signer and a signature from another domain",
+              "status": "passed",
+              "durationMs": 5.004800000000046,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical publicKeySpki encodings",
+              "status": "passed",
+              "durationMs": 1.443899999999985,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical signature encodings",
+              "status": "passed",
+              "durationMs": 1.5497000000000298,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 0",
+              "status": "passed",
+              "durationMs": 0.5602999999999838,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 1",
+              "status": "passed",
+              "durationMs": 0.5015000000000782,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 2",
+              "status": "passed",
+              "durationMs": 0.5787000000000262,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 3",
+              "status": "passed",
+              "durationMs": 0.6228999999999587,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 4",
+              "status": "passed",
+              "durationMs": 0.512299999999982,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 5",
+              "status": "passed",
+              "durationMs": 0.9175000000000182,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 6",
+              "status": "passed",
+              "durationMs": 0.8596000000000004,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority permits a declared successor but does not certify migration or preserved restrictions",
+              "status": "passed",
+              "durationMs": 4.658700000000067,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority accepts an explicit empty history only as an unverified declaration",
+              "status": "passed",
+              "durationMs": 2.9686000000000377,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects getters, proxy traps and arbitrary verifier callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 4.318399999999997,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/secure-file-identity.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791377982212,
+          "endTime": 1791377982263.355,
+          "assertions": [
+            {
+              "name": "secure file identity limits the zero-device bridge to affected Windows libuv releases",
+              "status": "passed",
+              "durationMs": 3.6894000000000915,
+              "failures": []
+            },
+            {
+              "name": "secure file identity bridges any affected Windows path-device projection only to the anchored handle device",
+              "status": "passed",
+              "durationMs": 1.5171000000000276,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when ino differs",
+              "status": "passed",
+              "durationMs": 0.5997999999999593,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when mode differs",
+              "status": "passed",
+              "durationMs": 0.2359000000000151,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when nlink differs",
+              "status": "passed",
+              "durationMs": 0.31799999999998363,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when size differs",
+              "status": "passed",
+              "durationMs": 0.21089999999992415,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when mtimeNs differs",
+              "status": "passed",
+              "durationMs": 0.3229000000000042,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a zero-device projection when ctimeNs differs",
+              "status": "passed",
+              "durationMs": 0.48119999999994434,
+              "failures": []
+            },
+            {
+              "name": "secure file identity keeps append identity stable while allowing content fields to advance",
+              "status": "passed",
+              "durationMs": 1.7018999999999096,
+              "failures": []
+            },
+            {
+              "name": "secure file identity keeps exact handle snapshots fail-closed",
+              "status": "passed",
+              "durationMs": 1.647899999999936,
+              "failures": []
+            },
+            {
+              "name": "secure file identity normalizes ordinary Stats millisecond timestamps to nanoseconds",
+              "status": "passed",
+              "durationMs": 1.229600000000005,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rechecks stable parent identity after child writes",
+              "status": "passed",
+              "durationMs": 5.211400000000026,
+              "failures": []
+            },
+            {
+              "name": "secure file identity does not treat parent metadata or link-count changes from a sibling file as identity changes",
+              "status": "passed",
+              "durationMs": 4.077800000000025,
+              "failures": []
+            },
+            {
+              "name": "secure file identity does not treat parent metadata or link-count changes from a child directory as identity changes",
+              "status": "passed",
+              "durationMs": 3.9470999999999776,
+              "failures": []
+            },
+            {
+              "name": "secure file identity anchors a Windows volume-root parent with a separate descriptor and closes both",
+              "status": "passed",
+              "durationMs": 1.152900000000045,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects a parent handle outside the independently anchored volume device",
+              "status": "passed",
+              "durationMs": 1.3419999999999845,
+              "failures": []
+            },
+            {
+              "name": "secure file identity anchors an extended Windows UNC parent to its canonical share root",
+              "status": "passed",
+              "durationMs": 0.7018000000000484,
+              "failures": []
+            },
+            {
+              "name": "secure file identity fails when the canonical parent identity changes before return",
+              "status": "passed",
+              "durationMs": 2.422900000000027,
+              "failures": []
+            },
+            {
+              "name": "secure file identity rejects asynchronous parent callbacks",
+              "status": "passed",
+              "durationMs": 3.0696000000000367,
+              "failures": []
+            },
+            {
+              "name": "secure file identity allows directory content metadata/link-count changes but not directory identity changes",
+              "status": "passed",
+              "durationMs": 0.40619999999989886,
+              "failures": []
+            },
+            {
+              "name": "secure file identity strictly rechecks two directory-handle snapshots on affected Windows runtimes",
+              "status": "passed",
+              "durationMs": 0.5190000000000055,
+              "failures": []
+            },
+            {
+              "name": "secure file identity documents that complete parent ABA replacement is outside the helper contract",
+              "status": "passed",
+              "durationMs": 15.354900000000043,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "reproductionCommand": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-installation-route-contracts.test.js __tests__/unit/rrsi-installation-route-reader.test.js __tests__/integration/rrsi-installation-route-process.test.js __tests__/unit/rrsi-tenant-index-anchor-contracts.test.js __tests__/unit/evolution-file-identity.test.js __tests__/unit/secure-file-identity.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-installation-route-final.json",
+  "cwd": "packages/cli",
+  "skippedCases": [
+    {
+      "suite": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+      "name": "fresh-process selected installation declarations refuses a real POSIX fifo-file open race without blocking",
+      "status": "skipped"
+    },
+    {
+      "suite": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+      "name": "fresh-process selected installation declarations refuses a real POSIX fifo-parent open race without blocking",
+      "status": "skipped"
+    }
+  ],
+  "skipReason": "Real POSIX FIFO substitution requires mkfifo and is conditionally disabled on Windows; both scenarios were exercised separately in WSL Ubuntu",
+  "posixProbes": {
+    "localReporterPath": ".work/rrsi-installation-route-fifo-linux.json",
+    "reporterSha256": "b2bebf5b762e1fd01469b6f42ffce1cd4a832c552e24338d3049b532d946ceaf",
+    "schema": "chainlesschain.rrsi-installation-route-posix-fifo-probes/v1",
+    "recordedAt": "2026-10-07T13:05:38.874Z",
+    "platform": "linux",
+    "nodeVersion": "v22.22.2",
+    "uvVersion": "1.51.0",
+    "kind": "WSL targeted standalone probes; not a Linux Vitest or release matrix run",
+    "runnerSha256": "eca7d8988163234a2a4eb49a7f1854e5735f9b6b84e8a8601da8e08fd435fff2",
+    "sourceCheckpointSha256": "d390135f50261af232decb7e07637124292050a82d10bf53be9d81a3a6100703",
+    "sourceDigests": [
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-installation-route-contracts.js",
+        "sha256": "e279dc49a46837993b2008b18e60ee06cc74feab04bf642738e968fe7a9755a5"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-installation-route-reader.js",
+        "sha256": "93c914d4bdb068a720193eb4bcff84d57d631a92776eed94ed9588e698e5da87"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-installation-route.js",
+        "sha256": "42e0ad5b0c518704ca3b434bf2c158e34c9700cc4a4e833f847c5445aa658751"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-installation-route-process.mjs",
+        "sha256": "9d6ab85c36a0cced83470d2ba0ca41468b87fabd3f1713b584a471c34ec207f4"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-installation-route-contracts.test.js",
+        "sha256": "c11da44fa187a925f1f812855cfc6bb96b1121bfde4c29821482eb18f34d44ac"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-installation-route-reader.test.js",
+        "sha256": "15165f969ea8e4206c9ddd8b82c59bfb1fc9752317506687c15ab0f4a5646158"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-installation-route-process.test.js",
+        "sha256": "586aacf89b7e83950ffe747220de2e35985a69f8ccca65a69c38ca6052b076f2"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-contracts.js",
+        "sha256": "5cdbfc8f4e873fc1754289bf2e65d90bb6b63b343e8fac49f187a173ec56ffe3"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+        "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+      },
+      {
+        "path": "packages/cli/src/lib/secure-file-identity.js",
+        "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+        "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-data.js",
+        "sha256": "06226d8c01c0d3496aeb8e4327ac03fcf00140bb1ce488a77ad1a9b0818e6d1b"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+        "sha256": "333db00378c29b59d027afa7be817dd90d1ac9b2118367e0ac3a74ca9d1436a6"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+        "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/secure-file-identity.test.js",
+        "sha256": "7f71b1a8610ba7b836c6ba92c5127c7a8467bb114a99f5cd4bf8e4c80ef8f3bd"
+      }
+    ],
+    "passedScenarios": 2,
+    "failures": 0,
+    "results": [
+      {
+        "name": "refuses a real POSIX fifo-file open race without blocking",
+        "status": "passed",
+        "durationMs": 209,
+        "causeCode": null,
+        "faultInjected": true,
+        "actualFifoVerified": true,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false
+      },
+      {
+        "name": "refuses a real POSIX fifo-parent open race without blocking",
+        "status": "passed",
+        "durationMs": 203,
+        "causeCode": "ENOTDIR",
+        "faultInjected": true,
+        "actualFifoVerified": true,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false
+      }
+    ],
+    "command": "wsl.exe -d Ubuntu -e /mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node /mnt/c/code/chainlesschain/.work/rrsi-installation-route-fifo-linux.mjs",
+    "toolchain": {
+      "scope": "Temporary workspace-only Node; no system installation",
+      "archiveSha256": "88fd1ce767091fd8d4a99fdb2356e98c819f93f3b1f8663853a2dee9b438068a",
+      "archiveUrl": "https://nodejs.org/dist/v22.22.2/node-v22.22.2-linux-x64.tar.xz",
+      "checksumUrl": "https://nodejs.org/dist/v22.22.2/SHASUMS256.txt",
+      "officialChecksumMatched": true
+    }
+  },
+  "verification": {
+    "eslint": "passed for all seven new source/test files, max-warnings=0",
+    "prettier": "passed",
+    "gitDiffCheck": "passed",
+    "astraReview": "completed; FIFO file/parent open risk fixed, full path/handle identity preserved, installation label/ABA boundaries and true ancestor/link tests verified"
+  },
+  "bounds": {
+    "tenantsPerDirectory": 1,
+    "maximumAnchors": 64,
+    "rootBytes": 16384,
+    "highwaterBytes": 16384,
+    "routesBytes": 262144,
+    "maximumDirectoryAncestors": 64,
+    "maximumDirectoryEntries": 3,
+    "readGrowthProbeBytes": 1,
+    "processWatchdogMs": 15000,
+    "mkfifoSetupMs": 3000,
+    "nativeAclBudgetsChanged": false,
+    "existingIdentityTestBudgetsChanged": false
+  },
+  "semantics": {
+    "readbackScope": "Explicitly selected installation/tenant/root record and immutable captured directory/file identity plus bytes",
+    "rootFile": "Unsigned structural declaration of installation label, tenant, key and installation scope",
+    "signatureScope": "Existing anchor signatures relative to the declared key; installation label is not part of those signed bytes",
+    "continuation": "Same anchor is idempotent but cannot be appended twice; successor is exactly +1 with exact predecessor and unchanged graph/checkpoint/restrictions",
+    "checkpointAndRestrictionChanges": "Rejected until independent prefix and retained-history verification is implemented",
+    "highwater": "Exact internally consistent full-routes/tail declaration; not an externally protected monotone floor",
+    "fileOpens": "Read-only, nofollow/nonblock when supported; helper directory opens also directory-constrained; existing narrow Windows identity bridge unchanged",
+    "initialization": "No mkdir, bootstrap, writer, lock, permission repair, recovery or environment override"
+  },
+  "limitations": [
+    "No independent installer approval, protected durable routing pin, trusted tenant root, business router or mutation grant is created",
+    "The same key/tenant signed packets can be rebound to another unsigned installation label; an explicit test demonstrates the absence of installation-binding signatures",
+    "An existing reader rejects changed or rolled-back files; a new process can read a coherent whole-group rollback as locally consistent with all authority flags false",
+    "No external witness or state protected from the business caller is present, so cross-process whole-group rollback and deletion/rebuild are not prevented",
+    "Ancestry, pathname and descriptor rechecks do not provide openat semantics, a common atomic filesystem snapshot, or protection against arbitrary rename/restore ABA",
+    "The genuine ancestor replacement test is between reader calls and keeps the leaf directory inode; the during-read race test replaces a highwater file, not an ancestor",
+    "Real directory junction/symlink rejection was exercised; no real Windows file-symlink replacement test is claimed",
+    "Mode/uid/gid metadata is compared without native ACL inspection; owner-only permission authority remains false",
+    "Windows nonblock/directory flag checks are conditional on platform constants; actual FIFO behavior is independently established only by the WSL probes",
+    "WSL probes use actual POSIX FIFOs and the repository child fixture but do not constitute Linux/macOS CLI CI, Strict Sandbox or a release matrix",
+    "No authenticated RRSI producer, alias publication protocol, Registry business writer, release source gate, real model/cost experiment or production promotion was enabled"
+  ],
+  "rootAuthorityVerified": false,
+  "installationBindingSignatureVerified": false,
+  "routingPinVerified": false,
+  "atomicSnapshotVerified": false,
+  "crossProcessRollbackProtectionVerified": false,
+  "ownerOnlyPermissionsVerified": false,
+  "journalPrefixVerified": false,
+  "restrictionHistoryVerified": false,
+  "historyTransferVerified": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "originCutoverAuthenticated": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}
