@@ -3230,6 +3230,31 @@ export function createRrsiHistoryLedgerAdapter(input) {
       artifactPorts: options.artifactPorts,
       ledgerArtifactResolver: options.ledgerArtifactResolver,
       resolveCampaignRoot: adapter.resolveCampaignRoot,
+      resolvePreparation(executionId) {
+        rrsiId(executionId, "preparation execution ID");
+        return withHistoryLock(() => {
+          const { state } = load();
+          const entry = state.reservations.get(executionId);
+          if (!entry || !isRrsiPreparationReservation(entry.reservation))
+            rrsiFail("preparation execution is not registered");
+          const operation = [...state.operations.values()].find(
+            (value) =>
+              value.record.kind === "reserve-preparation" &&
+              value.record.payload.executionId === executionId,
+          );
+          if (!operation) rrsiFail("preparation registration is missing");
+          return freezeRrsiData({
+            descriptor,
+            identity: state.identity,
+            reservation: entry.reservation,
+            registrationRecord: historyRegistrationRecord(operation),
+            status: entry.status,
+            dispatched: entry.dispatched,
+            historyAuthenticated: true,
+            sourceDerivationVerified: false,
+          });
+        });
+      },
       resolveNativeBatch: adapter.resolveNativeBatch,
       resolveNativeStatisticsScope: adapter.resolveNativeStatisticsScope,
       assertNativeFreshChild(response, expectedBindings) {

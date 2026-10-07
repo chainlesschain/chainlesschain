@@ -1,0 +1,1504 @@
+{
+  "schema": "chainlesschain.rrsi-observed-text-local-controls/v1",
+  "recordedAt": "2026-10-07T11:23:26.288Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "scope": "Exact retained Skill bytes, declared preparation association and monotone prohibitions in one captured storage graph; no causal generation proof, tenant-wide routing authority or business admission",
+  "sourceSnapshot": {
+    "recordedAt": "2026-10-07T11:07:28.407Z",
+    "files": [
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+        "sha256": "36165a53bf9abc6fee8502e840d3d51f6b0a3794be1eb5dbedbb36f46c23b258"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+        "sha256": "5ffd087d288e31b6dd94ea8fb3ebea6f5b30f63758d16238c36bf1517e63cf0d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "sha256": "5e25f11f696c1faead1f7c53d3f502f5032d5a8cd6b3591fc72590b38cb5d2a2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "sha256": "9af6bf39154a3648fadddd77aeb00dda3f44fbf2aaefa83dbe8b0a0a907b20ce"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+        "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text-process.mjs",
+        "sha256": "a0b5c835d2df90580e9c7e71db2058b79cbbc5c472a8fc15194046b9b6fa60c0"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "sha256": "bf3c9f7a99d1d2cc0fa300a3abf62df49184591852652f5658ac421c373c5206"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "sha256": "d7795aabf5983a631e55e51afa949098d271d149f77fb7e0e336b0a981bf0286"
+      }
+    ]
+  },
+  "exactSourceSnapshot": {
+    "recordedAt": "2026-10-07T11:19:37.077Z",
+    "files": [
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+        "sha256": "85df4c2b215e913222301dbfc5f5fce30bdcd3f338301c9d79bdc04ad3e7196e"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+        "sha256": "5ffd087d288e31b6dd94ea8fb3ebea6f5b30f63758d16238c36bf1517e63cf0d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "sha256": "5e25f11f696c1faead1f7c53d3f502f5032d5a8cd6b3591fc72590b38cb5d2a2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+        "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text-process.mjs",
+        "sha256": "a0b5c835d2df90580e9c7e71db2058b79cbbc5c472a8fc15194046b9b6fa60c0"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "sha256": "d7795aabf5983a631e55e51afa949098d271d149f77fb7e0e336b0a981bf0286"
+      }
+    ]
+  },
+  "postValidationChanges": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "beforeSha256": "36165a53bf9abc6fee8502e840d3d51f6b0a3794be1eb5dbedbb36f46c23b258",
+      "afterSha256": "85df4c2b215e913222301dbfc5f5fce30bdcd3f338301c9d79bdc04ad3e7196e",
+      "backupCopiedAt": "2026-10-07T11:18:19.098Z",
+      "change": "Added bounded code-unit and UTF-8 byte-length checks before Buffer allocation; original post-allocation and strict roundtrip checks retained",
+      "verification": "Complete final 24 new cases rerun; old four regression files and their dependencies do not import this new index"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "beforeSha256": "9af6bf39154a3648fadddd77aeb00dda3f44fbf2aaefa83dbe8b0a0a907b20ce",
+      "afterSha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20",
+      "backupCopiedAt": "2026-10-07T11:18:19.124Z",
+      "change": "One new pure behavior case proves oversized code units and UTF-8 bytes are rejected before Buffer.from; all prior 15 cases byte-identical",
+      "verification": "Complete final 24 new cases rerun; old four regression files and their dependencies do not import this new index"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "beforeSha256": "bf3c9f7a99d1d2cc0fa300a3abf62df49184591852652f5658ac421c373c5206",
+      "afterSha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4",
+      "backupCopiedAt": "2026-10-07T11:18:19.122Z",
+      "change": "Three signed malformed cases now require exact chunk-length/base64 message or UTF-8 decoder cause, including fresh reopening; all other controls byte-identical",
+      "verification": "Complete final 24 new cases rerun; old four regression files and their dependencies do not import this new index"
+    }
+  ],
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "sha256": "85df4c2b215e913222301dbfc5f5fce30bdcd3f338301c9d79bdc04ad3e7196e"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "sha256": "5ffd087d288e31b6dd94ea8fb3ebea6f5b30f63758d16238c36bf1517e63cf0d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "5e25f11f696c1faead1f7c53d3f502f5032d5a8cd6b3591fc72590b38cb5d2a2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+      "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text-process.mjs",
+      "sha256": "a0b5c835d2df90580e9c7e71db2058b79cbbc5c472a8fc15194046b9b6fa60c0"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "d7795aabf5983a631e55e51afa949098d271d149f77fb7e0e336b0a981bf0286"
+    }
+  ],
+  "uniquePassedCases": 135,
+  "newPassedCases": 24,
+  "runs": [
+    {
+      "location": ".work/rrsi-observed-text-first.json",
+      "reporterSha256": "d72b8130c02df3b17b3e9594acc098477ad62b7dffb7a00ebcf90b087982038a",
+      "required": false,
+      "note": "Seven encoding cases passed, eight native cases not executed because initialization exact sourceRefs comparison omitted the Ledger's canonical ref/digest ordering; fixed with exact normalized array comparison, no validation relaxed",
+      "success": false,
+      "startedAt": "2026-10-07T10:59:47.569Z",
+      "passed": 7,
+      "failed": 0,
+      "pending": 8,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "failed",
+          "message": "",
+          "startTime": 1791370792209,
+          "endTime": 1791370792222.0415,
+          "assertions": [
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 5.985599999999977,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 1.040299999999661,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.4215999999996711,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.40680000000065775,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.38409999999930733,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 1.3980000000001382,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 3.0416000000004715,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-observed-text-native.json",
+      "reporterSha256": "7f5eea24de62d017231219e51a6bbaed09f8cd994117e9efce297c91c264a619",
+      "required": false,
+      "note": "Complete initial 20 new cases passed; later three additional signed malformed-content cases added and all new cases rerun in final coverage",
+      "success": true,
+      "startedAt": "2026-10-07T11:01:45.935Z",
+      "passed": 20,
+      "failed": 0,
+      "pending": 0,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791370985739,
+          "endTime": 1791371021587.4,
+          "assertions": [
+            {
+              "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+              "status": "passed",
+              "durationMs": 3568.1021,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+              "status": "passed",
+              "durationMs": 4913.088599999999,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+              "status": "passed",
+              "durationMs": 1076.077699999998,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+              "status": "passed",
+              "durationMs": 10778.201099999998,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+              "status": "passed",
+              "durationMs": 2101.3998999999967,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791370910488,
+          "endTime": 1791370965715.9236,
+          "assertions": [
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 5.005100000000311,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 0.9857999999994718,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.39289999999982683,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.37379999999939173,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.398099999999431,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 1.774199999999837,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 3.69380000000001,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "passed",
+              "durationMs": 1292.3107999999993,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "passed",
+              "durationMs": 2020.6242000000057,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "passed",
+              "durationMs": 5125.121999999996,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "passed",
+              "durationMs": 142.85469999999623,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "passed",
+              "durationMs": 1849.4593999999997,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "passed",
+              "durationMs": 7808.039100000002,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "passed",
+              "durationMs": 3236.0353999999934,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "passed",
+              "durationMs": 1341.9234999999971,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-observed-text-final.json",
+      "reporterSha256": "24f0a61203837c6e32515bb9ffe04178497ddfc327f5dabee097b716505ab059",
+      "required": false,
+      "note": "Complete six-file 134 passes plus one original Windows skip; only four unchanged existing regression suites (111 cases) count toward final coverage after the new index/input assertions were tightened",
+      "success": true,
+      "startedAt": "2026-10-07T11:05:28.279Z",
+      "passed": 134,
+      "failed": 0,
+      "pending": 1,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371752310,
+          "endTime": 1791371827800.9734,
+          "assertions": [
+            {
+              "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+              "status": "passed",
+              "durationMs": 4049.7782000000007,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+              "status": "passed",
+              "durationMs": 4755.9403999999995,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+              "status": "passed",
+              "durationMs": 1027.8608000000022,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2151.404899999994,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2065.350600000005,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2058.498900000006,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+              "status": "passed",
+              "durationMs": 10034.4225,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+              "status": "passed",
+              "durationMs": 2234.9735000000073,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371828635,
+          "endTime": 1791371856344.2686,
+          "assertions": [
+            {
+              "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+              "status": "passed",
+              "durationMs": 294.46669999999995,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+              "status": "passed",
+              "durationMs": 289.8424,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+              "status": "passed",
+              "durationMs": 158.8701000000001,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+              "status": "passed",
+              "durationMs": 10.622100000000046,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+              "status": "passed",
+              "durationMs": 8.775499999999965,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+              "status": "passed",
+              "durationMs": 153.337,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+              "status": "passed",
+              "durationMs": 155.48919999999998,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+              "status": "passed",
+              "durationMs": 153.52649999999994,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+              "status": "passed",
+              "durationMs": 143.54860000000008,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+              "status": "passed",
+              "durationMs": 21391.483699999997,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+              "status": "passed",
+              "durationMs": 234.74690000000192,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+              "status": "passed",
+              "durationMs": 16.171199999997043,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+              "status": "passed",
+              "durationMs": 16.887300000002142,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+              "status": "passed",
+              "durationMs": 134.52030000000013,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+              "status": "passed",
+              "durationMs": 194.46340000000055,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+              "status": "passed",
+              "durationMs": 147.64370000000054,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+              "status": "passed",
+              "durationMs": 143.0450000000019,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+              "status": "passed",
+              "durationMs": 135.76629999999932,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+              "status": "passed",
+              "durationMs": 137.7618999999977,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+              "status": "passed",
+              "durationMs": 140.9861000000019,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+              "status": "passed",
+              "durationMs": 143.22919999999795,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+              "status": "passed",
+              "durationMs": 158.3077000000012,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+              "status": "passed",
+              "durationMs": 157.75049999999828,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+              "status": "passed",
+              "durationMs": 303.1261999999988,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+              "status": "passed",
+              "durationMs": 275.6237000000001,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+              "status": "passed",
+              "durationMs": 137.54829999999856,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+              "status": "passed",
+              "durationMs": 137.1775000000016,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 142.59210000000166,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 135.71389999999883,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 136.8617000000013,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 140.14619999999923,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 141.85480000000098,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 144.51629999999932,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 138.89359999999942,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 135.09869999999864,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 142.0083999999988,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 136.95820000000094,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 135.7983000000022,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 140.3176999999996,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+              "status": "passed",
+              "durationMs": 326.4532999999974,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+              "status": "passed",
+              "durationMs": 232.6123000000007,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+              "status": "passed",
+              "durationMs": 104.26859999999942,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371608339,
+          "endTime": 1791371685186.1208,
+          "assertions": [
+            {
+              "name": "RRSI authenticated durable controls registers idempotently and reopens the same root without resetting scope",
+              "status": "passed",
+              "durationMs": 1410.3508,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls durably charges five ceilings before returning a fresh reservation",
+              "status": "passed",
+              "durationMs": 2388.7861,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls rejects changed payload under the same execution identity",
+              "status": "passed",
+              "durationMs": 1529.3108000000002,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls refuses forged, foreign, and changed receipt bindings before releasing budget",
+              "status": "passed",
+              "durationMs": 2510.5314000000008,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls only independent complete settlement replaces ceilings with actual usage",
+              "status": "passed",
+              "durationMs": 3293.6700999999994,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls keeps ceilings and unknown state for incomplete signed settlement 0",
+              "status": "passed",
+              "durationMs": 3564.8274,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls keeps ceilings and unknown state for incomplete signed settlement 1",
+              "status": "passed",
+              "durationMs": 3568.8311999999987,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls keeps ceilings and unknown state for incomplete signed settlement 2",
+              "status": "passed",
+              "durationMs": 3734.613300000001,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls retains independently signed overruns and blocks further admission",
+              "status": "passed",
+              "durationMs": 2772.676800000001,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls revalidates historic accepted settlement at its original acceptance time",
+              "status": "passed",
+              "durationMs": 2787.0741000000016,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls rejects expired new evidence and insufficient successful denominators",
+              "status": "passed",
+              "durationMs": 2080.3125,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls does not turn signed not-started status into completed evaluation",
+              "status": "passed",
+              "durationMs": 2294.088899999999,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls cannot reset policy or budgets by registering a new campaign ID",
+              "status": "passed",
+              "durationMs": 900.7939000000042,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls persists unknown executions and never grants dispatch on reopen",
+              "status": "passed",
+              "durationMs": 3042.0318999999945,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls prevents renamed candidate identities from obtaining another query",
+              "status": "passed",
+              "durationMs": 1445.6726999999955,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls enforces pending resource totals across unrelated slots",
+              "status": "passed",
+              "durationMs": 1562.7029000000039,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls permits one finalist and never restores final-pool queries after settlement",
+              "status": "passed",
+              "durationMs": 5545.3663000000015,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls checks exposed holdout content/source identities across renamed manifests",
+              "status": "passed",
+              "durationMs": 10242.339999999997,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls allows no refunds without an independent configured verifier",
+              "status": "passed",
+              "durationMs": 2114.177499999998,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls records training exposure across campaigns before any query starts",
+              "status": "passed",
+              "durationMs": 4129.559399999998,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls does not retire previously queried holdouts to training implicitly",
+              "status": "passed",
+              "durationMs": 3914.6772999999957,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls cannot freeze with an unresolved competitor even after selected execution settles",
+              "status": "passed",
+              "durationMs": 3218.301099999997,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls binds reservation and settlement identity to the actual Ledger root",
+              "status": "passed",
+              "durationMs": 4112.670000000013,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls cannot assign one source receipt to different executions",
+              "status": "passed",
+              "durationMs": 3864.6870999999956,
+              "failures": []
+            },
+            {
+              "name": "RRSI authenticated durable controls rejects forged storage/verification composition and changed pinned authority",
+              "status": "passed",
+              "durationMs": 817.120900000009,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371686455,
+          "endTime": 1791371732988.316,
+          "assertions": [
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 6.539300000000139,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 1.146900000000187,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.4864000000000033,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.4128000000000611,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.40190000000006876,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 1.2258999999999105,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 2.7871000000000095,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "passed",
+              "durationMs": 1045.2374000000018,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "passed",
+              "durationMs": 1864.2685999999994,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "passed",
+              "durationMs": 4727.444999999996,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "passed",
+              "durationMs": 137.59850000000006,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "passed",
+              "durationMs": 1597.6271999999954,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "passed",
+              "durationMs": 5117.423300000002,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "passed",
+              "durationMs": 3063.3603999999978,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "passed",
+              "durationMs": 1076.315999999999,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-preparation-history.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371504905,
+          "endTime": 1791371607076.653,
+          "assertions": [
+            {
+              "name": "RRSI durable preparation accounting prevents pending query capabilities from overlapping preparation admission",
+              "status": "passed",
+              "durationMs": 6083.1491,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves curriculum-planning in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 2301.902799999999,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves exploration in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 2116.9616000000005,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves candidate-proposal in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 2001.8305,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves memory-distillation in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 1895.4282999999996,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves failure-retry in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 1900.0272000000004,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting reserves environment-reset in the training/proposal budget before dispatch",
+              "status": "passed",
+              "durationMs": 1902.474900000001,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting freezes attempt and PM mapping declarations across reopen and campaign rename",
+              "status": "passed",
+              "durationMs": 3203.7979000000014,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting keeps irreversible attempts and semantic dedup after a signed not-started refund",
+              "status": "passed",
+              "durationMs": 3424.3198999999986,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting deduplicates canonical sources and inputs across reordered lists and renamed task/campaign IDs",
+              "status": "passed",
+              "durationMs": 3994.159399999997,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting holds all preparation/query/freeze admission for incomplete evidence 0",
+              "status": "passed",
+              "durationMs": 5431.730899999999,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting holds all preparation/query/freeze admission for incomplete evidence 1",
+              "status": "passed",
+              "durationMs": 5436.681100000002,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting holds all preparation/query/freeze admission for incomplete evidence 2",
+              "status": "passed",
+              "durationMs": 5458.567800000004,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting forbids copied/recovered dispatch and retains pending ceilings",
+              "status": "passed",
+              "durationMs": 4007.5926000000036,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting shares execution, receipt IDs and source receipt ownership with query reservations",
+              "status": "passed",
+              "durationMs": 5950.532999999996,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting uses separate signature domains while preserving legacy v1 bytes",
+              "status": "passed",
+              "durationMs": 4380.5913,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting retains preparation overruns and blocks every later stage",
+              "status": "passed",
+              "durationMs": 3431.593200000003,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects lower late costs after signed partial usage 1000",
+              "status": "passed",
+              "durationMs": 3943.078300000001,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects lower late costs after signed partial usage 150000",
+              "status": "passed",
+              "durationMs": 3976.521999999997,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rechecks global overrun before dispatching an earlier query capability",
+              "status": "passed",
+              "durationMs": 4199.063599999994,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rechecks global overrun before dispatching an earlier preparation capability",
+              "status": "passed",
+              "durationMs": 2583.228900000002,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting preserves authenticated pre-upgrade dispatch costs while blocking all new overrun admission",
+              "status": "passed",
+              "durationMs": 5661.153399999996,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting enforces proposal stage ceilings after prior actual costs are settled",
+              "status": "passed",
+              "durationMs": 3184.1226000000024,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting prohibits preparation after freezing a finalist",
+              "status": "passed",
+              "durationMs": 3818.760799999989,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting requires a preparation plan and prohibits late plan registration after final freeze",
+              "status": "passed",
+              "durationMs": 4542.633799999996,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects invalid sources/phase/inputs without consuming attempts 0",
+              "status": "passed",
+              "durationMs": 1470.7724000000017,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects invalid sources/phase/inputs without consuming attempts 1",
+              "status": "passed",
+              "durationMs": 1458.3420000000042,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects invalid sources/phase/inputs without consuming attempts 2",
+              "status": "passed",
+              "durationMs": 1481.4854999999952,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects invalid sources/phase/inputs without consuming attempts 3",
+              "status": "passed",
+              "durationMs": 1477.884699999995,
+              "failures": []
+            },
+            {
+              "name": "RRSI durable preparation accounting rejects invalid sources/phase/inputs without consuming attempts 4",
+              "status": "passed",
+              "durationMs": 1452.653099999996,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371134378,
+          "endTime": 1791371503355.8726,
+          "assertions": [
+            {
+              "name": "genuine Registry History backend association binds exact v2=false backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 1647.8864999999996,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association binds exact v2=true backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 14306.623500000002,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association preserves the original journal identity as valid unrelated events advance its head",
+              "status": "passed",
+              "durationMs": 14699.622800000001,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rejects another real backend with identical tenant, descriptors and campaign",
+              "status": "passed",
+              "durationMs": 21794.356399999997,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rejects a newly opened real artifact port object on the same physical store",
+              "status": "passed",
+              "durationMs": 14119.748300000007,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rejects a different genuine resolver from the same port instance rather than comparing descriptors",
+              "status": "passed",
+              "durationMs": 13856.958499999993,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rejects copied objects, callbacks, proxies and option accessors without invoking them",
+              "status": "passed",
+              "durationMs": 11842.430699999997,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rechecks actual Registry marker bytes instead of relying on construction identity",
+              "status": "passed",
+              "durationMs": 11691.342000000004,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association refuses a damaged v2 retained payload even while the source WAL remains present",
+              "status": "passed",
+              "durationMs": 14012.677899999995,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association binds a real promoted parent and refuses stale parent state after genuine rollback",
+              "status": "passed",
+              "durationMs": 59848.02210000002,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association rejects a real PM bridge on another backend before attaching the v2 parent runtime",
+              "status": "passed",
+              "durationMs": 49683.40659999999,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association keeps subclass readers rejected and original recovery/read paths independent of subclass overrides",
+              "status": "passed",
+              "durationMs": 44999.98429999998,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association never reads attacker-controlled Registry bind properties and keeps genuine transaction methods frozen",
+              "status": "passed",
+              "durationMs": 1923.0252999999793,
+              "failures": []
+            },
+            {
+              "name": "genuine Registry History backend association binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost",
+              "status": "passed",
+              "durationMs": 94549.8725,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-observed-text-exact-final.json",
+      "reporterSha256": "98e0403c2cccb78c98e6aaefb6f8f246e15b015c83fabbe8e10bbeaf91c1843e",
+      "required": true,
+      "note": "Complete exact-final 24 new cases after pre-allocation bounds, new allocation behavior and precise malformed-content assertions; no filtered cases or skips",
+      "success": true,
+      "startedAt": "2026-10-07T11:18:27.347Z",
+      "passed": 24,
+      "failed": 0,
+      "pending": 0,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791371929788,
+          "endTime": 1791372010339.7358,
+          "assertions": [
+            {
+              "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+              "status": "passed",
+              "durationMs": 3842.3307999999997,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+              "status": "passed",
+              "durationMs": 4779.411900000003,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+              "status": "passed",
+              "durationMs": 1052.077400000002,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2137.953099999999,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2552.5792999999976,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2101.8445999999967,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+              "status": "passed",
+              "durationMs": 10531.948399999994,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+              "status": "passed",
+              "durationMs": 1977.735799999995,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791372011837,
+          "endTime": 1791372060641.5623,
+          "assertions": [
+            {
+              "name": "exact UTF-8 Skill text encoding rejects oversized code units and UTF-8 bytes before allocating a Buffer",
+              "status": "passed",
+              "durationMs": 5.957699999999932,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 2.5679000000000087,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 0.3916999999999007,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.511199999999917,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.39380000000005566,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.40069999999991524,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 0.2843000000000302,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 3.6602000000000317,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "passed",
+              "durationMs": 1029.389299999999,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "passed",
+              "durationMs": 1928.3572000000022,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "passed",
+              "durationMs": 4839.8364,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "passed",
+              "durationMs": 133.02709999999934,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "passed",
+              "durationMs": 1612.7307,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "passed",
+              "durationMs": 5125.893299999996,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "passed",
+              "durationMs": 3068.361299999997,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "passed",
+              "durationMs": 1070.5622000000003,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "eslint": "passed",
+    "prettier": "passed",
+    "astraReview": "completed; declaration-only semantics, descriptor/scope/operation uniqueness, exact sourceRef ordering, fixed head before every publication and exact new-operation readback verified",
+    "finalCoverage": "111 complete unchanged old cases plus 24 exact-final new cases; no claim that the last exact-final source ran all six files together"
+  },
+  "bounds": {
+    "skillTextBytes": 1048576,
+    "rawChunkBytes": 65536,
+    "chunks": 16,
+    "restrictionRecords": 256,
+    "nativeAclBudgetsChanged": false,
+    "nativeAclTimeoutOverride": null,
+    "setupStagesMs": 60000,
+    "singleBehaviorMs": 60000,
+    "multiChunkUnitMs": 120000,
+    "maximumTextBehaviorMs": 180000,
+    "processWatchdogMs": 90000,
+    "outerProcessMs": 120000
+  },
+  "limitations": [
+    "Observed bytes authenticated means signed retained readback; text is supplied by the caller, not by an authenticated RRSI producer",
+    "Preparation association authenticates the retained declaration chain, not causal generation or a fresh budget/execution/settlement verdict",
+    "The original graph is fixed; a different genuine backend may create a separate local log but known/unknown queries always remain HOLD, with no tenant-wide uniqueness claim",
+    "No candidate alias protocol, Registry content initialization, business writer, release lease or promotion cutover was enabled",
+    "In-flight ArtifactPorts publication cannot be revoked by a later ownership/head check; uncertain/orphan artifacts are kept rather than adopted or deleted",
+    "Lost-owner injection is at the first policy owner-file read; it verifies the real artifact tree remains unchanged but does not uniquely locate the last pre-publication check",
+    "Signed association corruption is internally inconsistent goal metadata, not a complete self-consistent forged History chain attack",
+    "No dedicated independent-writer head-change fault injection was run; head/CAS protections were reviewed in source",
+    "Local HMAC/manifest replicas and process reopen do not prove production key custody, external WORM or physical power-loss durability",
+    "No Linux/macOS release matrix, actual model/cost experiment or production promotion was run"
+  ],
+  "observationBoundary": "authenticated-retained-readback",
+  "observedBytesAuthenticatedOnSuccessfulRead": true,
+  "generationProvenanceVerified": false,
+  "sourceDerivationVerified": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "originCutoverAuthenticated": false,
+  "originClassificationAvailable": false,
+  "legacyWriterDrainVerified": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}

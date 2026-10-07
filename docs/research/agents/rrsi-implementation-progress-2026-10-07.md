@@ -437,3 +437,23 @@ Registry 必须显式接收同原 policy 的真正 runtime attachment；复制�
 Astra 的下一层只读设计复核确认：Registry 文本摘要不裁剪、不统一换行；新证据需区分 skillTextDigest、rrsiManifestDigest、rrsiCandidateDigest 和 candidateId。现有 native History 仍为 nativeContentDerivationVerified:false、sourceProvenanceVerified:false，不能仅凭真正 History 品牌把内容声明升级为来源证明。真实生成／准备边界、原文 UTF-8 往返一致性、BOM/CRLF/Unicode，以及登记后公开前／alias finalize 前的未知窗口，均需在后续实施中明确；本节没有实现或授予这些能力。
 
 来源文本的有界存储还需同时满足 RRSI 单字符串最多 8192 个 JavaScript code unit，以及 ArtifactPorts 整份 canonical record 最多 1 MiB 的两处独立限额。最大 1 MiB 原文直接装入 JSON/base64 artifact 会因编码与元数据开销超过后者；后续采用独立 retained text manifest 与有限数量、有限大小的 chunk 引用，并以重建的实际原文 UTF-8 bytes 计算 skillTextDigest，不提高既有限额。当前 PM 签名执行 payload 仅含 memory／trace 摘要，learning 的签名 synthesis receipt 证明评估而非 RRSI 文本生成来源；二者均不能直接升级成来源权威。
+
+## 24 确切文本留存与固定存储图内的限制日志
+
+[rrsi-observed-text-index.js](../../../packages/cli/src/lib/evolution/rrsi-observed-text-index.js) 捕获原真正 store-policy、v2 backend、ArtifactPorts 和 resolver，不接收调用方指定的 namespace、root、tenant、摘要、来源类别或 signer。索引 ID 只从 tenant 派生，主键为 tenant＋实际 UTF-8 skillTextDigest；目标、campaign、候选名称与 alias 不参与主键。另一套真正 backend 仍可使用同 tenant 创建自己的本地日志，因此本层仅固定捕获的存储图，tenantWideIndexAuthorityVerified 始终 false。全租户唯一路由、删除后重建与迁移承接必须由后续独立部署锚认证，不能借真正 backend 品牌宣称已经完成。
+
+原文由模块严格编码并计算 SHA256，不裁剪、不统一换行、不做 Unicode normalize。保留 BOM、CRLF、组合字符与补充平面 Unicode；拒绝孤立 surrogate、空文本和超过 1 MiB 的输入。先检查 primitive string、code unit 数和 UTF-8 byteLength，再分配 Buffer；过长字符串不会先分配额外副本，多字节文本不能绕过实际字节上限。每块最多 64 KiB，最多 16 块；三个专用 Ledger retention 类型分别保存 chunk、manifest 和限制事件。大 base64 字符串采用单独的有界解析器，核对规范重编码、实际块长和块摘要；小 manifest 使用既有 RRSI envelope 限额。逐块拼接后核对完整原文长度、整文 SHA 和严格 UTF-8 往返，不提高既有 8192 code unit／1 MiB canonical record 限额。
+
+registerObservedSkillText 仅接受真实文本、原 History adapter、preparation execution ID 和有限的禁止项。History 的 captured resolvePreparation 在完整语义重放后返回真实 reservation 与登记 ref／digest／sequence；索引检查原 journal、ports／resolver、tenant／artifact scope，以及 candidate-proposal phase。第一次登记依赖这个真正只读解析器；重开时独立认证同 goal 的声明 envelope 链、descriptor、tenant＋goal scope、唯一 operation ID、事件 ID／时间戳、原 journal 和前驱摘要，要求目标声明先于文本事件且 sourceRefs 为空。回执只称 preparationDeclarationRetained，不把历史声明当成当前预算、执行、结算或因果生成证明；不持久化无法独立复算的 reservationDigest 字段。
+
+observedBytesAuthenticated:true 的含义固定为 authenticated-retained-readback：这些确切字节已签名留存并经过真实 resolver 读回。文本仍由调用者提供，尚无 RRSI producer 输入到输出的证明；generationProvenanceVerified、sourceDerivationVerified 和全租户权威保持 false，结果始终 HOLD。generation-unverified 和 rrsi-evidence-required 两项禁止必需保留，其余 source-conflict、cross-pool-exposure、publication-incomplete 只能累加。相同原文跨 goal 的声明引用追加到同一项，限制取并集；没有 ordinary、nonRrsi、off 或手工导入豁免，也没有产生允许范围的接口。
+
+在原 policy 维护锁内完整重放最多 256 条限制事件；每个 chunk／manifest／event 发布前复验锁归属与固定原 head，CAS 追加后按本次 operationId 精确核对 recordDigest。相同观察幂等，不重复发布；新限制不会因原观察重试而消失。缺块、畸形 base64／长度／UTF-8、声明或存储图变化、日志超容量均 HOLD 并保留 cause；提交响应丢失返回 commit unknown，已有记录与孤立产物保留，不回滚删除。已经进入 ArtifactPorts 的发布不能靠后检撤销；本层不承诺跨文件原子快照或物理断电证明。
+
+本批没有接入候选发布前的 alias preparation／finalization、Registry 业务布局与写者、Release lease／prepare／finalize／recovery 的来源门，旧 marker／ORIGIN_POLICY 与来源 cutover 的 false 均不改写。后续先增加可信部署锚与实际 producer 回执，再完成永久限制索引的生产路由和 alias 窗口；限制记录本身不能解除第 23 节的 empty runtime 或 mutation HOLD。
+
+本批最终共有 **135 项不同用例通过**：最终编码／原生单元 **16 项**、集成控制 **8 项**，以及四个完整既有回归文件 **111 项**（ArtifactPorts **42**、History **25**、preparation **30**、Registry／History binding **14**）。ArtifactPorts 保留原有 Windows 文件 symlink 用例跳过 1 项；新增 24 项无跳过。第一轮 7 项纯编码通过，8 项原生行为因初始化失败未执行；原因是索引回读漏掉 Ledger 对 sourceRefs 的 ref／digest 排序，已按原规范比较完整排序数组，未放宽引用校验。后续新增 20/20，通过增加三个 signed malformed 反例后的六文件组合为 **134 项通过＋1 项原有跳过**。
+
+该组合终态后，仅增加新 index 的分配前大小检查、一个 Buffer 分配边界反例，并将三个畸形内容用例收紧为精确 base64／长度错误或 ERR_ENCODING_INVALID_ENCODED_DATA cause。最终两个新文件完整 **24/24** 通过；四个旧回归文件不导入新 index，原 111 项继续计为独立证据，不宣称最后一次精确源码同时完整运行过六个文件。八个最终源码／测试摘要、两次保留的源码快照、三处严格限定的修改区间及各轮 reporter 结果见 [文本观察与限制验证记录](./evidence/rrsi-observed-text-local-controls-2026-10-07.json)。失锁注入在首次 owner 文件读取处，证明真实产物树身份和字节保持不变，但不单独定位最后发布前检查；signed association 反例为内部 goal 元数据不一致，并非完整自洽的伪造 History 链。独立 writer 改 head 的专用故障注入仍待扩展。
+
+ESLint、Prettier 和 Astra 只读复核通过。原生权限 helper 预算未改；真实进程重开使用本地测试 HMAC／manifest replicas，不认证生产密钥、外部 WORM、付费实验或 Linux/macOS 发行矩阵。当前新增来源层仍是固定存储图内的禁止性控制，完整 RRSI、部署锚、producer 来源证明、alias 与业务准入尚未完成。
