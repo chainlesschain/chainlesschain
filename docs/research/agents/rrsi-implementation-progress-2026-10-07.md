@@ -373,3 +373,21 @@ Release Registry 的 readRelease、readState、readActive、readInventory 改为
 验证共 **185 项独立用例通过**，零失败、零跳过：原同步锁与新异步锁完整 **50/50**；补强后的六文件 **101/101**，包含真实 Windows ACL 及独立权限检查；未受后续 secure/归档补强影响的 v1/v2 ports 与 Registry/History 三文件 **34/34**。新增 21 项，扩展原同步 ownership 断言和 legacy archive 的两个 owner-token 替换场景。原先完整组合 run 为 124 项通过、1 项失败：child fixture 的 rollback operationId 含空格，被原请求校验器在写边界之前拒绝；改成合法 test:child:rollback:id 后独立进程完整复测通过，未放宽任何校验、skip 或时限。
 
 新用例直接验证另一个进程中已打开的 candidate/rollback writer 在维护期间不能写入、维护 owner 活着时不能回收，以及 SIGKILL 确认退出后回收两个原锁。ACL mock 的调用排他与真实 Windows 权限检查分别记录；真实权限不证明模型/来源/账单或生产权威。ESLint、Prettier 与 Astra 最终复核通过，逐文件结果、源码摘要和首次用例错误见 [参与写者验证记录](./evidence/rrsi-registry-writer-local-controls-2026-10-07.json)。本批没有安装永久来源索引或新 marker，也未完成生产 cutover、enforced、Review/Pilot/Promotion 必需门或真实效果试验。
+
+## 21 新存储的前置登记与配对标记
+
+[rrsi-registry-store-policy.js](../../../packages/cli/src/lib/evolution/rrsi-registry-store-policy.js) 在构造 Registry 之前捕获真正的 v2 backend、原 journal、ArtifactPorts 与原 resolver，逐项核验 tenant/artifact tenant/audience/purpose，不依赖已构造的 v1 Registry 或 campaign root。新的专用 store-policy artifact 使用 Ledger retention，并由原 resolver 回读真实 canonical wrapper；独立 domain event 保存 prepared→markers-installed→committed 三个阶段。完整连续日志重放检查阶段、确定性事件 ID、前驱记录与产物引用、原 journal identity 和紧邻的 observed head，写入使用 head/sequence CAS。
+
+调用者仅提供已有绝对父目录和 operation ID；创建前及恢复时只读检查父目录身份和 owner-only 权限，不自动修复调用者目录。模块生成随机 namespace 与两个 store ID，通过非递归 mkdir 创建全新候选、发布目录；拒绝嵌套进已知 Ledger、Registry 或 pair namespace。既有根、空目录声明、quiescent:true、caller RNG 或旧存储升级均不是入口。准备记录固定物理目录身份和来源策略，两个 v2 marker 绑定 tenant、store/peer、原 journal identity、operation、epoch、writer floor=2、策略与准备摘要，通过单次原子 hardlink 公开，不覆盖旧初始化器抢先安装的 v1 marker。mkdir、ACL 修改、临时文件写入、link 和 unlink 前均复验实际锁及目录身份；失锁后保留 debris，不修改新 owner 的文件。
+
+committed 仅表示新物理存储配对创建已认证，并不表示来源切换或业务准入完成。当前 Registry 的 v1 marker 构造入口拒绝这些 v2 marker；尚未接入可用的 v2 Registry reader/writer、永久 tenant＋contentDigest 来源索引、候选 alias finalize、晋级 lease 内来源复验或 Review/Pilot/Promotion 必需门。模块外的旧构造入口尚不能仅凭这一层阻止“删除 marker 后尝试 v1 初始化”；下一批必须为保留 namespace 加入不可省略的真正 policy binding，再衔接实际业务读写。
+
+恢复只认同一准备记录、原目录及预期 marker 字节。prepared-only 时两端预期 v2 marker 均以单链接存在，可建立首次 marker 身份证明并补记后续阶段；这不能证明首次身份登记前未发生同字节替换。已有 markers-installed 认证身份后，同字节 marker 更换 inode 亦 HOLD。任一 marker 缺失、未知临时文件、双链接残留或目录身份变化都拒绝恢复，不重新生成 ID、不修复缺失 marker、不删除另一端。准备记录之前失败的目录保留为 orphan，不扫描接管或递归清理。提交响应丢失仅允许按原操作回读恢复；off 或换 backend 不产生来源豁免。
+
+bootstrapDirectoryFsyncVerified 仅记录创建目录项时的实际刷新结果；markerDirectoryFsyncAttested 保持 false，不将 Node 在 Windows 上无法刷新目录的情况改写为成功。文件 fsync、认证日志及回读检查均不代替真实断电、生产密钥保管或 WORM 证明。legacyWriterDrainVerified、originCutoverAuthenticated、originClassificationAvailable、productionAuthorityVerified、业务写权限与晋级资格继续为 false。既有 v1 升级仍需持续有效的原生旧写者排除能力；已有 cgroup、Job、宿主 lease 和本批维护锁都不覆盖全部历史写者。
+
+本批本地验证共有 **98 项不同用例取得通过结果**：新增最终单元行为 **25 项**、真实子进程 **3 项**，既有 ArtifactPorts **42 项**、v2 journal **14 项**和 Registry/History 关联 **14 项**。ArtifactPorts 原有 Windows 条件 symlink 用例跳过 1 项；没有新增平台 skip。受影响用例按原门槛分批复测，不宣称最终一次完整组合 run 全绿；定向选择未执行的其它用例不计为新的平台跳过。
+
+初轮新单元 **15/15**；既有回归曾为 69 项通过、1 项失败及 1 项原有跳过，失败来自固定 retention 白名单期望缺少本批合法类型，补上精确一项后完整文件 **42/42** 通过。后续原生组合 **16/23** 通过：包含 helper 启动失败、未保留原生细节的 parent HOLD、三个原 60 秒超时被 Vitest 的 STACK_TRACE_ERROR 报告问题掩盖，以及 v1 竞争断言吞掉前置错误后的次生异常。加强 ownership 观察的定向 run 为 3 项通过、1 项 fixture 初始化失败。串行受影响用例 6/8 通过，剩余两个复合用例仅超原时限；去重后的复测亦有这两个超时，未放宽检查或时限。
+
+Astra 参与诊断、实现复核和测试拆分。两个复合用例拆为六项独立行为，保留全部断言；真实 backend 初始化、真实 provisioning 两个准备操作各自保持 60 秒预算，回读用例也各 60 秒。共享 fixture 生命周期明确，不依赖某个测试先执行。先前合并 setup 的 beforeAll 超时使五项未执行，不算通过；拆分后五项回读全部通过。新 ancestry 回归在真正权限检查之后、同 inode 下插入 Registry 标记，确认没有 namespace 或日志写入。v1 竞争现在要求真实 EEXIST 和已注入的 winner；ownership 观察原生权限修改调用，失锁后为零。提交前 ESLint、Prettier 与 Astra 复核通过，六个改动源码/测试文件的摘要和逐次结果见 [新存储初始化验证记录](./evidence/rrsi-registry-store-policy-local-controls-2026-10-07.json)。这些证据不替代生产来源、旧写者排空、真实效果试验或发行矩阵。

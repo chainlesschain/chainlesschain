@@ -616,6 +616,7 @@ describe("EvolutionArtifactPorts", () => {
       "evolution-ledger-v2-journal",
       "evolution-run-event",
       "rrsi-history-event",
+      "skill-registry-store-policy",
       "pm-exploration-recovery-snapshot",
       "pm-exploration-provider-settlement",
       "evolution-eval-child-evidence",

@@ -1,0 +1,1614 @@
+{
+  "schema": "chainlesschain.rrsi-registry-store-policy-local-controls/v1",
+  "date": "2026-10-07",
+  "sourceCommitBeforeBatch": "2b83a1986a872bc3ed3d5c12a02fb5879d1492a3",
+  "branch": "main",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2"
+  },
+  "validation": {
+    "distinctPassingCases": 98,
+    "allRequiredCasesHavePassingResult": true,
+    "finalSingleFullRunClaimed": false,
+    "newDistinctCases": 28,
+    "regressionDistinctPassingCases": 70,
+    "originalWindowsConditionalSkips": 1,
+    "newPlatformSkips": 0,
+    "selectionExclusionsAreNotPlatformSkips": true
+  },
+  "controls": [
+    "original-v2-backend-artifact-graph",
+    "fresh-random-nonrecursive-namespace",
+    "native-parent-permission-readback",
+    "three-retained-phases-and-head-cas",
+    "v2-paired-marker-no-clobber",
+    "hold-on-missing-marker-or-publication-debris",
+    "pin-marker-inode-after-markers-installed",
+    "original-operation-response-loss-recovery",
+    "stop-mutation-after-owner-token-replacement",
+    "real-child-reopen-live-exclusion-and-confirmed-exit"
+  ],
+  "scope": {
+    "localControlsOnly": true,
+    "testOnlyHmacAuthorities": true,
+    "productionAuthorityVerified": false,
+    "wormOrPowerLossVerified": false,
+    "originAdmissionImplemented": false,
+    "registryV2BusinessAdmissionImplemented": false,
+    "legacyStoreUpgradeImplemented": false,
+    "legacyWriterDrainVerified": false,
+    "qualifiesForPromotion": false,
+    "fullRrsiGoalCompleted": false
+  },
+  "boundaries": [
+    "Prepared-only recovery authenticates expected bytes and original directory identities, then establishes the first marker file identities; it does not prove no earlier same-bytes replacement.",
+    "Existing Registry constructors reject the v2 markers; component binding, reserved namespace fallback protection and runtime inventory remain follow-up work.",
+    "Bootstrap directory flush measurement does not attest marker directory fsync or physical power-loss durability."
+  ],
+  "verificationNotes": [
+    "Initial regression failure was an exact retention allowlist test missing the new dedicated legal type; one expected entry was added and the complete file rerun.",
+    "Intermediate native runs included helper startup failures, a generic parent-permission HOLD whose native detail was not preserved, three original 60-second test timeouts with Vitest STACK_TRACE_ERROR reporting, and a secondary undefined prepared-record error in the formerly broad v1-race assertion.",
+    "Astra confirmed the permission result schema and the Vitest timeout stack/report defect. No validator, native helper budget, test deadline or platform condition was loosened.",
+    "Only affected cases were retried serially. Ownership tests gained native permission-call observation, and the v1 race now requires EEXIST and an actual injected winner; the modified cases were checked separately.",
+    "Two monolithic behavior tests were replaced by six focused cases with all assertions retained. Native backend initialization and real provisioning now each have their own unchanged 60-second setup budget; each behavior case and all native helper deadlines remain unchanged. One ancestor-after-inspection case was added without platform skips.",
+    "An intermediate shared-fixture beforeAll containing both native setup operations exceeded its original 60-second budget and left five cases unexecuted; the final setup stages are independent, and no passing claim is made for that failed run.",
+    "Committed idempotent finish now returns its first complete bookended readback instead of repeating an identical read with no intervening mutation. Protected ancestor layouts are rejected before the native helper, and valid fresh requests repeat the ancestry check afterward before allocation."
+  ],
+  "reviews": {
+    "astra": "read-only review completed; required implementation findings fixed, documented prepared-only identity limit corrected"
+  },
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+      "sha256": "74efa120354cc16799c3605e30c085922d23de357a2141a8bc50affe6f431b04"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "43d55f43a375630aa414a2da86df9afd4105595351442fd6667520a52c350bba"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+      "sha256": "998416aec61460eff57c4c7131d5d940042e109909ce074b8f6583ccc892363f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "865c560b4be82be9f4b590e669033d243d2b84bf70c3afae8144afdc5cedf8ec"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-registry-store-policy-process.mjs",
+      "sha256": "16b56cfcba91af95dce1054efe354195c5922c8741b1ed354d8a3ea38502e25d"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-registry-store-policy-process.test.js",
+      "sha256": "85a2bd8d90fe718d3e6f11c83a9cb6a68246422dba4fe5f6dc6af3eac8232ace"
+    }
+  ],
+  "runs": [
+    {
+      "name": "initial-new-unit",
+      "success": true,
+      "failedSuites": 0,
+      "passed": 15,
+      "failed": 0,
+      "excludedByRunOrPlatform": 0,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains three ordered phases, installs independent v2 floors, and reopens only the original physical pair",
+              "status": "passed",
+              "durationMs": 36738.419299999994
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "passed",
+              "durationMs": 14222.1322
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot select an existing root, nest in Ledger or Registry storage, or reset the registered operation",
+              "status": "passed",
+              "durationMs": 40211.08639999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "passed",
+              "durationMs": 29763.2785
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "passed",
+              "durationMs": 37922.3774
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "passed",
+              "durationMs": 38948.392500000016
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "passed",
+              "durationMs": 33306.35130000001
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "passed",
+              "durationMs": 34073.89190000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "passed",
+              "durationMs": 42478.90479999996
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "passed",
+              "durationMs": 50674.12229999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "passed",
+              "durationMs": 52390.04229999997
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "passed",
+              "durationMs": 40534.3027
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "passed",
+              "durationMs": 44313.360600000015
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "passed",
+              "durationMs": 11096.752500000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "passed",
+              "durationMs": 38891.41129999998
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "initial-regressions",
+      "success": false,
+      "failedSuites": 2,
+      "passed": 69,
+      "failed": 1,
+      "excludedByRunOrPlatform": 1,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+              "status": "passed",
+              "durationMs": 296.6059
+            },
+            {
+              "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+              "status": "passed",
+              "durationMs": 289.34889999999996
+            },
+            {
+              "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+              "status": "passed",
+              "durationMs": 153.13309999999979
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+              "status": "passed",
+              "durationMs": 10.535799999999881
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+              "status": "passed",
+              "durationMs": 9.646799999999985
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+              "status": "passed",
+              "durationMs": 159.7092
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+              "status": "passed",
+              "durationMs": 155.42809999999986
+            },
+            {
+              "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+              "status": "passed",
+              "durationMs": 151.90069999999992
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+              "status": "passed",
+              "durationMs": 139.38219999999978
+            },
+            {
+              "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+              "status": "failed",
+              "durationMs": 28.06970000000001,
+              "failure": [
+                "AssertionError: expected [ …(56) ] to deeply equal [ …(55) ]"
+              ]
+            },
+            {
+              "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+              "status": "passed",
+              "durationMs": 249.71469999999977
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+              "status": "passed",
+              "durationMs": 17.76780000000008
+            },
+            {
+              "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+              "status": "passed",
+              "durationMs": 18.184099999999944
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+              "status": "passed",
+              "durationMs": 141.49680000000035
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+              "status": "passed",
+              "durationMs": 197.02289999999994
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+              "status": "passed",
+              "durationMs": 152.30299999999988
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+              "status": "passed",
+              "durationMs": 142.92889999999989
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+              "status": "passed",
+              "durationMs": 135.89519999999993
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+              "status": "skipped"
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+              "status": "passed",
+              "durationMs": 141.20180000000028
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+              "status": "passed",
+              "durationMs": 157.5531000000001
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+              "status": "passed",
+              "durationMs": 138.6911
+            },
+            {
+              "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+              "status": "passed",
+              "durationMs": 162.62429999999995
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+              "status": "passed",
+              "durationMs": 152.55330000000004
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+              "status": "passed",
+              "durationMs": 294.90779999999995
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+              "status": "passed",
+              "durationMs": 272.4971000000005
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+              "status": "passed",
+              "durationMs": 143.58789999999954
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+              "status": "passed",
+              "durationMs": 141.78729999999996
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 148.52819999999974
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 140.26770000000033
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 140.38790000000063
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 146.8130000000001
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 149.10289999999986
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 139.78519999999935
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 137.63420000000042
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 135.21249999999964
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 135.8149000000003
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 139.21309999999994
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 155.52379999999994
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 139.8847999999998
+            },
+            {
+              "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+              "status": "passed",
+              "durationMs": 318.8234000000002
+            },
+            {
+              "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+              "status": "passed",
+              "durationMs": 225.83899999999994
+            },
+            {
+              "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+              "status": "passed",
+              "durationMs": 105.9393999999993
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "production v2 ledger payload journal and cutover recovers complete payloads from a fresh manifest process without opening the offline v1 WAL",
+              "status": "passed",
+              "durationMs": 10947.779
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover migrates and reopens existing slash-bearing tenant, artifact and audience scopes",
+              "status": "passed",
+              "durationMs": 10354.2322
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover migrates signed v1 payloads once, finalizes one live batch once, and recovers the exact bytes in a fresh process",
+              "status": "passed",
+              "durationMs": 12966.193699999996
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover recovers crash-intent after signed WAL witness publication without duplicating migration records",
+              "status": "passed",
+              "durationMs": 9788.934800000003
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover recovers crash-completed after signed WAL witness publication without duplicating migration records",
+              "status": "passed",
+              "durationMs": 9115.455699999999
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover resumes migration idempotently after after-retain loses its acknowledgement",
+              "status": "passed",
+              "durationMs": 7725.344600000004
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover resumes migration idempotently after after-catalog loses its acknowledgement",
+              "status": "passed",
+              "durationMs": 7253.714899999999
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover resumes migration idempotently after after-head loses its acknowledgement",
+              "status": "passed",
+              "durationMs": 8180.508799999996
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover resumes migration idempotently after after-witness loses its acknowledgement",
+              "status": "passed",
+              "durationMs": 9688.375799999994
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover reports a partially witnessed v1 batch as unknown and recovers only the authenticated prefix without duplicates",
+              "status": "passed",
+              "durationMs": 10397.508499999996
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover recovers a killed process at crash-live-wal",
+              "status": "passed",
+              "durationMs": 9160.617499999993
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover recovers a killed process at crash-live-manifest",
+              "status": "passed",
+              "durationMs": 10399.903900000005
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover fails closed on structural authorities, oversized batches, rebinding, and completed-backend rollback",
+              "status": "passed",
+              "durationMs": 16592.00959999999
+            },
+            {
+              "name": "production v2 ledger payload journal and cutover refuses tampered payload bytes even when v1 WAL and signed manifest files remain intact",
+              "status": "passed",
+              "durationMs": 7339.5118000000075
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "genuine Registry History backend association binds exact v2=false backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 1820.2648999999992
+            },
+            {
+              "name": "genuine Registry History backend association binds exact v2=true backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 11725.914699999998
+            },
+            {
+              "name": "genuine Registry History backend association preserves the original journal identity as valid unrelated events advance its head",
+              "status": "passed",
+              "durationMs": 13615.655999999999
+            },
+            {
+              "name": "genuine Registry History backend association rejects another real backend with identical tenant, descriptors and campaign",
+              "status": "passed",
+              "durationMs": 24193.701
+            },
+            {
+              "name": "genuine Registry History backend association rejects a newly opened real artifact port object on the same physical store",
+              "status": "passed",
+              "durationMs": 10548.811600000008
+            },
+            {
+              "name": "genuine Registry History backend association rejects a different genuine resolver from the same port instance rather than comparing descriptors",
+              "status": "passed",
+              "durationMs": 10374.396899999992
+            },
+            {
+              "name": "genuine Registry History backend association rejects copied objects, callbacks, proxies and option accessors without invoking them",
+              "status": "passed",
+              "durationMs": 11418.5003
+            },
+            {
+              "name": "genuine Registry History backend association rechecks actual Registry marker bytes instead of relying on construction identity",
+              "status": "passed",
+              "durationMs": 12981.818800000008
+            },
+            {
+              "name": "genuine Registry History backend association refuses a damaged v2 retained payload even while the source WAL remains present",
+              "status": "passed",
+              "durationMs": 12046.215499999991
+            },
+            {
+              "name": "genuine Registry History backend association binds a real promoted parent and refuses stale parent state after genuine rollback",
+              "status": "passed",
+              "durationMs": 54504.7105
+            },
+            {
+              "name": "genuine Registry History backend association rejects a real PM bridge on another backend before attaching the v2 parent runtime",
+              "status": "passed",
+              "durationMs": 52957.538700000005
+            },
+            {
+              "name": "genuine Registry History backend association keeps subclass readers rejected and original recovery/read paths independent of subclass overrides",
+              "status": "passed",
+              "durationMs": 60133.98759999999
+            },
+            {
+              "name": "genuine Registry History backend association never reads attacker-controlled Registry bind properties and keeps genuine transaction methods frozen",
+              "status": "passed",
+              "durationMs": 3149.8484999999637
+            },
+            {
+              "name": "genuine Registry History backend association binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost",
+              "status": "passed",
+              "durationMs": 95502.22749999998
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "artifact-whitelist-corrected",
+      "success": true,
+      "failedSuites": 0,
+      "passed": 42,
+      "failed": 0,
+      "excludedByRunOrPlatform": 1,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+              "status": "passed",
+              "durationMs": 333.0517
+            },
+            {
+              "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+              "status": "passed",
+              "durationMs": 337.9217000000003
+            },
+            {
+              "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+              "status": "passed",
+              "durationMs": 181.3230999999996
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+              "status": "passed",
+              "durationMs": 10.9716999999996
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+              "status": "passed",
+              "durationMs": 9.854100000000017
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+              "status": "passed",
+              "durationMs": 177.81629999999996
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+              "status": "passed",
+              "durationMs": 184.6912000000002
+            },
+            {
+              "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+              "status": "passed",
+              "durationMs": 171.60550000000012
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+              "status": "passed",
+              "durationMs": 163.86860000000024
+            },
+            {
+              "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+              "status": "passed",
+              "durationMs": 25797.666400000002
+            },
+            {
+              "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+              "status": "passed",
+              "durationMs": 256.7502999999997
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+              "status": "passed",
+              "durationMs": 18.6762000000017
+            },
+            {
+              "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+              "status": "passed",
+              "durationMs": 17.962800000001153
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+              "status": "passed",
+              "durationMs": 147.44710000000123
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+              "status": "passed",
+              "durationMs": 200.44420000000173
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+              "status": "passed",
+              "durationMs": 140.4998999999989
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+              "status": "passed",
+              "durationMs": 149.08749999999782
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+              "status": "passed",
+              "durationMs": 132.16719999999987
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+              "status": "skipped"
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+              "status": "passed",
+              "durationMs": 141.6857999999993
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+              "status": "passed",
+              "durationMs": 140.76590000000215
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+              "status": "passed",
+              "durationMs": 149.66569999999774
+            },
+            {
+              "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+              "status": "passed",
+              "durationMs": 179.85489999999845
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+              "status": "passed",
+              "durationMs": 172.16999999999825
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+              "status": "passed",
+              "durationMs": 357.1975999999995
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+              "status": "passed",
+              "durationMs": 279.6596000000027
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+              "status": "passed",
+              "durationMs": 155.0710999999974
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+              "status": "passed",
+              "durationMs": 144.30169999999998
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 148.14879999999903
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 148.89480000000185
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 146.62189999999828
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 149.57660000000033
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 142.6189000000013
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 137.87479999999778
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 133.22509999999966
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 139.22430000000168
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 146.8521000000037
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 136.8940999999977
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 132.60130000000208
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 131.09240000000136
+            },
+            {
+              "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+              "status": "passed",
+              "durationMs": 323.28570000000036
+            },
+            {
+              "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+              "status": "passed",
+              "durationMs": 244.1718999999939
+            },
+            {
+              "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+              "status": "passed",
+              "durationMs": 107.61180000000604
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "new-full-controls",
+      "success": false,
+      "failedSuites": 2,
+      "passed": 16,
+      "failed": 7,
+      "excludedByRunOrPlatform": 0,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-registry-store-policy-process.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "Registry store policy native process lifetime and reopen provisions in a real child and reads the same physical pair in another process",
+              "status": "passed",
+              "durationMs": 67448.9176
+            },
+            {
+              "name": "Registry store policy native process lifetime and reopen denies a second live policy process until the original installer leaves both publication boundaries",
+              "status": "passed",
+              "durationMs": 50901.71710000001
+            },
+            {
+              "name": "Registry store policy native process lifetime and reopen reclaims only a confirmed dead owner and leaves partial publication on HOLD",
+              "status": "passed",
+              "durationMs": 52571.33780000001
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains three ordered phases, installs independent v2 floors, and reopens only the original physical pair",
+              "status": "failed",
+              "durationMs": 96805.20310000001,
+              "failure": [
+                "RrsiContractError: provisioning parent must have verified owner-only permissions"
+              ]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "passed",
+              "durationMs": 20353.3272
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot select an existing root, nest in Ledger or Registry storage, or reset the registered operation",
+              "status": "failed",
+              "durationMs": 67082.76830000001,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "passed",
+              "durationMs": 49447.6501
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "failed",
+              "durationMs": 85019.9614,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "passed",
+              "durationMs": 47750.32400000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "passed",
+              "durationMs": 35731.17960000003
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "failed",
+              "durationMs": 52967.033200000005,
+              "failure": [
+                "TypeError: Cannot read properties of undefined (reading 'epoch')"
+              ]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "failed",
+              "durationMs": 36645.294200000004,
+              "failure": [
+                "AssertionError: expected [Function] to throw error matching /second marker cleanup/ but got 'owner-only ACL process failed [window…'"
+              ]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "passed",
+              "durationMs": 46835.18590000004
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "failed",
+              "durationMs": 81294.74959999998,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "passed",
+              "durationMs": 37505.56469999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "passed",
+              "durationMs": 53552.610600000015
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "passed",
+              "durationMs": 10605.898599999957
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "passed",
+              "durationMs": 45459.65019999992
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "failed",
+              "durationMs": 72992.69850000006,
+              "failure": [
+                "Error: owner-only ACL process failed [windows-acl:timeout-startup]"
+              ]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 24925.421100000036
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 31700.365099999937
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 35010.04639999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 34217.21799999999
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "stronger-ownership-observation",
+      "success": false,
+      "failedSuites": 2,
+      "passed": 3,
+      "failed": 1,
+      "excludedByRunOrPlatform": 16,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains three ordered phases, installs independent v2 floors, and reopens only the original physical pair",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot select an existing root, nest in Ledger or Registry storage, or reset the registered operation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 15127.705199999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "failed",
+              "durationMs": 31675.6752,
+              "failure": [
+                "Error: owner-only ACL process failed [windows-acl:timeout-startup]"
+              ]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 36640.18830000001
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 33251.312900000004
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "serial-affected-retry",
+      "success": false,
+      "failedSuites": 2,
+      "passed": 6,
+      "failed": 2,
+      "excludedByRunOrPlatform": 12,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains three ordered phases, installs independent v2 floors, and reopens only the original physical pair",
+              "status": "failed",
+              "durationMs": 65077.65,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot select an existing root, nest in Ledger or Registry storage, or reset the registered operation",
+              "status": "failed",
+              "durationMs": 61116.3603,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "passed",
+              "durationMs": 50036.44559999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "passed",
+              "durationMs": 31972.56109999999
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "passed",
+              "durationMs": 39734.028699999995
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "passed",
+              "durationMs": 43085.851799999975
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "passed",
+              "durationMs": 58452.28880000004
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "passed",
+              "durationMs": 27900.209499999997
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "committed-readback-dedup-and-stronger-v1-race",
+      "success": false,
+      "failedSuites": 2,
+      "passed": 2,
+      "failed": 2,
+      "excludedByRunOrPlatform": 16,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains three ordered phases, installs independent v2 floors, and reopens only the original physical pair",
+              "status": "failed",
+              "durationMs": 106598.5267,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot select an existing root, nest in Ledger or Registry storage, or reset the registered operation",
+              "status": "failed",
+              "durationMs": 77180.95430000001,
+              "failure": ["Error: STACK_TRACE_ERROR"]
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "passed",
+              "durationMs": 39503.30530000001
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "passed",
+              "durationMs": 48061.318299999984
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "split-behaviors-and-ancestry-regression",
+      "success": false,
+      "failedSuites": 3,
+      "passed": 2,
+      "failed": 0,
+      "excludedByRunOrPlatform": 23,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment retains three ordered phases and installs independent v2 floors",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment idempotently recovers and genuinely reopens only the original physical pair with branded handles",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment verifies native private permissions and rejects the unchanged v1 constructors",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment cannot reset the registered operation or select a different parent",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment rejects nesting a second policy inside Registry or pair storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction unregistered provisioning input rejection rejects caller-selected roots, invalid parents and protected Ledger storage before allocation",
+              "status": "passed",
+              "durationMs": 1479.9756000000052
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rechecks Registry ancestry after native parent inspection before creating a pair",
+              "status": "passed",
+              "durationMs": 18054.208100000003
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shared-fixture-hook-retry",
+      "success": false,
+      "failedSuites": 3,
+      "passed": 0,
+      "failed": 0,
+      "excludedByRunOrPlatform": 25,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "failed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment retains three ordered phases and installs independent v2 floors",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment idempotently recovers and genuinely reopens only the original physical pair with branded handles",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment verifies native private permissions and rejects the unchanged v1 constructors",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment cannot reset the registered operation or select a different parent",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment rejects nesting a second policy inside Registry or pair storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction unregistered provisioning input rejection rejects caller-selected roots, invalid parents and protected Ledger storage before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rechecks Registry ancestry after native parent inspection before creating a pair",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "separate-setup-operations-and-shared-behaviors",
+      "success": true,
+      "failedSuites": 0,
+      "passed": 5,
+      "failed": 0,
+      "excludedByRunOrPlatform": 20,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "passed",
+          "cases": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment retains three ordered phases and installs independent v2 floors",
+              "status": "passed",
+              "durationMs": 148.8251999999993
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment idempotently recovers and genuinely reopens only the original physical pair with branded handles",
+              "status": "passed",
+              "durationMs": 10598.908500000005
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment verifies native private permissions and rejects the unchanged v1 constructors",
+              "status": "passed",
+              "durationMs": 9022.433899999989
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment cannot reset the registered operation or select a different parent",
+              "status": "passed",
+              "durationMs": 1192.167499999996
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment rejects nesting a second policy inside Registry or pair storage",
+              "status": "passed",
+              "durationMs": 16191.382700000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction unregistered provisioning input rejection rejects caller-selected roots, invalid parents and protected Ledger storage before allocation",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rechecks Registry ancestry after native parent inspection before creating a pair",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped"
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
