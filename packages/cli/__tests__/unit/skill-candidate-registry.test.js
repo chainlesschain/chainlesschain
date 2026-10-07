@@ -29,6 +29,7 @@ import {
   SkillCandidateRegistry,
   buildSkillCandidateDraft,
   captureSkillCandidateRegistryReader,
+  captureSkillCandidateRegistryWriterControl,
   deriveSkillCandidateTenantKey,
   verifyLegacySkillCandidateDraft,
   verifySkillCandidateDraft,
@@ -329,6 +330,29 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
+  it("waits for participating writer exclusion before hardening existing constructor directories", async () => {
+    const execution = executionFixture();
+    const options = registryOptions(TENANT_ALPHA, [execution], {
+      rootDir: registryBase,
+      secure: true,
+    });
+    const registry = new SkillCandidateRegistry(options);
+    const marker = fs.readFileSync(path.join(registry.rootDir, "_tenant.json"));
+    const writer = captureSkillCandidateRegistryWriterControl(registry);
+    await writer.maintainAsync(() => {
+      secureFsMocks.ensurePrivateDirectory.mockClear();
+      expect(() => new SkillCandidateRegistry(options)).toThrow(
+        /could not be initialized safely/,
+      );
+      expect(secureFsMocks.ensurePrivateDirectory).not.toHaveBeenCalled();
+      expect(
+        fs.readFileSync(path.join(registry.rootDir, "_tenant.json")),
+      ).toEqual(marker);
+    });
+    new SkillCandidateRegistry(options);
+    expect(secureFsMocks.ensurePrivateDirectory).toHaveBeenCalledTimes(3);
+  });
+
   it("builds deterministic immutable v2 candidates with complete execution artifacts", () => {
     const execution = executionFixture();
     const evidence = [
@@ -452,9 +476,9 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     ).candidate;
     const reader = captureSkillCandidateRegistryReader(registry);
 
-    expect(reader.readInventory().map(({ candidateId }) => candidateId)).toEqual(
-      [first.candidateId, second.candidateId].sort(),
-    );
+    expect(
+      reader.readInventory().map(({ candidateId }) => candidateId),
+    ).toEqual([first.candidateId, second.candidateId].sort());
     expect(reader).not.toHaveProperty("list");
 
     const originalOpen = registry._fs.opendirSync.bind(registry._fs);

@@ -12,14 +12,14 @@
 
 准备阶段的声明与耐久计账覆盖课程规划、探索、候选提议、记忆蒸馏、失败重试和环境重置，具有不可退还的尝试次数、跨改名请求去重、独立准备结算签名域，以及准备/筛选间的未结算阻断。本轮新增既有 PM host 的 broad round 桥接与结构训练映射；真实来源、模型、价格、父版本及生产隔离认证仍未完成。
 
-| 批次  | 状态                               | 已交付                                                                                         | 尚需完成                                                             |
-| ----- | ---------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| RR-01 | 部分完成                           | 严格合同、五池隔离、公共预算、统计计划、只读有效父版本绑定及合成回放                           | 父版本生产权威/锚点稳定性、独立私有来源、operator 签发和部署准入     |
-| RR-02 | 耐久控制与 PM broad 接线已实施     | 三阶段预占、原生三角批次/逐臂记账、签名结算、PM host/journal 及 off/shadow 组装                | 其他准备操作、生产隔离与完整账单接线、逐轮停止判定、完整生产权威组装 |
-| RR-03 | 原生控制、统计 v2 与预注册已实施 | 五池双射、三角计划、逐臂预算、签名准入/行/census、统计 v2、耐久预注册、固定 HOLD 质量回执 | 真实来源/费用、正式校准、端到端效果及有效质量 PASS |
-| RR-04 | 待实施                             | 现有正式晋级门保持原语义                                                                       | Release Train、Review、Workbench、Pilot 与回滚接线                   |
-| RR-05 | 待目标条件就绪                     | 合成三组计划可冻结                                                                             | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用              |
-| RR-06 | 待实施                             | 原准确提交的 CI 与 OIDC 发行要求继续适用                                                       | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                   |
+| 批次  | 状态                             | 已交付                                                                                    | 尚需完成                                                             |
+| ----- | -------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| RR-01 | 部分完成                         | 严格合同、五池隔离、公共预算、统计计划、只读有效父版本绑定及合成回放                      | 父版本生产权威/锚点稳定性、独立私有来源、operator 签发和部署准入     |
+| RR-02 | 耐久控制与 PM broad 接线已实施   | 三阶段预占、原生三角批次/逐臂记账、签名结算、PM host/journal 及 off/shadow 组装           | 其他准备操作、生产隔离与完整账单接线、逐轮停止判定、完整生产权威组装 |
+| RR-03 | 原生控制、统计 v2 与预注册已实施 | 五池双射、三角计划、逐臂预算、签名准入/行/census、统计 v2、耐久预注册、固定 HOLD 质量回执 | 真实来源/费用、正式校准、端到端效果及有效质量 PASS                   |
+| RR-04 | 待实施                           | 现有正式晋级门保持原语义                                                                  | Release Train、Review、Workbench、Pilot 与回滚接线                   |
+| RR-05 | 待目标条件就绪                   | 合成三组计划可冻结                                                                        | 真实 PM 的 A/B/C 对照、完整费用、一次性未见集审计和试用              |
+| RR-06 | 待实施                           | 原准确提交的 CI 与 OIDC 发行要求继续适用                                                  | CLI 任务族、目标矩阵、完整 Actions、发行和公开回读                   |
 
 ## 2 代码落点
 
@@ -309,7 +309,7 @@ controlledHistoryRegistrationOrderVerified:true 仅说明已认证 History 中�
 
 Astra 的治理复核确认：旧候选冻结只核验结算，不能据此认定质量通过；新预注册分支的拒绝门见第 18 节。候选来源引用与 derivationMode 参与 candidateId，contentDigest 则只由内容字节计算；改变引用、模式或包装可能产生新 ID，因此新增来源约束必须在真正 Registry 存储与写边界按内容摘要查询。来源登记本身不证明质量；旧冻结、普通 callback、相同租户或相同路径都不能授予新晋级权限。新增质量回执须保留原 Gate veto、完整分母与费用缺口，再接入 Release/Review/Pilot/恢复路径。
 
-transaction ports 对真正 v2 journal 的捕获及 Registry/History/backend 关联已接线，详见第 19 节。下一增量接入持久 store identity、writer floor 和来源 cutover。现有 `_tenant.json` 的严格 v1 校验同时用于构造、read 和 write；升级 marker 可以拒绝旧 writer，也会拒绝旧二进制的 read。因此后续须让新 reader 兼容旧 candidate/release/state 字节，并准备维护排空与跨存储恢复协议。新增可删除 sidecar、普通 migration audit 或仅凭路径相等均不能建立不可降级来源门；本批未切换任何生产存储。
+transaction ports 对真正 v2 journal 的捕获及 Registry/History/backend 关联已接线，详见第 19 节；参与写者的维护排他过渡层见第 20 节。下一增量接入持久 store identity、writer floor 和来源 cutover。现有 `_tenant.json` 的严格 v1 校验同时用于构造、read 和 write；升级 marker 可以拒绝旧 writer，也会拒绝旧二进制的 read。因此后续须让新 reader 兼容旧 candidate/release/state 字节，并准备维护排空与跨存储恢复协议。新增可删除 sidecar、普通 migration audit 或仅凭路径相等均不能建立不可降级来源门；本批未切换任何生产存储。
 
 | 必需条件            | 当前证据                                                                                | 未完成的工程或外部条件                                                      |
 | ------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -357,3 +357,19 @@ Release Registry 的 readRelease、readState、readActive、readInventory 改为
 本批验证已完成：新增关联与 v2 端口两个完整文件 **22/22**，八个旧行为/恢复文件 **148 项通过**，合计 **170 项通过**、零失败。ArtifactPorts 原有 file-symlink 用例使用 runIf(process.platform !== "win32")，在本机 Windows 跳过 1 项；没有新增 skip。覆盖真实 promotion/rollback/reopen、留存服务故障后的 unknown、已提交旧 receipt、旧 writer 屏障、真实 source 子类与路径覆写、同物理路径对象替换、marker/载荷损坏、同 History PM 派发与回滚后拒绝，以及真实 PM 进程退出/重开。
 
 新增 22 项，扩展原 Workbench 独立 reader 用例。首轮关联文件 11 项通过、3 项失败：两项测试错误地假设 subclass reader 可被捕获、已冻结的 transaction 函数可安装属性，第三项受属性安装失败后的清理遗漏影响。保持原可信类型边界，纠正这些测试，并将安装和清理置于 try/finally 后完整复测通过；未放宽生产校验或任何既有时限。该 subclass 用例在已提交的真实存储上构造并走原恢复入口，不声称它独立覆盖 pending-journal 故障；原 Registry 和 v2 Journal 的完整恢复套件另外验证该类故障。ESLint、Prettier 与 Astra 最终复核通过，逐文件结果、源码摘要、首轮错误与平台跳过原因见 [存储关联验证记录](./evidence/rrsi-registry-history-local-controls-2026-10-07.json)。全部证据为本地控制，不替代真实来源、费用、统计校准、生产晋级或准确提交的跨平台发行门。
+
+## 20 参与写者的维护排他与异步事务
+
+[with-file-lock.js](../../../packages/cli/src/lib/with-file-lock.js) 新增 withFileLockAsync，复用原获取、确认死亡后的回收与释放算法；同步接口的等待、异常优先级和提前 handoff 语义保留。异步等待让出事件循环，锁一直持有到 callback 完成或拒绝后，才执行共享清理。异步 context 不发布提前 handoff，避免 callback 仍在运行时让 contender 进入。新的 assertOwnership 复验原 directory identity、owner PID/start/token 与 release marker；失效或 callback 生命周期结束后拒绝，不暴露 token。
+
+[skill-registry-writer-control.js](../../../packages/cli/src/lib/evolution/skill-registry-writer-control.js) 将真实 Registry 构造、候选 create/单项与批量 migration、Release migration、整段 applyTransition，以及独立 legacy journal archive 接入严格参与者锁。锁目标是 canonical tenant/root 的固定 sibling，既有 marker/artifact/state 字节和严格 tenant root inventory 不变。同进程重入立即 BUSY，避免同步等待阻塞异步 owner；迁移调用内部 private 写方法，不能公开继承锁令牌。Release 的初始产物公开、所有 await、heartbeat、错误恢复与清理均在同一写锁区间，原 Skill lease、CAS 和 Ledger 验证继续使用。
+
+[skill-registry-maintenance.js](../../../packages/cli/src/lib/evolution/skill-registry-maintenance.js) 只捕获真实 candidate/release Registry 的原构造控制，核验同一租户与独立目录，按 canonical key 顺序持有两个锁。维护 callback 期间拒绝新参与写者，已有 reader 保留原字节回读；第二锁失败、callback 拒绝或进程退出均有恢复路径。callback 结束后旧 context 的 assertCurrent 失效。该排他只覆盖已实现本协议的写者：preTransitionBinaryWritersExcluded、persistentStoreIdentityAuthenticated、originCutoverAuthenticated 和晋级资格始终 false，不能以维护锁或 quiescent:true 声明认证旧二进制已排空。
+
+构造函数初始捕获已有目录时仅校验身份与拓扑，获取写锁后按 base→tenants→root 修复权限，继续比较原 path/dev:ino，不用硬化结果覆盖旧基准。缺失的 bootstrap 目录仍可能先创建；其它租户可在自己的锁内硬化共享祖先。因此本层保护本租户 marker/artifact/recovery 的写区间，不宣称所有构造期、跨租户或管理员 mount 元数据排他。原文件身份检查本身也不是 OS 排他锁；旧 writer 仍可能在 check/link 之间跨过首次切换点。
+
+独立 archive 在公开 link 与 source unlink 前再次复验 ownership；回调或其它操作替换锁后停止公开/退休，清理只关闭自有 descriptor，并保留私有 temporary debris。原恢复行为、旧 schema 的读取和既有 mutation validator 不放宽。Registry 以外的 History/授权审计写者没有被该双锁排空；下一步仍需 authenticated History policy、持久 storeId/writer floor、prepared→markers-installed→committed 双存储恢复，以及真正的旧部署排空条件，之后才能把永久 contentDigest 来源查询放到候选公开和晋级 lease 边界。
+
+验证共 **185 项独立用例通过**，零失败、零跳过：原同步锁与新异步锁完整 **50/50**；补强后的六文件 **101/101**，包含真实 Windows ACL 及独立权限检查；未受后续 secure/归档补强影响的 v1/v2 ports 与 Registry/History 三文件 **34/34**。新增 21 项，扩展原同步 ownership 断言和 legacy archive 的两个 owner-token 替换场景。原先完整组合 run 为 124 项通过、1 项失败：child fixture 的 rollback operationId 含空格，被原请求校验器在写边界之前拒绝；改成合法 test:child:rollback:id 后独立进程完整复测通过，未放宽任何校验、skip 或时限。
+
+新用例直接验证另一个进程中已打开的 candidate/rollback writer 在维护期间不能写入、维护 owner 活着时不能回收，以及 SIGKILL 确认退出后回收两个原锁。ACL mock 的调用排他与真实 Windows 权限检查分别记录；真实权限不证明模型/来源/账单或生产权威。ESLint、Prettier 与 Astra 最终复核通过，逐文件结果、源码摘要和首次用例错误见 [参与写者验证记录](./evidence/rrsi-registry-writer-local-controls-2026-10-07.json)。本批没有安装永久来源索引或新 marker，也未完成生产 cutover、enforced、Review/Pilot/Promotion 必需门或真实效果试验。

@@ -1,0 +1,241 @@
+{
+  "schema": "chainlesschain.rrsi-registry-writer-local-controls/v1",
+  "recordedAt": "2026-10-07T03:46:24.000Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "baseCommit": "6d35fdec177483883a00292f5c18be708319af71",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/__tests__/fixtures/skill-registry-maintenance-child.mjs",
+      "digest": "sha256:a6547142a6c93d6d5eb7c6a4f636546d7ae33cbccc15db5137f05e61eefac023"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/with-file-lock-async-child.mjs",
+      "digest": "sha256:7169699c56cea8474e8b6edef909921f74f12876e635c733e50af960c8cc5f3e"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/skill-registry-maintenance-process.test.js",
+      "digest": "sha256:fc137069679bd6391d380480299e18faa2c4956df953700e44aff38be6c2bfc9"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-candidate-registry.test.js",
+      "digest": "sha256:d7231c59a84c36f5c0deb3f0017431205bb40fd86df0da3322578b61db33d377"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-registry-maintenance.test.js",
+      "digest": "sha256:fa505acc44f3c791f3003833bcb684cee821aa85e40123ee20ffb65c64337721"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "digest": "sha256:e916834eecf6d5acf82193613cf3388f7d7bcd8d6fb28b54715d2b72ddfb70e5"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/with-file-lock-async.test.js",
+      "digest": "sha256:160a2b648137d1b95fb1c4347e8e3794e74fc24872e730262351d21f62fa0502"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/with-file-lock.test.js",
+      "digest": "sha256:6a67e520e6296d45b58b069843ee559995c60fb22964bd709a747db09355c6a3"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/skill-candidate-registry.js",
+      "digest": "sha256:4ddb0c4b85e850cb43725c44a2b5202a4a4092406539c0933e5bf795f99a324b"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/skill-registry-maintenance.js",
+      "digest": "sha256:4ff7902d6b88faeb962044c54413c7f255a08a3252f3e92ff8a3ba54c43f6149"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/skill-registry-writer-control.js",
+      "digest": "sha256:865f34a25cb8f397b22b3af4e763f2ac3ad6a3d9bceed2a181c6f4aba19ce926"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/skill-release-registry.js",
+      "digest": "sha256:bd0ab78b1b7cb9979307d9314b1a050e61d70d1b983d2c2ecf1118469c81d2f0"
+    },
+    {
+      "file": "packages/cli/src/lib/with-file-lock.js",
+      "digest": "sha256:9ac4b3c2012ddb555d7d41701c3a11aecd873fb78e385a8a2e140a71b532d66c"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-registry-async-lock-final-tests.json",
+      "digest": "sha256:809308fdd2e0145e70a950f51e98a7fcad5788363af85f657cb81e122f260f7e",
+      "selectedFiles": "all"
+    },
+    {
+      "file": ".work/rrsi-registry-writer-final-tests.json",
+      "digest": "sha256:0d9a5cb936e0b565c6e65f67301ae292d77946f1b254f6a193152f60854e6a0e",
+      "selectedFiles": "all"
+    },
+    {
+      "file": ".work/rrsi-registry-writer-regression-final-tests.json",
+      "digest": "sha256:9c41c35da4cfd0d5351fddad9fa50e115f85aa84f4bfb42dece9c5020c5546d7",
+      "selectedFiles": [
+        "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+        "packages/cli/__tests__/unit/evolution-ledger-ports-v2.test.js",
+        "packages/cli/__tests__/unit/evolution-ledger-ports.test.js"
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "file": "packages/cli/__tests__/unit/with-file-lock-async.test.js",
+      "report": ".work/rrsi-registry-async-lock-final-tests.json",
+      "passed": 10,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 319.2158203125,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/with-file-lock.test.js",
+      "report": ".work/rrsi-registry-async-lock-final-tests.json",
+      "passed": 40,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 106.333984375,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/evolution-workbench-file-resources-security.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 65110.029052734375,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/skill-registry-maintenance-process.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 36043.127197265625,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-workbench-file-resources.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 15,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 31767.178466796875,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-candidate-registry.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 31,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 13371.392822265625,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-registry-maintenance.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 8,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 100670.90942382812,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "report": ".work/rrsi-registry-writer-final-tests.json",
+      "passed": 44,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 80914.99291992188,
+      "sourceScope": "final full-file run"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-ledger-ports-v2.test.js",
+      "report": ".work/rrsi-registry-writer-regression-final-tests.json",
+      "passed": 8,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 103858.86694335938,
+      "sourceScope": "earlier full-file regression; secure:false execution paths unchanged by subsequent constructor/archiver hardening"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-ledger-ports.test.js",
+      "report": ".work/rrsi-registry-writer-regression-final-tests.json",
+      "passed": 12,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 25432.1875,
+      "sourceScope": "earlier full-file regression; secure:false execution paths unchanged by subsequent constructor/archiver hardening"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+      "report": ".work/rrsi-registry-writer-regression-final-tests.json",
+      "passed": 14,
+      "skipped": 0,
+      "failed": 0,
+      "durationMs": 292931.8776855469,
+      "sourceScope": "earlier full-file regression; secure:false execution paths unchanged by subsequent constructor/archiver hardening"
+    }
+  ],
+  "totals": {
+    "independentPassed": 185,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": 21,
+    "oldSyncOwnershipAssertionsExpanded": true,
+    "legacyArchiveCaseExpandedWithTwoOwnershipFaults": true
+  },
+  "validation": {
+    "eslintPassed": true,
+    "prettierPassed": true,
+    "astraReviewCompleted": true,
+    "cooperatingWriterExclusionAcrossAwaitTested": true,
+    "actualCachedWriterProcessesBlocked": true,
+    "actualMaintenanceProcessKillRecoveryTested": true,
+    "originalSyncLockContractReverified": true,
+    "mockedExistingConstructorAclExclusionTested": true,
+    "actualWindowsStoragePermissionsInspected": true,
+    "existingCandidateReleaseStateBytesRemainReadable": true,
+    "preTransitionBinaryWritersExcluded": false,
+    "persistentStoreIdentityAuthenticated": false,
+    "originCutoverAuthenticated": false,
+    "originClassificationAvailable": false,
+    "productionAuthorityVerified": false,
+    "qualityVerdictVerified": false,
+    "statisticalCalibrationValidated": false,
+    "realModelExperimentRun": false,
+    "actualCostOrCleanupVerified": false,
+    "supportsEnforcedMode": false,
+    "qualifiesForPromotion": false,
+    "crossPlatformReleaseGatePassed": false
+  },
+  "initialCombinedRun": {
+    "file": ".work/rrsi-registry-writer-regression-final-tests.json",
+    "digest": "sha256:9c41c35da4cfd0d5351fddad9fa50e115f85aa84f4bfb42dece9c5020c5546d7",
+    "passed": 124,
+    "failed": 1,
+    "skipped": 0,
+    "failures": [
+      {
+        "title": "Registry maintenance with actual independent writers blocks cached candidate/rollback writers in another process until both maintenance locks are released",
+        "failureMessages": [
+          "AssertionError: expected { id: 2, ok: false, …(1) } to match object { ok: false, …(1) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/chai/index.js:1700:25)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/skill-registry-maintenance-process.test.js:138:48\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-registry-maintenance.js:72:24\n    at failIfUnavailable (C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-registry-writer-control.js:110:26)\n    at withFileLockAsync (C:/code/chainlesschain/packages/cli/src/lib/with-file-lock.js:60:11)\n    at runAsync (C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-registry-writer-control.js:107:14)\n    at failIfUnavailable (C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-registry-writer-control.js:110:26)"
+        ]
+      }
+    ],
+    "explanation": "The cached child rollback fixture used an operationId containing spaces and was correctly rejected by the existing mutation-request validator before reaching Registry writer admission. It now uses a valid test:child:rollback:<id>; the final process full-file run passed. No validator, timeout or release gate was relaxed. Candidate/Release/Workbench/process files were rerun after constructor/archiver hardening and their earlier results are superseded, never added twice."
+  },
+  "limitations": [
+    "Cooperative mutexes protect the implemented writer protocol; they do not prove pre-transition binaries are stopped or cannot publish after an earlier check.",
+    "Directory identity checks are not OS read/write locks. The protocol is pathname based and does not claim administrator bind-mount alias coverage.",
+    "Missing base/tenants/root bootstrap directories may be created before exclusion; existing-path ACL repair, marker/artifact/recovery writes use the held writer mutex.",
+    "Other tenants may harden shared ancestors under their own mutex; this is not all-tenant filesystem-metadata exclusion.",
+    "History/other ledger writers are not drained by this two-Registry mutex. Cutover still requires authenticated policy records, head CAS and recoverable prepared/markers-installed/committed coordination.",
+    "Registry markers remain v1; no persistent storeId, writer floor, permanent content-origin index, legacy stable-version exemption, or production cutover was installed.",
+    "Native Windows ACL inspection is OS storage evidence, not model/source/production authority, billing, statistical calibration or a cross-platform release matrix."
+  ]
+}

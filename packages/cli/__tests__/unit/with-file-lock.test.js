@@ -86,10 +86,13 @@ function fakeLockFs() {
 describe("withFileLock", () => {
   it("acquires the lock, runs fn (locked:true), and releases", () => {
     const _fs = fakeLockFs();
+    let captured;
     const result = withFileLock(
       "/state.json",
       (ctx) => {
+        captured = ctx;
         expect(ctx.locked).toBe(true);
+        expect(ctx.assertOwnership()).toBe(true);
         expect(ctx.waitMs).toBeGreaterThanOrEqual(0);
         expect(ctx.attempts).toBe(1);
         expect(_fs.dirs.has("/state.json.lock")).toBe(true); // held during fn
@@ -99,6 +102,9 @@ describe("withFileLock", () => {
     );
     expect(result).toBe("ok");
     expect(_fs.dirs.has("/state.json.lock")).toBe(false); // released after
+    expect(() => captured.assertOwnership()).toThrowError(
+      expect.objectContaining({ code: "STATE_LOCK_OWNERSHIP_LOST" }),
+    );
   });
 
   it("releases the lock even if fn throws", () => {

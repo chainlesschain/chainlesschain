@@ -22,13 +22,54 @@
  * lock convoys.
  *
  * @param {string} targetPath  the file being guarded (lock is `${targetPath}.lock`)
- * @param {(ctx:{locked:boolean,waitMs:number,attempts:number,publishReleaseAfterPathRemoved:(pendingPath:string)=>boolean})=>T} fn
+ * @param {(ctx:{locked:boolean,waitMs:number,attempts:number,assertOwnership:()=>true,publishReleaseAfterPathRemoved:(pendingPath:string)=>boolean})=>T} fn
  *   critical section; `publishReleaseAfterPathRemoved` lets a transaction
  *   publish an exact, contender-completable handoff before its final atomic
  *   rename removes a uniquely named staging path
  * @returns {T} whatever `fn` returns
  */
 export function withFileLock(targetPath, fn, opts = {}) {
+  const operation = runLocked(targetPath, fn, opts, false);
+  const sleep = opts._sleep ?? sleepSync;
+  let step = operation.next();
+  while (!step.done) {
+    try {
+      sleep(step.value.waitMs);
+    } catch (error) {
+      step = operation.throw(error);
+      continue;
+    }
+    step = operation.next();
+  }
+  return step.value;
+}
+
+/**
+ * Hold the same lock through asynchronous callback settlement and cleanup.
+ * Early publishReleaseAfterPathRemoved handoffs are unavailable (return false)
+ * because no contender may enter while the asynchronous body is still active.
+ */
+export async function withFileLockAsync(targetPath, fn, opts = {}) {
+  const operation = runLocked(targetPath, fn, opts, true);
+  const sleep = opts._sleep ?? sleepAsync;
+  let step = operation.next();
+  while (!step.done) {
+    let value;
+    try {
+      value = Object.hasOwn(step.value, "callbackResult")
+        ? await step.value.callbackResult
+        : await sleep(step.value.waitMs);
+    } catch (error) {
+      step = operation.throw(error);
+      continue;
+    }
+    step = operation.next(value);
+  }
+  return step.value;
+}
+
+// One acquire/reclaim/release state machine; only waiting differs by API.
+function* runLocked(targetPath, fn, opts, asynchronous) {
   const {
     timeoutMs = 2000,
     staleMs = 30000,
@@ -38,7 +79,6 @@ export function withFileLock(targetPath, fn, opts = {}) {
     yieldAfterReleaseMs = 0,
     _fs = defaultFs,
     _now = () => Date.now(),
-    _sleep = sleepSync,
     _random = Math.random,
     _isProcessAlive = isProcessAlive,
     _ownerToken = () => randomUUID(),
@@ -61,6 +101,9 @@ export function withFileLock(targetPath, fn, opts = {}) {
   let lastOwnerObservation = null;
   let retryAttempt = 0;
   let releasePublished = false;
+  let bodyActive = false;
+  let ownershipLost = false;
+  let directoryIdentity = null;
   const deadline = _now() + timeoutMs;
 
   for (;;) {
@@ -74,16 +117,15 @@ export function withFileLock(targetPath, fn, opts = {}) {
         if (
           failIfUnavailable &&
           isTransientLockError(error) &&
-          waitForRetry({
+          (yield* waitForRetry({
             _now,
-            _sleep,
             _random,
             deadline,
             retryAttempt: retryAttempt++,
             retryMs,
             maxRetryMs,
             retryJitterMs,
-          })
+          }))
         ) {
           continue;
         }
@@ -147,16 +189,15 @@ export function withFileLock(targetPath, fn, opts = {}) {
         }
       }
       if (
-        !waitForRetry({
+        !(yield* waitForRetry({
           _now,
-          _sleep,
           _random,
           deadline,
           retryAttempt: retryAttempt++,
           retryMs,
           maxRetryMs,
           retryJitterMs,
-        })
+        }))
       ) {
         break;
       }
@@ -186,12 +227,48 @@ export function withFileLock(targetPath, fn, opts = {}) {
   let bodyThrew = false;
   let result;
   try {
+    if (held) directoryIdentity = readLockDirectoryIdentity(_fs, lockDir);
+    bodyActive = true;
     result = fn({
       locked: held,
       waitMs: Math.max(0, _now() - owner.startedAt),
       attempts: retryAttempt + 1,
+      assertOwnership() {
+        let cause = null;
+        try {
+          if (
+            held &&
+            bodyActive &&
+            !ownershipLost &&
+            !releasePublished &&
+            sameLockDirectoryIdentity(
+              directoryIdentity,
+              readLockDirectoryIdentity(_fs, lockDir),
+            ) &&
+            sameOwner(readOwner(_fs, ownerPath), owner) &&
+            pathStatus(_fs, path.join(lockDir, `.release-${owner.token}`)) ===
+              "absent"
+          )
+            return true;
+        } catch (error) {
+          cause = error;
+        }
+        ownershipLost = true;
+        const error = new Error(
+          `State lock ownership is no longer current: ${targetPath}`,
+          cause ? { cause } : undefined,
+        );
+        error.code = "STATE_LOCK_OWNERSHIP_LOST";
+        throw error;
+      },
       publishReleaseAfterPathRemoved(pendingPath) {
-        if (!held || typeof pendingPath !== "string" || !pendingPath) {
+        if (
+          asynchronous ||
+          !bodyActive ||
+          !held ||
+          typeof pendingPath !== "string" ||
+          !pendingPath
+        ) {
           return false;
         }
         const current = readOwner(_fs, ownerPath);
@@ -214,21 +291,31 @@ export function withFileLock(targetPath, fn, opts = {}) {
         return true;
       },
     });
+    if (asynchronous) result = yield { callbackResult: result };
   } catch (error) {
     bodyThrew = true;
     bodyError = error;
   }
+  bodyActive = false;
   let released = !held;
   let releaseError = null;
   if (held) {
     try {
-      released = releaseOwnedDirectory(
-        _fs,
-        lockDir,
-        owner,
-        isOwnerAlive,
-        releasePublished,
-      );
+      released =
+        ownershipLost &&
+        !releasePublished &&
+        !sameLockDirectoryIdentity(
+          directoryIdentity,
+          readLockDirectoryIdentity(_fs, lockDir),
+        )
+          ? false
+          : releaseOwnedDirectory(
+              _fs,
+              lockDir,
+              owner,
+              isOwnerAlive,
+              releasePublished,
+            );
     } catch (error) {
       releaseError = error;
     }
@@ -245,7 +332,7 @@ export function withFileLock(targetPath, fn, opts = {}) {
     // The lock is gone or its exact release marker has transferred cleanup to
     // contenders. Let an existing waiter run before a process performing many
     // tiny transactions can immediately reacquire it.
-    _sleep(yieldAfterReleaseMs);
+    yield { waitMs: yieldAfterReleaseMs };
   }
   return result;
 }
@@ -256,12 +343,24 @@ import { randomUUID } from "node:crypto";
 
 const defaultFs = {
   mkdirSync: (p) => fs.mkdirSync(p),
+  lstatSync: (p) => fs.lstatSync(p, { bigint: true }),
   statSync: (p) => fs.statSync(p),
   readFileSync: (p, o) => fs.readFileSync(p, o),
   writeFileSync: (p, value, o) => fs.writeFileSync(p, value, o),
   renameSync: (from, to) => fs.renameSync(from, to),
   rmSync: (p, o) => fs.rmSync(p, o),
 };
+
+function readLockDirectoryIdentity(io, lockDir) {
+  const value = io.lstatSync ? io.lstatSync(lockDir) : io.statSync(lockDir);
+  if (value.isSymbolicLink?.() || value.isDirectory?.() === false)
+    throw new Error("State lock is not a regular directory");
+  return { dev: value.dev, ino: value.ino };
+}
+
+function sameLockDirectoryIdentity(left, right) {
+  return !!left && left.dev === right.dev && left.ino === right.ino;
+}
 
 function acquireOwnedDirectory(_fs, lockDir, owner) {
   const serializedOwner = JSON.stringify(owner);
@@ -350,9 +449,8 @@ function isTransientLockError(error) {
   return !!error && TRANSIENT_LOCK_ERROR_CODES.has(error.code);
 }
 
-function waitForRetry({
+function* waitForRetry({
   _now,
-  _sleep,
   _random,
   deadline,
   retryAttempt,
@@ -373,7 +471,7 @@ function waitForRetry({
     jitterLimit > 0 && Number.isFinite(sample)
       ? Math.floor(Math.min(1, Math.max(0, sample)) * jitterLimit)
       : 0;
-  _sleep(Math.min(remaining, exponential + jitter));
+  yield { waitMs: Math.min(remaining, exponential + jitter) };
   return true;
 }
 
@@ -730,6 +828,10 @@ function releaseOwnedDirectory(
 }
 
 /** Synchronous sleep that doesn't busy-spin the CPU when possible. */
+function sleepAsync(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function sleepSync(ms) {
   try {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);

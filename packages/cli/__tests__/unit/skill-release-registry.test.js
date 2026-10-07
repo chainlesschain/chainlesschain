@@ -85,6 +85,7 @@ import {
   verifySkillReleaseMigrationResult,
   verifySkillReleaseJournalArchive,
 } from "../../src/lib/evolution/skill-release-registry.js";
+import { createSkillRegistryWriterControl } from "../../src/lib/evolution/skill-registry-writer-control.js";
 
 const TENANT_ID = "tenant:test";
 const OTHER_TENANT_ID = "tenant:other";
@@ -2708,6 +2709,57 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       ).toBe(true);
       expect(fs.existsSync(faultSourcePath)).toBe(false);
       expect(fs.readdirSync(faultArchiveDir)).toHaveLength(1);
+    }
+    for (const phase of ["after-archive-fsync", "after-archive-readback"]) {
+      const faultRoot = path.join(tempRoot, `archive-ownership-${phase}`);
+      const sourceRoot = path.join(faultRoot, "source");
+      const sourceDir = path.join(sourceRoot, "journals");
+      const targetDir = path.join(faultRoot, "archive");
+      fs.mkdirSync(sourceDir, { recursive: true, mode: 0o700 });
+      fs.mkdirSync(targetDir, { mode: 0o700 });
+      const sourcePath = path.join(sourceDir, `${legacy.skillName}.json`);
+      durableWriteJson(sourcePath, legacy);
+      const control = createSkillRegistryWriterControl({
+        rootDir: sourceRoot,
+        tenantId: TENANT_ID,
+        component: "skill-release-registry",
+        fsImpl: fs,
+      });
+      const ownerPath = path.join(`${control.orderKey}.lock`, "owner.json");
+      const replacementToken = `test-replaced-owner-${phase}`;
+      expect(() =>
+        archiveLegacySkillReleaseJournal({
+          archiveDir: targetDir,
+          dispositionPlan: aborted,
+          fsImpl: fs,
+          legacyJournal: legacy,
+          secure: false,
+          sourcePath,
+          stateMigrationResult: null,
+          crashHook(checkpoint) {
+            if (checkpoint !== phase) return;
+            const owner = JSON.parse(fs.readFileSync(ownerPath, "utf8"));
+            fs.writeFileSync(
+              ownerPath,
+              JSON.stringify({ ...owner, token: replacementToken }),
+            );
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "STATE_LOCK_OWNERSHIP_LOST" }),
+      );
+      expect(fs.readFileSync(sourcePath)).toEqual(
+        Buffer.from(`${canonicalJson(legacy)}\n`),
+      );
+      expect(JSON.parse(fs.readFileSync(ownerPath, "utf8")).token).toBe(
+        replacementToken,
+      );
+      const published = fs
+        .readdirSync(targetDir)
+        .filter((name) => /^[a-f0-9]{64}\.json$/u.test(name));
+      expect(published).toHaveLength(
+        phase === "after-archive-readback" ? 1 : 0,
+      );
     }
     durableWriteJson(legacyJournalPath, legacy);
     durableWriteJson(archived.archivePath, { forged: true });

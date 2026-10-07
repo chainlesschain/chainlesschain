@@ -6,6 +6,7 @@ import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import { createSkillRegistryWriterControl } from "./skill-registry-writer-control.js";
 import {
   SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
@@ -62,6 +63,7 @@ export const SKILL_RELEASE_JOURNAL_ARCHIVE_SCHEMA =
 
 const JOURNAL_SCHEMA = "chainlesschain.skill-release-journal/v4";
 const REGISTRY_READERS = new WeakMap();
+const REGISTRY_WRITERS = new WeakMap();
 
 export function captureSkillReleaseRegistryReader(value) {
   const reader = REGISTRY_READERS.get(value);
@@ -71,6 +73,16 @@ export function captureSkillReleaseRegistryReader(value) {
   )
     throw new TypeError("a genuine SkillReleaseRegistry reader is required");
   return reader;
+}
+
+export function captureSkillReleaseRegistryWriterControl(value) {
+  captureSkillReleaseRegistryReader(value);
+  const control = REGISTRY_WRITERS.get(value);
+  if (!control)
+    throw new TypeError(
+      "a genuine release Registry writer control is required",
+    );
+  return control;
 }
 const INTENT_SCHEMA = "chainlesschain.skill-release-transition-intent/v2";
 const RELEASE_DOMAIN = `${SKILL_RELEASE_SCHEMA}\0`;
@@ -1850,128 +1862,151 @@ export function archiveLegacySkillReleaseJournal(input) {
   ) {
     throw migrationRequired("legacy journal archive paths are invalid");
   }
-  const sourcePath = path.join(
-    sourceDirectory,
-    path.basename(requestedSourcePath),
-  );
-  if (input.secure) {
-    ensurePrivateDirectory(archiveDirectory, {
-      applyWindowsAcl: true,
-      failIfUnavailable: true,
-    });
-  }
-  const archivePath = path.join(
-    archiveDirectory,
-    `${disposition.planDigest.slice("sha256:".length)}.json`,
-  );
-  const expectedBytes = serialize(archive);
-  let created = false;
-  if (lstatOrNull(fsImpl, archivePath) === null) {
-    const source = readBoundedSingleLinkFile(
-      fsImpl,
-      sourcePath,
-      MAX_FILE_BYTES,
-      SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
-      "legacy release journal source",
+  // An independent archive helper can also retire bytes under a tenant's
+  // journals directory. It must participate in that physical root's writer
+  // protocol rather than bypassing the class-method maintenance boundary.
+  const writer = createSkillRegistryWriterControl({
+    rootDir: path.dirname(sourceDirectory),
+    tenantId: disposition.tenantId,
+    component: TENANT_MARKER_COMPONENT,
+    fsImpl,
+  });
+  return writer.runSync(() => {
+    const sourcePath = path.join(
+      sourceDirectory,
+      path.basename(requestedSourcePath),
     );
-    if (!source.bytes.equals(serialize(journal))) {
-      throw migrationRequired(
-        "legacy release journal source bytes differ from the verified input",
-      );
+    if (input.secure) {
+      ensurePrivateDirectory(archiveDirectory, {
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+      });
     }
-    const temporaryPath = path.join(
+    const archivePath = path.join(
       archiveDirectory,
-      `.journal-${process.pid}-${crypto.randomBytes(16).toString("hex")}.tmp`,
+      `${disposition.planDigest.slice("sha256:".length)}.json`,
     );
-    let descriptor = null;
-    try {
-      descriptor = fsImpl.openSync(temporaryPath, "wx", 0o600);
-      fsImpl.writeFileSync(descriptor, expectedBytes);
-      fsImpl.fsyncSync(descriptor);
-      fsImpl.closeSync(descriptor);
-      descriptor = null;
-      if (input.secure) {
-        ensurePrivateFile(temporaryPath, {
-          applyWindowsAcl: true,
-          failIfUnavailable: true,
-        });
-      }
-      const staged = readBoundedSingleLinkFile(
+    const expectedBytes = serialize(archive);
+    let created = false;
+    if (lstatOrNull(fsImpl, archivePath) === null) {
+      const source = readBoundedSingleLinkFile(
         fsImpl,
-        temporaryPath,
+        sourcePath,
         MAX_FILE_BYTES,
         SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
-        "legacy journal archive temporary",
+        "legacy release journal source",
       );
-      if (!staged.bytes.equals(expectedBytes)) {
-        throw migrationRequired("legacy journal archive write was incomplete");
+      if (!source.bytes.equals(serialize(journal))) {
+        throw migrationRequired(
+          "legacy release journal source bytes differ from the verified input",
+        );
       }
-      checkpoint("after-archive-fsync", {
-        archiveDigest: archive.archiveDigest,
-        dispositionPlanDigest: disposition.planDigest,
-      });
+      const temporaryPath = path.join(
+        archiveDirectory,
+        `.journal-${process.pid}-${crypto.randomBytes(16).toString("hex")}.tmp`,
+      );
+      let descriptor = null;
       try {
-        fsImpl.linkSync(temporaryPath, archivePath);
-        created = true;
-      } catch (error) {
-        if (error?.code !== "EEXIST") throw error;
-      }
-      fsImpl.unlinkSync(temporaryPath);
-      fsyncDirectory(fsImpl, archiveDirectory);
-      checkpoint("after-archive-publish", {
-        archiveDigest: archive.archiveDigest,
-        dispositionPlanDigest: disposition.planDigest,
-      });
-    } finally {
-      if (descriptor !== null) fsImpl.closeSync(descriptor);
-      if (lstatOrNull(fsImpl, temporaryPath) !== null)
+        descriptor = fsImpl.openSync(temporaryPath, "wx", 0o600);
+        fsImpl.writeFileSync(descriptor, expectedBytes);
+        fsImpl.fsyncSync(descriptor);
+        fsImpl.closeSync(descriptor);
+        descriptor = null;
+        if (input.secure) {
+          ensurePrivateFile(temporaryPath, {
+            applyWindowsAcl: true,
+            failIfUnavailable: true,
+          });
+        }
+        const staged = readBoundedSingleLinkFile(
+          fsImpl,
+          temporaryPath,
+          MAX_FILE_BYTES,
+          SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+          "legacy journal archive temporary",
+        );
+        if (!staged.bytes.equals(expectedBytes)) {
+          throw migrationRequired(
+            "legacy journal archive write was incomplete",
+          );
+        }
+        checkpoint("after-archive-fsync", {
+          archiveDigest: archive.archiveDigest,
+          dispositionPlanDigest: disposition.planDigest,
+        });
+        try {
+          writer.assertIfWriting();
+          fsImpl.linkSync(temporaryPath, archivePath);
+          created = true;
+        } catch (error) {
+          if (error?.code !== "EEXIST") throw error;
+        }
         fsImpl.unlinkSync(temporaryPath);
+        fsyncDirectory(fsImpl, archiveDirectory);
+        checkpoint("after-archive-publish", {
+          archiveDigest: archive.archiveDigest,
+          dispositionPlanDigest: disposition.planDigest,
+        });
+      } finally {
+        if (descriptor !== null) fsImpl.closeSync(descriptor);
+        let cleanupOwned = false;
+        try {
+          writer.assertIfWriting();
+          cleanupOwned = true;
+        } catch {
+          /* Preserve private debris after lost ownership. */
+        }
+        if (cleanupOwned && lstatOrNull(fsImpl, temporaryPath) !== null)
+          fsImpl.unlinkSync(temporaryPath);
+      }
     }
-  }
-  const persisted = readBoundedSingleLinkFile(
-    fsImpl,
-    archivePath,
-    MAX_FILE_BYTES,
-    SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
-    "legacy journal archive",
-  );
-  if (
-    !persisted.bytes.equals(expectedBytes) ||
-    canonicalJson(
-      verifySkillReleaseJournalArchive(
-        JSON.parse(
-          new TextDecoder("utf-8", { fatal: true }).decode(persisted.bytes),
-        ),
-      ),
-    ) !== canonicalJson(archive)
-  ) {
-    throw migrationRequired("legacy journal archive readback differs");
-  }
-  checkpoint("after-archive-readback", {
-    archiveDigest: archive.archiveDigest,
-    dispositionPlanDigest: disposition.planDigest,
-  });
-  if (lstatOrNull(fsImpl, sourcePath) !== null) {
-    const source = readBoundedSingleLinkFile(
+    const persisted = readBoundedSingleLinkFile(
       fsImpl,
-      sourcePath,
+      archivePath,
       MAX_FILE_BYTES,
       SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
-      "legacy release journal source",
+      "legacy journal archive",
     );
-    if (!source.bytes.equals(serialize(journal))) {
-      throw migrationRequired(
-        "legacy release journal changed before retirement",
-      );
+    if (
+      !persisted.bytes.equals(expectedBytes) ||
+      canonicalJson(
+        verifySkillReleaseJournalArchive(
+          JSON.parse(
+            new TextDecoder("utf-8", { fatal: true }).decode(persisted.bytes),
+          ),
+        ),
+      ) !== canonicalJson(archive)
+    ) {
+      throw migrationRequired("legacy journal archive readback differs");
     }
-    fsImpl.unlinkSync(sourcePath);
-    fsyncDirectory(fsImpl, sourceDirectory);
-    checkpoint("after-source-retire", {
+    checkpoint("after-archive-readback", {
       archiveDigest: archive.archiveDigest,
       dispositionPlanDigest: disposition.planDigest,
     });
-  }
-  return deepFreeze({ archive, archivePath, created, sourceRetired: true });
+    if (lstatOrNull(fsImpl, sourcePath) !== null) {
+      const source = readBoundedSingleLinkFile(
+        fsImpl,
+        sourcePath,
+        MAX_FILE_BYTES,
+        SKILL_RELEASE_MIGRATION_REQUIRED_CODE,
+        "legacy release journal source",
+      );
+      if (!source.bytes.equals(serialize(journal))) {
+        throw migrationRequired(
+          "legacy release journal changed before retirement",
+        );
+      }
+      writer.assertIfWriting();
+      fsImpl.unlinkSync(sourcePath);
+      fsyncDirectory(fsImpl, sourceDirectory);
+      checkpoint("after-source-retire", {
+        archiveDigest: archive.archiveDigest,
+        dispositionPlanDigest: disposition.planDigest,
+      });
+    }
+    writer.assertIfWriting();
+    return deepFreeze({ archive, archivePath, created, sourceRetired: true });
+  });
 }
 
 /**
@@ -2696,6 +2731,7 @@ export class SkillReleaseRegistry {
   #ledgerQuery;
 
   #pins = new WeakMap();
+  #writerControl;
 
   constructor(options) {
     const {
@@ -2760,41 +2796,69 @@ export class SkillReleaseRegistry {
     try {
       const base = this.#initializeDirectory(requestedBase, {
         recursive: true,
+        harden: false,
       });
       this.baseDir = base.path;
       this.#assertNoLegacyBaseLayout();
       const tenants = this.#initializeDirectory(
         path.join(this.baseDir, "tenants"),
-        { parent: base },
+        { parent: base, harden: false },
       );
       const tenantRoot = this.#initializeDirectory(
         path.join(tenants.path, this.tenantKey),
-        { parent: tenants },
+        { parent: tenants, harden: false },
       );
       this.rootDir = tenantRoot.path;
       this.#boundaries = deepFreeze({ base, tenantRoot, tenants });
       this.#rootIdentity = tenantRoot.identity;
       this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
-      this.#initializeTenantMarker();
-      this.#directories = {};
-      for (const name of [
-        "artifacts",
-        "active",
-        "journals",
-        "locks",
-        "state-migrations",
-        "staging",
-      ]) {
-        const directory = path.join(this.rootDir, name);
-        this.#directories[name] = this.#initializeDirectory(directory, {
-          parent: tenantRoot,
-        });
-      }
-      this.#directories = deepFreeze(this.#directories);
-      this.#assertBoundary();
-      this.#assertNoLegacyTenantSchemas();
-      this.#recoverAll();
-      this.#cleanupDebris();
+      this.#writerControl = createSkillRegistryWriterControl({
+        rootDir: this.rootDir,
+        tenantId: this.tenantId,
+        component: TENANT_MARKER_COMPONENT,
+        fsImpl: this.#fs,
+      });
+      this.#writerControl.runSync(() => {
+        if (this.#secure) {
+          for (const [entry, parent] of [
+            [base, null],
+            [tenants, base],
+            [tenantRoot, tenants],
+          ]) {
+            this.#writerControl.assertIfWriting();
+            const hardened = this.#initializeDirectory(entry.path, { parent });
+            if (
+              hardened.identity !== entry.identity ||
+              !samePath(hardened.path, entry.path)
+            )
+              throw failure(
+                "SKILL_RELEASE_STORE_UNSAFE",
+                "release bootstrap identity changed before permission hardening",
+              );
+          }
+        }
+        this.#writerControl.assertIfWriting();
+        this.#initializeTenantMarker();
+        this.#directories = {};
+        for (const name of [
+          "artifacts",
+          "active",
+          "journals",
+          "locks",
+          "state-migrations",
+          "staging",
+        ]) {
+          const directory = path.join(this.rootDir, name);
+          this.#directories[name] = this.#initializeDirectory(directory, {
+            parent: tenantRoot,
+          });
+        }
+        this.#directories = deepFreeze(this.#directories);
+        this.#assertBoundary();
+        this.#assertNoLegacyTenantSchemas();
+        this.#recoverAll();
+        this.#cleanupDebris();
+      });
     } catch (cause) {
       if (cause instanceof SkillReleaseRegistryError) throw cause;
       throw failure(
@@ -2816,12 +2880,13 @@ export class SkillReleaseRegistry {
         matchesTransactionLedger: (value) => value === transactionLedger,
       }),
     );
+    REGISTRY_WRITERS.set(this, this.#writerControl);
     Object.freeze(this);
   }
 
   #initializeDirectory(
     requestedPath,
-    { parent = null, recursive = false } = {},
+    { parent = null, recursive = false, harden = true } = {},
   ) {
     const before = lstatOrNull(this.#fs, requestedPath);
     if (before && (!before.isDirectory() || before.isSymbolicLink())) {
@@ -2862,7 +2927,7 @@ export class SkillReleaseRegistry {
         "release registry directory escaped its canonical parent",
       );
     }
-    if (this.#secure) {
+    if (this.#secure && harden) {
       ensurePrivateDirectory(canonical, {
         applyWindowsAcl: true,
         failIfUnavailable: true,
@@ -3058,6 +3123,7 @@ export class SkillReleaseRegistry {
   }
 
   #assertBoundary() {
+    this.#writerControl?.assertIfWriting();
     for (const entry of [
       ...Object.values(this.#boundaries),
       ...Object.values(this.#directories),
@@ -3444,6 +3510,12 @@ export class SkillReleaseRegistry {
         "legacy release migration requires input and a durable audit authority",
       );
     }
+    return this.#writerControl.runSync(() =>
+      this.#migrateLegacyRelease(input, migrationAuthority),
+    );
+  }
+
+  #migrateLegacyRelease(input, migrationAuthority) {
     assertExactKeys(
       migrationAuthority,
       RELEASE_MIGRATION_AUTHORITY_KEYS,
@@ -3585,6 +3657,12 @@ export class SkillReleaseRegistry {
         "legacy state migration requires a plan, durable authority, and authenticated ledger migration port",
       );
     }
+    return this.#writerControl.runSync(() =>
+      this.#migrateLegacyState(planInput, migrationAuthority),
+    );
+  }
+
+  #migrateLegacyState(planInput, migrationAuthority) {
     const plan = verifySkillReleaseStateMigrationPlan(planInput);
     if (plan.tenantId !== this.tenantId) {
       throw migrationRequired("state migration plan belongs to another tenant");
@@ -5484,6 +5562,12 @@ export class SkillReleaseRegistry {
   }
 
   async applyTransition(capability) {
+    return this.#writerControl.runAsync(() =>
+      this.#applyTransition(capability),
+    );
+  }
+
+  async #applyTransition(capability) {
     const payload = this.#validateTransitionPayload(
       consumeRegistryTransitionCapability(capability, this),
     );

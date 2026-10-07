@@ -5,6 +5,7 @@ import { types as utilTypes } from "node:util";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import { createSkillRegistryWriterControl } from "./skill-registry-writer-control.js";
 import {
   verifySkillDependencyLock,
   verifySkillRuntimeManifest,
@@ -1531,6 +1532,7 @@ function normalizeRegistryOptions(options) {
  * promotion controller can consume verified drafts through read().
  */
 const CANDIDATE_READERS = new WeakMap();
+const CANDIDATE_WRITERS = new WeakMap();
 
 export function captureSkillCandidateRegistryReader(registry) {
   const reader = CANDIDATE_READERS.get(registry);
@@ -1543,7 +1545,18 @@ export function captureSkillCandidateRegistryReader(registry) {
   return reader;
 }
 
+export function captureSkillCandidateRegistryWriterControl(registry) {
+  captureSkillCandidateRegistryReader(registry);
+  const control = CANDIDATE_WRITERS.get(registry);
+  if (!control)
+    throw new TypeError(
+      "a genuine candidate Registry writer control is required",
+    );
+  return control;
+}
+
 export class SkillCandidateRegistry {
+  #writerControl;
   constructor(options) {
     const {
       fsImpl,
@@ -1565,24 +1578,54 @@ export class SkillCandidateRegistry {
     try {
       const base = this._initializeDirectory(requestedBase, {
         recursive: true,
+        harden: false,
       });
       this.baseDir = base.path;
       this._assertNoLegacyBaseLayout();
       const tenants = this._initializeDirectory(
         path.join(this.baseDir, "tenants"),
-        { parent: base },
+        { parent: base, harden: false },
       );
       const tenantRoot = this._initializeDirectory(
         path.join(tenants.path, this.tenantKey),
-        { parent: tenants },
+        { parent: tenants, harden: false },
       );
       this.rootDir = tenantRoot.path;
       this._directories = deepFreeze({ base, tenantRoot, tenants });
       this._assertDirectories();
       this._markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
-      this._initializeTenantMarker();
-      this._assertBoundary();
-      this._assertNoMixedTenantArtifacts();
+      this.#writerControl = createSkillRegistryWriterControl({
+        rootDir: this.rootDir,
+        tenantId: this.tenantId,
+        component: TENANT_MARKER_COMPONENT,
+        fsImpl: this._fs,
+      });
+      this.#writerControl.runSync(() => {
+        // Bootstrap may create missing directories; existing-path ACL repair
+        // waits for writer exclusion and must preserve the captured identities.
+        if (this._secure) {
+          for (const [entry, parent] of [
+            [base, null],
+            [tenants, base],
+            [tenantRoot, tenants],
+          ]) {
+            this.#writerControl.assertIfWriting();
+            const hardened = this._initializeDirectory(entry.path, { parent });
+            if (
+              hardened.identity !== entry.identity ||
+              !samePath(hardened.path, entry.path)
+            )
+              throw registryError(
+                "SKILL_CANDIDATE_STORE_UNSAFE",
+                "candidate bootstrap identity changed before permission hardening",
+              );
+          }
+        }
+        this.#writerControl.assertIfWriting();
+        this._initializeTenantMarker();
+        this._assertBoundary();
+        this._assertNoMixedTenantArtifacts();
+      });
     } catch (error) {
       if (error instanceof SkillCandidateRegistryError) throw error;
       throw registryError(
@@ -1596,17 +1639,16 @@ export class SkillCandidateRegistry {
       this,
       Object.freeze({
         tenantId,
-        read: Object.freeze(SkillCandidateRegistry.prototype.read.bind(this)),
-        readInventory: Object.freeze(
-          SkillCandidateRegistry.prototype.readInventory.bind(this),
-        ),
+        read: Object.freeze((value) => this.#read(value)),
+        readInventory: Object.freeze(() => this.#readInventory()),
       }),
     );
+    CANDIDATE_WRITERS.set(this, this.#writerControl);
   }
 
   _initializeDirectory(
     requestedPath,
-    { parent = null, recursive = false } = {},
+    { parent = null, recursive = false, harden = true } = {},
   ) {
     const before = lstatOrNull(this._fs, requestedPath);
     if (before && (!before.isDirectory() || before.isSymbolicLink())) {
@@ -1647,7 +1689,7 @@ export class SkillCandidateRegistry {
         "candidate registry directory escaped its canonical parent",
       );
     }
-    if (this._secure) {
+    if (this._secure && harden) {
       ensurePrivateDirectory(canonical, {
         applyWindowsAcl: true,
         failIfUnavailable: true,
@@ -2014,6 +2056,7 @@ export class SkillCandidateRegistry {
   }
 
   _assertBoundary() {
+    this.#writerControl?.assertIfWriting();
     this._assertDirectories();
     const verified = this._readAndVerifyTenantMarker();
     if (
@@ -2184,6 +2227,16 @@ export class SkillCandidateRegistry {
         "legacy migration requires candidate, execution artifacts, and a durable audit authority",
       );
     }
+    return this.#writerControl.runSync(() =>
+      this.#migrateLegacy(
+        legacyCandidate,
+        executionArtifacts,
+        migrationAuthority,
+      ),
+    );
+  }
+
+  #migrateLegacy(legacyCandidate, executionArtifacts, migrationAuthority) {
     const legacy = verifyLegacySkillCandidateDraft(legacyCandidate);
     assertDataRecord(
       executionArtifacts,
@@ -2268,7 +2321,7 @@ export class SkillCandidateRegistry {
       );
     }
 
-    const publication = this.create({
+    const publication = this.#create({
       tenantId: this.tenantId,
       skillName: legacy.skillName,
       parentDigest: legacy.parentDigest,
@@ -2415,6 +2468,20 @@ export class SkillCandidateRegistry {
         "legacy store migration requires one source root, one execution resolver, and one audit authority",
       );
     }
+    return this.#writerControl.runSync(() =>
+      this.#migrateLegacyStore(
+        sourceRootDir,
+        resolveExecutionArtifacts,
+        migrationAuthority,
+      ),
+    );
+  }
+
+  #migrateLegacyStore(
+    sourceRootDir,
+    resolveExecutionArtifacts,
+    migrationAuthority,
+  ) {
     assertDataRecord(
       migrationAuthority,
       MIGRATION_AUTHORITY_KEYS,
@@ -2599,7 +2666,7 @@ export class SkillCandidateRegistry {
           },
         );
       }
-      const migrated = this.migrateLegacy(
+      const migrated = this.#migrateLegacy(
         source.legacy,
         executionArtifacts,
         capturedMigrationAuthority,
@@ -2664,6 +2731,10 @@ export class SkillCandidateRegistry {
         "candidate create accepts only input; admission context is registry-owned",
       );
     }
+    return this.#writerControl.runSync(() => this.#create(input));
+  }
+
+  #create(input) {
     return withEvolutionFileIdentity(
       this._fs,
       this._markerPath,
@@ -2879,6 +2950,10 @@ export class SkillCandidateRegistry {
   }
 
   read(candidateId) {
+    return this.#read(candidateId);
+  }
+
+  #read(candidateId) {
     const normalizedId = normalizeCandidateId(candidateId);
     const filePath = this._candidatePath(normalizedId);
     let bytes;
@@ -2955,12 +3030,16 @@ export class SkillCandidateRegistry {
   }
 
   readInventory() {
+    return this.#readInventory();
+  }
+
+  #readInventory() {
     const before = this._assertNoMixedTenantArtifacts()
       .filter((name) => CANDIDATE_FILE_PATTERN.test(name))
       .sort();
     const candidates = before.map((name) => {
       const match = CANDIDATE_FILE_PATTERN.exec(name);
-      return this.read(`sha256:${match[1]}`);
+      return this.#read(`sha256:${match[1]}`);
     });
     const after = this._assertNoMixedTenantArtifacts()
       .filter((name) => CANDIDATE_FILE_PATTERN.test(name))
