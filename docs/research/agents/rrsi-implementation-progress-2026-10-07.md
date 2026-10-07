@@ -499,3 +499,23 @@ Astra 发现 POSIX 的 lstat→open 窗口可被换成 FIFO，导致打开在有
 WSL Ubuntu 中另外执行 **2/2 个真实 POSIX FIFO 定向场景**：在 open 前分别把文件和父目录 rename 后创建真正 mkfifo，子进程确认已注入、实际目标为 FIFO、及时返回 HOLD 且未被 15 秒 watchdog 杀死。临时 Linux Node v22.22.2 仅解压到工作区 .work，使用官方 SHASUMS256 验证归档；初次沙箱访问 WSL 被拒，获准后确认 Ubuntu 未安装 Node，才使用该临时工具链。定向脚本直接运行仓库同一 child fixture 并核对全部最终源码摘要，不涉及 npm 安装、全 Linux Vitest、macOS 或发行矩阵；Windows 的两个条件跳过仍如实保留。
 
 ESLint、Prettier、diff check 与 Astra 收尾复核通过；首轮／最终 reporter、15 个源码／测试摘要、六处两轮间变更与 WSL 场景记录见 [安装路由本地控制验证记录](./evidence/rrsi-installation-route-local-controls-2026-10-07.json)。本批未建立独立可信安装根、受保护的持久 pin 或业务 router，也未接真实 producer、候选 alias、发布 lease／恢复的来源门和生产晋级。下一步先接入安装管理认可、可信状态存在性与原图／限制历史前缀，再开放依赖这些权威的路径；完整 RRSI 尚未完成。
+
+## 28 原存储组合中的真实历史前缀
+
+[rrsi-observed-text-index.js](../../../packages/cli/src/lib/evolution/rrsi-observed-text-index.js) 的 captured internal API 新增 captureHistoryCheckpoints，仅接受最多两个有界 checkpoint，不接受 caller 的前缀结果、摘要计算器、resolver 或 verifier callback。每次执行原完整 load，认证全部 journal 事件、preparation 关联、限制记录、manifest 与实际 UTF-8 chunks；末事件摘要还须等于捕获 head。内存 retained record 增加真实 eventSequence 以计算历史边界，不改既有持久 record、descriptor 或 artifact 类型。
+
+对正数 N，checkpoint 的 Ledger ID／identity digest／epoch 必须等于原捕获身份，headDigest 必须等于认证 events[N−1].eventDigest。它不是 manifest、anchor 或 restriction record digest。sequence=0 的真实 Ledger head 为 null，而现有 anchor v1 不支持该值，本接口明确拒绝零序号，不伪造空 SHA。fresh v2 的 migration intent／cutover completed 事件保留在 journal 序列，零限制前缀也计算真实非空 head；当前已留存的迁移前事件只认证为当前 v2 历史前缀，不倒推它们当时已有 v2 权限。
+
+两个前缀均由同一次完整 replay 计算：recordCount 计实际限制事件，tailRecordDigest 为前缀最后记录，无记录时为 null；restrictionsDigest 使用独立 `chainlesschain.rrsi-observed-text-restriction-set/v1` 域，内容为按 skillTextDigest 排序的 `{skillTextDigest, restrictions: sortedUnion}` 数组，空集也沿用同一算法。非限制事件不改变限制计数；同一确切文本多次观察会增加记录数并累加禁止项。请求的旧前缀没有文本记录，也不能绕过当前 suffix 中缺失 chunk 或畸形声明。
+
+[rrsi-tenant-index-anchor-history.js](../../../packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js) 捕获真正 index，先对两个 packet 做原 Ed25519 相对公钥验签，再检查 installation scope、固定 deployment／tenant／index／journal／artifact／root／声明 graph、精确 revision／前驱及实际 index scope。后端 checkpoint 必须为此次捕获的 current head，前端为真实原 journal 前缀；两端限制数量／tail／集合摘要均与内部重放结果完全相等。返回前再复验五字段 head，变化即 HOLD，不自动重基或缓存成功。recheck 只复查 head，不重新解析全部 chunks，不能证明捕获后持续的 artifact 可用性。
+
+成功仅置 localJournalPrefixVerified、localRestrictionPrefixVerified 和 localRetainedHistoryReplayed 为 true。localCompositionDigest 明确只由原捕获 index／policy／backend 描述符生成，包含实际 journal/witness 路径与信任描述；现有 API 不完整公开 ArtifactPorts 布局和 v2 retention／manifest 配置，因此 fullPhysicalStorageGraphVerified／storageGraphDigestVerified 保持 false。caller 的 graph 仅要求两个声明同值，不回显为认证图摘要；安装根、installation binding、pin、跨进程回滚、tenant-wide、generation、migration／history transfer、cutover 与 mutation／promotion 权威均未授予，decision:HOLD、authenticated:false、执行／晋级资格 false。
+
+v2 verify／read 会采用既有维护锁并可能恢复已获授权的迁移或 WAL／retained suffix；本批没有新增业务写入接口，但不称物理 open-only、无锁或零文件写入。原三文件路由纯合同仍拒绝 checkpoint／restriction 变化，未以 caller 的序列增加、WeakMap 品牌或新 prefix 回执解除业务 HOLD，也未建立独立的持久高水位。
+
+反例使用真实 v2 日志、留存字节和签名。覆盖迁移事件零限制前缀、夹入非限制事件、相同文本累计限制、真实 head 配错序号／其他事件或记录摘要、零序号、过时 current head、实际限制 count／tail／set 的合法重签篡改、错误 scope／key／修订关系、伪造 index／getter／proxy／callback，以及旧空限制前缀下当前 suffix 缺 chunk。另一 genuine backend 用例属于不同原 Ledger identity，不证明拒绝完整复制同一身份及历史的另一物理后端。独立进程追加验证捕获后的 recheck 会拒绝旧 head，不是 wrapper 返回前窗口的定点故障注入；新进程亦可重建真实前缀，但仍无租户或安装权威。
+
+本批共有 **90 项不同用例通过**、零失败、零跳过：新增前缀单元 **33**、真实子进程 **3**，旧 observed-text 单元／控制 **16＋8** 及 anchor 契约 **30**。首轮五个完整文件 **90/90** 通过；根据 Astra 建议仅收紧新单元的精确 message／嵌套 cause，并明确另一 backend 的不同 Ledger identity，最终该文件完整 **33/33** 再次通过。生产源码、签名／故障注入、准备阶段与时限及其它四文件未再改动；最终计数来自精确单元 33 项与四个不变完整文件 57 项，不称最后一次精确源码共同完整运行过五文件。
+
+六个改动源码／测试与九个相关不变文件均保留两次启动前摘要检查点，原单元字节备份、唯一的诊断断言变更、两个完整 reporter 与逐项结果见 [真实前缀本地控制验证记录](./evidence/rrsi-anchor-history-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 收尾复核通过；原生 ACL helper 和既有回归预算未改，新 fixture 各准备阶段 60 秒，子进程 watchdog 90 秒、外层行为 120 秒。本批未启用独立安装根、持久 pin、全图认证、producer 来源、alias 或发布准入，亦未执行真实费用／模型实验、生产晋级或 Linux／macOS 发行矩阵；完整 RRSI 仍在实施。

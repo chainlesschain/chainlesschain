@@ -22,6 +22,7 @@ import {
   rrsiCanonical,
   rrsiHash,
   rrsiDigest,
+  rrsiInteger,
   rrsiId,
   rrsiExact,
   rrsiEnvelope,
@@ -591,7 +592,8 @@ export function createRrsiObservedTextIndex(input) {
     });
     if (
       events.length !== before.sequence ||
-      events.some((event, index) => event.sequence !== index + 1)
+      events.some((event, index) => event.sequence !== index + 1) ||
+      (events.at(-1)?.eventDigest ?? null) !== before.headDigest
     )
       hold("text index requires complete contiguous journal history");
     const historyCache = new Map();
@@ -655,13 +657,123 @@ export function createRrsiObservedTextIndex(input) {
         associations: [...(previous?.associations ?? []), record.association],
         recordDigest: record.recordDigest,
       });
-      const retained = { record, ref: ref(event.subjectRef) };
+      const retained = {
+        record,
+        ref: ref(event.subjectRef),
+        eventSequence: event.sequence,
+      };
       records.push(retained);
       operations.set(operationId, retained);
     }
     if (!same(before, head(methods.verify())))
       hold("text index journal changed during authenticated readback");
     return { head: before, events, records, entries, operations };
+  }
+  function historyPrefix(state, checkpoint) {
+    rrsiExact(
+      checkpoint,
+      ["ledgerId", "identityDigest", "epoch", "sequence", "headDigest"],
+      "observed history checkpoint",
+    );
+    rrsiInteger(
+      checkpoint.sequence,
+      "observed history sequence",
+      1,
+      state.head.sequence,
+    );
+    rrsiDigest(checkpoint.headDigest, "observed history event head digest");
+    if (
+      !same(identity(checkpoint), originalIdentity) ||
+      state.events[checkpoint.sequence - 1].eventDigest !==
+        checkpoint.headDigest
+    )
+      hold("observed history checkpoint is not the original journal prefix");
+    const records = state.records.filter(
+      (entry) => entry.eventSequence <= checkpoint.sequence,
+    );
+    const entries = new Map();
+    for (const { record } of records)
+      entries.set(
+        record.skillTextDigest,
+        [
+          ...new Set([
+            ...(entries.get(record.skillTextDigest) ?? []),
+            ...record.restrictions,
+          ]),
+        ].sort(),
+      );
+    const sorted = [...entries]
+      .sort(([a], [b]) => (a === b ? 0 : a < b ? -1 : 1))
+      .map(([skillTextDigest, codes]) => ({
+        skillTextDigest,
+        restrictions: codes,
+      }));
+    return freezeRrsiData({
+      checkpoint,
+      restrictionHistory: {
+        recordCount: records.length,
+        tailRecordDigest: records.at(-1)?.record.recordDigest ?? null,
+        restrictionsDigest: rrsiHash(
+          "chainlesschain.rrsi-observed-text-restriction-set/v1",
+          sorted,
+        ),
+      },
+    });
+  }
+  function captureHistoryCheckpoints(input) {
+    const request = snapshotRrsiData(input);
+    rrsiExact(request, ["checkpoints"], "observed history checkpoint request");
+    if (!Array.isArray(request.checkpoints) || request.checkpoints.length > 2)
+      hold("observed history requires at most two checkpoints");
+    const state = load();
+    // Anchor v1 cannot represent the genuine null digest at sequence zero.
+    // Fresh v2 migration events are included in this nonempty event prefix.
+    const current = historyPrefix(state, state.head);
+    const prefixes = request.checkpoints.map((checkpoint) =>
+      historyPrefix(state, checkpoint),
+    );
+    const snapshot = rrsiEnvelope(
+      "chainlesschain.rrsi-observed-text-history-snapshot/v1",
+      "historySnapshotDigest",
+      {
+        tenantId: descriptor.tenantId,
+        indexId: descriptor.indexId,
+        ledgerIdentity: originalIdentity,
+        artifactScope: {
+          artifactTenantId: descriptor.artifactTenantId,
+          audience: descriptor.audience,
+          purpose: descriptor.purpose,
+        },
+        indexDescriptorDigest: rrsiHash(
+          "chainlesschain.rrsi-observed-text-index-descriptor/v1",
+          descriptor,
+        ),
+        localCompositionDigest: rrsiHash(
+          "chainlesschain.rrsi-observed-text-local-composition/v1",
+          {
+            indexDescriptor: descriptor,
+            policyDescriptor: policy.descriptor,
+            backendDescriptor: backend.descriptor,
+          },
+        ),
+        current,
+        prefixes,
+        localRetainedHistoryReplayed: true,
+        fullPhysicalStorageGraphVerified: false,
+        tenantWideIndexAuthorityVerified: false,
+        generationProvenanceVerified: false,
+        grantsMutationOrPromotionAuthority: false,
+        decision: "HOLD",
+      },
+    );
+    const recheck = () =>
+      guarded(() => {
+        if (!same(state.head, head(methods.verify())))
+          hold("observed history head changed after prefix capture");
+        return true;
+      });
+    recheck();
+    return Object.freeze({ snapshot, recheck });
   }
   function lookup(skillTextDigest) {
     rrsiDigest(skillTextDigest, "Skill text digest");
@@ -831,6 +943,8 @@ export function createRrsiObservedTextIndex(input) {
       matchesPolicy: (value) => value === options.storePolicy,
       readObservedText: index.readObservedText,
       inspectRestrictions: index.inspectRestrictions,
+      captureHistoryCheckpoints: (input) =>
+        guarded(() => captureHistoryCheckpoints(input)),
     }),
   );
   return index;

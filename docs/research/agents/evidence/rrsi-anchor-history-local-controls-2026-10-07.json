@@ -1,0 +1,990 @@
+{
+  "schema": "chainlesschain.rrsi-anchor-history-local-controls/v1",
+  "recordedAt": "2026-10-07T13:40:42.734Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "evidenceKind": "original-captured-index-local-prefix-control-not-installation-authority",
+  "uniquePassedCases": 90,
+  "newPassedCases": 36,
+  "existingPassedCases": 54,
+  "failedFinalCases": 0,
+  "skippedFinalCases": 0,
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "sha256": "c72f741446c931422b121579290437f397ef078f610a9fb6406881594de4aa77"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+      "sha256": "aee767bfbb921e7f757815a45221042fd73462c531b63dd4af112502b58f17f0"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+      "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history-process.mjs",
+      "sha256": "f5dd34418c37e27b3ff8e4e58119c55c706acec5c2070a615f988bb072581203"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-contracts.js",
+      "sha256": "5cdbfc8f4e873fc1754289bf2e65d90bb6b63b343e8fac49f187a173ec56ffe3"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+      "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+      "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "sha256": "5ffd087d288e31b6dd94ea8fb3ebea6f5b30f63758d16238c36bf1517e63cf0d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-data.js",
+      "sha256": "06226d8c01c0d3496aeb8e4327ac03fcf00140bb1ce488a77ad1a9b0818e6d1b"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+      "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+      "sha256": "333db00378c29b59d027afa7be817dd90d1ac9b2118367e0ac3a74ca9d1436a6"
+    }
+  ],
+  "sourceCheckpoints": [
+    {
+      "localPath": ".work/rrsi-anchor-history-first-source-sha.json",
+      "sha256": "2bc9d269457a3dca78bf37b55963df4495c9343ac8b659d6dceea044718e00cc",
+      "recordedAt": "2026-10-07T13:28:40.867Z",
+      "timing": "Recorded before its corresponding test invocation"
+    },
+    {
+      "localPath": ".work/rrsi-anchor-history-final-source-sha.json",
+      "sha256": "8d0a08faa9981f8d84dd7ae3445694c13c8152d76a2e6990d36bbfe25b8e308f",
+      "recordedAt": "2026-10-07T13:35:10.393Z",
+      "timing": "Recorded before its corresponding test invocation"
+    }
+  ],
+  "postCombinedRunChange": {
+    "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+    "originalLocalBackup": ".work/rrsi-anchor-history-unit-first.js",
+    "originalSha256": "8282d94c56c43fd4d6ea256463f63b2f0fe85c8a2d0cc811f5b22bf8943cc38e",
+    "finalSha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5",
+    "scope": "Only HOLD assertion diagnostics: exact messages/nested causes and explicit different-Ledger-identity control; setup, signing, fault bodies, budgets and case names remain unchanged",
+    "other14TrackedFilesUnchanged": true
+  },
+  "runs": [
+    {
+      "localReporterPath": ".work/rrsi-anchor-history-first.json",
+      "reporterSha256": "3116fd1c4aec742e90a2a2b2c53291ebc58401d11d9f70afb1a9d11772588569",
+      "success": true,
+      "total": 90,
+      "passed": 90,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791379724191,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791379795782,
+          "endTime": 1791379882823.5813,
+          "assertions": [
+            {
+              "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+              "status": "passed",
+              "durationMs": 4547.8927,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+              "status": "passed",
+              "durationMs": 6555.448899999999,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+              "status": "passed",
+              "durationMs": 1708.3333999999995,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2474.3686000000016,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2663.924500000001,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2075.486300000004,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+              "status": "passed",
+              "durationMs": 10806.386200000008,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+              "status": "passed",
+              "durationMs": 2091.5812000000005,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791379956307,
+          "endTime": 1791379967033.7231,
+          "assertions": [
+            {
+              "name": "signed local anchor prefix across original v2 processes reconstructs genuine local prefixes in a new process while preserving artifacts and denying external authority",
+              "status": "passed",
+              "durationMs": 3435.643400000001,
+              "failures": []
+            },
+            {
+              "name": "signed local anchor prefix across original v2 processes holds a captured proof after another real process authenticates a new event",
+              "status": "passed",
+              "durationMs": 3849.5000999999975,
+              "failures": []
+            },
+            {
+              "name": "signed local anchor prefix across original v2 processes rejects a fresh, valid signature that erases retained restrictions without appending or publishing",
+              "status": "passed",
+              "durationMs": 3441.7230999999992,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791379884218,
+          "endTime": 1791379935014.6135,
+          "assertions": [
+            {
+              "name": "exact UTF-8 Skill text encoding rejects oversized code units and UTF-8 bytes before allocating a Buffer",
+              "status": "passed",
+              "durationMs": 6.2314000000001215,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 2.317099999999982,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 0.3608999999999014,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.4375999999999749,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.3838999999998123,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.34629999999992833,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 0.2154000000000451,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 3.1335999999998876,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "passed",
+              "durationMs": 995.4959999999992,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "passed",
+              "durationMs": 1845.5954000000056,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "passed",
+              "durationMs": 4886.799699999996,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "passed",
+              "durationMs": 149.63390000000072,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "passed",
+              "durationMs": 2020.6515999999974,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "passed",
+              "durationMs": 4961.708299999998,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "passed",
+              "durationMs": 2926.9982999999993,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "passed",
+              "durationMs": 1035.6135000000068,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791379935564,
+          "endTime": 1791379935636.9055,
+          "assertions": [
+            {
+              "name": "signed tenant index anchor declarations without root authority detaches and freezes the exact declaration without authenticating its checkpoint or pin",
+              "status": "passed",
+              "durationMs": 9.053999999999974,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into installation authority",
+              "status": "passed",
+              "durationMs": 5.28490000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into shared-tenant-authority authority",
+              "status": "passed",
+              "durationMs": 2.554299999999955,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed deploymentId exactly",
+              "status": "passed",
+              "durationMs": 4.372299999999996,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed tenantId exactly",
+              "status": "passed",
+              "durationMs": 2.3292999999999893,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed storageGraphDigest exactly",
+              "status": "passed",
+              "durationMs": 3.104600000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed rootPublicKeyDigest exactly",
+              "status": "passed",
+              "durationMs": 1.973600000000033,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed routingScope exactly",
+              "status": "passed",
+              "durationMs": 2.3781999999999925,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed artifactScope exactly",
+              "status": "passed",
+              "durationMs": 3.843999999999994,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed ledgerIdentity exactly",
+              "status": "passed",
+              "durationMs": 3.973000000000013,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed checkpoint exactly",
+              "status": "passed",
+              "durationMs": 2.453800000000001,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.tailRecordDigest exactly",
+              "status": "passed",
+              "durationMs": 2.6451999999999884,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.restrictionsDigest exactly",
+              "status": "passed",
+              "durationMs": 2.3045000000000186,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed revision exactly",
+              "status": "passed",
+              "durationMs": 2.35450000000003,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged authenticated even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.762200000000007,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged readyForExecution even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.119100000000003,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged qualifiesForPromotion even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 0.9855999999999767,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects a different signer and a signature from another domain",
+              "status": "passed",
+              "durationMs": 4.622000000000014,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical publicKeySpki encodings",
+              "status": "passed",
+              "durationMs": 1.4698999999999955,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical signature encodings",
+              "status": "passed",
+              "durationMs": 1.7291999999999916,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 0",
+              "status": "passed",
+              "durationMs": 0.5480999999999767,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 1",
+              "status": "passed",
+              "durationMs": 0.5921999999999912,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 2",
+              "status": "passed",
+              "durationMs": 0.4823000000000093,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 3",
+              "status": "passed",
+              "durationMs": 0.6035999999999717,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 4",
+              "status": "passed",
+              "durationMs": 0.505299999999977,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 5",
+              "status": "passed",
+              "durationMs": 0.4963999999999942,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 6",
+              "status": "passed",
+              "durationMs": 0.4634999999999536,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority permits a declared successor but does not certify migration or preserved restrictions",
+              "status": "passed",
+              "durationMs": 2.651499999999942,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority accepts an explicit empty history only as an unverified declaration",
+              "status": "passed",
+              "durationMs": 1.9506000000000085,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects getters, proxy traps and arbitrary verifier callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 2.905599999999936,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791379761591,
+          "endTime": 1791379776092.5283,
+          "assertions": [
+            {
+              "name": "real captured observed-text history and signed anchor prefixes includes real migration events in an empty restriction prefix without inventing genesis digests",
+              "status": "passed",
+              "durationMs": 861.5298000000039,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates both prefixes from real retained readback while all external authority stays HOLD",
+              "status": "passed",
+              "durationMs": 723.5296999999991,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes keeps non-restriction events in the journal without changing restriction count or union",
+              "status": "passed",
+              "durationMs": 866.3359999999957,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes counts three actual restriction records while unioning two exact text keys deterministically",
+              "status": "passed",
+              "durationMs": 0.511899999997695,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes accepts exact signed anchor idempotence only at the actual current head",
+              "status": "passed",
+              "durationMs": 1493.1134999999995,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-count",
+              "status": "passed",
+              "durationMs": 607.7762999999977,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-tail",
+              "status": "passed",
+              "durationMs": 599.3575999999957,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-set",
+              "status": "passed",
+              "durationMs": 691.8701999999976,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-count",
+              "status": "passed",
+              "durationMs": 694.4936999999991,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-tail",
+              "status": "passed",
+              "durationMs": 770.5528000000049,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-set",
+              "status": "passed",
+              "durationMs": 625.5812000000005,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over wrong-sequence checkpoint",
+              "status": "passed",
+              "durationMs": 474.0054999999993,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over other-event-digest checkpoint",
+              "status": "passed",
+              "durationMs": 483.553899999999,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over record-digest checkpoint",
+              "status": "passed",
+              "durationMs": 469.08570000000327,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over zero checkpoint",
+              "status": "passed",
+              "durationMs": 496.78459999999905,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over stale-current checkpoint",
+              "status": "passed",
+              "durationMs": 597.7009000000035,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation jump",
+              "status": "passed",
+              "durationMs": 5.204699999994773,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation wrong-predecessor",
+              "status": "passed",
+              "durationMs": 3.9456999999965774,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation same-revision-conflict",
+              "status": "passed",
+              "durationMs": 3.2820000000065193,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation backward-checkpoint",
+              "status": "passed",
+              "durationMs": 4.588499999998021,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-graph",
+              "status": "passed",
+              "durationMs": 3.2854000000006636,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-deployment",
+              "status": "passed",
+              "durationMs": 3.2845999999990454,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation shared-scope",
+              "status": "passed",
+              "durationMs": 4.912799999998242,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not authenticate a caller graph digest even when both signed anchors repeat it",
+              "status": "passed",
+              "durationMs": 724.8030999999974,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes refuses another genuine backend and index rather than treating tenant equality as global authority",
+              "status": "passed",
+              "durationMs": 3.104299999999057,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong tenant",
+              "status": "passed",
+              "durationMs": 3.664199999999255,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong journal",
+              "status": "passed",
+              "durationMs": 4.037100000001374,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong artifact-scope",
+              "status": "passed",
+              "durationMs": 4.214099999997416,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a genuine signature from another root key rather than adopting a replacement root",
+              "status": "passed",
+              "durationMs": 3.7409000000043306,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not accept caller prefix results, excess checkpoints or accessor callbacks in the internal capture",
+              "status": "passed",
+              "durationMs": 2.451499999995576,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects forged index handles, getters, proxies and supplied prefix callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 2.4033999999955995,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates the entire current suffix even when the requested previous prefix has no text records",
+              "status": "passed",
+              "durationMs": 610.0774999999994,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rechecks a captured head instead of caching success after a new authentic event",
+              "status": "passed",
+              "durationMs": 2657.528299999998,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localReporterPath": ".work/rrsi-anchor-history-final-unit.json",
+      "reporterSha256": "340ef4d830abdf141530a5f2641fcfa83971bf0f02eba77d29578d41ffdec9e9",
+      "success": true,
+      "total": 33,
+      "passed": 33,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791380113983,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791380177123,
+          "endTime": 1791380200445.9192,
+          "assertions": [
+            {
+              "name": "real captured observed-text history and signed anchor prefixes includes real migration events in an empty restriction prefix without inventing genesis digests",
+              "status": "passed",
+              "durationMs": 1543.3715999999986,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates both prefixes from real retained readback while all external authority stays HOLD",
+              "status": "passed",
+              "durationMs": 1242.5663000000059,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes keeps non-restriction events in the journal without changing restriction count or union",
+              "status": "passed",
+              "durationMs": 1413.9591999999975,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes counts three actual restriction records while unioning two exact text keys deterministically",
+              "status": "passed",
+              "durationMs": 0.7509999999892898,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes accepts exact signed anchor idempotence only at the actual current head",
+              "status": "passed",
+              "durationMs": 2245.380899999989,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-count",
+              "status": "passed",
+              "durationMs": 1063.2378999999928,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-tail",
+              "status": "passed",
+              "durationMs": 1132.6417999999976,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-set",
+              "status": "passed",
+              "durationMs": 1044.333799999993,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-count",
+              "status": "passed",
+              "durationMs": 1360.6788000000088,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-tail",
+              "status": "passed",
+              "durationMs": 1281.0427000000054,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-set",
+              "status": "passed",
+              "durationMs": 910.7750999999989,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over wrong-sequence checkpoint",
+              "status": "passed",
+              "durationMs": 790.196299999996,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over other-event-digest checkpoint",
+              "status": "passed",
+              "durationMs": 1128.8966000000073,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over record-digest checkpoint",
+              "status": "passed",
+              "durationMs": 836.6814000000013,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over zero checkpoint",
+              "status": "passed",
+              "durationMs": 802.6198000000004,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over stale-current checkpoint",
+              "status": "passed",
+              "durationMs": 955.5773000000045,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation jump",
+              "status": "passed",
+              "durationMs": 7.079100000002654,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation wrong-predecessor",
+              "status": "passed",
+              "durationMs": 6.33870000000752,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation same-revision-conflict",
+              "status": "passed",
+              "durationMs": 6.030899999997928,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation backward-checkpoint",
+              "status": "passed",
+              "durationMs": 6.522799999991548,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-graph",
+              "status": "passed",
+              "durationMs": 19.174099999989267,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-deployment",
+              "status": "passed",
+              "durationMs": 7.792000000001281,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation shared-scope",
+              "status": "passed",
+              "durationMs": 8.097799999988638,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not authenticate a caller graph digest even when both signed anchors repeat it",
+              "status": "passed",
+              "durationMs": 1100.526399999988,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes refuses another genuine backend and index rather than treating tenant equality as global authority",
+              "status": "passed",
+              "durationMs": 3.650999999998021,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong tenant",
+              "status": "passed",
+              "durationMs": 5.754799999995157,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong journal",
+              "status": "passed",
+              "durationMs": 8.79550000000745,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong artifact-scope",
+              "status": "passed",
+              "durationMs": 7.580499999996391,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a genuine signature from another root key rather than adopting a replacement root",
+              "status": "passed",
+              "durationMs": 7.067800000004354,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not accept caller prefix results, excess checkpoints or accessor callbacks in the internal capture",
+              "status": "passed",
+              "durationMs": 2.919399999998859,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects forged index handles, getters, proxies and supplied prefix callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 3.733300000007148,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates the entire current suffix even when the requested previous prefix has no text records",
+              "status": "passed",
+              "durationMs": 956.6638000000094,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rechecks a captured head instead of caching success after a new authentic event",
+              "status": "passed",
+              "durationMs": 3411.919299999994,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "finalCoverage": "33 cases from exact final unit file plus 57 from four complete unchanged files in combined run; not a last-run five-file exact-final claim",
+  "reproductionCommands": [
+    "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-tenant-index-anchor-history.test.js __tests__/integration/rrsi-tenant-index-anchor-history-process.test.js __tests__/unit/rrsi-observed-text-index.test.js __tests__/integration/rrsi-observed-text-controls.test.js __tests__/unit/rrsi-tenant-index-anchor-contracts.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-anchor-history-first.json",
+    "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-tenant-index-anchor-history.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-anchor-history-final-unit.json"
+  ],
+  "cwd": "packages/cli",
+  "verification": {
+    "eslint": "passed for all six changed source/test files, max-warnings=0",
+    "prettier": "passed",
+    "gitDiffCheck": "passed",
+    "astraReview": "completed; genuine event/checkpoint and restriction replay, caller graph limits, exact diagnostics, original identity mismatch and post-capture process recheck scope verified"
+  },
+  "bounds": {
+    "maximumCheckpoints": 2,
+    "journalEvents": 250000,
+    "restrictionRecords": 256,
+    "textBytes": 1048576,
+    "nativeAclBudgetsChanged": false,
+    "nativeAclTimeoutOverride": null,
+    "fixtureSetupStagesMs": 60000,
+    "explicitPrefixBehaviorsMs": 60000,
+    "processChildWatchdogMs": 90000,
+    "outerProcessMs": 120000,
+    "nativeBudgetScope": "Existing helper and regression budgets unchanged; new data-only tests without an explicit override use repository Vitest defaults"
+  },
+  "checkpointSemantics": {
+    "identity": "Exact original ledgerId/identityDigest/epoch",
+    "positiveSequence": "1 <= N <= current sequence; head digest equals authenticated events[N-1].eventDigest",
+    "finalEventCrossCheck": "Last authenticated event digest equals captured current head",
+    "zeroSequence": "Rejected; genuine genesis has null head and anchor v1 does not represent it",
+    "migrationEvents": "Included in journal sequence; only actual restriction event count excludes them"
+  },
+  "restrictionSemantics": {
+    "domain": "chainlesschain.rrsi-observed-text-restriction-set/v1",
+    "digestInput": "Array sorted by skillTextDigest of exact {skillTextDigest, restrictions: sortedUnion} entries",
+    "recordCount": "Actual restriction events, including repeated observations of one text",
+    "tailRecordDigest": "Last prefix restriction record digest or null for none",
+    "suffix": "All current retained declarations/manifests/chunks are authenticated even if requested previous prefix contains none"
+  },
+  "localCompositionSemantics": "Digest of genuine captured index, store policy and backend descriptors only; actual object composition is fixed inside original index, but complete physical ArtifactPorts/v2 retention layout and tenant routing authority are not authenticated",
+  "physicalReadOnlyClaimed": false,
+  "existingV2RecoveryAndLocksPreserved": true,
+  "persistedObservedRecordSchemaChanged": false,
+  "persistedIndexDescriptorChanged": false,
+  "pureInstallationRouteAdmissionRelaxed": false,
+  "limitations": [
+    "Local prefix proofs and relative-key signatures do not authorize installation/root/routing pin, tenant-wide uniqueness, generation or business promotion",
+    "Caller storageGraphDigest is only compared between the two declarations; it is not returned as authenticated physical graph identity",
+    "localCompositionDigest does not expose or authenticate the complete ArtifactPorts layout and v2 segment/manifest authority configuration",
+    "The other genuine backend test has a different Ledger identity; a full same-identity/history physical clone rejection is not established",
+    "Same-process and independent-process append tests validate captured recheck after capture; there is no dedicated injection at the wrapper's last pre-return instruction",
+    "Final recheck verifies only five-field head and does not re-resolve all retained bytes; continuous artifact availability and a cross-file atomic snapshot are not proven",
+    "v2 verify/read may acquire maintenance locks or recover already-authorized migration/WAL/retained suffixes; this is not a physical open-only reader",
+    "A current authenticated v2 prefix does not prove migration permission at the historical acceptance time",
+    "Serializing or recomputing the result envelope does not create live verification or a trusted external authority; consumers must invoke the original index-backed verifier",
+    "No independent installation approval, protected highwater/pin, business router, authenticated producer, alias protocol or Registry release source gate was enabled",
+    "Local HMAC/manifest fixtures do not prove production key custody, external WORM, actual model/cost experiments, physical power-loss durability or Linux/macOS release checks"
+  ],
+  "localJournalPrefixVerifiedOnSuccessfulCheck": true,
+  "localRestrictionPrefixVerifiedOnSuccessfulCheck": true,
+  "fullPhysicalStorageGraphVerified": false,
+  "storageGraphDigestVerified": false,
+  "rootAuthorityVerified": false,
+  "installationBindingSignatureVerified": false,
+  "routingPinVerified": false,
+  "crossProcessRollbackProtectionVerified": false,
+  "historyTransferVerified": false,
+  "originCutoverAuthenticated": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}
