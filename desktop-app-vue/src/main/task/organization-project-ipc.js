@@ -21,6 +21,9 @@ const {
   OrganizationProjectGoalService,
 } = require("@chainlesschain/session-core/organization-project-goal-service");
 const {
+  OrganizationProjectGoalWorkflow,
+} = require("@chainlesschain/session-core/organization-project-goal-workflow");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -72,6 +75,10 @@ const CHANNELS = Object.freeze({
   getGoalCheck: "organization-project:goal-check-read",
   startGoalMonitoring: "organization-project:goal-monitor-start",
   stopGoalMonitoring: "organization-project:goal-monitor-stop",
+  listGoalSuggestions: "organization-project:goal-suggestions",
+  prepareGoalAction: "organization-project:goal-action-prepare",
+  submitGoalAction: "organization-project:goal-action-submit",
+  getGoalAction: "organization-project:goal-action-read",
 });
 function fail(code) {
   const error = new Error(code);
@@ -156,6 +163,18 @@ function createOrganizationProjectHost({
       approvals,
       now: clock,
     });
+    const goalWorkflow = new OrganizationProjectGoalWorkflow({
+      db,
+      getActor,
+      authority,
+      clock,
+      goals,
+      risk: risks,
+      usage: goals.usage,
+      approvals,
+      proposals,
+    });
+    approvals.goalWorkflow = goalWorkflow;
     const transfers = new OrganizationProjectTransferService({
       db,
       getActor,
@@ -192,6 +211,14 @@ function createOrganizationProjectHost({
               `修改后：${display(after.description)}`,
               ...(create ? [`任务类型：${display(after.taskType)}`] : []),
               `操作摘要：${request.actionDigest}`,
+              ...(request.input.goalIntent
+                ? [
+                    `组织目标：${display(goals.get({ id: request.input.goalIntent.goalId }).objective)}`,
+                    `目标/意图：${display(request.input.goalIntent.goalId)} / ${display(request.input.goalIntent.id)}`,
+                    `目标版本：${request.input.goalIntent.goalRevision}`,
+                    "保存任务不代表目标通过验收。",
+                  ]
+                : []),
               ...(request.input.riskReview
                 ? [
                     `风险检查：${display(request.input.riskReview.id)}`,
@@ -230,11 +257,14 @@ function createOrganizationProjectHost({
                 return true;
               },
         riskService: risks,
+        contextAdapter: goalWorkflow.contextAdapter,
       });
     }
     // All tables/fences exist before a preview captures its schema revision.
     const descriptions = action(),
       creation = action(true);
+    goalWorkflow.descriptionActions = descriptions;
+    goalWorkflow.createActions = creation;
     return {
       authority,
       db,
@@ -244,6 +274,7 @@ function createOrganizationProjectHost({
       transfers,
       risks,
       goals,
+      goalWorkflow,
       descriptions,
       creation,
       action,
@@ -543,6 +574,14 @@ function createOrganizationProjectHost({
       });
     },
     initializeMonitoring: () => goalController.initialize(),
+    listGoalSuggestions: (event, params) =>
+      factory(event).goalWorkflow.list(params),
+    prepareGoalAction: (event, params) =>
+      factory(event).goalWorkflow.prepare(params),
+    submitGoalAction: (event, params) =>
+      factory(event).goalWorkflow.submit(params),
+    getGoalAction: (event, params) =>
+      factory(event).goalWorkflow.getIntent(params),
     getGoal: (event, params) => factory(event).goals.get(params),
     listGoals: (event, params) => factory(event).goals.list(params),
     async createGoal(event, params) {
@@ -578,8 +617,8 @@ function createOrganizationProjectHost({
           "确认更新组织目标",
           "按以下内容更新目标？结束跟进会保留历史，不代表目标通过验收。",
           [
-            `修改前：${display({ title: prepared.previous.title, objective: prepared.previous.objective, status: prepared.previous.status, budgetPolicy: prepared.previous.budgetPolicy, expiresAt: prepared.previous.expiresAt })}`,
-            `修改后：${display({ title: prepared.goal.title, objective: prepared.goal.objective, status: prepared.goal.status, budgetPolicy: prepared.goal.budgetPolicy, expiresAt: prepared.goal.expiresAt })}`,
+            `修改前：${display({ title: prepared.previous.title, objective: prepared.previous.objective, status: prepared.previous.status, budgetPolicy: prepared.previous.budgetPolicy, expiresAt: prepared.previous.expiresAt, allowedActionTypes: prepared.previous.allowedActionTypes })}`,
+            `修改后：${display({ title: prepared.goal.title, objective: prepared.goal.objective, status: prepared.goal.status, budgetPolicy: prepared.goal.budgetPolicy, expiresAt: prepared.goal.expiresAt, allowedActionTypes: prepared.goal.allowedActionTypes })}`,
             `目标版本：${prepared.previous.revision}`,
             `项目/组织：${display(prepared.goal.projectRef.id)} / ${display(prepared.goal.projectRef.scope.id)}`,
             `确认摘要：${prepared.requestDigest}`,
@@ -965,6 +1004,13 @@ function createOrganizationProjectHost({
             `目标：${display(proposal.request.target.id)}`,
             `操作摘要：${proposal.request.actionDigest}`,
             `审批步骤：${value.step + 1}`,
+            ...(proposal.request.input.goalIntent
+              ? [
+                  `组织目标：${display(c.goals.get({ id: proposal.request.input.goalIntent.goalId }).objective)}`,
+                  `目标版本：${proposal.request.input.goalIntent.goalRevision}`,
+                  `目标意图：${display(proposal.request.input.goalIntent.id)}`,
+                ]
+              : []),
             ...(risk
               ? [
                   `风险检查：${display(risk.review.id)}`,

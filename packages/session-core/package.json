@@ -38,6 +38,7 @@
     "./organization-project-risk-review-service": "./lib/organization-project-risk-review-service.js",
     "./organization-project-goal-service": "./lib/organization-project-goal-service.js",
     "./organization-project-goal-monitoring": "./lib/organization-project-goal-monitoring.js",
+    "./organization-project-goal-workflow": "./lib/organization-project-goal-workflow.js",
     "./organization-task-action-service": "./lib/organization-task-action-service.js",
     "./goal-contract": "./lib/goal-contract.js",
     "./goal-repository": "./lib/goal-repository.js",

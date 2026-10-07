@@ -269,6 +269,28 @@
       >
         更早检查
       </button>
+      <OrganizationProjectGoalActionsPanel
+        v-if="
+          permissions.includes('risk.read') && permissions.includes('task.read')
+        "
+        :goal="item.goal"
+        :project-id="projectId"
+        :org-id="orgId"
+        :identity-key="identityKey"
+        :permissions="permissions"
+        :workflows="workflows || []"
+        :parent-busy="locked"
+        :recovery="goalActionRecovery[item.goal.id]"
+        @recovery="goalActionRecovery[item.goal.id] = $event"
+        @enable-actions="
+          revise(item, {
+            allowedActionTypes: ['task.create', 'task.update-description'],
+          })
+        "
+        @review-id="emit('review-id', $event)"
+        @proposal-id="emit('proposal-id', $event)"
+        @authority-error="failure"
+      />
     </article>
     <button
       v-if="afterId"
@@ -280,7 +302,7 @@
     </button>
     <p>
       周期授权最长 24
-      小时，仅当前巡检身份解锁且应用运行时检查；离线到期会合并。目标建议执行和目标验收尚未启用，模型费用：未知。
+      小时，仅当前巡检身份解锁且应用运行时检查；离线到期会合并。目标任务建议需多级审批及逐次确认，目标验收尚未启用，模型费用：未知。
     </p>
   </section>
 </template>
@@ -292,6 +314,7 @@ import {
   organizationError,
 } from "./organization-project-ui";
 import { actionCode } from "./task-description-ui";
+import OrganizationProjectGoalActionsPanel from "./OrganizationProjectGoalActionsPanel.vue";
 type Goal = {
   id: string;
   projectRef: {
@@ -305,6 +328,7 @@ type Goal = {
   objective: string;
   expiresAt: string | null;
   budgetPolicy: { maxRuns: number | null };
+  allowedActionTypes?: string[];
 };
 type GoalStatus = {
   goal: Goal;
@@ -333,10 +357,12 @@ const props = defineProps<{
   permissions: string[];
   parentBusy?: boolean;
   refreshRevision?: number;
+  workflows?: Array<{ id: string; name: string; actionType: string }>;
 }>();
 const emit = defineEmits<{
   (event: "review-id", id: string): void;
   (event: "authority-error", value: unknown): void;
+  (event: "proposal-id", id: string): void;
 }>();
 const goals = ref<GoalStatus[]>([]),
   histories = ref<Record<string, any>>({}),
@@ -352,6 +378,7 @@ const pendingCreate = ref<any>(null),
 const pendingMonitors = ref<Record<string, { method: string; input: any }>>({}),
   intervals = ref<Record<string, number>>({}),
   monitorHours = ref<Record<string, number>>({});
+const goalActionRecovery = ref<Record<string, Record<string, any>>>({});
 const locked = computed(() => busy.value || props.parentBusy),
   objectiveBytes = computed(
     () => new TextEncoder().encode(objective.value).length,
@@ -423,6 +450,7 @@ function reset() {
   pendingRevisions.value = {};
   pendingChecks.value = {};
   pendingMonitors.value = {};
+  goalActionRecovery.value = {};
   intervals.value = {};
   monitorHours.value = {};
   error.value = "";

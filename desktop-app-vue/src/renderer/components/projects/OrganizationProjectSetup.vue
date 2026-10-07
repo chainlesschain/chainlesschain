@@ -292,6 +292,7 @@ const permissionChoices = [
   { value: "goal.update", label: "更新、暂停或结束组织目标" },
   { value: "goal.check", label: "手动检查组织目标风险" },
   { value: "goal.monitor", label: "启用或停止组织目标周期巡检" },
+  { value: "goal.propose", label: "准备和提交组织目标任务建议" },
 ];
 let epoch = 0;
 function reset() {

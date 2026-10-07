@@ -7,6 +7,9 @@ const { goalError, goalDefinitionDigest } = require("./goal-contract");
 const {
   OrganizationProjectGoalService,
 } = require("./organization-project-goal-service");
+const {
+  OrganizationProjectGoalWorkflow,
+} = require("./organization-project-goal-workflow");
 const { SchedulerRuntime } = require("./scheduler-runtime");
 const {
   bindSchedulerAuthorityPolicy,
@@ -148,11 +151,21 @@ class OrganizationProjectGoalMonitoringEngine {
     this.adapter = this.goals.adapter;
     this.risk = this.goals.risk;
     this.usage = this.goals.usage;
+    this.workflow = new OrganizationProjectGoalWorkflow({
+      db,
+      getActor,
+      authority,
+      clock,
+      goals: this.goals,
+      risk: this.risk,
+      usage: this.usage,
+    });
     this.state = {
       goals: this.goals,
       adapter: this.adapter,
       risk: this.risk,
       usageLedger: this.usage,
+      workflow: this.workflow,
     };
     this.closed = false;
     this.abort = new AbortController();
@@ -1092,6 +1105,10 @@ class OrganizationProjectGoalMonitoringEngine {
                 started = epoch(this.clock());
               const review = this.risk.evaluateInTransaction({
                 projectId: goal.projectRef.id,
+              });
+              this.workflow.observeInTransaction({
+                goalId: goal.id,
+                reviewId: review.review.id,
               });
               renew();
               this._fresh(request, goal, actor);

@@ -309,7 +309,6 @@ describe("organization shared goals and manual scheduler occurrences", () => {
   });
 
   it.each([
-    "allowedActionTypes",
     "authorizationRefs",
     "memoryRefs",
     "nextCheckAt",

@@ -165,6 +165,7 @@ class OrganizationProjectApprovalService {
     getActor,
     authority,
     riskService = null,
+    goalWorkflow = null,
     now = () => Date.now(),
   } = {}) {
     if (
@@ -184,7 +185,14 @@ class OrganizationProjectApprovalService {
       ].some((key) => typeof authority?.[key] !== "function")
     )
       fail("ORG_APPROVAL_AUTHORITY_REQUIRED");
-    Object.assign(this, { db, getActor, authority, riskService, now });
+    Object.assign(this, {
+      db,
+      getActor,
+      authority,
+      riskService,
+      goalWorkflow,
+      now,
+    });
     this._transaction(() => {
       for (const table of [
         "approval_workflows",
@@ -261,6 +269,11 @@ class OrganizationProjectApprovalService {
       fail("ORG_APPROVAL_INVALID_REQUEST");
     }
     if (
+      request.idempotencyKey.startsWith("org-goal-intent-") &&
+      request.input.goalIntent?.id !== request.idempotencyKey
+    )
+      fail("ORG_APPROVAL_GOAL_BINDING_REQUIRED");
+    if (
       request.actionVersion !== 1 ||
       request.target.scope.kind !== "organization" ||
       !DIGEST.test(request.expectedVersion) ||
@@ -280,7 +293,28 @@ class OrganizationProjectApprovalService {
     fields(request.input, [
       ...keys,
       ...(Object.hasOwn(request.input, "riskReview") ? ["riskReview"] : []),
+      ...(Object.hasOwn(request.input, "goalIntent") ? ["goalIntent"] : []),
     ]);
+    if (request.input.goalIntent !== undefined) {
+      fields(request.input.goalIntent, [
+        "id",
+        "goalId",
+        "storeId",
+        "goalRevision",
+        "controlGeneration",
+        "proposalId",
+      ]);
+      for (const key of ["id", "goalId", "storeId", "proposalId"])
+        identifier(request.input.goalIntent[key]);
+      if (
+        !request.input.riskReview ||
+        !Number.isSafeInteger(request.input.goalIntent.goalRevision) ||
+        request.input.goalIntent.goalRevision < 1 ||
+        !Number.isSafeInteger(request.input.goalIntent.controlGeneration) ||
+        request.input.goalIntent.controlGeneration < 0
+      )
+        fail("ORG_APPROVAL_INVALID_REQUEST");
+    }
     if (request.input.riskReview !== undefined) {
       fields(request.input.riskReview, ["id", "contentDigest"]);
       identifier(request.input.riskReview.id);
@@ -331,7 +365,7 @@ class OrganizationProjectApprovalService {
       fail("ORG_APPROVAL_AUTHORITY_CHANGED");
     return result;
   }
-  _approver(projectId, approverDid, expectedAuthority, riskReview) {
+  _approver(projectId, approverDid, expectedAuthority, riskReview, goalIntent) {
     const result = this.authority.assertApproverInTransaction({
       projectId,
       approverDid,
@@ -351,6 +385,24 @@ class OrganizationProjectApprovalService {
       if (digest(riskAuthority) !== digest(expectedAuthority))
         fail("ORG_APPROVAL_AUTHORITY_CHANGED");
     }
+    if (goalIntent) {
+      const current = this.authority._authorization(
+        projectId,
+        approverDid,
+        "goal.read",
+        expectedAuthority,
+      );
+      if (digest(current) !== digest(expectedAuthority))
+        fail("ORG_APPROVAL_AUTHORITY_CHANGED");
+    }
+  }
+  _goal(value) {
+    if (!value.goalIntent && !value.request?.input.goalIntent) return;
+    if (typeof this.goalWorkflow?.verifyApprovalInTransaction !== "function")
+      fail("ORG_APPROVAL_GOAL_AUTHORITY_REQUIRED");
+    const result = this.goalWorkflow.verifyApprovalInTransaction(value);
+    if (result?.allowed !== true || typeof result?.then === "function")
+      fail("ORG_APPROVAL_GOAL_CONTEXT_REJECTED");
   }
   _risk(target, riskReview) {
     if (riskReview === undefined) return;
@@ -416,7 +468,19 @@ class OrganizationProjectApprovalService {
   }
   submitInTransaction(input) {
     if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
-    fields(input, ["request", "projectId", "workflowId"]);
+    fields(input, [
+      "request",
+      "projectId",
+      "workflowId",
+      ...(Object.hasOwn(input, "timeoutMs") ? ["timeoutMs"] : []),
+    ]);
+    if (
+      input.timeoutMs !== undefined &&
+      (!Number.isSafeInteger(input.timeoutMs) ||
+        input.timeoutMs < 1 ||
+        input.timeoutMs > 7 * 86400000)
+    )
+      fail("ORG_APPROVAL_INVALID_REQUEST");
     const projectId = identifier(input.projectId),
       workflowId = identifier(input.workflowId);
     const request = this._request(input.request, projectId);
@@ -442,6 +506,7 @@ class OrganizationProjectApprovalService {
         this._responses(previous);
         return this._view(previous);
       }
+      this._goal({ request, actor, phase: "submit" });
       const riskReview = this._risk(request.target, request.input.riskReview);
       this._assertNoUnresolvedTarget(projectId, request.target);
       const { workflow } = this._workflow(
@@ -460,9 +525,20 @@ class OrganizationProjectApprovalService {
       )
         fail("ORG_APPROVAL_VERSION_CONFLICT");
       for (const did of new Set(plan.steps.flat()))
-        this._approver(projectId, did, authority, riskReview);
+        this._approver(
+          projectId,
+          did,
+          authority,
+          riskReview,
+          request.input.goalIntent,
+        );
       const createdAt = this._time();
-      const expiresAt = createdAt + Math.ceil(workflow.timeout_hours * 3600000);
+      const expiresAt =
+        createdAt +
+        Math.min(
+          Math.ceil(workflow.timeout_hours * 3600000),
+          input.timeoutMs ?? Infinity,
+        );
       if (!Number.isSafeInteger(expiresAt)) fail("ORG_APPROVAL_CLOCK_INVALID");
       const requestId = randomUUID();
       const binding = {
@@ -484,6 +560,9 @@ class OrganizationProjectApprovalService {
         createdAt,
         expiresAt,
         ...(riskReview ? { riskReview } : {}),
+        ...(request.input.goalIntent
+          ? { goalIntent: request.input.goalIntent }
+          : {}),
       };
       const bindingJson = encode(binding),
         bindingDigest = digest(binding);
@@ -614,6 +693,12 @@ class OrganizationProjectApprovalService {
     };
   }
   _current(binding, actor, permission) {
+    this._goal({
+      goalIntent: binding.goalIntent,
+      binding,
+      actor,
+      phase: "approval",
+    });
     this._authority(binding.projectId, actor, permission, binding.authority);
     this._authority(binding.projectId, actor, "task.read", binding.authority);
     this._risk(binding.target, binding.riskReview);
@@ -624,6 +709,7 @@ class OrganizationProjectApprovalService {
           did,
           binding.authority,
           binding.riskReview,
+          binding.goalIntent,
         );
     const { workflow } = this._workflow(
       binding.projectId,
@@ -650,6 +736,12 @@ class OrganizationProjectApprovalService {
     fields(input, ["approvalId"]);
     const loaded = this._load(input.approvalId);
     this._authority(loaded.binding.projectId, this._actor(), "task.read");
+    this._goal({
+      goalIntent: loaded.binding.goalIntent,
+      binding: loaded.binding,
+      actor: this._actor(),
+      phase: "read",
+    });
     this._responses(loaded);
     return this._view(loaded);
   }
@@ -727,6 +819,7 @@ class OrganizationProjectApprovalService {
             response.approver_did,
             binding.authority,
             binding.riskReview,
+            binding.goalIntent,
           );
         if (response.decision === "reject") rejected = true;
       }

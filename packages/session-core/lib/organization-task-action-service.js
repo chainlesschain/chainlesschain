@@ -266,7 +266,7 @@ function organizationActions(Base) {
         creation
           ? ["projectId", "taskType", "description", "idempotencyKey"]
           : ["taskId", "description", "idempotencyKey"],
-        ["reviewId"],
+        ["reviewId", "goalIntent"],
       );
       text(input.description);
       identifier(input.idempotencyKey);
@@ -295,6 +295,9 @@ function organizationActions(Base) {
           input: {
             description: input.description,
             ...(creation ? { taskType: input.taskType } : {}),
+            ...(input.goalIntent !== undefined
+              ? { goalIntent: input.goalIntent }
+              : {}),
             ...(input.reviewId !== undefined
               ? {
                   riskReview: creation
@@ -312,6 +315,7 @@ function organizationActions(Base) {
           idempotencyKey: input.idempotencyKey,
         });
         this._validateRequest(request);
+        this._verifyGoalContext(request, actor, "preview");
         return {
           request,
           before: { description: snapshot.task.description },
@@ -328,6 +332,11 @@ function organizationActions(Base) {
       }
       const creation = this._targetType() === "Project";
       if (
+        request.idempotencyKey.startsWith("org-goal-intent-") &&
+        request.input.goalIntent?.id !== request.idempotencyKey
+      )
+        fail("ACTION_GOAL_INTENT_CONFLICT");
+      if (
         request.actionType !==
           (creation ? "task.create" : "task.update-description") ||
         request.actionVersion !== 1 ||
@@ -340,8 +349,28 @@ function organizationActions(Base) {
       fields(
         request.input,
         creation ? ["description", "taskType"] : ["description"],
-        ["riskReview"],
+        ["riskReview", "goalIntent"],
       );
+      if (request.input.goalIntent !== undefined) {
+        fields(request.input.goalIntent, [
+          "id",
+          "goalId",
+          "storeId",
+          "goalRevision",
+          "controlGeneration",
+          "proposalId",
+        ]);
+        for (const key of ["id", "goalId", "storeId", "proposalId"])
+          identifier(request.input.goalIntent[key]);
+        if (
+          !Number.isSafeInteger(request.input.goalIntent.goalRevision) ||
+          request.input.goalIntent.goalRevision < 1 ||
+          !Number.isSafeInteger(request.input.goalIntent.controlGeneration) ||
+          request.input.goalIntent.controlGeneration < 0 ||
+          !request.input.riskReview
+        )
+          fail("ACTION_INVALID_REQUEST");
+      }
       if (request.input.riskReview !== undefined) {
         fields(request.input.riskReview, ["id", "contentDigest"]);
         identifier(request.input.riskReview.id);
@@ -372,6 +401,24 @@ function organizationActions(Base) {
         permission: request.actionType,
       });
       this._validateActorScope(request, actor);
+    }
+    async execute(input) {
+      const owned =
+        input?.input?.goalIntent &&
+        typeof this.contextAdapter?.begin === "function"
+          ? this.contextAdapter.begin({ request: input })
+          : false;
+      try {
+        return await super.execute(input);
+      } finally {
+        if (owned && typeof this.contextAdapter?.finish === "function") {
+          try {
+            this.contextAdapter.finish({ request: input });
+          } catch {
+            /* Preserve the native result; durable running usage remains reserved. */
+          }
+        }
+      }
     }
     _requestSnapshot(request, actor) {
       this._verifyProposal(request, actor);
@@ -482,6 +529,9 @@ function organizationActions(Base) {
         const riskSources = result.evidence.filter(
           (item) => item.kind === "project-risk-review",
         );
+        const goalSources = result.evidence.filter(
+          (item) => item.kind === "project-goal-intent",
+        );
         if (
           source.actionDigest !== result.run.actionDigest ||
           source.expectedVersion !== result.run.expectedVersion ||
@@ -493,6 +543,11 @@ function organizationActions(Base) {
           binding.actionDigest !== result.run.actionDigest ||
           binding.expectedVersion !== result.run.expectedVersion ||
           digest(binding.target) !== digest(result.run.target) ||
+          (binding.goalIntent
+            ? goalSources.length !== 1 ||
+              digest(goalSources[0].reference) !== digest(binding.goalIntent) ||
+              goalSources[0].actorDid !== binding.requesterDid
+            : goalSources.length !== 0) ||
           (binding.riskReview
             ? riskSources.length !== 1 ||
               binding.riskReview.id !== riskSources[0].reviewId ||

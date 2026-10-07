@@ -786,6 +786,9 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:context",
   "organization-project:create-preview",
   "organization-project:description-preview",
+  "organization-project:goal-action-prepare",
+  "organization-project:goal-action-read",
+  "organization-project:goal-action-submit",
   "organization-project:goal-check",
   "organization-project:goal-check-read",
   "organization-project:goal-checks",
@@ -796,6 +799,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:goal-read",
   "organization-project:goal-revise",
   "organization-project:goal-status",
+  "organization-project:goal-suggestions",
   "organization-project:policy-attest",
   "organization-project:policy-preview",
   "organization-project:proposal-cancel",
@@ -4957,6 +4961,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    listGoalSuggestions: (params) =>
+      ipcRenderer.invoke("organization-project:goal-suggestions", params),
+    prepareGoalAction: (params) =>
+      ipcRenderer.invoke("organization-project:goal-action-prepare", params),
+    submitGoalAction: (params) =>
+      ipcRenderer.invoke("organization-project:goal-action-submit", params),
+    getGoalAction: (params) =>
+      ipcRenderer.invoke("organization-project:goal-action-read", params),
     startGoalMonitoring: (params) =>
       ipcRenderer.invoke("organization-project:goal-monitor-start", params),
     stopGoalMonitoring: (params) =>

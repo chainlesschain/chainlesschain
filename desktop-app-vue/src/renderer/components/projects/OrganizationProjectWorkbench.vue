@@ -43,7 +43,9 @@
         :permissions="goalContext.permissions"
         :refresh-revision="goalRefreshRevision"
         :parent-busy="busy"
+        :workflows="goalContext.workflows"
         @review-id="riskPanel?.selectReview($event)"
+        @proposal-id="selectProposal"
         @authority-error="failure"
       />
       <div v-if="context?.permissions.includes('task.read')">
@@ -210,6 +212,14 @@
             }}</pre>
             <p>目标：{{ selectedProposal.request.target.id }}</p>
             <p>操作摘要：{{ selectedProposal.request.actionDigest }}</p>
+            <p v-if="selectedProposal.request.input.goalIntent">
+              关联组织目标：{{
+                selectedProposal.request.input.goalIntent.goalId
+              }}
+              · 目标版本：{{
+                selectedProposal.request.input.goalIntent.goalRevision
+              }}。 审批及执行会核对目标状态，保存任务不代表通过目标验收。
+            </p>
             <button
               v-if="
                 selectedProposal.request.input.riskReview &&

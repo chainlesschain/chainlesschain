@@ -93,6 +93,9 @@ class SqliteOrganizationProjectGoalAdapter {
         CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_consents(id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(actor_did,request_id));
         CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_states(goal_id TEXT PRIMARY KEY,monitor_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_stops(id TEXT PRIMARY KEY,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(actor_did,request_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_workflow(id TEXT PRIMARY KEY,kind TEXT NOT NULL,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_org_goal_workflow ON ${PREFIX}_workflow(goal_id,kind,id);
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_observations(review_id TEXT NOT NULL,goal_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(review_id,goal_id));
         CREATE INDEX IF NOT EXISTS idx_org_goal_checks_goal ON ${PREFIX}_checks(goal_id,occurrence_id);`);
       db.exec(`CREATE TRIGGER IF NOT EXISTS cc_org_goal_scope_immutable BEFORE UPDATE ON ${PREFIX}s
         WHEN OLD.id IS NOT NEW.id OR OLD.actor_did IS NOT NEW.actor_did OR OLD.project_id IS NOT NEW.project_id
@@ -131,7 +134,9 @@ class SqliteOrganizationProjectGoalAdapter {
         ? operation()
         : this.db.transaction(operation).immediate();
     } catch (error) {
-      if (/^(GOAL_|ORG_AUTH_|PROJECT_RISK_)/u.test(error?.code || ""))
+      if (
+        /^(GOAL_|ORG_AUTH_|PROJECT_RISK_|ACTION_GOAL_)/u.test(error?.code || "")
+      )
         throw error;
       fail("GOAL_STORAGE_FAILED");
     }
@@ -462,7 +467,14 @@ class OrganizationProjectGoalService {
       value.patch = fields(
         value.patch,
         [],
-        ["title", "objective", "budgetPolicy", "expiresAt", "status"],
+        [
+          "title",
+          "objective",
+          "budgetPolicy",
+          "expiresAt",
+          "status",
+          "allowedActionTypes",
+        ],
       );
       if (
         !Object.keys(value.patch).length ||
@@ -470,6 +482,22 @@ class OrganizationProjectGoalService {
           !["active", "paused", "abandoned"].includes(value.patch.status))
       )
         fail("GOAL_INVALID_REQUEST");
+      if (
+        value.patch.allowedActionTypes !== undefined &&
+        (!Array.isArray(value.patch.allowedActionTypes) ||
+          value.patch.allowedActionTypes.length > 3 ||
+          new Set(value.patch.allowedActionTypes).size !==
+            value.patch.allowedActionTypes.length ||
+          value.patch.allowedActionTypes.some(
+            (type) =>
+              ![
+                "project.risk.review",
+                "task.update-description",
+                "task.create",
+              ].includes(type),
+          ))
+      )
+        fail("GOAL_INVALID_ACTION_TYPE");
     }
     return value;
   }

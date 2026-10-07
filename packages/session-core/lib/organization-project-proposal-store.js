@@ -293,17 +293,24 @@ class OrganizationProjectProposalStore {
     };
   }
   submit(input) {
-    fields(input, ["projectId", "workflowId", "request"]);
+    return this._transaction(() => this.submitInTransaction(input));
+  }
+  submitInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_PROPOSAL_TRANSACTION_REQUIRED");
+    fields(input, ["projectId", "workflowId", "request"], ["timeoutMs"]);
     id(input.projectId);
     id(input.workflowId);
     const { request, json } = this._request(input.request);
-    return this._transaction(() => {
+    const submit = () => {
       const actor = this._actor();
       this._authorize(input.projectId, actor, request.target.scope.id);
       const approval = this.approvals.submitInTransaction({
         projectId: input.projectId,
         workflowId: input.workflowId,
         request,
+        ...(input.timeoutMs !== undefined
+          ? { timeoutMs: input.timeoutMs }
+          : {}),
       });
       const previous = this.db
         .prepare(
@@ -369,7 +376,8 @@ class OrganizationProjectProposalStore {
           json,
         );
       return this._view(this._load(metadata.proposalId));
-    });
+    };
+    return submit();
   }
   get(input) {
     return this._transaction(() => this.getInTransaction(input));
