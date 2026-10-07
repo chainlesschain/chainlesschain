@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.92: private storage and release regression repairs
+
+- Publish Session Core `0.3.17` and Context Memory Kernel `0.1.7` before CLI
+  `0.166.92`, with exact CLI dependency pins and public package readback.
+- Stage the actual Session Core package in isolated CLI and desktop fixtures;
+  missing private-storage code fails the fixture checks. Extract the complete
+  packed library when validating new transitive authorization dependencies.
+- Compare temporary fixture paths by their physical identity on Windows and
+  macOS while retaining production symlink and path-admission checks.
+- Create SQLite WAL/SHM files before applying final private-storage protection,
+  including owner-only Windows ACLs when goal schedulers reopen their stores.
+- Exclude validated browser digest metadata from Record & Replay content scans;
+  malformed metadata and sensitive values in user content still fail review.
+- Avoid repeating the same authenticated journal read for each signed sibling
+  in the cohort enrollment regression test; keep every admission assertion.
+- Stop canceled execution-location workflows from reporting missing producer
+  artifacts as a new aggregate failure; failed producers still fail the gate.
+- Await main-process logout in desktop tests and preserve the UI session until
+  revocation succeeds. Failed or unavailable revocation still rejects logout.
+- Require the parent to acknowledge RRSI process-test results before workers
+  disconnect, retaining both the competing-process assertions and exit checks.
+- Pair VS Code `0.37.137` and JetBrains `0.4.155` with CLI `0.166.92`. Disable
+  development plugin hot reload in the JetBrains test host so restart validation
+  retains both the packaged plugin and its UI driver.
+
+### Upgrade - CLI 0.166.92 and product v5.0.3.139 candidates (2026-10-07)
+
+- These versions are release candidates until the final versioned commit passes
+  its complete GitHub Actions gates and public release verification.
+- After CLI publication, run `npm install -g chainlesschain@0.166.92`, then
+  `chainlesschain --version`. `cc changelog` includes these bundled release notes.
+  Keep the existing configuration and data directories when replacing binaries.
+- Upgrade IDE plugins after the CLI: VS Code `0.37.137` and JetBrains `0.4.155`.
+  Restart the editor and verify its CLI path. If `cc` resolves to a C compiler,
+  configure the full path to the installed ChainlessChain executable.
+- The final product stage uses desktop `5.0.3-alpha.139`, Android
+  `5.0.3.139` / code `503139`, and iOS `5.0.3` / build `139`. Install the
+  matching platform artifact after the CLI and IDE release stages finish.
+- Back up existing application data before upgrading persistent stores. Close
+  desktop clients before copying SQLite stores, and retain their WAL/SHM files
+  when present so the backup includes committed data.
+
 ### Fixed - cc CLI 0.166.91: cross-platform release validation
 
 - Accept verified directory identities through the Windows Server 2025 native

@@ -60,7 +60,10 @@ async function race(root, requests, mode = "race-reserve") {
       if (message.ready) readyResolve();
       else {
         received = true;
-        resultResolve(message);
+        child.send({ ack: true }, (error) => {
+          if (error) rejectResult(error);
+          else resultResolve(message);
+        });
       }
     });
     child.on("error", (error) => {
@@ -84,7 +87,10 @@ async function race(root, requests, mode = "race-reserve") {
   await Promise.all(controls.map((entry) => entry.ready));
   controls.forEach(({ child }) => child.send({ go: true }));
   const results = await Promise.all(controls.map((entry) => entry.result));
-  await Promise.all(controls.map((entry) => entry.exited));
+  const exitCodes = await Promise.all(controls.map((entry) => entry.exited));
+  if (exitCodes.some((code) => code !== 0)) {
+    throw new Error(`workers exited ${exitCodes.join(", ")}`);
+  }
   return results;
 }
 afterEach(() => {

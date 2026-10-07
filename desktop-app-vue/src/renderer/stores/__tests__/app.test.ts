@@ -25,15 +25,18 @@ import { createPinia, setActivePinia } from "pinia";
 describe("useAppStore", () => {
   let pinia: ReturnType<typeof createPinia>;
   const mockInvoke = vi.fn();
+  const mockLogout = vi.fn();
 
   beforeEach(async () => {
     pinia = createPinia();
     setActivePinia(pinia);
 
     mockInvoke.mockResolvedValue(undefined);
+    mockLogout.mockReset().mockResolvedValue(undefined);
 
     (window as any).electronAPI = {
       invoke: mockInvoke,
+      auth: { logout: mockLogout },
       on: vi.fn(),
       removeListener: vi.fn(),
     };
@@ -512,14 +515,69 @@ describe("useAppStore", () => {
       store.addMessage({ role: "user", content: "hi" });
       store.addTab({ key: "x", title: "X", path: "/x" });
 
-      store.logout();
+      await store.logout();
 
+      expect(mockLogout).toHaveBeenCalledTimes(1);
       expect(store.isAuthenticated).toBe(false);
       expect(store.deviceId).toBeNull();
       expect(store.knowledgeItems).toEqual([]);
       expect(store.messages).toEqual([]);
       expect(store.tabs).toHaveLength(1);
       expect(store.activeTabKey).toBe("home");
+    });
+
+    it("keeps the UI session until main-process logout completes", async () => {
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setAuthenticated(true);
+      store.setDeviceId("dev-1");
+      let finishLogout!: () => void;
+      mockLogout.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishLogout = resolve;
+          }),
+      );
+
+      const logout = store.logout();
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(store.isAuthenticated).toBe(true);
+      expect(store.deviceId).toBe("dev-1");
+
+      finishLogout();
+      await logout;
+      expect(store.isAuthenticated).toBe(false);
+      expect(store.deviceId).toBeNull();
+    });
+
+    it("preserves state when main-process logout fails", async () => {
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setAuthenticated(true);
+      store.setDeviceId("dev-1");
+      store.setKnowledgeItems([{ id: "1", title: "Note" }]);
+      store.addMessage({ role: "user", content: "hi" });
+      store.addTab({ key: "x", title: "X", path: "/x" });
+      mockLogout.mockRejectedValueOnce(new Error("revocation failed"));
+
+      await expect(store.logout()).rejects.toThrow("revocation failed");
+      expect(store.isAuthenticated).toBe(true);
+      expect(store.deviceId).toBe("dev-1");
+      expect(store.knowledgeItems).toHaveLength(1);
+      expect(store.messages).toHaveLength(1);
+      expect(store.tabs).toHaveLength(2);
+      expect(store.activeTabKey).toBe("x");
+    });
+
+    it("rejects logout when the main-process auth bridge is unavailable", async () => {
+      const { useAppStore } = await import("../app");
+      const store = useAppStore();
+      store.setAuthenticated(true);
+      delete (window as any).electronAPI.auth;
+
+      await expect(store.logout()).rejects.toThrow("AUTH_LOGOUT_UNAVAILABLE");
+      expect(store.isAuthenticated).toBe(true);
+      expect(mockLogout).not.toHaveBeenCalled();
     });
   });
 });

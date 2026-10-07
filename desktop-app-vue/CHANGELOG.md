@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.0.3-alpha.139] - 2026-10-07（待发布）
+
+- 目标调度器在首次读取及重新打开 SQLite 数据库时保护 WAL/SHM 文件，
+  修复 Windows 私有存储权限检查失败。
+- 配套 Session Core `0.3.17` 和 Context Memory Kernel `0.1.7`，包含已合入
+  主分支的组织项目权限、任务审批和目标记忆存储能力。
+- CLI 和 IDE 插件先完成发布，再发布本版本安装包；候选版本的跨平台
+  构建与运行检查仍须在最终提交上通过。
+- 升级前退出桌面应用并备份现有应用数据；使用对应系统安装包升级，
+  保留原有配置和数据目录。CLI 配套版本为 `0.166.92`。
+
+### 历史自动生成记录
+
 **Range**: v5.0.3.137..HEAD
 
 ---
@@ -159,4 +172,3 @@
 - Merge branch 'release/cli-help-index-52aee' into main (`c814edb`) - 2026-09-13
 - Merge commit 'fc57a6537e22f60ebce63bdd72e5e6c8b9317676' into feature/evo-p0-4-repository-closure (`c5c4ff2`) - 2026-09-13
 - Merge commit 'b2bca174a9596b89bf684037f5ebcbb0c403d4f0' into feature/evo-p0-4-repository-closure (`e43f6fd`) - 2026-09-13
-

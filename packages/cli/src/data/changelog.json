@@ -3,6 +3,32 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.92",
+      "cliVersions": ["0.166.92"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.92: private storage and release regression repairs",
+          "body": "- Publish Session Core `0.3.17` and Context Memory Kernel `0.1.7` before CLI\n  `0.166.92`, with exact CLI dependency pins and public package readback.\n- Stage the actual Session Core package in isolated CLI and desktop fixtures;\n  missing private-storage code fails the fixture checks. Extract the complete\n  packed library when validating new transitive authorization dependencies.\n- Compare temporary fixture paths by their physical identity on Windows and\n  macOS while retaining production symlink and path-admission checks.\n- Create SQLite WAL/SHM files before applying final private-storage protection,\n  including owner-only Windows ACLs when goal schedulers reopen their stores.\n- Exclude validated browser digest metadata from Record & Replay content scans;\n  malformed metadata and sensitive values in user content still fail review.\n- Avoid repeating the same authenticated journal read for each signed sibling\n  in the cohort enrollment regression test; keep every admission assertion.\n- Stop canceled execution-location workflows from reporting missing producer\n  artifacts as a new aggregate failure; failed producers still fail the gate.\n- Await main-process logout in desktop tests and preserve the UI session until\n  revocation succeeds. Failed or unavailable revocation still rejects logout.\n- Require the parent to acknowledge RRSI process-test results before workers\n  disconnect, retaining both the competing-process assertions and exit checks.\n- Pair VS Code `0.37.137` and JetBrains `0.4.155` with CLI `0.166.92`. Disable\n  development plugin hot reload in the JetBrains test host so restart validation\n  retains both the packaged plugin and its UI driver."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.92",
+      "cliVersions": ["0.166.92"],
+      "date": "2026-10-07",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Upgrade - CLI 0.166.92 and product v5.0.3.139 candidates (2026-10-07)",
+          "body": "- These versions are release candidates until the final versioned commit passes\n  its complete GitHub Actions gates and public release verification.\n- After CLI publication, run `npm install -g chainlesschain@0.166.92`, then\n  `chainlesschain --version`. `cc changelog` includes these bundled release notes.\n  Keep the existing configuration and data directories when replacing binaries.\n- Upgrade IDE plugins after the CLI: VS Code `0.37.137` and JetBrains `0.4.155`.\n  Restart the editor and verify its CLI path. If `cc` resolves to a C compiler,\n  configure the full path to the installed ChainlessChain executable.\n- The final product stage uses desktop `5.0.3-alpha.139`, Android\n  `5.0.3.139` / code `503139`, and iOS `5.0.3` / build `139`. Install the\n  matching platform artifact after the CLI and IDE release stages finish.\n- Back up existing application data before upgrading persistent stores. Close\n  desktop clients before copying SQLite stores, and retain their WAL/SHM files\n  when present so the backup includes committed data."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.91",
       "cliVersions": ["0.166.91"],
       "date": null,

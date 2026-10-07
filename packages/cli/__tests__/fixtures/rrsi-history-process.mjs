@@ -79,12 +79,20 @@ try {
   if (["race-reserve", "race-preparation", "race-native"].includes(mode)) {
     process.send({ ready: true });
     process.once("message", () => {
+      let response;
       try {
-        process.send({ ok: true, result: work() });
+        response = { ok: true, result: work() };
       } catch (error) {
-        process.send({ ok: false, code: error.code });
+        response = { ok: false, code: error.code };
       }
-      process.disconnect();
+      // Native batch results can be large. Stay connected until the parent has
+      // actually received the result, rather than racing its message event
+      // against the worker's normal exit after a queued IPC send.
+      process.once("message", (message) => {
+        if (message?.ack !== true) process.exitCode = 1;
+        process.disconnect();
+      });
+      process.send(response);
     });
   } else process.stdout.write(`${JSON.stringify(work())}\n`);
 } catch (error) {

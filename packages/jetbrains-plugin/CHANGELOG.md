@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)
+
+- Recommend CLI `0.166.92` after its public npm release and the plugin's
+  exact-commit release gates pass; this entry does not establish publication.
+- Pair with Session Core `0.3.17` and Context/Memory Kernel `0.1.7` for current
+  runtime and packaging fixes, and refresh paired upgrade guidance.
+- Disable development automatic plugin reload in the installed-ZIP UI test
+  host, preventing Windows 2025.2 restart tests from unloading Robot server and
+  ChainlessChain mid-journey. This changes the test host; full IDE restart
+  validation remains required.
+
 ## [0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)
 
 - Recommend CLI `0.166.91` after its public npm release and the plugin's

@@ -64,7 +64,7 @@ function pack(packageRoot, destination) {
   return path.join(destination, path.basename(metadata[0].filename));
 }
 
-function tarEntry(tarball, expectedName) {
+function* tarEntries(tarball) {
   const archive = gunzipSync(fs.readFileSync(tarball));
   let offset = 0;
   while (offset + 512 <= archive.length) {
@@ -81,21 +81,30 @@ function tarEntry(tarball, expectedName) {
       throw new Error(`invalid tar entry size for ${fullName}`);
     }
     const dataStart = offset + 512;
-    if (fullName === expectedName) {
-      return archive.subarray(dataStart, dataStart + size);
-    }
+    yield {
+      name: fullName,
+      type: header[156],
+      data: archive.subarray(dataStart, dataStart + size),
+    };
     offset = dataStart + Math.ceil(size / 512) * 512;
+  }
+}
+
+function tarEntry(tarball, expectedName) {
+  for (const entry of tarEntries(tarball)) {
+    if (entry.name === expectedName) return entry.data;
   }
   throw new Error(`missing tar entry: ${expectedName}`);
 }
 
 describe("packed session-core authorization boundary", () => {
   it("pins the independently packed gate and preserves one-shot structured decisions", async () => {
+    const temporaryDirectory = fs.realpathSync.native(os.tmpdir());
     const temporaryRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "cc-packed-session-core-"),
+      path.join(temporaryDirectory, "cc-packed-session-core-"),
     );
-    const resolvedTemporaryRoot = path.resolve(temporaryRoot);
-    const temporaryBase = `${path.resolve(os.tmpdir())}${path.sep}`;
+    const resolvedTemporaryRoot = fs.realpathSync.native(temporaryRoot);
+    const temporaryBase = `${temporaryDirectory}${path.sep}`;
     const cleanupIsSafe = resolvedTemporaryRoot.startsWith(temporaryBase);
     try {
       if (!cleanupIsSafe) {
@@ -145,33 +154,50 @@ describe("packed session-core authorization boundary", () => {
         path.join(extractedPackage, "package.json"),
         tarEntry(sessionTarball, "package/package.json"),
       );
-      fs.writeFileSync(
-        path.join(extractedPackage, "lib", "approval-gate.js"),
-        tarEntry(sessionTarball, "package/lib/approval-gate.js"),
-      );
+      // Stage the complete library from the independently packed archive.
+      // New transitive imports must resolve from the shipped package, rather
+      // than from an outdated hand-maintained subset or the source workspace.
+      for (const entry of tarEntries(sessionTarball)) {
+        if (!entry.name.startsWith("package/lib/")) continue;
+        if (entry.type === 53) continue; // tar directory entry
+        if (entry.type !== 0 && entry.type !== 48) {
+          throw new Error(`unsupported packed library entry: ${entry.name}`);
+        }
+        const relativePath = entry.name.slice("package/".length);
+        if (
+          relativePath.includes("\\") ||
+          relativePath
+            .split("/")
+            .some((part) => !part || part === "." || part === "..")
+        ) {
+          throw new Error(`unsafe packed library entry: ${entry.name}`);
+        }
+        const destination = path.resolve(extractedPackage, relativePath);
+        if (
+          !destination.startsWith(
+            `${path.resolve(extractedPackage)}${path.sep}`,
+          )
+        ) {
+          throw new Error(
+            `packed library entry escaped its root: ${entry.name}`,
+          );
+        }
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, entry.data);
+      }
       const { ApprovalGate } = require(
         path.join(extractedPackage, "lib", "approval-gate.js"),
       );
       // Resolve the published subpath from an isolated package scope. None of
       // the ledger's own modules may fall back to the repository workspace.
-      for (const name of [
-        "goal-usage-ledger",
-        "goal-contract",
-        "business-object-contract",
-        "goal-repository",
-        "project-goal-service",
-      ]) {
-        fs.writeFileSync(
-          path.join(extractedPackage, "lib", `${name}.js`),
-          tarEntry(sessionTarball, `package/lib/${name}.js`),
-        );
-      }
       const isolatedRequire = createRequire(
         path.join(extractedPackage, "probe.cjs"),
       );
       expect(
-        isolatedRequire.resolve(
-          "@chainlesschain/session-core/goal-usage-ledger",
+        fs.realpathSync.native(
+          isolatedRequire.resolve(
+            "@chainlesschain/session-core/goal-usage-ledger",
+          ),
         ),
       ).toBe(
         fs.realpathSync.native(

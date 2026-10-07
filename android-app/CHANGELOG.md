@@ -7,6 +7,19 @@
 
 ---
 
+## [5.0.3.139] - 2026-10-07（待发布）
+
+**versionCode**: 503139 / **versionName**: 5.0.3.139
+
+- 与桌面端 `5.0.3-alpha.139` 和 iOS `5.0.3` / build `139` 对齐产品版本。
+- 本次未声明新增 Android 功能；最终候选仍须通过 Android 发布构建、
+  签名与安装升级验证。
+- 在子 npm 包、CLI `0.166.92` 及 IDE 插件完成发布后发布移动端安装包。
+- 使用与现有安装相同签名的正式 APK 执行覆盖升级，保留应用数据；
+  发布与升级步骤见仓库的产品发布流程。
+
+---
+
 ## [1.0.0] - 2026-05-12 — GA
 
 **状态**: 🎉 v1.0 GA — Android 重新定位 ADR 1-8 全部 accepted + code 部分落地。
@@ -80,8 +93,6 @@ M3 三件（Voice/Camera/Push）+ M4 D2 真机 E2E + M6 性能压测需真机环
 
 ---
 
-
-
 **关联设计文档**：
 
 - 📘 [Android 重新定位设计文档 v0.2](../docs/design/Android_重新定位_设计文档.md)
@@ -104,7 +115,7 @@ M3 三件（Voice/Camera/Push）+ M4 D2 真机 E2E + M6 性能压测需真机环
   - **修复严重安全洞**：旧 `did_keypair.json` 把 Ed25519 私钥**明文**写到 filesDir，
     现自动检测 → 用 StrongBoxKeyManager 加密 → 写新格式 → 旧文件 rename `.migrated.bak`
   - 新 API：`createIdentityWithMnemonic / importFromMnemonic / listIdentities /
-    switchActive / markMnemonicVerified`
+switchActive / markMnemonicVerified`
   - 向后兼容：`createIdentity(deviceName)` 签名不变（callers KeyManagementScreen 等无需改）
   - 每个 DID 用独立 wrap key alias：`did_wrap_<sha256(did)[0:8]hex>`
 - **MnemonicService.kt** — BIP-39 (novacrypto 库) + SLIP-0010 Ed25519 master 派生

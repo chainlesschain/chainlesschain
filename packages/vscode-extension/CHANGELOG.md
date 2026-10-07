@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.137] - Candidate runtime and release validation fixes (2026-10-07)
+
+- Recommend CLI `0.166.92` after its public npm release and the extension's
+  exact-commit release gates pass; this entry does not establish publication.
+- Pair with Session Core `0.3.17` and Context/Memory Kernel `0.1.7`, including
+  Windows scheduler sidecar ACL initialization and record/replay digest handling
+  that retains secret and PII checks for captured content.
+- Refresh versioned installation and upgrade guidance while retaining the
+  base compatibility floor and runtime capability checks.
+
 ## [0.37.136] - Pair with cross-platform CLI fixes (2026-10-06)
 
 - Recommend CLI `0.166.91` after its public npm release and the extension's
