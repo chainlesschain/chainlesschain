@@ -3,6 +3,29 @@
 const {
   OrganizationProjectAuthority,
 } = require("@chainlesschain/session-core/organization-project-authority");
+const navigationStates = new WeakMap();
+function navigationRevision(sender) {
+  let state = navigationStates.get(sender);
+  if (!state) {
+    state = { revision: 0 };
+    navigationStates.set(sender, state);
+    const bump = () => {
+      state.revision++;
+    };
+    sender.on?.(
+      "did-start-navigation",
+      (_event, _url, _inPlace, isMainFrame) => {
+        if (isMainFrame) bump();
+      },
+    );
+    sender.on?.("did-navigate-in-page", (_event, _url, isMainFrame) => {
+      if (isMainFrame) bump();
+    });
+    sender.on?.("render-process-gone", bump);
+    sender.on?.("destroyed", bump);
+  }
+  return state.revision;
+}
 
 function fail(code) {
   const error = new Error(code);
@@ -18,8 +41,7 @@ function display(value) {
   );
 }
 
-/** Native host adapter; deliberately not registered as renderer IPC until the
- * organization action/approval journey and ownership migration UI are ready. */
+/** Native owner confirmation with authenticated session and window fencing. */
 function createOrganizationProjectAuthorityHost({
   database,
   getCurrentUserDid = () =>
@@ -29,6 +51,7 @@ function createOrganizationProjectAuthorityHost({
   validateSender = (event) =>
     require("../ipc/ipc-sender-guard").validateSender(event),
   electron = null,
+  clock = Date.now,
 } = {}) {
   const getElectron = () => electron || require("electron");
   const currentDatabase = () =>
@@ -37,18 +60,32 @@ function createOrganizationProjectAuthorityHost({
     function currentWindow() {
       if (validateSender(event)?.trusted !== true)
         fail("ORG_AUTH_UNTRUSTED_SENDER");
+      if (
+        !event?.senderFrame ||
+        event.sender?.mainFrame !== event.senderFrame ||
+        event.sender?.isDestroyed?.() === true
+      )
+        fail("ORG_AUTH_WINDOW_UNAVAILABLE");
       const window = getElectron().BrowserWindow.fromWebContents(event?.sender);
       if (!window || window.isDestroyed()) fail("ORG_AUTH_WINDOW_UNAVAILABLE");
       return window;
     }
     const initialWindow = currentWindow();
+    const frame = event.senderFrame;
+    const frameUrl = frame?.url;
+    const navigation = navigationRevision(event.sender);
     const db = currentDatabase();
     const initialActor = getCurrentUserDid();
     const generation = getAuthenticationGeneration();
     if (!Number.isSafeInteger(generation) || generation < 0)
       fail("ORG_AUTH_IDENTITY_REQUIRED");
     const getActor = () => {
-      if (currentWindow() !== initialWindow)
+      if (
+        currentWindow() !== initialWindow ||
+        event.senderFrame !== frame ||
+        frame?.url !== frameUrl ||
+        navigationRevision(event.sender) !== navigation
+      )
         fail("ORG_AUTH_WINDOW_UNAVAILABLE");
       if (currentDatabase() !== db) fail("ORG_AUTH_DATABASE_CHANGED");
       const actor = getCurrentUserDid();
@@ -65,6 +102,7 @@ function createOrganizationProjectAuthorityHost({
     return new OrganizationProjectAuthority({
       db,
       getActor,
+      now: clock,
       confirm: async ({ kind, actorDid, ...preview }) => {
         if (getActor() !== actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
         const result = await getElectron().dialog.showMessageBox(

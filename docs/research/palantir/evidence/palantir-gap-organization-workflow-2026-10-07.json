@@ -1,0 +1,484 @@
+{
+  "schema": "chainlesschain.palantir-organization-workflow-validation/v1",
+  "capturedAt": "2026-10-07T06:29:43.326Z",
+  "sourceBaseCommit": "4c3a8a7bd5886cff960db24eb880df78e40b06bc",
+  "scope": "Organization desktop owner setup/binding, private persisted proposals, exact IPC and cross-identity approval/execution through native services and real SQLite",
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "abi": "127",
+    "vitest": "4.1.10",
+    "sqlite": {
+      "implementation": "better-sqlite3 native",
+      "version": "12.11.1"
+    },
+    "vue": "3.5.42",
+    "vueTestUtils": "2.4.11",
+    "happyDom": "20.11.2",
+    "dependencyChanges": "None; existing workspace/cache/Temp dependencies reused",
+    "rendererResolver": {
+      "path": ".work/dmm-renderer-test-loader.mjs",
+      "sha256": "b7ce004fab137d885bad9611bbaeebcb0ac672afdc21a6661534b56ead0ba193",
+      "setup": "Append --import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs to NODE_OPTIONS so Vitest fork workers resolve workspace happy-dom; required only for this cache-linked local installation"
+    }
+  },
+  "verification": {
+    "passed": 393,
+    "failed": 0,
+    "skipped": 0,
+    "files": 17,
+    "groups": [
+      {
+        "name": "shared-services",
+        "cwd": "packages/cli",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/organization-project-proposal-store.test.js __tests__/unit/organization-project-authority.test.js __tests__/unit/organization-project-approval-service.test.js __tests__/unit/organization-task-action-service.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-description-read-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/project-goal-service.test.js --reporter=json --outputFile=../../.work/palantir-organization-workflow-cli-tests.json",
+        "report": ".work/palantir-organization-workflow-cli-tests.json",
+        "reportSha256": "c9a6bd0336f2e845fb9124f73ff9dd4b39b211bcb758ebc5aa057ef1b1cc3303",
+        "passed": 229,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+            "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0",
+            "passed": 47,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+            "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3",
+            "passed": 35,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+            "sha256": "2e6354c714edbc876b4d2d7c2814218574c90f000d7533cedd1fdbaa2669c448",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+            "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+            "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505",
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+            "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e",
+            "passed": 44,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+            "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+            "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065",
+            "passed": 22,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+            "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a",
+            "passed": 19,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "desktop-host-ipc",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs --reporter=json --outputFile=../.work/palantir-organization-ipc-tests.json",
+        "report": ".work/palantir-organization-ipc-tests.json",
+        "reportSha256": "b1459857a7adaad3ce0705058180334e04a501373c742635df6b593e02e8b31d",
+        "passed": 110,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+            "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb",
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+            "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f",
+            "passed": 50,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "sha256": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+            "sha256": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+            "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "renderer-native-journey",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-renderer.config.mjs --reporter=json --outputFile=../.work/palantir-organization-renderer-tests.json",
+        "environment": {
+          "NODE_OPTIONS": "--import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs"
+        },
+        "report": ".work/palantir-organization-renderer-tests.json",
+        "reportSha256": "7886bfca88020b1517f021d3d3fb2b427e251f68ec4035061ebc212efe742723",
+        "passed": 54,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+            "sha256": "97ef35162e51536f004fa63f466953501635168f68eadc543e8c9f449a6bf128",
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+            "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+            "passed": 29,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+            "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "snapshot": "git-index",
+      "sha256": "c9746e6caa91209f5b4d5f38f0d763a923330f2efffaa40adfd4caee7c105f93"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "snapshot": "git-index",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/approval-workflow-manager.js",
+      "snapshot": "git-index",
+      "sha256": "b362e9206357e8f4e31f3f5a7ba36f10fb6df34e4a94a1ac688a774af5ff10fb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+      "snapshot": "git-index",
+      "sha256": "e608b849e4e485d1d1185e5d51c0eac3a3aa35b686f92314c4ebfad0734ab385"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+      "snapshot": "git-index",
+      "sha256": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+      "snapshot": "git-index",
+      "sha256": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+      "snapshot": "git-index",
+      "sha256": "ac9c202b426995c5a954f997a9bf2b4022cd10d8337ed5babc3df538e3cb825b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "93ce79086b49e32f9331a117e60930c1905ecc9ad5d3dee03786775e4888026d"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "snapshot": "git-index",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "54b894a64c5fa07e0b8e18684a1e055ffbf0a4b4108893124f4a167234661afd"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "snapshot": "git-index",
+      "sha256": "ae0878e0e0b2a5c407ecdcf23d96e026004379117fe4dab683569d13c4398533"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "snapshot": "git-index",
+      "sha256": "852d1227385e9dd2d54bce97b02a7236050ae0dc2fd7a479121fffee252ff978"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+      "snapshot": "git-index",
+      "sha256": "32f80e5152dac480f2edf4c5ebf52c17e0b4f4cc97463931b8497a419589c989"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+      "snapshot": "git-index",
+      "sha256": "dd277680b0812177a402165acc4b3b6711f7968526489cefb677e433660a81bf"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+      "snapshot": "git-index",
+      "sha256": "97ef35162e51536f004fa63f466953501635168f68eadc543e8c9f449a6bf128"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "c6673edc8aa3353f27c7fc3e4ee5e1b705e8be5dc8bcfe0dabad6c737a0ad3e5"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "0fe1d998d87ed33ccd30cf1634f7d8dd8afd4c9d772c0fe1d18303529a7fd131"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+      "snapshot": "git-index",
+      "sha256": "075462a6d1b48124bbcdb557785e8e470f9b1a81dd9efab86732ff6f1f184f94"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "dfb1ef0e2b67d9992fe596b253dbb1bbb1bf2910517de92085ca00de2d2f7998"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "353a76a4a928154aae0c98cee2f5848fb2e7d0c99f8b3ba4e1dc64ff124173da"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-authority.md",
+      "snapshot": "git-index",
+      "sha256": "c92bc9f7187b40b8770c1fa6e607135b3099cf2739ce14877128fc533b4a4a80"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "snapshot": "git-index",
+      "sha256": "44dd6ccdd3ee2b15615d82cbe10a8bfa39e59d3a2e41498e918dbfcbb0f69cd6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+      "snapshot": "git-index",
+      "sha256": "2e6354c714edbc876b4d2d7c2814218574c90f000d7533cedd1fdbaa2669c448"
+    },
+    {
+      "path": "packages/session-core/lib/approval-gate.js",
+      "snapshot": "git-index",
+      "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88"
+    },
+    {
+      "path": "packages/session-core/lib/business-object-contract.js",
+      "snapshot": "git-index",
+      "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-approval-service.js",
+      "snapshot": "git-index",
+      "sha256": "ab3a5925c303134c99e603287c3bf97df85f388012d529ebe4ab0ead2adb2821"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-authority.js",
+      "snapshot": "git-index",
+      "sha256": "2175e5356ccea072d6832406097f9d80a21b745d41d76278132effd1b0ba4269"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-proposal-store.js",
+      "snapshot": "git-index",
+      "sha256": "59b36c4e8a7c25770ed488449981d8f0a1b5fb96039fa0707b134ad83a9cb6d8"
+    },
+    {
+      "path": "packages/session-core/lib/organization-task-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "d56b80352f6fff40fdef170256ad4f17edc6affcd0eb6fe2f38bbe40a6ae9247"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "snapshot": "git-index",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-review-service.js",
+      "snapshot": "git-index",
+      "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580"
+    },
+    {
+      "path": "packages/session-core/lib/task-description-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "3a23b745a9efc9a3f806a6fb5d602f4e3c01ce0e8b224e352d54cb54c27735d4"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "snapshot": "git-index",
+      "sha256": "f76e9a9d2fcde407fbb807840b5aaefb41d4dc9417be40b45a2a22c8f73cab80"
+    }
+  ],
+  "extraChecks": [
+    {
+      "command": "node .work/verify-org-workflow-source.mjs",
+      "result": {
+        "checks": [
+          {
+            "path": "packages/session-core/lib/organization-project-proposal-store.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-approval-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-task-action-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/task-description-action-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/task-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/preload/index.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          }
+        ],
+        "passed": 18
+      },
+      "report": ".work/palantir-organization-source-checks.json",
+      "reportSha256": "44638d0ef5e322fc3bc7c292a6c24b3f4d2172e9b9c91f455e10824063a812b3"
+    },
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --check packages/session-core/lib/organization-project-proposal-store.js packages/session-core/lib/organization-project-approval-service.js packages/session-core/lib/organization-task-action-service.js packages/session-core/lib/task-description-action-service.js packages/session-core/package.json packages/cli/__tests__/unit/organization-project-proposal-store.test.js desktop-app-vue/src/main/task/organization-project-ipc.js desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs desktop-app-vue/src/main/task/organization-project-authority-host.js desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js desktop-app-vue/src/main/task/task-ipc.js desktop-app-vue/src/preload/index.js desktop-app-vue/src/preload/renderer-ipc-capabilities.json desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs desktop-app-vue/src/renderer/components/projects/task-description-ui.ts desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue desktop-app-vue/vitest.organization-authority.config.mjs desktop-app-vue/vitest.organization-renderer.config.mjs docs/research/palantir/organization-project-authority.md docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "passed": true
+    },
+    {
+      "command": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs --check",
+      "passed": true,
+      "exactChannels": 1279,
+      "unregisteredRendererChannelsDenied": 156,
+      "newOrganizationChannels": 20
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "review": "Astra reproduced current mainFrame replacement/navigation ABA and owner authority/read-invalidating renderer failures; final renderer regressions include complete unbound setup, lost submit refresh and idle expiration for requester and reviewer",
+  "boundaries": [
+    "Windows local selection only; no full repository tests, full TypeScript checking, real Electron GUI or exact-commit Linux/macOS release matrix",
+    "Electron window/dialog/auth-provider boundary injected; actual business services, SQLite, Vue components and bidirectional structuredClone run",
+    "Proposal business table contains full private request and raw idempotency key; approval and action receipts remain body/key free",
+    "Body readability/executability ends at fixed approval deadline or creation + 7 days; physical body/key deletion requires explicit bounded purgeExpired, no automatic purge scheduler or UI yet",
+    "Dual-principal ownership migration, organization risk/goals, ancillary/board and other object/action entry migration remain unfinished",
+    "No release or publication; prior sixth-batch evidence preserved; unrelated RRSI and goal-memory workspace changes excluded"
+  ]
+}

@@ -1262,7 +1262,7 @@ class TaskDescriptionActionService {
       // A changed identity/version is a known precondition failure before any
       // write. Other DB/commit errors retain running (unknown) and are not retried.
       if (
-        /^(PROJECT_RISK_|ACTION_GOAL_|ORG_AUTH_|ORG_APPROVAL_)/.test(
+        /^(PROJECT_RISK_|ACTION_GOAL_|ORG_AUTH_|ORG_APPROVAL_|ORG_PROPOSAL_)/.test(
           error.code || "",
         ) ||
         [

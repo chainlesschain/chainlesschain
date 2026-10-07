@@ -778,6 +778,26 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "org:update-organization",
   "org:update-role",
   "org:validate-invitation-token",
+  "organization-project:action-run",
+  "organization-project:action-runs",
+  "organization-project:binding-bind",
+  "organization-project:binding-preview",
+  "organization-project:binding-revoke",
+  "organization-project:context",
+  "organization-project:create-preview",
+  "organization-project:description-preview",
+  "organization-project:policy-attest",
+  "organization-project:policy-preview",
+  "organization-project:proposal-cancel",
+  "organization-project:proposal-execute",
+  "organization-project:proposal-list",
+  "organization-project:proposal-read",
+  "organization-project:proposal-respond",
+  "organization-project:proposal-submit",
+  "organization-project:setup",
+  "organization-project:task-list",
+  "organization-project:task-read",
+  "organization-project:workflow-configure",
   "organization:get-info",
   "organization:workspace:addMember",
   "organization:workspace:addResource",
@@ -4911,6 +4931,48 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:create-team-report", removeUndefined(params)),
     getTeamReports: (params) =>
       ipcRenderer.invoke("task:get-team-reports", params),
+  },
+
+  organizationProject: {
+    context: (params) =>
+      ipcRenderer.invoke("organization-project:context", params),
+    setup: (params) => ipcRenderer.invoke("organization-project:setup", params),
+    previewPolicy: (params) =>
+      ipcRenderer.invoke("organization-project:policy-preview", params),
+    attestPolicy: (params) =>
+      ipcRenderer.invoke("organization-project:policy-attest", params),
+    configureWorkflow: (params) =>
+      ipcRenderer.invoke("organization-project:workflow-configure", params),
+    previewBinding: (params) =>
+      ipcRenderer.invoke("organization-project:binding-preview", params),
+    bindProject: (params) =>
+      ipcRenderer.invoke("organization-project:binding-bind", params),
+    revokeBinding: (params) =>
+      ipcRenderer.invoke("organization-project:binding-revoke", params),
+    listTasks: (params) =>
+      ipcRenderer.invoke("organization-project:task-list", params),
+    readTask: (params) =>
+      ipcRenderer.invoke("organization-project:task-read", params),
+    previewDescription: (params) =>
+      ipcRenderer.invoke("organization-project:description-preview", params),
+    previewCreate: (params) =>
+      ipcRenderer.invoke("organization-project:create-preview", params),
+    submitProposal: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-submit", params),
+    listProposals: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-list", params),
+    readProposal: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-read", params),
+    respondProposal: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-respond", params),
+    cancelProposal: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-cancel", params),
+    executeProposal: (params) =>
+      ipcRenderer.invoke("organization-project:proposal-execute", params),
+    getRun: (params) =>
+      ipcRenderer.invoke("organization-project:action-run", params),
+    listRuns: (params) =>
+      ipcRenderer.invoke("organization-project:action-runs", params),
   },
 
   // ==========================================
