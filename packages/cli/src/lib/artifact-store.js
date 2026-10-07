@@ -24,7 +24,9 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import crypto from "crypto";
+import { types as utilTypes } from "node:util";
 import { withFileLock } from "./with-file-lock.js";
+import { readBoundedArtifactFile } from "./bounded-artifact-file-read.js";
 
 export const ARTIFACT_KINDS = Object.freeze([
   "report",
@@ -142,6 +144,39 @@ function normalizeLineage(lineage) {
     throw new Error("artifact lineage must be a JSON object");
   }
   return normalized;
+}
+
+function integrityReadBounds(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    utilTypes.isProxy(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype ||
+    Reflect.ownKeys(value).length !== 2
+  )
+    throw new TypeError(
+      "artifact integrity bounds require exact own data fields",
+    );
+  const values = Object.fromEntries(
+    ["expectedSize", "maximumBytes"].map((name) => {
+      const field = Object.getOwnPropertyDescriptor(value, name);
+      if (!field?.enumerable || !("value" in field))
+        throw new TypeError("artifact integrity bounds cannot use accessors");
+      return [name, field.value];
+    }),
+  );
+  if (
+    !Number.isSafeInteger(values.expectedSize) ||
+    !Number.isSafeInteger(values.maximumBytes) ||
+    values.expectedSize < 0 ||
+    values.maximumBytes < 1 ||
+    values.expectedSize > values.maximumBytes ||
+    values.maximumBytes > MAX_ARTIFACT_BYTES
+  )
+    throw new TypeError(
+      "artifact integrity bounds exceed finite deliverable limits",
+    );
+  return Object.freeze(values);
 }
 
 export class ArtifactStore {
@@ -449,8 +484,14 @@ export class ArtifactStore {
     return path.join(this._filesDir(), entry.file);
   }
 
-  /** Recompute the stored copy's digest; unknown/missing bytes fail closed. */
-  verifyIntegrity(idOrEntry) {
+  /** Explicit bounds constrain artifact bytes only; id lookup may still read the index. */
+  verifyIntegrity(idOrEntry, bounds) {
+    if (arguments.length > 2)
+      throw new TypeError(
+        "artifact integrity accepts at most one bounds object",
+      );
+    // An explicitly supplied invalid value must never select the legacy raw read.
+    const bounded = arguments.length > 1 ? integrityReadBounds(bounds) : null;
     const entry =
       typeof idOrEntry === "object" && idOrEntry
         ? idOrEntry
@@ -465,7 +506,14 @@ export class ArtifactStore {
     }
     let body;
     try {
-      body = fs.readFileSync(this.storedPath(entry));
+      const target = this.storedPath(entry);
+      body = bounded
+        ? readBoundedArtifactFile(
+            path.resolve(target),
+            bounded.expectedSize,
+            bounded.maximumBytes,
+          )
+        : fs.readFileSync(target);
     } catch {
       return {
         ok: false,
