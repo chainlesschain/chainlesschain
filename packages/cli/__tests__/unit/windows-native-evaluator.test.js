@@ -453,19 +453,32 @@ try {
       const evaluator = create(`
       const fs=require('node:fs'),path=require('node:path');
       const ready=path.join(process.argv[3],'child-ready.txt');
+      // Expose an empty temporary file, then a complete temporary file, for
+      // 25ms each. Neither state may be mistaken for the published PID.
       const child=require('node:child_process').spawn(process.execPath,
-        ['-e','require("node:fs").writeFileSync(process.argv[1],String(process.pid));setInterval(()=>{},1000)',ready],
+        ['-e','const fs=require("node:fs"),ready=process.argv[1],pending=ready+".pending";fs.writeFileSync(pending,"");setTimeout(()=>{fs.writeFileSync(pending,String(process.pid));setTimeout(()=>fs.renameSync(pending,ready),25);},25);setInterval(()=>{},1000)',ready],
         {detached:true,windowsHide:true,stdio:'inherit'});
       child.on('error',error=>{console.error(error);process.exit(81);});
-      setInterval(()=>{if(fs.existsSync(ready)){console.log(JSON.stringify({parent:process.pid,descendant:Number(fs.readFileSync(ready,'utf8'))}));process.exit(0);}},20);
+      setInterval(()=>{if(fs.existsSync(ready)){
+        const descendant=Number(fs.readFileSync(ready,'utf8'));
+        if(!Number.isSafeInteger(descendant)||descendant<=0||descendant!==child.pid)throw new Error('Invalid published descendant PID: '+descendant+'; expected '+child.pid);
+        console.log(JSON.stringify({parent:process.pid,descendant}));process.exit(0);
+      }},20);
     `);
       const outcome = await execute(evaluator, "detached-descendant");
       expect(outcome.result.status, outcome.result.stderr).toBe(0);
       const identities = JSON.parse(outcome.result.stdout);
-      for (const pid of Object.values(identities))
-        expect(() => process.kill(pid, 0)).toThrowError(
+      receipts.at(-1).identities = identities;
+      expect(identities.parent).toBe(outcome.receipt.targetPid);
+      expect(identities.descendant).not.toBe(identities.parent);
+      for (const role of ["parent", "descendant"]) {
+        const pid = identities[role];
+        expect(Number.isSafeInteger(pid), `${role} PID: ${pid}`).toBe(true);
+        expect(pid, `${role} PID: ${pid}`).toBeGreaterThan(0);
+        expect(() => process.kill(pid, 0), `${role} PID: ${pid}`).toThrowError(
           expect.objectContaining({ code: "ESRCH" }),
         );
+      }
       receipts.at(-1).observedProcessesAbsent = true;
       evaluator.dispose();
     }, 30000);
