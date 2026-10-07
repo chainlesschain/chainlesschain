@@ -16,6 +16,7 @@ import { ArtifactStore } from "../artifact-store.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import { readBoundedArtifactFile } from "../bounded-artifact-file-read.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -1344,16 +1345,6 @@ function attestCapturedDirectory(directory, realPath, identity, label) {
   }
 }
 
-function sameFileIdentity(left, right) {
-  return (
-    left.dev === right.dev &&
-    left.ino === right.ino &&
-    left.size === right.size &&
-    left.mtimeMs === right.mtimeMs &&
-    left.ctimeMs === right.ctimeMs
-  );
-}
-
 function assertRegularSingleLink(stat, label) {
   if (
     !stat ||
@@ -2506,26 +2497,6 @@ export class EvolutionArtifactPorts {
   }
 
   #readStoredBytes(entry, normalizedEntry, expectedDigest) {
-    const expectedPath = path.resolve(
-      this.#store.layout.filesDir,
-      normalizedEntry.file,
-    );
-    return withEvolutionFileIdentity(fs, expectedPath, (samePathHandle) =>
-      this.#readStoredBytesWithIdentity(
-        entry,
-        normalizedEntry,
-        expectedDigest,
-        samePathHandle,
-      ),
-    );
-  }
-
-  #readStoredBytesWithIdentity(
-    entry,
-    normalizedEntry,
-    expectedDigest,
-    samePathHandle,
-  ) {
     attestStoreDirectories(this.#store.layout);
     const expectedHex = expectedDigest.slice("sha256:".length);
     let storedPath;
@@ -2557,9 +2528,13 @@ export class EvolutionArtifactPorts {
       );
     }
 
+    const readBounds = Object.freeze({
+      expectedSize: normalizedEntry.size,
+      maximumBytes: EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
+    });
     let integrityBefore;
     try {
-      integrityBefore = this.#store.verifyIntegrity(entry);
+      integrityBefore = this.#store.verifyIntegrity(entry, readBounds);
     } catch (cause) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2569,85 +2544,18 @@ export class EvolutionArtifactPorts {
     }
     validateIntegrityResult(integrityBefore, expectedHex);
 
-    let rootRealPath;
-    let beforePathStat;
-    let targetRealPath;
-    let descriptor = null;
-    let beforeDescriptorStat;
-    let afterDescriptorStat;
     let bytes;
     try {
-      rootRealPath = physicalRealpath(filesRoot);
-      if (!samePath(rootRealPath, this.#store.layout.filesRealPath)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "ArtifactStore files root physical identity changed before byte read",
-        );
-      }
-      beforePathStat = fs.lstatSync(resolvedStoredPath);
-      assertRegularSingleLink(beforePathStat, "stored artifact path");
-      targetRealPath = physicalRealpath(resolvedStoredPath);
-      if (!isContained(rootRealPath, targetRealPath)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "stored artifact realpath escapes the captured files root",
-        );
-      }
-      descriptor = fs.openSync(
+      bytes = readBoundedArtifactFile(
         resolvedStoredPath,
-        fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+        readBounds.expectedSize,
+        readBounds.maximumBytes,
       );
-      beforeDescriptorStat = fs.fstatSync(descriptor);
-      assertRegularSingleLink(
-        beforeDescriptorStat,
-        "stored artifact descriptor",
-      );
-      if (!samePathHandle(beforePathStat, beforeDescriptorStat)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "stored artifact pathname and descriptor identities differ",
-        );
-      }
-      bytes = fs.readFileSync(descriptor);
-      afterDescriptorStat = fs.fstatSync(descriptor);
-      if (!sameFileIdentity(beforeDescriptorStat, afterDescriptorStat)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "stored artifact changed while it was read",
-        );
-      }
     } catch (cause) {
       if (isEvolutionArtifactPortError(cause)) throw cause;
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
         "stored artifact could not be opened safely",
-        { cause },
-      );
-    } finally {
-      if (descriptor !== null) fs.closeSync(descriptor);
-    }
-    let afterPathStat;
-    try {
-      afterPathStat = fs.lstatSync(resolvedStoredPath);
-      assertRegularSingleLink(afterPathStat, "stored artifact path");
-      if (!sameFileIdentity(beforePathStat, afterPathStat)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "stored artifact pathname changed during readback",
-        );
-      }
-      const afterRealPath = physicalRealpath(resolvedStoredPath);
-      if (!samePath(targetRealPath, afterRealPath)) {
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "stored artifact realpath changed during readback",
-        );
-      }
-    } catch (cause) {
-      if (isEvolutionArtifactPortError(cause)) throw cause;
-      throw artifactError(
-        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-        "stored artifact could not be re-attested",
         { cause },
       );
     }
@@ -2662,7 +2570,7 @@ export class EvolutionArtifactPorts {
     }
     let integrityAfter;
     try {
-      integrityAfter = this.#store.verifyIntegrity(entry);
+      integrityAfter = this.#store.verifyIntegrity(entry, readBounds);
     } catch (cause) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
