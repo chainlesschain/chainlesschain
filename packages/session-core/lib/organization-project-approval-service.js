@@ -222,6 +222,12 @@ class OrganizationProjectApprovalService {
         response_digest TEXT NOT NULL, authority_digest TEXT NOT NULL,
         UNIQUE(request_id,step,approver_did)
       );
+      CREATE TABLE IF NOT EXISTS cc_organization_action_approval_cancellations (
+        request_id TEXT PRIMARY KEY REFERENCES cc_organization_action_approvals(request_id),
+        record_json TEXT NOT NULL,content_digest TEXT NOT NULL
+      );
+      CREATE TRIGGER IF NOT EXISTS cc_org_approval_cancellation_immutable BEFORE UPDATE ON cc_organization_action_approval_cancellations BEGIN SELECT RAISE(ABORT,'ORG_APPROVAL_IMMUTABLE'); END;
+      CREATE TRIGGER IF NOT EXISTS cc_org_approval_cancellation_retained BEFORE DELETE ON cc_organization_action_approval_cancellations BEGIN SELECT RAISE(ABORT,'ORG_APPROVAL_IMMUTABLE'); END;
       CREATE TRIGGER IF NOT EXISTS cc_org_approval_binding_immutable
         BEFORE UPDATE ON cc_organization_action_approvals
         WHEN OLD.request_id IS NOT NEW.request_id OR OLD.requester_did IS NOT NEW.requester_did
@@ -770,6 +776,19 @@ class OrganizationProjectApprovalService {
         )
         .run(status, at, at, binding.requestId).changes;
       if (changes !== 1) fail("ORG_APPROVAL_NOT_PENDING");
+      const cancellation = {
+        schema: "chainlesschain.organization-approval-cancellation/v1",
+        approvalId: binding.requestId,
+        bindingDigest: row.binding_digest,
+        actorDid: actor,
+        status,
+        at,
+      };
+      this.db
+        .prepare(
+          "INSERT INTO cc_organization_action_approval_cancellations VALUES(?,?,?)",
+        )
+        .run(binding.requestId, encode(cancellation), digest(cancellation));
       return this._view(this._load(binding.requestId));
     });
   }
@@ -989,6 +1008,85 @@ class OrganizationProjectApprovalService {
       approvalId: binding.requestId,
       bindingDigest: row.binding_digest,
       expiresAt: binding.expiresAt,
+    };
+  }
+  verifyResolutionInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
+    fields(input, ["approvalId"]);
+    const loaded = this._load(input.approvalId),
+      { binding, row, request } = loaded;
+    this._authority(binding.projectId, this._actor(), "task.read");
+    this._goal({
+      goalIntent: binding.goalIntent,
+      binding,
+      actor: this._actor(),
+      phase: "read",
+    });
+    const responses = this._responses(loaded);
+    let proof = null;
+    if (
+      !row.consumed_run_id &&
+      request.status === "rejected" &&
+      responses.status === "rejected"
+    ) {
+      proof = {
+        kind: "verified-rejection",
+        bindingDigest: row.binding_digest,
+        responseDigest: digest(
+          this.db
+            .prepare(
+              "SELECT * FROM cc_organization_action_approval_responses WHERE request_id=? ORDER BY response_id",
+            )
+            .all(binding.requestId),
+        ),
+      };
+    } else if (
+      !row.consumed_run_id &&
+      ["cancelled", "expired"].includes(request.status)
+    ) {
+      const stored = this.db
+        .prepare(
+          "SELECT * FROM cc_organization_action_approval_cancellations WHERE request_id=?",
+        )
+        .get(binding.requestId);
+      if (stored) {
+        const record = decode(stored.record_json);
+        fields(record, [
+          "schema",
+          "approvalId",
+          "bindingDigest",
+          "actorDid",
+          "status",
+          "at",
+        ]);
+        if (
+          record.schema !==
+            "chainlesschain.organization-approval-cancellation/v1" ||
+          digest(record) !== stored.content_digest ||
+          record.approvalId !== binding.requestId ||
+          record.bindingDigest !== row.binding_digest ||
+          record.actorDid !== binding.requesterDid ||
+          record.status !== request.status ||
+          record.at !== request.completed_at ||
+          record.at !== request.updated_at ||
+          record.at < binding.createdAt ||
+          (record.status === "cancelled"
+            ? record.at >= binding.expiresAt
+            : record.at < binding.expiresAt)
+        )
+          fail("ORG_APPROVAL_CORRUPT");
+        proof = {
+          kind: "verified-cancellation",
+          bindingDigest: row.binding_digest,
+          cancellationDigest: stored.content_digest,
+        };
+      }
+    }
+    return {
+      approvalId: binding.requestId,
+      resolved: proof !== null,
+      proof,
+      status: request.status,
     };
   }
   consumeInTransaction(input) {

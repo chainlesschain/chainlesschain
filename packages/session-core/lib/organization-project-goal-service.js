@@ -10,6 +10,7 @@ const {
   validateGoalRecord,
   reviseGoalRecord,
   createGoalRecord,
+  completeGoalRecord,
   MAX_GOAL_RECORD_BYTES,
 } = require("./goal-contract");
 const { GoalRepository } = require("./goal-repository");
@@ -96,6 +97,8 @@ class SqliteOrganizationProjectGoalAdapter {
         CREATE TABLE IF NOT EXISTS ${PREFIX}_workflow(id TEXT PRIMARY KEY,kind TEXT NOT NULL,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_org_goal_workflow ON ${PREFIX}_workflow(goal_id,kind,id);
         CREATE TABLE IF NOT EXISTS ${PREFIX}_observations(review_id TEXT NOT NULL,goal_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(review_id,goal_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_acceptance(id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,kind TEXT NOT NULL,request_id TEXT NOT NULL,goal_revision INTEGER NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(goal_id,actor_did,kind,request_id));
+        CREATE INDEX IF NOT EXISTS idx_org_goal_acceptance ON ${PREFIX}_acceptance(goal_id,kind,goal_revision);
         CREATE INDEX IF NOT EXISTS idx_org_goal_checks_goal ON ${PREFIX}_checks(goal_id,occurrence_id);`);
       db.exec(`CREATE TRIGGER IF NOT EXISTS cc_org_goal_scope_immutable BEFORE UPDATE ON ${PREFIX}s
         WHEN OLD.id IS NOT NEW.id OR OLD.actor_did IS NOT NEW.actor_did OR OLD.project_id IS NOT NEW.project_id
@@ -109,6 +112,7 @@ class SqliteOrganizationProjectGoalAdapter {
         `${PREFIX}_checks`,
         `${PREFIX}_monitor_consents`,
         `${PREFIX}_monitor_stops`,
+        `${PREFIX}_acceptance`,
       ])
         for (const operation of ["UPDATE", "DELETE"])
           db.exec(
@@ -381,6 +385,81 @@ class SqliteOrganizationProjectGoalAdapter {
         expectedRevision,
       );
     if (result.changes !== 1) fail("GOAL_REVISION_CONFLICT");
+    return next;
+  }
+  completeInTransaction(goalId, expectedRevision, report, now) {
+    if (!this.db.inTransaction) fail("GOAL_TRANSACTION_REQUIRED");
+    const actor = this._actor(),
+      current = this._read(id(goalId), actor);
+    if (!current || current.revision !== expectedRevision)
+      fail("GOAL_REVISION_CONFLICT");
+    const authority = this._authorize(
+      current.projectRef.id,
+      actor,
+      "goal.accept",
+    );
+    this._authorize(current.projectRef.id, actor, "goal.update", authority);
+    const stored = this.db
+      .prepare(
+        `SELECT content_digest,record_json FROM ${PREFIX}_acceptance WHERE id=? AND goal_id=? AND actor_did=? AND kind='report'`,
+      )
+      .get(report.id, current.id, actor);
+    if (
+      !stored ||
+      stored.content_digest !== digest(report) ||
+      stored.record_json !== JSON.stringify(report) ||
+      report.mode !== "complete" ||
+      report.met !== true ||
+      report.appliedRevision !== current.revision + 1 ||
+      report.goalRevision !== current.revision ||
+      report.controlGeneration !== current.controlGeneration ||
+      report.definitionDigest !==
+        require("./goal-contract").goalDefinitionDigest(current) ||
+      digest(report.authority) !== digest(authority)
+    )
+      fail("GOAL_COMPLETION_EVIDENCE_REQUIRED");
+    const next = this._validate(
+      completeGoalRecord(
+        current,
+        {
+          met: true,
+          verifierRef: "native.organization-project-delivery-acceptance-v1",
+          criteriaIds: current.acceptanceCriteria.map(
+            (criterion) => criterion.id,
+          ),
+          evidenceRefs: [
+            {
+              kind: "native-goal-completion",
+              id: report.id,
+              version: digest(report),
+            },
+          ],
+        },
+        now,
+      ),
+    );
+    if (this._actor() !== actor) fail("GOAL_IDENTITY_CHANGED");
+    this._authorize(current.projectRef.id, actor, "goal.update", authority);
+    this._authorize(current.projectRef.id, actor, "goal.accept", authority);
+    if (
+      next.revision !== current.revision + 1 ||
+      next.controlGeneration !== current.controlGeneration ||
+      next.ownerRef !== current.ownerRef ||
+      digest(next.projectRef) !== digest(current.projectRef)
+    )
+      fail("GOAL_INVALID_REPLACEMENT");
+    const changed = this.db
+      .prepare(
+        `UPDATE ${PREFIX}s SET revision=?,goal_json=?,content_digest=? WHERE id=? AND revision=?`,
+      )
+      .run(
+        next.revision,
+        JSON.stringify(next),
+        digest(next),
+        current.id,
+        expectedRevision,
+      ).changes;
+    if (changed !== 1) fail("GOAL_REVISION_CONFLICT");
     return next;
   }
   list(input) {

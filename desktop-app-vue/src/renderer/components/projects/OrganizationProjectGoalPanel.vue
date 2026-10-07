@@ -291,6 +291,22 @@
         @proposal-id="emit('proposal-id', $event)"
         @authority-error="failure"
       />
+      <OrganizationProjectGoalAcceptancePanel
+        v-if="
+          permissions.includes('risk.read') && permissions.includes('task.read')
+        "
+        :goal="item.goal"
+        :project-id="projectId"
+        :org-id="orgId"
+        :identity-key="identityKey"
+        :permissions="permissions"
+        :parent-busy="locked"
+        :recovery="goalAcceptanceRecovery[item.goal.id]"
+        @recovery="goalAcceptanceRecovery[item.goal.id] = $event"
+        @changed="loadGoals()"
+        @review-id="emit('review-id', $event)"
+        @authority-error="failure"
+      />
     </article>
     <button
       v-if="afterId"
@@ -302,7 +318,7 @@
     </button>
     <p>
       周期授权最长 24
-      小时，仅当前巡检身份解锁且应用运行时检查；离线到期会合并。目标任务建议需多级审批及逐次确认，目标验收尚未启用，模型费用：未知。
+      小时，仅当前巡检身份解锁且应用运行时检查；离线到期会合并。目标任务建议需多级审批及逐次确认；目标完成需独立验收，模型费用：未知。
     </p>
   </section>
 </template>
@@ -315,6 +331,7 @@ import {
 } from "./organization-project-ui";
 import { actionCode } from "./task-description-ui";
 import OrganizationProjectGoalActionsPanel from "./OrganizationProjectGoalActionsPanel.vue";
+import OrganizationProjectGoalAcceptancePanel from "./OrganizationProjectGoalAcceptancePanel.vue";
 type Goal = {
   id: string;
   projectRef: {
@@ -329,6 +346,7 @@ type Goal = {
   expiresAt: string | null;
   budgetPolicy: { maxRuns: number | null };
   allowedActionTypes?: string[];
+  acceptanceCriteria?: Array<{ id: string; kind: string; description: string }>;
 };
 type GoalStatus = {
   goal: Goal;
@@ -379,6 +397,7 @@ const pendingMonitors = ref<Record<string, { method: string; input: any }>>({}),
   intervals = ref<Record<string, number>>({}),
   monitorHours = ref<Record<string, number>>({});
 const goalActionRecovery = ref<Record<string, Record<string, any>>>({});
+const goalAcceptanceRecovery = ref<Record<string, any>>({});
 const locked = computed(() => busy.value || props.parentBusy),
   objectiveBytes = computed(
     () => new TextEncoder().encode(objective.value).length,
@@ -451,6 +470,7 @@ function reset() {
   pendingChecks.value = {};
   pendingMonitors.value = {};
   goalActionRecovery.value = {};
+  goalAcceptanceRecovery.value = {};
   intervals.value = {};
   monitorHours.value = {};
   error.value = "";

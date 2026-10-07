@@ -24,6 +24,9 @@ const {
   OrganizationProjectGoalWorkflow,
 } = require("@chainlesschain/session-core/organization-project-goal-workflow");
 const {
+  OrganizationProjectGoalCompletionService,
+} = require("@chainlesschain/session-core/organization-project-goal-completion");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -79,6 +82,11 @@ const CHANNELS = Object.freeze({
   prepareGoalAction: "organization-project:goal-action-prepare",
   submitGoalAction: "organization-project:goal-action-submit",
   getGoalAction: "organization-project:goal-action-read",
+  configureGoalAcceptance: "organization-project:goal-acceptance-configure",
+  getGoalAcceptanceStatus: "organization-project:goal-acceptance-status",
+  acknowledgeGoalAcceptance: "organization-project:goal-acceptance-acknowledge",
+  checkGoalAcceptance: "organization-project:goal-acceptance-check",
+  completeGoal: "organization-project:goal-complete",
 });
 function fail(code) {
   const error = new Error(code);
@@ -265,6 +273,16 @@ function createOrganizationProjectHost({
       creation = action(true);
     goalWorkflow.descriptionActions = descriptions;
     goalWorkflow.createActions = creation;
+    const goalCompletion = new OrganizationProjectGoalCompletionService({
+      db,
+      getActor,
+      authority,
+      clock,
+      goals,
+      risk: risks,
+      usage: goals.usage,
+      workflow: goalWorkflow,
+    });
     return {
       authority,
       db,
@@ -275,6 +293,7 @@ function createOrganizationProjectHost({
       risks,
       goals,
       goalWorkflow,
+      goalCompletion,
       descriptions,
       creation,
       action,
@@ -582,6 +601,87 @@ function createOrganizationProjectHost({
       factory(event).goalWorkflow.submit(params),
     getGoalAction: (event, params) =>
       factory(event).goalWorkflow.getIntent(params),
+    getGoalAcceptanceStatus: (event, params) =>
+      factory(event).goalCompletion.status(params),
+    checkGoalAcceptance: (event, params) => {
+      const c = factory(event);
+      return c.goalCompletion.inspect(params, { guard: c.getActor });
+    },
+    async configureGoalAcceptance(event, params) {
+      const c = factory(event),
+        prepared = c.goalCompletion.prepareConfigure(params);
+      if (prepared.replayed) return c.goalCompletion.configure(params);
+      if (
+        !(await c.confirm(
+          "确认组织目标验收条件",
+          "保存以下独立验收条件并更新目标版本？既有巡检同意和目标动作不会自动继承新版本。",
+          [
+            `目标：${display(prepared.previous.objective)}`,
+            `项目/组织：${display(prepared.previous.projectRef.id)} / ${display(prepared.previous.projectRef.scope.id)}`,
+            `目标版本：${prepared.previous.revision}`,
+            `验收条件：${display(prepared.goal.acceptanceCriteria)}`,
+            `业务断言：${display(prepared.plan.assertions)}`,
+            `确认摘要：${prepared.requestDigest}`,
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      return c.goalCompletion.configure(params, {
+        expectedAuthority: prepared.authority,
+        guard: c.getActor,
+      });
+    },
+    async acknowledgeGoalAcceptance(event, params) {
+      const c = factory(event),
+        prepared = c.goalCompletion.prepareAcknowledge(params);
+      if (prepared.replayed) return c.goalCompletion.acknowledge(params);
+      const confirmed = await c.confirm(
+        "确认组织目标人工验收",
+        "你已实际核对以下业务结果，并确认这些人工验收条件？",
+        [
+          `目标：${display(prepared.goal.objective)}`,
+          `目标版本：${prepared.goal.revision}`,
+          `验收成员：${display(prepared.actorDid)}`,
+          ...prepared.goal.acceptanceCriteria
+            .filter((criterion) => params.criterionIds.includes(criterion.id))
+            .map((criterion) => `人工条件：${display(criterion.description)}`),
+          "人工确认会保留归因；目标完成仍需重新检查全部条件。",
+          `确认摘要：${prepared.requestDigest}`,
+        ],
+      );
+      return c.goalCompletion.acknowledge(params, {
+        expectedAuthority: prepared.authority,
+        confirmed,
+        guard: c.getActor,
+      });
+    },
+    async completeGoal(event, params) {
+      const c = factory(event),
+        prepared = c.goalCompletion.prepareComplete(params);
+      if (prepared.replayed) return c.goalCompletion.complete(params);
+      if (
+        !(await c.confirm(
+          "确认组织目标独立验收",
+          "重新核对当前事实，全部条件满足时完成此目标？检查会占用共享预算；不满足时只保存验收报告。",
+          [
+            `目标：${display(prepared.goal.objective)}`,
+            `目标版本：${prepared.goal.revision}`,
+            `验收条件：${display(prepared.goal.acceptanceCriteria)}`,
+            `当前条件判断：${display(prepared.preview)}`,
+            `预算：${display(prepared.goal.budgetPolicy)}`,
+            `事实摘要：${prepared.freshnessDigest}`,
+            `确认摘要：${prepared.requestDigest}`,
+            "完成后关闭后续周期；停止不表示在途检查已同步中止。",
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      return c.goalCompletion.complete(params, {
+        expectedAuthority: prepared.authority,
+        expectedFreshnessDigest: prepared.freshnessDigest,
+        guard: c.getActor,
+      });
+    },
     getGoal: (event, params) => factory(event).goals.get(params),
     listGoals: (event, params) => factory(event).goals.list(params),
     async createGoal(event, params) {

@@ -426,6 +426,7 @@ function permissionLabel(permission: string) {
         "goal.check": "手动检查组织目标风险",
         "goal.monitor": "启用或停止组织目标周期巡检",
         "goal.propose": "准备和提交组织目标任务建议",
+        "goal.accept": "组织目标验收检查与人工确认",
       } as Record<string, string>
     )[permission] || "未知权限"
   );

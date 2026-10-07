@@ -786,12 +786,17 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:context",
   "organization-project:create-preview",
   "organization-project:description-preview",
+  "organization-project:goal-acceptance-acknowledge",
+  "organization-project:goal-acceptance-check",
+  "organization-project:goal-acceptance-configure",
+  "organization-project:goal-acceptance-status",
   "organization-project:goal-action-prepare",
   "organization-project:goal-action-read",
   "organization-project:goal-action-submit",
   "organization-project:goal-check",
   "organization-project:goal-check-read",
   "organization-project:goal-checks",
+  "organization-project:goal-complete",
   "organization-project:goal-create",
   "organization-project:goal-list",
   "organization-project:goal-monitor-start",
@@ -4961,6 +4966,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    configureGoalAcceptance: (params) =>
+      ipcRenderer.invoke(
+        "organization-project:goal-acceptance-configure",
+        params,
+      ),
+    getGoalAcceptanceStatus: (params) =>
+      ipcRenderer.invoke("organization-project:goal-acceptance-status", params),
+    acknowledgeGoalAcceptance: (params) =>
+      ipcRenderer.invoke(
+        "organization-project:goal-acceptance-acknowledge",
+        params,
+      ),
+    checkGoalAcceptance: (params) =>
+      ipcRenderer.invoke("organization-project:goal-acceptance-check", params),
+    completeGoal: (params) =>
+      ipcRenderer.invoke("organization-project:goal-complete", params),
     listGoalSuggestions: (params) =>
       ipcRenderer.invoke("organization-project:goal-suggestions", params),
     prepareGoalAction: (params) =>

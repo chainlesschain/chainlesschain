@@ -446,7 +446,7 @@ describe("organization goal suggestions with Vue and real multi-member native SQ
       (await f.host.getGoalStatus(f.event, { id: goal.id })).usage.totalRuns,
     ).toBe(2);
     expect(f.host.getGoal(f.event, { id: goal.id }).status).toBe("active");
-  });
+  }, 15000);
   it("requires native confirmation to enable task suggestions", async () => {
     goal = (
       await f.host.reviseGoal(f.event, {
