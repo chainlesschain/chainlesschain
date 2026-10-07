@@ -1,16 +1,39 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-07 最新公开发布与主线进度
+## 2026-10-07 最新公开发布
+
+CLI **0.166.92**、Session Core **0.3.17**、Context Memory Kernel **0.1.7** 已按子包 → CLI 顺序通过 GitHub Actions OIDC 发布，公开下载、精确依赖和签名来源均已核验。Open VSX **0.37.137** 和 JetBrains **0.4.155** 已公开并完成制品回读，均推荐 CLI `0.166.92`。本轮四个发行标签指向 `e812a89952`；[产品 v5.0.3.139](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) 已发布 Windows、macOS、Linux、Android 和 iOS 制品。
+
+| 组件                         | 本轮版本               | 核验状态                                                        |
+| ---------------------------- | ---------------------- | --------------------------------------------------------------- |
+| npm CLI                      | **0.166.92**           | CLI CI 70 成功、1 条件跳过；Strict 5/5；公开归档和来源核验通过  |
+| Open VSX / JetBrains         | **0.37.137 / 0.4.155** | 两渠道已公开下载；制品版本及 CLI 配对核验通过                   |
+| Session Core / Memory Kernel | **0.3.17 / 0.1.7**     | 子包先于 CLI OIDC 发布，归档下载和签名来源核验通过              |
+| SDK / PDH                    | **0.2.13 / 0.4.64**    | 复用已公开版本，发布流程核对公开字节和精确依赖                  |
+| Desktop                      | **5.0.3-alpha.139**    | Windows / macOS / Linux 安装包已公开；Windows、macOS 未代码签名 |
+| Android                      | **5.0.3.139 / 503139** | release 签名 APK 与 AAB 已公开                                  |
+| iOS                          | **5.0.3 / build 139**  | ad hoc 签名 IPA 已公开，安装设备需在描述文件授权范围内          |
+
+```bash
+npm i -g chainlesschain@0.166.92 --registry https://registry.npmjs.org
+chainlesschain --version
+```
+
+升级 CLI 后安装对应 IDE 版本并重启聊天宿主，通过 Doctor 核对实际 CLI 路径和运行时能力。升级持久存储前备份数据，关闭桌面客户端后保留 SQLite 数据库及其 WAL/SHM 文件。原生客户端从[产品下载页](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139)选择对应安装包；Windows、macOS 制品未代码签名，macOS 未公证。iOS 为 ad hoc 分发，App Store 与 TestFlight 状态独立。
+
+本轮修复包含 Windows 完整 64 位 RRSI 文件身份、调度数据库 WAL/SHM 私有权限初始化、完整打包库提取，以及 IDE 重启验证。发行提交通过 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37619216418)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37619282422)、[npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37626685269)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727157)和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727660)。产品状态见[独立 Release 流程](https://github.com/chainlesschain/chainlesschain/actions/runs/37637876986)，详细步骤见[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)和[本轮公开回读记录](docs/research/cli/evidence/release-publication-0.166.92-e812.json)。
+
+## 2026-10-07 CLI 0.166.91 历史发布与当时主线进度
 
 2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。
 
-| 组件 | 当前公开版本 | 发行来源 |
-| --- | --- | --- |
-| npm CLI | **0.166.91** | `23afea300b`；CLI CI 70 成功、1 条件跳过；Strict 5/5 |
-| Open VSX / JetBrains | **0.37.136 / 0.4.154** | `5b78b8d828`；IDE 宿主门 18 成功、1 条件跳过；双渠道回读 |
-| Session Core / PDH | **0.3.16 / 0.4.64** | 子包先于 CLI OIDC 发布；公共归档版本与 SRI 已核验 |
-| SDK / Memory Kernel | **0.2.13 / 0.1.6** | 保持独立公开版本 |
-| Desktop / Android / iOS | **v5.0.3.138** | 独立产品包；新增桌面工作区按源码范围理解 |
+| 组件                    | 当时公开版本           | 发行来源                                                 |
+| ----------------------- | ---------------------- | -------------------------------------------------------- |
+| npm CLI                 | **0.166.91**           | `23afea300b`；CLI CI 70 成功、1 条件跳过；Strict 5/5     |
+| Open VSX / JetBrains    | **0.37.136 / 0.4.154** | `5b78b8d828`；IDE 宿主门 18 成功、1 条件跳过；双渠道回读 |
+| Session Core / PDH      | **0.3.16 / 0.4.64**    | 子包先于 CLI OIDC 发布；公共归档版本与 SRI 已核验        |
+| SDK / Memory Kernel     | **0.2.13 / 0.1.6**     | 保持独立公开版本                                         |
+| Desktop / Android / iOS | **v5.0.3.138**         | 独立产品包；新增桌面工作区按源码范围理解                 |
 
 ```bash
 npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org
@@ -30,7 +53,7 @@ cc --version
 
 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。
 
-| 组件                     | 当前公开版本                 | 来源与配对                                    |
+| 组件                     | 当时公开版本                 | 来源与配对                                    |
 | ------------------------ | ---------------------------- | --------------------------------------------- |
 | npm CLI                  | **0.166.90**                 | `v-npm-0-166-90` → `28cff6adc8`               |
 | VS Code / VSCodium       | **Open VSX 0.37.135**        | 推荐 CLI `0.166.90`；同一发行提交             |
@@ -2917,7 +2940,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.91-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.92-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
