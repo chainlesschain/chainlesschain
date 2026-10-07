@@ -18,6 +18,19 @@
       "productVersion": null,
       "cliVersion": "0.166.92",
       "cliVersions": ["0.166.92"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - CLI 0.166.92: organization workflows and authenticated registry reads",
+          "body": "- Carry the committed organization project workbench into the desktop product\n  candidate, with project setup, saved proposals and governed task actions.\n  Session Core `0.3.17` includes the proposal store used by those host services.\n- Bind RRSI Registry read-only construction to authenticated backend evidence.\n  Read-only queries require that construction authority and retain checks for\n  replacement and mutation instead of creating a fresh writable registry."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.92",
+      "cliVersions": ["0.166.92"],
       "date": "2026-10-07",
       "title": "",
       "sections": [

@@ -32,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   development plugin hot reload in the JetBrains test host so restart validation
   retains both the packaged plugin and its UI driver.
 
+### Added - CLI 0.166.92: organization workflows and authenticated registry reads
+
+- Carry the committed organization project workbench into the desktop product
+  candidate, with project setup, saved proposals and governed task actions.
+  Session Core `0.3.17` includes the proposal store used by those host services.
+- Bind RRSI Registry read-only construction to authenticated backend evidence.
+  Read-only queries require that construction authority and retain checks for
+  replacement and mutation instead of creating a fresh writable registry.
+
 ### Upgrade - CLI 0.166.92 and product v5.0.3.139 candidates (2026-10-07)
 
 - These versions are release candidates until the final versioned commit passes
