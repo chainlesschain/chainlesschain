@@ -269,9 +269,23 @@ PM host 强制执行三类资源限制；货币和全部内部重试/模型调�
 
 完整 census、快照边界和 PM/native 回归结果见 [本批验证记录](./evidence/rrsi-native-census-local-controls-2026-10-07.json)：九文件完整联合回归 **346/346**，独立只读审计文件 **7/7**，合计 **353/353**，新增 14 项。包括真实 v2 journal、完整超 2 MiB 事件集、复制/异源凭据拒绝、独立 writer 改变 head，以及真实 verify 错误后的永久失效。ESLint、Prettier 和 Astra 接线复核通过。统计 v2 的观察前预注册、真实来源、Actor/recipe/lifecycle、底层执行签名与完整账单仍待接线，真实实验保持 NOT_RUN。
 
-## 15 下一批工作及完成审计
+## 15 原生目标分层与三角统计 v2
 
-下一步实现保留 target strata 的统计 v2 和观察前预注册，再接入选择/泛化回执。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+[rrsi-native-group-statistics.js](../../../packages/cli/src/lib/evolution/rrsi-native-group-statistics.js) 新增独立的 v2 描述性 plan/report。plan 从规范化的完整 batch 和冻结 campaign 重建，绑定 batch、native graph、目标矩阵、版本、生命周期、原来源连通分量与任务权重。每个 partition/variant/target/task/seed/arm 必须保留两个不同 pair 的观察；先平均 pair replicas，再平均 seeds，再按原任务权重和来源 component 求差。B–A 行进入 baseline/rsi 均值，只有 campaign 已登记 B–A 时才增加其比较假设。
+
+targets、seeds 和 replicas 均不增加独立来源组。完整单批、单阶段 family 为 comparison × partition × variant × target；bootstrap 与 Hoeffding 外包络复用原数值 kernel，随机承诺和每项 alpha 来自冻结计划。预检 1,000,000 次 kernel 上限与计入全部 targets 的 50,000,000 总重采样操作上限。默认 10,000 次 bootstrap 在最终 24 项假设时尾部次数不足，保持 HOLD；不能在观察后追加次数。两目标、120 个原来源组、48,000 次最终重采样超过总操作上限，必须在执行前拒绝。
+
+原始观察按 child 分块捕获，不扩大文档限额。缺 chunk、task/seed 行或任何固定 replica 都保留完整分母，相关 task/arm 均值和差值为 null，不生成区间，不补零，也不根据已观察子集重算均值。重复 child、replica slot 或 row result digest，以及 task/partition/seed/arm 替换均拒绝。v2 的 success 定义为签名 reportedPass 且 security/permission violations 均为零；manualRemediationMeasured:false 保留，不能冒充 v1 已测量的无人工补救完成率。
+
+纯 childRows 接口只消费结构声明，所有真实性和质量权限保持 false。live wrapper 只从品牌化的完整 census 取得真实 final-receipt 行块，保留原 C–A/C–B veto、预算 HOLD 和历史 auditHead，在统计计算前后重查有效期。presentedFinalReceiptRowsAuthenticated 与 underlyingExecutionReceiptsReverified 分开；前者不能证明 Actor、grader、recipe、费用或来源真实执行。报告始终 decision:HOLD，preObservationRegistrationVerified:false、statisticalProtocolValidated:false、qualityVerdictVerified:false。
+
+本层数值 family 覆盖同一冻结 batch/stage 的全部 targets，不自动认证多轮 selection 的整体错误率。旧 native reservation 没有观察前统计预注册证据，不能通过新分析器事后改为已注册。下一步增加 scope 首次协议冻结、逐 query/batch 原样 plan 预注册和新版本 reservation，在真实 History 的 lock/load/apply/CAS 中核验严格事件顺序。scope 内的新 campaign 不得重置方法、family、随机承诺和 cap；旧记录的回读、结算与恢复必须保持兼容。
+
+本批结果见 [原生统计验证记录](./evidence/rrsi-native-statistics-local-controls-2026-10-07.json)：两个完整统计文件 **37/37**，真实签名行接线与当前过期拒绝的定向 Gate 用例 **2/2**，合计 **39 项通过**。新增 17 项，并扩展原过期用例；Gate 本次其余 220 项按筛选条件跳过，不作为第二次完整 Gate 运行计数。原 Gate 221 项及 native/legacy source 已在前批 **353/353** 中完整验证，本批未改动这些生产源码。首轮统计专项有一项因测试配置的空扰动列表不符合合同而失败；修正测试配置后完整复测通过，生产校验未放宽。ESLint、Prettier 和 Astra 统计只读复核通过。未进行真实模型调用或 A/B/C 效果实验。
+
+## 16 下一批工作及完成审计
+
+下一步接入统计 v2 的观察前耐久预注册，再接入选择/泛化回执。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
 
 Astra 的下一层只读设计复核确认：v1 区间 kernel 可复用，原分析器的 slot key 没有 target/replica，不能直接消费三角行。v2 须先对每 task/seed/arm 的两份固定 pair 观察求均值，再对 seeds 求均值，然后按原来源 component 和原任务权重求差；重复和目标数不增加独立来源组。完整 family 为 comparison × partition × variant × target，默认 10,000 次 bootstrap 在 24 项最终假设时每尾约 10.42，未达到原要求 25，应 HOLD。新协议须在观察前绑定新版预注册/批次记录，并预检 kernel 的次数与完整操作上限；不能事后增加重采样次数或删掉失败比较。现有批次不能被重新声明为已完成统计预注册。
 

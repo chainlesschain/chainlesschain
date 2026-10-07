@@ -1,0 +1,140 @@
+{
+  "schema": "chainlesschain.rrsi-native-statistics-local-controls/v1",
+  "recordedAt": "2026-10-07T01:05:50.150Z",
+  "baseCommit": "c9b24b5e4a5a7ba2eeb125141abd10ed696d2457",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-group-statistics.js",
+      "digest": "sha256:561f42e56082f61c1029204896923e7df29fd11bf765d23300eb51b3e0e74219"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-group-statistics.test.js",
+      "digest": "sha256:fe095cea3c71fb4e1a709a1fc4da09f1f1404504e327906200e334c2419ecd69"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "digest": "sha256:2713d256a771699966efd553775243105ed493cebe865e5cdbf22d3d0f00d7c6"
+    }
+  ],
+  "unchangedDependencyHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-group-statistics.js",
+      "digest": "sha256:7bb5c8430e1ddb3405ada44c406a81aba9ee3f71d3db3d3ecc6ac40e54168cea"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-batch-evidence.js",
+      "digest": "sha256:050e228c589fd34f7dd031c22a9c265edce5da788bf11c0d58a369f5d80ce813"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-eval-row-collector.js",
+      "digest": "sha256:877f72e30c736ad48ea8415da40a5d32dfae73d2844c85f7648b3e28c4130ab5"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-evaluation-batch.js",
+      "digest": "sha256:e44f0e1d216cc5f0daa1d4e2471fcf2abb8251411af1c3074db18fe5a7029e20"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-native-statistics-final-tests.json",
+      "digest": "sha256:3aaf766a9de956cc97db5cb7074551ea51b6a8f92235419b4a27431253f464c4"
+    },
+    {
+      "file": ".work/rrsi-native-statistics-signed-integration-tests.json",
+      "digest": "sha256:85abfe6bd805c0773cb198879451f747566c6dc6b4b0b4ab06f6d92ea9dca15a"
+    }
+  ],
+  "priorCompleteCensusRegression": {
+    "file": "docs/research/agents/evidence/rrsi-native-census-local-controls-2026-10-07.json",
+    "digest": "sha256:da503bc18b44b896cb2bced9af6d5cfa87859bfddd0879385f55984cab00626f"
+  },
+  "files": [
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-group-statistics.test.js",
+      "scope": "complete-file",
+      "passed": 21,
+      "failed": 0,
+      "intentionallyFilteredOut": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-group-statistics.test.js",
+      "scope": "complete-file",
+      "passed": 16,
+      "failed": 0,
+      "intentionallyFilteredOut": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "scope": "two-targeted-signed-integration-cases",
+      "passed": 2,
+      "failed": 0,
+      "intentionallyFilteredOut": 220
+    }
+  ],
+  "totals": {
+    "files": 3,
+    "passed": 39,
+    "failed": 0,
+    "intentionallyFilteredOut": 220,
+    "priorCensusPassed": 353
+  },
+  "newCasesInIncrement": 17,
+  "existingExpiryCaseExtendedWithStatisticsRejection": true,
+  "verificationScope": "Both statistics files ran completely (37 passed). Two signed native Gate cases ran after the new test import and assertions (2 passed, all other Gate cases intentionally filtered). The original 221 Gate cases and native/legacy source regression passed in the preceding census commit. This is not a second complete Gate run.",
+  "diagnosticReport": {
+    "file": ".work/rrsi-native-statistics-targeted-tests.json",
+    "digest": "sha256:12dbf925f9e2e11395028c611c4583583cbee4ac30273fe6cd196b79e61dbbb4"
+  },
+  "diagnosticOutcome": "15 of 16 passed; the kernel-limit fixture supplied an invalid empty perturbation list. The test fixture was corrected, preserving all production validation and limits; both complete statistics files then passed.",
+  "lint": "ESLint passed for the new statistics source and both changed test files",
+  "formatting": "Prettier passed for source/tests/docs/evidence",
+  "independentReadOnlyReview": "Astra reviewed fixed distinct pair replicas, B-A arm means, original source weights, target-wise family alpha and operation caps, missing null means, unmeasured remediation, branded census row mapping, native veto and budget preservation, historical head and start/end time checks. No blocking issue found. Astra did not run these statistics tests.",
+  "controls": {
+    "nativePlanBoundToCompleteFrozenBatchAndTargets": true,
+    "twoDistinctPairReplicasThenSeedsThenOriginalTaskWeights": true,
+    "baselineRsiPairAlwaysIncludedInArmMeans": true,
+    "baselineRsiContrastOnlyAddedWhenRegistered": true,
+    "targetEffectsAnalyzedSeparately": true,
+    "targetsSeedsAndReplicasDoNotIncreaseIndependentSourceGroups": true,
+    "completeComparisonPartitionVariantTargetFamily": true,
+    "bootstrapTailPreflightAndOriginalKernelMaximum": true,
+    "allTargetsChargedAgainstTotalResampleOperationCap": true,
+    "missingRowsKeepNullMeansAndCompleteDenominators": true,
+    "duplicateChunksReplicaSlotsAndRowResultsRejected": true,
+    "substitutedTaskPartitionSeedAndArmRejected": true,
+    "independentChunkBoundsAndNonInvokingAccessorRejection": true,
+    "originalBootstrapAndBoundedEnvelopeKernelReused": true,
+    "reportedPassAndZeroViolationsStrictPassDefinition": true,
+    "outputDoesNotExposePrivateTaskRows": true,
+    "genuineCensusRequiredForFinalReceiptRowAuthentication": true,
+    "originalNativeGateVetoAndBudgetHoldPreserved": true,
+    "copiedCensusAndChangedStatisticalPlanRejected": true,
+    "receiptFreshnessCheckedBeforeAndAfterComputation": true,
+    "expiredCensusCannotBeAnalyzedAsCurrentSignedEvidence": true,
+    "noRetrospectivePreregistrationForOldBatches": true,
+    "historicalBudgetAndInventorySnapshotExplicit": true
+  },
+  "statisticalFamilyScope": "one-frozen-batch-and-stage-all-targets",
+  "crossSelectionQueryErrorRateControlled": false,
+  "manualRemediationMeasured": false,
+  "nativeStatisticsV2DescriptiveImplemented": true,
+  "preObservationRegistrationVerified": false,
+  "statisticalProtocolValidated": false,
+  "sourceIndependenceVerified": false,
+  "resultAuthenticityVerified": false,
+  "underlyingExecutionReceiptsReverified": false,
+  "completeLifecycleCostVerified": false,
+  "armLifecycleVerified": false,
+  "recipeExecutionVerified": false,
+  "cleanupReverified": false,
+  "qualityVerdictVerified": false,
+  "localOnly": true,
+  "paidProviderRequestsExecuted": false,
+  "productionLatencyValidated": false,
+  "productionBudgetAuthorityVerified": false,
+  "billingComplete": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

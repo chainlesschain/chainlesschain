@@ -41,6 +41,10 @@ import {
   collectRrsiNativeBatchEvidence,
   captureRrsiNativeBatchEvidence,
 } from "../../src/lib/evolution/rrsi-native-batch-evidence.js";
+import {
+  buildRrsiNativeGroupStatisticsPlan,
+  analyzeRrsiNativeBatchGroupStatistics,
+} from "../../src/lib/evolution/rrsi-native-group-statistics.js";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -7189,6 +7193,70 @@ describe("RRSI native signed cohort row collector", () => {
     expect(() => captured.childEvidence("foreign-child")).toThrow(/outside/);
   }, 120000);
 
+  it("connects native statistics v2 to authentic partial batch rows and preserves the original veto", async () => {
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [await mainRows()],
+    });
+    const plan = buildRrsiNativeGroupStatisticsPlan({
+      campaign: native.planContext.context.campaign,
+      batch: store.resolution.batch,
+    });
+    const report = analyzeRrsiNativeBatchGroupStatistics({
+      batchEvidence: census,
+      plan,
+    });
+    expect(report).toMatchObject({
+      nativeBatchEvidenceDigest: census.batchEvidenceDigest,
+      statisticsPlanDigest: plan.statisticsPlanDigest,
+      hypothesisCount: 24,
+      plannedActorObservations: 8640,
+      observedRowClaims: 240,
+      missingActorObservations: 8400,
+      decision: "HOLD",
+      historicalBatchSnapshotOnly: true,
+      presentedFinalReceiptRowsAuthenticated: true,
+      resultAuthenticityVerified: false,
+      underlyingExecutionReceiptsReverified: false,
+      preObservationRegistrationVerified: false,
+      statisticalProtocolValidated: false,
+      qualityVerdictVerified: false,
+      qualifiesForPromotion: false,
+    });
+    expect(report.auditHead).toEqual(census.auditHead);
+    expect(report.originalNativeGateVetoChildIds).toContain(
+      children[0].childId,
+    );
+    expect(report.blockingReasons).toEqual(
+      expect.arrayContaining([
+        "NATIVE_GATE_VETO",
+        "STATISTICAL_PROTOCOL_NOT_PREREGISTERED",
+        "INCOMPLETE_TRIANGLE_DENOMINATOR",
+      ]),
+    );
+    expect(
+      report.analyses.every(
+        (entry) =>
+          entry.meanDifference === null && entry.confidenceInterval === null,
+      ),
+    ).toBe(true);
+    expect(() =>
+      analyzeRrsiNativeBatchGroupStatistics({
+        batchEvidence: structuredClone(census),
+        plan,
+      }),
+    ).toThrow(/live branded native batch/);
+    const changed = structuredClone(plan);
+    changed.bootstrapSamples *= 2;
+    expect(() =>
+      analyzeRrsiNativeBatchGroupStatistics({
+        batchEvidence: census,
+        plan: changed,
+      }),
+    ).toThrow(/protocol differs/);
+  }, 120000);
+
   it("captures cohort inputs before awaiting and rejects copied or repeated capabilities without invoking getters", async () => {
     const value = await mainRows();
     const options = {
@@ -7465,6 +7533,10 @@ describe("RRSI native signed cohort row collector", () => {
       batchDigest: store.batch.batchDigest,
       cohorts: [value],
     });
+    const plan = buildRrsiNativeGroupStatisticsPlan({
+      campaign: native.planContext.context.campaign,
+      batch: store.resolution.batch,
+    });
     const mutable = source();
     const pending = collectRrsiNativeEvalCohortEvidence(collector, mutable);
     mutable.slots[0].resultEvidence.test.candidate[0].pass = false;
@@ -7473,6 +7545,9 @@ describe("RRSI native signed cohort row collector", () => {
     harness.clockControl.advance(120000);
     expect(() =>
       captureRrsiNativeBatchEvidence(census).assertCurrentFreshness(),
+    ).toThrow(/stale/);
+    expect(() =>
+      analyzeRrsiNativeBatchGroupStatistics({ batchEvidence: census, plan }),
     ).toThrow(/stale/);
     await expect(
       collectRrsiNativeEvalCohortEvidence(collector, source()),
