@@ -8,7 +8,7 @@
 
 共享目标/通知和循环恢复尚未进入以上公开制品。产品 .139 已包含个人目标巡检/动作/验收和组织任务工作台；个人记忆核心存在但没有操作面板。主线还新增组织转移、风险、目标与共享记忆 UI。实际能力需核对安装包发行树或源码宿主，不能由版本数字推断。
 
-[公共回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-release-status-2026-10-08.json)重新检查 npm 归档 SRI、精确子包依赖、公开商店和准确发行提交的 GitHub Actions；后续源码未因此取得发行资格。详见[设计增量](/design/governance-runtime-update-2026-10-08)。
+[公共回读](https://github.com/chainlesschain/chainlesschain/blob/97dca564a65abac777bd8680610c953f4db48b33/docs/research/cli/evidence/documentation-release-status-2026-10-08.json)重新检查 npm 归档 SRI、精确子包依赖、公开商店和准确发行提交的 GitHub Actions；后续源码未因此取得发行资格。详见[设计增量](/design/governance-runtime-update-2026-10-08)。
 
 ## 2026-10-07 本轮发布状态
 
