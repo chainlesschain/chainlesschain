@@ -519,3 +519,19 @@ v2 verify／read 会采用既有维护锁并可能恢复已获授权的迁移或
 本批共有 **90 项不同用例通过**、零失败、零跳过：新增前缀单元 **33**、真实子进程 **3**，旧 observed-text 单元／控制 **16＋8** 及 anchor 契约 **30**。首轮五个完整文件 **90/90** 通过；根据 Astra 建议仅收紧新单元的精确 message／嵌套 cause，并明确另一 backend 的不同 Ledger identity，最终该文件完整 **33/33** 再次通过。生产源码、签名／故障注入、准备阶段与时限及其它四文件未再改动；最终计数来自精确单元 33 项与四个不变完整文件 57 项，不称最后一次精确源码共同完整运行过五文件。
 
 六个改动源码／测试与九个相关不变文件均保留两次启动前摘要检查点，原单元字节备份、唯一的诊断断言变更、两个完整 reporter 与逐项结果见 [真实前缀本地控制验证记录](./evidence/rrsi-anchor-history-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 收尾复核通过；原生 ACL helper 和既有回归预算未改，新 fixture 各准备阶段 60 秒，子进程 watchdog 90 秒、外层行为 120 秒。本批未启用独立安装根、持久 pin、全图认证、producer 来源、alias 或发布准入，亦未执行真实费用／模型实验、生产晋级或 Linux／macOS 发行矩阵；完整 RRSI 仍在实施。
+
+## 29 原 ArtifactStore 两目录的身份边界
+
+[evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js) 的物理目录检查改为 `lstatSync(directory, { bigint: true })`，要求 dev／ino 实际为 BigInt，沿用原文件身份 helper 的十进制字符串、birthtime 与 WSL1 规则。真正 ArtifactPorts 完成构造时，从私有原 layout 固定 root／files 的路径和身份；新 capture 仅接受原精确 prototype 与模块私有登记中的实例，拒绝 Proxy、复制、伪造和 subclass。首次导出与后续 recheck 都复查原目录，不在首次查询时重新认领，不调用 initializer、补建目录或接受替换路径／callback。旧 resolver 的原型规则未改。
+
+新 descriptor 的 scope 明确为 `root-and-files-directories`，indexLocation 只声明位置。索引文件身份／字节、产物清单、独立卷身份、完整物理存储图、根与租户权威、生成来源及修改／晋级授权均保持 false。专用真实反例把 index 文件换成相同字节的新 inode，两目录检查仍可通过且 indexFileIdentityVerified／indexContentsVerified 为 false，明确本层的验证范围。
+
+[rrsi-observed-text-index.js](../../../packages/cli/src/lib/evolution/rrsi-observed-text-index.js) 在原 policy／backend／ports／resolver 组合核验后捕获两目录能力，核对 tenant／audience，计算独立 `chainlesschain.rrsi-file-artifact-store-directory-boundary/v1` 摘要。完整 retained load 前后及固定 head 的最终 recheck 前后均复查两目录；history snapshot 和签名锚前缀检查输出新增目录摘要、复查标志及范围。持久 index descriptor、restriction record、artifact 格式与原 localCompositionDigest 算法未改，storageGraphDigestVerified 继续 false。目录能力自身只使用读取操作；整个 index／history 仍继承原 v2 verify/read 的锁与合法恢复写入，不称物理 open-only。
+
+新增真实 root／files 同字节复制替换分别证明原目录能力及原 index 拒绝新 inode；集成用例保留实际 journal 和历史数据，复查失败不改复制的字节，恢复原目录后再核对原认证 head。另覆盖目录缺失不补建、首次 capture 前已替换、真正 files junction／symlink、root stat 后实际替换 files、另一真正 ports／resolver 混入原组合，以及同一原目录重新打开时摘要稳定。新真正 ports 可以捕获复制目录的新局部摘要，不能据此声称阻断跨进程自洽克隆或获得全租户唯一权威。
+
+三项精度故障模型使用真实 ArtifactStore 和测试配置权威，仅在 root／files 的 lstat 与目录 handle fstat 注入合成 inode：两目录完整 ID 不同但 Number 投影碰撞；换成同投影的另一完整 ID 必须 HOLD；provider 未返回请求的 BigInt 字段亦 HOLD。目录 fd→path 跟踪维持原 Windows path／handle 一致性，其余文件、权限和 helper 仍按真实路径执行。这些反例不是原生 NTFS 同投影替换的实测。顺序 stat／realpath 复查不构成原子快照，现有中途替换仅证明 root stat 后 files 被替换这个注入窗口，不能外推到任意交换后恢复时序。
+
+最终 Windows 九文件一次完整运行 **133 项通过、1 项既有条件跳过**，零失败；新增目录单元 **15**、集成 **5**，既有回归 **113**。原 ArtifactPorts 的 index 文件 symlink 用例仅在非 Windows 运行，平台跳过如实保留；新增真实目录 junction 用例已运行通过。14 个相关源码／测试均保留启动前摘要检查点，最终核对未改变；完整 reporter、逐项结果、精度模型与范围限制见 [原产物目录本地控制验证记录](./evidence/rrsi-artifact-directory-boundary-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 只读复核通过，既有 ACL helper／回归时限未放宽；新集成准备阶段与显式行为各 60 秒。
+
+下一步仍需闭合 index 文件与完整实际 v2／retention 图，再结合独立安装认可、受保护的持久 pin／高水位和强制业务路由；producer 来源、candidate alias、发布 lease／恢复来源门与生产晋级尚未完成。本批未执行真实付费／模型实验或 Linux／macOS 发行矩阵，完整 RRSI 继续实施。

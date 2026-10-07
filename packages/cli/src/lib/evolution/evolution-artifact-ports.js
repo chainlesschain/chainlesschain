@@ -20,6 +20,8 @@ import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
 } from "./evolution-ledger.js";
 
+const ARTIFACT_STORE_DIRECTORY_BOUNDARIES = new WeakMap();
+
 export const EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA =
   "chainlesschain.evolution-durable-artifact-record/v1";
 export const EVOLUTION_ARTIFACT_ENVELOPE_CORE_SCHEMA =
@@ -1129,7 +1131,12 @@ function inspectPhysicalDirectory(directory, label) {
   let stat;
   let realPath;
   try {
-    stat = fs.lstatSync(directory);
+    stat = fs.lstatSync(directory, { bigint: true });
+    if (typeof stat.dev !== "bigint" || typeof stat.ino !== "bigint")
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        `${label} requires full-precision directory stat fields`,
+      );
     assertDirectory(stat, label);
     realPath = physicalRealpath(directory);
   } catch (cause) {
@@ -2029,6 +2036,42 @@ export class EvolutionArtifactPorts {
       throw new TypeError("EvolutionArtifactPorts now must be a function");
     }
     this.#now = Object.freeze((...args) => now(...args));
+    const layout = this.#store.layout;
+    const directoryBoundary = deepFreeze({
+      schema: "chainlesschain.evolution-artifact-store-directory-boundary/v1",
+      artifactTenantId: this.#tenantId,
+      audience: this.#audience,
+      root: { path: layout.rootRealPath, identity: layout.rootIdentity },
+      files: { path: layout.filesRealPath, identity: layout.filesIdentity },
+      scope: "root-and-files-directories",
+      indexLocation: layout.indexRealPath,
+      indexFileIdentityVerified: false,
+      indexContentsVerified: false,
+      artifactInventoryVerified: false,
+      independentVolumeIdentityVerified: false,
+      fullPhysicalStorageGraphVerified: false,
+      rootAuthorityVerified: false,
+      generationProvenanceVerified: false,
+      tenantWideIndexAuthorityVerified: false,
+      grantsMutationOrPromotionAuthority: false,
+    });
+    const recheck = (...args) => {
+      if (args.length)
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INVALID_CODE,
+          "artifact directory boundary takes no replacement context",
+        );
+      attestStoreDirectories(layout);
+      return directoryBoundary;
+    };
+    recheck();
+    ARTIFACT_STORE_DIRECTORY_BOUNDARIES.set(
+      this,
+      Object.freeze({
+        descriptor: directoryBoundary,
+        recheck: Object.freeze(recheck),
+      }),
+    );
     Object.freeze(this);
   }
 
@@ -3627,6 +3670,34 @@ export function captureEvolutionLedgerArtifactResolverBinding(value) {
       "a branded ledger artifact resolver binding is required",
     );
   return binding;
+}
+
+/** Original root/files directory capture only; never an installer or tenant grant. */
+export function captureEvolutionArtifactStoreDirectoryBoundary(value) {
+  if (arguments.length !== 1)
+    throw new TypeError(
+      "artifact directory boundary capture takes exactly one original ports object",
+    );
+  rejectProxy(value, "EvolutionArtifactPorts directory boundary");
+  if (
+    !value ||
+    Object.getPrototypeOf(value) !== EvolutionArtifactPorts.prototype ||
+    !hasStablePrototype(
+      value,
+      EvolutionArtifactPorts.prototype,
+      "EvolutionArtifactPorts directory boundary",
+    )
+  )
+    throw new TypeError(
+      "a genuine EvolutionArtifactPorts directory boundary is required",
+    );
+  const boundary = ARTIFACT_STORE_DIRECTORY_BOUNDARIES.get(value);
+  if (!boundary)
+    throw new TypeError(
+      "a genuine EvolutionArtifactPorts directory boundary is required",
+    );
+  boundary.recheck();
+  return boundary;
 }
 
 Object.freeze(EvolutionArtifactPorts.prototype);

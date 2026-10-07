@@ -6,6 +6,7 @@ import { captureEvolutionLedgerFileBackend } from "./evolution-ledger-file-backe
 import {
   EvolutionArtifactPorts,
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
+  captureEvolutionArtifactStoreDirectoryBoundary,
 } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
@@ -171,6 +172,19 @@ export function createRrsiObservedTextIndex(input) {
   )
     hold("text index requires the original policy storage graph");
   const ledger = backend.ledger;
+  const artifactBoundary = captureEvolutionArtifactStoreDirectoryBoundary(
+    options.artifactPorts,
+  );
+  if (
+    artifactBoundary.descriptor.artifactTenantId !==
+      policy.descriptor.artifactTenantId ||
+    artifactBoundary.descriptor.audience !== policy.descriptor.audience
+  )
+    hold("text index artifact directory boundary scope differs");
+  const artifactStoreDirectoryBoundaryDigest = rrsiHash(
+    "chainlesschain.rrsi-file-artifact-store-directory-boundary/v1",
+    artifactBoundary.descriptor,
+  );
   const methods = Object.fromEntries(
     ["verify", "read", "appendDomainEvent"].map((name) => {
       const method = Object.getOwnPropertyDescriptor(ledger, name)?.value;
@@ -583,6 +597,7 @@ export function createRrsiObservedTextIndex(input) {
       hold("preparation declaration reference differs");
   }
   function load() {
+    artifactBoundary.recheck();
     const before = head(methods.verify());
     if (!same(identity(before), originalIdentity))
       hold("text index journal identity changed");
@@ -667,6 +682,7 @@ export function createRrsiObservedTextIndex(input) {
     }
     if (!same(before, head(methods.verify())))
       hold("text index journal changed during authenticated readback");
+    artifactBoundary.recheck();
     return { head: before, events, records, entries, operations };
   }
   function historyPrefix(state, checkpoint) {
@@ -759,6 +775,9 @@ export function createRrsiObservedTextIndex(input) {
         current,
         prefixes,
         localRetainedHistoryReplayed: true,
+        artifactStoreDirectoryBoundaryDigest,
+        artifactStoreDirectoryBoundaryRechecked: true,
+        artifactStoreBoundaryScope: "root-and-files-directories",
         fullPhysicalStorageGraphVerified: false,
         tenantWideIndexAuthorityVerified: false,
         generationProvenanceVerified: false,
@@ -768,8 +787,10 @@ export function createRrsiObservedTextIndex(input) {
     );
     const recheck = () =>
       guarded(() => {
+        artifactBoundary.recheck();
         if (!same(state.head, head(methods.verify())))
           hold("observed history head changed after prefix capture");
+        artifactBoundary.recheck();
         return true;
       });
     recheck();

@@ -129,6 +129,10 @@ export function verifyRrsiTenantIndexAnchorHistory(input) {
         currentAnchorDigest: current.anchorDigest,
         indexDescriptorDigest: snapshot.indexDescriptorDigest,
         localCompositionDigest: snapshot.localCompositionDigest,
+        artifactStoreDirectoryBoundaryDigest:
+          snapshot.artifactStoreDirectoryBoundaryDigest,
+        artifactStoreDirectoryBoundaryRechecked: true,
+        artifactStoreBoundaryScope: "root-and-files-directories",
         previous: snapshot.prefixes[0],
         current: snapshot.current,
         signaturesVerifiedRelativeToExplicitKey: true,
