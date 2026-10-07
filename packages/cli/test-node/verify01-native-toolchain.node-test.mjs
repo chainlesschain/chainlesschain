@@ -7,8 +7,79 @@ import { inspectNativeToolchain } from "../scripts/verify01-native-toolchain.mjs
 import { readNativeReviewBundle } from "../scripts/verify01-native-review-admission.mjs";
 import { evalDigest } from "../src/lib/eval/evidence.js";
 import { outcomeDigest } from "../src/lib/eval/outcomes.js";
+import { gzipSync } from "node:zlib";
+import { tarBytes, integrity } from "./helpers/verify01-registry-tar.mjs";
 
 const bundle = readNativeReviewBundle();
+function registryFixture(t, options) {
+  const fixtureValue = fixture(t, options);
+  const { root, lock, frozen, write } = fixtureValue;
+  const artifacts = [];
+  for (const packagePath of Object.keys(lock.packages)) {
+    const name = packagePath.slice("node_modules/".length);
+    const entries = ["package.json", "index.js"].map((file) => ({
+      name: `package/${file}`,
+      bytes: fs.readFileSync(path.join(root, packagePath, file)),
+    }));
+    const tarball = gzipSync(tarBytes(entries));
+    lock.packages[packagePath].integrity = integrity(tarball);
+    write(`artifacts/${name}.tgz`, tarball);
+    artifacts.push({ packagePath, file: `${name}.tgz` });
+  }
+  frozen.set("package-lock.json", Buffer.from(JSON.stringify(lock)));
+  write("package-lock.json", frozen.get("package-lock.json"));
+  fixtureValue.options.lockDigest = evalDigest(frozen.get("package-lock.json"));
+  fixtureValue.options.registry = { root: path.join(root, "artifacts"), artifacts };
+  return fixtureValue;
+}
+
+test("complete registry bytes verify content without granting native execution", (t) => {
+  const { options } = registryFixture(t);
+  const report = inspectNativeToolchain(options);
+  assert.equal(report.registryContentVerified, true);
+  assert.equal(report.inventory.registryChecks.length, 3);
+  assert.equal(report.inventoryDigest, outcomeDigest(report.inventory));
+  assert.equal(report.trusted, false);
+  assert.equal(report.nativeAclAssessed, false);
+  assert.equal(report.fullReviewPackReady, false);
+  assert.ok(!report.blockers.includes("REGISTRY_CONTENT_VERIFICATION_REQUIRED"));
+  assert.ok(report.blockers.includes("NATIVE_CAPSULE_BACKEND_NOT_IMPLEMENTED"));
+});
+
+test("tarball integrity mismatch cannot be replaced by installed file hashes", (t) => {
+  const { options, write } = registryFixture(t);
+  write("artifacts/vitest.tgz", "tampered");
+  assert.throws(() => inspectNativeToolchain(options), /tarball integrity differs/);
+});
+
+test("registry verification requires the entire installed package population", (t) => {
+  const { options } = registryFixture(t);
+  options.registry.artifacts.pop();
+  assert.throws(() => inspectNativeToolchain(options), /every installed package/);
+});
+
+test("repeating another package's artifact does not fill a missing package", (t) => {
+  const { options } = registryFixture(t);
+  options.registry.artifacts[1] = options.registry.artifacts[0];
+  assert.throws(() => inspectNativeToolchain(options), /duplicate registry package/);
+});
+
+test("installed script modification fails against verified tarball bytes", (t) => {
+  const { options, write } = registryFixture(t);
+  write("node_modules/vitest/index.js", "modified script");
+  assert.throws(() => inspectNativeToolchain(options), /installed file.*differs/);
+});
+
+test("derived addon is not silently exempted from registry byte verification", (t) => {
+  const { options } = registryFixture(t, { addon: true });
+  assert.throws(() => inspectNativeToolchain(options), /additional files/);
+});
+
+test("artifact bindings cannot traverse links or escape the artifact root", (t) => {
+  const { options } = registryFixture(t);
+  options.registry.artifacts[0].file = "../package-lock.json";
+  assert.throws(() => inspectNativeToolchain(options), /unsafe inventory path/);
+});
 const supportPaths = [
   "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
   "packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js",
