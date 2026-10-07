@@ -170,7 +170,7 @@ describe("organization goals with Vue, actual native host, shared SQLite and sch
     await wrapper.get(`[${attribute}="${id}"]`).trigger("click");
     await flushPromises();
   }
-  it("creates a native-confirmed shared goal and shows truthful manual-only capability", async () => {
+  it("creates a native-confirmed shared goal and shows scoped monitoring capability", async () => {
     await panel();
     const goal = await create();
     expect(goal.ownerRef).toBe(f.identities.requester);

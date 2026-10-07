@@ -925,6 +925,15 @@ function registerTaskIPC(database) {
   logger.info("[IPC] 团队任务管理IPC处理器注册完成 (49个handlers)");
   return Object.freeze({
     ...projectGoalHost,
+    async initializeMonitoring() {
+      const results = await Promise.allSettled([
+        projectGoalHost.initializeMonitoring(),
+        organizationProjectHost.initializeMonitoring(),
+      ]);
+      const failure = results.find((result) => result.status === "rejected");
+      if (failure) throw failure.reason;
+      return results[0].value;
+    },
     async close() {
       const results = await Promise.allSettled([
         projectGoalHost.close(),

@@ -27,7 +27,7 @@ function createDb(file) {
   return new Database(file);
 }
 
-describe("organization goal native controller storage and manual lifecycle", () => {
+describe("organization goal native controller storage and lifecycle", () => {
   let directory, db, controller, options;
   beforeEach(() => {
     directory = mkdtempSync(join(tmpdir(), "cc-org-goal-host-"));
@@ -50,7 +50,7 @@ describe("organization goal native controller storage and manual lifecycle", () 
     if (db.open) db.close();
     rmSync(directory, { recursive: true, force: true });
   });
-  it("uses independent protected organization storage and starts no background timer", async () => {
+  it("uses independent protected organization storage and starts one background loop", async () => {
     const timer = vi.spyOn(globalThis, "setInterval");
     try {
       const engine = await controller.initialize();
@@ -71,8 +71,9 @@ describe("organization goal native controller storage and manual lifecycle", () 
           `${engine.store.file}-shm`,
         ]),
       );
-      expect(timer).not.toHaveBeenCalled();
+      expect(timer).toHaveBeenCalledTimes(1);
       expect(await controller.initialize()).toBe(engine);
+      expect(timer).toHaveBeenCalledTimes(1);
     } finally {
       timer.mockRestore();
     }

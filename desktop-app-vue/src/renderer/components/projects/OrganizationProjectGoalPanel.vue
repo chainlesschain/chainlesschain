@@ -1,8 +1,8 @@
 <template>
   <section data-testid="organization-goal-panel">
-    <h3>组织目标与手动风险检查</h3>
+    <h3>组织目标与风险巡检</h3>
     <p>
-      目标由授权成员共享；检查仅使用逾期和直接依赖规则。当前支持手动检查，检查或任务操作成功不代表目标通过验收。
+      目标由授权成员共享；手动检查与周期巡检仅使用逾期和直接依赖规则。检查或任务操作成功不代表目标通过验收。
     </p>
     <button
       :disabled="locked"
@@ -143,6 +143,94 @@
       >
         {{ pendingChecks[item.goal.id] ? "重试同一次检查" : "检查当前风险" }}
       </button>
+      <div v-if="canStartMonitor">
+        <label
+          >巡检间隔<select
+            v-model.number="intervals[item.goal.id]"
+            :disabled="locked || !!pendingMonitors[item.goal.id]"
+            :data-goal-monitor-interval="item.goal.id"
+          >
+            <option :value="60_000">1 分钟</option>
+            <option :value="900_000">15 分钟</option>
+            <option :value="3_600_000">1 小时</option>
+            <option :value="86_400_000">1 天</option>
+          </select></label
+        >
+        <label
+          >本次授权小时数<input
+            v-model.number="monitorHours[item.goal.id]"
+            :disabled="locked || !!pendingMonitors[item.goal.id]"
+            :data-goal-monitor-hours="item.goal.id"
+            type="number"
+            min="1"
+            max="24"
+        /></label>
+        <button
+          :disabled="
+            locked ||
+            !!pendingMonitors[item.goal.id] ||
+            item.goal.status !== 'active' ||
+            !validMonitor(item.goal.id)
+          "
+          :data-goal-monitor-start="item.goal.id"
+          @click="monitorControl(item, 'start')"
+        >
+          {{ item.monitor?.enabled ? "重新确认巡检授权" : "确认启用周期巡检" }}
+        </button>
+      </div>
+      <div v-if="item.monitor" :data-goal-monitor-status="item.goal.id">
+        <p>
+          巡检身份：{{ item.monitor.executorDid }} ·
+          {{ monitorState(item.monitor.state) }}
+        </p>
+        <p>
+          间隔：{{ item.monitor.intervalMs / 60_000 }} 分钟 · 同意截止：{{
+            new Date(item.monitor.expiresAt).toLocaleString()
+          }}
+        </p>
+        <p v-if="item.monitor.blockedReason">
+          当前巡检不可继续。请核对目标、成员授权或预算，必要时重新确认启用。
+        </p>
+        <p v-if="item.monitor.activeOccurrence">
+          本次周期检查：{{
+            item.monitor.activeOccurrence.status
+          }}。停止请求不表示在途检查已中止。
+        </p>
+        <template
+          v-if="
+            permissions.includes('goal.monitor') &&
+            (item.monitor.enabled ||
+              item.monitor.activeOccurrence ||
+              item.monitor.state === 'blocked')
+          "
+        >
+          <button
+            :disabled="locked || !!pendingMonitors[item.goal.id]"
+            :data-goal-monitor-stop="item.goal.id"
+            @click="monitorControl(item, 'periodic')"
+          >
+            关闭后续周期
+          </button>
+          <button
+            :disabled="locked || !!pendingMonitors[item.goal.id]"
+            :data-goal-monitor-abort="item.goal.id"
+            @click="monitorControl(item, 'abort')"
+          >
+            关闭周期并中止其在途检查
+          </button>
+        </template>
+      </div>
+      <p v-if="pendingMonitors[item.goal.id]" role="status">
+        巡检设置结果待核对。保留原请求，不自动重复启用或停止。
+      </p>
+      <button
+        v-if="pendingMonitors[item.goal.id]"
+        :disabled="locked"
+        :data-goal-monitor-retry="item.goal.id"
+        @click="monitorControl(item)"
+      >
+        核对或重试原巡检请求
+      </button>
       <p v-if="pendingChecks[item.goal.id]" role="status">
         检查结果待核对，重试仍使用同一检查请求。
       </p>
@@ -190,7 +278,10 @@
     >
       更多目标
     </button>
-    <p>未启用周期巡检、目标建议执行或目标验收。模型费用：未知。</p>
+    <p>
+      周期授权最长 24
+      小时，仅当前巡检身份解锁且应用运行时检查；离线到期会合并。目标建议执行和目标验收尚未启用，模型费用：未知。
+    </p>
   </section>
 </template>
 <script setup lang="ts">
@@ -219,6 +310,20 @@ type GoalStatus = {
   goal: Goal;
   usage: { totalRuns: number };
   manualOnly: boolean;
+  monitor?: {
+    id: string;
+    monitorId: string;
+    executorDid: string;
+    goalId: string;
+    goalRevision: number;
+    scope: { kind: string; id: string };
+    intervalMs: number;
+    expiresAt: number;
+    enabled: boolean;
+    state: string;
+    blockedReason: string | null;
+    activeOccurrence: any;
+  } | null;
 };
 type Request = { id: string; expectedRevision: number; requestId: string };
 const props = defineProps<{
@@ -244,6 +349,9 @@ const objective = ref(""),
 const pendingCreate = ref<any>(null),
   pendingRevisions = ref<Record<string, any>>({}),
   pendingChecks = ref<Record<string, Request>>({});
+const pendingMonitors = ref<Record<string, { method: string; input: any }>>({}),
+  intervals = ref<Record<string, number>>({}),
+  monitorHours = ref<Record<string, number>>({});
 const locked = computed(() => busy.value || props.parentBusy),
   objectiveBytes = computed(
     () => new TextEncoder().encode(objective.value).length,
@@ -259,6 +367,31 @@ const canCheck = computed(() =>
     props.permissions.includes(permission),
   ),
 );
+const canStartMonitor = computed(
+  () => canCheck.value && props.permissions.includes("goal.monitor"),
+);
+function validMonitor(id: string) {
+  return (
+    [60_000, 900_000, 3_600_000, 86_400_000].includes(intervals.value[id]) &&
+    Number.isSafeInteger(monitorHours.value[id]) &&
+    monitorHours.value[id] >= 1 &&
+    monitorHours.value[id] <= 24
+  );
+}
+function monitorState(state: string) {
+  return (
+    (
+      {
+        waiting: "等待周期检查",
+        running: "周期检查进行中",
+        blocked: "需要重新核对授权",
+        stopped: "周期已关闭",
+        expired: "同意已到期",
+        "waiting-for-executor": "等待巡检身份解锁",
+      } as Record<string, string>
+    )[state] || "请核对当前巡检状态"
+  );
+}
 let epoch = 0,
   mounted = true,
   loaded = false;
@@ -289,6 +422,9 @@ function reset() {
   pendingCreate.value = null;
   pendingRevisions.value = {};
   pendingChecks.value = {};
+  pendingMonitors.value = {};
+  intervals.value = {};
+  monitorHours.value = {};
   error.value = "";
 }
 function failure(value: unknown) {
@@ -324,6 +460,17 @@ async function fetchGoals(token: number, more = false) {
     const status = await organizationApi().getGoalStatus({ id: goal.id });
     if (!current(token)) return;
     validate(status.goal, goal.id);
+    if (
+      status.monitor &&
+      (status.monitor.goalId !== goal.id ||
+        status.monitor.scope?.kind !== "organization" ||
+        status.monitor.scope.id !== props.orgId ||
+        typeof status.monitor.executorDid !== "string" ||
+        !status.monitor.executorDid.startsWith("did:") ||
+        typeof status.monitor.id !== "string" ||
+        status.monitor.id !== status.monitor.monitorId)
+    )
+      throw new Error("GOAL_NOT_FOUND_OR_DENIED");
     statuses.push(status);
   }
   goals.value = more
@@ -333,9 +480,12 @@ async function fetchGoals(token: number, more = false) {
         ).values(),
       ]
     : statuses;
-  for (const item of goals.value)
+  for (const item of goals.value) {
+    intervals.value[item.goal.id] ??= 3_600_000;
+    monitorHours.value[item.goal.id] ??= 24;
     if (!pendingRevisions.value[item.goal.id])
       drafts.value[item.goal.id] = item.goal.objective;
+  }
   afterId.value = result.nextCursor;
   loaded = true;
 }
@@ -343,7 +493,7 @@ async function loadGoals(more = false) {
   await work((token) => fetchGoals(token, more));
 }
 const definite = (value: unknown) =>
-  /^(ORG_AUTH_|PROJECT_RISK_(INVALID_|NOT_FOUND_OR_DENIED|AUTHORITY_|AUTHENTICATION_)|GOAL_(INVALID_|NOT_FOUND_OR_DENIED|IDENTITY_|AUTHORITY_|REVISION_CONFLICT|REQUEST_CONFLICT|PROJECT_(SOURCE_|NOT_ACTIVE|VERSION_CONFLICT)|USAGE_(BUDGET_EXHAUSTED|SCOPE_DENIED)|MONITOR_(INVALID_|NOT_ACTIVE|EXPIRED|BUDGET_EXHAUSTED|REQUEST_VERSION_CONFLICT)))/u.test(
+  /^(ORG_AUTH_|PROJECT_RISK_(INVALID_|NOT_FOUND_OR_DENIED|AUTHORITY_|AUTHENTICATION_)|GOAL_(INVALID_|NOT_FOUND_OR_DENIED|IDENTITY_|AUTHORITY_|REVISION_CONFLICT|REQUEST_CONFLICT|PROJECT_(SOURCE_|NOT_ACTIVE|VERSION_CONFLICT)|USAGE_(BUDGET_EXHAUSTED|SCOPE_DENIED)|MONITOR_(INVALID_|NOT_ACTIVE|EXPIRED|BUDGET_EXHAUSTED|REQUEST_VERSION_CONFLICT|BINDING_STALE|CONFIG_|CONSENT_|STOP_|MONITOR_)))/u.test(
     actionCode(value),
   );
 async function createGoal() {
@@ -439,6 +589,55 @@ async function check(item: GoalStatus) {
     } catch (value) {
       if (!current(token)) return;
       if (definite(value)) delete pendingChecks.value[goalId];
+      throw value;
+    }
+  });
+}
+async function monitorControl(
+  item: GoalStatus,
+  mode?: "start" | "periodic" | "abort",
+) {
+  if (!props.permissions.includes("goal.monitor")) return;
+  const goalId = item.goal.id;
+  const pending = pendingMonitors.value[goalId];
+  if (
+    !pending &&
+    (!mode ||
+      (mode === "start" && (!canStartMonitor.value || !validMonitor(goalId))))
+  )
+    return;
+  await work(async (token) => {
+    const request = pending
+      ? toRaw(pending)
+      : mode === "start"
+        ? {
+            method: "startGoalMonitoring",
+            input: {
+              id: goalId,
+              expectedRevision: item.goal.revision,
+              requestId: globalThis.crypto.randomUUID(),
+              intervalMs: intervals.value[goalId],
+              expiresAt: Date.now() + monitorHours.value[goalId] * 3_600_000,
+            },
+          }
+        : {
+            method: "stopGoalMonitoring",
+            input: {
+              id: goalId,
+              monitorId: item.monitor!.id,
+              requestId: globalThis.crypto.randomUUID(),
+              mode,
+            },
+          };
+    pendingMonitors.value[goalId] = request;
+    try {
+      await organizationApi()[request.method](request.input);
+      if (!current(token)) return;
+      delete pendingMonitors.value[goalId];
+      await fetchGoals(token);
+    } catch (value) {
+      if (!current(token)) return;
+      if (definite(value)) delete pendingMonitors.value[goalId];
       throw value;
     }
   });

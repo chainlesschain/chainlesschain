@@ -315,7 +315,8 @@ describe("organization goal IPC with native SQLite and independent scheduler", (
     });
     expect(await f.host.getGoalStatus(f.event, { id: goal.id })).toMatchObject({
       goal,
-      manualOnly: true,
+      manualOnly: false,
+      monitor: null,
     });
     expect(() => f.host.readTask(f.event, { taskId: "t1" })).toThrow();
     expect(() => f.host.evaluateRisk(f.event, { projectId: "p1" })).toThrow();

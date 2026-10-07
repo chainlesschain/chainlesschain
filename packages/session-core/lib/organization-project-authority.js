@@ -17,6 +17,7 @@ const PERMISSIONS = Object.freeze([
   "goal.create",
   "goal.update",
   "goal.check",
+  "goal.monitor",
 ]);
 const BINDINGS_TABLE = "cc_organization_project_bindings";
 

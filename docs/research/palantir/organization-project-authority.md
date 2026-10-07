@@ -6,7 +6,7 @@
 
 `OrganizationProjectAuthority` 接受原生 SQLite、主进程身份和宿主确认函数。桌面 `createOrganizationProjectAuthorityHost` 默认使用已登录的 `getProjectGoalActor()`，绑定认证 generation、窗口与数据库连接。默认 DID 已加载但未登录时拒绝；退出后同 DID 重登录不能沿用先前确认。
 
-政策启用要求当前 DID 同时等于 `organization_info.owner_did`，且存在 active owner 成员行。所有者在原生确认中审核具体 actor、规范 project、权限、到期时间和选定工作流。允许的权限为 `task.read`、`task.create`、`task.update-description`、`task.approve`、`risk.read`、`risk.evaluate`、`risk.feedback`、`goal.read`、`goal.create`、`goal.update`、`goal.check`。风险、任务和目标授权互不隐含。未列出的权限拒绝；旧 roles、permission_grants、继承、委托及 report/off 判定不自动获得受控权限。
+政策启用要求当前 DID 同时等于 `organization_info.owner_did`，且存在 active owner 成员行。所有者在原生确认中审核具体 actor、规范 project、权限、到期时间和选定工作流。允许的权限为 `task.read`、`task.create`、`task.update-description`、`task.approve`、`risk.read`、`risk.evaluate`、`risk.feedback`、`goal.read`、`goal.create`、`goal.update`、`goal.check`、`goal.monitor`。风险、任务和目标授权互不隐含。`goal.monitor` 用于有期限原生同意的周期巡检及停止，不隐含风险或手动检查权限。未列出的权限拒绝；旧 roles、permission_grants、继承、委托及 report/off 判定不自动获得受控权限。
 
 政策保存单调 epoch、组织来源 revision、来源摘要、精确授权及工作流行摘要。组织根、成员及工作流变更通过 SQLite 触发器推进持久 revision；删除后恢复原内容仍使旧政策失效。规范 Project/Task 与 workspace 资源变更也推进项目来源 revision。授权快照包含数据库 schema revision，后建表和迁移不能恢复旧提议。发生这些变化后，需重新读取版本，必要时由所有者重新确认政策；不会自动重认证旧记录。
 
@@ -75,4 +75,4 @@ ActionRun 的来源证据固定准入时原项目、org 和审批摘要。确认
 
 第六批历史验证为共享服务 8 文件、204 项，桌面宿主与旧审批/个人 IPC 3 文件、90 项通过，0 失败、0 跳过，原[第六批证据](./evidence/palantir-gap-organization-authority-2026-10-07.json)保持不变。Astra 在第七批复现 frame 替换/导航恢复和 renderer 权限清理问题，补充真实 host/SQLite 交互回归。
 
-第八批补齐当前 active 成员场景的双主体迁移，470 项本地测试通过，见[迁移说明及证据](./organization-project-transfer.md)。第九批补齐独立组织风险检查、共享历史、原生人工核对及描述/创建风险血缘，545 项通过，见[风险说明及证据](./organization-project-risk-review.md)。第十批补齐共享目标和幂等手动检查，878 项通过，见[目标说明及证据](./organization-project-goals.md)。仍待组织周期巡检/目标动作/验收/记忆、附属/看板入口、Document/Person/Decision 操作、其他归属转换和跨服务证明。真实 Electron GUI、完整类型检查、Linux/macOS、真实租户及模型业务验收没有执行。按用户最新要求先完成源码与本地验证，将已完成内容提交主分支；保留全部后续任务，当前目标仍在进行。
+第八批补齐当前 active 成员场景的双主体迁移，470 项本地测试通过，见[迁移说明及证据](./organization-project-transfer.md)。第九批补齐独立组织风险检查、共享历史、原生人工核对及描述/创建风险血缘，545 项通过，见[风险说明及证据](./organization-project-risk-review.md)。第十批补齐共享目标和幂等手动检查，878 项通过，见[目标说明及证据](./organization-project-goals.md)。第十一批补齐组织周期巡检、executor 同意和两种停止，954 项隔离验证通过，见[周期巡检说明及证据](./organization-project-goal-periodic.md)。仍待组织目标动作/验收/记忆、附属/看板入口、Document/Person/Decision 操作、其他归属转换和跨服务证明。真实 Electron GUI、完整类型检查、Linux/macOS、真实租户及模型业务验收没有执行。按用户最新要求先完成源码与本地验证，将已完成内容提交主分支；保留全部后续任务，当前目标仍在进行。

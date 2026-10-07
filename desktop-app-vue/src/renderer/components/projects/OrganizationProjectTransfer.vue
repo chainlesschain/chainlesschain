@@ -424,6 +424,7 @@ function permissionLabel(permission: string) {
         "goal.create": "创建组织目标",
         "goal.update": "更新、暂停或结束组织目标",
         "goal.check": "手动检查组织目标风险",
+        "goal.monitor": "启用或停止组织目标周期巡检",
       } as Record<string, string>
     )[permission] || "未知权限"
   );

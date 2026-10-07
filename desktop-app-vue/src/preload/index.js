@@ -791,6 +791,8 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:goal-checks",
   "organization-project:goal-create",
   "organization-project:goal-list",
+  "organization-project:goal-monitor-start",
+  "organization-project:goal-monitor-stop",
   "organization-project:goal-read",
   "organization-project:goal-revise",
   "organization-project:goal-status",
@@ -4955,6 +4957,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    startGoalMonitoring: (params) =>
+      ipcRenderer.invoke("organization-project:goal-monitor-start", params),
+    stopGoalMonitoring: (params) =>
+      ipcRenderer.invoke("organization-project:goal-monitor-stop", params),
     createGoal: (params) =>
       ipcRenderer.invoke("organization-project:goal-create", params),
     getGoal: (params) =>

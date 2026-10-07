@@ -1,6 +1,6 @@
 # 组织共享目标与手动风险检查
 
-更新：2026-10-07。第十批完成组织目标存储、共享权限、原生确认、幂等手动检查和桌面入口。周期巡检、目标建议执行、验收及记忆仍待组织适配；本批未发布。
+更新：2026-10-07。本文保留第十批组织目标存储、共享权限、原生确认、幂等手动检查和桌面入口的交付记录。第十一批增加独立 `goal.monitor`、有期限 executor 同意和两种停止，见[组织目标周期巡检](./organization-project-goal-periodic.md)。目标建议执行、验收及记忆仍待组织适配；本批未发布。
 
 ## 使用方式和权限
 
@@ -38,7 +38,7 @@
 
 ## 手动检查和恢复
 
-检查使用既有 `SchedulerRuntime`、独立 scheduler store、authority policy、lease、once-per-trigger occurrence 和结算。没有新增 workflow/session engine，也没有自动启用周期循环。当前 actor 是本次检查执行者，不继承目标创建者的长期授权。
+检查使用既有 `SchedulerRuntime`、独立 scheduler store、authority policy、lease、once-per-trigger occurrence 和结算。没有新增 workflow/session engine；手动检查不自动授予周期同意。当前 actor 是本次检查执行者，不继承目标创建者的长期授权。
 
 请求固定 store/目标/修订/control generation、实际 actor、定义摘要及完整组织权限快照。新请求在准备、scheduler 授权、事务执行前后重验这些版本、当前 goal/risk 权限及预算；成员/政策/来源/schema 变化后恢复原内容不会恢复旧检查资格。
 
@@ -58,7 +58,7 @@ scheduler 结算是独立投影。领域检查成功后即使 scheduler 结算�
 
 独立 Vue 面板校验目标的项目、组织和来源类型。项目/身份/权限变化清理目标、草稿及请求，丢弃迟到响应。当前会话内父工作区刷新会隐藏旧事实、清空显示和异步代次，并保留精确待核对请求；确认新上下文后重新读取。请求重试前去除 Vue proxy，仍使用原始内容和 key。明确拒绝会解锁编辑；丢失回复只保留原请求供用户明确核对/重试。风险历史另外校验根/结果 goalId 与 reviewId，避免错误链接。
 
-周期巡检未开放，原因是旧个人调度把 ownerRef 等同执行 principal。组织周期授权、预算归因和停止/撤权恢复需要单独适配；不会以自动后台创建者授权代替这项工作。
+第十批交付时周期巡检未开放；第十一批已单独适配实际 executor、原生周期同意、共享预算和停止/撤权恢复，参见[周期巡检说明](./organization-project-goal-periodic.md)。历史手动检查请求、计费及回执保持兼容。
 
 ## 本地验证和限制
 
@@ -74,6 +74,6 @@ scheduler 结算是独立投影。领域检查成功后即使 scheduler 结算�
 
 命令、源码及报告哈希见[第十批独立证据](./evidence/palantir-gap-organization-goals-2026-10-07.json)。保持第六至第九批证据不变。所选源码通过 Prettier、Node CJS/ESM 语法、Vue script/template 编译和 IPC 清单检查。
 
-环境为 Windows / Node 22.22.2、实际 better-sqlite3 12.11.1、Vue 3.5.42、happy-dom 20.11.2。领域表、scheduler 文件库和 Vue 交互真实执行；Electron 原生窗口/认证、测试 ACL 回调为注入边界，ACL 拒绝行为有测试，不宣称完成目标生产系统 ACL 验收。没有真实 GUI、全仓库测试、完整类型检查、Linux/macOS 准确提交发布矩阵、真实租户或模型业务验收。周期巡检、目标建议多级审批绑定、独立目标验收、组织记忆、附属/看板及其余路线图任务仍未完成。
+环境为 Windows / Node 22.22.2、实际 better-sqlite3 12.11.1、Vue 3.5.42、happy-dom 20.11.2。领域表、scheduler 文件库和 Vue 交互真实执行；Electron 原生窗口/认证、测试 ACL 回调为注入边界，ACL 拒绝行为有测试，不宣称完成目标生产系统 ACL 验收。没有真实 GUI、全仓库测试、完整类型检查、Linux/macOS 准确提交发布矩阵、真实租户或模型业务验收。目标建议多级审批绑定、独立目标验收、组织记忆、附属/看板及其余路线图任务仍未完成。
 
 隔离验证使用 Git index 导出的快照及独立 session-core 包解析，排除并行通知策略模块。实时工作区的同文件通知修改保留，只有组织 scope 修改进入本批提交。

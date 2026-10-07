@@ -117,6 +117,8 @@ const retainedGovernedChannels = [
   "organization-project:goal-status",
   "organization-project:goal-checks",
   "organization-project:goal-check-read",
+  "organization-project:goal-monitor-start",
+  "organization-project:goal-monitor-stop",
   "project:risk-evaluate",
   "project:risk-review",
   "project:risk-reviews",

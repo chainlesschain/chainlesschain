@@ -90,6 +90,9 @@ class SqliteOrganizationProjectGoalAdapter {
         CREATE TABLE IF NOT EXISTS ${PREFIX}_mutations(id TEXT PRIMARY KEY,actor_did TEXT NOT NULL,kind TEXT NOT NULL,request_id TEXT NOT NULL,goal_id TEXT NOT NULL,input_digest TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(actor_did,kind,request_id));
         CREATE TABLE IF NOT EXISTS ${PREFIX}_manual_requests(id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,request_digest TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(goal_id,actor_did,request_id));
         CREATE TABLE IF NOT EXISTS ${PREFIX}_checks(occurrence_id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,elapsed_ms INTEGER NOT NULL CHECK(elapsed_ms>=0),UNIQUE(goal_id,actor_did,request_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_consents(id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(actor_did,request_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_states(goal_id TEXT PRIMARY KEY,monitor_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_monitor_stops(id TEXT PRIMARY KEY,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(actor_did,request_id));
         CREATE INDEX IF NOT EXISTS idx_org_goal_checks_goal ON ${PREFIX}_checks(goal_id,occurrence_id);`);
       db.exec(`CREATE TRIGGER IF NOT EXISTS cc_org_goal_scope_immutable BEFORE UPDATE ON ${PREFIX}s
         WHEN OLD.id IS NOT NEW.id OR OLD.actor_did IS NOT NEW.actor_did OR OLD.project_id IS NOT NEW.project_id
@@ -101,6 +104,8 @@ class SqliteOrganizationProjectGoalAdapter {
         `${PREFIX}_mutations`,
         `${PREFIX}_manual_requests`,
         `${PREFIX}_checks`,
+        `${PREFIX}_monitor_consents`,
+        `${PREFIX}_monitor_stops`,
       ])
         for (const operation of ["UPDATE", "DELETE"])
           db.exec(

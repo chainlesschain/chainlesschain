@@ -70,6 +70,8 @@ const CHANNELS = Object.freeze({
   getGoalStatus: "organization-project:goal-status",
   listGoalChecks: "organization-project:goal-checks",
   getGoalCheck: "organization-project:goal-check-read",
+  startGoalMonitoring: "organization-project:goal-monitor-start",
+  stopGoalMonitoring: "organization-project:goal-monitor-stop",
 });
 function fail(code) {
   const error = new Error(code);
@@ -467,6 +469,80 @@ function createOrganizationProjectHost({
       .immediate();
   }
   return Object.freeze({
+    async startGoalMonitoring(event, params) {
+      const value = input(params, [
+          "id",
+          "expectedRevision",
+          "requestId",
+          "intervalMs",
+          "expiresAt",
+        ]),
+        c = factory(event);
+      if (!c.goals.get({ id: value.id })) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const prepared = engine.prepareStartMonitoring(value);
+      c.getActor();
+      if (
+        !prepared.replayed &&
+        !(await c.confirm(
+          "确认组织目标周期巡检",
+          "授权当前身份在应用运行且解锁时，按以下频率检查风险？检查只使用本地规则。",
+          [
+            `目标：${display(prepared.goal.objective)}`,
+            `目标版本：${prepared.goal.revision}`,
+            `项目/组织：${display(prepared.goal.projectRef.id)} / ${display(prepared.goal.projectRef.scope.id)}`,
+            `执行身份：${display(prepared.actorDid)}`,
+            `间隔：${value.intervalMs} 毫秒`,
+            `同意截止：${display(new Date(value.expiresAt).toISOString())}`,
+            `替换巡检：${display(prepared.expectedMonitorId)}`,
+            `共享目标预算：${display(prepared.goal.budgetPolicy)}`,
+            `确认摘要：${prepared.requestDigest}`,
+            "成员、政策或目标变化后需重新启用。离线到期会合并为一次检查，最长授权 24 小时。",
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      return engine.startMonitoring(value, {
+        expectedAuthority: prepared.authority,
+        expectedMonitorId: prepared.expectedMonitorId,
+        guard: c.getActor,
+      });
+    },
+    async stopGoalMonitoring(event, params) {
+      const value = input(params, ["id", "monitorId", "requestId", "mode"]),
+        c = factory(event);
+      if (!c.goals.get({ id: value.id })) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const prepared = engine.prepareStopMonitoring(value);
+      c.getActor();
+      if (
+        !prepared.replayed &&
+        !(await c.confirm(
+          "确认停止组织周期巡检",
+          value.mode === "abort"
+            ? "停止后续周期，并请求中止此巡检的在途检查？已提交记录会保留。"
+            : "关闭后续周期检查？已准入的检查可继续核对。",
+          [
+            `目标：${display(prepared.goal.objective)}`,
+            `巡检：${display(value.monitorId)}`,
+            `执行身份：${display(prepared.monitor.executorDid)}`,
+            `停止方式：${display(value.mode)}`,
+            `确认摘要：${prepared.requestDigest}`,
+            "单独的手动检查不会因此停止。停止请求不表示尚在执行的检查已完成中止。",
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      return engine.stopMonitoring(value, {
+        expectedAuthority: prepared.authority,
+        guard: c.getActor,
+      });
+    },
+    initializeMonitoring: () => goalController.initialize(),
     getGoal: (event, params) => factory(event).goals.get(params),
     listGoals: (event, params) => factory(event).goals.list(params),
     async createGoal(event, params) {

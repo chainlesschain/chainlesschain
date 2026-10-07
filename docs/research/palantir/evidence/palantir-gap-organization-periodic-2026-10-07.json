@@ -1,0 +1,938 @@
+{
+  "schema": "chainlesschain.palantir-organization-periodic-validation/v1",
+  "capturedAt": "2026-10-07T10:53:28.514Z",
+  "sourceBaseCommit": "4ec219be3700b451dd6c53093d95536801462c39",
+  "workStartedFrom": "da0e68b467e9cca4791d97ad08532bac640f8bf0",
+  "scope": "Organization goal periodic executor consent, native start/replace/stop, generation and durable stop fences, existing SchedulerRuntime leases, shared manual/periodic budget, persistence recovery and Vue controls",
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "abi": "127",
+    "vitest": "4.1.10",
+    "sqlite": {
+      "implementation": "better-sqlite3 native",
+      "version": "12.11.1"
+    },
+    "vue": "3.5.42",
+    "vueTestUtils": "2.4.11",
+    "happyDom": "20.11.2",
+    "dependencyChanges": "Existing workspace/cache/Temp dependencies reused; production dependencies and lockfiles unchanged"
+  },
+  "isolation": {
+    "snapshot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+    "tree": "9896940122ec16149db3ca8aa3705ed643a3c59f",
+    "sourceBaseCommit": "4ec219be3700b451dd6c53093d95536801462c39",
+    "isolatedPackage": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr\\node_modules\\@chainlesschain\\session-core",
+    "excludesLiveNotificationChanges": true,
+    "method": "Frozen Git index tree exported with package, desktop source and root tracked configuration. Dependency junctions reuse cache; @chainlesschain/session-core resolves exclusively to snapshot. No live source files copied or patched.",
+    "rendererLoaderSha256": "6abe9028ec9ee478a1d446d87e38b5b601b273623fdd12796d4a3ad5728ec008",
+    "concurrentChangesExcluded": "Live notification goal-contract/individual monitoring/package exports/auth listeners/preload additions and release diagnostics are absent; previously independently committed RRSI content remains in the base."
+  },
+  "verification": {
+    "passed": 954,
+    "failed": 0,
+    "skipped": 0,
+    "files": 40,
+    "groups": [
+      {
+        "name": "shared-services",
+        "cwd": "packages/cli",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/organization-project-goal-periodic.test.js __tests__/unit/organization-project-goal-service.test.js __tests__/unit/organization-project-risk-review-service.test.js __tests__/unit/organization-project-transfer-service.test.js __tests__/unit/organization-project-proposal-store.test.js __tests__/unit/organization-project-authority.test.js __tests__/unit/organization-project-approval-service.test.js __tests__/unit/organization-task-action-service.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-description-read-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/project-goal-service.test.js __tests__/unit/project-goal-monitoring.test.js __tests__/unit/goal-usage-ledger.test.js __tests__/unit/goal-repository.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/project-goal-completion.test.js __tests__/unit/project-goal-memory.test.js --reporter=json --outputFile=C:/code/chainlesschain/.work/palantir-organization-periodic-isolated-cli-tests.json",
+        "report": ".work/palantir-organization-periodic-isolated-cli-tests.json",
+        "executionRoot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+        "passed": 571,
+        "failed": 0,
+        "skipped": 0,
+        "reportSha256": "65b37b24a0bea09a9cf1a7bae96039b05a1cc29941bc496cda5413d92e86405e",
+        "files": [
+          {
+            "path": "packages/cli/__tests__/unit/goal-repository.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "1ab81be325e5e16544aa02c2f9be066a058197bc43756e241b0f15ae331337c7",
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/goal-usage-ledger.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "a55774283f965bb4bf0f2b9f259e4e90c8fce92d51633dec94a6ee37a0409a0f",
+            "passed": 26,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0",
+            "passed": 47,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3",
+            "passed": 35,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-goal-periodic.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "a858b8d05d9419a16e051b4908ba15a69d837d9d7f93f1944b114346927d16ff",
+            "passed": 30,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-goal-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "b64972900dff4354024e25befb5fdbda974e899c4b651930d4df5123d55b1792",
+            "passed": 30,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "2e6354c714edbc876b4d2d7c2814218574c90f000d7533cedd1fdbaa2669c448",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-risk-review-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "428f152e6e2b6c218257248fa2f5f0acd0e70475362e8ccafaf1314a3ae044b3",
+            "passed": 26,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-transfer-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "5a2aabc7266fd783964288c4487fdf229aae3058577c8533c95360b9a191a0e2",
+            "passed": 57,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-completion.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "9afd111f80d4459d9fdbb9469b3cfe3048e04aa954e42f8ac39bf04302d24f39",
+            "passed": 34,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-memory.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "2bba1f26cee764a519328938ad89b07f22f9617c2d5b2b3fc57257be6f25959f",
+            "passed": 29,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "1fa3d9e6cc04df11daa3f1ffbf1ccbd748e765600b5af83e9c703a38b21e80e6",
+            "passed": 69,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505",
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "030895a5cbfd95f0132666d6d808de34894ae28e193d0c2f2139be98c78ebbc7",
+            "passed": 32,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e",
+            "passed": 44,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065",
+            "passed": 22,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a",
+            "passed": 19,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "pure-contract",
+        "cwd": "packages/session-core",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/goal-contract.test.js --reporter=json --outputFile=C:/code/chainlesschain/.work/palantir-organization-periodic-isolated-contract-tests.json",
+        "report": ".work/palantir-organization-periodic-isolated-contract-tests.json",
+        "executionRoot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+        "passed": 18,
+        "failed": 0,
+        "skipped": 0,
+        "reportSha256": "c9b59f30411e80e6a0e95865f60d183cb0f42cc436887a416ca4b4dfcffd0b9b",
+        "files": [
+          {
+            "path": "packages/session-core/__tests__/goal-contract.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "9789c589e851401fb6c66a62a7c417bdd035b24d78665cf65e66f697eba2cf0f",
+            "passed": 18,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "desktop-host-ipc",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs --reporter=json --outputFile=C:/code/chainlesschain/.work/palantir-organization-periodic-isolated-ipc-tests.json",
+        "report": ".work/palantir-organization-periodic-isolated-ipc-tests.json",
+        "executionRoot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+        "passed": 228,
+        "failed": 0,
+        "skipped": 0,
+        "reportSha256": "180a31a9229f041a44eb771d23418bc6322ece2f301319263890d218f99bcda6",
+        "files": [
+          {
+            "path": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb",
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f",
+            "passed": 50,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "c5b3d9bf7ae25656ac6d5ed53612d787558301fb05cae6d8ecac0cf5561a97c3",
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "745b301082f5fe33e1699c26a5f04e084ea29d4566043f1d4571f17292d70034",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "0d0865ac545c217bf56aadf6b11da81f97abcafe4e8de9616ff81fe184964563",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "4e680502086deb6a95a5aa5f6f5ddda5a46a1818bdf657d9fa46d0f4d6cd25f1",
+            "passed": 23,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "e01b6c7fd97b51ee94418c983d65515a6ea30fe7750fe2e3d283b62ac4ca196e",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "968f048e0e19aef043f69e96336c236cceb48d048d444c1128eccfb22ef22e57",
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "a3fb9a66210a83bd36231b905913a3f530a14c228a4b83344e7061c4682c9426",
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+            "snapshot": "isolated git-index tree",
+            "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "renderer-native-journey",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-renderer.config.mjs --reporter=json --outputFile=C:/code/chainlesschain/.work/palantir-organization-periodic-isolated-renderer-tests.json",
+        "environment": {
+          "NODE_OPTIONS": "--import=file:///C:/code/chainlesschain/.work/organization-periodic-index-FVcvAr/renderer-loader.mjs"
+        },
+        "report": ".work/palantir-organization-periodic-isolated-renderer-tests.json",
+        "executionRoot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+        "passed": 137,
+        "failed": 0,
+        "skipped": 0,
+        "reportSha256": "537caf4bbf6dce92b6008fb02b3ab0bd0ef8d6e0eee391a25d50a02970d4e237",
+        "files": [
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-goal-panel.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "a665d6c28b08f617fe30eaa208e28a4febe7a45d846aa2da89e6cc4e7e73e536",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-goal-periodic-panel.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "27e83a1c878a399b6a1930163fb5d4bffc838146547470dfefd83b01387d7849",
+            "passed": 18,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-risk-panel.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "7ba255d1087a71c46c5a329d63a1b2d3ca2c087ce814caffd0235321f8b82d85",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-transfer.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "5a0fcd087f86f1e59ba018dc8d5386c30458e9014c728a658101c930b89bd07f",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "97ef35162e51536f004fa63f466953501635168f68eadc543e8c9f449a6bf128",
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+            "passed": 29,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+            "snapshot": "isolated git-index tree",
+            "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "snapshot": "isolated git-index tree",
+      "sha256": "791954e8be4dcf24a8324105ab954641453254f904168fe2aae903e5cfbdc700"
+    },
+    {
+      "path": "desktop-app-vue/src/main/index.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/phases/phase-1-ai.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "9d47d19ba444cc6a631258d61f1323e8d44da5a4b053003ae99e2fe3587629fd"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/approval-workflow-manager.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "b362e9206357e8f4e31f3f5a7ba36f10fb6df34e4a94a1ac688a774af5ff10fb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+      "snapshot": "isolated git-index tree",
+      "sha256": "b78ca807e8277fdba3cb7031c12a3d444542cd5caa322f36ac69fb1288db26b7"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "c5b3d9bf7ae25656ac6d5ed53612d787558301fb05cae6d8ecac0cf5561a97c3"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-ipc.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "745b301082f5fe33e1699c26a5f04e084ea29d4566043f1d4571f17292d70034"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "0d0865ac545c217bf56aadf6b11da81f97abcafe4e8de9616ff81fe184964563"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-ipc.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "4e680502086deb6a95a5aa5f6f5ddda5a46a1818bdf657d9fa46d0f4d6cd25f1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "1db34d244847697cd0e0633f08a241e2121e59850b1a137d2a180e6d076becfe"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-goal-host.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "f8bb3a266bf3647361127b4bb2a9c1bd25d08a9741c0c12d3f9b9ecd82240a06"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "68e151588ce3e724f375dbe43e07150eee15aa59e56ed320df1810097cfd89dd"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "a1148b311e16a020eb86a833122a0d637be693799340ce9137e71bd0d41692ae"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "c194c38bbb622c481e58c111a793a74d6c6c9cfad929f67dc304c58efe4046e3"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "8d8652ca8bc59454e8930c1f67f657b4923690b474bf2652ab433e868c1005ec"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "1606334bed2bb0659abfc0b1594440b2d2c218024ac62a9d18ad25ef4592775f"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "snapshot": "isolated git-index tree",
+      "sha256": "51680e79b0aea92b5ce13e1d9ccfce157061c255b40eb7366c21dbae7b218b1e"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectGoalPanel.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "f7fd1332837c9a62269bdcc38ca841995b09e1de946901b1306c868071a09231"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectRiskPanel.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "664fa51b4242222ce031fc292e41f1c88e862ee379fef3d1f0aeea573f0e607e"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "4afefe5e41e9523bfbc9fa373b8a5325e486a14b56900267efbae54c554372fb"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "5aa61ef883be0aaec876eb63edde27bf59199d439ad57608927547e7ed5acda5"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "b559e179fd90e77378d0ead4b12bb2ccb12b8e1f0953af9ee5c2226d416f3cfb"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMemoryPanel.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "6c59b73293e64c825b286f1b36bdff80435a414932fd31d1d91ee05824e9966d"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "feb53ff1f2e44f2b032d7b3a8c0271aeee738eebf8221a4136a31b257518a5ef"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectTaskDescriptionDrawer.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "ece038499326fd84ddfff955869024e73fa5c43adbda8df6fd232ca47dd535d7"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-goal-panel.test.ts",
+      "snapshot": "isolated git-index tree",
+      "sha256": "a665d6c28b08f617fe30eaa208e28a4febe7a45d846aa2da89e6cc4e7e73e536"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-goal-periodic-panel.test.ts",
+      "snapshot": "isolated git-index tree",
+      "sha256": "27e83a1c878a399b6a1930163fb5d4bffc838146547470dfefd83b01387d7849"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts",
+      "snapshot": "isolated git-index tree",
+      "sha256": "236c6ff0003f12ba119995f54874b09ccaf7355fab66b832e86ab1fee193d161"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts",
+      "snapshot": "isolated git-index tree",
+      "sha256": "3524819c60de86f7e5c0e6ede3e81e5c69fe50ee1d2a2fa0440c2f5b52bd0509"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "075462a6d1b48124bbcdb557785e8e470f9b1a81dd9efab86732ff6f1f184f94"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/shell/projects/ProjectDetailDrawer.vue",
+      "snapshot": "isolated git-index tree",
+      "sha256": "9f9e4e492f0644f15d9057044d4bcae891c5fea6bdf0670200bf518ae2b88fae"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+      "snapshot": "isolated git-index tree",
+      "sha256": "1d76923c279af4d03bd03c7554dce944318a4cfdc711be9b6f921d2fb98f807f"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+      "snapshot": "isolated git-index tree",
+      "sha256": "8b0c492615345fa47ed0c48ca9d516a1526c89de13616285109e244f904531c5"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-authority.md",
+      "snapshot": "git-index documentation",
+      "sha256": "b30b6b1160a6e0cda9ded2f2821c7221ddda421bafa9575f908bad3b447e8776"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-goal-periodic.md",
+      "snapshot": "git-index documentation",
+      "sha256": "b98b14587d06c04b88854ffed4c6c7dd5f891a8186c05f4473ccfeb6fa1cf37c"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-goals.md",
+      "snapshot": "git-index documentation",
+      "sha256": "fcc5d3f1835f1cd4cdd4f1fe2eb1f61d269c92733c601de78dcf54b7382cc365"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "snapshot": "git-index documentation",
+      "sha256": "6e687df46359bb1c8889acdf69ec08be13a6a3047aabc78dbec77fad31f47ff1"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-goal-periodic.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "a858b8d05d9419a16e051b4908ba15a69d837d9d7f93f1944b114346927d16ff"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-goal-service.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "b64972900dff4354024e25befb5fdbda974e899c4b651930d4df5123d55b1792"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+    },
+    {
+      "path": "packages/session-core/__tests__/goal-contract.test.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "9789c589e851401fb6c66a62a7c417bdd035b24d78665cf65e66f697eba2cf0f"
+    },
+    {
+      "path": "packages/session-core/lib/approval-gate.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88"
+    },
+    {
+      "path": "packages/session-core/lib/business-object-contract.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133"
+    },
+    {
+      "path": "packages/session-core/lib/goal-contract.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "db334812d36372233c18adf4adcb4bbf0c8e67d2eebf5dffb4e980e4a4b158d8"
+    },
+    {
+      "path": "packages/session-core/lib/goal-repository.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "b80faf969b0386648dbbc4590269a2288200683d36e75dda7c04717e7801a1a7"
+    },
+    {
+      "path": "packages/session-core/lib/goal-usage-ledger.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "ced17a2032759273cc98f201f523ed033c674f12587ee6a3201bc86e86b886a4"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-approval-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "92f04a3b2a0d50eb12085cc99a121b3621f3f206e4b2dbe3b6a06771863bf82a"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-authority.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "00e5d69dcd466635af829739fba7e0d24b3e620b71a1143402e12c7ca78ff120"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-goal-monitoring.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "0b362460278794e3f947a0c9f1b8ae5c5763442e74c70fd138190f4701430a74"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-goal-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "fc9b446659d4f7f86bd9fa4b90111eeacf0aa299a6469fed35215c421248f353"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-proposal-store.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "59b36c4e8a7c25770ed488449981d8f0a1b5fb96039fa0707b134ad83a9cb6d8"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-risk-review-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "15ff556d3d1944774113fe55a34e7452dce77e47ec64a572272639ced5949321"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-transfer-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "1eb024eadcbaf5496e38088095467a569f4c6d16fa8cdbc77e253242d3ba421a"
+    },
+    {
+      "path": "packages/session-core/lib/organization-task-action-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "1dd2ae11b9a2378ac0bf64e4c081497441d5a1992721ea8a4a2b16a91037c08b"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "60a942d42cb6a2cdf58dff124ee2ab133fd92e8b165c43bc00edcb4e8bfde5b3"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-completion.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "fd1de952721dcf6aa10c1b6299220514034b37042b41bf6de06b1bde1093f70a"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-memory.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "a9dd688ec9b3f5deb3c31ba5f2a4b6bafed1d2d60d7aebdb909b24bd32e9ccaa"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-monitoring.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "bb0554181ed8960efecef663c0a14872e06526d839f1986cb7de004fe23df87d"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-workflow.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "67cac96e99c31adaba63d6e7b5ab6fddc85157ba2ac7a576b43a1cf019d83aab"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-evaluation.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "7807c05dbc90ebf097c427d6b971308a5e16cb6645626a46b1f43c50090d9ca5"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-review-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-authority-resolver.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "8c865bcc07c671fd9fa3aea8d2db3bdd7800f15c4227458de88ceb02650f311b"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-contract.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "68d06ffd85884ef493f72d0773ef91e64de054f79c8bc00b32cc8010af849738"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-runtime.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-store.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933"
+    },
+    {
+      "path": "packages/session-core/lib/task-description-action-service.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "606d87844241928b1702a418980105258530d2c7c0d6b1e574ee7166e448d9d3"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "snapshot": "isolated git-index tree",
+      "sha256": "dd261757e93d4ba58e53460bb06568a1ba890c4b081b38b46fe1c123099bc408"
+    },
+    {
+      "path": "packages/session-core/vitest.config.js",
+      "snapshot": "isolated git-index tree",
+      "sha256": "4dffb35230955326f880c2d1b121888c7d40977a2549e760139758a04505cfb9"
+    }
+  ],
+  "historicalEvidencePreserved": [
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-authority-2026-10-07.json",
+      "sha256": "aeabf5f8ebbb0b2129b345827c16ed940f773cba2aafd9f0daa2d4fbb8751dcf"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-workflow-2026-10-07.json",
+      "sha256": "41b735261b41f8635b9ccf718cd31f410848e250763a84949236c005e0c3d749"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-project-transfer-2026-10-07.json",
+      "sha256": "b83484365afb39c4106cc8105b1e815bcfa39ae78b522582a51c13ebe8e2a846"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-risk-2026-10-07.json",
+      "sha256": "685396965446d43ed09987ad06df81b443ba8feec5d4d3838992eef21369b449"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-goals-2026-10-07.json",
+      "sha256": "08089166a874e3aaaf233032fb4d99c0a538cfb2f07a0b714da4dbe5eb5336cc"
+    }
+  ],
+  "extraChecks": [
+    {
+      "command": "node .work/verify-organization-periodic-source.mjs",
+      "report": ".work/palantir-organization-periodic-source-checks.json",
+      "reportSha256": "06f148e2f74a4e21636031d673bc7b66c776a1c64e66dc57fa3fb0fc45228009",
+      "result": {
+        "sourceRoot": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr",
+        "checks": [
+          {
+            "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-ipc.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-ipc.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-goal-host.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/task-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/preload/index.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-goal-periodic.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-goal-service.test.js",
+            "check": "node --input-type=module --check (stdin)",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-authority.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-goal-monitoring.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-goal-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectGoalPanel.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          }
+        ],
+        "passed": 19,
+        "prettier": {
+          "files": 22,
+          "passed": true,
+          "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+        },
+        "fullTypeCheck": false
+      }
+    },
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --check docs/research/palantir/organization-project-authority.md docs/research/palantir/organization-project-goals.md docs/research/palantir/organization-project-goal-periodic.md docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "cwd": "workspace (owned documentation)",
+      "passed": true
+    },
+    {
+      "command": "node scripts/verify-fixed-renderer-ipc.mjs --check",
+      "cwd": "C:\\code\\chainlesschain\\.work\\organization-periodic-index-FVcvAr/desktop-app-vue",
+      "exactChannels": 1302,
+      "unregisteredRendererChannelsDenied": 156,
+      "newPeriodicChannels": 2,
+      "organizationChannels": 43,
+      "passed": true
+    },
+    {
+      "command": "git diff --cached --check",
+      "passed": true
+    }
+  ],
+  "review": "Core Astra implemented 30 periodic SQLite/Scheduler tests and 121 selected core regressions. Native Astra independently implemented 23 IPC and 5 host cases. Root added 18 renderer cases, updated legacy expectations, and verified exact staged source in isolation.",
+  "boundaries": [
+    "goal.monitor is explicit; new consent additionally requires goal.read/check and risk.read/evaluate. Stop requires goal.read/monitor, supports revoked risk.evaluate, and never cancels manual requests.",
+    "Consent pins actual executor, definition/control generation and organization authority, expires within 24 hours, and starts no earlier than one interval (60 seconds to 24 hours). Only one current monitor per goal.",
+    "Application running/unlocked matching executor is required. A new tick after same-DID login can resume still-valid consent; every async tick/check pins authentication generation to reject in-flight ABA.",
+    "Consent ignores projectSourceRevision only for subsequent consent validity; each individual periodic request still pins full current authority and verifies freshness transactionally.",
+    "Pending slot/request nonce is durable before enqueue. Recovery retains nonce after enqueue/settlement failure; offline due slots coalesce. Existing scheduler once-per-trigger/leases and shared whole-goal budget are reused.",
+    "Periodic stop blocks future cycles but permits already-admitted recovery. Abort persists a fence for this monitor and signals its in-flight check; activeOccurrence remains visible, with no claim of synchronous kill.",
+    "Native replacement uses expectedMonitorId; old start/stop replays return prior metadata without reviving old monitor or stopping a replacement. Goal/control/membership/policy/mapping/schema changes require new native consent.",
+    "SQLite risk/check/usage commits atomically; scheduler settlement remains a recoverable projection. Integrity digests are not cross-service signatures; model usage/cost remains unknown.",
+    "Windows selected local tests only; no full repository/full TypeScript/real Electron GUI/exact-commit Linux/macOS release matrix or tenant/model business acceptance. Dialog/auth-provider and successful ACL callbacks are injected; real SQLite/files/Vue run.",
+    "Goal-bound action proposals/multi-level approvals, goal acceptance/completion, organization memory and other roadmap work remain. No push/release/publication; historical evidence and concurrent changes preserved."
+  ]
+}

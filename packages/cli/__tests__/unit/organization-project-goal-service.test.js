@@ -214,7 +214,7 @@ describe("organization shared goals and manual scheduler occurrences", () => {
     expect(engine.status({ id: goal.id })).toMatchObject({
       goal,
       usage: { totalRuns: 0 },
-      manualOnly: true,
+      manualOnly: false,
     });
     expect(() => engine.history({ id: goal.id })).toThrow(
       "ORG_AUTH_NOT_FOUND_OR_DENIED",
@@ -549,8 +549,8 @@ describe("organization shared goals and manual scheduler occurrences", () => {
       engine.getCheck({ id: goal.id, occurrenceId: result.occurrenceId })
         .result,
     ).toEqual(result.result);
-    expect(engine.startBackground).toBeUndefined();
-    expect(engine.tick).toBeUndefined();
+    expect(engine.backgroundTimer).toBeNull();
+    expect((await engine.tick()).checks).toEqual([]);
     expect(count("cc_organization_project_risk_reviews")).toBe(1);
   });
 

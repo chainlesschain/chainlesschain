@@ -787,6 +787,8 @@
     "organization-project:goal-checks",
     "organization-project:goal-create",
     "organization-project:goal-list",
+    "organization-project:goal-monitor-start",
+    "organization-project:goal-monitor-stop",
     "organization-project:goal-read",
     "organization-project:goal-revise",
     "organization-project:goal-status",
