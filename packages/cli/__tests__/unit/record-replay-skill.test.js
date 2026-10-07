@@ -3,9 +3,21 @@ import {
   createRecordedSkillDraft,
   replayRecordedSkill,
   reviewRecordedSkillDraft,
+  scanRecordedValue,
   validateRecordedSkillDraft,
   validateReviewedRecordedSkill,
 } from "../../src/lib/record-replay/skill-recorder.js";
+import {
+  prepareRecordedSkillBrowserTarget,
+  recordedSkillBrowserEnvironment,
+} from "../../src/lib/record-replay/browser-target-policy.js";
+
+// This real generated hash contains a phone-like digit run; keep the fixture
+// deterministic instead of waiting for a random URL/port hash to hit it in CI.
+const browserEnvironment = recordedSkillBrowserEnvironment(
+  prepareRecordedSkillBrowserTarget({ html: "<h1>Project 57</h1>" }),
+);
+const phoneLikeDigest = browserEnvironment.targetDigest;
 
 function draft(overrides = {}) {
   return createRecordedSkillDraft({
@@ -59,6 +71,73 @@ describe("Record & Replay to Skill prototype", () => {
       expect.objectContaining({
         code: "CC_REPLAY_SENSITIVE_OR_VOLATILE_DATA",
       }),
+    );
+  });
+
+  it("retains generated browser digests through capture, serialization and review", () => {
+    expect(scanRecordedValue(phoneLikeDigest)).toEqual([
+      { path: "#", category: "pii" },
+    ]);
+    const value = draft({ environment: browserEnvironment });
+    expect(value.environment.requirements.targetDigest).toBe(phoneLikeDigest);
+    const approved = approve(JSON.parse(JSON.stringify(value)));
+    expect(validateReviewedRecordedSkill(approved).draftDigest).toBe(
+      value.draftDigest,
+    );
+  });
+
+  it("does not scan the recomputed environment binding digest as user content", () => {
+    const value = draft({ environment: { app: "project-356" } });
+    expect(scanRecordedValue(value.environment.digest)).toEqual([
+      { path: "#", category: "pii" },
+    ]);
+    expect(validateRecordedSkillDraft(value).draftDigest).toBe(
+      value.draftDigest,
+    );
+    expect(approve(value).environment.digest).toBe(value.environment.digest);
+  });
+
+  it.each([
+    { description: phoneLikeDigest },
+    { failureConditions: [phoneLikeDigest] },
+    { environment: { note: phoneLikeDigest } },
+    { environment: { "targetDigest/nested": phoneLikeDigest } },
+    {
+      environment: {
+        ...browserEnvironment,
+        contact: "person@example.com",
+      },
+    },
+    {
+      environment: {
+        ...browserEnvironment,
+        networkPolicy: {
+          ...browserEnvironment.networkPolicy,
+          credential: "Bearer secret-token-value",
+        },
+      },
+    },
+  ])(
+    "keeps user content scanning strict beside digest metadata: %j",
+    (overrides) => {
+      expect(() => draft(overrides)).toThrowError(
+        expect.objectContaining({
+          code: "CC_REPLAY_SENSITIVE_OR_VOLATILE_DATA",
+        }),
+      );
+    },
+  );
+
+  it.each([
+    { targetDigest: "sha256:13800138000" },
+    { targetDigest: null },
+    { targetDigest: `${phoneLikeDigest} person@example.com` },
+    { targetDigest: { nested: phoneLikeDigest } },
+    { storageStateDigest: "Bearer secret-token-value" },
+    { networkPolicy: { digest: "sha256:invalid" } },
+  ])("rejects malformed browser digest fields: %j", (environment) => {
+    expect(() => draft({ environment })).toThrowError(
+      expect.objectContaining({ code: "CC_REPLAY_INVALID_ARGUMENT" }),
     );
   });
 

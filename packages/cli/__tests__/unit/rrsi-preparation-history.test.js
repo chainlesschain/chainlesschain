@@ -29,7 +29,9 @@ import { rrsiCanonical } from "../../src/lib/evolution/rrsi-data.js";
 
 const roots = [];
 function fixture({ maxAttempts = 4, ...options } = {}) {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-preparation-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-preparation-"),
+  );
   roots.push(root);
   const value = {
     ...openRrsiHistoryStore(root, { initialize: true, ...options }),
@@ -64,7 +66,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-preparation-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-preparation-",
       )
     )
       throw new Error("unsafe test cleanup target");
@@ -621,7 +623,9 @@ describe("RRSI durable preparation accounting", () => {
 
   it("requires a preparation plan and prohibits late plan registration after final freeze", () => {
     const value = fixture();
-    const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-preparation-"));
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(tmpdir()), "rrsi-preparation-"),
+    );
     roots.push(root);
     const legacy = openRrsiHistoryStore(root, { initialize: true });
     legacy.adapter.registerCampaign(legacy.campaign);

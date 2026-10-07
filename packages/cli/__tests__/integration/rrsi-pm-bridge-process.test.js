@@ -12,7 +12,9 @@ const worker = fileURLToPath(
   new URL("../fixtures/rrsi-pm-bridge-process.mjs", import.meta.url),
 );
 function fixture() {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-pm-bridge-process-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-pm-bridge-process-"),
+  );
   roots.push(root);
   return { root, ...openRrsiPmBridgeFixture(root) };
 }
@@ -27,7 +29,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-pm-bridge-process-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-pm-bridge-process-",
       )
     )
       throw new Error("unsafe fixture cleanup");

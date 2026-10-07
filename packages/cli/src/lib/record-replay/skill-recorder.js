@@ -26,6 +26,7 @@ const VOLATILE_PATTERNS = Object.freeze([
   /(?:^|[\\/])(?:tmp|temp)(?:[\\/]|$)/iu,
 ]);
 const PARAMETER_PATTERN = /^\$\{parameter\.([A-Za-z][A-Za-z0-9_]*)\}$/u;
+const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const EMBEDDED_PARAMETER_PATTERN = /\$\{parameter\.([A-Za-z][A-Za-z0-9_]*)\}/gu;
 const DRAFT_SCHEMA = "chainlesschain.recorded-skill-draft/v1";
 const REPORT_SCHEMA = "chainlesschain.recorded-skill-replay/v1";
@@ -163,6 +164,34 @@ export function scanRecordedValue(value) {
     }
   });
   return findings;
+}
+
+function scanRecordedContent({ environment, ...content }) {
+  const scannedEnvironment = clone(environment);
+  const omitDigest = (object, key, nullable = false) => {
+    if (!Object.hasOwn(object, key) || (nullable && object[key] === null))
+      return;
+    if (typeof object[key] !== "string" || !SHA256_PATTERN.test(object[key])) {
+      throw recorderError(
+        "CC_REPLAY_INVALID_ARGUMENT",
+        `recorded browser ${key} must be a canonical SHA-256 digest`,
+      );
+    }
+    delete object[key];
+  };
+  // These exact browser-binding fields contain generated hashes, whose hex
+  // digits can accidentally match a phone number. Do not exempt digest-like
+  // strings in descriptions, actions or arbitrary environment fields.
+  omitDigest(scannedEnvironment, "targetDigest");
+  omitDigest(scannedEnvironment, "storageStateDigest", true);
+  if (
+    scannedEnvironment.networkPolicy &&
+    typeof scannedEnvironment.networkPolicy === "object" &&
+    !Array.isArray(scannedEnvironment.networkPolicy)
+  ) {
+    omitDigest(scannedEnvironment.networkPolicy, "digest");
+  }
+  return scanRecordedValue({ ...content, environment: scannedEnvironment });
 }
 
 function environmentBinding(environment) {
@@ -440,8 +469,14 @@ export function validateRecordedSkillDraft(value) {
       "recorded skill environment binding was modified",
     );
   }
-  const scanned = { description, actions, failureConditions, environment };
-  const findings = scanRecordedValue(scanned);
+  // The binding digest was recomputed and checked above. Scan the underlying
+  // requirements, not the generated digest, just as initial capture does.
+  const findings = scanRecordedContent({
+    description,
+    actions,
+    failureConditions,
+    environment: environment.requirements,
+  });
   if (findings.length > 0) {
     throw recorderError(
       "CC_REPLAY_SENSITIVE_OR_VOLATILE_DATA",
@@ -689,7 +724,7 @@ export function createRecordedSkillDraft({
     clone(actions, "actions"),
     bindings,
   );
-  const findings = scanRecordedValue({
+  const findings = scanRecordedContent({
     description: safeDescription,
     actions: sanitizedActions,
     environment: safeEnvironment,

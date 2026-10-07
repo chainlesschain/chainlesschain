@@ -32,7 +32,9 @@ const clone = (input) => JSON.parse(JSON.stringify(input));
 const selection = rrsiNativeBatchFixture();
 const generalization = rrsiNativeBatchFixture({ stage: "generalization" });
 function fixture() {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-native-batch-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-native-batch-"),
+  );
   roots.push(root);
   const value = openRrsiHistoryStore(root, {
     initialize: true,
@@ -75,7 +77,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-native-batch-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-native-batch-",
       )
     )
       throw new Error("unsafe cleanup target");

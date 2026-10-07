@@ -41,7 +41,9 @@ function fixture({
   signedRoot = true,
   statisticsPreregistered = false,
 } = {}) {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-enrollment-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-enrollment-"),
+  );
   roots.push(root);
   let value = openRrsiHistoryStore(root, { initialize: true });
   if (journalV2) {
@@ -156,7 +158,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-enrollment-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-enrollment-",
       )
     )
       throw new Error("unsafe fixture cleanup");

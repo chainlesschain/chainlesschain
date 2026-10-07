@@ -14,6 +14,34 @@ function silentLog() {
   /* keep the product-level vendor probe quiet in unit output */
 }
 
+function probeVendoredRuntime(resourcesRoot) {
+  const helperPath = path.join(
+    REPO_ROOT,
+    "desktop-app-vue",
+    "scripts",
+    "prepare-web-shell-vendor.js",
+  );
+  // Use a fresh process so neither workspace resolution nor the ESM module
+  // cache can hide an incomplete installed Resources tree.
+  return spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `
+        const { verifyVendoredPluginBinRuntime } = require(${JSON.stringify(helperPath)});
+        verifyVendoredPluginBinRuntime(process.argv[1])
+          .then((result) => process.stdout.write(JSON.stringify(result)))
+          .catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+      `,
+      resourcesRoot,
+    ],
+    { encoding: "utf8" },
+  );
+}
+
 beforeEach(() => {
   tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "forge-vendor-runtime-"));
 });
@@ -34,6 +62,25 @@ describe("Forge vendored CLI runtime", () => {
     fs.cpSync(
       path.join(REPO_ROOT, "node_modules", "semver"),
       path.join(standaloneNodeModules, "semver"),
+      { recursive: true },
+    );
+    // secure-fs delegates to the shared private-storage implementation. Stage
+    // the real package boundary and published source, as the standalone CLI
+    // production install does, instead of relying on workspace symlinks.
+    const sessionCoreSource = path.join(REPO_ROOT, "packages", "session-core");
+    const sessionCoreDestination = path.join(
+      standaloneNodeModules,
+      "@chainlesschain",
+      "session-core",
+    );
+    fs.mkdirSync(sessionCoreDestination, { recursive: true });
+    fs.copyFileSync(
+      path.join(sessionCoreSource, "package.json"),
+      path.join(sessionCoreDestination, "package.json"),
+    );
+    fs.cpSync(
+      path.join(sessionCoreSource, "lib"),
+      path.join(sessionCoreDestination, "lib"),
       { recursive: true },
     );
     const nestedDependency = path.join(
@@ -79,35 +126,30 @@ describe("Forge vendored CLI runtime", () => {
     expect(stats.cliPackage.files).toBe(1);
     expect(stats.cliNodeModules.files).toBeGreaterThan(0);
 
-    const helperPath = path.join(
-      REPO_ROOT,
-      "desktop-app-vue",
-      "scripts",
-      "prepare-web-shell-vendor.js",
-    );
-    const probe = spawnSync(
-      process.execPath,
-      [
-        "-e",
-        `
-          const { verifyVendoredPluginBinRuntime } = require(${JSON.stringify(helperPath)});
-          verifyVendoredPluginBinRuntime(process.argv[1])
-            .then((result) => process.stdout.write(JSON.stringify(result)))
-            .catch((error) => {
-              console.error(error);
-              process.exitCode = 1;
-            });
-        `,
-        resourcesRoot,
-      ],
-      { encoding: "utf8" },
-    );
+    const probe = probeVendoredRuntime(resourcesRoot);
     expect(probe.status, probe.stderr).toBe(0);
     const result = JSON.parse(probe.stdout);
     expect(result.exportName).toBe("collectWorkspacePluginBinSandboxPolicy");
     expect(result.modulePath).toBe(
       path.join(cliRoot, "src", "lib", "plugin-runtime", "bin.js"),
     );
+
+    // Prove the check actually imports the staged shared implementation and
+    // still fails closed when that published file is absent.
+    fs.unlinkSync(
+      path.join(
+        cliRoot,
+        "node_modules",
+        "@chainlesschain",
+        "session-core",
+        "lib",
+        "private-storage.js",
+      ),
+    );
+    const incompleteProbe = probeVendoredRuntime(resourcesRoot);
+    expect(incompleteProbe.status).toBe(1);
+    expect(incompleteProbe.stderr).toContain("ERR_FORGE_VENDOR_RUNTIME_IMPORT");
+    expect(incompleteProbe.stderr).toContain("private-storage.js");
   });
 
   it("prepares standalone CLI dependencies before every Forge packaging path", () => {

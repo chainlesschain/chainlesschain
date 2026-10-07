@@ -409,6 +409,8 @@ final class IdeUiSmokeTest {
                         + "importClass(com.intellij.openapi.extensions.PluginId); "
                         + "importClass(com.intellij.openapi.application.ApplicationManager); "
                         + "(function() { "
+                        + "if (java.lang.System.getProperty('idea.auto.reload.plugins') != 'false') "
+                        + "throw 'Packaged plugin journey requires development auto reload disabled'; "
                         + "var descriptor = PluginManagerCore.getPlugin("
                         + "PluginId.getId('com.chainlesschain.ide')); "
                         + "if (descriptor == null) throw 'ChainlessChain plugin not installed'; "

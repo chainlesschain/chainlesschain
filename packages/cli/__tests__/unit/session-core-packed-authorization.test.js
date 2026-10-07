@@ -173,7 +173,11 @@ describe("packed session-core authorization boundary", () => {
         isolatedRequire.resolve(
           "@chainlesschain/session-core/goal-usage-ledger",
         ),
-      ).toBe(path.join(extractedPackage, "lib", "goal-usage-ledger.js"));
+      ).toBe(
+        fs.realpathSync.native(
+          path.join(extractedPackage, "lib", "goal-usage-ledger.js"),
+        ),
+      );
       const { GoalUsageLedger } = isolatedRequire(
         "@chainlesschain/session-core/goal-usage-ledger",
       );

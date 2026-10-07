@@ -346,6 +346,12 @@ runCatching {
             version = hostIdeVersion
         }
         task {
+            // Exercise the immutable installed ZIP across real IDE restarts.
+            // Development hot reload can interpret sandbox restaging against
+            // the restored VFS as live modifications and unload both our plugin
+            // and Remote Robot (notably on Windows 2025.2), clearing the loader.
+            // Plugin unload/reload lifecycle is a separate acceptance journey.
+            autoReload.set(false)
             val onboardingPath = System.getProperty("ui.onboarding.path", "")
             if (onboardingPath.isNotBlank()) {
                 require(System.getProperty("ui.onboarding.root", "").isNotBlank()) {

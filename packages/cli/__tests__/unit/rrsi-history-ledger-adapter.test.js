@@ -22,7 +22,9 @@ import {
 
 const roots = [];
 function fixture(options = {}) {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-history-unit-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-history-unit-"),
+  );
   roots.push(root);
   return {
     ...openRrsiHistoryStore(root, { initialize: true, ...options }),
@@ -47,7 +49,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-history-unit-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-history-unit-",
       )
     )
       throw new Error("unsafe test cleanup target");

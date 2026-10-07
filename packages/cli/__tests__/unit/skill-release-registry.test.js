@@ -907,7 +907,11 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
   let controller;
 
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-release-tx-"));
+    // Durable artifact and writer controls require physical roots, including
+    // macOS /private/var and expanded Windows temporary-directory aliases.
+    tempRoot = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-release-tx-"),
+    );
     registryBase = path.join(tempRoot, "releases");
     execution = executionFixture();
     candidates = new SkillCandidateRegistry({
