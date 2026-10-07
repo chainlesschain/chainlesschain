@@ -109,7 +109,9 @@ function ownOptions(input, names) {
   );
 }
 function directory(value) {
-  const stat = fs.lstatSync(value);
+  // NTFS file IDs can exceed Number's exact integer range. Preserve the full
+  // identity so distinct directories cannot collide after numeric rounding.
+  const stat = fs.lstatSync(value, { bigint: true });
   if (
     !stat.isDirectory() ||
     stat.isSymbolicLink() ||
@@ -151,7 +153,7 @@ function syncDirectory(value) {
 }
 function readMarker(file, linkCount = 1) {
   return withEvolutionFileIdentity(fs, file, (samePathHandle) => {
-    const before = fs.lstatSync(file);
+    const before = fs.lstatSync(file, { bigint: true });
     const safe = (stat) =>
       stat.isFile() &&
       !stat.isSymbolicLink() &&
@@ -168,21 +170,26 @@ function readMarker(file, linkCount = 1) {
       fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
     );
     try {
-      const opened = fs.fstatSync(fd);
+      const opened = fs.fstatSync(fd, { bigint: true });
       if (!safe(opened) || !samePathHandle(before, opened))
         hold("store marker changed while opening");
-      const bytes = readBoundedDescriptor(fs, fd, before.size, 4096);
-      const after = fs.lstatSync(file);
+      const bytes = readBoundedDescriptor(fs, fd, Number(before.size), 4096);
+      const after = fs.lstatSync(file, { bigint: true });
       if (
-        !samePathHandle(after, fs.fstatSync(fd)) ||
+        !samePathHandle(after, fs.fstatSync(fd, { bigint: true })) ||
         !equal(
           [
             physicalIdentity(before),
-            before.size,
-            before.mtimeMs,
-            before.ctimeMs,
+            String(before.size),
+            String(before.mtimeNs),
+            String(before.ctimeNs),
           ],
-          [physicalIdentity(after), after.size, after.mtimeMs, after.ctimeMs],
+          [
+            physicalIdentity(after),
+            String(after.size),
+            String(after.mtimeNs),
+            String(after.ctimeNs),
+          ],
         ) ||
         !safe(after)
       )
@@ -824,7 +831,7 @@ export function createRrsiRegistryStorePolicy(input) {
       assertOwnership();
       fs.writeFileSync(fd, bytes);
       fs.fsyncSync(fd);
-      written = fs.fstatSync(fd);
+      written = fs.fstatSync(fd, { bigint: true });
     } finally {
       fs.closeSync(fd);
     }

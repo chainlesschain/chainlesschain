@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packed library when validating new transitive authorization dependencies.
 - Compare temporary fixture paths by their physical identity on Windows and
   macOS while retaining production symlink and path-admission checks.
+- Preserve full 64-bit RRSI directory and marker identities on Windows so
+  distinct objects cannot collide after numeric rounding. Existing identity
+  mismatches still hold the store without rewriting authenticated records.
 - Create SQLite WAL/SHM files before applying final private-storage protection,
   including owner-only Windows ACLs when goal schedulers reopen their stores.
 - Exclude validated browser digest metadata from Record & Replay content scans;
@@ -31,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pair VS Code `0.37.137` and JetBrains `0.4.155` with CLI `0.166.92`. Disable
   development plugin hot reload in the JetBrains test host so restart validation
   retains both the packaged plugin and its UI driver.
+- Require the authorized CLI and downloadable OIDC-published child packages
+  before desktop and mobile builds; remove the product workflow's npm token
+  fallback so dependency failures cannot trigger a separate npm publication.
 
 ### Added - CLI 0.166.92: organization workflows and authenticated registry reads
 

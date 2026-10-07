@@ -21,6 +21,8 @@
 
 本轮修复包括 Session Core 调度数据库在 Windows WAL/SHM 文件权限保护前完成实际初始化，以及 record/replay 对规范摘要的 PII 误报处理；捕获内容仍接受密钥和 PII 扫描。桌面打包与 RRSI 证据夹具的验证修复不代表新增用户功能已获得独立验收。JetBrains 的 Windows 重启修复只关闭安装 ZIP 测试宿主的开发自动插件重载，完整 IDE 重启验证仍须通过。
 
+RRSI 目录和 marker 文件保留完整 64 位物理身份，修复 Windows 大整数被舍入后将不同对象判为同一对象的问题；身份不匹配仍会 HOLD，不会自动改写已认证记录。产品发布流程在所有平台构建前核验独立发布的 CLI 与公开可下载子包，已移除 npm token 回退路径；依赖缺失时停止并先完成 OIDC npm 发布。
+
 候选公开前继续使用下节已核验的 CLI `0.166.91`、Open VSX `0.37.136` 和 JetBrains `0.4.154`。新版本公开后按以下顺序升级：
 
 1. 如涉及存储迁移，先备份并停止旧 writer；旧 Memory v2 reader 可能拒绝新索引 descriptor，降级须使用兼容快照，默认 shadow 不触发迁移。
