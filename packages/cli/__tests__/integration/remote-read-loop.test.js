@@ -91,6 +91,167 @@ describe("remote read recovery in the agent runtime", () => {
     rmSync(cwd, { recursive: true, force: true });
   });
 
+  it("finishes a fixed-issue status answer from retained evidence after repeated metadata reads", async () => {
+    const executions = mockGhInspections(
+      () =>
+        '{"workflowName":"CLI CI","conclusion":"success","headSha":"fixed","jobs":[{"name":"verify-cli (windows-latest)","conclusion":"success"}]}',
+    );
+    let calls = 0;
+    const events = await drain(
+      agentLoop(
+        [
+          {
+            role: "user",
+            content: "看下 #409 是否已经修复，CLI 和 IDE 都发布成功了",
+          },
+        ],
+        {
+          ...base,
+          chatFn: async (messages, options) => {
+            expect(++calls).toBeLessThan(15);
+            if (
+              messages.some(
+                (message) =>
+                  message.role === "system" &&
+                  message.content?.includes("final synthesis turn"),
+              )
+            ) {
+              expect(options.disabledTools).toContain("git");
+              expect(options.disabledTools).toContain("run_shell");
+              expect(JSON.stringify(messages)).toContain("CLI CI");
+              expect(JSON.stringify(messages)).toContain("fixed");
+              return {
+                message: mockTextMessage(
+                  "已核实修复提交的 CLI CI 通过；尚未关闭 #409，综合测试结果未核实。",
+                ),
+              };
+            }
+            return tool(
+              "run_shell",
+              {
+                command:
+                  "gh run view 123 --repo owner/repo --json workflowName,headSha,conclusion,jobs",
+              },
+              calls,
+            );
+          },
+        },
+      ),
+    );
+    expect(executions()).toBe(7);
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toContain("尚未关闭");
+    expect(events.at(-1)).toMatchObject({
+      type: "run-ended",
+      reason: "inspection-synthesis",
+    });
+  });
+
+  it("allows an authorized issue close during evidence recovery and verifies it once", async () => {
+    const commands = [];
+    const originalSpawn = broker.spawnSync;
+    const originalExec = broker.execSync;
+    const run = (command) => {
+      commands.push(command);
+      return command.includes("issue close")
+        ? "Closed issue #409"
+        : command.includes("issue view")
+          ? '{"state":"CLOSED"}'
+          : '{"workflowName":"CLI CI","conclusion":"success"}';
+    };
+    vi.spyOn(broker, "execSync").mockImplementation(function (
+      command,
+      ...args
+    ) {
+      return command.startsWith("gh ")
+        ? run(command)
+        : originalExec.call(this, command, ...args);
+    });
+    vi.spyOn(broker, "spawnSync").mockImplementation(
+      function (file, args, options) {
+        const command = args.find((arg) => arg.startsWith("gh "));
+        return command
+          ? { status: 0, stdout: run(command), stderr: "" }
+          : originalSpawn.call(this, file, args, options);
+      },
+    );
+    let calls = 0;
+    const events = await drain(
+      agentLoop([{ role: "user", content: "确认修复后关闭 issue #409" }], {
+        ...base,
+        chatFn: async (messages, options) => {
+          ++calls;
+          if (calls <= 4)
+            return tool(
+              "run_shell",
+              { command: "gh run view 123 --json workflowName,conclusion" },
+              calls,
+            );
+          if (calls === 5) {
+            expect(JSON.stringify(messages)).toContain(
+              "Evidence inspection recovery",
+            );
+            expect(options.disabledTools || []).not.toContain("run_shell");
+            return tool(
+              "run_shell",
+              { command: "gh issue close 409 --repo owner/repo" },
+              calls,
+            );
+          }
+          if (calls === 6)
+            return tool(
+              "run_shell",
+              { command: "gh issue view 409 --repo owner/repo --json state" },
+              calls,
+            );
+          expect(calls).toBe(7);
+          return { message: mockTextMessage("Issue #409 已关闭。") };
+        },
+      }),
+    );
+    expect(
+      commands.filter((command) => command.includes("issue close")),
+    ).toHaveLength(1);
+    expect(
+      commands.filter((command) => command.includes("issue view")),
+    ).toHaveLength(1);
+    expect(
+      events.find((event) => event.type === "response-complete")?.content,
+    ).toContain("已关闭");
+  });
+
+  it("does not execute a provider's extra tool call after the final evidence synthesis request", async () => {
+    const executions = mockGhInspections(
+      () => '{"jobs":[{"conclusion":"success"}]}',
+    );
+    let calls = 0;
+    const events = [];
+    await expect(
+      drain(
+        agentLoop(
+          [{ role: "user", content: "Verify whether the issue is fixed" }],
+          {
+            ...base,
+            chatFn: async () => {
+              expect(++calls).toBeLessThan(15);
+              return tool(
+                "run_shell",
+                { command: "gh run view 123 --json jobs" },
+                calls,
+              );
+            },
+          },
+        ),
+        events,
+      ),
+    ).rejects.toMatchObject({ code: "CC_AGENT_INSPECTION_STALLED" });
+    expect(executions()).toBe(7);
+    expect(events.some((event) => event.type === "response-complete")).toBe(
+      false,
+    );
+  });
+
   it("recovers a mixed issue/PR/CI investigation through compaction, edits and runs a real verification", async () => {
     writeFileSync(
       join(cwd, "retry-policy.cjs"),

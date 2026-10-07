@@ -1,36 +1,38 @@
 # Agent Platform 发布与升级指南
 
-> 2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 新设计见[持久目标与 RRSI 增量](/design/project-goals-rrsi-update-2026-10-07)。较早日期章节保留历史范围。
+> 2026-10-07 核对：CLI **0.166.92**、Session Core **0.3.17**、Context Memory Kernel **0.1.7** 已按子包 → CLI 顺序通过 GitHub Actions OIDC 发布，公开归档、精确依赖和签名来源均已回读。Open VSX **0.37.137** 与 JetBrains **0.4.155** 已公开并完成实际制品下载与 CLI `0.166.92` 配对核验。本轮四个标签均指向 `e812a89952`；[产品 **v5.0.3.139**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) 已公开 Windows、macOS、Linux、Android 与 iOS 制品。当前状态见[本轮公开回读记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release-publication-0.166.92-e812.json)。
 
-## 2026-10-07 下一轮候选版本
+## 2026-10-07 本轮发布状态
 
-下表是源码候选目标，尚未完成公开发布；既有公开版证据不能替代候选提交的验证结果。
+下表逐组件列出实际发布状态与签名方式。各渠道的公开制品、版本配对和产品构建结果分别核对。
 
-| 组件                  | 候选版本                          | 发布前条件                                                           |
-| --------------------- | --------------------------------- | -------------------------------------------------------------------- |
-| Session Core          | `0.3.17`                          | 精确提交的 Linux、Windows、macOS 验证与 OIDC 发布                    |
-| Context/Memory Kernel | `0.1.7`                           | 精确提交验证与 OIDC 发布，核对下游精确依赖                           |
-| npm CLI               | `0.166.92`                        | 子包可下载；同一提交的 CLI CI 与 CLI Strict Sandbox 全部配置平台通过 |
-| VS Code / VSCodium    | `0.37.137`                        | CLI `0.166.92` 已公开，扩展精确提交发行门通过                        |
-| JetBrains             | `0.4.155`                         | CLI `0.166.92` 已公开，插件精确提交发行门通过                        |
-| 产品 / Desktop        | `5.0.3.139` / `5.0.3-alpha.139`   | 独立产品打包、签名及发行验证                                         |
-| Android               | `5.0.3.139`，versionCode `503139` | 独立 Android 制品验证                                                |
-| iOS                   | `5.0.3`，build `139`              | 独立 iOS 制品验证                                                    |
+| 组件                  | 本轮版本                          | 已验证状态与证据                                                                |
+| --------------------- | --------------------------------- | ------------------------------------------------------------------------------- |
+| Session Core          | `0.3.17`                          | OIDC 发布、公开归档下载及精确提交签名来源核验通过                               |
+| Context/Memory Kernel | `0.1.7`                           | 三平台 CI、OIDC 发布、公开归档及精确提交签名来源核验通过                        |
+| npm CLI               | `0.166.92`                        | CLI CI 70 成功 / 1 条件跳过、Strict 5/5；公开字节、来源与精确子包依赖核验通过   |
+| VS Code / VSCodium    | `0.37.137`                        | Open VSX 已公开、可下载；本地与公开 VSIX SHA256 一致                            |
+| JetBrains             | `0.4.155`                         | Marketplace 已审核公开；公开 ZIP 版本、plugin ID 与推荐 CLI `0.166.92` 核验通过 |
+| 产品 / Desktop        | `5.0.3.139` / `5.0.3-alpha.139`   | Windows / macOS / Linux 制品已公开；Windows、macOS 未代码签名，macOS 未公证     |
+| Android               | `5.0.3.139`，versionCode `503139` | release 签名 arm64、armeabi、通用 APK 与 AAB 已公开                             |
+| iOS                   | `5.0.3`，build `139`              | ad hoc 签名 `ChainlessChain.ipa` 已公开，设备须在描述文件授权范围内             |
 
-发布顺序为子 npm 包 → CLI → IDE 插件 → 移动端和桌面端。每个 npm 包通过 GitHub Actions OIDC 发布后，先核对公开下载及下游精确依赖，再进入下一阶段。桌面与移动端是独立产品候选，排在 IDE 插件之后，仍须完成各自精确提交的打包、签名与制品验证；版本递增不表示已进入 App Store 或 Google Play。
+发布顺序为子 npm 包 → CLI → IDE 插件 → 移动端和桌面端。每个 npm 包通过 GitHub Actions OIDC 发布后，先核对公开下载及下游精确依赖，再进入下一阶段。桌面与移动端排在 IDE 插件之后，按独立产品流程核对构建、签名与制品；App Store、Google Play 和 TestFlight 状态另行列示。
 
-本轮修复包括 Session Core 调度数据库在 Windows WAL/SHM 文件权限保护前完成实际初始化，以及 record/replay 对规范摘要的 PII 误报处理；捕获内容仍接受密钥和 PII 扫描。桌面打包与 RRSI 证据夹具的验证修复不代表新增用户功能已获得独立验收。JetBrains 的 Windows 重启修复只关闭安装 ZIP 测试宿主的开发自动插件重载，完整 IDE 重启验证仍须通过。
+精确发行提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37619216418)、[Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37619282422) 和 [npm OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37626685269) 已成功。[Open VSX](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727157) 与 [JetBrains](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727660) 发布及官方回读成功，产品进度见[独立 Release 流程](https://github.com/chainlesschain/chainlesschain/actions/runs/37637876986)。
+
+本轮修复包括 Session Core 调度数据库在 Windows WAL/SHM 文件权限保护前完成实际初始化，以及 record/replay 对规范摘要的 PII 误报处理；捕获内容仍接受密钥和 PII 扫描。桌面打包与 RRSI 证据夹具的验证修复不代表新增用户功能已获得独立验收。JetBrains 安装 ZIP 测试宿主关闭开发自动插件重载，精确发行提交的 Linux、macOS、Windows 真实宿主与重启验证已通过。
 
 RRSI 目录和 marker 文件保留完整 64 位物理身份，修复 Windows 大整数被舍入后将不同对象判为同一对象的问题；身份不匹配仍会 HOLD，不会自动改写已认证记录。产品发布流程在所有平台构建前核验独立发布的 CLI 与公开可下载子包，已移除 npm token 回退路径；依赖缺失时停止并先完成 OIDC npm 发布。
 
-候选公开前继续使用下节已核验的 CLI `0.166.91`、Open VSX `0.37.136` 和 JetBrains `0.4.154`。新版本公开后按以下顺序升级：
+CLI `0.166.92`、Open VSX `0.37.137` 与 JetBrains `0.4.155` 已公开，可按以下顺序升级：
 
 1. 如涉及存储迁移，先备份并停止旧 writer；旧 Memory v2 reader 可能拒绝新索引 descriptor，降级须使用兼容快照，默认 shadow 不触发迁移。
 2. 安装 `npm i -g chainlesschain@0.166.92 --registry https://registry.npmjs.org`，通过 `cc --version` 核对实际 CLI。
 3. 安装对应的 Open VSX `0.37.137` 或 JetBrains `0.4.155`，重启聊天宿主或 IDE，并通过 Doctor 核对运行时身份与能力。版本配对不能替代实际能力观察。
-4. 桌面与移动端按各自公开制品单独升级；原生应用版本不能证明其嵌入 CLI 已同步到 npm 候选版。
+4. 从[产品下载页](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139)选择对应的桌面或移动端安装包，核对原生应用与其实际使用的 CLI 版本。复制 SQLite 数据前先关闭桌面客户端，并保留 WAL/SHM 文件。Windows、macOS 制品未代码签名，macOS 未公证；Android 使用 release 签名。iOS 本轮使用 ad hoc 签名 IPA，安装设备须在描述文件授权范围内，App Store 与 TestFlight 是独立分发渠道。
 
-## 2026-10-07 公开版升级与主线范围
+## CLI 0.166.91 历史公开版与当时主线范围（2026-10-07）
 
 安装 `npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org`，核对 `cc --version`，升级 IDE 后重启聊天宿主。Open VSX 0.37.136、JetBrains 0.4.154 均推荐该版本；Microsoft Marketplace 未发行。
 
@@ -44,7 +46,7 @@ CLI 发行 SHA 为 `23afea300b`，其 [CLI CI](https://github.com/chainlesschain
 
 ## 0.166.90 历史公开版本
 
-| 组件                     | 当前公开版本                 | 来源与配对                                    |
+| 组件                     | 当时公开版本                 | 来源与配对                                    |
 | ------------------------ | ---------------------------- | --------------------------------------------- |
 | npm CLI                  | **0.166.90**                 | `v-npm-0-166-90` → `28cff6adc8`               |
 | VS Code / VSCodium       | **Open VSX 0.37.135**        | 推荐 CLI `0.166.90`；同一发行提交             |

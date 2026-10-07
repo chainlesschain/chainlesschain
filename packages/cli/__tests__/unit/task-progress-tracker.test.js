@@ -268,6 +268,24 @@ describe("long-running task progress", () => {
     expect(tracker.checkpointFor("child")).toBeNull();
   });
 
+  it("retains a false ancestry predicate as completed inspection evidence", () => {
+    const tracker = new TaskProgressTracker();
+    expect(
+      tracker.record(
+        "git",
+        { success: true, exitCode: 1, predicateResult: false, readOnly: true },
+        { command: "merge-base --is-ancestor newer older" },
+      ),
+    ).toBe(false);
+    const checkpoint = JSON.parse(tracker.checkpointFor().split("\n")[1]);
+    expect(checkpoint.recentDiagnostics[0]).toMatchObject({
+      status: "completed",
+      exitCode: 1,
+      predicateResult: false,
+    });
+    expect(checkpoint.recentToolOutcomes).toEqual([]);
+  });
+
   it("preserves the latest local source evidence when remote diagnostics fill the checkpoint", () => {
     const tracker = new TaskProgressTracker();
     tracker.record(

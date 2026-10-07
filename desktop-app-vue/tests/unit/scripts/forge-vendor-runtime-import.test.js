@@ -62,8 +62,13 @@ describe("Forge vendored CLI runtime", () => {
     fs.cpSync(
       path.join(REPO_ROOT, "node_modules", "semver"),
       path.join(standaloneNodeModules, "semver"),
-      { recursive: true },
+      // A package-manager junction must become real staged files, otherwise
+      // the probe can resolve outside Resources or require symlink privileges.
+      { recursive: true, dereference: true },
     );
+    expect(
+      fs.lstatSync(path.join(standaloneNodeModules, "semver")).isSymbolicLink(),
+    ).toBe(false);
     // secure-fs delegates to the shared private-storage implementation. Stage
     // the real package boundary and published source, as the standalone CLI
     // production install does, instead of relying on workspace symlinks.

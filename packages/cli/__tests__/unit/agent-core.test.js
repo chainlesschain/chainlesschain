@@ -291,6 +291,34 @@ describe("agent tool registry compatibility", () => {
 });
 
 describe("git tool — shell-free (no command injection)", () => {
+  it.each([0, 1, 128])(
+    "reports ancestry exit %s without confusing false with failure",
+    async (status) => {
+      const originalRunner = _gitProcessDeps.run;
+      _gitProcessDeps.run = vi.fn(() => ({
+        status,
+        stdout: "",
+        stderr: status === 128 ? "fatal: Not a valid object name missing" : "",
+      }));
+      try {
+        const result = await executeTool("git", {
+          command: "merge-base --is-ancestor base HEAD",
+        });
+        expect(result.exitCode).toBe(status);
+        if (status === 128) {
+          expect(result.error).toContain("Not a valid object name");
+          expect(result.predicateResult).toBeUndefined();
+        } else {
+          expect(result.error).toBeUndefined();
+          expect(result.predicateResult).toBe(status === 0);
+          expect(result.readOnly).toBe(true);
+        }
+      } finally {
+        _gitProcessDeps.run = originalRunner;
+      }
+    },
+  );
+
   it("routes literal argv through the process broker adapter", async () => {
     const originalRunner = _gitProcessDeps.run;
     const run = vi.fn(() => ({
