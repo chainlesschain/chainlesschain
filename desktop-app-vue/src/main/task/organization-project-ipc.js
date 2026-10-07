@@ -27,6 +27,13 @@ const {
   OrganizationProjectGoalCompletionService,
 } = require("@chainlesschain/session-core/organization-project-goal-completion");
 const {
+  OrganizationProjectGoalMemoryService,
+} = require("@chainlesschain/session-core/organization-project-goal-memory");
+const {
+  ContextMemoryKernel,
+  NativeSqliteMemoryPort,
+} = require("@chainlesschain/context-memory-kernel");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -87,6 +94,14 @@ const CHANNELS = Object.freeze({
   acknowledgeGoalAcceptance: "organization-project:goal-acceptance-acknowledge",
   checkGoalAcceptance: "organization-project:goal-acceptance-check",
   completeGoal: "organization-project:goal-complete",
+  listGoalMemories: "organization-project:goal-memory-list",
+  createGoalMemory: "organization-project:goal-memory-create",
+  correctGoalMemory: "organization-project:goal-memory-correct",
+  revokeGoalMemory: "organization-project:goal-memory-revoke",
+  deleteGoalMemory: "organization-project:goal-memory-delete",
+  listGoalMemoryOperations: "organization-project:goal-memory-operations",
+  recoverGoalMemory: "organization-project:goal-memory-recover",
+  discardGoalMemory: "organization-project:goal-memory-discard",
 });
 function fail(code) {
   const error = new Error(code);
@@ -283,6 +298,72 @@ function createOrganizationProjectHost({
       usage: goals.usage,
       workflow: goalWorkflow,
     });
+    const goalMemory = new OrganizationProjectGoalMemoryService({
+      db,
+      getActor,
+      authority,
+      goals,
+      clock,
+      confirm: (preview) =>
+        confirm(
+          "确认组织目标共享记忆",
+          {
+            create: "保存以下记忆并供本目标的授权成员共享？",
+            correct: "修正共享记忆？旧版本将停止供本目标使用。",
+            revoke: "撤销本目标对这条共享记忆的使用权？",
+            delete:
+              "删除共享记忆？授权成员将无法继续读取正文，删除回执会保留。",
+            discard: "放弃未完成的保存并清理未关联记忆？",
+          }[preview.operation] || "确认本次共享记忆操作？",
+          [
+            `项目/组织：${display(preview.projectId)} / ${display(preview.orgId)}`,
+            `目标/版本：${display(preview.goalId)} / ${preview.goalRevision}`,
+            `请求：${display(preview.requestId)}`,
+            `记忆：${display(preview.memoryId)}`,
+            ...(preview.sourceRef
+              ? [`来源版本：${display(preview.sourceRef.version)}`]
+              : []),
+            ...(preview.operationRequestId
+              ? [`原保存请求：${display(preview.operationRequestId)}`]
+              : []),
+            ...(preview.content !== undefined
+              ? [
+                  `分类：${display(preview.category)}`,
+                  `内容：${display(preview.content)}`,
+                  `到期：${display(preview.expiresAt ?? null)}`,
+                ]
+              : []),
+            "记忆或备注不代表目标已通过验收。",
+            `确认摘要：${display(preview.inputDigest)}`,
+          ],
+        ),
+      onAuthorityChanged: () => {
+        const windows = getElectron().BrowserWindow.getAllWindows?.() ?? [
+          getElectron().BrowserWindow.fromWebContents(event.sender),
+        ];
+        for (const window of windows) {
+          const contents = window?.webContents;
+          if (
+            window &&
+            !window.isDestroyed() &&
+            contents &&
+            !contents.isDestroyed()
+          )
+            contents.send("organization-project:goal-memory-invalidated", {});
+        }
+      },
+      memoryHostFactory: ({ scope, authorize }) => {
+        const port = new NativeSqliteMemoryPort({ db, scope, authorize });
+        return {
+          port,
+          kernel: new ContextMemoryKernel({
+            memoryPort: port,
+            reconciliationPort: port,
+            clock,
+          }),
+        };
+      },
+    });
     return {
       authority,
       db,
@@ -294,11 +375,23 @@ function createOrganizationProjectHost({
       goals,
       goalWorkflow,
       goalCompletion,
+      goalMemory,
       descriptions,
       creation,
       action,
       confirm,
     };
+  }
+  function memoryCall(event, method, params) {
+    const c = factory(event);
+    const finish = (value) => {
+      c.getActor();
+      if (method === "list") c.goalMemory.revalidateOutput(value.outputToken);
+      c.getActor();
+      return value;
+    };
+    const result = c.goalMemory[method](params);
+    return result?.then ? result.then(finish) : finish(result);
   }
   function columns(db, table) {
     return new Set(
@@ -519,6 +612,15 @@ function createOrganizationProjectHost({
       .immediate();
   }
   return Object.freeze({
+    listGoalMemories: (event, params) => memoryCall(event, "list", params),
+    createGoalMemory: (event, params) => memoryCall(event, "create", params),
+    correctGoalMemory: (event, params) => memoryCall(event, "correct", params),
+    revokeGoalMemory: (event, params) => memoryCall(event, "revoke", params),
+    deleteGoalMemory: (event, params) => memoryCall(event, "delete", params),
+    listGoalMemoryOperations: (event, params) =>
+      memoryCall(event, "operations", params),
+    recoverGoalMemory: (event, params) => memoryCall(event, "recover", params),
+    discardGoalMemory: (event, params) => memoryCall(event, "discard", params),
     async startGoalMonitoring(event, params) {
       const value = input(params, [
           "id",

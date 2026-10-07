@@ -11,6 +11,8 @@ export default defineConfig({
     pool: "forks",
     maxWorkers: 1,
     include: [
+      "src/renderer/components/projects/__tests__/organization-project-goal-memory-panel.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
       "src/renderer/components/projects/__tests__/organization-project-goal-acceptance-panel.test.ts",
       "src/renderer/components/projects/__tests__/organization-project-goal-actions-panel.test.ts",
       "src/renderer/components/projects/__tests__/organization-project-goal-periodic-panel.test.ts",

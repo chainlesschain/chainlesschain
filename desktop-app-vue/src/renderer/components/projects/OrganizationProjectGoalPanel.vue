@@ -307,6 +307,20 @@
         @review-id="emit('review-id', $event)"
         @authority-error="failure"
       />
+      <OrganizationProjectGoalMemoryPanel
+        v-if="permissions.includes('goal.memory.read')"
+        :goal="item.goal"
+        :project-id="projectId"
+        :org-id="orgId"
+        :identity-key="identityKey"
+        :actor-did="actorDid || identityKey"
+        :permissions="permissions"
+        :parent-busy="locked"
+        :recovery="goalMemoryRecovery[item.goal.id]"
+        @recovery="goalMemoryRecovery[item.goal.id] = $event"
+        @changed="loadGoals()"
+        @authority-error="failure"
+      />
     </article>
     <button
       v-if="afterId"
@@ -332,6 +346,7 @@ import {
 import { actionCode } from "./task-description-ui";
 import OrganizationProjectGoalActionsPanel from "./OrganizationProjectGoalActionsPanel.vue";
 import OrganizationProjectGoalAcceptancePanel from "./OrganizationProjectGoalAcceptancePanel.vue";
+import OrganizationProjectGoalMemoryPanel from "./OrganizationProjectGoalMemoryPanel.vue";
 type Goal = {
   id: string;
   projectRef: {
@@ -372,6 +387,7 @@ const props = defineProps<{
   projectId: string;
   orgId: string;
   identityKey?: string;
+  actorDid?: string;
   permissions: string[];
   parentBusy?: boolean;
   refreshRevision?: number;
@@ -398,6 +414,7 @@ const pendingMonitors = ref<Record<string, { method: string; input: any }>>({}),
   monitorHours = ref<Record<string, number>>({});
 const goalActionRecovery = ref<Record<string, Record<string, any>>>({});
 const goalAcceptanceRecovery = ref<Record<string, any>>({});
+const goalMemoryRecovery = ref<Record<string, any>>({});
 const locked = computed(() => busy.value || props.parentBusy),
   objectiveBytes = computed(
     () => new TextEncoder().encode(objective.value).length,
@@ -471,6 +488,7 @@ function reset() {
   pendingMonitors.value = {};
   goalActionRecovery.value = {};
   goalAcceptanceRecovery.value = {};
+  goalMemoryRecovery.value = {};
   intervals.value = {};
   monitorHours.value = {};
   error.value = "";

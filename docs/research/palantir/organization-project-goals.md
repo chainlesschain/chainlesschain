@@ -1,6 +1,6 @@
 # 组织共享目标与手动风险检查
 
-更新：2026-10-07。本文保留第十批组织目标存储、共享权限、原生确认、幂等手动检查和桌面入口的交付记录。第十一批增加独立 `goal.monitor`、有期限 executor 同意和两种停止，见[组织目标周期巡检](./organization-project-goal-periodic.md)。第十二批已接入[组织目标建议与多级审批](./organization-project-goal-actions.md)，第十三批已接入[独立验收](./organization-project-goal-acceptance.md)，组织记忆仍待适配；本批未发布。
+更新：2026-10-07。本文保留第十批组织目标存储、共享权限、原生确认、幂等手动检查和桌面入口的交付记录。第十一批增加独立 `goal.monitor`、有期限 executor 同意和两种停止，见[组织目标周期巡检](./organization-project-goal-periodic.md)。第十二批已接入[组织目标建议与多级审批](./organization-project-goal-actions.md)，第十三批已接入[独立验收](./organization-project-goal-acceptance.md)，第十四批已接入[组织目标共享记忆](./organization-project-goal-memory.md)；本批未发布。
 
 ## 使用方式和权限
 
@@ -74,6 +74,6 @@ scheduler 结算是独立投影。领域检查成功后即使 scheduler 结算�
 
 命令、源码及报告哈希见[第十批独立证据](./evidence/palantir-gap-organization-goals-2026-10-07.json)。保持第六至第九批证据不变。所选源码通过 Prettier、Node CJS/ESM 语法、Vue script/template 编译和 IPC 清单检查。
 
-环境为 Windows / Node 22.22.2、实际 better-sqlite3 12.11.1、Vue 3.5.42、happy-dom 20.11.2。领域表、scheduler 文件库和 Vue 交互真实执行；Electron 原生窗口/认证、测试 ACL 回调为注入边界，ACL 拒绝行为有测试，不宣称完成目标生产系统 ACL 验收。没有真实 GUI、全仓库测试、完整类型检查、Linux/macOS 准确提交发布矩阵、真实租户或模型业务验收。第十二批已完成本轮目标建议多级审批绑定；第十三批已完成本轮独立目标验收；组织记忆、附属/看板及其余路线图任务仍未完成。
+环境为 Windows / Node 22.22.2、实际 better-sqlite3 12.11.1、Vue 3.5.42、happy-dom 20.11.2。领域表、scheduler 文件库和 Vue 交互真实执行；Electron 原生窗口/认证、测试 ACL 回调为注入边界，ACL 拒绝行为有测试，不宣称完成目标生产系统 ACL 验收。没有真实 GUI、全仓库测试、完整类型检查、Linux/macOS 准确提交发布矩阵、真实租户或模型业务验收。第十二批已完成本轮目标建议多级审批绑定；第十三批已完成本轮独立目标验收；第十四批已完成本轮组织记忆适配；附属/看板及其余路线图任务仍未完成。
 
 隔离验证使用 Git index 导出的快照及独立 session-core 包解析，排除并行通知策略模块。实时工作区的同文件通知修改保留，只有组织 scope 修改进入本批提交。

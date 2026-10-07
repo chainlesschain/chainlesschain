@@ -64,7 +64,8 @@
     "./evolution-run": "./lib/evolution-run.js",
     "./evolvable-artifact": "./lib/evolvable-artifact.js",
     "./structured-evolution-memory": "./lib/structured-evolution-memory.js",
-    "./nostr-crypto": "./lib/nostr-crypto.js"
+    "./nostr-crypto": "./lib/nostr-crypto.js",
+    "./organization-project-goal-memory": "./lib/organization-project-goal-memory.js"
   },
   "scripts": {
     "test": "vitest run",

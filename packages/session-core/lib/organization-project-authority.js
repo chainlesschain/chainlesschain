@@ -20,6 +20,9 @@ const PERMISSIONS = Object.freeze([
   "goal.monitor",
   "goal.propose",
   "goal.accept",
+  "goal.memory.read",
+  "goal.memory.write",
+  "goal.memory.delete",
 ]);
 const BINDINGS_TABLE = "cc_organization_project_bindings";
 

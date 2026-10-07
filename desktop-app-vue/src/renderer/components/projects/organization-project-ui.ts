@@ -47,6 +47,8 @@ export function organizationApi(): OrganizationApi {
   return api;
 }
 export function organizationAuthorityError(value: unknown) {
+  if (/^GOAL_MEMORY_(SCOPE_CHANGED|OUTPUT_STALE)$/u.test(actionCode(value)))
+    return true;
   if (
     /^ACTION_GOAL_(NOT_FOUND_OR_DENIED|AUTHORITY_|IDENTITY_)/u.test(
       actionCode(value),

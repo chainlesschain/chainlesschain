@@ -427,6 +427,9 @@ function permissionLabel(permission: string) {
         "goal.monitor": "启用或停止组织目标周期巡检",
         "goal.propose": "准备和提交组织目标任务建议",
         "goal.accept": "组织目标验收检查与人工确认",
+        "goal.memory.read": "读取组织目标共享记忆",
+        "goal.memory.write": "保存、修正与撤销共享记忆",
+        "goal.memory.delete": "删除组织目标共享记忆",
       } as Record<string, string>
     )[permission] || "未知权限"
   );

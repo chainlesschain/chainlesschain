@@ -98,6 +98,9 @@ class SqliteOrganizationProjectGoalAdapter {
         CREATE INDEX IF NOT EXISTS idx_org_goal_workflow ON ${PREFIX}_workflow(goal_id,kind,id);
         CREATE TABLE IF NOT EXISTS ${PREFIX}_observations(review_id TEXT NOT NULL,goal_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(review_id,goal_id));
         CREATE TABLE IF NOT EXISTS ${PREFIX}_acceptance(id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,kind TEXT NOT NULL,request_id TEXT NOT NULL,goal_revision INTEGER NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,UNIQUE(goal_id,actor_did,kind,request_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_memory_authority(goal_id TEXT PRIMARY KEY,epoch INTEGER NOT NULL CHECK(epoch>=0));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_memory_links(goal_id TEXT NOT NULL,memory_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(goal_id,memory_id));
+        CREATE TABLE IF NOT EXISTS ${PREFIX}_memory_operations(goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(goal_id,actor_did,request_id));
         CREATE INDEX IF NOT EXISTS idx_org_goal_acceptance ON ${PREFIX}_acceptance(goal_id,kind,goal_revision);
         CREATE INDEX IF NOT EXISTS idx_org_goal_checks_goal ON ${PREFIX}_checks(goal_id,occurrence_id);`);
       db.exec(`CREATE TRIGGER IF NOT EXISTS cc_org_goal_scope_immutable BEFORE UPDATE ON ${PREFIX}s
@@ -373,6 +376,53 @@ class SqliteOrganizationProjectGoalAdapter {
       next.controlGeneration !== current.controlGeneration + 1
     )
       fail("GOAL_INVALID_REPLACEMENT");
+    const result = this.db
+      .prepare(
+        `UPDATE ${PREFIX}s SET revision=?,goal_json=?,content_digest=? WHERE id=? AND revision=?`,
+      )
+      .run(
+        next.revision,
+        JSON.stringify(next),
+        digest(next),
+        current.id,
+        expectedRevision,
+      );
+    if (result.changes !== 1) fail("GOAL_REVISION_CONFLICT");
+    return next;
+  }
+  memoryInTransaction(
+    goalId,
+    expectedRevision,
+    transform,
+    permission,
+    expectedAuthority,
+  ) {
+    if (!this.db.inTransaction) fail("GOAL_TRANSACTION_REQUIRED");
+    if (
+      !["goal.memory.write", "goal.memory.delete"].includes(permission) ||
+      typeof transform !== "function"
+    )
+      fail("GOAL_INVALID_REQUEST");
+    const actor = this._actor(),
+      current = this._read(id(goalId), actor);
+    if (!current) fail("GOAL_NOT_FOUND_OR_DENIED");
+    const authority = this._authorize(
+      current.projectRef.id,
+      actor,
+      permission,
+      expectedAuthority,
+    );
+    if (current.revision !== expectedRevision) fail("GOAL_REVISION_CONFLICT");
+    const next = this._validate(transform(current));
+    // This dedicated CAS can only revise references. It grants no generic update authority.
+    const allowed = reviseGoalRecord(
+      current,
+      { memoryRefs: next.memoryRefs },
+      next.updatedAt,
+    );
+    if (digest(next) !== digest(allowed)) fail("GOAL_INVALID_REPLACEMENT");
+    if (this._actor() !== actor) fail("GOAL_IDENTITY_CHANGED");
+    this._authorize(current.projectRef.id, actor, permission, authority);
     const result = this.db
       .prepare(
         `UPDATE ${PREFIX}s SET revision=?,goal_json=?,content_digest=? WHERE id=? AND revision=?`,

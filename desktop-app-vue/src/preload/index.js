@@ -799,6 +799,15 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:goal-complete",
   "organization-project:goal-create",
   "organization-project:goal-list",
+  "organization-project:goal-memory-correct",
+  "organization-project:goal-memory-create",
+  "organization-project:goal-memory-delete",
+  "organization-project:goal-memory-discard",
+  "organization-project:goal-memory-invalidated",
+  "organization-project:goal-memory-list",
+  "organization-project:goal-memory-operations",
+  "organization-project:goal-memory-recover",
+  "organization-project:goal-memory-revoke",
   "organization-project:goal-monitor-start",
   "organization-project:goal-monitor-stop",
   "organization-project:goal-read",
@@ -4966,6 +4975,31 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    listGoalMemories: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-list", params),
+    createGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-create", params),
+    correctGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-correct", params),
+    revokeGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-revoke", params),
+    deleteGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-delete", params),
+    listGoalMemoryOperations: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-operations", params),
+    recoverGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-recover", params),
+    discardGoalMemory: (params) =>
+      ipcRenderer.invoke("organization-project:goal-memory-discard", params),
+    onGoalMemoryInvalidated: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on("organization-project:goal-memory-invalidated", listener);
+      return () =>
+        ipcRenderer.removeListener(
+          "organization-project:goal-memory-invalidated",
+          listener,
+        );
+    },
     configureGoalAcceptance: (params) =>
       ipcRenderer.invoke(
         "organization-project:goal-acceptance-configure",

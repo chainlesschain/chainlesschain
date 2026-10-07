@@ -40,6 +40,7 @@
         :project-id="projectId"
         :org-id="goalContext.binding.orgId"
         :identity-key="identityKey"
+        :actor-did="goalContext.actorDid"
         :permissions="goalContext.permissions"
         :refresh-revision="goalRefreshRevision"
         :parent-busy="busy"

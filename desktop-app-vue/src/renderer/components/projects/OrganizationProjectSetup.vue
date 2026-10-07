@@ -294,6 +294,9 @@ const permissionChoices = [
   { value: "goal.monitor", label: "启用或停止组织目标周期巡检" },
   { value: "goal.propose", label: "准备和提交组织目标任务建议" },
   { value: "goal.accept", label: "组织目标验收检查与人工确认" },
+  { value: "goal.memory.read", label: "读取组织目标共享记忆" },
+  { value: "goal.memory.write", label: "保存、修正与撤销共享记忆" },
+  { value: "goal.memory.delete", label: "删除组织目标共享记忆" },
 ];
 let epoch = 0;
 function reset() {
